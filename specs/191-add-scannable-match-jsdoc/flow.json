@@ -1,0 +1,201 @@
+{
+  "spec": "specs/191-add-scannable-match-jsdoc/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/191-add-scannable-match-jsdoc",
+  "runId": "e23e4407-74f3-4aa5-a73c-92a6b04a9b31",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: relPath がスキャンルートからの相対パスであることを JSDoc に明記",
+      "status": "done"
+    },
+    {
+      "desc": "R2: 区切り文字が常に / (POSIX) であることを JSDoc に明記",
+      "status": "done"
+    },
+    {
+      "desc": "R3: Windows 上でも \\ に変換されないことを JSDoc に明記",
+      "status": "done"
+    },
+    {
+      "desc": "R4: 先頭に ./ が付かないことを JSDoc に明記",
+      "status": "done"
+    },
+    {
+      "desc": "R5: 具体例を 1 つ以上 JSDoc に含める",
+      "status": "done"
+    },
+    {
+      "desc": "R6: @returns boolean の意味を JSDoc に添える",
+      "status": "done"
+    },
+    {
+      "desc": "R7: JSDoc 必須キーワード検査の spec 検証テストを specs/.../tests/ に配置",
+      "status": "done"
+    },
+    {
+      "desc": "R8: R7 テストは npm test の対象外とし README.md で実行手順を示す",
+      "status": "done"
+    },
+    {
+      "desc": "R9: JSDoc を (a)起点 (b)区切り (c)先頭記法 (d)例 の 4 要素順で記述",
+      "status": "done"
+    }
+  ],
+  "issue": 172,
+  "request": "Scannable.match() の引数仕様を JSDoc に明記する",
+  "worktree": true,
+  "autoApprove": true,
+  "metrics": {
+    "draft": {
+      "srcRead": 1
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 58549,
+        "output": 3552,
+        "cacheRead": 42240,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 5626
+    },
+    "gate": {
+      "tokens": {
+        "input": 25498,
+        "output": 1840,
+        "cacheRead": 24064,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3149
+    },
+    "impl": {
+      "issueLog": 1
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 104138,
+        "output": 4890,
+        "cacheRead": 128896,
+        "cacheCreation": 0
+      },
+      "callCount": 7,
+      "responseChars": 9265,
+      "durationMs": 112301
+    },
+    "review": {
+      "tokens": {
+        "input": 78788,
+        "output": 2170,
+        "cacheRead": 37888,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3719,
+      "durationMs": 47770
+    }
+  },
+  "test": {
+    "summary": {
+      "unit": 1
+    }
+  },
+  "notes": [
+    "review: proposals 1-3 reference files not in this spec's diff (hallucination). applying only proposal 6 (robust JSDoc extraction).",
+    "finalize: auto mode -> all (commit+merge+sync+cleanup)"
+  ],
+  "state": {
+    "finalizedAt": "2026-04-18T22:03:36.676Z"
+  }
+}
