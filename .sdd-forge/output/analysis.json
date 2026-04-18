@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-18T20:44:14.155Z",
+  "analyzedAt": "2026-04-18T21:58:04.256Z",
   "package": {
     "entries": [
       {
@@ -2355,9 +2355,9 @@
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "106df9ca2b6c0affe6894f168b549200",
-        "lines": 243,
-        "mtime": "2026-04-13T05:25:38.911Z",
+        "hash": "82ba4744fe53577132ccd910f60d0e81",
+        "lines": 253,
+        "mtime": "2026-04-18T21:58:03.712Z",
         "className": "report",
         "methods": [
           "generateReport",
@@ -2380,21 +2380,22 @@
         "extends": null,
         "usedBy": null,
         "id": "5f80ffd2",
-        "summary": "This module generates and persists flow report data for a spec run. It computes aggregate metrics and renders a human-readable report text.",
-        "detail": "It traverses per-phase metrics through helper iterators to accumulate activity counters and token usage totals. The report builder returns both structured `data` and formatted `text`, keeping machine and human outputs aligned. Text formatting uses section builders and divider utilities for consistent layout. Persistence writes `report.json` into the spec directory with deterministic pretty-printed JSON.",
+        "summary": "This module builds and persists flow report output from collected issue and metric data. It converts raw runtime counters into a structured JSON object plus a human-readable text report.",
+        "detail": "The file imports formatter helpers and issue-log loading to keep report generation composable. It aggregates activity and token metrics by iterating phases through shared helper functions, then normalizes totals into report fields. `generateReport` returns both machine-friendly `data` and preformatted `text`, avoiding duplicate passes by downstream callers. The text renderer uses section/divider utilities and aligned line formatting for stable CLI output readability. `saveReport` writes `report.json` next to the target spec, resolving paths from root and spec path inputs.",
         "chapter": "cli_commands",
-        "role": "lib",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-13T05:28:46.709Z",
+          "processedAt": "2026-04-18T21:58:37.679Z",
           "attempts": 1
         },
         "keywords": [
           "report generation",
           "metrics aggregation",
-          "token usage",
-          "flow analytics",
-          "JSON report",
-          "text formatter"
+          "flow report",
+          "JSON output",
+          "text rendering",
+          "phase summary",
+          "issue log"
         ]
       },
       {
@@ -3944,9 +3945,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "8cdc1f962b3155da035f1862614affb1",
-        "lines": 386,
-        "mtime": "2026-04-18T09:19:45.911Z",
+        "hash": "0dbb6835048930f0e496eddb5f2c6eeb",
+        "lines": 392,
+        "mtime": "2026-04-18T21:58:03.712Z",
         "className": "agent",
         "methods": [
           "matchProfilePrefix",
@@ -3974,22 +3975,23 @@
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "summary": "This module implements the agent runtime that invokes external LLM providers with retry, parsing, and logging support. It resolves profiles, builds invocations, and normalizes execution behavior across providers.",
-        "detail": "The `Agent` class reads provider/profile settings from configuration and environment, then constructs command arguments and process environment for each call. It supports prompt token substitution, stdin fallback thresholds, work directory injection, and provider-specific flags such as system prompt and cwd flags. Execution includes retry strategy with configurable delay and count, plus parse attempts through provider adapters that interpret raw stdout into structured text and usage metadata. The module also integrates request-scoped logging hooks, flow metric accumulation, and robust error propagation, making it a core orchestration layer for AI-backed operations.",
+        "summary": "This module implements the Agent runtime wrapper that resolves provider/profile config and executes external agent commands with retry, logging, and parsing. It is the core integration point between prompt execution and flow telemetry.",
+        "detail": "The class resolves active profile settings from environment/config, validates required profile references, and throws explicit setup errors when agent configuration is missing. Invocation building handles prompt token substitution, stdin fallback, work directory injection, and process environment assembly before execution. The run path supports bounded retries with delay, then calls a single execution routine that captures output and parses provider-specific response text. Utility helpers isolate argument rewriting and provider parsing failure handling to keep command execution path predictable. `runWithLogging` wraps the invoke lifecycle with request IDs, phase logs, text stats, and safe metric accumulation into flow state.",
         "chapter": "configuration",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-18T09:20:37.714Z",
+          "processedAt": "2026-04-18T21:58:37.679Z",
           "attempts": 1
         },
         "keywords": [
-          "agent runtime",
-          "provider integration",
+          "agent runner",
+          "provider registry",
+          "profile resolution",
           "retry policy",
-          "process spawn",
           "prompt substitution",
-          "metrics logging",
-          "llm invocation"
+          "process spawn",
+          "telemetry logging",
+          "timeout handling"
         ]
       },
       {
@@ -4494,9 +4496,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "92e15473774ae20db5506bc3d24de4cc",
+        "hash": "8a193a4103fb4f1c2a7d1ad15aa1ba86",
         "lines": 286,
-        "mtime": "2026-04-17T14:28:53.268Z",
+        "mtime": "2026-04-18T21:58:03.712Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -4518,27 +4520,29 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "This class coordinates high-level flow state access across main repo and worktree contexts. It merges store access, scan routines, and context resolution helpers.",
-        "detail": "It can clone itself for alternate roots, accumulate metrics, and resolve current context for logging and command workflows. The module scans flow states from local filesystem and git references, with entry limits and defensive handling for malformed JSON blobs. It resolves active flow details including spec ID and worktree path while guarding against invalid combinations. This provides a central orchestration layer over lower-level stores and registries.",
+        "summary": "This module provides `FlowManager`, an orchestration layer for reading, resolving, and scanning flow states across main repo and worktrees. It coordinates stores and registries to expose higher-level flow operations.",
+        "detail": "The class composes `FlowStore`, `ActiveFlowRegistry`, and `PreparingFlowStore` to centralize state transitions and lookup behavior behind one API surface. It offers helpers for resolving spec and SDD phase context, delegating persistence and metric accumulation to store-level components. Scan logic traverses both local `specs` directories and git worktree branches, reading `flow.json` from filesystem or `git show` output. Error handling is pragmatic: malformed JSON entries are reported to stderr and skipped so broad scans can continue. The module enforces limits and returns normalized records that include spec identifiers and worktree path hints.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-17T14:30:33.210Z",
+          "processedAt": "2026-04-18T21:58:37.679Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
           "state orchestration",
-          "worktree context",
-          "flow scanning",
-          "metrics accumulation"
+          "worktree scan",
+          "flow discovery",
+          "registry",
+          "spec resolution",
+          "git integration"
         ]
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "6b54b10c9550d13f1e947d7072384d46",
-        "lines": 260,
-        "mtime": "2026-04-17T12:39:55.912Z",
+        "hash": "28ca8dfffce505ae94d723454af14edc",
+        "lines": 264,
+        "mtime": "2026-04-18T21:58:03.712Z",
         "className": "flow-store",
         "methods": [
           "FlowStore",
@@ -4561,54 +4565,59 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "enrich": {
-          "processedAt": "2026-04-17T14:30:33.210Z",
-          "attempts": 2
-        },
-        "summary": "This module implements durable flow state persistence and mutation operations. It reads/writes `flow.json`, resolves path contexts, and updates metrics/finalization metadata.",
-        "detail": "It includes helpers to derive spec IDs from branch names and locate spec-specific state files. The class supports read-only loading, active-flow resolution, create/update persistence, and worktree path mapping from stored branch information. It validates finalized timestamps against UTC ISO format and exposes safe metric increment paths with stderr fallback on failures. Together, these methods form the core transactional layer for flow lifecycle data.",
+        "summary": "This module defines `FlowStore`, the persistence model for flow state files, path resolution, and agent metric accumulation. It is responsible for reading/writing canonical `flow.json` state and related path derivation.",
+        "detail": "It centralizes path rules via helpers such as `specFlowPath` and branch-derived spec ID mapping, ensuring deterministic state location behavior. Load APIs cover mutable and read-only access patterns with malformed JSON safeguards and explicit null fallbacks. Save/update methods create parent directories as needed and serialize normalized JSON with stable formatting. The store also computes worktree metadata and validates finalized timestamps against strict UTC ISO expectations. Metric accumulation updates counters within persisted state and reports skip/failure conditions to stderr without crashing command flows.",
         "chapter": "internal_design",
         "role": "model",
+        "enrich": {
+          "processedAt": "2026-04-18T21:58:37.679Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow store",
           "state persistence",
           "flow.json",
-          "worktree mapping",
-          "metric update",
-          "finalization timestamp"
+          "spec id",
+          "serialization",
+          "metrics counters",
+          "worktree paths",
+          "timestamp validation"
         ]
       },
       {
         "file": "src/lib/formatter.js",
-        "hash": "348d372e21f4c22d0f206c4a98ce5dd7",
-        "lines": 22,
-        "mtime": "2026-04-10T06:35:13.099Z",
+        "hash": "6fc19a3da3c58cfc5a36e54465a9c008",
+        "lines": 35,
+        "mtime": "2026-04-18T21:58:03.712Z",
         "className": "formatter",
         "methods": [
-          "pushSection"
+          "pushSection",
+          "formatDurationSeconds"
         ],
         "imports": [],
         "exports": [
           "pushSection",
+          "formatDurationSeconds",
           "DIVIDER"
         ],
         "extends": null,
         "usedBy": null,
         "id": "994720ab",
-        "enrich": {
-          "processedAt": "2026-04-13T05:28:46.709Z",
-          "attempts": 5
-        },
-        "summary": "This formatting utility defines a standard divider and section-push helper for text reports. It provides a small shared abstraction for consistent console formatting.",
-        "detail": "The module exports a canonical divider string reused by reporting and summary outputs. `pushSection` appends titled sections into mutable line arrays with a stable style. Keeping this logic centralized avoids duplicated formatting literals. The implementation is intentionally lightweight and pure.",
+        "summary": "This formatter utility module provides shared report-layout primitives for section headers and duration rendering. It standardizes CLI text output style across commands.",
+        "detail": "A constant divider string is exported so output blocks use one visual boundary pattern. `pushSection` appends title and divider lines into mutable line buffers, keeping section composition logic lightweight. `formatDurationSeconds` normalizes numeric millisecond-like values into fixed one-decimal seconds text. The API stays intentionally small and side-effect free except for caller-managed array mutation. This module acts as a common formatting dependency for report and metrics command output.",
         "chapter": "internal_design",
         "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-18T21:58:37.679Z",
+          "attempts": 1
+        },
         "keywords": [
           "formatter",
-          "section builder",
-          "divider",
-          "console layout",
-          "text rendering"
+          "output utility",
+          "section divider",
+          "duration format",
+          "CLI display",
+          "text layout"
         ]
       },
       {
@@ -5408,11 +5417,14 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "63dbc6915de5178da68d1c6bf45bd6ce",
-        "lines": 454,
-        "mtime": "2026-04-18T20:35:29.040Z",
+        "hash": "a4d7531cfe1389eafe16a25aaf542867",
+        "lines": 491,
+        "mtime": "2026-04-18T21:58:03.712Z",
         "className": "token",
         "methods": [
+          "formatText",
+          "formatCsv",
+          "buildRowsFromMetrics",
           "formatUsage",
           "usageError",
           "isoDateFromFinalizedAt",
@@ -5422,14 +5434,13 @@
           "asCsvValue",
           "sortRows",
           "groupRowsByPhase",
-          "formatText",
           "formatJson",
-          "formatCsv",
           "listFlowFiles",
           "computeMaxFinalizedAt",
           "isCacheFresh",
           "toRowKey",
           "createEmptyRow",
+          "finalizeRow",
           "safeReadJson",
           "countFilesRecursive",
           "sumReviewCount",
@@ -5450,30 +5461,35 @@
           "node:path",
           "../../lib/cli.js",
           "../../lib/command.js",
-          "../../lib/constants.js"
+          "../../lib/constants.js",
+          "../../lib/formatter.js"
         ],
         "exports": [
+          "formatText",
+          "formatCsv",
+          "buildRowsFromMetrics",
           "default"
         ],
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "summary": "Implements the `metrics token` command to aggregate flow metrics by date and phase with text, JSON, or CSV output. It uses a cache keyed by latest finalized timestamp to avoid rebuilding on every run.",
-        "detail": "The command validates format options, scans `specs/**/flow.json` with an upper bound to prevent runaway traversal, and parses each flow entry safely. It computes derived metrics such as review counts, request size, requirement count, test file volume, and a normalized spec difficulty score with precision scaling. Caching stores both rows and max finalized timestamp, with robust fallback messages for cache miss, parse failure, or stale cache conditions. Rendering is format-specific and deterministic via sorted rows and fixed headers. The command exits with explicit success/error codes and integrates into the common command base.",
+        "summary": "This command module implements `metrics token`, including argument parsing, cache management, metric aggregation, and multi-format rendering. It converts finalized flow states into date/phase token analytics for terminal output.",
+        "detail": "The file defines format support (`text`, `json`, `csv`), usage handling, and strict exit behavior through shared constants. It scans spec flow files with upper bounds, validates/reads JSON safely, and can reuse a cache when `maxFinalizedAt` indicates freshness. Row-building logic aggregates token and activity metrics, computes derived fields, and includes optional spec difficulty scoring from requirement count, request size, test volume, and issue-log review data. It finalizes rows into normalized statistics, sorts/groups outputs deterministically, and renders through dedicated formatters. The command writes cache payloads under `.sdd-forge/output/metrics.json` and prints the selected format to stdout.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:06.165Z",
+          "processedAt": "2026-04-18T21:58:37.679Z",
           "attempts": 1
         },
         "keywords": [
-          "metrics token",
-          "flow analytics",
-          "cache freshness",
+          "token metrics",
+          "CLI command",
           "csv export",
-          "json output",
-          "spec difficulty score",
-          "phase aggregation"
+          "json export",
+          "cache invalidation",
+          "difficulty scoring",
+          "flow analytics",
+          "aggregation"
         ]
       },
       {
@@ -8593,9 +8609,9 @@
     ],
     "summary": {
       "total": 248,
-      "totalMethods": 771
+      "totalMethods": 774
     },
     "dataSourceHash": "7d725e75d5031be445119323e4947c91"
   },
-  "enrichedAt": "2026-04-18T20:44:28.057Z"
+  "enrichedAt": "2026-04-18T21:58:37.679Z"
 }
