@@ -1,0 +1,40 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/191-record-phase-duration/draft.md        | 119 ++++++++++++++++\n specs/191-record-phase-duration/flow.json       | 175 ++++++++++++++++++++++++\n specs/191-record-phase-duration/issue-log.json  |  48 +++++++\n specs/191-record-phase-duration/qa.md           |   9 ++\n specs/191-record-phase-duration/review.md       |  41 ++++++\n specs/191-record-phase-duration/spec.md         |  93 +++++++++++++\n specs/191-record-phase-duration/tests/README.md |  38 +++++\n src/flow/commands/report.js                     |  20 ++-\n src/lib/agent.js                                |   8 +-\n src/lib/flow-manager.js                         |   4 +-\n src/lib/flow-store.js                           |   6 +-\n src/lib/formatter.js                            |  13 ++\n src/metrics/commands/token.js                   |  77 ++++++++---\n tests/unit/flow/commands/report-metrics.test.js |  50 +++++++\n tests/unit/lib/agent-with-logger.test.js        |  41 ++++++\n tests/unit/lib/flow-state-agent-metrics.test.js |  66 +++++++--\n tests/unit/metrics/token-duration.test.js       |  73 ++++++++++\n 17 files changed, 842 insertions(+), 39 deletions(-)",
+      "commits": [
+        "feat: feature/191-record-phase-duration"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 526984,
+      "output": 12551,
+      "cacheRead": 214784,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14
+    },
+    "tests": {
+      "unit": 13,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 13
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/191-record-phase-duration\n    17 files changed, 842 insertions(+), 39 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 14\n    input tokens ................ 526,984\n    output tokens ............... 12,551\n    cache-read tokens ........... 214,784\n    cache-create tokens ......... 0\n    cost ........................ N/A\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 13  integration 0  acceptance 0  total 13"
+}

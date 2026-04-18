@@ -8,7 +8,7 @@
 import fs from "fs";
 import path from "path";
 import { loadIssueLog } from "../lib/set-issue-log.js";
-import { pushSection, DIVIDER } from "../../lib/formatter.js";
+import { pushSection, DIVIDER, formatDurationSeconds } from "../../lib/formatter.js";
 
 /**
  * Iterate over each phase object in metrics, skipping null/non-object entries.
@@ -17,9 +17,9 @@ import { pushSection, DIVIDER } from "../../lib/formatter.js";
  */
 function forEachPhase(metrics, fn) {
   if (!metrics) return;
-  for (const phase of Object.values(metrics)) {
+  for (const [phaseId, phase] of Object.entries(metrics)) {
     if (!phase || typeof phase !== "object") continue;
-    fn(phase);
+    fn(phase, phaseId);
   }
 }
 
@@ -44,8 +44,8 @@ function aggregateActivityMetrics(metrics) {
  * @returns {{ input: number, output: number, cacheRead: number, cacheCreation: number, cost: number|null, callCount: number }}
  */
 function aggregateTokenMetrics(metrics) {
-  const totals = { input: 0, output: 0, cacheRead: 0, cacheCreation: 0, cost: null, callCount: 0 };
-  forEachPhase(metrics, (phase) => {
+  const totals = { input: 0, output: 0, cacheRead: 0, cacheCreation: 0, cost: null, callCount: 0, durationMs: 0, phaseDurations: [] };
+  forEachPhase(metrics, (phase, phaseId) => {
     if (phase.tokens) {
       totals.input += phase.tokens.input || 0;
       totals.output += phase.tokens.output || 0;
@@ -57,6 +57,10 @@ function aggregateTokenMetrics(metrics) {
       totals.cost = (totals.cost || 0) + phase.cost;
     }
     totals.callCount += phase.callCount || 0;
+    totals.durationMs += phase.durationMs || 0;
+    if (phase.durationMs > 0) {
+      totals.phaseDurations.push({ phase: phaseId, durationMs: phase.durationMs });
+    }
   });
   return totals;
 }
@@ -207,6 +211,12 @@ function formatText(data) {
     lines.push(metricLine("cache-read tokens", formatInt(t.cacheRead)));
     lines.push(metricLine("cache-create tokens", formatInt(t.cacheCreation)));
     lines.push(metricLine("cost", costStr));
+    if (t.durationMs > 0) {
+      lines.push(metricLine("duration (total)", formatDurationSeconds(t.durationMs)));
+      for (const { phase, durationMs } of t.phaseDurations) {
+        lines.push(metricLine(`  ${phase}`, formatDurationSeconds(durationMs)));
+      }
+    }
   }
 
   // Tests (always shown)

@@ -209,7 +209,7 @@ export class FlowStore {
     }
   }
 
-  accumulateAgentMetrics(phase, usage, responseChars, model) {
+  accumulateAgentMetrics(phase, { usage, responseChars, model, durationMs } = {}) {
     if (!phase) return;
     try {
       this.mutate((state) => {
@@ -230,6 +230,10 @@ export class FlowStore {
 
         m.callCount = (m.callCount || 0) + 1;
         m.responseChars = (m.responseChars || 0) + (responseChars || 0);
+
+        if (durationMs != null) {
+          m.durationMs = (m.durationMs || 0) + durationMs;
+        }
 
         if (model) {
           if (!m.models) m.models = {};

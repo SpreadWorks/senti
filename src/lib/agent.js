@@ -367,7 +367,13 @@ async function runWithLogging({ logger, flowManager, command, systemPrompt, prom
       try {
         const ctx = flowManager.resolveCurrentContext();
         if (ctx.sddPhase) {
-          flowManager.accumulateAgentMetrics(ctx.sddPhase, usage, responseStats.chars, null);
+          const durationMs = Math.max(0, Math.round(Date.now() - startedAt));
+          flowManager.accumulateAgentMetrics(ctx.sddPhase, {
+            usage,
+            responseChars: responseStats.chars,
+            model: null,
+            durationMs,
+          });
         }
       } catch (metricErr) {
         process.stderr.write(`[sdd-forge] agent: metric accumulation failed: ${metricErr.message}\n`);

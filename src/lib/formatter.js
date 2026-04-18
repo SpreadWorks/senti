@@ -19,3 +19,16 @@ export function pushSection(lines, title, divider = DIVIDER) {
   lines.push(`  ${title}`);
   lines.push(`  ${divider}`);
 }
+
+/**
+ * Format a duration given in milliseconds as `x.ys` (seconds with one decimal).
+ * Returns `"N/A"` when the value is not a finite number.
+ *
+ * @param {number|null|undefined} ms
+ * @returns {string}
+ */
+export function formatDurationSeconds(ms) {
+  const n = Number(ms);
+  if (!Number.isFinite(n)) return "N/A";
+  return `${(n / 1000).toFixed(1)}s`;
+}

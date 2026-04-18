@@ -1,0 +1,175 @@
+{
+  "spec": "specs/191-record-phase-duration/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/191-record-phase-duration",
+  "runId": "f4dd72de-4d3c-4250-8a24-59982154545a",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: AI agent invocation duration (ms) is accumulated per phase including retries",
+      "status": "done"
+    },
+    {
+      "desc": "R2: metrics persistence adds durationMs per phase; skips when no phase context",
+      "status": "done"
+    },
+    {
+      "desc": "R3: flow report displays per-phase duration in seconds (one decimal)",
+      "status": "done"
+    },
+    {
+      "desc": "R4: metrics token output adds per-phase duration column",
+      "status": "done"
+    }
+  ],
+  "issue": 171,
+  "request": "#171 issue を進める",
+  "worktree": true,
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 28984,
+        "output": 3927,
+        "cacheRead": 70400,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 5935
+    },
+    "gate": {
+      "tokens": {
+        "input": 10049,
+        "output": 1126,
+        "cacheRead": 14720,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 1208
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 469675,
+        "output": 5496,
+        "cacheRead": 92544,
+        "cacheCreation": 0
+      },
+      "callCount": 7,
+      "responseChars": 6991
+    },
+    "impl": {
+      "issueLog": 1
+    },
+    "review": {
+      "tokens": {
+        "input": 18276,
+        "output": 2002,
+        "cacheRead": 37120,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3755
+    }
+  },
+  "test": {
+    "summary": {
+      "unit": 13
+    }
+  },
+  "autoApprove": true,
+  "state": {
+    "finalizedAt": "2026-04-18T21:58:02.437Z"
+  }
+}

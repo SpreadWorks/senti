@@ -11,6 +11,7 @@ import path from "node:path";
 import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR, EXIT_SUCCESS } from "../../lib/constants.js";
+import { formatDurationSeconds } from "../../lib/formatter.js";
 
 const DEFAULT_FORMAT = "text";
 const SUPPORTED_FORMATS = new Set(["text", "json", "csv"]);
@@ -62,6 +63,7 @@ function asDisplayValue(value, kind = "number") {
   if (value == null) return "N/A";
   if (kind === "cost") return Number(value).toFixed(6);
   if (kind === "difficulty") return Number(value).toFixed(2);
+  if (kind === "duration") return formatDurationSeconds(value);
   return String(value);
 }
 
@@ -88,7 +90,7 @@ function groupRowsByPhase(rows) {
   return groups;
 }
 
-function formatText(rows) {
+export function formatText(rows) {
   if (!rows.length) return "No metrics data found.";
 
   const lines = [];
@@ -97,9 +99,9 @@ function formatText(rows) {
   for (const [phase, phaseRows] of groups.entries()) {
     lines.push(`PHASE ${phase}`);
     lines.push("");
-    lines.push("             |             | token          | cache          |            |        |");
-    lines.push("             | difficulty  | in      out    | read   create  | call count | cost   |");
-    lines.push("--------------------------------------------------------------------------------------");
+    lines.push("             |             | token          | cache          |            |          |          |");
+    lines.push("             | difficulty  | in      out    | read   create  | call count | cost     | duration |");
+    lines.push("-------------------------------------------------------------------------------------------------");
     for (const row of phaseRows) {
       const date = row.date.padEnd(11, " ");
       const diff = asDisplayValue(row.difficulty, "difficulty").padEnd(11, " ");
@@ -108,8 +110,9 @@ function formatText(rows) {
       const read = asDisplayValue(row.cacheRead).padEnd(6, " ");
       const create = asDisplayValue(row.cacheCreate).padEnd(7, " ");
       const calls = asDisplayValue(row.callCount).padEnd(10, " ");
-      const cost = asDisplayValue(row.cost, "cost");
-      lines.push(`${date} | ${diff} | ${inTok} ${outTok} | ${read} ${create} | ${calls} | ${cost}`);
+      const cost = asDisplayValue(row.cost, "cost").padEnd(8, " ");
+      const duration = asDisplayValue(row.durationMs, "duration");
+      lines.push(`${date} | ${diff} | ${inTok} ${outTok} | ${read} ${create} | ${calls} | ${cost} | ${duration}`);
     }
     lines.push("");
   }
@@ -121,8 +124,8 @@ function formatJson(rows) {
   return JSON.stringify({ rows: sortRows(rows) }, null, 2);
 }
 
-function formatCsv(rows) {
-  const header = "date,phase,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,callCount,cost";
+export function formatCsv(rows) {
+  const header = "date,phase,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,callCount,cost,durationMs";
   const lines = [header];
   for (const row of sortRows(rows)) {
     lines.push([
@@ -135,6 +138,7 @@ function formatCsv(rows) {
       asCsvValue(row.cacheCreate),
       asCsvValue(row.callCount),
       asCsvValue(row.cost, "cost"),
+      asCsvValue(row.durationMs),
     ].join(","));
   }
   return lines.join("\n");
@@ -215,8 +219,51 @@ function createEmptyRow(date, phase) {
     cacheCreate: null,
     callCount: null,
     cost: null,
+    durationMs: null,
     _difficultySum: 0,
     _difficultyCount: 0,
+  };
+}
+
+/**
+ * Extract per-phase rows from a single flow's metrics object.
+ * Used by both `buildRows` (file-driven) and unit tests.
+ */
+export function buildRowsFromMetrics(date, metrics, specDifficulty = null) {
+  const rows = [];
+  if (!metrics || typeof metrics !== "object") return rows;
+  for (const [phase, phaseData] of Object.entries(metrics)) {
+    if (!phaseData || typeof phaseData !== "object") continue;
+    const row = createEmptyRow(date, phase);
+    const tokens = phaseData.tokens && typeof phaseData.tokens === "object" ? phaseData.tokens : {};
+    addMetric(row, "tokenInput", tokens.input);
+    addMetric(row, "tokenOutput", tokens.output);
+    addMetric(row, "cacheRead", tokens.cacheRead);
+    addMetric(row, "cacheCreate", tokens.cacheCreation);
+    addMetric(row, "callCount", phaseData.callCount);
+    addMetric(row, "cost", phaseData.cost);
+    addMetric(row, "durationMs", phaseData.durationMs);
+    if (specDifficulty != null) {
+      row._difficultySum += specDifficulty;
+      row._difficultyCount += 1;
+    }
+    rows.push(finalizeRow(row));
+  }
+  return rows;
+}
+
+function finalizeRow(row) {
+  return {
+    date: row.date,
+    phase: row.phase,
+    difficulty: row._difficultyCount > 0 ? row._difficultySum / row._difficultyCount : null,
+    tokenInput: row.tokenInput,
+    tokenOutput: row.tokenOutput,
+    cacheRead: row.cacheRead,
+    cacheCreate: row.cacheCreate,
+    callCount: row.callCount,
+    cost: row.cost,
+    durationMs: row.durationMs,
   };
 }
 
@@ -343,24 +390,14 @@ async function buildRows(flowEntries) {
       addMetric(row, "cacheCreate", tokens.cacheCreation);
       addMetric(row, "callCount", phaseData.callCount);
       addMetric(row, "cost", phaseData.cost);
+      addMetric(row, "durationMs", phaseData.durationMs);
       if (specDifficulty != null) {
         row._difficultySum += specDifficulty;
         row._difficultyCount += 1;
       }
     }
   }
-  const finalized = [...rows.values()].map((row) => ({
-    date: row.date,
-    phase: row.phase,
-    difficulty: row._difficultyCount > 0 ? row._difficultySum / row._difficultyCount : null,
-    tokenInput: row.tokenInput,
-    tokenOutput: row.tokenOutput,
-    cacheRead: row.cacheRead,
-    cacheCreate: row.cacheCreate,
-    callCount: row.callCount,
-    cost: row.cost,
-  }));
-  return sortRows(finalized);
+  return sortRows([...rows.values()].map(finalizeRow));
 }
 
 async function readCacheRows(cachePath) {

@@ -77,6 +77,56 @@ describe("generateReport: token/cost metrics (R3-1, R3-2)", () => {
     assert.ok(result.text, "report text should be generated");
   });
 
+  // ─── Spec 191: duration display (R3) ────────────────────────────────────────
+
+  it("includes per-phase duration in seconds with one decimal (spec 191 R3)", () => {
+    const input = makeInput({
+      draft: {
+        tokens: { input: 1000, output: 200, cacheRead: 0, cacheCreation: 0 },
+        cost: 0.01,
+        callCount: 2,
+        responseChars: 3000,
+        durationMs: 12300,
+      },
+    });
+
+    const { text, data } = generateReport(input);
+    assert.ok(data.tokenMetrics.durationMs >= 12300, "tokenMetrics.durationMs should be aggregated");
+    assert.ok(text.includes("12.3s"), `report text should contain '12.3s'; got:\n${text}`);
+  });
+
+  it("aggregates durationMs across phases (spec 191 R3)", () => {
+    const input = makeInput({
+      draft: {
+        tokens: { input: 1, output: 1, cacheRead: 0, cacheCreation: 0 },
+        callCount: 1,
+        durationMs: 1500,
+      },
+      spec: {
+        tokens: { input: 1, output: 1, cacheRead: 0, cacheCreation: 0 },
+        callCount: 1,
+        durationMs: 800,
+      },
+    });
+
+    const { data } = generateReport(input);
+    assert.equal(data.tokenMetrics.durationMs, 2300);
+  });
+
+  it("omits duration when no durationMs is recorded", () => {
+    const input = makeInput({
+      draft: {
+        tokens: { input: 100, output: 50, cacheRead: 0, cacheCreation: 0 },
+        cost: 0.001,
+        callCount: 1,
+      },
+    });
+
+    const { text } = generateReport(input);
+    // Should not produce a bogus "0.0s" line when duration is absent
+    assert.ok(!/duration[^\n]*0\.0s/i.test(text), "should not show 0.0s when duration is missing");
+  });
+
   it("aggregates token counts across multiple phases", () => {
     const input = makeInput({
       draft: {

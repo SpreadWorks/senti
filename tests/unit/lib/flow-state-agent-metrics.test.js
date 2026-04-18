@@ -45,7 +45,7 @@ describe("accumulateAgentMetrics", () => {
     setupFlow(tmp, "draft");
 
     const usage = makeUsage();
-    makeFlowManager(tmp).accumulateAgentMetrics("draft", usage, 1500, "claude-sonnet-4-6");
+    makeFlowManager(tmp).accumulateAgentMetrics("draft", { usage, responseChars: 1500, model: "claude-sonnet-4-6" });
 
     const loaded = makeFlowManager(tmp).load();
     const m = loaded.metrics.draft;
@@ -64,7 +64,7 @@ describe("accumulateAgentMetrics", () => {
     setupFlow(tmp, "spec");
 
     const usage = makeUsage({ cost: null });
-    makeFlowManager(tmp).accumulateAgentMetrics("spec", usage, 800, "gpt-5-codex");
+    makeFlowManager(tmp).accumulateAgentMetrics("spec", { usage, responseChars: 800, model: "gpt-5-codex" });
 
     const loaded = makeFlowManager(tmp).load();
     const m = loaded.metrics.spec;
@@ -81,8 +81,8 @@ describe("accumulateAgentMetrics", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "draft");
 
-    makeFlowManager(tmp).accumulateAgentMetrics("draft", makeUsage({ input: 100, output: 50, cost: 0.005 }), 1000, "claude-sonnet-4-6");
-    makeFlowManager(tmp).accumulateAgentMetrics("draft", makeUsage({ input: 200, output: 80, cost: 0.010 }), 2000, "claude-sonnet-4-6");
+    makeFlowManager(tmp).accumulateAgentMetrics("draft", { usage: makeUsage({ input: 100, output: 50, cost: 0.005 }), responseChars: 1000, model: "claude-sonnet-4-6" });
+    makeFlowManager(tmp).accumulateAgentMetrics("draft", { usage: makeUsage({ input: 200, output: 80, cost: 0.010 }), responseChars: 2000, model: "claude-sonnet-4-6" });
 
     const loaded = makeFlowManager(tmp).load();
     const m = loaded.metrics.draft;
@@ -99,7 +99,7 @@ describe("accumulateAgentMetrics", () => {
     setupFlow(tmp, "gate");
 
     const usage = makeUsage();
-    makeFlowManager(tmp).accumulateAgentMetrics("gate", usage, 500, "claude-opus-4-6");
+    makeFlowManager(tmp).accumulateAgentMetrics("gate", { usage, responseChars: 500, model: "claude-opus-4-6" });
 
     const loaded = makeFlowManager(tmp).load();
     assert.ok(loaded.metrics, "metrics should be initialized");
@@ -111,9 +111,9 @@ describe("accumulateAgentMetrics", () => {
     tmp = createTmpDir();
     setupFlow(tmp, "impl");
 
-    makeFlowManager(tmp).accumulateAgentMetrics("impl", makeUsage({ cost: null }), 500, "claude-sonnet-4-6");
-    makeFlowManager(tmp).accumulateAgentMetrics("impl", makeUsage({ cost: null }), 400, "gpt-5-codex");
-    makeFlowManager(tmp).accumulateAgentMetrics("impl", makeUsage({ cost: null }), 300, "claude-sonnet-4-6");
+    makeFlowManager(tmp).accumulateAgentMetrics("impl", { usage: makeUsage({ cost: null }), responseChars: 500, model: "claude-sonnet-4-6" });
+    makeFlowManager(tmp).accumulateAgentMetrics("impl", { usage: makeUsage({ cost: null }), responseChars: 400, model: "gpt-5-codex" });
+    makeFlowManager(tmp).accumulateAgentMetrics("impl", { usage: makeUsage({ cost: null }), responseChars: 300, model: "claude-sonnet-4-6" });
 
     const loaded = makeFlowManager(tmp).load();
     const models = loaded.metrics.impl.models;
@@ -130,7 +130,7 @@ describe("accumulateAgentMetrics", () => {
     state.metrics = { draft: { question: 5, srcRead: 2 } };
     makeFlowManager(tmp).save(state);
 
-    makeFlowManager(tmp).accumulateAgentMetrics("draft", makeUsage(), 1000, "claude-sonnet-4-6");
+    makeFlowManager(tmp).accumulateAgentMetrics("draft", { usage: makeUsage(), responseChars: 1000, model: "claude-sonnet-4-6" });
 
     const loaded = makeFlowManager(tmp).load();
     assert.equal(loaded.metrics.draft.question, 5, "existing question counter should be unchanged");
@@ -143,7 +143,53 @@ describe("accumulateAgentMetrics", () => {
     // No flow state created — simulates being outside any flow
     // Should not throw
     assert.doesNotThrow(() => {
-      makeFlowManager(tmp).accumulateAgentMetrics(null, makeUsage(), 500, "claude-sonnet-4-6");
+      makeFlowManager(tmp).accumulateAgentMetrics(null, { usage: makeUsage(), responseChars: 500, model: "claude-sonnet-4-6" });
     });
+  });
+
+  // ─── Spec 191: durationMs accumulation (R1, R2) ─────────────────────────────
+
+  it("accumulates durationMs when provided (spec 191 R2)", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "draft");
+
+    makeFlowManager(tmp).accumulateAgentMetrics("draft", { usage: makeUsage(), responseChars: 1000, model: "claude-sonnet-4-6", durationMs: 1234 });
+
+    const loaded = makeFlowManager(tmp).load();
+    assert.equal(loaded.metrics.draft.durationMs, 1234);
+  });
+
+  it("sums durationMs additively across multiple calls", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "draft");
+
+    const fm = makeFlowManager(tmp);
+    fm.accumulateAgentMetrics("draft", { usage: makeUsage(), responseChars: 500, model: "claude-sonnet-4-6", durationMs: 1000 });
+    fm.accumulateAgentMetrics("draft", { usage: makeUsage(), responseChars: 500, model: "claude-sonnet-4-6", durationMs: 2500 });
+    fm.accumulateAgentMetrics("draft", { usage: makeUsage(), responseChars: 500, model: "claude-sonnet-4-6", durationMs: 800 });
+
+    const loaded = makeFlowManager(tmp).load();
+    assert.equal(loaded.metrics.draft.durationMs, 4300);
+  });
+
+  it("skips durationMs accumulation when phase is null", () => {
+    tmp = createTmpDir();
+    // no flow state
+    assert.doesNotThrow(() => {
+      makeFlowManager(tmp).accumulateAgentMetrics(null, { usage: makeUsage(), responseChars: 500, model: "claude-sonnet-4-6", durationMs: 2000 });
+    });
+  });
+
+  it("treats missing/nullish durationMs as 0 (does not pollute existing total)", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "spec");
+
+    const fm = makeFlowManager(tmp);
+    fm.accumulateAgentMetrics("spec", { usage: makeUsage(), responseChars: 500, model: "claude-sonnet-4-6", durationMs: 1500 });
+    // Call without durationMs should leave total unchanged
+    fm.accumulateAgentMetrics("spec", { usage: makeUsage(), responseChars: 500, model: "claude-sonnet-4-6" });
+
+    const loaded = makeFlowManager(tmp).load();
+    assert.equal(loaded.metrics.spec.durationMs, 1500);
   });
 });

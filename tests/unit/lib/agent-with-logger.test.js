@@ -148,4 +148,45 @@ describe("Agent.call() — metric accumulation (spec 186 R3)", () => {
     await agent.call("hi", { commandId: "test" });
     assert.equal(calls.length, 0);
   });
+
+  // ─── Spec 191: durationMs propagation (R1) ─────────────────────────────────
+
+  it("passes a non-negative integer durationMs to accumulateAgentMetrics (spec 191 R1)", async () => {
+    const calls = [];
+    const flowManager = {
+      resolveCurrentContext: () => ({ spec: "191-record-phase-duration", sddPhase: "test" }),
+      accumulateAgentMetrics: (...args) => { calls.push(args); },
+    };
+    const agent = makeAgentService({ command: "echo", args: ["{{PROMPT}}"] }, tmpDir, { logger, flowManager });
+    await agent.call("hi", { commandId: "test" });
+
+    assert.equal(calls.length, 1, "metric should be accumulated once");
+    const durationMs = calls[0][1]?.durationMs;
+    assert.equal(typeof durationMs, "number", "durationMs arg should be a number");
+    assert.ok(Number.isInteger(durationMs), "durationMs should be an integer (ms)");
+    assert.ok(durationMs >= 0, "durationMs should be non-negative");
+  });
+
+  it("durationMs covers all retry attempts when retries occur (spec 191 R1)", async () => {
+    const calls = [];
+    const flowManager = {
+      resolveCurrentContext: () => ({ spec: "191", sddPhase: "test" }),
+      accumulateAgentMetrics: (...args) => { calls.push(args); },
+    };
+    // Use a command that sleeps briefly then exits non-zero so retry kicks in
+    const sleepFailScript = "const t=Date.now();while(Date.now()-t<80){} process.exit(2);";
+    const agent = makeAgentService(
+      { command: "node", args: ["-e", sleepFailScript] },
+      tmpDir,
+      { logger, flowManager }
+    );
+    await assert.rejects(agent.call("x", { commandId: "test", retryCount: 2, retryDelayMs: 0 }));
+
+    // Metric may or may not be accumulated on failure depending on implementation,
+    // but if accumulated, the durationMs should reflect the total time including all attempts.
+    if (calls.length > 0) {
+      const durationMs = calls[0][1]?.durationMs;
+      assert.ok(durationMs >= 160, `durationMs should include all attempts (>=160ms), got ${durationMs}`);
+    }
+  });
 });

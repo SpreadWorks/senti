@@ -69,8 +69,8 @@ export class FlowManager {
   setIssue(issue) { return this._store.setIssue(issue); }
   addNote(text) { return this._store.addNote(text); }
   incrementMetric(phase, counter) { return this._store.incrementMetric(phase, counter); }
-  accumulateAgentMetrics(phase, usage, responseChars, model) {
-    return this._store.accumulateAgentMetrics(phase, usage, responseChars, model);
+  accumulateAgentMetrics(phase, options) {
+    return this._store.accumulateAgentMetrics(phase, options);
   }
 
   /**
