@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-18T21:58:04.256Z",
+  "analyzedAt": "2026-04-18T22:03:38.410Z",
   "package": {
     "entries": [
       {
@@ -1998,9 +1998,9 @@
       },
       {
         "file": "src/docs/lib/scan-source.js",
-        "hash": "a1c1d5862a48ec07f7f8b6ee5c3e0e14",
-        "lines": 76,
-        "mtime": "2026-04-10T06:35:13.095Z",
+        "hash": "380a2bdcc1680fd5d8ea55a665052eb0",
+        "lines": 78,
+        "mtime": "2026-04-18T22:03:38.064Z",
         "className": "scan-source",
         "methods": [],
         "imports": [
@@ -2017,20 +2017,23 @@
           "src/docs/lib/scan-source.js"
         ],
         "id": "6b08f3c0",
-        "enrich": {
-          "processedAt": "2026-04-10T14:34:55.016Z",
-          "attempts": 2
-        },
-        "summary": "Defines a Scannable mixin that adds scan-related behavior to entry classes. It standardizes default scan participation and entry instantiation.",
-        "detail": "The mixin returns a subclass that can override scan eligibility while providing a stable default. It exposes a factory-style method to build the configured Entry type from the runtime constructor. This pattern keeps scanner integration lightweight and composable across base classes.",
+        "summary": "This module defines a `Scannable` mixin that augments a base class with source-scanning defaults. It provides a conservative fallback that marks instances as not scannable unless specialized.",
+        "detail": "The implementation uses a higher-order class pattern: `Scannable(Base)` returns a class extending the provided base type. Inside that subclass, default behavior includes returning `false` for scan eligibility, which prevents accidental scanning in generic contexts. It also instantiates entries through `new (this.constructor.Entry)()`, relying on a static `Entry` class hook for polymorphic entry creation. This pattern keeps the base scanning contract reusable while allowing subclasses to override either eligibility logic or entry type without changing call sites.",
         "chapter": "internal_design",
         "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-18T22:03:51.627Z",
+          "attempts": 1
+        },
         "keywords": [
           "mixin",
-          "scannable",
+          "higher-order class",
+          "source scanning",
+          "default behavior",
+          "polymorphism",
           "entry factory",
-          "class composition",
-          "scanner integration"
+          "class extension",
+          "scan eligibility"
         ]
       },
       {
@@ -8613,5 +8616,5 @@
     },
     "dataSourceHash": "7d725e75d5031be445119323e4947c91"
   },
-  "enrichedAt": "2026-04-18T21:58:37.679Z"
+  "enrichedAt": "2026-04-18T22:03:51.627Z"
 }
