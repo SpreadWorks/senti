@@ -20,17 +20,17 @@ This chapter describes the overall directory organization of the sdd-forge proje
 
 <!-- {{data("base.structure.tree")}} -->
 ```
-src/    (lib, cli, middleware)
+src/    (cli)
 src/check/commands/    (cli)
-src/docs/commands/    (cli, controller, lib)
+src/docs/commands/    (cli, controller)
 src/docs/data/    (model)
-src/docs/lib/    (lib, model)
-src/docs/lib/lang/    (lib)
-src/flow/    (config)
-src/flow/commands/    (cli)
-src/flow/lib/    (model, lib, cli, controller)
-src/lib/    (model, lib, config, middleware, controller, view)
-src/metrics/commands/    (cli)
+src/docs/lib/    
+src/docs/lib/lang/    
+src/flow/    (controller)
+src/flow/commands/    
+src/flow/lib/    (controller)
+src/lib/    (lib, controller, model, config, middleware, view)
+src/metrics/commands/    
 ```
 <!-- {{/data}} -->
 
@@ -39,12 +39,12 @@ src/metrics/commands/    (cli)
 
 | Directory | Files | Role |
 | --- | --- | --- |
-| src/docs | 43 | cli, controller, lib, model |
-| src/flow | 36 | cli, model, lib, controller, config |
-| src/lib | 32 | model, lib, config, middleware, controller, view |
-| src | 11 | lib, cli, middleware |
+| src/docs | 43 | cli, controller, model |
+| src/flow | 36 | controller |
+| src/lib | 32 | lib, controller, model, config, middleware, view |
+| src | 9 | cli |
 | src/check | 3 | cli |
-| src/metrics | 1 | cli |
+| src/metrics | 1 | — |
 <!-- {{/data}} -->
 
 ### Shared Libraries
