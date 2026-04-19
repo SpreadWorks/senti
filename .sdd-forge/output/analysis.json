@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-19T14:42:06.817Z",
+  "analyzedAt": "2026-04-19T22:26:13.011Z",
   "package": {
     "entries": [
       {
@@ -3970,9 +3970,9 @@
       },
       {
         "file": "src/lib/command-registry.js",
-        "hash": "7dca7bef77d7e27f5002341f2a0618b8",
-        "lines": 102,
-        "mtime": "2026-04-18T20:35:29.039Z",
+        "hash": "b1b9c3b32758120baf9d60e6b65f6529",
+        "lines": 111,
+        "mtime": "2026-04-19T22:26:12.753Z",
         "className": "command-registry",
         "methods": [
           "decorateFlowEntry",
@@ -3986,6 +3986,7 @@
           "docsCommands",
           "checkCommands",
           "metricsCommands",
+          "specCommands",
           "allCommands"
         ],
         "extends": null,
@@ -3993,24 +3994,13 @@
           "src/check.js",
           "src/docs.js",
           "src/flow.js",
-          "src/metrics.js"
+          "src/metrics.js",
+          "src/spec.js"
         ],
         "id": "0d680f4f",
-        "summary": "command-registry.js assembles command groups and normalizes flow command output mode to envelopes. It exports a unified registry for docs, checks, metrics, and flow commands.",
-        "detail": "Flow entries are decorated to default to `envelope` mode while raw module entries remain available for other command groups. Helper functions produce lazy module references in a consistent shape. The combined `allCommands` object is the dispatch-facing command index. This module defines command wiring boundaries across feature areas.",
-        "chapter": "project_structure",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "command map",
-          "output mode",
-          "envelope",
-          "dispatcher input",
-          "module registry"
-        ]
+        }
       },
       {
         "file": "src/lib/command.js",
@@ -4147,7 +4137,8 @@
           "src/presets-cmd.js",
           "src/sdd-forge.js",
           "src/setup.js",
-          "src/upgrade.js"
+          "src/upgrade.js",
+          "src/spec.js"
         ],
         "id": "74b5e1c3",
         "summary": "constants.js defines shared enum-like value sets and exit codes used across flow and CLI logic. It is the single source for valid phases, statuses, and modes.",
@@ -4208,7 +4199,8 @@
           "src/flow.js",
           "src/lib/git-helpers.js",
           "src/metrics.js",
-          "src/sdd-forge.js"
+          "src/sdd-forge.js",
+          "src/spec.js"
         ],
         "id": "fc4eae43",
         "summary": "container.js implements dependency registration and bootstraps the application service graph. It wires config, logging, flow management, scanning, and preset utilities.",
@@ -4255,7 +4247,8 @@
           "src/check.js",
           "src/docs.js",
           "src/flow.js",
-          "src/metrics.js"
+          "src/metrics.js",
+          "src/spec.js"
         ],
         "id": "18d5f63b",
         "summary": "dispatcher.js parses command input, executes handlers, and formats success/failure outputs. It mediates raw vs envelope output behavior and lifecycle hooks.",
@@ -4310,12 +4303,13 @@
       },
       {
         "file": "src/lib/flow-helpers.js",
-        "hash": "a6b6fd8ba510ba18d9436a0739135a5c",
-        "lines": 90,
-        "mtime": "2026-04-17T12:39:55.912Z",
+        "hash": "ee3d2c901cf0a79ce80a02dfc3d7bf05",
+        "lines": 106,
+        "mtime": "2026-04-19T22:26:12.754Z",
         "className": "flow-helpers",
         "methods": [
           "getSpecName",
+          "getSpecDir",
           "derivePhase",
           "buildInitialSteps",
           "specIdFromPath"
@@ -4325,6 +4319,7 @@
         ],
         "exports": [
           "getSpecName",
+          "getSpecDir",
           "derivePhase",
           "buildInitialSteps",
           "specIdFromPath",
@@ -4345,21 +4340,9 @@
           "src/lib/preparing-flow-store.js"
         ],
         "id": "09ff0ab4",
-        "summary": "flow-helpers.js provides shared flow constants and small derivation utilities. It maps step completions to phases and handles spec-path identity logic.",
-        "detail": "The module defines canonical filenames, scan limits, preparing prefixes, and default step ordering. `derivePhase` computes the active phase from completed steps via a phase map. `buildInitialSteps` creates a normalized pending-step array for new flows. These helpers ensure consistent state shape and flow semantics across modules.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow constants",
-          "phase derivation",
-          "initial steps",
-          "state file",
-          "spec id"
-        ]
+        }
       },
       {
         "file": "src/lib/flow-manager.js",
@@ -4908,7 +4891,7 @@
         ],
         "id": "14a29a15",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4951,7 +4934,7 @@
         ],
         "id": "ae76d513",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4983,7 +4966,7 @@
         ],
         "id": "6196b26c",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5009,7 +4992,7 @@
         ],
         "id": "fa23a1ba",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5034,7 +5017,7 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5058,7 +5041,7 @@
         ],
         "id": "8bb94bbb",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5094,7 +5077,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5110,7 +5093,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5131,7 +5114,7 @@
         "usedBy": null,
         "id": "0230d610",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5193,7 +5176,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5219,7 +5202,7 @@
         "usedBy": null,
         "id": "85926390",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -8008,9 +7991,9 @@
       },
       {
         "file": "src/sdd-forge.js",
-        "hash": "73379cbea4c58522e5e546da2106659b",
-        "lines": 83,
-        "mtime": "2026-04-19T12:12:39.683Z",
+        "hash": "7d5ee464b6ef8fb5fd42de6da5e108ef",
+        "lines": 85,
+        "mtime": "2026-04-19T22:26:12.754Z",
         "className": "sdd-forge",
         "methods": [],
         "imports": [
@@ -8024,7 +8007,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 3
+          "attempts": 1
         }
       },
       {
@@ -8073,7 +8056,65 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
+        }
+      },
+      {
+        "file": "src/spec.js",
+        "hash": "d1fc40f07b07e618e089b781823c61c2",
+        "lines": 42,
+        "mtime": "2026-04-19T22:26:12.754Z",
+        "className": "spec",
+        "methods": [],
+        "imports": [
+          "./lib/constants.js",
+          "./lib/container.js",
+          "./lib/command-registry.js",
+          "./lib/dispatcher.js"
+        ],
+        "exports": [],
+        "extends": null,
+        "usedBy": null,
+        "id": "dca811d6",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/spec/commands/render.js",
+        "hash": "d1266fb93733674cb5cd995861b3f57f",
+        "lines": 247,
+        "mtime": "2026-04-19T22:26:12.754Z",
+        "className": "render",
+        "methods": [
+          "renderSpecMarkdown",
+          "printHelp",
+          "loadSchema",
+          "validatePathOption",
+          "renderList",
+          "renderOverviewSub",
+          "resolveActiveSpecDir",
+          "runSpecRender"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "../../lib/cli.js",
+          "../../lib/command.js",
+          "../../lib/constants.js",
+          "../../lib/schema-validate.js",
+          "../../lib/flow-helpers.js"
+        ],
+        "exports": [
+          "renderSpecMarkdown",
+          "default",
+          "runSpecRender"
+        ],
+        "extends": "Command",
+        "usedBy": null,
+        "id": "d63c4335",
+        "enrich": {
+          "attempts": 1
         }
       },
       {
@@ -8102,15 +8143,15 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       }
     ],
     "summary": {
-      "total": 255,
-      "totalMethods": 741
+      "total": 257,
+      "totalMethods": 750
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-19T14:44:31.345Z"
+  "enrichedAt": "2026-04-19T22:27:25.013Z"
 }

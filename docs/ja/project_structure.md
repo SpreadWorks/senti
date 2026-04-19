@@ -29,8 +29,9 @@ src/docs/lib/lang/    (lib)
 src/flow/    (controller)
 src/flow/commands/    (controller)
 src/flow/lib/    (controller, lib)
-src/lib/    (lib, controller, model, config, middleware, view)
+src/lib/    (lib, model, config, middleware, controller, view)
 src/metrics/commands/    
+src/spec/commands/    
 ```
 <!-- {{/data}} -->
 
@@ -41,10 +42,11 @@ src/metrics/commands/
 | --- | --- | --- |
 | src/docs | 43 | cli, controller, model, lib |
 | src/flow | 36 | controller, lib |
-| src/lib | 32 | lib, controller, model, config, middleware, view |
-| src | 9 | cli |
+| src/lib | 32 | lib, model, config, middleware, controller, view |
+| src | 10 | cli |
 | src/check | 3 | cli |
 | src/metrics | 1 | — |
+| src/spec | 1 | — |
 <!-- {{/data}} -->
 
 ### 共通ライブラリ
