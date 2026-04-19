@@ -8,7 +8,7 @@ import { setupFlow } from "../../../helpers/flow-setup.js";
 const SDD_FORGE = join(process.cwd(), "src/sdd-forge.js");
 
 // Dynamically import gate functions for unit tests
-const { buildGuardrailPrompt, parseGuardrailResponse } = await import(
+const { buildGuardrailPrompt, parseGuardrailResponse, IMPL_DIFF_SCOPE_LINES } = await import(
   "../../../../src/flow/lib/run-gate.js"
 );
 
@@ -170,5 +170,56 @@ describe("buildGuardrailPrompt ignores exemption sections", () => {
   it("includes inapplicable-PASS instruction", () => {
     const prompt = buildGuardrailPrompt("## Requirements\n- R1\n", guardrails, "spec");
     assert.ok(prompt.includes("inapplicable"), "should include inapplicable instruction");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildGuardrailPrompt impl phase: diff-scope constraint (Issue #180)
+// ---------------------------------------------------------------------------
+
+describe("buildGuardrailPrompt impl-phase diff-scope constraint", () => {
+  const implGuardrails = [
+    { title: "No Sync I/O in Hot Paths", body: "Avoid sync I/O", meta: { phase: ["impl"] } },
+  ];
+  // Canonical contract phrases exposed by the implementation. Breaking any of these
+  // would semantically regress the Issue #180 fix, so we assert on them directly.
+  const DIFF_SCOPE_HEADING = "## Diff Scope Constraint";
+  const CANONICAL_PHRASES = IMPL_DIFF_SCOPE_LINES.join("\n");
+
+  it("embeds the canonical diff-scope heading in impl-phase prompts", () => {
+    const targetText = "## Spec\nR1\n\n## Git Diff\ndiff --git a/x.js b/x.js\n+new line\n";
+    const prompt = buildGuardrailPrompt(targetText, implGuardrails, "impl");
+    assert.ok(prompt, "impl-phase prompt should be generated");
+    assert.ok(
+      prompt.includes(DIFF_SCOPE_HEADING),
+      `impl prompt should contain "${DIFF_SCOPE_HEADING}" section`,
+    );
+  });
+
+  it("embeds the full canonical diff-scope instruction block", () => {
+    const targetText = "## Spec\nR1\n\n## Git Diff\ndiff --git a/x.js b/x.js\n+new line\n";
+    const prompt = buildGuardrailPrompt(targetText, implGuardrails, "impl");
+    assert.ok(
+      prompt.includes(CANONICAL_PHRASES.trim()),
+      "impl prompt should embed IMPL_DIFF_SCOPE_LINES verbatim",
+    );
+  });
+
+  it("does not add diff-scope constraint to draft/spec phase prompts", () => {
+    const multiPhaseGuardrails = [
+      { title: "Rule A", body: "Desc A", meta: { phase: ["draft", "spec", "impl"] } },
+    ];
+    const draftPrompt = buildGuardrailPrompt("content", multiPhaseGuardrails, "draft");
+    const specPrompt = buildGuardrailPrompt("content", multiPhaseGuardrails, "spec");
+    assert.ok(draftPrompt, "draft prompt should be generated for draft-phase guardrails");
+    assert.ok(specPrompt, "spec prompt should be generated for spec-phase guardrails");
+    assert.ok(
+      !draftPrompt.includes(DIFF_SCOPE_HEADING),
+      "draft prompt should not carry impl-specific diff-scope heading",
+    );
+    assert.ok(
+      !specPrompt.includes(DIFF_SCOPE_HEADING),
+      "spec prompt should not carry impl-specific diff-scope heading",
+    );
   });
 });

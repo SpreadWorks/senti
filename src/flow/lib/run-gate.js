@@ -179,6 +179,21 @@ function checkDraftText(text) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Impl-phase instruction: restrict violation judgment to added/changed diff lines
+ * so pre-existing code is not flagged as a FAIL (Issue #180).
+ */
+const IMPL_DIFF_SCOPE_LINES = [
+  "## Diff Scope Constraint",
+  "The content includes a `## Git Diff` section. Restrict violation judgment to code changes",
+  "actually introduced by this diff — that is, lines added or modified (lines starting with `+`",
+  "in the diff). Context lines (unchanged, pre-existing code shown without `+`/`-` markers, or",
+  "removed-only `-` lines that are not being replaced) MUST NOT be counted as violations of any",
+  "guardrail. If a pattern that appears to violate a guardrail exists only in pre-existing,",
+  "unchanged code, mark the article as PASS with a reason stating the violation is out of diff scope.",
+  "",
+];
+
+/**
  * Build AI prompt for guardrail compliance check.
  * @param {string} targetText - text to check (spec, draft, or requirements+diff)
  * @param {Array} guardrails - all guardrails (pre-filtered)
@@ -205,12 +220,19 @@ function buildGuardrailPrompt(targetText, guardrails, phase, role) {
     "",
     "Output ONLY the result lines. No preamble, no summary.",
     "",
+  ];
+
+  if (phase === "impl") {
+    parts.push(...IMPL_DIFF_SCOPE_LINES);
+  }
+
+  parts.push(
     "## Guardrail Articles",
     articleList,
     "",
     `## Content`,
     targetText,
-  ];
+  );
 
   return parts.join("\n");
 }
@@ -537,7 +559,7 @@ export class RunGateCommand extends FlowCommand {
 }
 
 export default RunGateCommand;
-export { checkSpecText, checkDraftText, buildGuardrailPrompt, parseGuardrailResponse, checkGuardrail };
+export { checkSpecText, checkDraftText, buildGuardrailPrompt, parseGuardrailResponse, checkGuardrail, IMPL_DIFF_SCOPE_LINES };
 
 /**
  * Resolve the step id targeted by a `gate` invocation.

@@ -1,0 +1,28 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — 既存コード誤検知を防ぐための「gate-implの判定スコープ限定」に一貫して集中している。; Unambiguous Requirements — 対象範囲（implフェーズのみ・他フェーズ不変・Out of Scope）が具体的に示され、検証方法も明記されている。; Complete Context — 要件が「When/If + shall」の検証可能な要件文として定式化されていない。; No Hardcoded Secrets — シークレット情報の記載や埋め込みはなく、この内容では該当しない。; Prioritize Requirements — 3件超の要件要素（実装範囲・非対象・検証）があるが優先順位の明示がない。; Impact on Existing Features — 既存挙動への影響（他フェーズ不変、既存テスト変更不要、機能追加は対象外）を明示している。; Present Recommendations with Reasoning — 各Qで推奨案を先に示し、テスト方針や既存挙動との整合を理由として添えている。; Explore Before Asking — issue/test/実装箇所まで調査した根拠を示した上で質問している。; Proactively Raise Related Implications — Exemptions/overrideを明示的にOut of Scope化し、検証アプローチも先回りで提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 批評・推奨提示前に「ブレスト中か意思決定段階か」の確認が明示されていない。; Capture Digressions in draft.md — 脱線した議論は見当たらず、この観点は実質的に非該当。; Draft Stays at Requirements Level — ファイル名・関数名・行番号・シグネチャ不変など実装設計レベルの詳細が含まれている。; Backward — Compatible CLI Interface — 既存CLIコマンド/オプション変更は提案されておらず、移行計画は非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T14:25:18.468Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: limiting guardrail judgments to diff-caused violations in gate-impl.; Unambiguous Requirements — R4 uses potentially vague wording like “同等の差分” and “手動で確認,” which is not fully objective/verifiable as written.; Complete Context — Each requirement pairs a trigger condition (`When`) with an expected behavior (`shall`).; No Hardcoded Secrets — The content is a requirements draft and includes no code or embedded credentials.; Prioritize Requirements — More than three requirements are present and explicitly ordered by Priority 1/2.; Impact on Existing Features — The draft explicitly states affected and unaffected existing features, tests, and CLI compatibility.; Present Recommendations with Reasoning — Recommendations are shown, but the basis is not explicitly tied to docs/, guardrail principles, or existing code patterns.; Explore Before Asking — The draft does not show explicit evidence that docs/ or codebase exploration answered questions before asking the user.; Proactively Raise Related Implications — It proactively documents scope boundaries, out-of-scope items, and impact on adjacent gates/tests.; Confirm Brainstorm vs. Decision Before Critiquing — Q2–Q4 explicitly frame discussion as decision-stage, not brainstorming.; Capture Digressions in draft.md — No digression is evident, so there is nothing additional to capture.; Draft Stays at Requirements Level — The document stays at RFP/requirement level without function-level or implementation design detail.; Backward — Compatible CLI Interface — No CLI command/option change is proposed, and compatibility is explicitly stated.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T14:26:04.461Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — 変更対象は gate-impl の diff スコープ誤検知解消に限定され、Out of Scope も明示されている。; Unambiguous Requirements — 要件は `When/shall` 形式で検証可能条件が示され、曖昧な形容表現に依存していない。; Complete Context — R1〜R4 がいずれもトリガー条件と期待動作を対で記述している。; No Hardcoded Secrets — 要件ドラフト本文であり、API key 等の秘密情報を直接埋め込む内容はない。; Prioritize Requirements — 4件の要件に対して Priority 1/2 の優先順が明示されている。; Impact on Existing Features — 既存機能・既存テスト・CLI 互換性への影響有無が明示されている。; Present Recommendations with Reasoning — Q1 は確認のみで、推奨回答と根拠（docs/・原則・既存パターン）の提示が不足している。; Explore Before Asking — Q&A 前の事前調査で issue・コード・テスト・原則確認を実施したことが記録されている。; Proactively Raise Related Implications — 影響範囲、非対象、CLI互換性まで先回りして整理されている。; Confirm Brainstorm vs. Decision Before Critiquing — Q2〜Q4 で「意思決定段階」と明示し、決定文脈で評価している。; Capture Digressions in draft.md — 脱線した議論は見当たらず、この観点は本件では実質的に非該当。; Draft Stays at Requirements Level — 実装関数設計や手続き詳細には踏み込まず、要求・検証方針レベルに留まっている。; Backward — Compatible CLI Interface — CLI 変更なしと明記されており、移行計画が必要なケースに該当しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T14:27:07.459Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — Diff-scope誤検知の解消に焦点を絞り、Exemptions/override等はOut of Scopeで分離されている; Unambiguous Requirements — 各要件は「When/shall」で検証可能な条件と期待結果を明示している; Complete Context — R1〜R4はいずれもトリガー条件と期待動作の組を備えている; No Hardcoded Secrets — 要件ドラフトであり、秘密情報や埋め込み認証情報は含まれていない; Prioritize Requirements — 4件の要件をPriority 1/2で優先順位付けしている; Impact on Existing Features — 既存機能・既存テスト・CLI互換性への影響有無を明示している; Present Recommendations with Reasoning — 各Qで推奨案を先に示し、docs/・原則・既存コードの根拠を添えている; Explore Before Asking — Q&A前にIssue・実装・テスト・原則を調査した内容を明記している; Proactively Raise Related Implications — 影響範囲、非対象、検証方針、CLI互換性まで先回りして整理している; Confirm Brainstorm vs. Decision Before Critiquing — ブレスト中か意思決定中かをユーザーに事前確認した明示的記録がない; Capture Digressions in draft.md — 議論の脱線が見当たらず、この観点は実質的に非該当; Draft Stays at Requirements Level — 要件・検証条件・スコープ定義が中心で、関数設計や実装手順には踏み込んでいない; Backward — Compatible CLI Interface — 既存コマンド/オプション変更なしを明記しており、移行計画が必要なケースではない",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T14:27:39.694Z"
+    }
+  ]
+}

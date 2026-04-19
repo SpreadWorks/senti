@@ -1,0 +1,64 @@
+{
+  "spec": "specs/195-gate-guardrail-diff-scope/spec.md",
+  "date": "2026-04-19T14:42:05.435Z",
+  "requirements": [
+    {
+      "desc": "R1: impl guardrail prompt に diff スコープ制約を明示する",
+      "status": "done",
+      "note": "src/flow/lib/run-gate.js に impl 専用の `IMPL_DIFF_SCOPE_LINES` を追加し、`phase === \"impl\"` のとき prompt に挿入している。"
+    },
+    {
+      "desc": "R2: pre-existing コードを違反判定対象外とする旨を AI に指示する",
+      "status": "done",
+      "note": "同 instruction block 内で、unchanged/pre-existing context を違反として数えないこと、out-of-diff-scope として PASS 扱いすることを明示している。"
+    },
+    {
+      "desc": "R3: prompt 文言を検証する formal unit test を追加",
+      "status": "done",
+      "note": "tests/unit/specs/commands/guardrail.test.js に impl-phase prompt へ diff-scope 文言が含まれることを検証するテスト群が追加されている。"
+    },
+    {
+      "desc": "R4: 再現シナリオ手順を specs/<spec>/tests/README.md に記録",
+      "status": "done",
+      "note": "specs/195-gate-guardrail-diff-scope/tests/README.md に Issue #180 再現手順、実行コマンド、期待結果（After で gate PASS）が記載されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "`IMPL_DIFF_SCOPE_LINES` を named export に追加（外部公開面の変更）。"
+    },
+    {
+      "file": "specs/195-gate-guardrail-diff-scope/draft.md",
+      "change": "要件評価用コード実装とは別に draft ドキュメントを新規追加。"
+    },
+    {
+      "file": "specs/195-gate-guardrail-diff-scope/spec.md",
+      "change": "spec 本文ドキュメントを新規追加。"
+    },
+    {
+      "file": "specs/195-gate-guardrail-diff-scope/qa.md",
+      "change": "Q&A テンプレート文書を新規追加。"
+    },
+    {
+      "file": "specs/195-gate-guardrail-diff-scope/review.md",
+      "change": "レビュー結果文書を新規追加。"
+    },
+    {
+      "file": "specs/195-gate-guardrail-diff-scope/issue-log.json",
+      "change": "gate 実行ログ（issue-log）を新規追加。"
+    },
+    {
+      "file": "specs/195-gate-guardrail-diff-scope/flow.json",
+      "change": "flow 管理メタデータを新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "R1〜R4 はすべて満たされている。実装・テスト・再現手順の3点は要件と整合している。加えて、SDD運用由来の補助ドキュメント/メタデータ追加と、定数の export 追加が要件外変更として含まれる。"
+  }
+}

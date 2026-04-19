@@ -1,0 +1,72 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/195-gate-guardrail-diff-scope/draft.md       |  75 +++++++++\n specs/195-gate-guardrail-diff-scope/flow.json      | 182 +++++++++++++++++++++\n specs/195-gate-guardrail-diff-scope/issue-log.json |  28 ++++\n specs/195-gate-guardrail-diff-scope/qa.md          |   9 +\n specs/195-gate-guardrail-diff-scope/review.md      |  41 +++++\n specs/195-gate-guardrail-diff-scope/spec.md        |  89 ++++++++++\n .../195-gate-guardrail-diff-scope/tests/README.md  |  36 ++++\n src/flow/lib/run-gate.js                           |  26 ++-\n tests/unit/specs/commands/guardrail.test.js        |  53 +++++-\n 9 files changed, 536 insertions(+), 3 deletions(-)",
+      "commits": [
+        "feat: feature/195-gate-guardrail-diff-scope",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "R1〜R4 はすべて満たされている。実装・テスト・再現手順の3点は要件と整合している。加えて、SDD運用由来の補助ドキュメント/メタデータ追加と、定数の export 追加が要件外変更として含まれる。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 3,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 392268,
+      "output": 9503,
+      "cacheRead": 143104,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 12,
+      "durationMs": 232480,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 108216
+        },
+        {
+          "phase": "gate",
+          "durationMs": 21174
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 62077
+        },
+        {
+          "phase": "review",
+          "durationMs": 41013
+        }
+      ]
+    },
+    "tests": {
+      "unit": 3,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 3
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/195-gate-guardrail-diff-scope\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    9 files changed, 536 insertions(+), 3 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 3\n    issue-log ................... 0\n    agent calls ................. 12\n    input tokens ................ 392,268\n    output tokens ............... 9,503\n    cache-read tokens ........... 143,104\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 232.5s\n      gate-draft ................ 108.2s\n      gate ...................... 21.2s\n      gate-impl ................. 62.1s\n      review .................... 41.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 3  integration 0  acceptance 0  total 3"
+}

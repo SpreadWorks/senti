@@ -1,0 +1,182 @@
+{
+  "spec": "specs/195-gate-guardrail-diff-scope/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/195-gate-guardrail-diff-scope",
+  "runId": "68730607-e4e6-4e57-866a-9adb2ec48d0d",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: impl guardrail prompt に diff スコープ制約を明示する",
+      "status": "done"
+    },
+    {
+      "desc": "R2: pre-existing コードを違反判定対象外とする旨を AI に指示する",
+      "status": "done"
+    },
+    {
+      "desc": "R3: prompt 文言を検証する formal unit test を追加",
+      "status": "done"
+    },
+    {
+      "desc": "R4: 再現シナリオ手順を specs/<spec>/tests/README.md に記録",
+      "status": "done"
+    }
+  ],
+  "issue": 180,
+  "request": "#180 issueを対応してください",
+  "worktree": true,
+  "notes": [
+    "Q1 approved: gate-impl guardrail pre-existing code false positive 問題に対応"
+  ],
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 3
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 85281,
+        "output": 4739,
+        "cacheRead": 38528,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 6445,
+      "durationMs": 108216
+    },
+    "gate": {
+      "tokens": {
+        "input": 19954,
+        "output": 934,
+        "cacheRead": 5504,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 1155,
+      "durationMs": 21174
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 265405,
+        "output": 2196,
+        "cacheRead": 55296,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 3747,
+      "durationMs": 62077
+    },
+    "review": {
+      "tokens": {
+        "input": 21628,
+        "output": 1634,
+        "cacheRead": 43776,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3477,
+      "durationMs": 41013
+    }
+  },
+  "test": {
+    "summary": {
+      "unit": 3
+    }
+  },
+  "autoApprove": true,
+  "state": {
+    "finalizedAt": "2026-04-19T14:41:40.573Z"
+  }
+}
