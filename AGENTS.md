@@ -69,6 +69,14 @@
 - **MUST: 実装完了後は `/sdd-forge.flow-finalize` を実行すること。**
 - スキルが利用できない環境では `sdd-forge flow --request "<要望>"` を使用すること
 
+### Worktree の境界を越えない（MUST）
+
+`flow prepare --worktree` で作成した worktree で作業している間、以下を厳守する:
+
+- **MUST: worktree パス外に `cd` してはならない。** 唯一の正当な離脱は `sdd-forge flow run finalize` の cleanup 完了後（finalize skill がその遷移を明示的に案内する）のみ。
+- **MUST: active flow 中に main リポジトリで `git stash` / `git stash pop` / `git stash apply` / `git reset --hard` / `git checkout -- <path>` を実行してはならない。** 別ブランチ由来の stale な stash が復元されてコンフリクトを引き起こすなど、共有状態を破壊するリスクがある。
+- **ベースライン比較（base branch でのテスト結果比較など）が必要な場合は main に戻らず、短命の detached worktree (`git worktree add --detach <tmp> <baseBranch>` → 計測 → `git worktree remove <tmp>`) を使う。** もしくは既存の `issue-log.json` の evidence を再利用する。
+
 ### docs/ について
 
 `docs/` はプロジェクトの設計・構造・ビジネスロジックを体系的にまとめた知識ベースである。

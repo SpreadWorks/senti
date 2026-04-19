@@ -6,6 +6,14 @@ This project uses Spec-Driven Development powered by sdd-forge.
 - **MUST: After implementation is complete, run `/sdd-forge.flow-finalize`.**
 - If skills are unavailable, run `sdd-forge flow --request "<request>"` instead.
 
+### Never cross the worktree boundary (MUST)
+
+While working inside a worktree created by `flow prepare --worktree`, observe the following:
+
+- **MUST: Never `cd` out of the worktree path.** The only legitimate exit is after `sdd-forge flow run finalize` cleanup completes (the finalize skill announces that transition).
+- **MUST: Never run `git stash` / `git stash pop` / `git stash apply` / `git reset --hard` / `git checkout -- <path>` in the main repository while a flow is active.** Stale stashes from other branches can be restored unintentionally, causing conflicts and corrupting shared state.
+- **If baseline comparison (e.g., test results on the base branch) is required, do NOT cd back to main.** Use a short-lived detached worktree (`git worktree add --detach <tmp> <baseBranch>` → measure → `git worktree remove <tmp>`), or reuse evidence already captured in prior `issue-log.json` entries.
+
 ### About docs/
 
 `docs/` is a structured knowledge base covering the project's design, architecture, and business logic.
