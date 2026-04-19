@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-19T01:03:14.426Z",
+  "analyzedAt": "2026-04-19T01:08:34.539Z",
   "package": {
     "entries": [
       {
@@ -353,9 +353,9 @@
       },
       {
         "file": "src/docs/commands/build.js",
-        "hash": "5a2483a824a5b4f9d1062ea6601226dd",
-        "lines": 230,
-        "mtime": "2026-04-18T20:44:05.213Z",
+        "hash": "f0a5ed9a53615c9a52f845690dcfccd1",
+        "lines": 231,
+        "mtime": "2026-04-19T01:08:34.184Z",
         "className": "build",
         "methods": [
           "dirExists",
@@ -367,7 +367,6 @@
           "path",
           "../../lib/cli.js",
           "../lib/docs-context.js",
-          "../../lib/types.js",
           "../../lib/command.js",
           "../../lib/constants.js",
           "./scan.js",
@@ -386,23 +385,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "d07fb128",
-        "summary": "This module implements the `docs build` command as an orchestration entry point for documentation generation. It validates CLI flags, prepares runtime context, and executes a sequence of docs subcommands.",
-        "detail": "The command defines a strict allowlist of build flags and exits with an error code when unknown options are passed. It dynamically imports localization and progress utilities from the package directory, then resolves docs and output context before running each step. The core flow chains scan, enrich, init, data generation, README/agents generation, and translation-oriented steps through a shared `runStep` helper and per-step context overrides. It includes dry-run and force handling, plus language-specific directory and README path routing for localized docs outputs. The class export wraps this pipeline so `DocsBuildCommand` delegates execution to `runBuild` using raw CLI arguments from command context.",
+        "summary": "Implements the `docs build` command orchestration for generating and updating documentation assets. It validates flags, prepares shared context, and executes a multi-step docs pipeline.",
+        "detail": "The module defines a strict allowlist for CLI flags and fails fast on unknown options using the project exit code convention. It resolves runtime services dynamically, then wraps each subcommand invocation through a shared `runStep` helper so command context stays consistent. The build flow conditionally runs scan and enrich, then drives init, data, text, README, agents, and translation steps with dry-run and force propagation. It includes language-aware branching for localized docs and README generation, with path resolution per target language. Errors are surfaced with explicit process exits for deterministic CLI behavior.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-18T20:44:28.057Z",
+          "processedAt": "2026-04-19T01:09:03.776Z",
           "attempts": 1
         },
         "keywords": [
           "docs build",
           "command orchestration",
-          "CLI flags validation",
+          "pipeline",
+          "flag validation",
           "dry run",
           "force regenerate",
-          "multilingual docs",
-          "pipeline execution",
-          "exit code handling"
+          "localized docs",
+          "subcommand dispatch"
         ]
       },
       {
@@ -578,9 +577,9 @@
       },
       {
         "file": "src/docs/commands/forge.js",
-        "hash": "8e9d5835a4ff2ce32e42ab6b877d036a",
+        "hash": "51203140244b967e7c331b5282caf3f2",
         "lines": 444,
-        "mtime": "2026-04-18T20:35:29.038Z",
+        "mtime": "2026-04-19T01:08:34.184Z",
         "className": "forge",
         "methods": [
           "getTargetFiles",
@@ -617,21 +616,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "ef4fa5d9",
-        "summary": "Implements `docs forge`, an iterative agent-driven workflow for refining documentation files against a prompt/spec and review loop. It supports local, assist, and agent execution modes.",
-        "detail": "The command parses advanced CLI options, estimates relevant target files, and invokes an agent per file with concurrency controls. It integrates review feedback cycles, reruns generation up to a max-run threshold, and can fail hard if quality gates never pass. It reuses existing data/text generation helpers and shell command execution utilities to keep orchestration cohesive. Progress, retries, and error shaping are designed for long-running documentation refinement tasks.",
-        "chapter": "development",
-        "role": "controller",
+        "summary": "Implements the `docs forge` command that runs AI-assisted documentation authoring and iterative review cycles. It supports per-file or full-run modes with configurable retries, concurrency, and execution mode.",
+        "detail": "The command parses CLI options for prompt sources, spec input, agent mode, max runs, and review command settings, with explicit validation of allowed values. It derives target chapter files and can estimate relevance from spec text to reduce scope for focused runs. Agent invocation is abstracted with optional streaming logs and progress indication, while file processing uses bounded concurrency to control throughput. The workflow loops through generate and review phases, invoking README and translation refresh commands after successful generation steps. It enforces termination conditions and throws when review cannot pass within the configured run budget.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:35.180Z",
+          "processedAt": "2026-04-19T01:09:03.776Z",
           "attempts": 1
         },
         "keywords": [
-          "iterative generation",
-          "review loop",
-          "agent mode",
-          "per-file prompt",
-          "concurrency",
-          "documentation refinement"
+          "docs forge",
+          "agent-assisted generation",
+          "iterative review",
+          "concurrency control",
+          "spec-driven prompt",
+          "file targeting",
+          "retry loop",
+          "automation mode"
         ]
       },
       {
@@ -737,9 +738,9 @@
       },
       {
         "file": "src/docs/commands/review.js",
-        "hash": "efaf5c77283a4624ce4fe235560459a7",
-        "lines": 314,
-        "mtime": "2026-04-18T20:35:29.038Z",
+        "hash": "8d6181d5342195ac3d70c787f37b1c3f",
+        "lines": 313,
+        "mtime": "2026-04-19T01:08:34.184Z",
         "className": "review",
         "methods": [
           "stripInlineCode",
@@ -754,7 +755,6 @@
           "../../lib/config.js",
           "../../lib/command.js",
           "../../lib/i18n.js",
-          "../../lib/types.js",
           "../lib/command-context.js",
           "../lib/directive-parser.js",
           "../lib/analysis-entry.js"
@@ -765,21 +765,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "f3a5a725",
-        "summary": "Implements `docs review`, a validation command that checks generated docs for structural and quality issues. It enforces integrity rules across chapters, README, and translation outputs.",
-        "detail": "The command validates file existence, minimum content expectations, unresolved directive artifacts, and residual block markers. It inspects inline/comment integrity, detects malformed output fragments, and reports localized error keys through translation hooks. It optionally cross-checks docs against analysis metadata availability and language directories. Failures accumulate into a final error state that terminates with review-specific diagnostics.",
-        "chapter": "development",
+        "summary": "Implements the `docs review` command to validate generated documentation quality and structural integrity. It performs rule-based checks across chapter files, README outputs, and analysis metadata consistency.",
+        "detail": "The module parses target paths and runs fail-fast validation for missing chapters, short outputs, and malformed generated content. It checks directive leakage, broken comment syntax, and residual block markers by scanning rendered text with dedicated regex-based integrity checks. It verifies expected docs and README presence across default and localized outputs, using chapter discovery logic from command context helpers. It also cross-checks analysis metadata keys against generated docs to ensure enrichment fields are reflected and no required annotations are silently dropped. On any violation it reports translated failure messages and throws a terminal review error.",
+        "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:35.180Z",
+          "processedAt": "2026-04-19T01:09:03.776Z",
           "attempts": 1
         },
         "keywords": [
-          "documentation review",
-          "quality gate",
-          "directive leak detection",
+          "docs review",
           "output integrity",
-          "linting docs",
-          "validation rules"
+          "directive validation",
+          "quality gate",
+          "metadata consistency",
+          "lint-like checks",
+          "chapter coverage",
+          "failure reporting"
         ]
       },
       {
@@ -923,9 +925,9 @@
       },
       {
         "file": "src/docs/commands/translate.js",
-        "hash": "a0d164003e87ef5ac7bbb7619c60e457",
+        "hash": "99d41d5776801121249aa954ba6618a3",
         "lines": 236,
-        "mtime": "2026-04-18T20:35:29.039Z",
+        "mtime": "2026-04-19T01:08:34.185Z",
         "className": "translate",
         "methods": [
           "toneInstruction",
@@ -938,7 +940,6 @@
           "fs",
           "path",
           "../../lib/cli.js",
-          "../../lib/types.js",
           "../../lib/config.js",
           "../../lib/progress.js",
           "../lib/command-context.js",
@@ -956,21 +957,23 @@
           "src/docs/commands/build.js"
         ],
         "id": "fd496e07",
-        "summary": "Implements `docs translate` to produce localized docs and README files from source language documents. It schedules translation tasks based on mtime and force settings.",
-        "detail": "The command constructs per-file translation tasks for each target language and skips unchanged targets unless forced. It invokes the configured agent with tone/style instructions and strips common response preambles before writing files. Translation execution is parallelized via concurrency controls and logged with per-task labels. The module keeps task planning separate from execution, enabling predictable behavior and simpler testing.",
+        "summary": "Implements the `docs translate` command for language-specific documentation generation from source docs. It builds translation tasks, skips unchanged targets, and executes translation via configured agent services.",
+        "detail": "The command resolves docs context, available chapter files, and translation targets, then validates that an agent and docs directory are present before execution. It computes whether translation is needed based on force mode and source-vs-target modification times to avoid unnecessary work. Translation prompts incorporate tone and document style guidance, and responses are normalized by removing model preambles. Task execution runs under configurable concurrency with progress logging and per-file path management for localized directories. It handles both chapter files and README translation outputs in a single task-building pipeline.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:35.180Z",
+          "processedAt": "2026-04-19T01:09:03.776Z",
           "attempts": 1
         },
         "keywords": [
-          "document translation",
+          "docs translate",
           "localization",
-          "mtime-based skip",
-          "translation tasks",
-          "multilingual readme",
-          "concurrent translation"
+          "incremental translation",
+          "mtime comparison",
+          "concurrency mapping",
+          "agent prompting",
+          "tone control",
+          "README localization"
         ]
       },
       {
@@ -5350,37 +5353,33 @@
       },
       {
         "file": "src/lib/types.js",
-        "hash": "5cd15801de1bad4e00114860ae5c0bbf",
-        "lines": 105,
-        "mtime": "2026-04-18T09:19:45.912Z",
+        "hash": "fd89672eb068ea3d73ac8e3b53637e59",
+        "lines": 87,
+        "mtime": "2026-04-19T01:08:34.185Z",
         "className": "types",
-        "methods": [
-          "resolveOutputConfig"
-        ],
+        "methods": [],
         "imports": [],
-        "exports": [
-          "resolveOutputConfig"
-        ],
+        "exports": [],
         "extends": null,
-        "usedBy": [
-          "src/docs.js"
-        ],
+        "usedBy": null,
         "id": "69d5afb4",
-        "summary": "This utility resolves output-related settings from configuration into a normalized object. It serves as a lightweight type-shaping helper for docs and command execution.",
-        "detail": "The function reads output config fields and returns a consistent structure expected by downstream consumers. It centralizes defaults and field mapping so command modules do not duplicate normalization logic. Because it is small and focused, it acts as a stable boundary between raw config and runtime behavior. This pattern improves consistency and reduces scattered option-handling code.",
-        "chapter": "configuration",
+        "summary": "Provides shared type-oriented definitions used across core library modules. It centralizes reusable structural contracts to keep command and internal modules aligned.",
+        "detail": "This file serves as a common source for cross-module shape definitions and semantic data categories used in runtime coordination. By consolidating these definitions, the codebase reduces duplicated assumptions and keeps interfaces consistent between CLI commands and internal services. It supports maintainability by making expected object structures discoverable from one location rather than implicit ad hoc usage. The module is intended as a foundational utility layer rather than command entrypoint logic. Its role is primarily internal cohesion and developer ergonomics.",
+        "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-18T09:20:37.714Z",
+          "processedAt": "2026-04-19T01:09:03.776Z",
           "attempts": 1
         },
         "keywords": [
-          "output config",
-          "normalization",
-          "settings mapping",
-          "config utility",
-          "default handling",
-          "type shaping"
+          "shared types",
+          "interface contracts",
+          "data schema",
+          "cross-module consistency",
+          "type definitions",
+          "library core",
+          "structural model",
+          "internal API"
         ]
       },
       {
@@ -8656,9 +8655,9 @@
     ],
     "summary": {
       "total": 249,
-      "totalMethods": 777
+      "totalMethods": 776
     },
     "dataSourceHash": "7d725e75d5031be445119323e4947c91"
   },
-  "enrichedAt": "2026-04-19T01:03:30.041Z"
+  "enrichedAt": "2026-04-19T01:09:03.776Z"
 }
