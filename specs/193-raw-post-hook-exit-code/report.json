@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/193-raw-post-hook-exit-code/draft.md        | 132 +++++++++++++++\n specs/193-raw-post-hook-exit-code/flow.json       | 187 ++++++++++++++++++++++\n specs/193-raw-post-hook-exit-code/issue-log.json  |  34 ++++\n specs/193-raw-post-hook-exit-code/qa.md           |   9 ++\n specs/193-raw-post-hook-exit-code/review.md       |  41 +++++\n specs/193-raw-post-hook-exit-code/spec.md         |  78 +++++++++\n specs/193-raw-post-hook-exit-code/tests/README.md |  28 ++++\n src/lib/dispatcher.js                             |   6 +-\n tests/unit/lib/dispatcher.test.js                 | 104 ++++++++++++\n 9 files changed, 618 insertions(+), 1 deletion(-)",
+      "commits": [
+        "feat: feature/193-raw-post-hook-exit-code",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "All listed functional requirements are implemented by the dispatcher change and covered by new unit tests. Additional diff content is mostly spec/workflow documentation outside direct runtime requirements."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 137294,
+      "output": 10031,
+      "cacheRead": 235520,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 12,
+      "durationMs": 250392,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 104940
+        },
+        {
+          "phase": "gate",
+          "durationMs": 24670
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 77997
+        },
+        {
+          "phase": "review",
+          "durationMs": 42785
+        }
+      ]
+    },
+    "tests": {
+      "unit": 6,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 6
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/193-raw-post-hook-exit-code\n    chore: add retro and report\n    9 files changed, 618 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 12\n    input tokens ................ 137,294\n    output tokens ............... 10,031\n    cache-read tokens ........... 235,520\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 250.4s\n      gate-draft ................ 104.9s\n      gate ...................... 24.7s\n      gate-impl ................. 78.0s\n      review .................... 42.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 6  integration 0  acceptance 0  total 6"
+}

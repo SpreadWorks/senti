@@ -1,0 +1,187 @@
+{
+  "spec": "specs/193-raw-post-hook-exit-code/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/193-raw-post-hook-exit-code",
+  "runId": "c767de32-3334-46d6-ad43-9519f23d75bb",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "post hook failure reflects as exit code 1 in both envelope and raw modes",
+      "status": "done"
+    },
+    {
+      "desc": "envelope mode preserves POST_HOOK_FAILED warning with ok=true",
+      "status": "done"
+    },
+    {
+      "desc": "post hook success and undefined cases keep current exit code",
+      "status": "done"
+    },
+    {
+      "desc": "pre hook and command body failure exit behavior unchanged",
+      "status": "done"
+    },
+    {
+      "desc": "raw mode stderr message for post hook failure is preserved",
+      "status": "done"
+    },
+    {
+      "desc": "sync and async post hook throws both result in exit code 1",
+      "status": "done"
+    }
+  ],
+  "issue": 177,
+  "worktree": true,
+  "autoApprove": true,
+  "request": "raw mode で post hook 失敗時に exitCode (1) へ反映されない問題を修正する。envelope mode と整合させる。issue #177",
+  "notes": [
+    "plan-init: worktree + base=main で開始、auto on"
+  ],
+  "metrics": {
+    "draft": {
+      "srcRead": 1
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 25316,
+        "output": 4258,
+        "cacheRead": 105856,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 8148,
+      "durationMs": 104940
+    },
+    "gate": {
+      "tokens": {
+        "input": 10018,
+        "output": 1085,
+        "cacheRead": 14720,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 1267,
+      "durationMs": 24670
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 72812,
+        "output": 2998,
+        "cacheRead": 76288,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 4922,
+      "durationMs": 77997
+    },
+    "review": {
+      "tokens": {
+        "input": 29148,
+        "output": 1690,
+        "cacheRead": 38656,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3897,
+      "durationMs": 42785
+    }
+  },
+  "test": {
+    "summary": {
+      "unit": 6
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-19T01:41:23.380Z"
+  }
+}

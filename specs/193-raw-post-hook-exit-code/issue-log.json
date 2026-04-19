@@ -1,0 +1,34 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: reflecting post-hook failure in process exit code across output modes.; Unambiguous Requirements — Expected outcomes are mostly testable (e.g., post-hook failure leads to exit code `1` per mode).; Complete Context — Key behaviors are written with condition/outcome pairs (e.g., “when post hook throws, exit code becomes 1”).; No Hardcoded Secrets — No credentials or secret material appear; this article is inapplicable to the draft content.; Prioritize Requirements — The draft contains multiple requirements/tests but does not define a priority order.; Impact on Existing Features — It explicitly discusses impacts and non-impacts (tests, `envelope.ok` semantics, scope boundaries).; Present Recommendations with Reasoning — Not every question has a clear recommendation plus explicit basis; Q3 is left as “要確認.”; Explore Before Asking — The draft cites specific source files/lines and resolves questions via code inspection.; Proactively Raise Related Implications — It proactively covers test impact, edge cases, alternatives, and future extension implications.; Confirm Brainstorm vs. Decision Before Critiquing — Alternatives are critiqued without explicitly confirming brainstorming vs. final decision mode first.; Capture Digressions in draft.md — No clear digression thread is present; this article is inapplicable here.; Draft Stays at Requirements Level — It includes implementation-level details (file paths, line-level behavior, control-flow notes, concrete test file additions).; Backward — Compatible CLI Interface — No command/option removal or semantic CLI change is proposed, so migration-plan requirement is inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:29:46.324Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — post hook failure時の終了コード統一という単一の関心事にスコープが集中している。; Unambiguous Requirements — 「現状と同等以上」など検証基準が曖昧な表現が一部要件に残っている。; Complete Context — 要件と受け入れ基準で条件（post hook成功/失敗/未定義など）と期待動作（exit codeや出力）が対で定義されている。; No Hardcoded Secrets — 本文は仕様記述のみで、APIキーやトークン等の秘匿情報は含まれていない。; Prioritize Requirements — 要件が4項目あり、P0/P1/P2で優先度順が明示されている。; Impact on Existing Features — 既存成功パス維持やpre hook/本体失敗経路非変更など、既存機能への影響が明示されている。; Present Recommendations with Reasoning — 推奨と理由はあるが、根拠が「docs/・guardrail原則・既存コードパターン」のどれかとして明示的に整理されていない。; Explore Before Asking — 「Issue とコード調査で方針は確定」とし、不要なユーザー確認を増やさずに判断している。; Proactively Raise Related Implications — スコープ外事項、エッジケース、代替案却下理由、将来拡張まで先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 冒頭でDecisionモードを明示し、ブレインストーミングではないことを確認している。; Capture Digressions in draft.md — 代替案・将来拡張・スコープ外論点などの寄り道論点がドラフト内に記録されている。; Draft Stays at Requirements Level — 実装手順や関数設計には踏み込まず、要件・受け入れ基準・検証観点レベルに留まっている。; Backward — Compatible CLI Interface — 既存CLIコマンド/オプションの意味変更や削除を伴う内容ではなく、移行計画は本件では不要。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:30:59.317Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — post hook failure handling and exit-code unification are the single concern throughout.; Unambiguous Requirements — requirements are stated in verifiable terms (e.g., exit code `1`, warning presence, stderr output).; Complete Context — each key requirement pairs a condition (e.g., post hook failure/success/undefined) with expected behavior.; No Hardcoded Secrets — no secrets or credential-like values appear in this draft.; Prioritize Requirements — four requirements are explicitly prioritized with `P0/P1/P2`.; Impact on Existing Features — impact is explicitly covered, including unchanged success paths and unchanged pre-hook/command failure behavior.; Present Recommendations with Reasoning — recommendations with explicit basis are strong in Q1–Q3, but not consistently provided for every listed question section.; Explore Before Asking — the draft states issue/code investigation and resolves items without deferring answerable questions to the user.; Proactively Raise Related Implications — it proactively covers scope exclusions, edge cases, alternatives, and future extension implications.; Confirm Brainstorm vs. Decision Before Critiquing — it explicitly declares `Decision` mode and not brainstorming.; Capture Digressions in draft.md — any side topics are captured in-situ under scope/alternatives/future sections, so this is satisfied.; Draft Stays at Requirements Level — content remains at behavior/spec and acceptance-test strategy level, without function-level implementation design.; Backward — Compatible CLI Interface — no command/option removal or semantic change is proposed, so a migration plan is not applicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:31:54.854Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — post hook failure handling and exit-code semantics are scoped to one coherent concern.; Unambiguous Requirements — requirements and acceptance criteria use verifiable outcomes (e.g., exit code `1`, warning/stderr presence).; Complete Context — conditions and expected behaviors are paired across requirements and edge-case sections.; No Hardcoded Secrets — no credentials or secret values are specified; article is inapplicable to this draft content.; Prioritize Requirements — priorities are explicitly defined (`P0`/`P1`/`P2`) and ordered.; Impact on Existing Features — existing-path impacts are explicitly stated (success paths unchanged, pre hook/command failure behavior unchanged).; Present Recommendations with Reasoning — each Q&A item leads with a recommendation and cites rationale from issue/rules/code patterns.; Explore Before Asking — no unresolved user-facing questions remain; draft states investigation-based decisions and `Open Questions: なし`.; Proactively Raise Related Implications — related implications are surfaced via edge cases, alternatives rejected, and explicit out-of-scope items.; Confirm Brainstorm vs. Decision Before Critiquing — draft explicitly marks mode as `Decision`, not brainstorming.; Capture Digressions in draft.md — scope digressions and side topics are captured in the draft under scope-out/future-extension sections.; Draft Stays at Requirements Level — includes implementation-level details (e.g., `setExit(1)`, `emitFailure`, file-level references).; Backward — Compatible CLI Interface — exit-code behavior change is specified without a migration/compatibility plan for existing automation users.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:32:46.079Z"
+    },
+    {
+      "step": "gate",
+      "reason": "line 78: unchecked task/question (- [ ] なし（autoApprove 自己 Q&A で全項目解消済）)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:34:28.019Z"
+    }
+  ]
+}

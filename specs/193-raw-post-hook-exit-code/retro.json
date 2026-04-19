@@ -1,0 +1,74 @@
+{
+  "spec": "specs/193-raw-post-hook-exit-code/spec.md",
+  "date": "2026-04-19T01:41:50.089Z",
+  "requirements": [
+    {
+      "desc": "post hook failure reflects as exit code 1 in both envelope and raw modes",
+      "status": "done",
+      "note": "dispatcher now tracks post hook failure and sets exit code 1 in both envelope and raw branches; tests cover both modes."
+    },
+    {
+      "desc": "envelope mode preserves POST_HOOK_FAILED warning with ok=true",
+      "status": "done",
+      "note": "envelope catch path still adds POST_HOOK_FAILED warning, and ok remains based on command result; test asserts ok=true with warning present."
+    },
+    {
+      "desc": "post hook success and undefined cases keep current exit code",
+      "status": "done",
+      "note": "logic only forces exit 1 when postFailed=true; envelope success remains exit 0 and raw without post does not force exit 1, both covered by tests."
+    },
+    {
+      "desc": "pre hook and command body failure exit behavior unchanged",
+      "status": "done",
+      "note": "no diff changes failure handling paths for pre hook or command body; existing exit=1 behavior is untouched."
+    },
+    {
+      "desc": "raw mode stderr message for post hook failure is preserved",
+      "status": "done",
+      "note": "raw-mode catch still writes post hook failure to stderr, and new test verifies stderr contains the error message."
+    },
+    {
+      "desc": "sync and async post hook throws both result in exit code 1",
+      "status": "done",
+      "note": "post hook is awaited in try/catch, so both sync throw and async reject set postFailed=true; tests added for both sync and async failures."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/193-raw-post-hook-exit-code/draft.md",
+      "change": "new draft/spec process document added (planning artifact, not a runtime requirement)."
+    },
+    {
+      "file": "specs/193-raw-post-hook-exit-code/flow.json",
+      "change": "flow state/metrics tracking file added (workflow artifact)."
+    },
+    {
+      "file": "specs/193-raw-post-hook-exit-code/issue-log.json",
+      "change": "gate/issue audit log added (workflow artifact)."
+    },
+    {
+      "file": "specs/193-raw-post-hook-exit-code/qa.md",
+      "change": "Q&A template file added (workflow artifact)."
+    },
+    {
+      "file": "specs/193-raw-post-hook-exit-code/review.md",
+      "change": "review notes file added (workflow artifact)."
+    },
+    {
+      "file": "specs/193-raw-post-hook-exit-code/spec.md",
+      "change": "full feature specification document added (process artifact)."
+    },
+    {
+      "file": "specs/193-raw-post-hook-exit-code/tests/README.md",
+      "change": "test-plan README added (documentation artifact)."
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All listed functional requirements are implemented by the dispatcher change and covered by new unit tests. Additional diff content is mostly spec/workflow documentation outside direct runtime requirements."
+  }
+}

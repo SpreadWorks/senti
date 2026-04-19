@@ -209,10 +209,12 @@ export async function dispatch({
     if (mode === "envelope") {
       envelope = Envelope.ok(envelopeType || "run", envelopeKey || "?", result || {});
     }
+    let postFailed = false;
     if (entry.post) {
       try {
         await entry.post(hookCtx, result);
       } catch (postErr) {
+        postFailed = true;
         if (mode === "envelope") {
           envelope.addWarning("POST_HOOK_FAILED", postErr.message || String(postErr));
         } else {
@@ -222,7 +224,9 @@ export async function dispatch({
     }
     if (mode === "envelope") {
       writeOut(JSON.stringify(envelope.toJSON(), null, 2) + "\n");
-      setExit(envelope.ok ? 0 : 1);
+      setExit(envelope.ok && !postFailed ? 0 : 1);
+    } else if (postFailed) {
+      setExit(1);
     }
     return;
   }
