@@ -384,11 +384,11 @@ async function runForge(rawArgs, container) {
 
       // Multi-language: update non-default languages after review pass
       try {
-        const { resolveOutputConfig } = await import("../../lib/types.js");
-        const outputCfg = resolveOutputConfig(config);
-        if (outputCfg.isMultiLang) {
-          const nonDefaultLangs = outputCfg.languages.filter((l) => l !== outputCfg.default);
-          if (outputCfg.mode === "translate") {
+        const docsCfg = config.docs;
+        if (docsCfg.languages.length >= 2) {
+          const nonDefaultLangs = docsCfg.languages.filter((l) => l !== docsCfg.defaultLanguage);
+          const docsMode = docsCfg.mode || "translate";
+          if (docsMode === "translate") {
             console.log(`[forge] Re-translating to: ${nonDefaultLangs.join(", ")}`);
             const translateCmd = `node "${path.join(PKG_DIR, "docs", "commands", "translate.js")}" --force`;
             await runCommand(translateCmd, root);

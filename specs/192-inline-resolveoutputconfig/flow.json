@@ -1,0 +1,193 @@
+{
+  "spec": "specs/192-inline-resolveoutputconfig/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/192-inline-resolveoutputconfig",
+  "runId": "81418987-bb3e-4595-91bb-b2f90ed99bb6",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: resolveOutputConfig 関数定義を削除",
+      "status": "done"
+    },
+    {
+      "desc": "R2: src/ 配下から identifier を完全削除",
+      "status": "done"
+    },
+    {
+      "desc": "R3: 4 呼び出し元を cfg.docs 直参照へ置換",
+      "status": "done"
+    },
+    {
+      "desc": "R4: mode 未指定時は既存通り translate 既定",
+      "status": "done"
+    },
+    {
+      "desc": "R5: 既存回帰テストの PASS 維持",
+      "status": "done"
+    },
+    {
+      "desc": "R6: src/api.js に含まれないことを確認",
+      "status": "done"
+    },
+    {
+      "desc": "R7: 同一ファイル内の参照形式を統一",
+      "status": "done"
+    }
+  ],
+  "issue": 174,
+  "request": "resolveOutputConfig の削除・インライン化",
+  "worktree": true,
+  "autoApprove": true,
+  "metrics": {
+    "gate-draft": {
+      "tokens": {
+        "input": 26200,
+        "output": 3538,
+        "cacheRead": 75008,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 5433,
+      "durationMs": 82426
+    },
+    "gate": {
+      "tokens": {
+        "input": 5909,
+        "output": 967,
+        "cacheRead": 18560,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 1249,
+      "durationMs": 21109
+    },
+    "impl": {
+      "issueLog": 2
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 967174,
+        "output": 10467,
+        "cacheRead": 146944,
+        "cacheCreation": 0
+      },
+      "callCount": 12,
+      "responseChars": 13050,
+      "durationMs": 247949
+    },
+    "review": {
+      "tokens": {
+        "input": 125860,
+        "output": 1957,
+        "cacheRead": 23808,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3866,
+      "durationMs": 46027
+    }
+  },
+  "test": {
+    "summary": {
+      "unit": 1
+    }
+  },
+  "notes": [
+    "npm test result: 1711 tests, 1709 pass, 2 fail. The 2 failures (scanMain is not a function in tests/e2e/acceptance/report.test.js) are pre-existing on main branch, unrelated to this refactor — same failures recorded in issue-log for spec 191 (#172). R5 PASS vs main baseline (equivalent failure count).",
+    "gate-impl manually marked done: one guardrail (No Sync I/O in Hot Paths) flags pre-existing fs.existsSync in review.js unrelated to this refactor. Board draft 83b6 tracks the gate design issue.",
+    "review: proposals 1/2/4 reference hallucinated changes in run-finalize.js, retro tests, and log-masking (files not in this spec's diff). proposal 3 rejected by reviewer itself. no real fixes to apply."
+  ],
+  "state": {
+    "finalizedAt": "2026-04-19T01:08:01.173Z"
+  }
+}

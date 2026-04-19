@@ -12,7 +12,6 @@ import { parseArgs } from "../../lib/cli.js";
 import { sddOutputDir } from "../../lib/config.js";
 import { Command } from "../../lib/command.js";
 import { translate } from "../../lib/i18n.js";
-import { resolveOutputConfig } from "../../lib/types.js";
 import { getChapterFiles } from "../lib/command-context.js";
 import { parseDirectives } from "../lib/directive-parser.js";
 import { ANALYSIS_META_KEYS } from "../lib/analysis-entry.js";
@@ -222,10 +221,10 @@ function runReview(rawArgs, container) {
 
   // Multi-language checks
   try {
-    const outputCfg = resolveOutputConfig(config);
-    if (outputCfg.isMultiLang) {
+    const docsCfg = config.docs;
+    if (docsCfg.languages.length >= 2) {
       const docsBase = path.join(root, "docs");
-      const nonDefaultLangs = outputCfg.languages.filter((l) => l !== outputCfg.default);
+      const nonDefaultLangs = docsCfg.languages.filter((l) => l !== docsCfg.defaultLanguage);
       for (const lang of nonDefaultLangs) {
         const langDir = path.join(docsBase, lang);
         if (!fs.existsSync(langDir)) {

@@ -1,0 +1,71 @@
+{
+  "spec": "specs/192-inline-resolveoutputconfig/spec.md",
+  "date": "2026-04-19T01:08:32.664Z",
+  "requirements": [
+    {
+      "desc": "R1: resolveOutputConfig 関数定義を削除",
+      "status": "done",
+      "note": "src/lib/types.js から resolveOutputConfig の定義と関連コメントが削除されている。"
+    },
+    {
+      "desc": "R2: src/ 配下から identifier を完全削除",
+      "status": "done",
+      "note": "4 呼び出し元の import/呼び出しが除去され、src 側の残存参照は diff 上で確認できない（加えて残存検査テストが追加）。"
+    },
+    {
+      "desc": "R3: 4 呼び出し元を cfg.docs 直参照へ置換",
+      "status": "done",
+      "note": "build.js / translate.js / review.js / forge.js が cfg.docs（config.docs）直参照へ置換されている。"
+    },
+    {
+      "desc": "R4: mode 未指定時は既存通り translate 既定",
+      "status": "done",
+      "note": "mode を参照する箇所で docsCfg.mode || \"translate\" の fallback が実装されている。"
+    },
+    {
+      "desc": "R5: 既存回帰テストの PASS 維持",
+      "status": "done",
+      "note": "flow.json の notes に npm test が 1709 pass / 2 fail で main の既存失敗と同等と記録されている。"
+    },
+    {
+      "desc": "R6: src/api.js に含まれないことを確認",
+      "status": "done",
+      "note": "spec/draft/flow 内に 2026-04-18 時点で src/api.js に非含有確認済みの記録がある。"
+    },
+    {
+      "desc": "R7: 同一ファイル内の参照形式を統一",
+      "status": "done",
+      "note": "各呼び出し元で docsCfg ベースの参照に統一され、同一値への複数流儀の併存は diff 上で見られない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/192-inline-resolveoutputconfig/review.md",
+      "change": "本 spec 範囲外の run-finalize/log-masking 等に関するレビュー記録が追加されている。"
+    },
+    {
+      "file": "specs/192-inline-resolveoutputconfig/qa.md",
+      "change": "未記入テンプレート（Q/A プレースホルダ）の文書ファイルが追加されている。"
+    },
+    {
+      "file": "specs/192-inline-resolveoutputconfig/flow.json",
+      "change": "メトリクス・ライフサイクル・issue log 参照など運用メタデータが大量追加されている（R1-R7外）。"
+    },
+    {
+      "file": "specs/192-inline-resolveoutputconfig/issue-log.json",
+      "change": "gate/guardrail の詳細ログが追加されている（機能要件そのものではない）。"
+    },
+    {
+      "file": "specs/192-inline-resolveoutputconfig/tests/removal.test.js",
+      "change": "R1/R2検証に加えて MAX_DEPTH/MAX_FILES/MAX_FILE_BYTES の走査制限ロジックが追加されている。"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "R1〜R7 は diff 内容に照らして満たされている。実装本体は要件適合だが、spec 運用文書や周辺メタ情報の追加が多く、要件リスト外の変更が含まれる。"
+  }
+}

@@ -12,7 +12,6 @@
 import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
-import { resolveOutputConfig } from "../../lib/types.js";
 import { resolveConcurrency } from "../../lib/config.js";
 import { createLogger } from "../../lib/progress.js";
 import { getChapterFiles, stripResponsePreamble } from "../lib/command-context.js";
@@ -151,15 +150,16 @@ async function runTranslate(ctx, rawArgs) {
   }
 
   const { root, config: cfg, docsDir } = ctx;
-  const outputCfg = resolveOutputConfig(cfg);
+  const docsCfg = cfg.docs;
+  const docsMode = docsCfg.mode || "translate";
 
-  if (!outputCfg.isMultiLang) {
+  if (docsCfg.languages.length < 2) {
     logger.log("Single language configured. Nothing to translate.");
     return;
   }
 
-  if (outputCfg.mode !== "translate") {
-    logger.log(`Output mode is '${outputCfg.mode}', not 'translate'. Use 'sdd-forge build' for generate mode.`);
+  if (docsMode !== "translate") {
+    logger.log(`Output mode is '${docsMode}', not 'translate'. Use 'sdd-forge build' for generate mode.`);
     return;
   }
 
@@ -168,10 +168,10 @@ async function runTranslate(ctx, rawArgs) {
   }
   const agent = ctx.agent;
 
-  const defaultLang = outputCfg.default;
+  const defaultLang = docsCfg.defaultLanguage;
   const targetLangs = ctx.targetLang
     ? [ctx.targetLang]
-    : outputCfg.languages.filter((l) => l !== defaultLang);
+    : docsCfg.languages.filter((l) => l !== defaultLang);
 
   if (!fs.existsSync(docsDir)) {
     throw new Error("docs/ directory not found. Run 'sdd-forge init' first.");

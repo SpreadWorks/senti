@@ -84,21 +84,3 @@
  * @property {LogsConfig} [logs]             - Logging configuration
  */
 
-/**
- * config から多言語出力設定を抽出する。
- * 単一言語の場合も統一的に扱えるようにする。
- *
- * @param {SddConfig} cfg
- * @returns {{ languages: string[], default: string, mode: "translate"|"generate", isMultiLang: boolean }}
- */
-export function resolveOutputConfig(cfg) {
-  const languages = cfg.docs.languages;
-  const defaultLang = cfg.docs.defaultLanguage;
-  const mode = cfg.docs.mode || "translate";
-  return {
-    languages,
-    default: defaultLang,
-    mode,
-    isMultiLang: languages.length >= 2,
-  };
-}

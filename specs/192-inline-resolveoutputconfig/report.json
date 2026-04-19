@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/192-inline-resolveoutputconfig/draft.md      |  92 ++++++++++\n specs/192-inline-resolveoutputconfig/flow.json     | 193 +++++++++++++++++++++\n .../192-inline-resolveoutputconfig/issue-log.json  |  82 +++++++++\n specs/192-inline-resolveoutputconfig/qa.md         |   9 +\n specs/192-inline-resolveoutputconfig/review.md     |  41 +++++\n specs/192-inline-resolveoutputconfig/spec.md       |  78 +++++++++\n .../192-inline-resolveoutputconfig/tests/README.md |  20 +++\n .../tests/removal.test.js                          |  42 +++++\n src/docs/commands/build.js                         |  15 +-\n src/docs/commands/forge.js                         |  10 +-\n src/docs/commands/review.js                        |   7 +-\n src/docs/commands/translate.js                     |  14 +-\n src/lib/types.js                                   |  18 --\n 13 files changed, 580 insertions(+), 41 deletions(-)",
+      "commits": [
+        "feat: feature/192-inline-resolveoutputconfig"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "R1〜R7 は diff 内容に照らして満たされている。実装本体は要件適合だが、spec 運用文書や周辺メタ情報の追加が多く、要件リスト外の変更が含まれる。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 1125143,
+      "output": 16929,
+      "cacheRead": 264320,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 19,
+      "durationMs": 397511,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 82426
+        },
+        {
+          "phase": "gate",
+          "durationMs": 21109
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 247949
+        },
+        {
+          "phase": "review",
+          "durationMs": 46027
+        }
+      ]
+    },
+    "tests": {
+      "unit": 1,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 1
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/192-inline-resolveoutputconfig\n    13 files changed, 580 insertions(+), 41 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 19\n    input tokens ................ 1,125,143\n    output tokens ............... 16,929\n    cache-read tokens ........... 264,320\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 397.5s\n      gate-draft ................ 82.4s\n      gate ...................... 21.1s\n      gate-impl ................. 247.9s\n      review .................... 46.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 1  integration 0  acceptance 0  total 1"
+}

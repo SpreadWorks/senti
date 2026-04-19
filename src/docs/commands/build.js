@@ -11,7 +11,6 @@ import { stat, readdir } from "node:fs/promises";
 import path from "path";
 import { PKG_DIR } from "../../lib/cli.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
-import { resolveOutputConfig } from "../../lib/types.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 
@@ -67,8 +66,10 @@ async function runBuild(rawArgs, container) {
   // Build shared context once
   const baseCtx = resolveDocsContext(container, null);
 
-  const outputCfg = resolveOutputConfig(baseCtx.config);
-  const hasTranslateStep = outputCfg.isMultiLang;
+  const docsCfg = baseCtx.config.docs;
+  const docsMode = docsCfg.mode || "translate";
+  const isMultiLang = docsCfg.languages.length >= 2;
+  const hasTranslateStep = isMultiLang;
 
   const pipelineSteps = [
     { label: "scan", weight: 1 },
@@ -158,13 +159,13 @@ async function runBuild(rawArgs, container) {
     await runStep(DocsAgentsCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.agents" });
     progress.stepDone();
 
-    if (outputCfg.isMultiLang) {
+    if (isMultiLang) {
       logger.event("pipeline-step", { step: "translate", phase: "start" });
       progress.start("translate");
-      const nonDefaultLangs = outputCfg.languages.filter((l) => l !== outputCfg.default);
+      const nonDefaultLangs = docsCfg.languages.filter((l) => l !== docsCfg.defaultLanguage);
       const docsDir = baseCtx.docsDir;
 
-      if (outputCfg.mode === "translate") {
+      if (docsMode === "translate") {
         progress.log(`[build] Translating to: ${nonDefaultLangs.join(", ")}`);
         await runStep(DocsTranslateCommand, { ...baseCtx, dryRun: isDryRun, commandId: "docs.translate" });
       } else {
@@ -188,7 +189,7 @@ async function runBuild(rawArgs, container) {
         }
       }
 
-      if (outputCfg.mode === "translate") {
+      if (docsMode === "translate") {
         for (const lang of nonDefaultLangs) {
           const langDocsDir = path.join(docsDir, lang);
           if (await dirExists(langDocsDir)) {
