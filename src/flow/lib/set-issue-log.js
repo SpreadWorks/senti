@@ -46,6 +46,31 @@ export function saveIssueLog(root, specPath, issueLog) {
   fs.writeFileSync(logPath, JSON.stringify(issueLog, null, 2) + "\n");
 }
 
+const MIN_REASON_LENGTH = 20;
+const MIN_OPTIONAL_FIELD_LENGTH = 10;
+
+function validateReason(reason) {
+  if ((reason ?? "").trim().length < MIN_REASON_LENGTH) {
+    const err = new Error(
+      `--reason must be at least ${MIN_REASON_LENGTH} characters (trimmed). ` +
+      `Provide a specific, descriptive reason — placeholder text is rejected.`,
+    );
+    err.code = "INVALID_REASON";
+    throw err;
+  }
+}
+
+function validateOptionalIssueLogField(name, value) {
+  if (value == null) return;
+  if (value.trim().length < MIN_OPTIONAL_FIELD_LENGTH) {
+    const err = new Error(
+      `--${name} must be at least ${MIN_OPTIONAL_FIELD_LENGTH} characters (trimmed) when provided.`,
+    );
+    err.code = "INVALID_FIELD";
+    throw err;
+  }
+}
+
 export default class SetIssueLogCommand extends FlowCommand {
   execute(ctx) {
     const { root } = ctx;
@@ -53,6 +78,10 @@ export default class SetIssueLogCommand extends FlowCommand {
     if (!ctx.step || !ctx.reason) {
       throw new Error("--step and --reason are required");
     }
+    validateReason(ctx.reason);
+    validateOptionalIssueLogField("trigger", ctx.trigger);
+    validateOptionalIssueLogField("resolution", ctx.resolution);
+    validateOptionalIssueLogField("guardrail-candidate", ctx.guardrailCandidate);
 
     const entry = {
       step: ctx.step,

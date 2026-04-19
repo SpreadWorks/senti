@@ -1,0 +1,68 @@
+{
+  "spec": "specs/193-fix-issue-log-test-leak/spec.md",
+  "date": "2026-04-19T01:40:01.744Z",
+  "requirements": [
+    {
+      "desc": "P1: reason 最小長バリデーション (trim 後 20 文字)",
+      "status": "done",
+      "note": "`src/flow/lib/set-issue-log.js` で `reason` の trim 後 20 文字未満を `INVALID_REASON` で拒否。保存処理前に例外となるため書き込みも発生しない。"
+    },
+    {
+      "desc": "P2: 任意フィールド最小長バリデーション (trim 後 10 文字)",
+      "status": "done",
+      "note": "`trigger`/`resolution`/`guardrail-candidate` を trim 後 10 文字未満で `INVALID_FIELD` として拒否し、保存前に終了する実装になっている。"
+    },
+    {
+      "desc": "P3: 既存呼び出し箇所の整合更新",
+      "status": "partial",
+      "note": "`tests/unit/flow/set-issue-log.test.js` の短文は閾値以上へ更新済み。ただし diff 上は「SDD スキル内の実行例示」自体の更新は明示されていない。"
+    },
+    {
+      "desc": "P4: バリデーションのユニットテスト追加",
+      "status": "done",
+      "note": "reason<20` 失敗、任意フィールド<10 失敗、`reason=20` 成功、任意フィールド=10 成功の各ケースが追加され、失敗時の未書き込みも検証している。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/templates/partials/issue-log-recording.md",
+      "change": "CLI の最小文字数ルール説明をテンプレート文書へ追記（要件 P1-P4 の必須範囲外のドキュメント変更）。"
+    },
+    {
+      "file": "specs/193-fix-issue-log-test-leak/draft.md",
+      "change": "ドラフト仕様ファイルの新規追加。"
+    },
+    {
+      "file": "specs/193-fix-issue-log-test-leak/flow.json",
+      "change": "フロー状態管理ファイルの新規追加。"
+    },
+    {
+      "file": "specs/193-fix-issue-log-test-leak/issue-log.json",
+      "change": "spec 用 issue-log 記録ファイルの新規追加。"
+    },
+    {
+      "file": "specs/193-fix-issue-log-test-leak/qa.md",
+      "change": "Q&A テンプレートファイルの新規追加。"
+    },
+    {
+      "file": "specs/193-fix-issue-log-test-leak/review.md",
+      "change": "レビュー結果記録ファイルの新規追加。"
+    },
+    {
+      "file": "specs/193-fix-issue-log-test-leak/spec.md",
+      "change": "機能仕様書の新規追加。"
+    },
+    {
+      "file": "specs/193-fix-issue-log-test-leak/tests/README.md",
+      "change": "spec テスト説明ドキュメントの新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 3,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.88,
+    "notes": "P1/P2/P4 は実装・テストとも要件を満たしている。P3 はテスト側整合は確認できるが、SDD スキル例示の更新有無はこの diff だけでは断定しづらく部分達成判定。"
+  }
+}

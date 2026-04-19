@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/193-fix-issue-log-test-leak/draft.md        |  99 +++++++++++++\n specs/193-fix-issue-log-test-leak/flow.json       | 173 ++++++++++++++++++++++\n specs/193-fix-issue-log-test-leak/issue-log.json  |  34 +++++\n specs/193-fix-issue-log-test-leak/qa.md           |   9 ++\n specs/193-fix-issue-log-test-leak/review.md       |  41 +++++\n specs/193-fix-issue-log-test-leak/spec.md         | 116 +++++++++++++++\n specs/193-fix-issue-log-test-leak/tests/README.md |  31 ++++\n src/flow/lib/set-issue-log.js                     |  29 ++++\n src/templates/partials/issue-log-recording.md     |   1 +\n tests/unit/flow/set-issue-log.test.js             | 158 +++++++++++++++-----\n 10 files changed, 654 insertions(+), 37 deletions(-)",
+      "commits": [
+        "feat: feature/193-fix-issue-log-test-leak"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 3,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.88,
+      "notes": "P1/P2/P4 は実装・テストとも要件を満たしている。P3 はテスト側整合は確認できるが、SDD スキル例示の更新有無はこの diff だけでは断定しづらく部分達成判定。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 88763,
+      "output": 9679,
+      "cacheRead": 239104,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 12,
+      "durationMs": 244170,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 107178
+        },
+        {
+          "phase": "gate",
+          "durationMs": 22355
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 72557
+        },
+        {
+          "phase": "review",
+          "durationMs": 42080
+        }
+      ]
+    },
+    "tests": {
+      "unit": 13,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 13
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/193-fix-issue-log-test-leak\n    10 files changed, 654 insertions(+), 37 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 88%  (3 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 12\n    input tokens ................ 88,763\n    output tokens ............... 9,679\n    cache-read tokens ........... 239,104\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 244.2s\n      gate-draft ................ 107.2s\n      gate ...................... 22.4s\n      gate-impl ................. 72.6s\n      review .................... 42.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 13  integration 0  acceptance 0  total 13"
+}

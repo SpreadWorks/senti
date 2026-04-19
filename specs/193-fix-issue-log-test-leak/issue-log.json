@@ -1,0 +1,34 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — Draft is focused on one concern: preventing placeholder contamination in `flow set issue-log`.; Unambiguous Requirements — It defines measurable rules (e.g., trimmed min lengths, specific error codes, explicit failure behavior).; Complete Context — Several requirements are stated as rules without consistently pairing an explicit trigger condition with expected behavior in `When/If ... shall ...` form.; No Hardcoded Secrets — No API keys, tokens, passwords, or similar secrets are present.; Prioritize Requirements — There are more than three requirements, but no explicit priority ordering is provided.; Impact on Existing Features — A dedicated impact section explicitly covers affected and unaffected existing behavior.; Present Recommendations with Reasoning — Each Q&A item leads with a recommendation and includes rationale tied to policy, issue evidence, or existing patterns.; Explore Before Asking — No unresolved user-directed questions remain; the draft shows prior investigation and self-answered decisions.; Proactively Raise Related Implications — It proactively addresses alternatives, out-of-scope items, and future extension implications.; Confirm Brainstorm vs. Decision Before Critiquing — Inapplicable; the draft is already in decision form with explicit approved choices.; Capture Digressions in draft.md — Inapplicable; no visible digression thread requiring separate capture is presented.; Draft Stays at Requirements Level — It includes implementation-level specifics (exact file paths, concrete test-file edits, and code-level error envelope details).; Backward — Compatible CLI Interface — Validation tightening changes effective CLI behavior for previously accepted short inputs, but no migration/transition guidance is included.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:28:21.222Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — `flow set issue-log` の短文 placeholder 混入防止という単一の関心に集中している。; Unambiguous Requirements — 要件の閾値が「閾値未満」「目安（実装時に最終調整）」となっており、確定した検証条件が不足している。; Complete Context — P1〜P3 の各要件が `When/If/Shall` でトリガー条件と期待挙動を明示している。; No Hardcoded Secrets — API key・トークン・パスワード等の秘密情報は記載されていない。; Prioritize Requirements — 3件超の要件に対して P1/P2/P3 の優先順位が付与されている。; Impact on Existing Features — 既存機能への影響有無をコマンド・テスト単位で明示している。; Present Recommendations with Reasoning — Q1〜Q4 で各推奨を先出しし、根拠も併記している。; Explore Before Asking — ユーザーへの未解決質問を残さず、既知情報に基づき自己完結で判断している。; Proactively Raise Related Implications — 呼び出し側整合、移行計画、将来拡張まで関連影響を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 本文は確定ドラフト記述であり、ブレスト案への対話的批評プロセス自体が発生していない。; Capture Digressions in draft.md — 代替案・Q&A・将来拡張などの派生論点がドラフト内に記録されている。; Draft Stays at Requirements Level — 実装方針は要件・振る舞い中心で、関数設計や詳細実装手順には踏み込んでいない。; Backward — Compatible CLI Interface — 破壊的変更を明示し、利用者影響と具体的な移行手順を記載している。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:29:22.927Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — `flow set issue-log` の短文混入防止という単一課題に集中しており、付随項目も整合性対応の範囲です。; Unambiguous Requirements — P3 の「現実的な長さ」など検証基準が曖昧な表現が残っています。; Complete Context — 各主要要件が `When/If/Shall` で条件と期待動作を明示しています。; No Hardcoded Secrets — APIキーやトークン等の機密情報は含まれておらず、本内容では非該当です。; Prioritize Requirements — 4件以上の要件に対して P1〜P3 の優先順位が明示されています。; Impact on Existing Features — `run gate`、SDDスキル、テスト、他コマンドへの影響有無を明示しています。; Present Recommendations with Reasoning — 各Q&Aで推奨案を先に示し、根拠（既存挙動・方針・ガードレール）を併記しています。; Explore Before Asking — 背景で既存問題と現行挙動を調査したうえで論点化しており、未探索前提の質問になっていません。; Proactively Raise Related Implications — 移行計画、破壊的変更の影響、将来拡張まで先回りして記載しています。; Confirm Brainstorm vs. Decision Before Critiquing — 本文は決定済みドラフトで批評対話がなく、この観点は実質的に非該当です。; Capture Digressions in draft.md — 脱線した会話スレッドが提示されておらず、この観点は非該当です。; Draft Stays at Requirements Level — 関数設計や実装アルゴリズム詳細までは踏み込まず、要件・方針中心で記述されています。; Backward — Compatible CLI Interface — 互換性影響を破壊的変更として明示し、具体的な移行手順を提示しています。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:30:03.303Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: preventing placeholder issue-log entries via input validation.; Unambiguous Requirements — Requirements use concrete, testable thresholds and explicit outcomes (length checks, error envelope, no write).; Complete Context — Each requirement includes When/If trigger context and a Shall expected behavior.; No Hardcoded Secrets — No source code secrets (keys/tokens/passwords) are present in the draft content.; Prioritize Requirements — More than three requirements are explicitly ordered as P1/P2/P3.; Impact on Existing Features — A dedicated impact section lists affected and unaffected existing features explicitly.; Present Recommendations with Reasoning — Each Q&A item leads with a recommendation and provides concise rationale grounded in project policy/patterns.; Explore Before Asking — The draft answers key questions with investigated context instead of deferring them to the user.; Proactively Raise Related Implications — It proactively covers migration impact, optional fields, alternatives, and future extension implications.; Confirm Brainstorm vs. Decision Before Critiquing — The draft critiques/rejects alternatives but does not explicitly record a brainstorm-vs-decision confirmation step.; Capture Digressions in draft.md — No explicit digression is shown; relevant side discussions are already captured in the draft sections.; Draft Stays at Requirements Level — Content stays at spec/requirements scope without function-level or low-level implementation design.; Backward — Compatible CLI Interface — It explicitly marks the breaking behavior change and provides a concrete migration plan.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:30:31.726Z"
+    },
+    {
+      "step": "gate",
+      "reason": "line 49: unresolved token (2. placeholder キーワード辞書で \"test\" / \"first\" / \"TODO\" 等をブロック。却下: 保守負担が高く、辞書外の別短文を素通りさせる。); line 109: unchecked task/question (- [ ] なし)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T01:31:57.219Z"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ sdd-forge flow set issue-log --step <current-step> --reason "<what went wrong>" 
 
 - Do not defer recording — record as soon as the fix is applied.
 - `--reason` and `--step` are required. `--trigger`, `--resolution`, `--guardrail-candidate` are optional but recommended.
+- Minimum length (enforced by the CLI): `--reason` 20 chars (trimmed), optional fields 10 chars (trimmed). Shorter inputs are rejected with a non-zero exit code.
 - This creates `specs/<spec>/issue-log.json`. The file persists with the spec.
 
 ### When to record

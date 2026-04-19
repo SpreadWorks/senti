@@ -1,0 +1,173 @@
+{
+  "spec": "specs/193-fix-issue-log-test-leak/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/193-fix-issue-log-test-leak",
+  "runId": "7eaeec01-eefb-44cd-9780-16538bc7bdd5",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "P1: reason 最小長バリデーション (trim 後 20 文字)",
+      "status": "done"
+    },
+    {
+      "desc": "P2: 任意フィールド最小長バリデーション (trim 後 10 文字)",
+      "status": "done"
+    },
+    {
+      "desc": "P3: 既存呼び出し箇所の整合更新",
+      "status": "done"
+    },
+    {
+      "desc": "P4: バリデーションのユニットテスト追加",
+      "status": "done"
+    }
+  ],
+  "issue": 176,
+  "worktree": true,
+  "autoApprove": true,
+  "request": "issue #176: flow set issue のテストデータが実 issue-log に混入する問題を修正。テスト時の sink 分離 or バリデーション強化。",
+  "metrics": {
+    "gate-draft": {
+      "tokens": {
+        "input": 31839,
+        "output": 4393,
+        "cacheRead": 96640,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 7310,
+      "durationMs": 107178
+    },
+    "gate": {
+      "tokens": {
+        "input": 3675,
+        "output": 958,
+        "cacheRead": 21888,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 1191,
+      "durationMs": 22355
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 36562,
+        "output": 2665,
+        "cacheRead": 81920,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 3448,
+      "durationMs": 72557
+    },
+    "review": {
+      "tokens": {
+        "input": 16687,
+        "output": 1663,
+        "cacheRead": 38656,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3605,
+      "durationMs": 42080
+    }
+  },
+  "test": {
+    "summary": {
+      "unit": 13
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-19T01:39:29.848Z"
+  }
+}
