@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-19T01:08:34.539Z",
+  "analyzedAt": "2026-04-19T01:40:03.537Z",
   "package": {
     "entries": [
       {
@@ -3522,13 +3522,15 @@
       },
       {
         "file": "src/flow/lib/set-issue-log.js",
-        "hash": "267f3568761ce9d147818987fafb3d94",
-        "lines": 74,
-        "mtime": "2026-04-10T06:35:13.097Z",
+        "hash": "fbaf72b9c5a7c69924eabaf26d6ab1ed",
+        "lines": 103,
+        "mtime": "2026-04-19T01:40:03.070Z",
         "className": "set-issue-log",
         "methods": [
           "loadIssueLog",
-          "saveIssueLog"
+          "saveIssueLog",
+          "validateReason",
+          "validateOptionalIssueLogField"
         ],
         "imports": [
           "fs",
@@ -3543,30 +3545,29 @@
         "extends": "FlowCommand",
         "usedBy": [
           "src/flow/lib/run-finalize.js",
+          "src/flow/lib/run-gate.js",
           "src/flow/lib/run-report.js",
-          "src/flow/registry.js",
           "src/lib/agent.js",
-          "src/lib/process.js",
-          "src/lib/git-helpers.js",
-          "src/lib/container.js",
-          "src/flow/lib/run-gate.js"
+          "src/lib/container.js"
         ],
         "id": "65ac9e4f",
-        "enrich": {
-          "processedAt": "2026-04-13T05:28:46.709Z",
-          "attempts": 5
-        },
-        "summary": "This module manages issue-log persistence for flow specs and exposes a command to append entries. It validates stored log structure before use.",
-        "detail": "Load/save helpers derive the spec-local `issue-log.json` path and ensure directories exist before writes. The loader enforces that `entries` is an array and fails fast on invalid schema. The command requires `--step` and `--reason`, appends a timestamped entry, and persists the updated log. It returns both the created entry and total count for downstream reporting.",
+        "summary": "This module implements issue log persistence and validation for the flow system, and exposes a command class to append issue-log entries. It centralizes reading, writing, and field checks around `issue-log.json` near the spec path.",
+        "detail": "The file computes a spec-relative directory from `root` and `specPath`, then reads or writes `issue-log.json` in that location. `loadIssueLog` is responsible for parsing JSON and asserting that `entries` has the expected array shape before returning a default empty structure when missing. `saveIssueLog` ensures the directory exists and writes pretty-printed JSON with a trailing newline, matching repository-friendly file formatting patterns. Validation helpers enforce minimum text length for required reason fields and optional descriptive fields, raising explicit errors for invalid input. `SetIssueLogCommand` extends `FlowCommand`, checks required flags such as step and reason, and records a new entry while returning both the inserted item and updated entry count.",
         "chapter": "cli_commands",
-        "role": "lib",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-19T01:40:18.117Z",
+          "attempts": 1
+        },
         "keywords": [
           "issue log",
-          "json persistence",
-          "spec artifacts",
-          "flow history",
-          "validation",
-          "append entry"
+          "flow command",
+          "JSON persistence",
+          "input validation",
+          "CLI option parsing",
+          "entry append",
+          "spec path",
+          "file I/O"
         ]
       },
       {
@@ -8655,9 +8656,9 @@
     ],
     "summary": {
       "total": 249,
-      "totalMethods": 776
+      "totalMethods": 778
     },
     "dataSourceHash": "7d725e75d5031be445119323e4947c91"
   },
-  "enrichedAt": "2026-04-19T01:09:03.776Z"
+  "enrichedAt": "2026-04-19T01:40:18.117Z"
 }
