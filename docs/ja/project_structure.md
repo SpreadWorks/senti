@@ -29,7 +29,7 @@ src/docs/lib/lang/    (lib)
 src/flow/    (config)
 src/flow/commands/    (controller, cli)
 src/flow/lib/    (model, lib, cli, controller)
-src/lib/    (model, lib, config, controller, middleware, view)
+src/lib/    (model, lib, config, controller, view)
 src/metrics/commands/    (cli)
 ```
 <!-- {{/data}} -->
@@ -41,7 +41,7 @@ src/metrics/commands/    (cli)
 | --- | --- | --- |
 | src/docs | 43 | cli, controller, model, lib |
 | src/flow | 36 | controller, cli, model, lib, config |
-| src/lib | 32 | model, lib, config, controller, middleware, view |
+| src/lib | 32 | model, lib, config, controller, view |
 | src | 11 | lib, cli, middleware |
 | src/check | 3 | cli |
 | src/metrics | 1 | cli |

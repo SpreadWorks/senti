@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-19T01:40:03.537Z",
+  "analyzedAt": "2026-04-19T01:41:51.580Z",
   "package": {
     "entries": [
       {
@@ -4370,9 +4370,9 @@
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "54d819f52949ebf982f7a0befcaad279",
-        "lines": 260,
-        "mtime": "2026-04-18T20:35:29.040Z",
+        "hash": "7beb098a7ab52aaa70e92afdccba2a03",
+        "lines": 264,
+        "mtime": "2026-04-19T01:41:51.206Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -4399,21 +4399,23 @@
           "src/metrics.js"
         ],
         "id": "18d5f63b",
-        "summary": "Implements argument parsing and runtime dispatch for command entries, including envelope and raw output modes. It handles hook execution, error propagation, and standardized failure emission.",
-        "detail": "The dispatcher splits positional and non-positional args based on command-specific flag and option specifications and rejects unknown options early. It supports lightweight parse behavior for help-only or passthrough entry types, then resolves the entry output mode dynamically. Execution wraps command calls with pre/post/onError hooks and writes structured envelopes when configured. Failure paths are normalized through a shared emitter that can serialize envelope errors or write stderr text depending on mode. Exit code control is abstracted through injectable writers and setters, enabling testable orchestration.",
-        "chapter": "project_structure",
-        "role": "middleware",
+        "summary": "This module parses command input and dispatches CLI entries through a unified execution pipeline. It also standardizes output and error handling, including envelope-formatted responses.",
+        "detail": "It imports argument parsing, command abstractions, and flow envelope utilities, then validates argv against flag/option specs while rejecting unknown or unexpected arguments. The entry parser builds normalized input, including explicit help-flag detection, before handing control to the runtime dispatcher. The dispatcher wires stdout/stderr/exit-code handlers, runs lifecycle hooks (`pre`, main execution, `post`), and emits structured JSON envelopes when configured. Error paths are centralized through a failure emitter that can format either raw or envelope output and set process exit codes consistently. Output mode resolution is dynamic, defaulting to `raw` when no module-level mode is provided.",
+        "chapter": "cli_commands",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:06.165Z",
+          "processedAt": "2026-04-19T01:42:02.823Z",
           "attempts": 1
         },
         "keywords": [
-          "cli dispatcher",
+          "dispatcher",
           "argument parsing",
-          "envelope output",
-          "hook lifecycle",
-          "error emission",
-          "command execution pipeline"
+          "CLI routing",
+          "output mode",
+          "error handling",
+          "envelope",
+          "lifecycle hooks",
+          "exit code"
         ]
       },
       {
@@ -8660,5 +8662,5 @@
     },
     "dataSourceHash": "7d725e75d5031be445119323e4947c91"
   },
-  "enrichedAt": "2026-04-19T01:40:18.117Z"
+  "enrichedAt": "2026-04-19T01:42:02.823Z"
 }
