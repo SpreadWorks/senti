@@ -49,6 +49,22 @@ export function getSpecName(flowOrState) {
 }
 
 /**
+ * Resolve the absolute spec directory from a flow state and repo root.
+ * Returns null if `state.spec` is missing.
+ *
+ * @param {{ spec?: string }|null|undefined} flowOrState
+ * @param {string} root - Repository root (absolute)
+ * @returns {string|null}
+ */
+export function getSpecDir(flowOrState, root) {
+  if (!flowOrState?.spec) return null;
+  const specMdPath = path.isAbsolute(flowOrState.spec)
+    ? flowOrState.spec
+    : path.join(root, flowOrState.spec);
+  return path.dirname(specMdPath);
+}
+
+/**
  * Derive current phase from steps.
  * Returns the phase of the first in_progress step,
  * or the phase after the last done/skipped step.

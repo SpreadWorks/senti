@@ -8,6 +8,7 @@
  *   flow    → src/flow.js
  *   check   → src/check.js
  *   metrics → src/metrics.js
+ *   spec    → src/spec.js
  *   setup   → src/setup.js
  *   upgrade → src/upgrade.js
  *   help    → src/help.js
@@ -48,6 +49,7 @@ const NAMESPACE_SCRIPTS = {
   flow: "flow",
   check: "check",
   metrics: "metrics",
+  spec: "spec",
 };
 
 /** Independent commands — receive rest args directly */

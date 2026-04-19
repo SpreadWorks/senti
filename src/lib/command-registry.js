@@ -90,6 +90,14 @@ export const metricsCommands = {
 };
 
 // ---------------------------------------------------------------------------
+// spec subtree
+// ---------------------------------------------------------------------------
+
+export const specCommands = {
+  render: rawEntry("../spec/commands/render.js"),
+};
+
+// ---------------------------------------------------------------------------
 // Unified root
 // ---------------------------------------------------------------------------
 
@@ -98,4 +106,5 @@ export const allCommands = {
   docs: docsCommands,
   check: checkCommands,
   metrics: metricsCommands,
+  spec: specCommands,
 };

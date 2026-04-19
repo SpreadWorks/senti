@@ -1,0 +1,83 @@
+{
+  "goal": "spec をプライマリデータとして扱うための基盤を整備する。spec 内容を構造化する JSON スキーマを導入し、その JSON から現行の spec.md を派生生成できる新規コマンドを追加する。後続タスク T8 で既存コードを spec.json 読み書きに置換できるよう、既存の spec.md 読み書き箇所を I/F レベルで調査して成果物としてまとめる。",
+  "background": "cac6 分解タスク 1/11。親ドラフトで合意済みの「spec.json をプライマリ化する」方針の最小起点として、スキーマとレンダラだけを先に用意する。既存 spec.md 読み書き経路の置換は T8 に委ねる。",
+  "scope": {
+    "in": [
+      "spec を表現する JSON Schema を新規定義（cac6 合意 6 フィールド + 既存 spec.md 互換の 5 フィールドで計 11 フィールド）",
+      "spec.json を入力として spec.md を派生生成する新規 CLI コマンドの追加（active flow 自動解決）",
+      "本 spec の spec.json サンプルのコミット",
+      "ソースツリー中の spec.md 読み書き箇所の全件調査と表形式の成果物作成",
+      "レンダラおよびスキーマ検証の共通テストスイートへの組み込み"
+    ],
+    "out": [
+      "既存コード（spec 初期化、flow コマンド群、docs コマンド群、metrics 等）の spec.md 読み書き経路の置換（T8 のスコープ）",
+      "既存 spec.md の spec.json への一括マイグレーション（cac6 全体計画に含まれる）",
+      "spec.schema.json のバージョニング機構",
+      "AI エージェントが request から spec.json を生成するプロンプト設計"
+    ]
+  },
+  "constraints": [
+    "alpha 方針に従い後方互換シムは導入しない",
+    "外部依存は追加しない（Node.js 組み込みのみ）",
+    "スキーマ検証は既存の validateSchema を流用",
+    "配布コード配下にプロジェクト固有情報を書かない",
+    "新規コマンドは失敗時に非 0 exit code を返す"
+  ],
+  "design_principles": [
+    "active flow からの自動解決で既存 flow コマンドの設計に揃える",
+    "決定論的出力（同一入力から常に同一 spec.md、タイムスタンプやランダム順序を含まない）",
+    "既存 spec.md のセクション順と見出しを維持し、T8 置換時のレビュー差分を最小化する"
+  ],
+  "overview": {
+    "modules": [
+      "src/flow/schemas/spec.schema.json — spec の JSON Schema 定義",
+      "src/spec/commands/render.js — renderSpecMarkdown 関数と spec render CLI",
+      "src/spec.js — spec サブコマンドのディスパッチャ",
+      "src/lib/command-registry.js — specCommands レジストリ追加",
+      "src/sdd-forge.js — spec 名前空間をトップレベルに登録"
+    ],
+    "data_flow": [
+      "spec.json → validateSchema → renderSpecMarkdown → spec.md",
+      "active flow 解決 → spec.json パス特定 → 読込 → 検証 → レンダリング → spec.md 書込"
+    ],
+    "decisions": [
+      "11 フィールドは全て必須（cac6 合意 6 + 既存 spec.md 互換 5）",
+      "meta（タイトル／ブランチ／作成日／状態／入力）は spec.json ではなく flow.json から取得",
+      "User Confirmation セクションは spec.json に含めず render 側が既定テンプレートで出力"
+    ]
+  },
+  "clarifications": [
+    { "q": "スキーマに含めるフィールドは cac6 合意の 6 フィールドのみにするか", "a": "否。既存 spec.md にある 5 セクションも含めて 11 フィールドとする。T8 置換時の情報欠損を防ぐため" },
+    { "q": "レンダラは CLI 引数で spec.json パスを要求するか", "a": "否。active flow から自動解決する既存 flow コマンドの設計に揃える。手動指定も可能にする" },
+    { "q": "レンダラ出力は決定論的でなければならないか", "a": "是。同一入力から常に同一 spec.md が得られること。タイムスタンプやランダム順序を含めない" },
+    { "q": "既存 spec.md のレイアウトと揃えるか", "a": "是。T8 で実データに切り替える際にレビュー差分が最小化されるよう、現行セクション順と見出しを維持する" },
+    { "q": "本タスクで既存 spec.md 読み書き経路に手を入れるか", "a": "否。Issue の「実置換は T8」指示に従い、調査成果物の作成まで" }
+  ],
+  "alternatives_considered": [
+    { "option": "spec.md をプライマリに残し spec.json を補助データに留める", "reason": "cac6 親ドラフトの決定論化方針と相反するため不採用" },
+    { "option": "本タスクで spec.md 読み書き箇所の置換まで行う", "reason": "Issue の分解単位（T1 と T8 の分離）に反し、変更範囲が大きく単一責任チェックに抵触するため不採用" },
+    { "option": "基本 6 フィールドのみでスキーマを定義する", "reason": "既存 spec.md の一部セクションを表現できず、T8 置換時に情報欠損するため不採用" }
+  ],
+  "requirements": [
+    { "id": "R1", "desc": "spec JSON schema artifact defines the 11 fields with type constraints", "priority": "must", "status": "done" },
+    { "id": "R2", "desc": "sdd-forge spec render resolves active flow spec.json and overwrites sibling spec.md", "priority": "must", "status": "done" },
+    { "id": "R3", "desc": "spec render produces byte-identical output for identical input", "priority": "must", "status": "done" },
+    { "id": "R4", "desc": "existing schema validator reports missing required fields", "priority": "must", "status": "done" },
+    { "id": "R5", "desc": "sample spec.json for this spec exists and renders without error", "priority": "should", "status": "done" },
+    { "id": "R6", "desc": "interface.md documents every spec.md read/write site with T8 migration approach", "priority": "should", "status": "done" },
+    { "id": "R7", "desc": "existing test suite continues to pass without regression", "priority": "must", "status": "done" },
+    { "id": "R8", "desc": "rendered spec.md section order matches init skeleton", "priority": "must", "status": "done" }
+  ],
+  "acceptance_criteria": [
+    "spec.json スキーマファイルが存在し、11 フィールドの型制約を定義している",
+    "sdd-forge spec render が active flow 内で引数なしに動作し、対応する spec.md を上書きする",
+    "同一 spec.json に対する連続実行結果がバイト一致する",
+    "既存のスキーマ検証ユーティリティが、必須フィールド欠落に対して期待通りエラーを返す",
+    "既存テストスイート全体が回帰なく pass する",
+    "本 spec の spec.json サンプルがコミットされ、レンダリング成功を確認できる",
+    "interface.md が、spec.md を読み書きする全ソースファイルと T8 置換方針を網羅している",
+    "レンダラの振る舞いとスキーマ検証についてのユニットテストが追加され、happy path をカバーしている",
+    "新規コマンドは失敗時に非 0 exit code を返す"
+  ],
+  "open_questions": []
+}

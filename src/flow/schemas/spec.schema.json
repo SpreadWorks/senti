@@ -1,0 +1,94 @@
+{
+  "type": "object",
+  "required": [
+    "goal",
+    "scope",
+    "constraints",
+    "design_principles",
+    "overview",
+    "background",
+    "requirements",
+    "acceptance_criteria",
+    "clarifications",
+    "alternatives_considered",
+    "open_questions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "goal": { "type": "string" },
+    "background": { "type": "string" },
+    "scope": {
+      "type": "object",
+      "required": ["in", "out"],
+      "additionalProperties": false,
+      "properties": {
+        "in": { "type": "array", "items": { "type": "string" } },
+        "out": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "design_principles": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "overview": {
+      "type": "object",
+      "required": ["modules", "data_flow", "decisions"],
+      "additionalProperties": false,
+      "properties": {
+        "modules": { "type": "array", "items": { "type": "string" } },
+        "data_flow": { "type": "array", "items": { "type": "string" } },
+        "decisions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "desc"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "desc": { "type": "string" },
+          "priority": { "type": "string", "enum": ["must", "should", "nice-to-have"] },
+          "status": { "type": "string", "enum": ["pending", "in_progress", "done", "skipped"] }
+        }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "clarifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["q", "a"],
+        "additionalProperties": false,
+        "properties": {
+          "q": { "type": "string" },
+          "a": { "type": "string" }
+        }
+      }
+    },
+    "alternatives_considered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["option", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "option": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

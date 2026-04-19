@@ -1,0 +1,246 @@
+#!/usr/bin/env node
+/**
+ * src/spec/commands/render.js
+ *
+ * sdd-forge spec render — render a spec.json into spec.md.
+ *
+ * Part of cac6/T1: establishes spec.json as the primary spec data and spec.md
+ * as a derivative artifact. This command does not yet replace existing spec.md
+ * read/write sites (see T8).
+ */
+
+import fs from "fs";
+import path from "path";
+import { parseArgs } from "../../lib/cli.js";
+import { Command } from "../../lib/command.js";
+import { EXIT_ERROR } from "../../lib/constants.js";
+import { validateSchema } from "../../lib/schema-validate.js";
+import { getSpecDir } from "../../lib/flow-helpers.js";
+
+const SCHEMA_PATH = path.join(import.meta.dirname, "..", "..", "flow", "schemas", "spec.schema.json");
+
+function printHelp() {
+  console.log(
+    [
+      "Usage: sdd-forge spec render [options]",
+      "",
+      "Render spec.json into spec.md (derivative).",
+      "",
+      "Options:",
+      "  --spec <path>    Directory containing spec.json (default: active flow spec dir)",
+      "  --out <path>     Output spec.md path (default: <spec dir>/spec.md)",
+      "  -h, --help       Show this help",
+    ].join("\n"),
+  );
+}
+
+function loadSchema() {
+  return JSON.parse(fs.readFileSync(SCHEMA_PATH, "utf8"));
+}
+
+/**
+ * Validate a CLI path option at the entry point. Rejects non-string types,
+ * empty strings, and embedded NUL bytes. Returns the trimmed value (or undefined
+ * if the option was not provided).
+ */
+function validatePathOption(raw, name) {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== "string") {
+    process.stderr.write(`sdd-forge spec render: ${name} must be a string\n`);
+    process.exit(EXIT_ERROR);
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    process.stderr.write(`sdd-forge spec render: ${name} requires a non-empty path\n`);
+    process.exit(EXIT_ERROR);
+  }
+  if (trimmed.includes("\0")) {
+    process.stderr.write(`sdd-forge spec render: ${name} contains invalid NUL byte\n`);
+    process.exit(EXIT_ERROR);
+  }
+  return trimmed;
+}
+
+/**
+ * Render a list-shaped section. Uses `format` to serialize each entry, joins
+ * with newlines, and falls back to `empty` when the list is missing or empty.
+ */
+function renderList(items, format, empty = "-") {
+  if (!items || items.length === 0) return empty;
+  return items.map(format).join("\n");
+}
+
+const bullet = (line) => `- ${line}`;
+const openCheckbox = (line) => `- [ ] ${line}`;
+const formatRequirement = (req) => {
+  const pri = req.priority ? ` [${req.priority}]` : "";
+  return `- ${req.id}${pri}: ${req.desc}`;
+};
+const formatClarification = (entry) => `- Q: ${entry.q}\n  - A: ${entry.a}`;
+const formatAlternative = (entry) => `- ${entry.option} — ${entry.reason}`;
+
+function renderOverviewSub(label, items) {
+  return `### ${label}\n${renderList(items, bullet)}`;
+}
+
+/**
+ * Pure render function. Given a validated spec object and meta info, produce
+ * the Markdown text for spec.md. Deterministic — no timestamps or randomness.
+ *
+ * @param {object} spec - Parsed spec.json content (schema-validated)
+ * @param {object} meta - { title, featureBranch, created, status, input }
+ * @returns {string} spec.md content
+ */
+export function renderSpecMarkdown(spec, meta) {
+  const sections = [];
+
+  sections.push(`# Feature Specification: ${meta.title}`);
+  sections.push("");
+  sections.push(`**Feature Branch**: \`${meta.featureBranch}\``);
+  sections.push(`**Created**: ${meta.created}`);
+  sections.push(`**Status**: ${meta.status || "Draft"}`);
+  sections.push(`**Input**: ${meta.input || "User request"}`);
+  sections.push("");
+
+  sections.push("## Goal");
+  sections.push(spec.goal || "-");
+  sections.push("");
+
+  sections.push("## Background");
+  sections.push(spec.background || "-");
+  sections.push("");
+
+  sections.push("## Scope");
+  sections.push(renderList(spec.scope?.in, bullet));
+  sections.push("");
+
+  sections.push("## Out of Scope");
+  sections.push(renderList(spec.scope?.out, bullet));
+  sections.push("");
+
+  sections.push("## Constraints");
+  sections.push(renderList(spec.constraints, bullet));
+  sections.push("");
+
+  sections.push("## Design Principles");
+  sections.push(renderList(spec.design_principles, bullet));
+  sections.push("");
+
+  sections.push("## Overview");
+  sections.push(renderOverviewSub("Modules", spec.overview?.modules));
+  sections.push("");
+  sections.push(renderOverviewSub("Data Flow", spec.overview?.data_flow));
+  sections.push("");
+  sections.push(renderOverviewSub("Decisions", spec.overview?.decisions));
+  sections.push("");
+
+  sections.push("## Clarifications (Q&A)");
+  sections.push(renderList(spec.clarifications, formatClarification, "- Q:\n  - A:"));
+  sections.push("");
+
+  sections.push("## Alternatives Considered");
+  sections.push(renderList(spec.alternatives_considered, formatAlternative));
+  sections.push("");
+
+  sections.push("## User Confirmation");
+  sections.push("- [ ] User approved this spec");
+  sections.push("- Confirmed at:");
+  sections.push("- Notes:");
+  sections.push("");
+
+  sections.push("## Requirements");
+  sections.push(renderList(spec.requirements, formatRequirement));
+  sections.push("");
+
+  sections.push("## Acceptance Criteria");
+  sections.push(renderList(spec.acceptance_criteria, bullet));
+  sections.push("");
+
+  sections.push("## Open Questions");
+  sections.push(renderList(spec.open_questions, openCheckbox, "- [ ]"));
+  sections.push("");
+
+  return sections.join("\n");
+}
+
+function resolveActiveSpecDir(container) {
+  const root = container.get("root");
+  const flowManager = container.get("flowManager");
+  const state = flowManager.load();
+  const dir = getSpecDir(state, root);
+  if (!dir) {
+    throw new Error("no active flow (flow.json not found or spec path unset)");
+  }
+  return dir;
+}
+
+async function runSpecRender(rawArgs, container) {
+  const cli = parseArgs(rawArgs, {
+    flags: [],
+    options: ["--spec", "--out"],
+  });
+
+  if (cli.help || cli.h) {
+    printHelp();
+    return;
+  }
+
+  const root = container.get("root");
+  const specDirArg = validatePathOption(cli.spec, "--spec");
+  const outArg = validatePathOption(cli.out, "--out");
+
+  const specDir = specDirArg
+    ? (path.isAbsolute(specDirArg) ? specDirArg : path.join(root, specDirArg))
+    : resolveActiveSpecDir(container);
+
+  if (!fs.existsSync(specDir) || !fs.statSync(specDir).isDirectory()) {
+    process.stderr.write(`sdd-forge spec render: spec directory not found: ${specDir}\n`);
+    process.exit(EXIT_ERROR);
+  }
+
+  const specJsonPath = path.join(specDir, "spec.json");
+  if (!fs.existsSync(specJsonPath)) {
+    process.stderr.write(`sdd-forge spec render: spec.json not found at ${specJsonPath}\n`);
+    process.exit(EXIT_ERROR);
+  }
+
+  const spec = JSON.parse(fs.readFileSync(specJsonPath, "utf8"));
+  const schema = loadSchema();
+  const errors = validateSchema(spec, schema);
+  if (errors.length > 0) {
+    process.stderr.write(`sdd-forge spec render: spec.json failed schema validation:\n`);
+    for (const e of errors) process.stderr.write(`  ${e}\n`);
+    process.exit(EXIT_ERROR);
+  }
+
+  const specDirName = path.basename(specDir);
+  const flowManager = container.get("flowManager");
+  const state = flowManager.load();
+  const featureBranch = state?.featureBranch || `feature/${specDirName}`;
+  const created = fs.statSync(specJsonPath).mtime.toISOString().slice(0, 10);
+
+  const meta = {
+    title: specDirName,
+    featureBranch,
+    created,
+    status: "Draft",
+    input: state?.issue ? `GitHub Issue #${state.issue}` : "User request",
+  };
+
+  const output = renderSpecMarkdown(spec, meta);
+  const outPath = outArg
+    ? (path.isAbsolute(outArg) ? outArg : path.join(root, outArg))
+    : path.join(specDir, "spec.md");
+
+  fs.writeFileSync(outPath, output);
+  process.stdout.write(`rendered: ${path.relative(root, outPath)}\n`);
+}
+
+export default class SpecRenderCommand extends Command {
+  static outputMode = "raw";
+  async execute(ctx) {
+    return runSpecRender(ctx._rawArgs || [], ctx.container);
+  }
+}
+
+export { runSpecRender };

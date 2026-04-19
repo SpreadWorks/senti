@@ -1,0 +1,80 @@
+{
+  "spec": "specs/196-spec-json-schema-render/spec.md",
+  "date": "2026-04-19T22:26:11.770Z",
+  "requirements": [
+    {
+      "desc": "R1: spec JSON schema defines 11 fields",
+      "status": "done",
+      "note": "Added `src/flow/schemas/spec.schema.json` with all 11 required top-level fields and typed nested structures (`scope`, `overview`, etc.)."
+    },
+    {
+      "desc": "R2: spec render auto-resolves active flow spec.json",
+      "status": "done",
+      "note": "`src/spec/commands/render.js` resolves active flow spec dir via flow state, reads `spec.json`, and defaults output to sibling `spec.md`."
+    },
+    {
+      "desc": "R3: deterministic byte-identical output",
+      "status": "done",
+      "note": "Renderer is deterministic for fixed inputs and unit test asserts byte-identical output on repeated render calls."
+    },
+    {
+      "desc": "R4: schema validator reports missing required fields",
+      "status": "partial",
+      "note": "Schema marks all required fields, and tests verify missing-field errors, but tests only sample a subset of required fields rather than all 11."
+    },
+    {
+      "desc": "R5: sample spec.json for 196 renders successfully",
+      "status": "done",
+      "note": "Added `specs/196-spec-json-schema-render/spec.json` and rendered `spec.md` artifact for the same spec."
+    },
+    {
+      "desc": "R6: interface.md documents all spec.md I/O sites",
+      "status": "done",
+      "note": "Added `specs/196-spec-json-schema-render/interface.md` with per-file `spec.md` I/O inventory, touched fields/sections, and T8 migration approach."
+    },
+    {
+      "desc": "R7: existing test suite passes without regression",
+      "status": "partial",
+      "note": "Diff includes claims of full pass in `issue-log.json`, but `flow.json` test summary only shows unit scope; direct full-suite evidence is not clearly captured in executable artifacts."
+    },
+    {
+      "desc": "R8: rendered spec.md section order matches init skeleton",
+      "status": "done",
+      "note": "Renderer and tests preserve existing skeleton heading relative order while allowing added sections (Background/Constraints/Design Principles/Overview)."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/196-spec-json-schema-render/draft.md",
+      "change": "Added draft-process document not directly required by R1-R8."
+    },
+    {
+      "file": "specs/196-spec-json-schema-render/flow.json",
+      "change": "Added flow lifecycle/metrics state file beyond the listed feature requirements."
+    },
+    {
+      "file": "specs/196-spec-json-schema-render/issue-log.json",
+      "change": "Added gate/evaluation log artifact not explicitly required by R1-R8."
+    },
+    {
+      "file": "specs/196-spec-json-schema-render/qa.md",
+      "change": "Added clarification template file not required by the requirement list."
+    },
+    {
+      "file": "specs/196-spec-json-schema-render/review.md",
+      "change": "Added code review memo artifact not explicitly required by R1-R8."
+    },
+    {
+      "file": "specs/196-spec-json-schema-render/tests/README.md",
+      "change": "Added spec-local test notes documentation not required by the requirement list."
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "done": 6,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.88,
+    "notes": "Core implementation requirements for schema creation and render behavior are largely satisfied. Confidence gaps remain mainly in verification evidence depth (R4 exhaustive missing-field coverage and R7 full regression proof)."
+  }
+}

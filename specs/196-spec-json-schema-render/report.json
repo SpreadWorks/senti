@@ -1,0 +1,71 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/196-spec-json-schema-render/draft.md        |  92 ++++++++\n specs/196-spec-json-schema-render/flow.json       | 195 +++++++++++++++++\n specs/196-spec-json-schema-render/interface.md    |  42 ++++\n specs/196-spec-json-schema-render/issue-log.json  |  40 ++++\n specs/196-spec-json-schema-render/qa.md           |   9 +\n specs/196-spec-json-schema-render/review.md       |  49 +++++\n specs/196-spec-json-schema-render/spec.json       |  83 ++++++++\n specs/196-spec-json-schema-render/spec.md         |  98 +++++++++\n specs/196-spec-json-schema-render/tests/README.md |  18 ++\n src/flow/schemas/spec.schema.json                 |  94 +++++++++\n src/lib/command-registry.js                       |   9 +\n src/lib/flow-helpers.js                           |  16 ++\n src/sdd-forge.js                                  |   2 +\n src/spec.js                                       |  41 ++++\n src/spec/commands/render.js                       | 246 ++++++++++++++++++++++\n tests/unit/spec/render.test.js                    | 130 ++++++++++++\n tests/unit/spec/schema.test.js                    |  98 +++++++++\n 17 files changed, 1262 insertions(+)",
+      "commits": [
+        "feat: feature/196-spec-json-schema-render",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 6,
+      "partial": 2,
+      "not_done": 0,
+      "rate": 0.88,
+      "notes": "Core implementation requirements for schema creation and render behavior are largely satisfied. Confidence gaps remain mainly in verification evidence depth (R4 exhaustive missing-field coverage and R7 full regression proof)."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 6,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 866464,
+      "output": 16175,
+      "cacheRead": 217856,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 376642,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 67968
+        },
+        {
+          "phase": "gate",
+          "durationMs": 23980
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 235614
+        },
+        {
+          "phase": "review",
+          "durationMs": 49080
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 2
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/196-spec-json-schema-render\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    17 files changed, 1262 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 88%  (6 done / 2 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 6\n    issue-log ................... 0\n    agent calls ................. 16\n    input tokens ................ 866,464\n    output tokens ............... 16,175\n    cache-read tokens ........... 217,856\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 376.6s\n      gate-draft ................ 68.0s\n      gate ...................... 24.0s\n      gate-impl ................. 235.6s\n      review .................... 49.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2  integration 0  acceptance 0  total 2"
+}
