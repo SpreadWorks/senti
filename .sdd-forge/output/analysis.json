@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-18T22:03:38.410Z",
+  "analyzedAt": "2026-04-19T00:52:51.031Z",
   "package": {
     "entries": [
       {
@@ -2970,9 +2970,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "4782b087f7419a5d339a8c241e83a264",
-        "lines": 402,
-        "mtime": "2026-04-18T20:35:29.039Z",
+        "hash": "00469d4915f8ca760f4764d8edea0902",
+        "lines": 403,
+        "mtime": "2026-04-19T00:52:50.139Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -2997,7 +2997,8 @@
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
           "./base-command.js",
-          "../registry.js"
+          "../registry.js",
+          "../../lib/container.js"
         ],
         "exports": [
           "finalizeOnError",
@@ -3013,22 +3014,25 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "summary": "Provides finalize workflow orchestration for flow runs, including preflight checks, commit/merge steps, and cleanup handling. It encapsulates step execution logic and error shaping for reliable end-of-flow operations.",
-        "detail": "The file centralizes finalize behavior in a command-oriented implementation backed by a step map and selectable execution mode. It performs git preflight validation, including writable `.git` verification, and wraps failures into actionable preflight errors. Commit handling supports skip behavior when there is no diff, and post-commit hooks can trigger migration scripts relative to the spec path. Cleanup logic supports worktree-aware teardown and spec-only fast paths, returning structured status objects. The module also validates merge strategy input against allowed constants and integrates with flow state, issue-log utilities, and optional GitHub issue commenting.",
-        "chapter": "development",
-        "role": "controller",
+        "summary": "This module implements the flow finalize command and orchestrates the end-of-flow lifecycle for commits, merge handling, migration hooks, and cleanup. It also centralizes preflight and error-safe execution for finalize steps.",
+        "detail": "The file defines utility functions for finalize execution, including commit skipping logic, Git common-dir resolution, and robust preflight checks that verify write access to the Git directory before mutating operations. It models finalize as step-based execution via a step map and sub-step runner, converting thrown process errors into structured status results. The command class validates user-provided mode, selected steps, and merge strategy against allowed constants, then executes finalize behavior through a controlled pipeline. Post-commit behavior includes collecting git summaries, optional docs/build integration, and migration hook execution based on spec-relative paths. Cleanup is explicitly handled for worktree and main-repo contexts, with a dedicated error finalizer path to keep flow state consistent when failures occur.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:06.165Z",
+          "processedAt": "2026-04-19T00:53:04.725Z",
           "attempts": 1
         },
         "keywords": [
-          "finalize workflow",
-          "preflight check",
-          "git write access",
-          "merge strategy validation",
+          "finalize command",
+          "flow lifecycle",
+          "git preflight",
+          "merge strategy",
           "worktree cleanup",
-          "commit orchestration",
-          "post commit hook"
+          "step orchestration",
+          "commit pipeline",
+          "error handling",
+          "post-commit hook",
+          "CLI command runner"
         ]
       },
       {
@@ -8616,5 +8620,5 @@
     },
     "dataSourceHash": "7d725e75d5031be445119323e4947c91"
   },
-  "enrichedAt": "2026-04-18T22:03:51.627Z"
+  "enrichedAt": "2026-04-19T00:53:04.725Z"
 }
