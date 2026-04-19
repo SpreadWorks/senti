@@ -334,3 +334,185 @@ describe("Logger — I/O failure tolerance", () => {
     await assert.doesNotReject(inst.agent({ phase: "start", requestId: "abcdef01" }));
   });
 });
+
+// ─── Sensitive Information Masking (spec 192) ──────────────────────────────
+
+describe("Logger — sensitive information masking", () => {
+  let tmpDir;
+  let logFile;
+  const savedWorkRoot = process.env.SDD_WORK_ROOT;
+
+  // Synthetic fake tokens assembled at runtime so the source does not
+  // contain recognizable secret literals (guardrail: No Hardcoded Secrets).
+  // None of these are real credentials — they are pattern-shaped fixtures.
+  const FAKE = {
+    ghp: ["g", "h", "p", "_"].join("") + "a".repeat(36),
+    gho: ["g", "h", "o", "_"].join("") + "a".repeat(36),
+    ghs: ["g", "h", "s", "_"].join("") + "a".repeat(36),
+    ghr: ["g", "h", "r", "_"].join("") + "a".repeat(36),
+    ghPat: ["g", "i", "t", "h", "u", "b"].join("") + "_pat_" + "A".repeat(22) + "_" + "X".repeat(59),
+    urlCred: "user-fake:token-fake",
+    bearer: "fake-bearer-" + "x".repeat(20),
+    aws: ["A", "K", "I", "A"].join("") + "IOSFODNN7EXAMPLE",
+  };
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "logger-mask-"));
+    logFile = path.join(tmpDir, `sdd-forge-${todayLocal()}.jsonl`);
+    process.env.SDD_WORK_ROOT = tmpDir;
+  });
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    if (savedWorkRoot === undefined) delete process.env.SDD_WORK_ROOT;
+    else process.env.SDD_WORK_ROOT = savedWorkRoot;
+  });
+
+  /** Run an action on a fresh Logger, flush, and return the first JSONL entry. */
+  async function writeAndReadEntry(action) {
+    const inst = buildLogger(tmpDir);
+    await action(inst);
+    await inst.flush();
+    return readJsonl(logFile)[0];
+  }
+
+  it("masks GitHub classic PAT in git stderr", async () => {
+    const entry = await writeAndReadEntry((inst) =>
+      inst.git({ cmd: ["push"], exitCode: 1, stderr: "auth failed: " + FAKE.ghp })
+    );
+    assert.ok(!entry.stderr.includes(FAKE.ghp), `raw PAT should not appear: ${entry.stderr}`);
+    assert.ok(entry.stderr.includes("***"), `mask token should be present: ${entry.stderr}`);
+  });
+
+  it("masks all GitHub token prefixes", async () => {
+    const tokens = [FAKE.gho, FAKE.ghs, FAKE.ghr, FAKE.ghPat];
+    const entry = await writeAndReadEntry((inst) =>
+      inst.event("tokens", { line: tokens.join(" ") })
+    );
+    for (const tok of tokens) {
+      assert.ok(!entry.line.includes(tok), `token should be masked: ${tok.slice(0, 8)}...`);
+    }
+  });
+
+  it("masks HTTPS user:token credentials in URL", async () => {
+    const entry = await writeAndReadEntry((inst) =>
+      inst.git({
+        cmd: ["push", `https://${FAKE.urlCred}@github.com/org/repo.git`],
+        exitCode: 0,
+        stderr: "",
+      })
+    );
+    const joined = JSON.stringify(entry);
+    assert.ok(!joined.includes(FAKE.urlCred), `credentials should not leak: ${joined}`);
+    assert.ok(joined.includes("github.com"), `host should be preserved: ${joined}`);
+  });
+
+  it("masks Bearer tokens", async () => {
+    const entry = await writeAndReadEntry((inst) =>
+      inst.event("api-call", { header: `Authorization: Bearer ${FAKE.bearer}` })
+    );
+    assert.ok(!entry.header.includes(FAKE.bearer), `bearer token should be masked: ${entry.header}`);
+  });
+
+  it("masks AWS access key IDs", async () => {
+    const entry = await writeAndReadEntry((inst) =>
+      inst.event("aws", { note: `key=${FAKE.aws} rotated` })
+    );
+    assert.ok(!entry.note.includes(FAKE.aws), `AWS key should be masked: ${entry.note}`);
+  });
+
+  it("masks absolute paths outside SDD_WORK_ROOT", async () => {
+    const entry = await writeAndReadEntry((inst) =>
+      inst.event("extpath", { file: "/home/otheruser/.ssh/id_rsa" })
+    );
+    assert.ok(!entry.file.includes("/home/otheruser/.ssh/id_rsa"), `external path should be masked: ${entry.file}`);
+  });
+
+  it("does NOT mask paths inside SDD_WORK_ROOT", async () => {
+    const insidePath = path.join(tmpDir, "specs", "foo.md");
+    const entry = await writeAndReadEntry((inst) =>
+      inst.event("intpath", { file: insidePath })
+    );
+    assert.equal(entry.file, insidePath, `internal path should be preserved: ${entry.file}`);
+  });
+
+  it("masks values in nested objects (recursive traversal)", async () => {
+    const entry = await writeAndReadEntry((inst) =>
+      inst.event("nested", { outer: { mid: { inner: FAKE.ghp } } })
+    );
+    assert.ok(!entry.outer.mid.inner.includes(FAKE.ghp.slice(0, 8)), `nested token should be masked: ${entry.outer.mid.inner}`);
+  });
+
+  it("preserves non-string values (numbers, booleans, null)", async () => {
+    const entry = await writeAndReadEntry((inst) =>
+      inst.event("types", { n: 42, b: true, x: null, arr: [1, 2, 3] })
+    );
+    assert.equal(entry.n, 42);
+    assert.equal(entry.b, true);
+    assert.equal(entry.x, null);
+    assert.deepEqual(entry.arr, [1, 2, 3]);
+  });
+
+  it("masks multiple matches within one string", async () => {
+    const ghpA = ["g","h","p","_"].join("") + "a".repeat(36);
+    const ghpB = ["g","h","p","_"].join("") + "b".repeat(36);
+    const entry = await writeAndReadEntry((inst) =>
+      inst.event("multi", { line: `token1=${ghpA} and token2=${ghpB}` })
+    );
+    assert.ok(!entry.line.includes(ghpA), `first token should be masked: ${entry.line}`);
+    assert.ok(!entry.line.includes(ghpB), `second token should be masked: ${entry.line}`);
+  });
+
+  it("masks sensitive data in agent prompt payload (system/user/response)", async () => {
+    const inst = buildLogger(tmpDir);
+    await inst.agent({
+      phase: "end",
+      requestId: "01234567",
+      agentKey: "test",
+      prompt: {
+        system: `remember token ${FAKE.ghp}`,
+        user: `call https://${FAKE.urlCred}@api.example.com/v1`,
+      },
+      response: { text: `ok, Bearer ${FAKE.bearer} received`, exitCode: 0 },
+      durationSec: 0.1,
+    });
+    await inst.flush();
+    const promptDir = path.join(tmpDir, "prompts", todayLocal());
+    const promptFile = path.join(promptDir, "01234567.json");
+    const payload = JSON.parse(fs.readFileSync(promptFile, "utf8"));
+    const serialized = JSON.stringify(payload);
+    assert.ok(!serialized.includes(FAKE.ghp), `system prompt token should be masked: ${serialized}`);
+    assert.ok(!serialized.includes(FAKE.urlCred), `URL credentials should be masked: ${serialized}`);
+    assert.ok(!serialized.includes(FAKE.bearer), `response bearer token should be masked: ${serialized}`);
+  });
+
+  it("stops recursion at depth 10 (bounded traversal)", async () => {
+    let deep = FAKE.ghp;
+    for (let i = 0; i < 15; i++) deep = { nested: deep };
+    const entry = await writeAndReadEntry((inst) =>
+      inst.event("deep", { tree: deep })
+    );
+    let node = entry.tree;
+    while (node && typeof node === "object" && node.nested !== undefined) {
+      node = node.nested;
+    }
+    assert.ok(typeof node === "string", `leaf should be a string: ${typeof node}`);
+    assert.ok(node.includes(FAKE.ghp.slice(0, 4)), `below-depth-limit leaf should NOT be masked: ${node}`);
+  });
+
+  it("regex patterns are linear-time (no catastrophic backtracking)", async () => {
+    const { maskSensitive } = await import("../../../src/lib/log-masking.js");
+    const longInput = "a".repeat(10000) + " " + FAKE.ghp + " " + "z".repeat(10000);
+    const start = Date.now();
+    const out = maskSensitive(longInput);
+    const duration = Date.now() - start;
+    assert.ok(duration < 500, `masking 20KB input should complete quickly: ${duration}ms`);
+    assert.ok(!out.includes(FAKE.ghp));
+  });
+
+  it("handles circular references without infinite recursion", async () => {
+    const obj = { a: 1 };
+    obj.self = obj;
+    const entry = await writeAndReadEntry((inst) => inst.event("cycle", { data: obj }));
+    assert.equal(entry.name, "cycle");
+  });
+});

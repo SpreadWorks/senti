@@ -1,0 +1,93 @@
+{
+  "spec": "specs/192-log-sensitive-info-masking/spec.md",
+  "date": "2026-04-19T01:03:12.706Z",
+  "requirements": [
+    {
+      "desc": "R1: Logger がログエントリを永続化する時、既知パターンの機微情報をマスク文字列で置換する",
+      "status": "done",
+      "note": "log.js の JSONL/prompt 永続化前に maskSensitive() を常時適用している。"
+    },
+    {
+      "desc": "R2: GitHub PAT / HTTPS 認証情報入り URL / Bearer token / AWS アクセスキー ID をマスクする",
+      "status": "done",
+      "note": "log-masking.js に4種すべてのパターン実装があり、対応ユニットテストも追加されている。"
+    },
+    {
+      "desc": "R3: SDD_WORK_ROOT 外の絶対ファイルパスをマスクし、ルート配下はマスクしない",
+      "status": "partial",
+      "note": "SDD_WORK_ROOT 判定はあるが、実装は cwd・logDir・SDD_SOURCE_ROOT も trusted root として非マスク対象に含めており、要件より許容範囲が広い。"
+    },
+    {
+      "desc": "R4: マスク置換文字列は `***` を用いる",
+      "status": "done",
+      "note": "MASK 定数が `***` で、各パターン置換に使用されている。"
+    },
+    {
+      "desc": "R5: Logger 呼び出し側コードの変更を不要とし、Logger 側で自動適用する",
+      "status": "done",
+      "note": "変更は Logger 内部（log.js）に閉じており、呼び出し側 API 変更はない。"
+    },
+    {
+      "desc": "R6: マスキングは常時有効で config フラグ等で無効化できない",
+      "status": "done",
+      "note": "マスキング無効化フラグは追加されず、書き込み経路で常時適用される。"
+    },
+    {
+      "desc": "R7: マスキング前の raw 値を別ファイル/別レコードに保存しない",
+      "status": "done",
+      "note": "永続化は maskSensitive() 適用後の値のみで、raw の別保存実装はない。"
+    },
+    {
+      "desc": "R8: 再帰走査の深度上限を 10 とし、巡回参照枝は走査対象外とする",
+      "status": "done",
+      "note": "MAX_DEPTH=10 で打ち切り、巡回参照は WeakSet で検出して枝を再帰しない実装になっている。"
+    },
+    {
+      "desc": "R9: マスキング正規表現は入力長に線形なコストで動作する",
+      "status": "partial",
+      "note": "実装と簡易性能テストはあるが、線形性を厳密保証する証明・境界分析までは示されていない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/192-log-sensitive-info-masking/draft.md",
+      "change": "要件実装そのものではなく、仕様ドラフト文書を新規追加。"
+    },
+    {
+      "file": "specs/192-log-sensitive-info-masking/flow.json",
+      "change": "フロー状態・メトリクス管理ファイルを新規追加。"
+    },
+    {
+      "file": "specs/192-log-sensitive-info-masking/issue-log.json",
+      "change": "ゲート評価ログを新規追加。"
+    },
+    {
+      "file": "specs/192-log-sensitive-info-masking/qa.md",
+      "change": "Q&A テンプレート文書を新規追加。"
+    },
+    {
+      "file": "specs/192-log-sensitive-info-masking/review.md",
+      "change": "コードレビュー記録文書を新規追加。"
+    },
+    {
+      "file": "specs/192-log-sensitive-info-masking/spec.md",
+      "change": "機能仕様書本体を新規追加。"
+    },
+    {
+      "file": "specs/192-log-sensitive-info-masking/tests/README.md",
+      "change": "spec 192 向けテスト説明ドキュメントを新規追加。"
+    },
+    {
+      "file": "src/lib/log-masking.js",
+      "change": "SDD_SOURCE_ROOT/cwd も trusted roots に含める拡張挙動があり、R3（SDD_WORK_ROOT 基準）より広い判定を導入。"
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "done": 7,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.89,
+    "notes": "P1の大半は満たしており、Logger経由の自動マスキングは実装済み。主なギャップは R3 の判定範囲拡張（要件より非マスク範囲が広い点）と、R9 の線形性保証が実装意図・簡易テスト止まりで厳密性が弱い点。"
+  }
+}

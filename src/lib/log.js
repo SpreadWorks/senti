@@ -26,6 +26,8 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
+import { maskSensitive } from "./log-masking.js";
+
 /** Absolute path of this module file, used to exclude own frames in extractCaller. */
 const SELF_FILE = new URL(import.meta.url).pathname;
 
@@ -81,22 +83,24 @@ function extractCaller() {
   return { callerFile: null, callerLine: null };
 }
 
-/** Append a JSON object as one line to the given file. */
-async function appendJsonl(file, obj) {
+/** Append a JSON object as one line to the given file with masking. */
+async function appendJsonlMasked(file, obj, trustedRoots) {
   try {
     await fs.promises.mkdir(path.dirname(file), { recursive: true });
-    await fs.promises.appendFile(file, JSON.stringify(obj) + "\n", "utf8");
+    const masked = maskSensitive(obj, { trustedRoots });
+    await fs.promises.appendFile(file, JSON.stringify(masked) + "\n", "utf8");
   } catch (err) {
     process.stderr.write(`[sdd-forge] log write failed: ${err.message}\n`);
   }
 }
 
-/** Write a self-contained prompt JSON file. Returns absolute path or null. */
-async function writePromptFile(promptDir, requestId, payload) {
+/** Write a self-contained prompt JSON file with masking. Returns absolute path or null. */
+async function writePromptFileMasked(promptDir, requestId, payload, trustedRoots) {
   const file = path.join(promptDir, `${requestId}.json`);
   try {
     await fs.promises.mkdir(promptDir, { recursive: true });
-    await fs.promises.writeFile(file, JSON.stringify(payload, null, 2) + "\n", "utf8");
+    const masked = maskSensitive(payload, { trustedRoots });
+    await fs.promises.writeFile(file, JSON.stringify(masked, null, 2) + "\n", "utf8");
     return file;
   } catch (err) {
     process.stderr.write(`[sdd-forge] prompt file write failed: ${err.message}\n`);
@@ -168,6 +172,23 @@ export class Logger {
     };
   }
 
+  /**
+   * Build the trusted-root list for masking. Logger's own log directory
+   * and cwd are trusted so their own path values (promptFile, callerFile
+   * inside the project tree) survive masking.
+   */
+  #trustedRoots() {
+    return [this.#logDir, this.#cwd].filter(Boolean);
+  }
+
+  #appendJsonl(file, obj) {
+    return appendJsonlMasked(file, obj, this.#trustedRoots());
+  }
+
+  #writePromptFile(promptDir, requestId, payload) {
+    return writePromptFileMasked(promptDir, requestId, payload, this.#trustedRoots());
+  }
+
   /** Resolve flow context via the injected FlowManager. */
   #flowContext() {
     if (!this.#flowManager) return { spec: null, sddPhase: null };
@@ -204,7 +225,7 @@ export class Logger {
     const caller = extractCaller();
 
     if (entry.phase === "start") {
-      await appendJsonl(jsonl, {
+      await this.#appendJsonl(jsonl, {
         ...this.#commonFields(),
         type: "agent",
         phase: "start",
@@ -263,12 +284,12 @@ export class Logger {
       usage: entry.usage ?? null,
     };
 
-    const promptFileAbs = await writePromptFile(promptDir, entry.requestId, promptPayload);
+    const promptFileAbs = await this.#writePromptFile(promptDir, entry.requestId, promptPayload);
     const promptFileRel = promptFileAbs && this.#cwd
       ? path.relative(this.#cwd, promptFileAbs).split(path.sep).join("/")
       : promptFileAbs;
 
-    await appendJsonl(jsonl, {
+    await this.#appendJsonl(jsonl, {
       ...this.#commonFields(),
       type: "agent",
       phase: "end",
@@ -313,7 +334,7 @@ export class Logger {
     if (!this.#enabled) return;
     const { jsonl } = this.#logFiles();
     const caller = extractCaller();
-    await appendJsonl(jsonl, {
+    await this.#appendJsonl(jsonl, {
       ...this.#commonFields(),
       type: "git",
       cmd: entry?.cmd ?? null,
@@ -337,7 +358,7 @@ export class Logger {
     if (!this.#enabled) return;
     const { jsonl } = this.#logFiles();
     const caller = extractCaller();
-    await appendJsonl(jsonl, {
+    await this.#appendJsonl(jsonl, {
       ...this.#commonFields(),
       type: "event",
       name,

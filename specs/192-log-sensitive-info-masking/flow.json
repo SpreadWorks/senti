@@ -1,0 +1,207 @@
+{
+  "spec": "specs/192-log-sensitive-info-masking/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/192-log-sensitive-info-masking",
+  "runId": "32b2effc-783c-44a5-91e0-54cf534ef7eb",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: Logger がログエントリを永続化する時、既知パターンの機微情報をマスク文字列で置換する",
+      "status": "done"
+    },
+    {
+      "desc": "R2: GitHub PAT / HTTPS 認証情報入り URL / Bearer token / AWS アクセスキー ID をマスクする",
+      "status": "done"
+    },
+    {
+      "desc": "R3: SDD_WORK_ROOT 外の絶対ファイルパスをマスクし、ルート配下はマスクしない",
+      "status": "done"
+    },
+    {
+      "desc": "R4: マスク置換文字列は `***` を用いる",
+      "status": "done"
+    },
+    {
+      "desc": "R5: Logger 呼び出し側コードの変更を不要とし、Logger 側で自動適用する",
+      "status": "done"
+    },
+    {
+      "desc": "R6: マスキングは常時有効で config フラグ等で無効化できない",
+      "status": "done"
+    },
+    {
+      "desc": "R7: マスキング前の raw 値を別ファイル/別レコードに保存しない",
+      "status": "done"
+    },
+    {
+      "desc": "R8: 再帰走査の深度上限を 10 とし、巡回参照枝は走査対象外とする",
+      "status": "done"
+    },
+    {
+      "desc": "R9: マスキング正規表現は入力長に線形なコストで動作する",
+      "status": "done"
+    }
+  ],
+  "issue": 178,
+  "worktree": true,
+  "request": "Logger 層に共通マスキングフックを追加し、全ログ（git cmd/stderr、agent prompt、event log 等）の機微情報（HTTPS 認証情報入り URL、GitHub PAT、API キー等）を一貫してマスクする",
+  "notes": [
+    "draft-Q1: issue #178 の解釈（Logger 共通マスキング + git/prompt/event log 全対象）でユーザー承認",
+    "Q2: 既知パターン辞書方式（GH PAT, HTTPS creds, bearer, AWS key 等）+ プロジェクトフォルダ外の絶対パスもマスク対象",
+    "Q3: マスク後形式は *** 単純マスク（パターン名なし）",
+    "Q4: Logger 全出力を再帰走査してマスク適用",
+    "Q5: マスキング常時 ON、raw 保存なし"
+  ],
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "srcRead": 1,
+      "question": 4
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 18121,
+        "output": 2907,
+        "cacheRead": 57984,
+        "cacheCreation": 0
+      },
+      "callCount": 3,
+      "responseChars": 3711,
+      "durationMs": 67849
+    },
+    "gate": {
+      "tokens": {
+        "input": 35623,
+        "output": 3955,
+        "cacheRead": 67072,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 4429,
+      "durationMs": 88077
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 446486,
+        "output": 5737,
+        "cacheRead": 115840,
+        "cacheCreation": 0
+      },
+      "callCount": 7,
+      "responseChars": 8163,
+      "durationMs": 154552
+    },
+    "review": {
+      "tokens": {
+        "input": 33724,
+        "output": 1838,
+        "cacheRead": 42240,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 2837,
+      "durationMs": 42849
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 12
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-19T01:02:33.955Z"
+  }
+}

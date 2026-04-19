@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/192-log-sensitive-info-masking/draft.md      |  95 ++++++++++\n specs/192-log-sensitive-info-masking/flow.json     | 207 +++++++++++++++++++++\n .../192-log-sensitive-info-masking/issue-log.json  |  46 +++++\n specs/192-log-sensitive-info-masking/qa.md         |   9 +\n specs/192-log-sensitive-info-masking/review.md     |  33 ++++\n specs/192-log-sensitive-info-masking/spec.md       | 109 +++++++++++\n .../192-log-sensitive-info-masking/tests/README.md |  44 +++++\n src/lib/log-masking.js                             | 129 +++++++++++++\n src/lib/log.js                                     |  43 +++--\n tests/unit/lib/log.test.js                         | 182 ++++++++++++++++++\n 10 files changed, 886 insertions(+), 11 deletions(-)",
+      "commits": [
+        "feat: feature/192-log-sensitive-info-masking"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 7,
+      "partial": 2,
+      "not_done": 0,
+      "rate": 0.89,
+      "notes": "P1の大半は満たしており、Logger経由の自動マスキングは実装済み。主なギャップは R3 の判定範囲拡張（要件より非マスク範囲が広い点）と、R9 の線形性保証が実装意図・簡易テスト止まりで厳密性が弱い点。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 4,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 533954,
+      "output": 14437,
+      "cacheRead": 283136,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 353327,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 67849
+        },
+        {
+          "phase": "gate",
+          "durationMs": 88077
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 154552
+        },
+        {
+          "phase": "review",
+          "durationMs": 42849
+        }
+      ]
+    },
+    "tests": {
+      "unit": 12,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 12
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/192-log-sensitive-info-masking\n    10 files changed, 886 insertions(+), 11 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 89%  (7 done / 2 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 4\n    issue-log ................... 0\n    agent calls ................. 16\n    input tokens ................ 533,954\n    output tokens ............... 14,437\n    cache-read tokens ........... 283,136\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 353.3s\n      gate-draft ................ 67.8s\n      gate ...................... 88.1s\n      gate-impl ................. 154.6s\n      review .................... 42.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 12  integration 0  acceptance 0  total 12"
+}
