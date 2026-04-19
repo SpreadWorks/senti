@@ -1,0 +1,69 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    | 2314 ++++++++------------\n package.json                                       |    4 +-\n specs/191-preset-di-container/draft.md             |  112 +\n specs/191-preset-di-container/flow.json            |  226 ++\n specs/191-preset-di-container/issue-log.json       |  105 +\n specs/191-preset-di-container/qa.md                |    9 +\n specs/191-preset-di-container/report.json          |   67 +\n specs/191-preset-di-container/retro.json           |   91 +\n specs/191-preset-di-container/spec.md              |  113 +\n specs/191-preset-di-container/tests/README.md      |   54 +\n .../tests/docs-build-diff.test.js                  |  141 ++\n .../tests/r9-diff-evidence.md                      |   21 +\n .../tests/register-contract.test.js                |  112 +\n src/AGENTS.md                                      |   38 +-\n src/api.js                                         |   12 -\n src/docs/commands/scan.js                          |    5 +-\n src/docs/data/agents.js                            |   11 +-\n src/docs/data/docs.js                              |   11 +-\n src/docs/data/lang.js                              |   11 +-\n src/docs/data/project.js                           |    9 +-\n src/docs/data/text.js                              |   24 +-\n src/docs/lib/data-source-loader.js                 |   40 +-\n src/docs/lib/resolver-factory.js                   |    5 +-\n src/lib/container.js                               |   59 +\n src/loader.js                                      |  136 --\n src/presets/base/data/package.js                   |   79 +-\n src/presets/base/data/structure.js                 |   79 +-\n src/presets/cakephp2/data/commands.js              |  165 +-\n src/presets/cakephp2/data/config.js                | 1245 +++++------\n src/presets/cakephp2/data/controllers.js           |  214 +-\n src/presets/cakephp2/data/docker.js                |   16 +-\n src/presets/cakephp2/data/email.js                 |  212 +-\n src/presets/cakephp2/data/libs.js                  |  262 +--\n src/presets/cakephp2/data/models.js                |  656 ++----\n src/presets/cakephp2/data/tables.js                |  172 +-\n src/presets/cakephp2/data/tests.js                 |  102 +-\n src/presets/cakephp2/data/views.js                 |  379 +---\n .../fixtures/.sdd-forge/output/analysis.json       |  504 +++++\n src/presets/cakephp2/tests/analyzers.js            |  931 ++++++++\n .../tests/unit/analyzers-assets-config.test.js     |    3 +-\n .../tests/unit/analyzers-models-business.test.js   |    6 +-\n .../cakephp2/tests/unit/analyzers-security.test.js |    2 +-\n .../tests/unit/analyzers-views-commands.test.js    |    8 +-\n .../cakephp2/tests/unit/commands-match.test.js     |   12 +-\n src/presets/cli/data/commands.js                   |   84 +-\n src/presets/cli/data/modules.js                    |   95 +-\n src/presets/database/data/schema.js                |   60 +-\n src/presets/drizzle/data/schema.js                 |  280 +--\n src/presets/drizzle/tests/analyzers.js             |  116 +\n src/presets/drizzle/tests/unit/analyzers.test.js   |    2 +-\n src/presets/edge/data/runtime.js                   |  161 +-\n src/presets/github-actions/data/pipelines.js       |  204 +-\n src/presets/github-actions/tests/analyzers.js      |  212 ++\n src/presets/graphql/data/schema.js                 |  185 +-\n src/presets/graphql/tests/analyzers.js             |  110 +\n src/presets/graphql/tests/unit/analyzers.test.js   |    2 +-\n src/presets/hono/data/middleware.js                |  163 +-\n src/presets/hono/tests/unit/analyzers.test.js      |   52 +-\n src/presets/laravel/data/commands.js               |   24 +-\n src/presets/laravel/data/config.js                 |  422 ++--\n src/presets/laravel/data/controllers.js            |  251 +--\n src/presets/laravel/data/models.js                 |  395 ++--\n src/presets/laravel/data/routes.js                 |  404 ++--\n src/presets/laravel/data/tables.js                 |  436 ++--\n src/presets/laravel/tests/analyzers.js             |  674 ++++++\n src/presets/laravel/tests/unit/analyzers.test.js   |   12 +-\n .../laravel/tests/unit/commands-match.test.js      |   12 +-\n .../laravel/tests/unit/scan-parser-bugs.test.js    |    3 +-\n src/presets/monorepo/data/monorepo.js              |  113 +-\n src/presets/nextjs/data/components.js              |  164 +-\n src/presets/nextjs/data/routes.js                  |  350 +--\n src/presets/nextjs/tests/analyzers.js              |  207 ++\n src/presets/nextjs/tests/unit/analyzers.test.js    |    3 +-\n src/presets/postgres/data/database.js              |   18 +-\n src/presets/r2/data/storage.js                     |  113 +-\n src/presets/storage/data/buckets.js                |   32 +-\n src/presets/symfony/data/commands.js               |   52 +-\n src/presets/symfony/data/config.js                 |  356 ++-\n src/presets/symfony/data/controllers.js            |  297 ++-\n src/presets/symfony/data/entities.js               |  326 ++-\n src/presets/symfony/data/routes.js                 |  290 +--\n src/presets/symfony/data/tables.js                 |  258 +--\n src/presets/symfony/tests/analyzers.js             |  655 ++++++\n src/presets/symfony/tests/unit/analyzers.test.js   |   12 +-\n .../symfony/tests/unit/commands-match.test.js      |   12 +-\n .../symfony/tests/unit/regex-backtracking.test.js  |    3 +-\n src/presets/webapp/data/commands.js                |   71 +-\n src/presets/webapp/data/controllers.js             |  103 +-\n src/presets/webapp/data/models.js                  |  127 +-\n src/presets/webapp/data/routes.js                  |   98 +-\n src/presets/webapp/data/tables.js                  |   79 +-\n src/presets/webapp/data/webapp-data-source.js      |   10 +-\n src/presets/workers/data/bindings.js               |  405 ++--\n src/presets/workers/tests/analyzers.js             |  131 ++\n src/presets/workers/tests/unit/analyzers.test.js   |    2 +-\n src/sdd-forge.js                                   |   39 -\n tests/unit/api.test.js                             |   72 -\n tests/unit/docs/data/monorepo.test.js              |    4 +-\n tests/unit/docs/lib/data-source-loader.test.js     |   12 +-\n tests/unit/docs/lib/layout-and-nav.test.js         |    8 +-\n tests/unit/lib/loader-cross-import.test.js         |  238 --\n tests/unit/lib/loader.test.js                      |   54 -\n .../presets/base/structure-directories.test.js     |    6 +-\n .../unit/presets/github-actions-pipelines.test.js  |    7 +-\n .../unit/presets/monorepo-match-regression.test.js |   14 +-\n tests/unit/presets/preset-scan-integrity.test.js   |    2 +\n 106 files changed, 9816 insertions(+), 8063 deletions(-)",
+      "commits": [
+        "feat: feature/191-preset-di-container",
+        "chore: add retro and report",
+        "feat: feature/191-preset-di-container",
+        "migrate base/hono/nextjs and cakephp2 (partial) presets to DI factory form"
+      ]
+    },
+    "retro": {
+      "total": 11,
+      "done": 8,
+      "partial": 3,
+      "not_done": 0,
+      "rate": 0.86,
+      "notes": "Core contract migration and legacy-path removal are largely implemented (R1-R6, R8, R10). Main gaps are verification rigor/policy proof (R7, R9, R11), where intent and supporting artifacts exist but strict acceptance evidence is incomplete."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 0,
+      "question": 8,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 1054153,
+      "output": 15171,
+      "cacheRead": 137088,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 19,
+      "durationMs": 377430,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 134362
+        },
+        {
+          "phase": "gate",
+          "durationMs": 44078
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 171312
+        },
+        {
+          "phase": "review",
+          "durationMs": 27678
+        }
+      ]
+    },
+    "tests": {
+      "unit": 45,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 45
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/191-preset-di-container\n    chore: add retro and report\n    feat: feature/191-preset-di-container\n    migrate base/hono/nextjs and cakephp2 (partial) presets to DI factory form\n    106 files changed, 9816 insertions(+), 8063 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 86%  (8 done / 3 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 0\n    Q&A ......................... 8\n    issue-log ................... 3\n    agent calls ................. 19\n    input tokens ................ 1,054,153\n    output tokens ............... 15,171\n    cache-read tokens ........... 137,088\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 377.4s\n      gate-draft ................ 134.4s\n      gate ...................... 44.1s\n      gate-impl ................. 171.3s\n      review .................... 27.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 45  integration 0  acceptance 0  total 45"
+}

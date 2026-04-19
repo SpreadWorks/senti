@@ -6,59 +6,64 @@
  */
 
 import fs from "fs";
-import { DataSource } from "../../../docs/lib/data-source.js";
-import { Scannable } from "../../../docs/lib/scan-source.js";
-import { AnalysisEntry } from "../../../docs/lib/analysis-entry.js";
-import { parseFile } from "../../../docs/lib/scanner.js";
-import { getLangHandler } from "../../../docs/lib/lang-factory.js";
 
-export class ModuleEntry extends AnalysisEntry {
-  className = null;
-  methods = null;
-  imports = null;
-  exports = null;
-  extends = null;
-  usedBy = null;
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const Scannable = container.get("base.Scannable");
+  const AnalysisEntry = container.get("base.AnalysisEntry");
+  const parseFile = container.get("scanner.parseFile");
+  const getLangHandler = container.get("lang.getHandler");
 
-  static summary = {
-    totalMethods: { field: "methods", aggregate: "count" },
-  };
-}
+  class ModuleEntry extends AnalysisEntry {
+    className = null;
+    methods = null;
+    imports = null;
+    exports = null;
+    extends = null;
+    usedBy = null;
 
-export default class ModulesSource extends Scannable(DataSource) {
-  static Entry = ModuleEntry;
-
-  match(relPath) {
-    return /\.(js|mjs|cjs)$/.test(relPath);
+    static summary = {
+      totalMethods: { field: "methods", aggregate: "count" },
+    };
   }
 
-  parse(absPath) {
-    const entry = new ModuleEntry();
-    const parsed = parseFile(absPath);
-    entry.className = parsed.className;
-    entry.methods = parsed.methods;
-    entry.extends = parsed.parentClass || null;
+  class ModulesSource extends Scannable(DataSource) {
+    static Entry = ModuleEntry;
 
-    // Extract imports/exports via language handler
-    const handler = getLangHandler(absPath);
-    if (handler) {
-      const content = parsed.content || fs.readFileSync(absPath, "utf8");
-      if (handler.extractImports) entry.imports = handler.extractImports(content);
-      if (handler.extractExports) entry.exports = handler.extractExports(content);
+    match(relPath) {
+      return /\.(js|mjs|cjs)$/.test(relPath);
     }
 
-    return entry;
+    parse(absPath) {
+      const entry = new ModuleEntry();
+      const parsed = parseFile(absPath);
+      entry.className = parsed.className;
+      entry.methods = parsed.methods;
+      entry.extends = parsed.parentClass || null;
+
+      // Extract imports/exports via language handler
+      const handler = getLangHandler(absPath);
+      if (handler) {
+        const content = parsed.content || fs.readFileSync(absPath, "utf8");
+        if (handler.extractImports) entry.imports = handler.extractImports(content);
+        if (handler.extractExports) entry.exports = handler.extractExports(content);
+      }
+
+      return entry;
+    }
+
+    /** Module list table. */
+    list(analysis, labels) {
+      const items = this.mergeDesc(analysis.modules?.entries || [], "modules");
+      if (items.length === 0) return null;
+      const rows = this.toRows(items, (m) => [
+        m.className,
+        m.file,
+        m.summary || "—",
+      ]);
+      return this.toMarkdownTable(rows, labels);
+    }
   }
 
-  /** Module list table. */
-  list(analysis, labels) {
-    const items = this.mergeDesc(analysis.modules?.entries || [], "modules");
-    if (items.length === 0) return null;
-    const rows = this.toRows(items, (m) => [
-      m.className,
-      m.file,
-      m.summary || "—",
-    ]);
-    return this.toMarkdownTable(rows, labels);
-  }
+  return ModulesSource;
 }

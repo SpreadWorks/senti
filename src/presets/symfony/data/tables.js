@@ -11,97 +11,52 @@
  */
 
 import fs from "fs";
-import path from "path";
-import TablesSource from "../../webapp/data/tables.js";
-import { AnalysisEntry } from "../../../docs/lib/analysis-entry.js";
-import { hasPathPrefix } from "../../lib/path-match.js";
 
-export class MigrationEntry extends AnalysisEntry {
-  tables = null;
+function parseCreateTableSql(body, entry) {
+  const parts = body.split(",");
+  for (const part of parts) {
+    const trimmed = part.trim();
 
-  static summary = {};
-}
-
-export default class SymfonyTablesSource extends TablesSource {
-  static Entry = MigrationEntry;
-
-  match(relPath) {
-    return relPath.endsWith(".php") && hasPathPrefix(relPath, "migrations/");
-  }
-
-  parse(absPath) {
-    const entry = new MigrationEntry();
-    const content = fs.readFileSync(absPath, "utf8");
-
-    const tables = [];
-    const tableMap = new Map();
-
-    parseMigration(content, tableMap);
-
-    entry.tables = [...tableMap.values()];
-    return entry;
-  }
-
-  /** Table list table. */
-  list(analysis, labels) {
-    const allTables = collectTables(analysis);
-    const items = this.mergeDesc(allTables, "tables", "name");
-    if (items.length === 0) return null;
-    const rows = this.toRows(items, (t) => [
-      t.name,
-      t.columns.length,
-      t.summary || "\u2014",
-    ]);
-    return this.toMarkdownTable(rows, labels);
-  }
-
-  /** Table columns table. */
-  columns(analysis, labels) {
-    const allTables = collectTables(analysis);
-    if (allTables.length === 0) return null;
-    const rows = [];
-    for (const t of allTables) {
-      for (const col of t.columns) {
-        rows.push([t.name, col.name, col.type, col.nullable ? "YES" : "NO"]);
+    if (/^(?:PRIMARY KEY|CONSTRAINT|INDEX|UNIQUE|FOREIGN KEY)/i.test(trimmed)) {
+      const fkMatch = trimmed.match(/FOREIGN KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)\s*\((\w+)\)/i);
+      if (fkMatch) {
+        entry.foreignKeys.push({ column: fkMatch[1], references: fkMatch[3], on: fkMatch[2] });
       }
+      continue;
     }
-    if (rows.length === 0) return null;
-    return this.toMarkdownTable(rows, labels);
-  }
 
-  /** Foreign keys table. */
-  fk(analysis, labels) {
-    const allTables = collectTables(analysis);
-    if (allTables.length === 0) return null;
-    const rows = [];
-    for (const t of allTables) {
-      for (const fk of t.foreignKeys) {
-        rows.push([t.name, fk.column, `${fk.on}.${fk.references}`]);
-      }
+    const colMatch = trimmed.match(/^(\w+)\s+(\w+(?:\(\d+(?:,\s*\d+)?\))?)/);
+    if (colMatch) {
+      const name = colMatch[1];
+      const type = colMatch[2].replace(/\(.*\)/, "");
+      const nullable = !/NOT NULL/i.test(trimmed);
+      const defaultMatch = trimmed.match(/DEFAULT\s+(\S+)/i);
+      entry.columns.push({
+        name,
+        type: type.toUpperCase(),
+        nullable,
+        default: defaultMatch ? defaultMatch[1] : null,
+      });
     }
-    if (rows.length === 0) return null;
-    return this.toMarkdownTable(rows, labels);
   }
 }
 
-/** Collect and merge tables from all migration entries. */
-function collectTables(analysis) {
-  const entries = analysis.tables?.entries || [];
-  if (entries.length === 0) return [];
-  const tableMap = new Map();
-  for (const entry of entries) {
-    for (const t of entry.tables || []) {
-      if (!tableMap.has(t.name)) {
-        tableMap.set(t.name, { ...t });
-      } else {
-        // Merge columns and foreign keys from later migrations
-        const existing = tableMap.get(t.name);
-        existing.columns.push(...t.columns);
-        existing.foreignKeys.push(...t.foreignKeys);
-      }
-    }
+function parseAlterTable(alterBody, entry) {
+  const addColMatch = alterBody.match(/ADD\s+(\w+)\s+(\w+(?:\(\d+\))?)/i);
+  if (addColMatch) {
+    const type = addColMatch[2].replace(/\(.*\)/, "");
+    entry.columns.push({
+      name: addColMatch[1],
+      type: type.toUpperCase(),
+      nullable: !/NOT NULL/i.test(alterBody),
+      default: null,
+    });
   }
-  return [...tableMap.values()];
+
+  const fkMatch = alterBody.match(/FOREIGN KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)\s*\((\w+)\)/i);
+  if (fkMatch) {
+    entry.foreignKeys.push({ column: fkMatch[1], references: fkMatch[3], on: fkMatch[2] });
+  }
 }
 
 function parseMigration(content, tableMap) {
@@ -156,79 +111,98 @@ function parseMigration(content, tableMap) {
   }
 }
 
-function parseCreateTableSql(body, entry) {
-  const parts = body.split(",");
-  for (const part of parts) {
-    const trimmed = part.trim();
-
-    if (/^(?:PRIMARY KEY|CONSTRAINT|INDEX|UNIQUE|FOREIGN KEY)/i.test(trimmed)) {
-      const fkMatch = trimmed.match(/FOREIGN KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)\s*\((\w+)\)/i);
-      if (fkMatch) {
-        entry.foreignKeys.push({ column: fkMatch[1], references: fkMatch[3], on: fkMatch[2] });
-      }
-      continue;
-    }
-
-    const colMatch = trimmed.match(/^(\w+)\s+(\w+(?:\(\d+(?:,\s*\d+)?\))?)/);
-    if (colMatch) {
-      const name = colMatch[1];
-      const type = colMatch[2].replace(/\(.*\)/, "");
-      const nullable = !/NOT NULL/i.test(trimmed);
-      const defaultMatch = trimmed.match(/DEFAULT\s+(\S+)/i);
-      entry.columns.push({
-        name,
-        type: type.toUpperCase(),
-        nullable,
-        default: defaultMatch ? defaultMatch[1] : null,
-      });
-    }
-  }
-}
-
-function parseAlterTable(alterBody, entry) {
-  const addColMatch = alterBody.match(/ADD\s+(\w+)\s+(\w+(?:\(\d+\))?)/i);
-  if (addColMatch) {
-    const type = addColMatch[2].replace(/\(.*\)/, "");
-    entry.columns.push({
-      name: addColMatch[1],
-      type: type.toUpperCase(),
-      nullable: !/NOT NULL/i.test(alterBody),
-      default: null,
-    });
-  }
-
-  const fkMatch = alterBody.match(/FOREIGN KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)\s*\((\w+)\)/i);
-  if (fkMatch) {
-    entry.foreignKeys.push({ column: fkMatch[1], references: fkMatch[3], on: fkMatch[2] });
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Directory-level analyzer (moved from scan/migrations.js, used by tests)
-// ---------------------------------------------------------------------------
-
-/**
- * @param {string} sourceRoot
- * @returns {{ tables: Object[], summary: { total: number, totalColumns: number } }}
- */
-export function analyzeMigrations(sourceRoot) {
-  const migrationsDir = path.join(sourceRoot, "migrations");
-  if (!fs.existsSync(migrationsDir)) return { tables: [], summary: { total: 0, totalColumns: 0 } };
-
-  const files = fs.readdirSync(migrationsDir)
-    .filter((f) => f.endsWith(".php"))
-    .sort();
-
+/** Collect and merge tables from all migration entries. */
+function collectTables(analysis) {
+  const entries = analysis.tables?.entries || [];
+  if (entries.length === 0) return [];
   const tableMap = new Map();
+  for (const entry of entries) {
+    for (const t of entry.tables || []) {
+      if (!tableMap.has(t.name)) {
+        tableMap.set(t.name, { ...t });
+      } else {
+        // Merge columns and foreign keys from later migrations
+        const existing = tableMap.get(t.name);
+        existing.columns.push(...t.columns);
+        existing.foreignKeys.push(...t.foreignKeys);
+      }
+    }
+  }
+  return [...tableMap.values()];
+}
 
-  for (const file of files) {
-    const filePath = path.join(migrationsDir, file);
-    const content = fs.readFileSync(filePath, "utf8");
-    parseMigration(content, tableMap);
+export default function register(container) {
+  const hasPathPrefix = container.get("pathMatch.hasPathPrefix");
+  const AnalysisEntry = container.get("base.AnalysisEntry");
+  const webapp = container.getPreset("webapp").dataSources;
+  const TablesSource = webapp.tables;
+
+  class MigrationEntry extends AnalysisEntry {
+    tables = null;
+
+    static summary = {};
   }
 
-  const tables = [...tableMap.values()];
-  const totalColumns = tables.reduce((s, t) => s + t.columns.length, 0);
+  class SymfonyTablesSource extends TablesSource {
+    static Entry = MigrationEntry;
 
-  return { tables, summary: { total: tables.length, totalColumns } };
+    match(relPath) {
+      return relPath.endsWith(".php") && hasPathPrefix(relPath, "migrations/");
+    }
+
+    parse(absPath) {
+      const entry = new MigrationEntry();
+      const content = fs.readFileSync(absPath, "utf8");
+
+      const tableMap = new Map();
+
+      parseMigration(content, tableMap);
+
+      entry.tables = [...tableMap.values()];
+      return entry;
+    }
+
+    /** Table list table. */
+    list(analysis, labels) {
+      const allTables = collectTables(analysis);
+      const items = this.mergeDesc(allTables, "tables", "name");
+      if (items.length === 0) return null;
+      const rows = this.toRows(items, (t) => [
+        t.name,
+        t.columns.length,
+        t.summary || "\u2014",
+      ]);
+      return this.toMarkdownTable(rows, labels);
+    }
+
+    /** Table columns table. */
+    columns(analysis, labels) {
+      const allTables = collectTables(analysis);
+      if (allTables.length === 0) return null;
+      const rows = [];
+      for (const t of allTables) {
+        for (const col of t.columns) {
+          rows.push([t.name, col.name, col.type, col.nullable ? "YES" : "NO"]);
+        }
+      }
+      if (rows.length === 0) return null;
+      return this.toMarkdownTable(rows, labels);
+    }
+
+    /** Foreign keys table. */
+    fk(analysis, labels) {
+      const allTables = collectTables(analysis);
+      if (allTables.length === 0) return null;
+      const rows = [];
+      for (const t of allTables) {
+        for (const fk of t.foreignKeys) {
+          rows.push([t.name, fk.column, `${fk.on}.${fk.references}`]);
+        }
+      }
+      if (rows.length === 0) return null;
+      return this.toMarkdownTable(rows, labels);
+    }
+  }
+
+  return SymfonyTablesSource;
 }

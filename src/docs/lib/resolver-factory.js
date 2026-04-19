@@ -16,9 +16,10 @@ import { createLogger } from "../../lib/progress.js";
 const logger = createLogger("resolver");
 
 /** Load DataSources and call init(ctx) on each instance */
-function loadDataSources(dataDir, ctx, existing) {
+function loadDataSources(dataDir, ctx, existing, presetKey) {
   return loadDataSourcesBase(dataDir, {
     existing,
+    presetKey,
     onInstance: (instance) => { instance.init(ctx); },
   });
 }
@@ -71,7 +72,7 @@ async function loadChainDataSources(chain, ctx) {
 
   for (const preset of chain) {
     const dataDir = path.join(preset.dir, "data");
-    dataSources = await loadDataSources(dataDir, ctx, dataSources);
+    dataSources = await loadDataSources(dataDir, ctx, dataSources, preset.key);
   }
 
   return dataSources;

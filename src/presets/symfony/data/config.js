@@ -15,161 +15,6 @@
 
 import fs from "fs";
 import path from "path";
-import WebappDataSource from "../../webapp/data/webapp-data-source.js";
-import { AnalysisEntry } from "../../../docs/lib/analysis-entry.js";
-import { hasPathPrefix, hasSegmentPath } from "../../lib/path-match.js";
-
-export class SymfonyConfigEntry extends AnalysisEntry {
-  /** Entry type: "composer" | "env" | "bundle" | "package" | "services" | "kernel" */
-  configType = null;
-  /** composer.json: { require, requireDev } */
-  composerDeps = null;
-  /** .env: Array<{key, defaultValue}> */
-  envKeys = null;
-  /** config/bundles.php: Array<{fullName, shortName}> */
-  bundles = null;
-  /** config/packages/*.yaml: { file, keys } */
-  packageConfig = null;
-  /** config/services.yaml: { autowire, autoconfigure } */
-  services = null;
-  /** src/Kernel.php: { className, parentClass } */
-  kernel = null;
-
-  static summary = {};
-}
-
-export default class ConfigSource extends WebappDataSource {
-  static Entry = SymfonyConfigEntry;
-
-  match(relPath) {
-    return hasPathPrefix(relPath, "config/") ||
-      hasSegmentPath(relPath, ".env") ||
-      hasSegmentPath(relPath, ".env.local") ||
-      hasSegmentPath(relPath, "composer.json");
-  }
-
-  parse(absPath) {
-    const entry = new SymfonyConfigEntry();
-    const fileName = path.basename(absPath);
-    const content = fs.readFileSync(absPath, "utf8");
-
-    if (fileName === "composer.json") {
-      entry.configType = "composer";
-      try {
-        const composer = JSON.parse(content);
-        entry.composerDeps = {
-          require: composer.require || {},
-          requireDev: composer["require-dev"] || {},
-        };
-      } catch (_) {
-        entry.composerDeps = { require: {}, requireDev: {} };
-      }
-    } else if (fileName === ".env" || fileName === ".env.local" || fileName === ".env.example") {
-      entry.configType = "env";
-      entry.envKeys = parseEnvContent(content);
-    } else if (fileName === "bundles.php") {
-      entry.configType = "bundle";
-      entry.bundles = parseBundlesContent(content);
-    } else if (fileName === "services.yaml" || fileName === "services.yml") {
-      entry.configType = "services";
-      entry.services = {
-        autowire: /autowire:\s*true/.test(content),
-        autoconfigure: /autoconfigure:\s*true/.test(content),
-      };
-    } else if (/\.(yaml|yml)$/.test(fileName) && absPath.includes("config/packages")) {
-      entry.configType = "package";
-      const topKeys = [];
-      for (const line of content.split("\n")) {
-        const keyMatch = line.match(/^(\w[\w_-]*):/);
-        if (keyMatch && !topKeys.includes(keyMatch[1])) {
-          topKeys.push(keyMatch[1]);
-          if (topKeys.length >= 20) break;
-        }
-      }
-      entry.packageConfig = { file: fileName, keys: topKeys };
-    } else if (fileName === "Kernel.php") {
-      entry.configType = "kernel";
-      const classMatch = content.match(/class\s+(\w+)\s+extends\s+(\w+)/);
-      entry.kernel = {
-        className: classMatch ? classMatch[1] : "Kernel",
-        parentClass: classMatch ? classMatch[2] : "",
-      };
-    }
-
-    return entry;
-  }
-
-  /** Composer dependencies table. */
-  composer(analysis, labels) {
-    const entries = analysis.config?.entries || [];
-    const composerEntry = entries.find((e) => e.configType === "composer");
-    if (!composerEntry?.composerDeps) return null;
-    const { require: req, requireDev } = composerEntry.composerDeps;
-    const rows = [];
-    for (const [pkg, ver] of Object.entries(req || {})) {
-      rows.push([pkg, ver, this.desc("composerDeps", pkg)]);
-    }
-    for (const [pkg, ver] of Object.entries(requireDev || {})) {
-      rows.push([`${pkg} (dev)`, ver, this.desc("composerDeps", pkg)]);
-    }
-    if (rows.length === 0) return null;
-    return this.toMarkdownTable(rows, labels);
-  }
-
-  /** Environment variables table. */
-  env(analysis, labels) {
-    const entries = analysis.config?.entries || [];
-    const envEntries = entries.filter((e) => e.configType === "env");
-    const allKeys = envEntries.flatMap((e) => e.envKeys || []);
-    if (allKeys.length === 0) return null;
-    const items = this.mergeDesc(allKeys, "env", "key");
-    const rows = this.toRows(items, (e) => [
-      e.key,
-      e.defaultValue || "\u2014",
-      e.summary || "\u2014",
-    ]);
-    return this.toMarkdownTable(rows, labels);
-  }
-
-  /** Symfony bundles table. */
-  bundles(analysis, labels) {
-    const entries = analysis.config?.entries || [];
-    const bundleEntry = entries.find((e) => e.configType === "bundle");
-    if (!bundleEntry?.bundles || bundleEntry.bundles.length === 0) return null;
-    const items = this.mergeDesc(bundleEntry.bundles, "bundles", "shortName");
-    const rows = this.toRows(items, (b) => [
-      b.shortName,
-      b.fullName,
-      b.summary || "\u2014",
-    ]);
-    return this.toMarkdownTable(rows, labels);
-  }
-
-  /** Config packages table. */
-  packages(analysis, labels) {
-    const entries = analysis.config?.entries || [];
-    const packageEntries = entries.filter((e) => e.configType === "package");
-    if (packageEntries.length === 0) return null;
-    const configFiles = packageEntries.map((e) => e.packageConfig).filter(Boolean);
-    if (configFiles.length === 0) return null;
-    const rows = this.toRows(configFiles, (cf) => [
-      cf.file,
-      cf.keys.join(", ") || "\u2014",
-    ]);
-    return this.toMarkdownTable(rows, labels);
-  }
-
-  /** Services configuration table. */
-  services(analysis, labels) {
-    const entries = analysis.config?.entries || [];
-    const servicesEntry = entries.find((e) => e.configType === "services");
-    if (!servicesEntry?.services) return null;
-    const rows = [
-      [servicesEntry.services.autowire ? "YES" : "NO", servicesEntry.services.autoconfigure ? "YES" : "NO"],
-    ];
-    return this.toMarkdownTable(rows, labels);
-  }
-}
 
 function parseEnvContent(content) {
   const keys = [];
@@ -197,34 +42,72 @@ function parseBundlesContent(content) {
   return bundles;
 }
 
-// ---------------------------------------------------------------------------
-// Directory-level analyzer (moved from scan/config.js, used by tests)
-// ---------------------------------------------------------------------------
+export default function register(container) {
+  const hasPathPrefix = container.get("pathMatch.hasPathPrefix");
+  const hasSegmentPath = container.get("pathMatch.hasSegmentPath");
+  const AnalysisEntry = container.get("base.AnalysisEntry");
+  const webapp = container.getPreset("webapp").dataSources;
+  const WebappDataSource = webapp["webapp-data-source"];
 
-import { parseComposer, parseEnvFile } from "../../lib/composer-utils.js";
+  class SymfonyConfigEntry extends AnalysisEntry {
+    /** Entry type: "composer" | "env" | "bundle" | "package" | "services" | "kernel" */
+    configType = null;
+    /** composer.json: { require, requireDev } */
+    composerDeps = null;
+    /** .env: Array<{key, defaultValue}> */
+    envKeys = null;
+    /** config/bundles.php: Array<{fullName, shortName}> */
+    bundles = null;
+    /** config/packages/*.yaml: { file, keys } */
+    packageConfig = null;
+    /** config/services.yaml: { autowire, autoconfigure } */
+    services = null;
+    /** src/Kernel.php: { className, parentClass } */
+    kernel = null;
 
-/**
- * @param {string} sourceRoot
- * @returns {Object} extras data
- */
-export function analyzeConfig(sourceRoot) {
-  const extras = {};
+    static summary = {};
+  }
 
-  // composer.json
-  extras.composerDeps = parseComposer(sourceRoot);
+  class ConfigSource extends WebappDataSource {
+    static Entry = SymfonyConfigEntry;
 
-  // .env
-  extras.envKeys = parseEnvFile(sourceRoot, [".env", ".env.example"]);
+    match(relPath) {
+      return hasPathPrefix(relPath, "config/") ||
+        hasSegmentPath(relPath, ".env") ||
+        hasSegmentPath(relPath, ".env.local") ||
+        hasSegmentPath(relPath, "composer.json");
+    }
 
-  // config/packages/*.yaml
-  const configDir = path.join(sourceRoot, "config", "packages");
-  extras.configFiles = [];
-  if (fs.existsSync(configDir)) {
-    extras.configFiles = fs.readdirSync(configDir)
-      .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
-      .sort()
-      .map((f) => {
-        const content = fs.readFileSync(path.join(configDir, f), "utf8");
+    parse(absPath) {
+      const entry = new SymfonyConfigEntry();
+      const fileName = path.basename(absPath);
+      const content = fs.readFileSync(absPath, "utf8");
+
+      if (fileName === "composer.json") {
+        entry.configType = "composer";
+        try {
+          const composer = JSON.parse(content);
+          entry.composerDeps = {
+            require: composer.require || {},
+            requireDev: composer["require-dev"] || {},
+          };
+        } catch (_) {
+          entry.composerDeps = { require: {}, requireDev: {} };
+        }
+      } else if (fileName === ".env" || fileName === ".env.local" || fileName === ".env.example") {
+        entry.configType = "env";
+        entry.envKeys = parseEnvContent(content);
+      } else if (fileName === "bundles.php") {
+        entry.configType = "bundle";
+        entry.bundles = parseBundlesContent(content);
+      } else if (fileName === "services.yaml" || fileName === "services.yml") {
+        entry.configType = "services";
+        entry.services = {
+          autowire: /autowire:\s*true/.test(content),
+          autoconfigure: /autoconfigure:\s*true/.test(content),
+        };
+      } else if (/\.(yaml|yml)$/.test(fileName) && absPath.includes("config/packages")) {
+        entry.configType = "package";
         const topKeys = [];
         for (const line of content.split("\n")) {
           const keyMatch = line.match(/^(\w[\w_-]*):/);
@@ -233,41 +116,90 @@ export function analyzeConfig(sourceRoot) {
             if (topKeys.length >= 20) break;
           }
         }
-        return { file: f, keys: topKeys };
-      });
+        entry.packageConfig = { file: fileName, keys: topKeys };
+      } else if (fileName === "Kernel.php") {
+        entry.configType = "kernel";
+        const classMatch = content.match(/class\s+(\w+)\s+extends\s+(\w+)/);
+        entry.kernel = {
+          className: classMatch ? classMatch[1] : "Kernel",
+          parentClass: classMatch ? classMatch[2] : "",
+        };
+      }
+
+      return entry;
+    }
+
+    /** Composer dependencies table. */
+    composer(analysis, labels) {
+      const entries = analysis.config?.entries || [];
+      const composerEntry = entries.find((e) => e.configType === "composer");
+      if (!composerEntry?.composerDeps) return null;
+      const { require: req, requireDev } = composerEntry.composerDeps;
+      const rows = [];
+      for (const [pkg, ver] of Object.entries(req || {})) {
+        rows.push([pkg, ver, this.desc("composerDeps", pkg)]);
+      }
+      for (const [pkg, ver] of Object.entries(requireDev || {})) {
+        rows.push([`${pkg} (dev)`, ver, this.desc("composerDeps", pkg)]);
+      }
+      if (rows.length === 0) return null;
+      return this.toMarkdownTable(rows, labels);
+    }
+
+    /** Environment variables table. */
+    env(analysis, labels) {
+      const entries = analysis.config?.entries || [];
+      const envEntries = entries.filter((e) => e.configType === "env");
+      const allKeys = envEntries.flatMap((e) => e.envKeys || []);
+      if (allKeys.length === 0) return null;
+      const items = this.mergeDesc(allKeys, "env", "key");
+      const rows = this.toRows(items, (e) => [
+        e.key,
+        e.defaultValue || "\u2014",
+        e.summary || "\u2014",
+      ]);
+      return this.toMarkdownTable(rows, labels);
+    }
+
+    /** Symfony bundles table. */
+    bundles(analysis, labels) {
+      const entries = analysis.config?.entries || [];
+      const bundleEntry = entries.find((e) => e.configType === "bundle");
+      if (!bundleEntry?.bundles || bundleEntry.bundles.length === 0) return null;
+      const items = this.mergeDesc(bundleEntry.bundles, "bundles", "shortName");
+      const rows = this.toRows(items, (b) => [
+        b.shortName,
+        b.fullName,
+        b.summary || "\u2014",
+      ]);
+      return this.toMarkdownTable(rows, labels);
+    }
+
+    /** Config packages table. */
+    packages(analysis, labels) {
+      const entries = analysis.config?.entries || [];
+      const packageEntries = entries.filter((e) => e.configType === "package");
+      if (packageEntries.length === 0) return null;
+      const configFiles = packageEntries.map((e) => e.packageConfig).filter(Boolean);
+      if (configFiles.length === 0) return null;
+      const rows = this.toRows(configFiles, (cf) => [
+        cf.file,
+        cf.keys.join(", ") || "\u2014",
+      ]);
+      return this.toMarkdownTable(rows, labels);
+    }
+
+    /** Services configuration table. */
+    services(analysis, labels) {
+      const entries = analysis.config?.entries || [];
+      const servicesEntry = entries.find((e) => e.configType === "services");
+      if (!servicesEntry?.services) return null;
+      const rows = [
+        [servicesEntry.services.autowire ? "YES" : "NO", servicesEntry.services.autoconfigure ? "YES" : "NO"],
+      ];
+      return this.toMarkdownTable(rows, labels);
+    }
   }
 
-  // config/services.yaml
-  const servicesPath = path.join(sourceRoot, "config", "services.yaml");
-  if (fs.existsSync(servicesPath)) {
-    const content = fs.readFileSync(servicesPath, "utf8");
-    extras.services = {
-      autowire: /autowire:\s*true/.test(content),
-      autoconfigure: /autoconfigure:\s*true/.test(content),
-    };
-  } else {
-    extras.services = { autowire: false, autoconfigure: false };
-  }
-
-  // src/Kernel.php
-  const kernelPath = path.join(sourceRoot, "src", "Kernel.php");
-  extras.kernel = null;
-  if (fs.existsSync(kernelPath)) {
-    const content = fs.readFileSync(kernelPath, "utf8");
-    const classMatch = content.match(/class\s+(\w+)\s+extends\s+(\w+)/);
-    extras.kernel = {
-      className: classMatch ? classMatch[1] : "Kernel",
-      parentClass: classMatch ? classMatch[2] : "",
-    };
-  }
-
-  // config/bundles.php
-  const bundlesPath = path.join(sourceRoot, "config", "bundles.php");
-  extras.bundles = [];
-  if (fs.existsSync(bundlesPath)) {
-    const content = fs.readFileSync(bundlesPath, "utf8");
-    extras.bundles = parseBundlesContent(content);
-  }
-
-  return extras;
+  return ConfigSource;
 }

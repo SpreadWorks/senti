@@ -4,14 +4,11 @@
  * Reads enriched analysis items to generate directory tree and role tables.
  */
 
-import { DataSource } from "../../../docs/lib/data-source.js";
-import { ANALYSIS_META_KEYS } from "../../../docs/lib/analysis-entry.js";
-
 /** Collect all items across all analysis categories. */
-function allItems(analysis) {
+function allItems(analysis, metaKeys) {
   const items = [];
   for (const [key, val] of Object.entries(analysis)) {
-    if (ANALYSIS_META_KEYS.has(key)) continue;
+    if (metaKeys.has(key)) continue;
     if (!val || typeof val !== "object") continue;
     const arr = val.entries;
     if (Array.isArray(arr)) {
@@ -42,9 +39,9 @@ function buildDirectoryMap(items) {
 const MAX_EXPAND_DEPTH = 5;
 
 /** Validate analysis and return directory map, or null if not ready. */
-function getDirectoryMap(analysis) {
+function getDirectoryMap(analysis, metaKeys) {
   if (!analysis?.enrichedAt) return null;
-  const items = allItems(analysis);
+  const items = allItems(analysis, metaKeys);
   if (items.length === 0) return null;
   const dirs = buildDirectoryMap(items);
   if (dirs.size === 0) return null;
@@ -53,9 +50,6 @@ function getDirectoryMap(analysis) {
 
 /**
  * Aggregate dirs map at a given depth, using prefix segments.
- * @param {Map<string, {count: number, roles: Set}>} dirs - full directory map
- * @param {number} depth - number of path segments to group by
- * @returns {Map<string, {count: number, roles: Set}>}
  */
 function aggregateAtDepth(dirs, depth) {
   const agg = new Map();
@@ -70,40 +64,45 @@ function aggregateAtDepth(dirs, depth) {
   return agg;
 }
 
-export default class StructureSource extends DataSource {
-  /** Directory tree as a code block. */
-  tree(analysis, _labels) {
-    const dirs = getDirectoryMap(analysis);
-    if (!dirs) return null;
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const ANALYSIS_META_KEYS = container.get("base.ANALYSIS_META_KEYS");
 
-    const sorted = [...dirs.keys()].sort();
-    const lines = ["```"];
-    for (const dir of sorted) {
-      const info = dirs.get(dir);
-      const roles = [...info.roles].join(", ");
-      lines.push(`${dir}/    ${roles ? `(${roles})` : ""}`);
-    }
-    lines.push("```");
-    return lines.join("\n");
-  }
+  return class StructureSource extends DataSource {
+    /** Directory tree as a code block. */
+    tree(analysis, _labels) {
+      const dirs = getDirectoryMap(analysis, ANALYSIS_META_KEYS);
+      if (!dirs) return null;
 
-  /** Major directories with file counts and roles. */
-  directories(analysis, labels) {
-    const dirs = getDirectoryMap(analysis);
-    if (!dirs) return null;
-
-    let depth = 1;
-    let agg = aggregateAtDepth(dirs, depth);
-
-    while (agg.size === 1 && depth < MAX_EXPAND_DEPTH) {
-      depth++;
-      agg = aggregateAtDepth(dirs, depth);
+      const sorted = [...dirs.keys()].sort();
+      const lines = ["```"];
+      for (const dir of sorted) {
+        const info = dirs.get(dir);
+        const roles = [...info.roles].join(", ");
+        lines.push(`${dir}/    ${roles ? `(${roles})` : ""}`);
+      }
+      lines.push("```");
+      return lines.join("\n");
     }
 
-    const rows = [...agg.entries()]
-      .sort((a, b) => b[1].count - a[1].count)
-      .map(([dir, info]) => [dir, String(info.count), [...info.roles].join(", ") || "—"]);
-    const hdr = labels.length >= 2 ? labels : ["Directory", "Files", "Role"];
-    return this.toMarkdownTable(rows, hdr);
-  }
+    /** Major directories with file counts and roles. */
+    directories(analysis, labels) {
+      const dirs = getDirectoryMap(analysis, ANALYSIS_META_KEYS);
+      if (!dirs) return null;
+
+      let depth = 1;
+      let agg = aggregateAtDepth(dirs, depth);
+
+      while (agg.size === 1 && depth < MAX_EXPAND_DEPTH) {
+        depth++;
+        agg = aggregateAtDepth(dirs, depth);
+      }
+
+      const rows = [...agg.entries()]
+        .sort((a, b) => b[1].count - a[1].count)
+        .map(([dir, info]) => [dir, String(info.count), [...info.roles].join(", ") || "—"]);
+      const hdr = labels.length >= 2 ? labels : ["Directory", "Files", "Role"];
+      return this.toMarkdownTable(rows, hdr);
+    }
+  };
 }

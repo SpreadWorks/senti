@@ -2,6 +2,14 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "fs";
 import path from "path";
+import { container, initContainer } from "../../../src/lib/container.js";
+import { loadDataSources } from "../../../src/docs/lib/data-source-loader.js";
+
+initContainer();
+// Factory-form presets (e.g. cakephp2 leaves) may call container.getPreset("webapp").
+// Pre-load webapp's data/ so its classes are registered before we invoke factories below.
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+await loadDataSources(path.resolve(__dirname, "../../../src/presets/webapp/data"), { presetKey: "webapp" });
 
 import cakephp2Config from "../../../src/presets/cakephp2/data/config.js";
 import cakephp2Email from "../../../src/presets/cakephp2/data/email.js";
@@ -99,7 +107,11 @@ const UNCHANGED_SOURCES = [
 
 function createSource(source) {
   if (source && typeof source.match === "function") return source;
-  if (typeof source === "function") return new source();
+  if (typeof source === "function") {
+    const isClass = /^\s*class\b/.test(Function.prototype.toString.call(source));
+    const Cls = isClass ? source : source(container);
+    return new Cls();
+  }
   throw new TypeError("unsupported DataSource export");
 }
 

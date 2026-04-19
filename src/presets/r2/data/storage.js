@@ -7,72 +7,77 @@
 
 import fs from "fs";
 import path from "path";
-import { DataSource } from "../../../docs/lib/data-source.js";
-import { Scannable } from "../../../docs/lib/scan-source.js";
-import { AnalysisEntry } from "../../../docs/lib/analysis-entry.js";
-import { parseTOML } from "../../../docs/lib/toml-parser.js";
 
 const WRANGLER_FILES = new Set(["wrangler.toml", "wrangler.json", "wrangler.jsonc"]);
 
-export class StorageEntry extends AnalysisEntry {
-  buckets = null;
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const Scannable = container.get("base.Scannable");
+  const AnalysisEntry = container.get("base.AnalysisEntry");
+  const parseTOML = container.get("toml.parse");
 
-  static summary = {};
-}
+  class StorageEntry extends AnalysisEntry {
+    buckets = null;
 
-export default class R2StorageSource extends Scannable(DataSource) {
-  static Entry = StorageEntry;
-
-  match(relPath) {
-    return WRANGLER_FILES.has(path.basename(relPath));
+    static summary = {};
   }
 
-  parse(absPath) {
-    const entry = new StorageEntry();
-    const raw = fs.readFileSync(absPath, "utf8");
-    const fileName = path.basename(absPath);
-    const isToml = fileName === "wrangler.toml";
+  class R2StorageSource extends Scannable(DataSource) {
+    static Entry = StorageEntry;
 
-    let cfg;
-    try {
-      cfg = isToml ? parseTOML(raw) : JSON.parse(raw);
-    } catch (_) {
+    match(relPath) {
+      return WRANGLER_FILES.has(path.basename(relPath));
+    }
+
+    parse(absPath) {
+      const entry = new StorageEntry();
+      const raw = fs.readFileSync(absPath, "utf8");
+      const fileName = path.basename(absPath);
+      const isToml = fileName === "wrangler.toml";
+
+      let cfg;
+      try {
+        cfg = isToml ? parseTOML(raw) : JSON.parse(raw);
+      } catch (_) {
+        return entry;
+      }
+
+      const r2Buckets = cfg.r2_buckets || [];
+      entry.buckets = r2Buckets.map((b) => ({
+        name: b.bucket_name || b.binding || "",
+        binding: b.binding || "",
+        preview_bucket_name: b.preview_bucket_name || "",
+      }));
+
       return entry;
     }
 
-    const r2Buckets = cfg.r2_buckets || [];
-    entry.buckets = r2Buckets.map((b) => ({
-      name: b.bucket_name || b.binding || "",
-      binding: b.binding || "",
-      preview_bucket_name: b.preview_bucket_name || "",
-    }));
+    /** R2 buckets list. */
+    buckets(analysis, labels) {
+      const entries = analysis.storage?.entries || [];
+      const items = entries.flatMap((e) => e.buckets || []);
+      if (items.length === 0) return null;
+      const rows = this.toRows(items, (b) => [
+        b.name || "—",
+        b.binding || "—",
+        b.summary || "—",
+      ]);
+      const hdr = labels.length >= 2 ? labels : ["Bucket", "Binding", "Description"];
+      return this.toMarkdownTable(rows, hdr);
+    }
 
-    return entry;
+    /** Access patterns table. */
+    access(analysis, labels) {
+      const items = analysis.storage?.access;
+      if (!Array.isArray(items) || items.length === 0) return null;
+      const rows = this.toRows(items, (a) => [
+        a.method || "—",
+        a.summary || "—",
+      ]);
+      const hdr = labels.length >= 2 ? labels : ["Method", "Description"];
+      return this.toMarkdownTable(rows, hdr);
+    }
   }
 
-  /** R2 buckets list. */
-  buckets(analysis, labels) {
-    const entries = analysis.storage?.entries || [];
-    const items = entries.flatMap((e) => e.buckets || []);
-    if (items.length === 0) return null;
-    const rows = this.toRows(items, (b) => [
-      b.name || "—",
-      b.binding || "—",
-      b.summary || "—",
-    ]);
-    const hdr = labels.length >= 2 ? labels : ["Bucket", "Binding", "Description"];
-    return this.toMarkdownTable(rows, hdr);
-  }
-
-  /** Access patterns table. */
-  access(analysis, labels) {
-    const items = analysis.storage?.access;
-    if (!Array.isArray(items) || items.length === 0) return null;
-    const rows = this.toRows(items, (a) => [
-      a.method || "—",
-      a.summary || "—",
-    ]);
-    const hdr = labels.length >= 2 ? labels : ["Method", "Description"];
-    return this.toMarkdownTable(rows, hdr);
-  }
+  return R2StorageSource;
 }

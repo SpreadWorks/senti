@@ -7,7 +7,17 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import SymfonyCommandsSource from "../../data/commands.js";
+import { container, initContainer } from "../../../../lib/container.js";
+import { loadDataSources } from "../../../../docs/lib/data-source-loader.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+initContainer();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+await loadDataSources(path.resolve(__dirname, "../../../webapp/data"), { presetKey: "webapp" });
+
+const registerCommands = (await import("../../data/commands.js")).default;
+const SymfonyCommandsSource = registerCommands(container);
 
 describe("SymfonyCommandsSource.match()", () => {
   const source = new SymfonyCommandsSource();

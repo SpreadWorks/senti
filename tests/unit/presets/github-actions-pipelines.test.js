@@ -126,7 +126,7 @@ function setupProject(workflows) {
 describe("github-actions preset: scan/workflows.js", async () => {
   // Dynamic import after file creation
   const { parseWorkflow } = await import(
-    "../../../src/presets/github-actions/data/pipelines.js"
+    "../../../src/presets/github-actions/tests/analyzers.js"
   );
 
   describe("parseWorkflow", () => {
@@ -194,7 +194,10 @@ describe("github-actions preset: scan/workflows.js", async () => {
 // ---------------------------------------------------------------------------
 
 describe("github-actions preset: data/pipelines.js", async () => {
-  const PipelinesSource = (await import("../../../src/presets/github-actions/data/pipelines.js")).default;
+  const { container, initContainer } = await import("../../../src/lib/container.js");
+  initContainer();
+  const registerPipelines = (await import("../../../src/presets/github-actions/data/pipelines.js")).default;
+  const PipelinesSource = registerPipelines(container);
 
   const MOCK_ANALYSIS = {
     pipelines: {

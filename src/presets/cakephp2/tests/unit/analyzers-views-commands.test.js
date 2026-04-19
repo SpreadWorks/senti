@@ -15,10 +15,10 @@ import {
   analyzeSqlFiles,
   analyzeLayouts,
   analyzeElements,
-} from "../../data/views.js";
-import { analyzeCommandDetails } from "../../data/commands.js";
-import { analyzeTestStructure } from "../../data/tests.js";
-import { analyzeEmailNotifications } from "../../data/email.js";
+  analyzeCommandDetails,
+  analyzeTestStructure,
+  analyzeEmailNotifications,
+} from "../analyzers.js";
 
 // =========================================================================
 // analyzeHelpers

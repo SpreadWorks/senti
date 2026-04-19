@@ -18,94 +18,6 @@
  */
 
 import fs from "fs";
-import path from "path";
-import RoutesSource from "../../webapp/data/routes.js";
-import { RouteEntry } from "../../webapp/data/routes.js";
-import { findFiles } from "../../../docs/lib/scanner.js";
-import { hasPathPrefix } from "../../lib/path-match.js";
-
-export class SymfonyRouteEntry extends RouteEntry {
-  name = null;
-  methods = null;
-  source = null;
-
-  static summary = {};
-}
-
-export default class SymfonyRoutesSource extends RoutesSource {
-  static Entry = SymfonyRouteEntry;
-
-  match(relPath) {
-    return hasPathPrefix(relPath, "config/routes") && /\.(yaml|yml|xml|php)$/.test(relPath);
-  }
-
-  parse(absPath) {
-    const entry = new SymfonyRouteEntry();
-    const content = fs.readFileSync(absPath, "utf8");
-
-    // Parse YAML route definitions from the file
-    const routes = parseYamlContent(content);
-
-    // For the entry-per-file model, store the first route's data
-    // (multi-route files will produce partial data; the main route
-    // inventory comes from the flat routes list below)
-    if (routes.length > 0) {
-      const first = routes[0];
-      entry.pattern = first.path;
-      entry.controller = first.controller;
-      entry.action = "";
-      entry.raw = `${first.name}: ${first.path}`;
-      entry.name = first.name;
-      entry.methods = first.methods;
-      entry.source = "yaml";
-    }
-
-    return entry;
-  }
-
-  /** All routes table. */
-  list(analysis, labels) {
-    const routes = analysis.routes?.entries || [];
-    if (routes.length === 0) return null;
-    const rows = this.toRows(routes, (r) => [
-      (r.methods || []).join("|") || "*",
-      r.pattern || r.path || "",
-      r.controller,
-      r.name || "",
-    ]);
-    return this.toMarkdownTable(rows, labels);
-  }
-
-  /** Attribute-defined routes table. */
-  attribute(analysis, labels) {
-    const routes = (analysis.routes?.entries || []).filter(
-      (r) => r.source === "attribute",
-    );
-    if (routes.length === 0) return null;
-    const rows = this.toRows(routes, (r) => [
-      (r.methods || []).join("|") || "*",
-      r.pattern || r.path || "",
-      r.controller,
-      r.name || "",
-    ]);
-    return this.toMarkdownTable(rows, labels);
-  }
-
-  /** YAML-defined routes table. */
-  yaml(analysis, labels) {
-    const routes = (analysis.routes?.entries || []).filter(
-      (r) => r.source === "yaml",
-    );
-    if (routes.length === 0) return null;
-    const rows = this.toRows(routes, (r) => [
-      (r.methods || []).join("|") || "*",
-      r.pattern || r.path || "",
-      r.controller,
-      r.name || "",
-    ]);
-    return this.toMarkdownTable(rows, labels);
-  }
-}
 
 /**
  * Simple YAML parser for Symfony route YAML patterns.
@@ -186,148 +98,94 @@ function parseYamlContent(content) {
   return routes;
 }
 
-// ---------------------------------------------------------------------------
-// Directory-level analyzer (moved from scan/routes.js, used by tests)
-// ---------------------------------------------------------------------------
+export default function register(container) {
+  const hasPathPrefix = container.get("pathMatch.hasPathPrefix");
+  const webapp = container.getPreset("webapp").dataSources;
+  const RoutesSource = webapp.routes;
+  const RouteEntry = RoutesSource.Entry;
 
-const SCAN_METHOD_RE = /public\s+function\s+(\w+)\s*\(/g;
-const SCAN_ATTR_LINE_RE = /^\s*#\[/;
+  class SymfonyRouteEntry extends RouteEntry {
+    name = null;
+    methods = null;
+    source = null;
 
-/** Find all public methods with their preceding attribute blocks (scan-level helper). */
-function findMethodsWithAttributesScan(content) {
-  const lines = content.split("\n");
-  const lineOffsets = [];
-  let offset = 0;
-  for (const line of lines) {
-    lineOffsets.push(offset);
-    offset += line.length + 1;
+    static summary = {};
   }
 
-  function offsetToLine(pos) {
-    let lo = 0;
-    let hi = lineOffsets.length - 1;
-    while (lo < hi) {
-      const mid = (lo + hi + 1) >> 1;
-      if (lineOffsets[mid] <= pos) lo = mid;
-      else hi = mid - 1;
+  class SymfonyRoutesSource extends RoutesSource {
+    static Entry = SymfonyRouteEntry;
+
+    match(relPath) {
+      return hasPathPrefix(relPath, "config/routes") && /\.(yaml|yml|xml|php)$/.test(relPath);
     }
-    return lo;
-  }
 
-  const results = [];
-  let m;
-  while ((m = SCAN_METHOD_RE.exec(content)) !== null) {
-    const methodName = m[1];
-    const methodLineIdx = offsetToLine(m.index);
-    const attrLines = [];
-    for (let i = methodLineIdx - 1; i >= 0; i--) {
-      const line = lines[i];
-      const trimmed = line.trim();
-      if (SCAN_ATTR_LINE_RE.test(line)) {
-        attrLines.unshift(line);
-        continue;
+    parse(absPath) {
+      const entry = new SymfonyRouteEntry();
+      const content = fs.readFileSync(absPath, "utf8");
+
+      // Parse YAML route definitions from the file
+      const routes = parseYamlContent(content);
+
+      // For the entry-per-file model, store the first route's data
+      // (multi-route files will produce partial data; the main route
+      // inventory comes from the flat routes list below)
+      if (routes.length > 0) {
+        const first = routes[0];
+        entry.pattern = first.path;
+        entry.controller = first.controller;
+        entry.action = "";
+        entry.raw = `${first.name}: ${first.path}`;
+        entry.name = first.name;
+        entry.methods = first.methods;
+        entry.source = "yaml";
       }
-      if (trimmed === "") break;
-      break;
+
+      return entry;
     }
-    results.push({ methodName, attrBlock: attrLines.join("\n") });
-  }
-  return results;
-}
 
-/**
- * @param {string} sourceRoot
- * @returns {{ routes: Object[], summary: { total: number, yamlRoutes: number, attributeRoutes: number } }}
- */
-export function analyzeRoutes(sourceRoot) {
-  const routes = [];
-
-  // 1. YAML route definitions
-  const yamlRoutes = parseScanYamlRoutes(sourceRoot);
-  routes.push(...yamlRoutes);
-
-  // 2. Controller #[Route] attributes
-  const attrRoutes = parseScanAttributeRoutes(sourceRoot);
-  routes.push(...attrRoutes);
-
-  return {
-    routes,
-    summary: {
-      total: routes.length,
-      yamlRoutes: yamlRoutes.length,
-      attributeRoutes: attrRoutes.length,
-    },
-  };
-}
-
-function parseScanYamlRoutes(sourceRoot) {
-  const routes = [];
-  const routeFiles = [];
-
-  const mainRoute = path.join(sourceRoot, "config", "routes.yaml");
-  if (fs.existsSync(mainRoute)) routeFiles.push(mainRoute);
-
-  const routesDir = path.join(sourceRoot, "config", "routes");
-  if (fs.existsSync(routesDir)) {
-    for (const f of fs.readdirSync(routesDir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml")).sort()) {
-      routeFiles.push(path.join(routesDir, f));
+    /** All routes table. */
+    list(analysis, labels) {
+      const routes = analysis.routes?.entries || [];
+      if (routes.length === 0) return null;
+      const rows = this.toRows(routes, (r) => [
+        (r.methods || []).join("|") || "*",
+        r.pattern || r.path || "",
+        r.controller,
+        r.name || "",
+      ]);
+      return this.toMarkdownTable(rows, labels);
     }
-  }
 
-  for (const filePath of routeFiles) {
-    const content = fs.readFileSync(filePath, "utf8");
-    routes.push(...parseYamlContent(content));
-  }
-
-  return routes;
-}
-
-function parseScanAttributeRoutes(sourceRoot) {
-  const controllerDir = path.join(sourceRoot, "src", "Controller");
-  if (!fs.existsSync(controllerDir)) return [];
-
-  const files = findFiles(controllerDir, "*.php", [], true);
-  const routes = [];
-  for (const f of files) {
-    const content = fs.readFileSync(f.absPath, "utf8");
-    if (/#\[Route/.test(content)) {
-      routes.push(...extractScanAttributeRoutes(content));
+    /** Attribute-defined routes table. */
+    attribute(analysis, labels) {
+      const routes = (analysis.routes?.entries || []).filter(
+        (r) => r.source === "attribute",
+      );
+      if (routes.length === 0) return null;
+      const rows = this.toRows(routes, (r) => [
+        (r.methods || []).join("|") || "*",
+        r.pattern || r.path || "",
+        r.controller,
+        r.name || "",
+      ]);
+      return this.toMarkdownTable(rows, labels);
     }
-  }
-  return routes;
-}
 
-function extractScanAttributeRoutes(content) {
-  const routes = [];
-
-  const classRouteMatch = content.match(/#\[Route\s*\(\s*['"]([^'"]*)['"]/);
-  const classPrefix = classRouteMatch ? classRouteMatch[1] : "";
-
-  const classMatch = content.match(/class\s+(\w+)/);
-  const controllerName = classMatch ? classMatch[1] : "";
-
-  const methodMatches = findMethodsWithAttributesScan(content);
-  for (const { methodName, attrBlock } of methodMatches) {
-    if (methodName === "__construct" || methodName.startsWith("_")) continue;
-
-    const routeAttrRegex = /#\[Route\s*\(\s*['"]([^'"]*)['"]\s*(?:,\s*(?:name:\s*['"]([^'"]*)['"]\s*)?(?:,?\s*methods:\s*\[([^\]]*)\])?)?\s*\)/g;
-    let rm;
-    while ((rm = routeAttrRegex.exec(attrBlock)) !== null) {
-      const routePath = rm[1];
-      const routeName = rm[2] || "";
-      const methods = rm[3]
-        ? rm[3].match(/['"](\w+)['"]/g)?.map((s) => s.replace(/['"]/g, "").toUpperCase()) || ["GET"]
-        : ["GET"];
-
-      routes.push({
-        name: routeName,
-        path: classPrefix + routePath,
-        controller: controllerName ? `${controllerName}::${methodName}` : methodName,
-        methods,
-        source: "attribute",
-      });
+    /** YAML-defined routes table. */
+    yaml(analysis, labels) {
+      const routes = (analysis.routes?.entries || []).filter(
+        (r) => r.source === "yaml",
+      );
+      if (routes.length === 0) return null;
+      const rows = this.toRows(routes, (r) => [
+        (r.methods || []).join("|") || "*",
+        r.pattern || r.path || "",
+        r.controller,
+        r.name || "",
+      ]);
+      return this.toMarkdownTable(rows, labels);
     }
   }
 
-  return routes;
+  return SymfonyRoutesSource;
 }

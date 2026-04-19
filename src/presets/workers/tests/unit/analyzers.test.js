@@ -1,7 +1,7 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { createTmpDir, removeTmpDir, writeFile } from "../../../../../tests/helpers/tmp-dir.js";
-import { analyzeBindings } from "../../data/bindings.js";
+import { analyzeBindings } from "../analyzers.js";
 
 describe("Workers analyzeBindings — wrangler.toml with KV, R2, D1 bindings", () => {
   let tmp;

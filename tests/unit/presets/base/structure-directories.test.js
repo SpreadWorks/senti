@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import StructureSource from "../../../../src/presets/base/data/structure.js";
+import registerStructure from "../../../../src/presets/base/data/structure.js";
+import { container, initContainer } from "../../../../src/lib/container.js";
+
+initContainer();
+const StructureSource = registerStructure(container);
 
 /** Helper: build a minimal enriched analysis from file paths with roles. */
 function makeAnalysis(files) {

@@ -60,9 +60,10 @@ function printHelp() {
 }
 
 /** Load DataSources that have a parse() method (Scannable) */
-function loadScanSources(dataDir, existing) {
+function loadScanSources(dataDir, existing, presetKey) {
   return loadDataSources(dataDir, {
     existing,
+    presetKey,
     onInstance: (instance) => typeof instance.parse === "function",
   });
 }
@@ -298,7 +299,7 @@ async function runScan(ctx, rawArgs) {
     for (const p of chain) {
       if (seenDirs.has(p.dir)) continue;
       seenDirs.add(p.dir);
-      dataSources = await loadScanSources(path.join(p.dir, "data"), dataSources);
+      dataSources = await loadScanSources(path.join(p.dir, "data"), dataSources, p.key);
     }
   }
 

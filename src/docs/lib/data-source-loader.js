@@ -2,11 +2,17 @@
  * src/docs/lib/data-source-loader.js
  *
  * Shared DataSource loader used by both scan.js and resolver-factory.js.
+ *
+ * Preset data/*.js modules must export a factory:
+ *   `export default function register(container) { ... return SourceClass; }`
+ * The loader invokes the factory with the module-level container and expects
+ * it to return a class. The class is then instantiated.
  */
 
 import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
+import { container, initContainer } from "../../lib/container.js";
 
 const MAX_DATA_SOURCE_FILES = 1000;
 
@@ -18,11 +24,21 @@ const MAX_DATA_SOURCE_FILES = 1000;
  * @param {Map<string, Object>} [opts.existing] - Inherited DataSource map (parent preset)
  * @param {function} [opts.onInstance] - Called with (instance, name) after instantiation.
  *   Return false to skip adding this source. Use for init() or filter logic.
+ * @param {string} [opts.presetKey] - Preset key. When set, the loaded classes
+ *   are also recorded into the module-level container via
+ *   `container.registerPreset(key, { dataSources })` so that descendants in
+ *   the same chain can access them with `container.getPreset(key)`.
  * @returns {Promise<Map<string, Object>>} name → DataSource instance
  */
 export async function loadDataSources(dataDir, opts) {
-  const { existing, onInstance } = opts || {};
+  const { existing, onInstance, presetKey } = opts || {};
+  // Factory-form presets resolve base classes from the container. Ensure the
+  // container is initialized so such presets can load even in contexts that
+  // did not explicitly call initContainer() (e.g. unit tests that exercise
+  // individual DataSources without going through the CLI entrypoint).
+  initContainer();
   const sources = new Map(existing || []);
+  const loadedClasses = new Map();
   let entries;
   try {
     entries = await fs.promises.readdir(dataDir);
@@ -46,12 +62,24 @@ export async function loadDataSources(dataDir, opts) {
       throw new Error(`failed to load DataSource at ${filePath}: ${err.message}`, { cause: err });
     }
     const Source = mod.default;
-    if (typeof Source === "function") {
-      const instance = new Source();
-      instance._sourceFilePath = filePath;
-      if (onInstance && onInstance(instance, name) === false) continue;
-      sources.set(name, instance);
+    if (typeof Source !== "function") continue;
+    const Cls = Source(container);
+    if (typeof Cls !== "function") {
+      throw new Error(
+        `preset DataSource factory at ${filePath} must return a class`,
+      );
     }
+    const instance = new Cls();
+    instance._sourceFilePath = filePath;
+    if (onInstance && onInstance(instance, name) === false) continue;
+    sources.set(name, instance);
+    loadedClasses.set(name, Cls);
+  }
+  if (presetKey && loadedClasses.size > 0) {
+    const previous = container.getPreset(presetKey)?.dataSources ?? {};
+    const dataSources = { ...previous };
+    for (const [name, cls] of loadedClasses) dataSources[name] = cls;
+    container.registerPreset(presetKey, { dataSources });
   }
   return sources;
 }

@@ -2,16 +2,16 @@
  * DockerSource — Docker configuration DataSource.
  *
  * CakePHP-only category: extends DataSource directly (no scan needed).
- *
- * Available methods (called via {{data}} directives):
- *   docker.list("...")
  */
 
-import { DataSource } from "../../../docs/lib/data-source.js";
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
 
-export default class CakephpDockerSource extends DataSource {
-  /** Docker container list (not applicable for this preset). */
-  list(analysis, labels) {
-    return null;
+  class CakephpDockerSource extends DataSource {
+    list(analysis, labels) {
+      return null;
+    }
   }
+
+  return CakephpDockerSource;
 }

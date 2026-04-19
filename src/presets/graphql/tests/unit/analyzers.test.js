@@ -1,7 +1,7 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { createTmpDir, removeTmpDir, writeFile } from "../../../../../tests/helpers/tmp-dir.js";
-import { analyzeSchema, parseSchemaContent } from "../../data/schema.js";
+import { analyzeSchema, parseSchemaContent } from "../analyzers.js";
 
 describe("GraphQL analyzeSchema — basic type parsing", () => {
   let tmp;

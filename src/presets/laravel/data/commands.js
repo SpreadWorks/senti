@@ -3,20 +3,22 @@
  *
  * Extends webapp CommandsSource with Laravel-specific match logic.
  * Scan/resolve are delegated to the parent class.
- *
- * Available methods (called via {{data}} directives):
- *   commands.list("Name|File|Description")   — inherited
  */
 
-import CommandsSource from "../../webapp/data/commands.js";
-import { CommandEntry } from "../../webapp/data/commands.js";
-import { hasPathPrefix } from "../../lib/path-match.js";
+export default function register(container) {
+  const hasPathPrefix = container.get("pathMatch.hasPathPrefix");
+  const webapp = container.getPreset("webapp").dataSources;
+  const CommandsSource = webapp.commands;
+  const CommandEntry = CommandsSource.Entry;
 
-export default class LaravelCommandsSource extends CommandsSource {
-  static Entry = CommandEntry;
+  class LaravelCommandsSource extends CommandsSource {
+    static Entry = CommandEntry;
 
-  match(relPath) {
-    return hasPathPrefix(relPath, "app/Console/Commands/")
-      && relPath.endsWith(".php");
+    match(relPath) {
+      return hasPathPrefix(relPath, "app/Console/Commands/")
+        && relPath.endsWith(".php");
+    }
   }
+
+  return LaravelCommandsSource;
 }

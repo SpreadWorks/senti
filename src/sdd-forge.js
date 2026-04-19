@@ -13,49 +13,10 @@
  *   help    → src/help.js
  */
 
-import { register } from "node:module";
-import fs from "node:fs";
-import os from "node:os";
 import path from "path";
 import { PKG_DIR } from "./lib/cli.js";
-import { runCmd } from "./lib/process.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { initContainer } from "./lib/container.js";
-
-// Register module loader hook so external presets can use
-//   `import 'sdd-forge/api'`                        (public API)
-//   `import 'sdd-forge/presets/<name>/<subpath>'`   (3-tier preset cross-import)
-//
-// Pass the project root and user home to the loader so it can consult
-// .sdd-forge/presets/ under either location before falling back to the
-// built-in presets shipped inside this package.
-//
-// projectRoot is intentionally null when the current execution context has
-// no determinable project (not inside a git repo and no SDD_FORGE_WORK_ROOT).
-// In that case the loader skips the project-tier search entirely.
-register(new URL("./loader.js", import.meta.url), import.meta.url, {
-  data: {
-    projectRoot: resolveProjectRoot(),
-    userHome: os.homedir(),
-  },
-});
-
-function resolveProjectRoot() {
-  const envRoot = process.env.SDD_FORGE_WORK_ROOT;
-  if (envRoot) {
-    // Reject untrusted / malformed overrides at the entry point: the value
-    // must be a non-empty string pointing at an actual directory. Anything
-    // else falls back to git detection rather than silently trusting input.
-    if (typeof envRoot === "string" && envRoot.trim() !== "") {
-      const candidate = envRoot.trim();
-      if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
-        return candidate;
-      }
-    }
-  }
-  const res = runCmd("git", ["rev-parse", "--show-toplevel"]);
-  return res.ok ? res.stdout.trim() : null;
-}
 
 const rawArgs = process.argv.slice(2);
 const [subCmd, ...rest] = rawArgs;

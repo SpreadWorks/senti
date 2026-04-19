@@ -5,7 +5,9 @@
  * (cakephp2, laravel, symfony).
  */
 
-import { DataSource } from "../../../docs/lib/data-source.js";
-import { Scannable } from "../../../docs/lib/scan-source.js";
-
-export default class WebappDataSource extends Scannable(DataSource) {}
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const Scannable = container.get("base.Scannable");
+  class WebappDataSource extends Scannable(DataSource) {}
+  return WebappDataSource;
+}

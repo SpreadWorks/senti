@@ -15,10 +15,20 @@ import { Agent } from "./agent.js";
 import { ProviderRegistry } from "./provider.js";
 import { translate } from "./i18n.js";
 import { FlowManager } from "./flow-manager.js";
+import { DataSource } from "../docs/lib/data-source.js";
+import { Scannable } from "../docs/lib/scan-source.js";
+import { AnalysisEntry, ANALYSIS_META_KEYS } from "../docs/lib/analysis-entry.js";
+import { findFiles, collectFiles, patternToRegex, parseFile, parsePHPFile, parseJSFile, camelToSnake, pluralize, getFileStats } from "../docs/lib/scanner.js";
+import { stripBlockComments, extractArrayBody, extractTopLevelKeys, extractQuotedStrings } from "../docs/lib/php-array-parser.js";
+import { getLangHandler } from "../docs/lib/lang-factory.js";
+import { hasPathPrefix, hasSegmentPath, hasAnyPathPrefix } from "../presets/lib/path-match.js";
+import { parseTOML } from "../docs/lib/toml-parser.js";
+import { loadJsonFile } from "./config.js";
 
 export class Container {
   constructor() {
     this._map = new Map();
+    this._presets = new Map();
   }
 
   register(name, value) {
@@ -36,8 +46,30 @@ export class Container {
     return this._map.has(name);
   }
 
+  /**
+   * Register a preset's public surface (DataSource classes, etc.).
+   * Called by the preset loader after invoking the preset's register(container)
+   * factory. Enables child presets to extend parent preset classes via
+   * container.getPreset(parent).dataSources[name].
+   *
+   * @param {string} key - preset key (e.g. "webapp", "laravel")
+   * @param {{ dataSources: Object<string, Function> }} registration
+   */
+  registerPreset(key, registration) {
+    this._presets.set(key, registration);
+  }
+
+  getPreset(key) {
+    return this._presets.get(key) ?? null;
+  }
+
+  hasPreset(key) {
+    return this._presets.has(key);
+  }
+
   reset() {
     this._map.clear();
+    this._presets.clear();
   }
 }
 
@@ -129,4 +161,31 @@ export function initContainer(opts = {}) {
   container.register("agent", new Agent({ config, paths, registry, logger, flowManager }));
   container.register("i18n", translate());
   container.register("lang", config?.lang);
+
+  // Base classes and utilities exposed to presets. Presets access these via
+  // container.get("base.DataSource") etc. so they never need to import from
+  // sdd-forge internal paths directly.
+  container.register("base.DataSource", DataSource);
+  container.register("base.Scannable", Scannable);
+  container.register("base.AnalysisEntry", AnalysisEntry);
+  container.register("base.ANALYSIS_META_KEYS", ANALYSIS_META_KEYS);
+  container.register("scanner.findFiles", findFiles);
+  container.register("scanner.collectFiles", collectFiles);
+  container.register("scanner.patternToRegex", patternToRegex);
+  container.register("scanner.parseFile", parseFile);
+  container.register("scanner.parsePHPFile", parsePHPFile);
+  container.register("scanner.parseJSFile", parseJSFile);
+  container.register("scanner.camelToSnake", camelToSnake);
+  container.register("scanner.pluralize", pluralize);
+  container.register("scanner.getFileStats", getFileStats);
+  container.register("phpParser.stripBlockComments", stripBlockComments);
+  container.register("phpParser.extractArrayBody", extractArrayBody);
+  container.register("phpParser.extractTopLevelKeys", extractTopLevelKeys);
+  container.register("phpParser.extractQuotedStrings", extractQuotedStrings);
+  container.register("lang.getHandler", getLangHandler);
+  container.register("pathMatch.hasPathPrefix", hasPathPrefix);
+  container.register("pathMatch.hasSegmentPath", hasSegmentPath);
+  container.register("pathMatch.hasAnyPathPrefix", hasAnyPathPrefix);
+  container.register("toml.parse", parseTOML);
+  container.register("config.loadJsonFile", loadJsonFile);
 }

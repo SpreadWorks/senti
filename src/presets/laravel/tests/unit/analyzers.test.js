@@ -1,11 +1,13 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { createTmpDir, removeTmpDir, writeFile } from "../../../../../tests/helpers/tmp-dir.js";
-import { analyzeControllers } from "../../data/controllers.js";
-import { analyzeModels } from "../../data/models.js";
-import { analyzeRoutes } from "../../data/routes.js";
-import { analyzeMigrations } from "../../data/tables.js";
-import { analyzeConfig } from "../../data/config.js";
+import {
+  analyzeControllers,
+  analyzeModels,
+  analyzeRoutes,
+  analyzeMigrations,
+  analyzeConfig,
+} from "../analyzers.js";
 
 describe("Laravel analyze-controllers", () => {
   let tmp;

@@ -7,9 +7,11 @@
 
 import fs from "fs";
 import path from "path";
-import { DataSource } from "../lib/data-source.js";
 
-export default class ProjectSource extends DataSource {
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+
+  class ProjectSource extends DataSource {
   init(ctx) {
     super.init(ctx);
     this._root = ctx.root;
@@ -53,4 +55,7 @@ export default class ProjectSource extends DataSource {
     const hdr = labels.length >= 2 ? labels : ["Script", "Command"];
     return this.toMarkdownTable(rows, hdr);
   }
+  }
+
+  return ProjectSource;
 }

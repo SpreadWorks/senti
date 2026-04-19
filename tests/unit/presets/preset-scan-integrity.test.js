@@ -43,6 +43,7 @@ async function loadChainScanSources(presetKey) {
   for (const p of chain) {
     dataSources = await loadDataSources(path.join(p.dir, "data"), {
       existing: dataSources,
+      presetKey: p.key,
       onInstance: (instance) => typeof instance.scan === "function" && typeof instance.match === "function",
     });
   }
@@ -59,6 +60,7 @@ async function loadChainAllSources(presetKey) {
   for (const p of chain) {
     dataSources = await loadDataSources(path.join(p.dir, "data"), {
       existing: dataSources,
+      presetKey: p.key,
     });
   }
   return dataSources;

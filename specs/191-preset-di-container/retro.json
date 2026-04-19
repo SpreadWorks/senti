@@ -1,0 +1,111 @@
+{
+  "spec": "specs/191-preset-di-container/spec.md",
+  "date": "2026-04-19T12:12:38.538Z",
+  "requirements": [
+    {
+      "desc": "R1: preset エントリはファクトリ関数形式、Container への登録以外の副作用禁止",
+      "status": "done",
+      "note": "preset data modules were converted to `export default function register(container)` and loader now calls factories; legacy class-loading path was removed."
+    },
+    {
+      "desc": "R2: preset から sdd-forge 内部パス import を 0 箇所にする",
+      "status": "done",
+      "note": "migrated preset `data/*.js` files replace internal `../../../docs|lib` imports with `container.get(...)` / `container.getPreset(...)` access."
+    },
+    {
+      "desc": "R3: 親 preset 継承を Container 経由で提供",
+      "status": "done",
+      "note": "`Container.registerPreset/getPreset` was added and child presets resolve parent classes via `container.getPreset(\"...\")`."
+    },
+    {
+      "desc": "R4: 37 プリセット全てを新形式に書き換え",
+      "status": "done",
+      "note": "diff shows broad `src/presets/**/data/*.js` factory migration plus register contract test iterating preset data files."
+    },
+    {
+      "desc": "R5: 旧 loader と sdd-forge/api exports を削除",
+      "status": "done",
+      "note": "`src/api.js` and `src/loader.js` were deleted; `package.json` exports removed `./api` and `./presets/*`; loader hook removed from `src/sdd-forge.js`."
+    },
+    {
+      "desc": "R6: scanner/path/lang/base classes を Container 経由で提供",
+      "status": "done",
+      "note": "`src/lib/container.js` now registers base classes and required scanner/path/lang/parser utilities as container keys."
+    },
+    {
+      "desc": "R7: API バージョン無し、peerDependencies のみで互換表現",
+      "status": "partial",
+      "note": "no container API version field was introduced, but no concrete peerDependencies-based compatibility implementation is shown in product package manifests."
+    },
+    {
+      "desc": "R8: Container 拡張は追加のみで既存 preset を変更させない",
+      "status": "done",
+      "note": "dependency contract remains string-key based and additive; new services were added without replacing existing key scheme."
+    },
+    {
+      "desc": "R9: 移行前後の docs build 出力 diff ゼロを acceptance で検証",
+      "status": "partial",
+      "note": "R9 artifacts were added, but provided evidence is not a strict all-preset zero-diff `docs build` acceptance result."
+    },
+    {
+      "desc": "R10: 全 preset の register() 契約テスト提供",
+      "status": "done",
+      "note": "`specs/191-preset-di-container/tests/register-contract.test.js` was added to validate factory contract across preset data modules."
+    },
+    {
+      "desc": "R11: 既存 preset-scan-integrity / preset-datasources テストが合格し続ける",
+      "status": "partial",
+      "note": "tests were updated for the new loading contract, but this diff alone does not provide authoritative execution proof of continued pass status."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": ".sdd-forge/output/analysis.json",
+      "change": "large regenerated analysis snapshot with extensive metadata/content-summary churn unrelated to requirement implementation logic."
+    },
+    {
+      "file": "src/docs/data/agents.js",
+      "change": "docs data source migrated to container-factory form, which is outside preset-only migration scope."
+    },
+    {
+      "file": "src/docs/data/docs.js",
+      "change": "docs data source migrated to container-factory form, outside core preset DI requirements."
+    },
+    {
+      "file": "src/docs/data/lang.js",
+      "change": "docs data source refactor to container dependencies, not directly required by preset contract requirements."
+    },
+    {
+      "file": "src/docs/data/project.js",
+      "change": "docs data source refactor to container dependencies, outside explicit preset requirement set."
+    },
+    {
+      "file": "src/docs/data/text.js",
+      "change": "docs data source behavior/module shape changed while implementing DI pattern, beyond preset migration requirements."
+    },
+    {
+      "file": "tests/unit/docs/lib/layout-and-nav.test.js",
+      "change": "docs unit tests were changed to accommodate factory/container initialization, unrelated to preset contract requirements."
+    },
+    {
+      "file": "tests/unit/api.test.js",
+      "change": "public API tests were removed entirely as part of `src/api.js` removal; requirement did not explicitly call for deleting this test suite."
+    },
+    {
+      "file": "specs/191-preset-di-container/report.json",
+      "change": "flow/report process artifact added; operational artifact is not a product requirement."
+    },
+    {
+      "file": "src/presets/cakephp2/tests/acceptance/fixtures/.sdd-forge/output/analysis.json",
+      "change": "fixture output snapshot was added for evidence purposes, not part of the core functional requirements."
+    }
+  ],
+  "summary": {
+    "total": 11,
+    "done": 8,
+    "partial": 3,
+    "not_done": 0,
+    "rate": 0.86,
+    "notes": "Core contract migration and legacy-path removal are largely implemented (R1-R6, R8, R10). Main gaps are verification rigor/policy proof (R7, R9, R11), where intent and supporting artifacts exist but strict acceptance evidence is incomplete."
+  }
+}

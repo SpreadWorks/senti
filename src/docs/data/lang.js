@@ -6,8 +6,6 @@
  */
 
 import path from "path";
-import { DataSource } from "../lib/data-source.js";
-import { loadJsonFile } from "../../lib/config.js";
 
 /** Map of language codes to display names. */
 const LANG_NAMES = {
@@ -23,7 +21,11 @@ const LANG_NAMES = {
   ru: "Русский",
 };
 
-export default class LangSource extends DataSource {
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const loadJsonFile = container.get("config.loadJsonFile");
+
+  class LangSource extends DataSource {
   init(ctx) {
     super.init(ctx);
     this._root = ctx.root;
@@ -106,4 +108,7 @@ export default class LangSource extends DataSource {
       return {};
     }
   }
+  }
+
+  return LangSource;
 }

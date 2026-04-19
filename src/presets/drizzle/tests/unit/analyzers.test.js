@@ -1,7 +1,7 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { createTmpDir, removeTmpDir, writeFile } from "../../../../../tests/helpers/tmp-dir.js";
-import { analyzeSchema } from "../../data/schema.js";
+import { analyzeSchema } from "../analyzers.js";
 
 describe("Drizzle analyzeSchema — pgTable", () => {
   let tmp;

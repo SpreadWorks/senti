@@ -17,16 +17,20 @@ describe("loadDataSources (fail-fast on broken DataSource modules)", () => {
     validDir = makeTmpDir("sdd-loader-valid-");
     fs.writeFileSync(
       path.join(validDir, "good.js"),
-      `export default class Good {
-         list() { return null; }
+      `export default function register() {
+         return class Good {
+           list() { return null; }
+         };
        }\n`,
     );
 
     brokenDir = makeTmpDir("sdd-loader-broken-");
     fs.writeFileSync(
       path.join(brokenDir, "good.js"),
-      `export default class Good {
-         list() { return null; }
+      `export default function register() {
+         return class Good {
+           list() { return null; }
+         };
        }\n`,
     );
     fs.writeFileSync(

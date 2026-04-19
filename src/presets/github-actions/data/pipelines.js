@@ -11,12 +11,9 @@
  */
 
 import fs from "fs";
-import { DataSource } from "../../../docs/lib/data-source.js";
-import { Scannable } from "../../../docs/lib/scan-source.js";
-import { AnalysisEntry } from "../../../docs/lib/analysis-entry.js";
 
 // ---------------------------------------------------------------------------
-// Workflow YAML parser (inlined from scan/workflows.js)
+// Workflow YAML parser
 // ---------------------------------------------------------------------------
 
 /**
@@ -26,7 +23,7 @@ import { AnalysisEntry } from "../../../docs/lib/analysis-entry.js";
  * @param {string} fileName - File name (for fallback name)
  * @returns {Object} Parsed pipeline data
  */
-export function parseWorkflow(content, fileName) {
+function parseWorkflow(content, fileName) {
   const result = {
     file: fileName,
     name: fileName,
@@ -60,12 +57,6 @@ export function parseWorkflow(content, fileName) {
   return result;
 }
 
-/**
- * Parse the `on:` trigger section.
- *
- * @param {string[]} lines
- * @returns {string[]} Trigger descriptions
- */
 function parseTriggers(lines) {
   const triggers = [];
   let inOn = false;
@@ -75,17 +66,14 @@ function parseTriggers(lines) {
     const line = lines[i];
     const trimmed = line.trimEnd();
 
-    // Detect `on:` at top level
     if (/^on\s*:/.test(trimmed)) {
       inOn = true;
       onIndent = 0;
 
-      // Inline form: `on: push` or `on: [push, pull_request]`
       const inlineMatch = trimmed.match(/^on\s*:\s*(.+)$/);
       if (inlineMatch) {
         const val = inlineMatch[1].trim();
         if (val.startsWith("[")) {
-          // Array form: [push, pull_request]
           const items = val.replace(/[\[\]]/g, "").split(",").map((s) => s.trim()).filter(Boolean);
           triggers.push(...items);
           inOn = false;
@@ -99,17 +87,14 @@ function parseTriggers(lines) {
 
     if (!inOn) continue;
 
-    // End of `on:` section: next top-level key
     if (/^\S/.test(line) && !line.startsWith("#")) {
       inOn = false;
       continue;
     }
 
-    // Trigger event (indented key)
     const eventMatch = trimmed.match(/^\s{2}(\w[\w-]*)\s*:/);
     if (eventMatch) {
       const event = eventMatch[1];
-      // Check for branches filter on the next lines
       const branches = extractBranches(lines, i + 1);
       if (branches) {
         triggers.push(`${event} (${branches})`);
@@ -118,10 +103,8 @@ function parseTriggers(lines) {
       }
     }
 
-    // Schedule cron
     const cronMatch = trimmed.match(/^\s+-\s*cron\s*:\s*["']?(.+?)["']?\s*$/);
     if (cronMatch) {
-      // Already captured "schedule" as event, add cron detail
       const scheduleIdx = triggers.indexOf("schedule");
       if (scheduleIdx >= 0) {
         triggers[scheduleIdx] = `schedule (${cronMatch[1]})`;
@@ -132,24 +115,15 @@ function parseTriggers(lines) {
   return triggers;
 }
 
-/**
- * Extract branch names from `branches:` sub-key.
- *
- * @param {string[]} lines
- * @param {number} startIdx
- * @returns {string|null}
- */
 function extractBranches(lines, startIdx) {
   for (let i = startIdx; i < Math.min(startIdx + 5, lines.length); i++) {
     const trimmed = lines[i].trim();
 
-    // branches: [main, develop]
     const inlineMatch = trimmed.match(/^branches\s*:\s*\[(.+)\]/);
     if (inlineMatch) {
       return inlineMatch[1].replace(/['"]/g, "").split(",").map((s) => s.trim()).join(", ");
     }
 
-    // branches: followed by list items
     if (/^branches\s*:\s*$/.test(trimmed)) {
       const branchList = [];
       for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
@@ -163,18 +137,11 @@ function extractBranches(lines, startIdx) {
       return branchList.length > 0 ? branchList.join(", ") : null;
     }
 
-    // Next key at same or lower indent — stop searching
     if (/^\s{2}\w/.test(lines[i]) && !/^\s{4}/.test(lines[i])) break;
   }
   return null;
 }
 
-/**
- * Parse the `jobs:` section.
- *
- * @param {string[]} lines
- * @returns {Object[]} Job definitions
- */
 function parseJobs(lines) {
   const jobs = [];
   let inJobs = false;
@@ -185,7 +152,6 @@ function parseJobs(lines) {
     const line = lines[i];
     const trimmed = line.trimEnd();
 
-    // Detect `jobs:` at top level
     if (/^jobs\s*:\s*$/.test(trimmed)) {
       inJobs = true;
       continue;
@@ -193,13 +159,11 @@ function parseJobs(lines) {
 
     if (!inJobs) continue;
 
-    // End of jobs section: next top-level key
     if (/^\S/.test(line) && !line.startsWith("#")) {
       if (currentJob) jobs.push(currentJob);
       break;
     }
 
-    // Job ID (2-space indent)
     const jobMatch = trimmed.match(/^  (\w[\w-]*)\s*:\s*$/);
     if (jobMatch) {
       if (currentJob) jobs.push(currentJob);
@@ -210,31 +174,26 @@ function parseJobs(lines) {
 
     if (!currentJob) continue;
 
-    // runs-on
     const runsOnMatch = trimmed.match(/^\s+runs-on\s*:\s*(.+)$/);
     if (runsOnMatch) {
       currentJob.runner = runsOnMatch[1].trim().replace(/^["']|["']$/g, "");
       continue;
     }
 
-    // steps: section start
     if (/^\s+steps\s*:\s*$/.test(trimmed)) {
       inSteps = true;
       continue;
     }
 
-    // Step entry (list item under steps)
     if (inSteps && /^\s+-\s/.test(line)) {
       currentJob.steps++;
 
-      // uses: action
       const usesMatch = trimmed.match(/^\s*-?\s*uses\s*:\s*(.+)$/);
       if (usesMatch) {
         currentJob.dependencies.push(usesMatch[1].trim().replace(/^["']|["']$/g, ""));
       }
     }
 
-    // `uses:` on its own line within a step (not as list item prefix)
     if (inSteps && !line.trim().startsWith("-") && /^\s+uses\s*:\s*(.+)$/.test(trimmed)) {
       const m = trimmed.match(/^\s+uses\s*:\s*(.+)$/);
       if (m) {
@@ -243,10 +202,8 @@ function parseJobs(lines) {
     }
   }
 
-  // Push last job
   if (currentJob) jobs.push(currentJob);
 
-  // Deduplicate dependencies
   for (const job of jobs) {
     job.dependencies = [...new Set(job.dependencies)];
   }
@@ -254,13 +211,6 @@ function parseJobs(lines) {
   return jobs;
 }
 
-/**
- * Extract unique references matching a pattern from content.
- *
- * @param {string} content
- * @param {RegExp} regex - Must have global flag
- * @returns {string[]}
- */
 function extractRefs(content, regex) {
   const refs = new Set();
   let m;
@@ -274,88 +224,96 @@ function extractRefs(content, regex) {
 // DataSource
 // ---------------------------------------------------------------------------
 
-export class PipelineEntry extends AnalysisEntry {
-  name = null;
-  platform = null;
-  triggers = null;
-  jobs = null;
-  envVars = null;
-  secrets = null;
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const Scannable = container.get("base.Scannable");
+  const AnalysisEntry = container.get("base.AnalysisEntry");
 
-  static summary = {
-    totalJobs: { field: "jobs", aggregate: "count" },
-  };
-}
+  class PipelineEntry extends AnalysisEntry {
+    name = null;
+    platform = null;
+    triggers = null;
+    jobs = null;
+    envVars = null;
+    secrets = null;
 
-export default class PipelinesSource extends Scannable(DataSource) {
-  static Entry = PipelineEntry;
-
-  match(relPath) {
-    return /\.github\/workflows\/.*\.ya?ml$/.test(relPath);
+    static summary = {
+      totalJobs: { field: "jobs", aggregate: "count" },
+    };
   }
 
-  parse(absPath) {
-    const entry = new PipelineEntry();
-    const content = fs.readFileSync(absPath, "utf8");
-    // parseWorkflow expects (content, fileName) — fileName is used as fallback name.
-    // We pass absPath as fileName; the common layer will set entry.file to relPath.
-    const pipeline = parseWorkflow(content, absPath);
-    entry.name = pipeline.name;
-    entry.platform = pipeline.platform;
-    entry.triggers = pipeline.triggers;
-    entry.jobs = pipeline.jobs;
-    entry.envVars = pipeline.envVars;
-    entry.secrets = pipeline.secrets;
-    return entry;
-  }
+  class PipelinesSource extends Scannable(DataSource) {
+    static Entry = PipelineEntry;
 
-  /** Pipeline summary table. */
-  list(analysis, labels) {
-    const items = analysis.pipelines?.entries || analysis.pipelines?.pipelines || [];
-    if (items.length === 0) return null;
-    const rows = this.toRows(items, (p) => [
-      p.name,
-      p.file,
-      (p.triggers || []).join(", ") || "—",
-      (p.jobs || []).length,
-    ]);
-    return this.toMarkdownTable(rows, labels);
-  }
+    match(relPath) {
+      return /\.github\/workflows\/.*\.ya?ml$/.test(relPath);
+    }
 
-  /** Job detail table across all pipelines. */
-  jobs(analysis, labels) {
-    const items = analysis.pipelines?.entries || analysis.pipelines?.pipelines || [];
-    if (items.length === 0) return null;
-    const rows = [];
-    for (const p of items) {
-      for (const j of p.jobs || []) {
+    parse(absPath) {
+      const entry = new PipelineEntry();
+      const content = fs.readFileSync(absPath, "utf8");
+      // parseWorkflow expects (content, fileName) — fileName is used as fallback name.
+      // We pass absPath as fileName; the common layer will set entry.file to relPath.
+      const pipeline = parseWorkflow(content, absPath);
+      entry.name = pipeline.name;
+      entry.platform = pipeline.platform;
+      entry.triggers = pipeline.triggers;
+      entry.jobs = pipeline.jobs;
+      entry.envVars = pipeline.envVars;
+      entry.secrets = pipeline.secrets;
+      return entry;
+    }
+
+    /** Pipeline summary table. */
+    list(analysis, labels) {
+      const items = analysis.pipelines?.entries || analysis.pipelines?.pipelines || [];
+      if (items.length === 0) return null;
+      const rows = this.toRows(items, (p) => [
+        p.name,
+        p.file,
+        (p.triggers || []).join(", ") || "—",
+        (p.jobs || []).length,
+      ]);
+      return this.toMarkdownTable(rows, labels);
+    }
+
+    /** Job detail table across all pipelines. */
+    jobs(analysis, labels) {
+      const items = analysis.pipelines?.entries || analysis.pipelines?.pipelines || [];
+      if (items.length === 0) return null;
+      const rows = [];
+      for (const p of items) {
+        for (const j of p.jobs || []) {
+          rows.push([
+            p.name,
+            j.id,
+            j.runner || "—",
+            j.steps,
+            (j.dependencies || []).join(", ") || "—",
+          ]);
+        }
+      }
+      if (rows.length === 0) return null;
+      return this.toMarkdownTable(rows, labels);
+    }
+
+    /** Secrets and environment variables table. */
+    env(analysis, labels) {
+      const items = analysis.pipelines?.entries || analysis.pipelines?.pipelines || [];
+      if (items.length === 0) return null;
+      const rows = [];
+      for (const p of items) {
+        if ((p.secrets || []).length === 0 && (p.envVars || []).length === 0) continue;
         rows.push([
           p.name,
-          j.id,
-          j.runner || "—",
-          j.steps,
-          (j.dependencies || []).join(", ") || "—",
+          (p.secrets || []).join(", ") || "—",
+          (p.envVars || []).join(", ") || "—",
         ]);
       }
+      if (rows.length === 0) return null;
+      return this.toMarkdownTable(rows, labels);
     }
-    if (rows.length === 0) return null;
-    return this.toMarkdownTable(rows, labels);
   }
 
-  /** Secrets and environment variables table. */
-  env(analysis, labels) {
-    const items = analysis.pipelines?.entries || analysis.pipelines?.pipelines || [];
-    if (items.length === 0) return null;
-    const rows = [];
-    for (const p of items) {
-      if ((p.secrets || []).length === 0 && (p.envVars || []).length === 0) continue;
-      rows.push([
-        p.name,
-        (p.secrets || []).join(", ") || "—",
-        (p.envVars || []).join(", ") || "—",
-      ]);
-    }
-    if (rows.length === 0) return null;
-    return this.toMarkdownTable(rows, labels);
-  }
+  return PipelinesSource;
 }

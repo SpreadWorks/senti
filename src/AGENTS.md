@@ -179,13 +179,49 @@ presets/<key>/
 
 対象となる変更の例:
 
-- `src/api.js` の公開クラス追加・削除・シグネチャ変更
+- Container が preset 向けに公開する基底クラス (`base.DataSource`, `base.Scannable`, `base.AnalysisEntry` 等) の追加・削除・シグネチャ変更
 - `package.json` の `exports` 変更
 - `DataSource` / `Scannable` / `AnalysisEntry` / `Table` / `MarkdownText` のインターフェース変更
 - `preset.json` スキーマの追加・変更
 - `data/` loader のロード規約変更
 - テンプレートディレクティブ（`{%extends%}`, `{%block%}`, `{{data}}`, `{{text}}`）の文法・挙動変更
 - プリセット作成手順・MUST ルールの追加・変更
+
+### MUST: preset エントリはファクトリ形式 (spec 191)
+
+`src/presets/**/data/*.js` の default export は `register(container)` 形式のファクトリ関数でなければならない。class 直接 export は許可しない。
+
+```js
+// NG: class を直接 export（読み込み時に import 解決が走るため sdd-forge 内部への相対 import が必要になる）
+import { DataSource } from "../../../docs/lib/data-source.js";
+export default class FooSource extends DataSource { ... }
+
+// OK: register factory — 依存は container 引数から取得
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  class FooSource extends DataSource { ... }
+  return FooSource;
+}
+```
+
+Top-level には Node.js 組み込み (`fs`, `path`, `url`, `crypto` 等) のみ import 可能。`../../../docs/`, `../../lib/`, `../../<sibling-preset>/` への相対 import は禁止。
+
+親 preset のクラスを継承する場合は `container.getPreset("<parent>").dataSources.<name>` で取得する。`static Entry = ...Entry` を子が再利用する場合は `ParentSource.Entry` でアクセスする。
+
+### 外部 preset のバージョン整合 (spec 191: R7)
+
+外部 preset (npm パッケージとして配布される sdd-forge 互換 preset) は `package.json` の `peerDependencies` のみを用いて sdd-forge との互換性を表現する。
+
+```json
+{
+  "name": "sdd-forge-preset-foo",
+  "peerDependencies": {
+    "sdd-forge": "^0.1.0-alpha"
+  }
+}
+```
+
+Container API に独立した version フィールドは設けない。外部 preset 側は peerDependencies で必要な sdd-forge の最小バージョン (Container キーの互換性を表す) を指定する。Container は追加のみ (既存キー不変) で拡張されるため、マイナー/パッチ更新で既存 preset が壊れない構造を維持する。
 
 本ガイドは AI エージェントがプリセットを作成する際の単一の参照ドキュメントである。**ガイドが実装とズレるとプリセット作成が破綻する**ため、実装変更と文書更新を同一 PR で行うこと。別 PR に分割してはならない。
 

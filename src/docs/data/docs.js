@@ -8,13 +8,15 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { DataSource } from "../lib/data-source.js";
 import { getChapterFiles } from "../lib/command-context.js";
-import { loadJsonFile } from "../../lib/config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default class DocsSource extends DataSource {
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const loadJsonFile = container.get("config.loadJsonFile");
+
+  class DocsSource extends DataSource {
   init(ctx) {
     super.init(ctx);
     this._root = ctx.root;
@@ -284,4 +286,7 @@ export default class DocsSource extends DataSource {
       || lines.find((l) => /^# /.test(l));
     return titleLine ? titleLine.replace(/^# /, "") : fileName.replace(/\.md$/, "");
   }
+  }
+
+  return DocsSource;
 }

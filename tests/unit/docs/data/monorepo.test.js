@@ -8,8 +8,10 @@ let MonorepoSource;
 
 async function loadModule() {
   if (!MonorepoSource) {
+    const { container, initContainer } = await import("../../../../src/lib/container.js");
+    initContainer();
     const mod = await import("../../../../src/presets/monorepo/data/monorepo.js");
-    MonorepoSource = mod.default;
+    MonorepoSource = mod.default(container);
   }
   return MonorepoSource;
 }

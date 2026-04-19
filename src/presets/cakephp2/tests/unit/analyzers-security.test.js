@@ -11,7 +11,7 @@ import {
 import {
   analyzePermissionComponent,
   analyzeAcl,
-} from "../../data/controllers.js";
+} from "../analyzers.js";
 
 // =========================================================================
 // analyzePermissionComponent

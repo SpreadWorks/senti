@@ -6,12 +6,14 @@
 
 import fs from "fs";
 import path from "path";
-import { DataSource } from "../lib/data-source.js";
 import { PRESETS_DIR } from "../../lib/presets.js";
-import { loadJsonFile } from "../../lib/config.js";
 import { formatUTCTimestamp } from "../../lib/cli.js";
 
-export default class AgentsSource extends DataSource {
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const loadJsonFile = container.get("config.loadJsonFile");
+
+  class AgentsSource extends DataSource {
   init(ctx) {
     super.init(ctx);
     this._root = ctx.root;
@@ -136,4 +138,7 @@ export default class AgentsSource extends DataSource {
       return null;
     }
   }
+  }
+
+  return AgentsSource;
 }

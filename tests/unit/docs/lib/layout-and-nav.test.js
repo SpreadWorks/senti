@@ -90,7 +90,7 @@ describe("docs.nav link generation", () => {
   // For now, define the expected behavior as failing tests.
 
   it("returns null for single chapter", async () => {
-    const DocsSource = (await import("../../../../src/docs/data/docs.js")).default;
+    const { container, initContainer } = await import("../../../../src/lib/container.js"); initContainer(); const DocsSource = (await import("../../../../src/docs/data/docs.js")).default(container);
     const ds = new DocsSource();
     // Minimal init with a temp dir containing one chapter
     const fs = await import("fs");
@@ -118,7 +118,7 @@ describe("docs.nav link generation", () => {
   });
 
   it("returns next link only for first chapter", async () => {
-    const DocsSource = (await import("../../../../src/docs/data/docs.js")).default;
+    const { container, initContainer } = await import("../../../../src/lib/container.js"); initContainer(); const DocsSource = (await import("../../../../src/docs/data/docs.js")).default(container);
     const ds = new DocsSource();
     const fs = await import("fs");
     const path = await import("path");
@@ -149,7 +149,7 @@ describe("docs.nav link generation", () => {
   });
 
   it("returns prev link only for last chapter", async () => {
-    const DocsSource = (await import("../../../../src/docs/data/docs.js")).default;
+    const { container, initContainer } = await import("../../../../src/lib/container.js"); initContainer(); const DocsSource = (await import("../../../../src/docs/data/docs.js")).default(container);
     const ds = new DocsSource();
     const fs = await import("fs");
     const path = await import("path");
@@ -180,7 +180,7 @@ describe("docs.nav link generation", () => {
   });
 
   it("returns both links for middle chapter", async () => {
-    const DocsSource = (await import("../../../../src/docs/data/docs.js")).default;
+    const { container, initContainer } = await import("../../../../src/lib/container.js"); initContainer(); const DocsSource = (await import("../../../../src/docs/data/docs.js")).default(container);
     const ds = new DocsSource();
     const fs = await import("fs");
     const path = await import("path");
