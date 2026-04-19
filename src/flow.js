@@ -8,7 +8,6 @@
  * every domain.
  */
 
-import { Envelope } from "./lib/flow-envelope.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { container, initContainer } from "./lib/container.js";
 import { resolveFlowContext } from "./flow/lib/flow-context.js";
@@ -60,11 +59,6 @@ async function dispatchFlow() {
 
   // Top-level: prepare
   if (group === "prepare") {
-    const cfg = container.get("config");
-    if (!cfg || Object.keys(cfg).length === 0) {
-      Envelope.fail("flow", "prepare", "NO_CONFIG", "config.json not found. Run sdd-forge setup first.").output();
-      process.exit(EXIT_ERROR);
-    }
     await run(flowCommands.prepare, rest, "run", "prepare-spec");
     return;
   }

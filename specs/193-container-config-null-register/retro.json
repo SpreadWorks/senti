@@ -1,0 +1,83 @@
+{
+  "spec": "specs/193-container-config-null-register/spec.md",
+  "date": "2026-04-19T01:49:13.262Z",
+  "requirements": [
+    {
+      "desc": "R1: container registers null for config when load fails, config object otherwise",
+      "status": "done",
+      "note": "`src/lib/container.js` changes default from `{}` to `null`, and new `container-init` unit tests verify null-vs-object behavior."
+    },
+    {
+      "desc": "R2: config-required commands fail with NO_CONFIG before business logic when config missing",
+      "status": "done",
+      "note": "`src/lib/dispatcher.js` adds early `requiresConfig && container.get(\"config\") == null` guard emitting `NO_CONFIG` with canonical message and non-zero exit; tests verify command body is not executed."
+    },
+    {
+      "desc": "R3: requiresConfig flag declared in registry for config-using commands only",
+      "status": "done",
+      "note": "Registry now supports `requiresConfig` and applies it to `flow prepare` in `src/flow/registry.js`; default remains optional for other commands."
+    },
+    {
+      "desc": "R4: NO_CONFIG generation consolidated into a single common pre-check layer",
+      "status": "done",
+      "note": "Local `NO_CONFIG` check in `src/flow.js` was removed and centralized in dispatcher precheck."
+    },
+    {
+      "desc": "R5: command bodies have no defensive config fallbacks (|| {} patterns removed)",
+      "status": "partial",
+      "note": "The shown fallback in `src/flow/commands/merge.js` was removed, but the diff alone does not prove repository-wide removal of all such patterns."
+    },
+    {
+      "desc": "R6: setup/help/upgrade/presets behave identically to pre-change when config missing",
+      "status": "partial",
+      "note": "Implementation design supports this (only flagged commands are blocked), and dispatcher test covers a help-like unflagged command, but exact parity for all four concrete commands is not directly demonstrated in this diff."
+    },
+    {
+      "desc": "R7: CLI external interface (commands/args/options) unchanged",
+      "status": "done",
+      "note": "No command names, args, or option schemas were changed; only internal metadata/precheck behavior was added."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/193-container-config-null-register/draft.md",
+      "change": "New process/spec artifact file added; not part of runtime requirements R1-R7."
+    },
+    {
+      "file": "specs/193-container-config-null-register/flow.json",
+      "change": "Flow lifecycle/metrics metadata added; not part of product behavior requirements."
+    },
+    {
+      "file": "specs/193-container-config-null-register/issue-log.json",
+      "change": "Issue log metadata added; not part of runtime requirements."
+    },
+    {
+      "file": "specs/193-container-config-null-register/qa.md",
+      "change": "Q&A template/process file added; outside R1-R7."
+    },
+    {
+      "file": "specs/193-container-config-null-register/review.md",
+      "change": "Review notes file added; outside runtime scope."
+    },
+    {
+      "file": "specs/193-container-config-null-register/spec.md",
+      "change": "Specification document added; outside implementation requirements."
+    },
+    {
+      "file": "specs/193-container-config-null-register/tests/README.md",
+      "change": "Spec-specific test documentation added; not a direct requirement outcome."
+    },
+    {
+      "file": "src/docs/commands/changelog.js",
+      "change": "Removed try/catch-based missing-config stderr warning path and switched to nullable access; this logging behavior change is not explicitly specified in R1-R7."
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 5,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.86,
+    "notes": "Core behavior change is implemented correctly: config is registered as null when missing, and dispatcher enforces `NO_CONFIG` via `requiresConfig`. Most requirements are satisfied; R5 and R6 are only partially evidenced by the provided diff because full repository-wide fallback removal and exact parity checks for all listed optional commands are not fully demonstrated."
+  }
+}

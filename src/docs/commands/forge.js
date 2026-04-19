@@ -197,8 +197,8 @@ async function runForge(rawArgs, container) {
 
   const root = container.get("root");
   const config = container.get("config");
-  const type = config.type || "";
-  const lang = config.docs.defaultLanguage;
+  const type = config?.type || "";
+  const lang = config?.docs?.defaultLanguage;
   const t = translate();
   const agent = container.get("agent");
   const hasAgent = !!agent.resolve("docs.forge");

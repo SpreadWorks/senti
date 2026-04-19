@@ -102,7 +102,7 @@ function runReview(rawArgs, container) {
   const t = translate();
   const targetDir = args.find((a) => !a.startsWith("-")) || path.join(root, "docs");
   const config = container.get("config");
-  const type = config.type || "";
+  const type = config?.type || "";
 
   let fail = 0;
   function reportFail(key, params) {

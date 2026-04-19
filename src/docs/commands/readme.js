@@ -150,7 +150,7 @@ async function runReadme(ctx, rawArgs) {
         throw new Error("No agent configured. Set 'agent.default' in config.json or run 'sdd-forge setup'.");
       }
       const analysis = loadFullAnalysis(root) || {};
-      const documentStyle = cfg.docs?.style;
+      const documentStyle = cfg?.docs?.style;
       const systemPrompt = buildTextSystemPrompt(documentStyle, lang);
 
       const result = await processTemplate(

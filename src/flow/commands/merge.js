@@ -145,7 +145,7 @@ function runMerge(ctx) {
   // Resolve strategy
   let usePr = mergeStrategy === "pr";
   if (mergeStrategy === "auto") {
-    const cfg = container.get("config") || {};
+    const cfg = container.get("config");
     const ghEnabled = cfg?.commands?.gh === "enable";
     if (ghEnabled && isGhAvailable()) {
       usePr = true;
@@ -157,7 +157,7 @@ function runMerge(ctx) {
     if (!isGhAvailable()) {
       throw new Error("gh command is not available. Install GitHub CLI to use PR route.");
     }
-    const cfg = container.get("config") || {};
+    const cfg = container.get("config");
     const remote = resolveRemote(cfg);
     const spec = loadSpec(state, root);
     const fallbackTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.md$/, "") || featureBranch;

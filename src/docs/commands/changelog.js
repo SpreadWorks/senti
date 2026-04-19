@@ -129,17 +129,8 @@ function runChangelog(rawArgs, container) {
   const outFileArg = args.find((a) => !a.startsWith("-"));
   const outFile = outFileArg || path.join(root, "docs", "change_log.md");
 
-  let lang = DEFAULT_LANG;
-  try {
-    const cfgData = container.get("config");
-    lang = cfgData.docs?.defaultLanguage || cfgData.lang || DEFAULT_LANG;
-  } catch (err) {
-    if (err.code === "ENOENT") {
-      process.stderr.write("sdd-forge docs changelog: config missing, using default language\n");
-    } else {
-      console.error(err);
-    }
-  }
+  const cfgData = container.get("config");
+  const lang = cfgData?.docs?.defaultLanguage || cfgData?.lang || DEFAULT_LANG;
   const t = translate();
 
   // Ensure output directory exists

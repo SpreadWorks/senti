@@ -17,9 +17,9 @@ export function resolveDocsContext(container, cli, overrides) {
   const root = o.root || paths.root;
   const srcRoot = o.srcRoot || paths.srcRoot;
 
-  const lang = o.lang || cli?.lang || config.lang || DEFAULT_LANG;
-  const outputLang = o.outputLang || cli?.lang || config.docs?.defaultLanguage || lang;
-  const type = o.type || cli?.type || config.type || "";
+  const lang = o.lang || cli?.lang || config?.lang || DEFAULT_LANG;
+  const outputLang = o.outputLang || cli?.lang || config?.docs?.defaultLanguage || lang;
+  const type = o.type || cli?.type || config?.type || "";
 
   const docsDir = o.docsDir
     ? path.resolve(root, o.docsDir)

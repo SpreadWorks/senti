@@ -73,9 +73,10 @@ function buildPaths(root, config) {
  * Subsequent dispatchers and commands import `container` directly.
  *
  * Best-effort initialization: if config is absent (setup not run yet, help-only
- * invocation, etc.), an empty config object is registered and Logger init is
- * skipped so that commands that do not require config (help, setup, etc.) can
- * still start. Commands that require config detect its absence downstream.
+ * invocation, etc.), `null` is registered for config so that commands which
+ * require config can be rejected at the dispatch layer via `requiresConfig`,
+ * while commands that do not require config (help, setup, etc.) can still
+ * start. Logger init is skipped when config is absent.
  *
  * @param {Object} [opts]
  * @param {string} [opts.entryCommand] - Full argv string for Logger metadata
@@ -89,7 +90,7 @@ export function initContainer(opts = {}) {
   if (container.has("config")) return;
 
   const root = repoRoot();
-  let config = {};
+  let config = null;
   let configLoaded = false;
   try {
     config = loadConfig(root);

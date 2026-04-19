@@ -169,17 +169,23 @@ export async function dispatch({
     ? { ...buildHookCtx(container, input), ...input }
     : { container, ...input };
 
-  // 4. requiresFlow (flow domain only — hooks expect flowState present).
-  // Skipped for non-flow entries or when buildHookCtx is absent.
-  if (entry.requiresFlow !== false && buildHookCtx && !hookCtx.flowState) {
-    const env = Envelope.fail(
-      envelopeType || "run",
-      envelopeKey || "?",
-      "NO_FLOW",
-      "no active flow (flow.json not found)",
-    );
+  const emitPreconditionFailure = (code, message) => {
+    const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", code, message);
     writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
     setExit(1);
+  };
+
+  // 4a. requiresConfig — reject early when the command declares config as a
+  // precondition but the container has no config registered (setup not run).
+  if (entry.requiresConfig && container.get("config") == null) {
+    emitPreconditionFailure("NO_CONFIG", "config.json not found. Run sdd-forge setup first.");
+    return;
+  }
+
+  // 4b. requiresFlow (flow domain only — hooks expect flowState present).
+  // Skipped for non-flow entries or when buildHookCtx is absent.
+  if (entry.requiresFlow !== false && buildHookCtx && !hookCtx.flowState) {
+    emitPreconditionFailure("NO_FLOW", "no active flow (flow.json not found)");
     return;
   }
 

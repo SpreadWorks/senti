@@ -93,6 +93,7 @@ export const FLOW_COMMANDS = {
     helpKey: "flow.prepare",
     helpPath: "sdd-forge flow prepare --help",
     requiresFlow: false,
+    requiresConfig: true,
     command: () => import("./lib/run-prepare-spec.js"),
     args: {
       flags: ["--no-branch", "--worktree", "--dry-run"],

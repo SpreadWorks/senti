@@ -480,15 +480,15 @@ export async function textFillFromAnalysis(root, analysis, commandId, srcRoot, o
     throw new Error("No agent configured. Set 'agent.default' in config.json or run 'sdd-forge setup'.");
   }
   const preamblePatterns = loadPreamblePatterns();
-  const documentStyle = cfg.docs?.style;
-  const lang = cfg.docs.defaultLanguage;
+  const documentStyle = cfg?.docs?.style;
+  const lang = cfg?.docs?.defaultLanguage;
   const systemPrompt = buildTextSystemPrompt(documentStyle, lang);
-  const type = cfg.type || undefined;
+  const type = cfg?.type || undefined;
   const concurrency = resolveConcurrency(cfg);
   const docsDir = path.join(root, "docs");
   const resolvedSrcRoot = srcRoot || root;
 
-  const targetFiles = opts?.files || getChapterFiles(docsDir, { type, configChapters: cfg.chapters, projectRoot: root });
+  const targetFiles = opts?.files || getChapterFiles(docsDir, { type, configChapters: cfg?.chapters, projectRoot: root });
 
   const changedFiles = [];
   let totalFilled = 0;
