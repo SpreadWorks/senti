@@ -22,14 +22,14 @@
 ```
 src/    (lib, cli, middleware)
 src/check/commands/    (cli)
-src/docs/commands/    (cli, controller)
+src/docs/commands/    (cli, controller, lib)
 src/docs/data/    (model)
 src/docs/lib/    (lib, model)
 src/docs/lib/lang/    (lib)
 src/flow/    (config)
-src/flow/commands/    (controller, cli)
+src/flow/commands/    (cli)
 src/flow/lib/    (model, lib, cli, controller)
-src/lib/    (model, lib, config, controller, view)
+src/lib/    (model, lib, config, middleware, controller, view)
 src/metrics/commands/    (cli)
 ```
 <!-- {{/data}} -->
@@ -39,9 +39,9 @@ src/metrics/commands/    (cli)
 
 | ディレクトリ | ファイル数 | 役割 |
 | --- | --- | --- |
-| src/docs | 43 | cli, controller, model, lib |
-| src/flow | 36 | controller, cli, model, lib, config |
-| src/lib | 32 | model, lib, config, controller, view |
+| src/docs | 43 | cli, controller, lib, model |
+| src/flow | 36 | cli, model, lib, controller, config |
+| src/lib | 32 | model, lib, config, middleware, controller, view |
 | src | 11 | lib, cli, middleware |
 | src/check | 3 | cli |
 | src/metrics | 1 | cli |

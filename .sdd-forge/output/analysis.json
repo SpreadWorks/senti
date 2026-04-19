@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-19T01:41:51.580Z",
+  "analyzedAt": "2026-04-19T01:49:14.884Z",
   "package": {
     "entries": [
       {
@@ -406,9 +406,9 @@
       },
       {
         "file": "src/docs/commands/changelog.js",
-        "hash": "866c09a4122ad5dc7ef05f74b91afde0",
-        "lines": 253,
-        "mtime": "2026-04-18T20:35:29.037Z",
+        "hash": "e95887fcdb4739baefb99a1d623a802c",
+        "lines": 244,
+        "mtime": "2026-04-19T01:49:14.513Z",
         "className": "changelog",
         "methods": [
           "sanitize",
@@ -433,21 +433,21 @@
           "src/lib/container.js"
         ],
         "id": "d83c89fb",
-        "summary": "Implements `docs changelog` to generate a markdown change log from spec directories. It parses dated spec folders and emits structured entries to an output file.",
-        "detail": "The command scans `specs/` subdirectories, validates directory naming conventions, and reads each `spec.md` when present. It sanitizes text, extracts compact metadata, and formats UTC timestamps consistently for the resulting document. Output language defaults are resilient when config is missing, and destination directories are created automatically. The module keeps parsing and formatting concerns in small helper functions for predictable changelog rendering.",
+        "summary": "Implements the docs changelog command that scans spec directories and writes a consolidated markdown changelog file. It parses spec metadata and normalizes output for deterministic generation.",
+        "detail": "This module wires CLI argument parsing, localization, and command execution through the shared Command base class. It walks `specs/` entries in sorted order, filters missing `spec.md` files, and extracts structured fields from each spec document. It builds output lines in memory and writes a single markdown file, creating parent directories when needed. Helper functions separate concerns for text sanitization, spec parsing, and directory-name interpretation. The command returns through `runChangelog` and exposes a default command class wrapper.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:35.180Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
-          "changelog generation",
+          "changelog",
           "spec parsing",
-          "markdown output",
+          "markdown generation",
+          "filesystem scan",
           "release notes",
-          "timestamp formatting",
-          "history tracking"
+          "docs command"
         ]
       },
       {
@@ -577,9 +577,9 @@
       },
       {
         "file": "src/docs/commands/forge.js",
-        "hash": "51203140244b967e7c331b5282caf3f2",
+        "hash": "90f54c538af8a82c857465360346bf26",
         "lines": 444,
-        "mtime": "2026-04-19T01:08:34.184Z",
+        "mtime": "2026-04-19T01:49:14.513Z",
         "className": "forge",
         "methods": [
           "getTargetFiles",
@@ -616,23 +616,22 @@
         "extends": "Command",
         "usedBy": null,
         "id": "ef4fa5d9",
-        "summary": "Implements the `docs forge` command that runs AI-assisted documentation authoring and iterative review cycles. It supports per-file or full-run modes with configurable retries, concurrency, and execution mode.",
-        "detail": "The command parses CLI options for prompt sources, spec input, agent mode, max runs, and review command settings, with explicit validation of allowed values. It derives target chapter files and can estimate relevance from spec text to reduce scope for focused runs. Agent invocation is abstracted with optional streaming logs and progress indication, while file processing uses bounded concurrency to control throughput. The workflow loops through generate and review phases, invoking README and translation refresh commands after successful generation steps. It enforces termination conditions and throws when review cannot pass within the configured run budget.",
+        "summary": "Provides the `docs forge` orchestration command for AI-assisted documentation updates and review loops. It coordinates per-file generation, retries, and post-processing commands.",
+        "detail": "The module combines CLI option parsing, chapter/file targeting, concurrency control, and agent invocation into a multi-round pipeline. It supports modes (`local`, `assist`, `agent`), validates runtime options, and optionally derives relevant files from spec context. Generation is executed per file with structured error capture and retry behavior up to a configured maximum. After generation, it runs readme/translate/review flows and can stop with explicit failure when review does not pass. The design centralizes orchestration in `runForge` while keeping reusable helpers for command execution and relevance estimation.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T01:09:03.776Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
-          "docs forge",
-          "agent-assisted generation",
-          "iterative review",
-          "concurrency control",
-          "spec-driven prompt",
-          "file targeting",
-          "retry loop",
-          "automation mode"
+          "orchestration",
+          "agent loop",
+          "concurrency",
+          "retry policy",
+          "docs automation",
+          "review pipeline",
+          "CLI options"
         ]
       },
       {
@@ -688,9 +687,9 @@
       },
       {
         "file": "src/docs/commands/readme.js",
-        "hash": "b69217c1b32977753a5ebb709692afc3",
+        "hash": "4b4b4d0d7189d9dea5952d53e16fc946",
         "lines": 198,
-        "mtime": "2026-04-18T20:35:29.038Z",
+        "mtime": "2026-04-19T01:49:14.513Z",
         "className": "readme",
         "methods": [
           "runReadme"
@@ -719,28 +718,28 @@
           "src/docs/commands/build.js"
         ],
         "id": "26628ac2",
-        "summary": "Implements `docs readme` to generate or refresh `README.md` from template directives and analysis context. It supports alternate output paths and language-aware rendering.",
-        "detail": "The command resolves readme templates, builds directive resolvers with path-aware labels, and processes data/text blocks into final markdown. It can invoke an agent when text fills are required and validates that a default agent is configured for such flows. Existing README content is compared before write to avoid unnecessary updates. The implementation shares template and directive infrastructure used by chapter generation for consistency.",
+        "summary": "Implements the README generation command using templates, directives, and analysis-aware resolution. It updates README output only when content changes.",
+        "detail": "This module resolves docs context, template sources, and chapter ordering before rendering final README content. It integrates directive parsing and data/text processing so dynamic blocks are expanded from analysis results. Translation-aware template resolution and language-specific local template overrides are supported through resolver wiring. It checks agent availability for text generation paths and raises explicit setup errors when not configured. File write logic is change-aware, avoiding unnecessary writes when output is identical.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:35.180Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
-          "README generation",
-          "template rendering",
-          "directive processing",
+          "README generator",
+          "template merger",
+          "directive parsing",
           "analysis-driven docs",
-          "path-aware resolver",
-          "markdown output"
+          "localized templates",
+          "idempotent write"
         ]
       },
       {
         "file": "src/docs/commands/review.js",
-        "hash": "8d6181d5342195ac3d70c787f37b1c3f",
+        "hash": "a127a79f6259cfb79f719ea9db832457",
         "lines": 313,
-        "mtime": "2026-04-19T01:08:34.184Z",
+        "mtime": "2026-04-19T01:49:14.514Z",
         "className": "review",
         "methods": [
           "stripInlineCode",
@@ -765,23 +764,21 @@
         "extends": "Command",
         "usedBy": null,
         "id": "f3a5a725",
-        "summary": "Implements the `docs review` command to validate generated documentation quality and structural integrity. It performs rule-based checks across chapter files, README outputs, and analysis metadata consistency.",
-        "detail": "The module parses target paths and runs fail-fast validation for missing chapters, short outputs, and malformed generated content. It checks directive leakage, broken comment syntax, and residual block markers by scanning rendered text with dedicated regex-based integrity checks. It verifies expected docs and README presence across default and localized outputs, using chapter discovery logic from command context helpers. It also cross-checks analysis metadata keys against generated docs to ensure enrichment fields are reflected and no required annotations are silently dropped. On any violation it reports translated failure messages and throws a terminal review error.",
+        "summary": "Implements the docs review command that validates generated documentation quality and integrity. It performs structural, content, and directive-safety checks across chapter files.",
+        "detail": "The command parses CLI arguments, resolves target directories, and gathers chapter files from command context helpers. It validates minimum content expectations and inspects files for exposed directives, malformed comments, and residual block markers. Inline-code-aware regex checks reduce false positives when scanning for forbidden patterns. It also verifies analysis metadata consistency and required docs artifacts such as README and language directories. Failures are reported via localized error keys and aggregated into a final command failure state.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T01:09:03.776Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
-          "docs review",
-          "output integrity",
-          "directive validation",
+          "docs validation",
+          "integrity check",
+          "directive safety",
           "quality gate",
-          "metadata consistency",
-          "lint-like checks",
-          "chapter coverage",
-          "failure reporting"
+          "content linting",
+          "review command"
         ]
       },
       {
@@ -848,9 +845,9 @@
       },
       {
         "file": "src/docs/commands/text.js",
-        "hash": "b38eab8cba15149d01302247f0b873be",
+        "hash": "faa5ced23b0ffb9c38dae855b0897c8f",
         "lines": 776,
-        "mtime": "2026-04-18T20:35:29.039Z",
+        "mtime": "2026-04-19T01:49:14.514Z",
         "className": "text",
         "methods": [
           "textFillFromAnalysis",
@@ -906,21 +903,22 @@
           "src/docs/commands/readme.js"
         ],
         "id": "7c5e7654",
-        "summary": "Implements `docs text`, which fills `{{text}}` directives using analysis context and agent responses with batching and validation. It includes shrinkage safeguards and retry-aware parsing.",
-        "detail": "The module parses directives, builds prompt batches, strips response preambles, and applies JSON responses back into markdown sections. It validates generated output quality by checking directive coverage and abnormal content shrinkage thresholds. Processing supports configurable concurrency, changed-chapter detection, and selective regeneration strategies. Errors are collected per file, and command exit status is set without discarding partial successful updates.",
+        "summary": "Implements text directive filling for docs using batched AI generation and deterministic patch application. It is the core engine behind `{{text}}` expansion workflows.",
+        "detail": "The module detects text directives, builds prompts, invokes agents, and applies returned JSON payloads back to files. It includes batch validation logic to detect shrinkage, malformed responses, and incomplete fills before writes occur. Preamble stripping, JSON repair, and retry control make agent output handling resilient while preserving file structure. It supports selective chapter processing via changed-file detection and configurable concurrency for throughput. Public exports expose core helpers for reuse and testing across docs commands.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:35.180Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
-          "text directive fill",
-          "batch json apply",
-          "output validation",
-          "shrinkage guard",
-          "ai content generation",
-          "chapter diff detection"
+          "text directives",
+          "batch generation",
+          "prompt pipeline",
+          "JSON repair",
+          "content patching",
+          "concurrency control",
+          "change detection"
         ]
       },
       {
@@ -1492,9 +1490,9 @@
       },
       {
         "file": "src/docs/lib/docs-context.js",
-        "hash": "543c32ef8d6689d679121bf67ac2ea8b",
+        "hash": "11b006c714b52443d35f4f236a7b48c8",
         "lines": 47,
-        "mtime": "2026-04-17T10:27:42.797Z",
+        "mtime": "2026-04-19T01:49:14.514Z",
         "className": "docs-context",
         "methods": [
           "resolveDocsContext"
@@ -1508,27 +1506,25 @@
         ],
         "extends": null,
         "usedBy": [
-          "src/docs.js",
+          "src/docs/commands/build.js",
           "src/docs/commands/forge.js",
-          "src/docs/commands/readme.js",
-          "src/docs/commands/build.js"
+          "src/docs/commands/readme.js"
         ],
         "id": "b447ebc8",
-        "summary": "Provides docs context resolution used by docs commands to normalize root, language, and docs directory paths. It centralizes path derivation from container state and CLI overrides.",
-        "detail": "The function derives defaults from container-managed root and configured default language, then applies explicit override precedence. It resolves absolute docs paths consistently whether set from options or fallback conventions. Returned context objects are shaped for downstream command consumption to avoid duplicated root/docs path logic. This keeps command modules thin and reduces inconsistency in path handling across docs workflows.",
-        "chapter": "internal_design",
+        "summary": "Resolves normalized docs execution context from container defaults, CLI inputs, and explicit overrides. It centralizes language and docs directory resolution.",
+        "detail": "This module is a small context builder that computes absolute paths and effective language for docs commands. It prioritizes override values, then CLI values, then project defaults to ensure predictable precedence. The output object is shaped for downstream commands so they do not duplicate context derivation logic. Path resolution is root-relative to avoid ambiguity across working directories. Its narrow scope makes it a reusable boundary utility for docs command initialization.",
+        "chapter": "configuration",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-17T10:29:11.846Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
-          "context resolver",
-          "docs directory",
+          "context resolution",
+          "docsDir",
+          "language selection",
           "path normalization",
-          "language default",
-          "CLI overrides",
-          "shared utility"
+          "CLI overrides"
         ]
       },
       {
@@ -2274,16 +2270,15 @@
       },
       {
         "file": "src/flow.js",
-        "hash": "e3984124197d15b9dc074bea1ebdc0f5",
-        "lines": 102,
-        "mtime": "2026-04-18T07:51:11.766Z",
+        "hash": "1715a8b0cc367641edadcc70d3fa3132",
+        "lines": 96,
+        "mtime": "2026-04-19T01:49:14.514Z",
         "className": "flow",
         "methods": [
           "run",
           "dispatchFlow"
         ],
         "imports": [
-          "./lib/flow-envelope.js",
           "./lib/constants.js",
           "./lib/container.js",
           "./flow/lib/flow-context.js",
@@ -2294,28 +2289,27 @@
         "extends": null,
         "usedBy": null,
         "id": "1ab08f2b",
-        "enrich": {
-          "processedAt": "2026-04-18T09:20:37.714Z",
-          "attempts": 2
-        },
-        "summary": "This file is the CLI entrypoint and dispatcher wrapper for flow commands. It maps grouped flow actions to command entries and controls envelope-aware execution.",
-        "detail": "It parses argv, validates command group and command keys, and exits early when required selectors are missing. A local `run` function wraps dispatcher calls with envelope metadata such as type and key, enabling structured output for flow automation. `dispatchFlow` routes known operations like resume and prepare to registry-backed entries and propagates failure through exit codes. The design keeps flow-specific routing logic in one place while reusing shared container initialization and dispatch infrastructure.",
+        "summary": "Defines the flow CLI entrypoint and dispatch routing for flow subcommands. It initializes runtime context and enforces exit-code behavior.",
+        "detail": "The file parses top-level arguments, resolves flow command groups, and delegates execution to shared dispatch mechanics. It bootstraps the dependency container and flow context before running command handlers. Special handling exists for grouped run actions such as `resume` and `prepare-spec` through helper wrappers. Error paths explicitly set failure exits, while successful paths terminate cleanly. The structure keeps argument routing centralized and lightweight at the process entry boundary.",
         "chapter": "cli_commands",
         "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-19T01:50:04.827Z",
+          "attempts": 1
+        },
         "keywords": [
-          "flow command",
-          "envelope output",
+          "flow entrypoint",
           "command routing",
-          "process exit",
-          "dispatch wrapper",
-          "workflow automation"
+          "dispatch",
+          "exit codes",
+          "CLI bootstrap"
         ]
       },
       {
         "file": "src/flow/commands/merge.js",
-        "hash": "e9fab5d89ea3ad41e1a942a0c9a20032",
+        "hash": "85875af9748f892c81ea178a655b58eb",
         "lines": 209,
-        "mtime": "2026-04-18T20:35:29.039Z",
+        "mtime": "2026-04-19T01:49:14.514Z",
         "className": "merge",
         "methods": [
           "resolveRemote",
@@ -2342,21 +2336,21 @@
         "extends": null,
         "usedBy": null,
         "id": "3a0db928",
-        "summary": "Implements flow merge behavior for SDD workflows, including PR and squash strategies. It derives PR metadata from spec content and executes git/gh operations accordingly.",
-        "detail": "The module parses spec sections to build PR titles and bodies, with fallbacks when structured headings are missing. It resolves remote and merge strategy from config, and checks GitHub CLI availability for PR-mode flows. Squash merge handling uses git helpers with explicit conflict detection and actionable hints. The command returns strategy outcomes for upstream orchestration rather than hardcoding a single merge path.",
+        "summary": "Implements flow merge behavior, including PR creation and squash merge fallback paths. It derives PR title/body from spec content and flow state.",
+        "detail": "The command reads merge strategy settings, checks GitHub CLI availability when PR mode is requested, and executes strategy-specific actions. It parses spec markdown sections to construct meaningful PR metadata and contextual descriptions. For local merge routes, it runs git commands with conflict detection and explicit error messaging. Helper functions isolate remote resolution, section extraction, and spec loading from command control flow. The exported utilities support reuse and testing of title/body composition logic.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-18T20:36:35.180Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
-          "flow merge",
-          "pull request automation",
+          "merge strategy",
+          "pull request",
           "squash merge",
           "spec parsing",
-          "git helpers",
-          "release workflow"
+          "git automation",
+          "flow finalize"
         ]
       },
       {
@@ -3832,9 +3826,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "f43c7694e30bd2e08f3716e4c4c0a56b",
-        "lines": 477,
-        "mtime": "2026-04-17T16:45:06.727Z",
+        "hash": "552c5db20920289a1f06ed3e11ae1212",
+        "lines": 478,
+        "mtime": "2026-04-19T01:49:14.514Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -3852,25 +3846,23 @@
           "FLOW_COMMANDS"
         ],
         "extends": null,
-        "usedBy": [
-          "src/flow.js"
-        ],
+        "usedBy": null,
         "id": "d64f4095",
-        "summary": "This file is the flow command registry and hook wiring layer. It maps command entries to lifecycle hooks for step status transitions, issue logging, and post-actions.",
-        "detail": "The module derives active workflow phase from current state and uses defensive wrapper helpers to update step status or append issue logs without breaking command execution. It defines reusable pre/post hook factories so entries can consistently mark steps `in_progress` and then resolve final statuses from command results. Registry-level helpers isolate error reporting for hook failures to stderr while preserving strict behavior where required. The exported `FLOW_COMMANDS` object serves as the declarative source of available flow commands and their metadata, handlers, and help text. This keeps command definitions centralized and minimizes duplicated lifecycle code across entries.",
-        "chapter": "project_structure",
+        "summary": "Defines flow command registry metadata and lifecycle hooks for step/phase tracking. It manages resilient updates to stateful flow logs and metrics.",
+        "detail": "The module derives active phase information from step status and maps command execution to pre/post hook behavior. It wraps step-status updates and issue-log appends in guarded helpers that can skip non-critical failures with stderr diagnostics. Gate-step resolution is phase-aware, allowing shared gate logic to bind to phase-specific identifiers. Registry entries include help text and post-action wiring for operations like commit follow-up handling. This file acts as a declarative control plane for flow command behavior.",
+        "chapter": "internal_design",
         "role": "config",
         "enrich": {
-          "processedAt": "2026-04-17T16:45:44.055Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
           "lifecycle hooks",
+          "phase tracking",
           "step status",
           "issue log",
-          "phase derivation",
-          "flow command map"
+          "flow metrics"
         ]
       },
       {
@@ -4318,9 +4310,9 @@
       },
       {
         "file": "src/lib/container.js",
-        "hash": "047b9a8f8e9dcae0bdf1bc58a236094a",
-        "lines": 132,
-        "mtime": "2026-04-17T14:28:53.268Z",
+        "hash": "1e6ee61d50f89d932c70da0168db8733",
+        "lines": 133,
+        "mtime": "2026-04-19T01:49:14.514Z",
         "className": "container",
         "methods": [
           "Container",
@@ -4352,27 +4344,28 @@
           "src/sdd-forge.js"
         ],
         "id": "fc4eae43",
-        "summary": "This module implements dependency injection container bootstrap for the CLI runtime. It constructs shared paths, loads config, and registers core services.",
-        "detail": "`Container` provides simple named registration and retrieval with explicit errors on missing dependencies. Initialization computes root/worktree-aware paths, log/output directories, and creates instances such as logger, agent, provider registry, and flow manager. It catches config load failures, reports them to stderr, and still establishes predictable runtime wiring. This module is the central composition root for command execution.",
-        "chapter": "internal_design",
-        "role": "controller",
+        "summary": "Provides dependency container setup and shared runtime path/config initialization. It is the central composition root for core services.",
+        "detail": "The module defines a minimal container abstraction with registration/lookup semantics and explicit missing-dependency errors. It computes normalized runtime paths from repo root and config, including work/log directories and generated output locations. Initialization wires logger, agent/provider registry, flow manager, and i18n-aware services into a reusable singleton container. Config load failures are surfaced with direct stderr diagnostics to aid bootstrap debugging. The design keeps service construction centralized and consistent across CLI entrypoints.",
+        "chapter": "project_structure",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-17T14:30:33.210Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
           "dependency injection",
-          "container bootstrap",
-          "service registry",
-          "runtime paths",
+          "service container",
+          "bootstrap",
+          "path resolution",
+          "runtime config",
           "composition root"
         ]
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "7beb098a7ab52aaa70e92afdccba2a03",
-        "lines": 264,
-        "mtime": "2026-04-19T01:41:51.206Z",
+        "hash": "8c44c92455d24b5d24174cffb6a9e2cc",
+        "lines": 270,
+        "mtime": "2026-04-19T01:49:14.514Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -4399,23 +4392,21 @@
           "src/metrics.js"
         ],
         "id": "18d5f63b",
-        "summary": "This module parses command input and dispatches CLI entries through a unified execution pipeline. It also standardizes output and error handling, including envelope-formatted responses.",
-        "detail": "It imports argument parsing, command abstractions, and flow envelope utilities, then validates argv against flag/option specs while rejecting unknown or unexpected arguments. The entry parser builds normalized input, including explicit help-flag detection, before handing control to the runtime dispatcher. The dispatcher wires stdout/stderr/exit-code handlers, runs lifecycle hooks (`pre`, main execution, `post`), and emits structured JSON envelopes when configured. Error paths are centralized through a failure emitter that can format either raw or envelope output and set process exit codes consistently. Output mode resolution is dynamic, defaulting to `raw` when no module-level mode is provided.",
-        "chapter": "cli_commands",
-        "role": "controller",
+        "summary": "Implements generic command dispatch, argument splitting, and output envelope emission across modes. It is the shared execution middleware for CLI commands.",
+        "detail": "This module parses entry inputs by command spec, rejects unknown options, and separates positional from non-positional arguments. It executes command lifecycle hooks (`pre`, `run`, `post`, `onError`) and standardizes success/failure output with envelopes. Output mode resolution allows raw or structured emission while preserving consistent error handling semantics. The dispatcher abstracts stdout/stderr and exit-code writers for testability and embedding. It serves as the central control flow layer between parsed CLI input and command implementations.",
+        "chapter": "project_structure",
+        "role": "middleware",
         "enrich": {
-          "processedAt": "2026-04-19T01:42:02.823Z",
+          "processedAt": "2026-04-19T01:50:04.827Z",
           "attempts": 1
         },
         "keywords": [
           "dispatcher",
-          "argument parsing",
-          "CLI routing",
-          "output mode",
-          "error handling",
-          "envelope",
-          "lifecycle hooks",
-          "exit code"
+          "argument parser",
+          "envelope output",
+          "error propagation",
+          "command lifecycle",
+          "CLI middleware"
         ]
       },
       {
@@ -8662,5 +8653,5 @@
     },
     "dataSourceHash": "7d725e75d5031be445119323e4947c91"
   },
-  "enrichedAt": "2026-04-19T01:42:02.823Z"
+  "enrichedAt": "2026-04-19T01:50:04.827Z"
 }
