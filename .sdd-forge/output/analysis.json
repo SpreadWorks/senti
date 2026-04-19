@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-19T00:52:51.031Z",
+  "analyzedAt": "2026-04-19T01:03:14.426Z",
   "package": {
     "entries": [
       {
@@ -4916,10 +4916,48 @@
         ]
       },
       {
+        "file": "src/lib/log-masking.js",
+        "hash": "93759f4d8fb99b06b195ed9fb16116c5",
+        "lines": 130,
+        "mtime": "2026-04-19T01:03:14.062Z",
+        "className": "log-masking",
+        "methods": [
+          "maskSensitive",
+          "resolveTrustedRoots",
+          "maskString"
+        ],
+        "imports": [],
+        "exports": [
+          "maskSensitive"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/log.js"
+        ],
+        "id": "bcb97ba2",
+        "summary": "This module provides recursive masking utilities to sanitize sensitive values before logging. It focuses on hiding secrets and redacting untrusted absolute filesystem paths.",
+        "detail": "It defines masking constants and pattern-based rules to detect sensitive tokens in strings, then replaces matched segments with a fixed mask marker. It resolves trusted root directories from options, selected environment variables, and the current working directory to decide whether absolute paths are safe to keep. The string masker applies an absolute-path regex and redacts paths that fall outside trusted roots while preserving non-sensitive text. A depth-limited walker traverses nested arrays and objects so structured payloads are sanitized consistently. The exported API returns a masked clone suitable for safe persistence in logs.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-19T01:03:30.041Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "log masking",
+          "redaction",
+          "secret sanitization",
+          "path filtering",
+          "trusted roots",
+          "recursive traversal",
+          "sensitive data protection"
+        ]
+      },
+      {
         "file": "src/lib/log.js",
-        "hash": "b880a133c405a7fe1f8d352f05e580e5",
-        "lines": 350,
-        "mtime": "2026-04-17T14:28:53.269Z",
+        "hash": "b5f94f0642601b8c1dba29046ac9e522",
+        "lines": 371,
+        "mtime": "2026-04-19T01:03:14.062Z",
         "className": "log",
         "methods": [
           "generateRequestId",
@@ -4927,13 +4965,14 @@
           "todayLocal",
           "textStats",
           "extractCaller",
-          "appendJsonl",
-          "writePromptFile"
+          "appendJsonlMasked",
+          "writePromptFileMasked"
         ],
         "imports": [
           "crypto",
           "fs",
-          "path"
+          "path",
+          "./log-masking.js"
         ],
         "exports": [
           "generateRequestId",
@@ -4945,20 +4984,21 @@
           "src/lib/container.js"
         ],
         "id": "3d7bb5e6",
-        "summary": "This file implements structured JSONL logging for agent, git, and custom events. It also stores per-request prompt payload files with caller metadata.",
-        "detail": "It generates request IDs, computes text statistics, and derives call-site information from stack traces for richer diagnostics. Logging writes are asynchronous and guarded with fail-safe stderr reporting to avoid breaking command execution. The `Logger` class tracks pending writes, resolves flow context metadata, and emits normalized log entries under date-partitioned paths. This design supports observability while keeping runtime coupling low.",
+        "summary": "This module implements a logger that writes masked JSONL events and prompt snapshots with request-scoped metadata. It centralizes request IDs, caller extraction, flow context, and asynchronous write tracking.",
+        "detail": "It uses Node built-ins for crypto IDs, filesystem writes, and path normalization, and delegates data sanitization to the masking library before any persistence. Utility functions derive local date buckets, basic text statistics, and caller source locations while avoiding self-references. File writers ensure directory creation, append JSONL lines, and emit non-fatal stderr diagnostics when logging operations fail. The Logger class encapsulates enablement state, output path conventions, trusted-root resolution, and pending-write tracking with settled async handling. Agent, git, and generic event paths funnel through shared append logic so emitted records remain structurally consistent across event types.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-17T14:30:33.210Z",
+          "processedAt": "2026-04-19T01:03:30.041Z",
           "attempts": 1
         },
         "keywords": [
           "structured logging",
-          "JSONL",
-          "prompt snapshots",
-          "request id",
-          "caller metadata",
+          "JSONL logger",
+          "request ID",
+          "caller extraction",
+          "async write queue",
+          "prompt snapshot",
           "observability"
         ]
       },
@@ -8615,10 +8655,10 @@
       }
     ],
     "summary": {
-      "total": 248,
-      "totalMethods": 774
+      "total": 249,
+      "totalMethods": 777
     },
     "dataSourceHash": "7d725e75d5031be445119323e4947c91"
   },
-  "enrichedAt": "2026-04-19T00:53:04.725Z"
+  "enrichedAt": "2026-04-19T01:03:30.041Z"
 }

@@ -41,7 +41,7 @@ src/metrics/commands/    (cli)
 | --- | --- | --- |
 | src/docs | 43 | cli, controller, model, lib |
 | src/flow | 36 | controller, cli, model, lib, config |
-| src/lib | 31 | model, lib, config, controller, middleware, view |
+| src/lib | 32 | model, lib, config, controller, middleware, view |
 | src | 11 | lib, cli, middleware |
 | src/check | 3 | cli |
 | src/metrics | 1 | cli |
