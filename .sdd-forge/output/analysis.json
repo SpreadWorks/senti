@@ -1093,8 +1093,19 @@
         ],
         "id": "cca2c9bc",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Registers a Text-specific DataSource in the container for docs text directive resolution. The source class provides a minimal default behavior when no text is available.",
+        "detail": "This module exposes a register function that defines and returns a TextSource class extending DataSource. The implementation is intentionally lightweight and delegates most behavior to the shared DataSource contract. It returns null in default paths so downstream resolvers can safely skip unresolved text blocks. The pattern keeps text prompt rendering pluggable through dependency injection.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "text source",
+          "data source",
+          "dependency injection",
+          "directive resolution"
+        ]
       },
       {
         "file": "src/docs/lib/analysis-entry.js",
@@ -1123,8 +1134,20 @@
         ],
         "id": "17953885",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Defines core metadata keys and utilities for normalized analysis entries. It also provides helpers to detect empty entries and build summaries.",
+        "detail": "The module centralizes stable keys like file, hash, lines, and mtime, plus lifecycle metadata keys such as analyzedAt and enrichedAt. AnalysisEntry includes object construction helpers so plain JSON can be rehydrated into typed entry instances. Utility functions inspect entries for meaningful fields and skip metadata-only payloads. Summary builders aggregate entry sets into compact structures for prompt and reporting use.",
+        "chapter": "internal_design",
+        "role": "model",
+        "keywords": [
+          "analysis entry",
+          "metadata keys",
+          "rehydration",
+          "summary builder",
+          "empty check"
+        ]
       },
       {
         "file": "src/docs/lib/analysis-filter.js",
@@ -1148,8 +1171,19 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Applies docs exclude patterns to analysis entry collections. It filters both flat entries and full analysis objects using glob-to-regex matching.",
+        "detail": "The implementation imports glob conversion and metadata definitions to keep filtering consistent with scanner behavior. It compiles exclude patterns once, then removes any entry whose file path matches at least one regex. A higher-level helper performs the same operation against structured analysis payloads and returns a filtered copy. This keeps exclusion logic reusable across docs generation commands.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "exclude patterns",
+          "glob filter",
+          "analysis filtering",
+          "regex matching"
+        ]
       },
       {
         "file": "src/docs/lib/chapter-resolver.js",
@@ -1178,8 +1212,19 @@
         "usedBy": null,
         "id": "1e787be2",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Resolves chapter configuration and maps data categories to chapter files. It merges preset and project chapter definitions and scans directives to build reverse lookups.",
+        "detail": "The module reads chapter templates from disk, parses directive blocks, and extracts referenced data categories. It merges base preset chapters with user config while preserving expected order and de-duplication behavior. Category-to-chapter maps are constructed from parsed directive metadata so data resolvers can target the right documents. The result supports deterministic routing of generated content into docs chapters.",
+        "chapter": "project_structure",
+        "role": "lib",
+        "keywords": [
+          "chapter merge",
+          "category mapping",
+          "directive parsing",
+          "docs routing"
+        ]
       },
       {
         "file": "src/docs/lib/command-context.js",
@@ -1216,8 +1261,19 @@
         ],
         "id": "10a78227",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Provides shared command-context helpers for loading output JSON, resolving chapter files, and normalizing text input. It centralizes common filesystem reads used by docs commands.",
+        "detail": "Functions in this file load analysis artifacts from the sdd output directory and safely return null when absent or invalid. Chapter discovery supports configured order, existence checks, and fallback scanning while excluding special files. Text utilities read files defensively and strip AI response preambles to keep persisted content clean. This module reduces duplication across CLI command implementations.",
+        "chapter": "cli_commands",
+        "role": "lib",
+        "keywords": [
+          "command context",
+          "analysis.json",
+          "chapter discovery",
+          "preamble stripping"
+        ]
       },
       {
         "file": "src/docs/lib/concurrency.js",
@@ -1236,8 +1292,19 @@
         "usedBy": null,
         "id": "6e3ef4f1",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Implements a bounded-concurrency async map utility. It runs worker tasks over items while preserving result ordering.",
+        "detail": "The function maintains an active counter and a next index pointer to schedule work up to the configured concurrency limit. Completion callbacks trigger additional scheduling until all items are processed. Results are written into preallocated positions so output ordering matches input ordering. This helper is used to speed up I/O-heavy pipelines without unbounded parallelism.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "concurrency control",
+          "async map",
+          "worker pool",
+          "parallel processing"
+        ]
       },
       {
         "file": "src/docs/lib/data-source-loader.js",
@@ -1264,8 +1331,19 @@
         ],
         "id": "d1cdb1d8",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Loads DataSource modules dynamically from preset data directories with strict validation and limits. It initializes container state before importing source files.",
+        "detail": "The loader scans a directory, enforces file-count limits, and imports JavaScript modules via file URLs. It derives source names from filenames and wraps load failures with path-aware errors for easier debugging. Each loaded module is validated to ensure it exposes the required DataSource contract before registration. This creates a predictable extension point for preset authors.",
+        "chapter": "creating_presets",
+        "role": "lib",
+        "keywords": [
+          "dynamic import",
+          "data source loader",
+          "preset extension",
+          "module validation"
+        ]
       },
       {
         "file": "src/docs/lib/data-source.js",
@@ -1286,8 +1364,19 @@
         ],
         "id": "f0f9731d",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Defines the base DataSource class used by docs data resolvers. It provides description lookup, override handling, and markdown table rendering helpers.",
+        "detail": "The class offers shared utility methods so concrete sources can focus on domain-specific data extraction. It supports summary override loading and mapping to enrich generated rows without duplicating logic in subclasses. Built-in markdown table construction standardizes output formatting across different data sections. The design encourages class-based extensibility and invariant-friendly behavior.",
+        "chapter": "creating_presets",
+        "role": "model",
+        "keywords": [
+          "DataSource base class",
+          "markdown table",
+          "summary overrides",
+          "extensibility"
+        ]
       },
       {
         "file": "src/docs/lib/directive-parser.js",
@@ -1328,8 +1417,19 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Parses and resolves docs directives such as data, text, block, and extends. It also supports inline directive replacement and block extraction.",
+        "detail": "Regex-driven parsers identify directive boundaries and convert options into structured fields with labels and params. The module includes robust closing-tag detection with explicit unclosed-directive errors and line context. Replacement helpers rewrite source text by injecting resolved content for block and inline directives. Block parsing captures inheritance-related metadata used by template merging.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "directive parser",
+          "template directives",
+          "block inheritance",
+          "inline replacement"
+        ]
       },
       {
         "file": "src/docs/lib/docs-context.js",
@@ -1355,8 +1455,19 @@
         ],
         "id": "b447ebc8",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Resolves docs runtime context from container values, CLI flags, and explicit overrides. It determines root paths and language defaults for docs operations.",
+        "detail": "The resolver prioritizes explicit override values, then CLI arguments, then conventional defaults. It normalizes docsDir into an absolute path rooted at the project workspace. The returned context object consolidates path and language configuration needed by downstream commands. This keeps resolution policy consistent across command entry points.",
+        "chapter": "configuration",
+        "role": "lib",
+        "keywords": [
+          "docs context",
+          "path resolution",
+          "language default",
+          "configuration precedence"
+        ]
       },
       {
         "file": "src/docs/lib/forge-prompts.js",
@@ -1385,8 +1496,19 @@
         "usedBy": null,
         "id": "42300b03",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Builds Forge prompt text for system, file-level, and multi-file interactions. It converts analysis summaries into compact prompt context.",
+        "detail": "The module formats both plain and enriched analysis into human-readable sections while omitting noisy metadata fields. Prompt builders compose standardized instructions with round counts, review feedback, and optional spec content. It uses i18n helpers to keep prompt text language-aware and reusable. This centralization improves consistency of AI behavior across forge stages.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "prompt builder",
+          "forge prompts",
+          "analysis summary",
+          "LLM context"
+        ]
       },
       {
         "file": "src/docs/lib/lang-factory.js",
@@ -1414,8 +1536,19 @@
         ],
         "id": "8f8393ac",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Maps file extensions to language handler modules. It exposes a single resolver to obtain parser/minifier behavior by path.",
+        "detail": "The extension map binds known suffixes to JS, PHP, Python, and YAML handler implementations. getLangHandler normalizes extension casing and returns null for unsupported files. This allows scanner and minifier modules to remain language-agnostic. The factory pattern keeps language support additions localized.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "language factory",
+          "extension map",
+          "handler resolver",
+          "parser dispatch"
+        ]
       },
       {
         "file": "src/docs/lib/lang/comments.js",
@@ -1442,8 +1575,19 @@
         ],
         "id": "49646805",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Defines preserved comment prefixes and detection helpers. It protects important tagged comments from generic comment stripping.",
+        "detail": "The file builds regexes for slash and hash comment styles using a shared prefix whitelist. Helper functions test whether a line starts with preserved tags like WHY, HACK, or SECURITY. These checks are consumed by language minifiers before removing comments. This preserves high-signal rationale and safety notes in extracted essential code.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "comment preservation",
+          "WHY tag",
+          "SECURITY tag",
+          "regex helper"
+        ]
       },
       {
         "file": "src/docs/lib/lang/js.js",
@@ -1486,8 +1630,19 @@
         ],
         "id": "dcea4940",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Implements JavaScript language utilities for minification, parsing, and essential-line extraction. It also extracts imports and exports from JS source.",
+        "detail": "The module removes block and line comments while respecting preserved prefixes and indentation normalization rules. parse builds a lightweight structural model with class name, inheritance, methods, and content. import/export extraction provides symbol-level context for analysis output. extractEssential retains high-value lines such as filesystem, process, and JSON operations for compact prompts.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "JavaScript parser",
+          "minify js",
+          "import export extraction",
+          "essential code"
+        ]
       },
       {
         "file": "src/docs/lib/lang/php.js",
@@ -1522,8 +1677,19 @@
         ],
         "id": "8da3c9aa",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Provides PHP language handling for comment stripping, structural parsing, and essential extraction. It mirrors JS handler responsibilities for PHP files.",
+        "detail": "The implementation supports slash and hash comment styles and preserves tagged comments through prefix checks. parse derives class metadata, inheritance, methods, properties, and relations using regex-based extraction. Import and export analyzers identify namespace and symbol references for documentation context. Essential-line extraction keeps meaningful operational code while reducing prompt size.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "PHP parser",
+          "minify php",
+          "class metadata",
+          "essential extraction"
+        ]
       },
       {
         "file": "src/docs/lib/lang/py.js",
@@ -1549,8 +1715,19 @@
         ],
         "id": "d894c726",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Offers Python-oriented minification and essential extraction helpers. It removes hash comments while preserving marked lines.",
+        "detail": "The handler focuses on lightweight preprocessing rather than full AST parsing. Comment removal logic keeps special prefixed annotations that carry rationale or security notes. minify and extractEssential expose a consistent interface with other language handlers. This enables cross-language pipelines to treat Python files uniformly.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "Python minifier",
+          "hash comments",
+          "essential lines",
+          "language handler"
+        ]
       },
       {
         "file": "src/docs/lib/lang/yaml.js",
@@ -1574,8 +1751,19 @@
         ],
         "id": "ef1dd14d",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Implements YAML comment stripping utilities for docs analysis. It keeps preserved hash-prefixed rationale tags intact.",
+        "detail": "The module reuses shared comment-prefix rules to avoid dropping high-value annotations. Its minify behavior is intentionally simple and focused on text reduction. The API shape aligns with other language handlers, allowing generic dispatch through the language factory. This keeps YAML support small but compatible with the full analysis pipeline.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "YAML minify",
+          "comment stripping",
+          "preserved prefixes",
+          "text preprocessing"
+        ]
       },
       {
         "file": "src/docs/lib/minify.js",
@@ -1600,8 +1788,19 @@
         ],
         "id": "212fe46f",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Provides top-level minification orchestration by delegating to language handlers. It includes generic whitespace cleanup fallbacks.",
+        "detail": "The module first resolves a handler by file path and chooses extractEssential or minify based on options. If no handler exists, it applies blank-line and trailing-whitespace normalization to keep outputs tidy. This design separates language-specific logic from generic cleanup behavior. It is used to compress source snippets before embedding them in prompts.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "minify orchestrator",
+          "language dispatch",
+          "whitespace cleanup",
+          "prompt compression"
+        ]
       },
       {
         "file": "src/docs/lib/php-array-parser.js",
@@ -1630,8 +1829,19 @@
         "usedBy": null,
         "id": "b6019adb",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Parses PHP array-like text fragments and exposes utility transforms. It extracts array bodies, top-level keys, and quoted strings.",
+        "detail": "The parser strips block comments, then performs lightweight text scanning to isolate named array properties. Key and string extraction helpers support schema inference from PHP config-style files. Naming utilities convert camelCase to snake_case and apply simple pluralization rules. These functions feed scanner and analyzer steps without external parser dependencies.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "php array parser",
+          "key extraction",
+          "string extraction",
+          "camel to snake"
+        ]
       },
       {
         "file": "src/docs/lib/resolver-factory.js",
@@ -1661,8 +1871,19 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Builds resolver instances that connect presets, DataSources, and directive resolution behavior. It handles chain loading, overrides, and deprecated path warnings.",
+        "detail": "The factory loads common and preset-specific data directories, then registers sources into a resolver map keyed by source name. It caches overrides from .sdd-forge/overrides.json and exposes a description lookup helper for DataSource subclasses. Resolver methods safely invoke source methods and return null on absent handlers to keep pipeline failures localized. It also supports multi-chain preset resolution and reports deprecated data directory usage.",
+        "chapter": "creating_presets",
+        "role": "lib",
+        "keywords": [
+          "resolver factory",
+          "preset chain",
+          "data source registry",
+          "overrides cache"
+        ]
       },
       {
         "file": "src/docs/lib/review-parser.js",
@@ -1687,8 +1908,19 @@
         "usedBy": null,
         "id": "0806e627",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Parses review command output into structured signals and file-level pass/fail sets. It also summarizes actionable review text.",
+        "detail": "The module extracts explicit user-input requests and prioritizes meaningful failure snippets from noisy logs. File result parsing compares normalized basenames to map diagnostics back to known target files. It returns categorized passed and failed lists for downstream reporting and retry logic. This keeps review feedback machine-usable without full log processing.",
+        "chapter": "development",
+        "role": "lib",
+        "keywords": [
+          "review parsing",
+          "failure summary",
+          "needs input extraction",
+          "file verdicts"
+        ]
       },
       {
         "file": "src/docs/lib/scan-source.js",
@@ -1712,8 +1944,19 @@
         ],
         "id": "6b08f3c0",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Defines a Scannable mixin that augments classes with scan-oriented defaults. It standardizes whether an object should scan and how to create empty entries.",
+        "detail": "The mixin returns a subclass with default methods that can be overridden by concrete scanners. It creates empty typed entries through a static Entry class on the constructor, preserving class-based modeling. The default shouldScan implementation returns false, forcing explicit opt-in behavior. This pattern avoids ad hoc object literals in scanner subclasses.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "mixin",
+          "scannable",
+          "entry factory",
+          "class extension"
+        ]
       },
       {
         "file": "src/docs/lib/scanner.js",
@@ -1756,8 +1999,20 @@
         ],
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Provides core filesystem scanning, glob matching, file parsing, and metadata collection utilities. It is the main analysis file discovery and parse backbone.",
+        "detail": "The module computes file hashes and stats, traverses directories recursively, and applies include/exclude matching with glob-derived regexes. It dispatches parsing to language handlers and includes fallback parsing for unsupported file types. Utility exports also expose camel/snake and pluralization helpers reused by analyzers. Results are sorted deterministically by relative path for stable outputs.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "file scanner",
+          "glob regex",
+          "hash metadata",
+          "recursive traversal",
+          "parser dispatch"
+        ]
       },
       {
         "file": "src/docs/lib/template-merger.js",
@@ -1801,8 +2056,20 @@
         ],
         "id": "88243459",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Resolves and merges template files across preset layers, project overrides, and language fallbacks. It supports block inheritance and additive merge modes.",
+        "detail": "The module discovers candidate layers, collects source files, and resolves per-file actions such as use, skip, or fallback. It merges template content using directive-aware block replacement and optional additive text composition. Multi-chain resolution allows combining several preset chains in a deterministic order. It also includes AI-assisted template translation with graceful error fallback.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "template merger",
+          "layer resolution",
+          "block inheritance",
+          "fallback language",
+          "additive merge"
+        ]
       },
       {
         "file": "src/docs/lib/test-env-detection.js",
@@ -1821,8 +2088,19 @@
         "usedBy": null,
         "id": "7e368a23",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Detects test environment characteristics from analysis data. It infers frameworks and suggests likely test commands.",
+        "detail": "The detector checks known framework markers and returns a normalized summary object. It reports whether a test environment appears present, which frameworks were found, and an executable command hint. This data is consumed by review and gate flows to contextualize implementation checks. The function remains lightweight and avoids shell introspection.",
+        "chapter": "development",
+        "role": "lib",
+        "keywords": [
+          "test detection",
+          "framework inference",
+          "test command hint",
+          "analysis heuristics"
+        ]
       },
       {
         "file": "src/docs/lib/text-prompts.js",
@@ -1861,8 +2139,20 @@
         "usedBy": null,
         "id": "7ddd8579",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Builds prompt payloads for text directives using analysis context and optional enriched source snippets. It formats system and batch prompts with language-aware guidance.",
+        "detail": "The module maps analysis categories to prompt sections and filters metadata keys to keep context concise. Enriched mode reads source files, minifies content, and truncates payloads to bounded character budgets. It composes reusable prompt headers, per-directive instructions, and file-level system prompts with optional JSON context embedding. The result supports consistent, high-signal text generation across docs chapters.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "text prompts",
+          "analysis context",
+          "enriched snippets",
+          "prompt formatting",
+          "batch prompt"
+        ]
       },
       {
         "file": "src/docs/lib/toml-parser.js",
@@ -1883,8 +2173,19 @@
         "usedBy": null,
         "id": "9fb7acbd",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Implements a minimal TOML parser for simple key/value and array structures. It converts textual TOML fragments into plain JavaScript objects.",
+        "detail": "The parser tokenizes lines, ignores comments/blank lines, and maps keys to parsed values with basic type coercion. It supports quoted strings, arrays, and raw scalar fallbacks without full TOML spec coverage. Array parsing handles comma-separated items and trims whitespace reliably. This lightweight implementation avoids adding external dependencies.",
+        "chapter": "stack_and_ops",
+        "role": "lib",
+        "keywords": [
+          "toml parser",
+          "lightweight parser",
+          "config parsing",
+          "array values"
+        ]
       },
       {
         "file": "src/flow.js",
@@ -1908,8 +2209,19 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Implements the flow CLI entrypoint and command dispatch for flow subcommands. It routes arguments to registered command handlers and enforces exit behavior.",
+        "detail": "The module initializes the DI container, resolves flow context, and delegates execution through a common dispatch helper. It handles grouped command envelopes and special routing for run/resume/prepare convenience aliases. Errors and missing commands return standardized non-zero exit codes. This file acts as the top-level orchestrator for flow command invocation.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "keywords": [
+          "flow cli",
+          "command dispatch",
+          "entrypoint",
+          "exit codes"
+        ]
       },
       {
         "file": "src/flow/commands/merge.js",
@@ -1943,8 +2255,19 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Provides merge command logic for flow finalization with PR and squash strategies. It derives PR metadata from spec content when available.",
+        "detail": "The command parses spec sections to generate meaningful pull request titles and bodies with fallback values. It resolves remote settings, validates GitHub CLI availability for PR mode, and executes merge steps via git helpers. Squash mode includes conflict detection and actionable error messages. The module returns structured strategy results for downstream finalize reporting.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "merge command",
+          "pull request body",
+          "squash merge",
+          "flow finalize"
+        ]
       },
       {
         "file": "src/flow/commands/report.js",
@@ -1974,8 +2297,19 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Generates and persists flow activity reports from metrics and issue logs. It aggregates timing and token usage into machine-readable and text outputs.",
+        "detail": "The module walks phase metrics to compute totals and per-phase summaries for activity and token consumption. It formats a readable report text block with aligned labels and durations. saveReport writes report.json next to the spec directory for auditability and later analysis. This supports post-run visibility into workflow efficiency.",
+        "chapter": "development",
+        "role": "controller",
+        "keywords": [
+          "flow report",
+          "metrics aggregation",
+          "token usage",
+          "report.json"
+        ]
       },
       {
         "file": "src/flow/commands/review.js",
@@ -2052,8 +2386,20 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Implements the flow review command for spec, test, and code review loops with AI-assisted fixes. It manages retries, parsing of proposals, and result artifacts.",
+        "detail": "The module builds specialized prompts for draft/final code review, test design and gap analysis, and spec quality checks. It extracts diffs from committed and staged changes, applies approved patch outputs, and writes review markdown files per phase. Retry loops merge verdicts, track history, and stop on pass/fail criteria with bounded attempts. It also includes output sanitization and validation helpers for robust automated review cycles.",
+        "chapter": "development",
+        "role": "controller",
+        "keywords": [
+          "review loop",
+          "AI code review",
+          "test gap analysis",
+          "spec review",
+          "auto-fix"
+        ]
       },
       {
         "file": "src/flow/lib/base-command.js",
@@ -2107,8 +2453,19 @@
         ],
         "id": "83f60bd3",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Defines the abstract base class for flow commands. It resolves flow context and enforces subclass execute implementation.",
+        "detail": "FlowCommand extends the generic Command type and guarantees active flow state before running command-specific logic. The run method centralizes context loading so individual commands only implement execute. Missing flow state or unimplemented execute paths throw explicit errors. This provides a consistent command lifecycle across the flow subsystem.",
+        "chapter": "project_structure",
+        "role": "controller",
+        "keywords": [
+          "base command",
+          "flow command",
+          "context enforcement",
+          "abstract execute"
+        ]
       },
       {
         "file": "src/flow/lib/flow-context.js",
@@ -2135,8 +2492,19 @@
         ],
         "id": "e296da98",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Resolves and returns normalized flow runtime context from container state. It exposes derived identifiers and root-level references used by flow commands.",
+        "detail": "The function maps flow state into a compact object containing spec identifiers, resolved paths, and config references. It uses helper functions to derive stable IDs from spec paths. By centralizing this shape, downstream commands avoid repeated context assembly code. The module keeps command implementations focused on behavior instead of plumbing.",
+        "chapter": "project_structure",
+        "role": "lib",
+        "keywords": [
+          "flow context",
+          "spec id",
+          "context resolver",
+          "runtime state"
+        ]
       },
       {
         "file": "src/flow/lib/get-check.js",
@@ -2161,8 +2529,19 @@
         "usedBy": null,
         "id": "10eecc8b",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Implements prerequisite checks for flow steps such as clean git status and tool availability. It returns structured pass/fail diagnostics per target.",
+        "detail": "The module defines required step mappings and evaluates them against current flow progress. It includes targeted checks for repository cleanliness and GitHub CLI readiness with explicit summaries. A command class validates input targets and returns normalized check results. This enables gatekeeping before expensive or irreversible flow operations.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "preflight check",
+          "flow prerequisites",
+          "git clean check",
+          "gh availability"
+        ]
       },
       {
         "file": "src/flow/lib/get-context.js",
@@ -2215,8 +2594,20 @@
         ],
         "id": "1261e39f",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Provides context retrieval and search over analysis entries for flow tasks. It supports direct search, n-gram similarity, and optional AI keyword selection.",
+        "detail": "The module loads analysis.json, filters noisy fields, and transforms entries into compact search results. Search strategies include keyword contains, fallback heuristics, bigram similarity scoring, and agent-assisted selection with robust fallback behavior. It also exposes file and phase context utilities used by prompts and review workflows. This file is the main retrieval layer for flow-aware contextual reasoning.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "context search",
+          "ngram similarity",
+          "analysis retrieval",
+          "keyword selection",
+          "flow context"
+        ]
       },
       {
         "file": "src/flow/lib/get-guardrail.js",
@@ -2241,8 +2632,19 @@
         ],
         "id": "f80cce52",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Fetches and filters guardrail rules by phase for flow commands. It can return both raw structured data and markdown-formatted output.",
+        "detail": "The command validates phase inputs against known constants and loads merged guardrails from project configuration layers. It applies phase filtering so only relevant rules are emitted. A markdown formatter renders concise bullet lines for user-facing output. This ensures guardrail guidance is phase-specific and consistently presented.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "guardrails",
+          "phase filter",
+          "policy output",
+          "markdown rendering"
+        ]
       },
       {
         "file": "src/flow/lib/get-issue.js",
@@ -2262,8 +2664,19 @@
         "usedBy": null,
         "id": "7aec11d1",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Implements issue retrieval for flow using command execution wrappers. It validates issue number input and returns parsed issue payloads.",
+        "detail": "The command enforces positive integer issue IDs before invoking external tooling. It runs a process command and asserts success via shared process helpers. JSON output is parsed into structured result objects for downstream use. This keeps issue fetch behavior strict and predictable.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "issue fetch",
+          "flow issue command",
+          "input validation",
+          "JSON parsing"
+        ]
       },
       {
         "file": "src/flow/lib/get-prompt.js",
@@ -2284,8 +2697,19 @@
         "usedBy": null,
         "id": "410dfcc9",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Returns localized prompt templates by kind for flow phases. It validates requested prompt kinds against supported keys.",
+        "detail": "A language-keyed prompt map stores canonical text snippets for each supported prompt category. The command checks missing or unknown kinds and raises informative errors with valid options. Returned output includes the selected prompt content in a stable shape for callers. This creates a single source of truth for built-in prompt wording.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "prompt catalog",
+          "localized prompts",
+          "kind validation",
+          "flow prompts"
+        ]
       },
       {
         "file": "src/flow/lib/get-qa-count.js",
@@ -2304,8 +2728,19 @@
         "usedBy": null,
         "id": "28b15622",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Exposes a simple command to return QA count from current flow state. It acts as a lightweight status accessor.",
+        "detail": "The class extends FlowCommand and reads a numeric QA-related field from context state. It returns a minimal JSON object suitable for scripting and automation. The implementation deliberately avoids side effects and complex formatting. This command supports quick workflow checks in CI or shell scripts.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "qa count",
+          "status accessor",
+          "flow state",
+          "automation helper"
+        ]
       },
       {
         "file": "src/flow/lib/get-resolve-context.js",
@@ -2334,8 +2769,19 @@
         ],
         "id": "c2848d40",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Builds a rich resolve-context payload combining flow state, git/worktree status, and spec section extraction. It supports resume and troubleshooting workflows.",
+        "detail": "The command locates active flow metadata, resolves effective repository roots, and reads spec text when available. It extracts targeted sections from spec markdown and includes branch/ahead/commit diagnostics from git helpers. Worktree-aware path resolution chooses the correct operational directory automatically. The output provides a comprehensive snapshot for decision-making at resolve time.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "resolve context",
+          "worktree status",
+          "spec extraction",
+          "git diagnostics"
+        ]
       },
       {
         "file": "src/flow/lib/get-status.js",
@@ -2357,8 +2803,19 @@
         "usedBy": null,
         "id": "9aca938f",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Implements flow status retrieval and formatting logic. It supports both current active flow and explicit run ID lookups.",
+        "detail": "The module derives current phase and related state fields, then returns a normalized status object. It validates run IDs and throws explicit errors when not found. For default mode, it reads active flow state from context and formats output consistently. This command is the primary status endpoint for flow tooling.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "flow status",
+          "run id lookup",
+          "phase derive",
+          "state output"
+        ]
       },
       {
         "file": "src/flow/lib/get-test-result.js",
@@ -2387,8 +2844,19 @@
         ],
         "id": "ebb0d8ed",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Loads and redacts test execution evidence for flow decisions. It reads bounded log tails and normalizes summary data.",
+        "detail": "The implementation reads test-output logs with a byte cap to avoid excessive memory usage on large files. It redacts sensitive fragments before returning or rewriting log content. Summary JSON and log text are combined into a standard evidence object consumed by gate logic. Errors are surfaced clearly while preserving original exception details.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "test evidence",
+          "log redaction",
+          "bounded log read",
+          "flow gate input"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize.js",
@@ -2437,8 +2905,20 @@
         "usedBy": null,
         "id": "c711309b",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Orchestrates finalize workflow steps including preflight checks, commit/post actions, merge, and cleanup. It supports all/select modes with step-level status reporting.",
+        "detail": "The module verifies git write access up front to fail fast on lock or permission issues. It executes each finalize substep through a shared wrapper that captures success/failure status and messages. Additional behaviors include migration hooks, optional docs build integration, merge strategy handling, and worktree cleanup. The command returns structured results suitable for both human output and automation.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "finalize workflow",
+          "preflight",
+          "merge strategy",
+          "cleanup",
+          "step runner"
+        ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -2491,7 +2971,22 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "b4aa4dad"
+        "id": "b4aa4dad",
+        "summary": "Implements gate checks for draft, spec, and implementation phases with optional guardrail validation. It evaluates document quality, diff scope, and test evidence.",
+        "detail": "The command validates phase input, loads required artifacts, and performs phase-specific checks using regex rules and structural criteria. For implementation gates, it compares git diffs against base branches and integrates test evidence from log summaries. Guardrail checks can be run through AI prompts and parsed into pass/fail results with reasons. Outputs include next-step guidance and issue logging metadata for workflow continuity.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "gate command",
+          "phase validation",
+          "guardrail check",
+          "impl diff check",
+          "quality gate"
+        ]
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -2519,8 +3014,19 @@
         "usedBy": null,
         "id": "e6534160",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-19T14:44:31.345Z",
+          "attempts": 3
+        },
+        "summary": "Confirms implementation progress by summarizing requirement completion and changed files. It supports multiple confirmation modes for flow checkpoints.",
+        "detail": "The module gathers changed paths against the base branch and parses requirement sections to compute done/pending counts. It returns a compact structured summary that can be consumed by interactive prompts or scripts. Mode validation enforces allowed confirm behaviors and prevents ambiguous execution. This command helps ensure implementation aligns with spec intent before finalization.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "implementation confirm",
+          "requirement summary",
+          "changed files",
+          "flow checkpoint"
+        ]
       },
       {
         "file": "src/flow/lib/run-lint.js",
@@ -7606,5 +8112,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-19T14:43:05.665Z"
+  "enrichedAt": "2026-04-19T14:44:31.345Z"
 }
