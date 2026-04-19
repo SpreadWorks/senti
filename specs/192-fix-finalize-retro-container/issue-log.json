@@ -1,0 +1,34 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — The draft focuses on one bug fix in finalize retro invocation and its related regression test.; Unambiguous Requirements — Expected outcomes are mostly verifiable (retro execution succeeds, files/metrics updated, specific call signature).; Complete Context — Requirements are not consistently written with explicit trigger conditions (When/If) plus shall-behavior pairs.; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets are present; article is inapplicable to this draft content.; Prioritize Requirements — Multiple requirement items are listed without explicit priority ordering.; Impact on Existing Features — A dedicated impact section explicitly states affected areas and unaffected commands.; Present Recommendations with Reasoning — Q&A provides recommendations with concise rationale tied to existing code patterns/testing rationale.; Explore Before Asking — The draft cites file-level analysis and code search results before concluding no further questions.; Proactively Raise Related Implications — It proactively calls out downstream effects on `retro.json`, `report.json`, and flow metrics.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of tentative ideas occurs; the draft records confirmed decisions.; Capture Digressions in draft.md — No digression is evident in the provided content, so this is inapplicable.; Draft Stays at Requirements Level — It includes implementation-level details (file paths, line refs, code snippets, exact import/call changes).; Backward — Compatible CLI Interface — No command/option semantic change is proposed, so no migration plan is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T00:42:19.561Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — The draft is focused on one bug-fix concern: finalize retro failure and its direct regression coverage.; Unambiguous Requirements — Requirement 5 uses vague terms like “project-standard way” and “shall be able to detect,” which are not strictly verifiable.; Complete Context — Each listed requirement includes a trigger condition (When/If) and an expected shall-behavior.; No Hardcoded Secrets — No credentials or secret material are present; this draft is requirements text only.; Prioritize Requirements — More than three requirements are explicitly ordered as P1/P2/P3.; Impact on Existing Features — A dedicated impact section lists affected features and explicitly states unaffected commands.; Present Recommendations with Reasoning — Recommendations are present, but reasoning is not consistently grounded in the stated bases (docs/, guardrails, or code patterns) for each question.; Explore Before Asking — The draft includes user-facing Q&A decisions without clear evidence that docs/code exploration answered what could be resolved beforehand.; Proactively Raise Related Implications — Related downstream effects (report, metrics, retro.json, unaffected commands) are proactively captured.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of brainstorming ideas is performed as if they were final decisions.; Capture Digressions in draft.md — No digression is shown; the content stays on the main thread, so this is inapplicable.; Draft Stays at Requirements Level — The draft includes implementation-leaning details (e.g., commit.post invocation pattern and hook-level test targeting).; Backward — Compatible CLI Interface — No command/option removal or semantic CLI change is proposed, so migration planning is inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T00:43:16.900Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — finalize の retro 失敗バグ修正という単一の関心事に絞られている。; Unambiguous Requirements — 要件は `When ... shall ...` で検証可能な結果（エラー不発生、`retro.json` 生成など）を明示している。; Complete Context — 各要件が発火条件（When）と期待動作（shall）を対で記述している。; No Hardcoded Secrets — 本文は要件ドラフトであり、秘密情報やハードコードされた認証情報は含まれていない。; Prioritize Requirements — `P1`/`P2` で3件超の要件に優先度順が明記されている。; Impact on Existing Features — 既存機能への影響と「他コマンド影響なし」が明示されている。; Present Recommendations with Reasoning — 各Qで推奨案を先に示し、根拠を docs/方針/既存パターンに紐づけている。; Explore Before Asking — `Pre-investigation` でコード探索結果を示したうえで確認質問している。; Proactively Raise Related Implications — retro 修正に伴う `report.json`/metrics/生成物への波及を先回りで記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 決定前提の確認・承認フローで進んでおり、ブレスト案を確定事項として批判していない。; Capture Digressions in draft.md — 目立つ脱線はなく、必要な論点は draft 内（Alternatives/Q&A）に記録されている。; Draft Stays at Requirements Level — `src/flow/lib/base-command.js` や呼び出しパターンなど実装・設計レベルの詳細が含まれている。; Backward — Compatible CLI Interface — 既存CLIコマンド/オプションの意味変更や削除を伴う変更ではないため移行計画は不要。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T00:44:18.655Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Single Responsibility — finalize の retro 失敗修正とその退行防止に限定され、無関係な変更を束ねていない。; Unambiguous Requirements — 各要件はエラー非発生・ファイル生成・payload 含有・テスト失敗条件など検証可能な条件で記述されている。; Complete Context — 要件 1〜4 はいずれも `When ... shall ...` の形でトリガーと期待動作が対になっている。; No Hardcoded Secrets — API キーやトークン等の秘密情報は含まれていない。; Prioritize Requirements — 4 件の要件を P1/P2 で優先度順に明示している。; Impact on Existing Features — 既存機能への影響と「他コマンドは影響なし」を明示している。; Present Recommendations with Reasoning — 各 Q に AI 推奨を先に示し、根拠（規約・方針）を併記している。; Explore Before Asking — Pre-investigation でコード探索・類似箇所確認を行った上で質問している。; Proactively Raise Related Implications — retro 修正に伴う report/metrics/retro.json への波及を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 本文は意思決定済みの確認フローで、ブレスト案への批評は行っていないため適用上問題なし。; Capture Digressions in draft.md — 脱線した議論の記録が必要な状況が見当たらず、本件では実質的に非該当。; Draft Stays at Requirements Level — 「他コマンドと同じ呼び出し形式に揃える」など実装方針の具体が Draft に含まれている。; Backward — Compatible CLI Interface — 既存 CLI コマンド/オプションの意味変更や削除を伴わないため移行計画は非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T00:44:52.122Z"
+    },
+    {
+      "step": "gate",
+      "reason": "line 71: unchecked task/question (- [ ] なし)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-19T00:45:59.663Z"
+    }
+  ]
+}

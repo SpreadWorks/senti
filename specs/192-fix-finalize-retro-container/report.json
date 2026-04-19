@@ -1,0 +1,62 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/192-fix-finalize-retro-container/draft.md    |  90 +++++++++++\n specs/192-fix-finalize-retro-container/flow.json   | 180 +++++++++++++++++++++\n .../issue-log.json                                 |  34 ++++\n specs/192-fix-finalize-retro-container/qa.md       |   9 ++\n specs/192-fix-finalize-retro-container/review.md   |  33 ++++\n specs/192-fix-finalize-retro-container/spec.md     |  71 ++++++++\n .../tests/README.md                                |  32 ++++\n src/flow/lib/run-finalize.js                       |   3 +-\n .../flow/run-finalize-retro-invocation.test.js     |  53 ++++++\n 9 files changed, 504 insertions(+), 1 deletion(-)",
+      "commits": [
+        "feat: feature/192-fix-finalize-retro-container",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 1,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 117958,
+      "output": 9579,
+      "cacheRead": 226816,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 12,
+      "durationMs": 239933,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 105610
+        },
+        {
+          "phase": "gate",
+          "durationMs": 21903
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 73924
+        },
+        {
+          "phase": "review",
+          "durationMs": 38496
+        }
+      ]
+    },
+    "tests": {
+      "unit": 3,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 3
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/192-fix-finalize-retro-container\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    9 files changed, 504 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 1\n    issue-log ................... 0\n    agent calls ................. 12\n    input tokens ................ 117,958\n    output tokens ............... 9,579\n    cache-read tokens ........... 226,816\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 239.9s\n      gate-draft ................ 105.6s\n      gate ...................... 21.9s\n      gate-impl ................. 73.9s\n      review .................... 38.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 3  integration 0  acceptance 0  total 3"
+}

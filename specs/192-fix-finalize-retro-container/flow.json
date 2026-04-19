@@ -1,0 +1,180 @@
+{
+  "spec": "specs/192-fix-finalize-retro-container/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/192-fix-finalize-retro-container",
+  "runId": "28d2ac94-342e-41dd-940a-dc20f310f72f",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "When a user runs sdd-forge flow run finalize against a valid flow state, the command shall not raise container.get is not a function.",
+      "status": "done"
+    },
+    {
+      "desc": "When the finalize pipeline completes, the system shall generate retro.json under the current spec directory.",
+      "status": "done"
+    },
+    {
+      "desc": "When the finalize pipeline completes, the finalize result payload shall contain a retro summary so that report.json generation receives it.",
+      "status": "done"
+    },
+    {
+      "desc": "When a future change breaks the finalize retro invocation in the same way, npm test shall fail (a regression test under tests/ shall cover this bug).",
+      "status": "done"
+    }
+  ],
+  "issue": 179,
+  "request": "#179 issueを進めてください",
+  "worktree": true,
+  "notes": [
+    "draft: Q1 intent confirmed — finalize retro container.get bug fix per run-retro.js pattern"
+  ],
+  "metrics": {
+    "draft": {
+      "srcRead": 1,
+      "question": 1
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 28371,
+        "output": 4231,
+        "cacheRead": 96640,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 6744,
+      "durationMs": 105610
+    },
+    "gate": {
+      "tokens": {
+        "input": 21385,
+        "output": 954,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 1095,
+      "durationMs": 21903
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 45279,
+        "output": 3002,
+        "cacheRead": 84480,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 4353,
+      "durationMs": 73924
+    },
+    "review": {
+      "tokens": {
+        "input": 22923,
+        "output": 1392,
+        "cacheRead": 42240,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 2872,
+      "durationMs": 38496
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 3
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-19T00:52:48.581Z"
+  }
+}

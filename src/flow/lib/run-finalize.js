@@ -17,6 +17,7 @@ import { isGhAvailable, commentOnIssue, collectGitSummary, runGit } from "../../
 import { VALID_MERGE_STRATEGIES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { FLOW_COMMANDS } from "../registry.js";
+import { container } from "../../lib/container.js";
 
 /**
  * Create an onError hook for finalize sub-steps that records to issue-log.
@@ -160,7 +161,7 @@ export async function executeCommitPost(ctx) {
   // retro
   try {
     const RetroCommand = (await import("./run-retro.js")).default;
-    const retroResult = await new RetroCommand().run({ ...ctx, force: true });
+    const retroResult = await new RetroCommand().run(container, { force: true });
     const summary = retroResult?.artifacts?.summary;
     results.retro = { status: "done", ...(summary ? { summary } : {}) };
   } catch (e) {
