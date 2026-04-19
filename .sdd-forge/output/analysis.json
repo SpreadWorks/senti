@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-19T22:26:13.011Z",
+  "analyzedAt": "2026-04-19T23:25:00.849Z",
   "package": {
     "entries": [
       {
@@ -2744,9 +2744,9 @@
       },
       {
         "file": "src/flow/lib/get-resolve-context.js",
-        "hash": "10c18a15b9deb95c706366e8b0dba033",
+        "hash": "65d27bc5b8c6f96e72d9a8d02ac31f23",
         "lines": 100,
-        "mtime": "2026-04-17T12:39:55.910Z",
+        "mtime": "2026-04-19T23:25:00.556Z",
         "className": "get-resolve-context",
         "methods": [
           "extractSection"
@@ -2769,25 +2769,14 @@
         ],
         "id": "c2848d40",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Builds a rich resolve-context payload combining flow state, git/worktree status, and spec section extraction. It supports resume and troubleshooting workflows.",
-        "detail": "The command locates active flow metadata, resolves effective repository roots, and reads spec text when available. It extracts targeted sections from spec markdown and includes branch/ahead/commit diagnostics from git helpers. Worktree-aware path resolution chooses the correct operational directory automatically. The output provides a comprehensive snapshot for decision-making at resolve time.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "resolve context",
-          "worktree status",
-          "spec extraction",
-          "git diagnostics"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "638f07e348e187256c5a71f3383d864f",
+        "hash": "cc9a3d2e5a2a2e3c742fa487c52f566f",
         "lines": 66,
-        "mtime": "2026-04-17T12:39:55.911Z",
+        "mtime": "2026-04-19T23:25:00.556Z",
         "className": "get-status",
         "methods": [
           "buildStatusOutput"
@@ -2803,19 +2792,8 @@
         "usedBy": null,
         "id": "9aca938f",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Implements flow status retrieval and formatting logic. It supports both current active flow and explicit run ID lookups.",
-        "detail": "The module derives current phase and related state fields, then returns a normalized status object. It validates run IDs and throws explicit errors when not found. For default mode, it reads active flow state from context and formats output consistently. This command is the primary status endpoint for flow tooling.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "flow status",
-          "run id lookup",
-          "phase derive",
-          "state output"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/get-test-result.js",
@@ -3067,9 +3045,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "42a45972a3e93ea6f33645ce226129af",
-        "lines": 336,
-        "mtime": "2026-04-17T12:39:55.911Z",
+        "hash": "948a25fe0b98d7cb6f01cd6a4f0a5d4a",
+        "lines": 338,
+        "mtime": "2026-04-19T23:25:00.556Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3102,21 +3080,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "RunPrepareSpecCommand creates a new spec workspace and initializes flow state. It prepares branch metadata, spec directories, and starter spec/QA documents.",
-        "detail": "The module provides helpers for slug generation, spec index allocation, git branch checks, and template loading. It validates cleanliness and required inputs before writing any files, including title and config prerequisites. Local override templates are supported via `.sdd-forge/templates/<lang>/specs`, with defaults as fallback. It writes `spec.md`, `qa.md`, and initial flow state consistently for main repo or worktree mode.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "spec bootstrap",
-          "worktree setup",
-          "template loading",
-          "slugify",
-          "flow initialization"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-report.js",
@@ -3159,9 +3125,9 @@
       },
       {
         "file": "src/flow/lib/run-resume.js",
-        "hash": "77c5ec04193f45c56db7a1da40f59907",
+        "hash": "866ccada7bfae5264792a9f0719fca6a",
         "lines": 106,
-        "mtime": "2026-04-17T12:39:55.911Z",
+        "mtime": "2026-04-19T23:25:00.556Z",
         "className": "run-resume",
         "methods": [
           "extractSection"
@@ -3179,21 +3145,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "abe5ac21",
-        "summary": "RunResumeCommand rebuilds a concise snapshot of active flow status for continuation. It resolves worktree/main-repo context and reads spec sections when available.",
-        "detail": "The module includes a section extractor to pull targeted content from markdown headings. It inspects current branch, ahead count, last commit, and dirty state via git helpers. It chooses effective paths based on whether a worktree exists and whether flow files are present. The command returns structured resume data designed for user-facing flow continuation prompts.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "resume flow",
-          "status snapshot",
-          "worktree detection",
-          "spec parsing",
-          "branch context"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-retro.js",
@@ -3704,9 +3658,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "552c5db20920289a1f06ed3e11ae1212",
+        "hash": "61f8e4e83577b525ba92f97379aa6482",
         "lines": 478,
-        "mtime": "2026-04-19T01:49:14.514Z",
+        "mtime": "2026-04-19T23:25:00.557Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -3726,21 +3680,9 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "The flow registry wires command definitions, hooks, and post-processing behaviors for SDD flow operations. It centralizes orchestration policies such as step status updates and issue-log appends.",
-        "detail": "Helper wrappers perform fail-open behavior for non-critical updates while preserving strict mode when needed. Pre/post hook factories map commands to lifecycle transitions like `in_progress` and completion states. The registry also routes gate step resolution by phase and exposes structured help text. This module is the command-control hub for flow-specific dispatch behavior.",
-        "chapter": "project_structure",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "command registry",
-          "hooks",
-          "step lifecycle",
-          "issue log append",
-          "flow orchestration"
-        ]
+        }
       },
       {
         "file": "src/help.js",
@@ -3999,7 +3941,7 @@
         ],
         "id": "0d680f4f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4303,15 +4245,16 @@
       },
       {
         "file": "src/lib/flow-helpers.js",
-        "hash": "ee3d2c901cf0a79ce80a02dfc3d7bf05",
-        "lines": 106,
-        "mtime": "2026-04-19T22:26:12.754Z",
+        "hash": "f0e86c3beb84b0f61d99fe8daa1fb29c",
+        "lines": 167,
+        "mtime": "2026-04-19T23:25:00.557Z",
         "className": "flow-helpers",
         "methods": [
           "getSpecName",
           "getSpecDir",
           "derivePhase",
           "buildInitialSteps",
+          "buildInitialTaskSteps",
           "specIdFromPath"
         ],
         "imports": [
@@ -4322,6 +4265,7 @@
           "getSpecDir",
           "derivePhase",
           "buildInitialSteps",
+          "buildInitialTaskSteps",
           "specIdFromPath",
           "STATE_FILE",
           "ACTIVE_FLOW_FILE",
@@ -4330,7 +4274,14 @@
           "PREPARING_SCAN_LIMIT",
           "SCAN_FLOWS_LIMIT",
           "FLOW_STEPS",
-          "PHASE_MAP"
+          "PHASE_MAP",
+          "TASK_ORIGINS",
+          "TASK_STATUSES",
+          "TASK_STEP_STATUSES",
+          "TASK_REQUIREMENT_STATUSES",
+          "TASK_STEPS_PLAN",
+          "TASK_STEPS_ADDITION",
+          "TASK_PHASE_MAP"
         ],
         "extends": null,
         "usedBy": [
@@ -4346,9 +4297,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "8a193a4103fb4f1c2a7d1ad15aa1ba86",
-        "lines": 286,
-        "mtime": "2026-04-18T21:58:03.712Z",
+        "hash": "526aedfd521cf6704977da933c999e24",
+        "lines": 313,
+        "mtime": "2026-04-19T23:25:00.557Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -4370,32 +4321,23 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "flow-manager.js coordinates high-level flow discovery, resolution, and context across main repo and worktrees. It abstracts current-flow lookup and broad flow scans.",
-        "detail": "It composes FlowStore, ActiveFlowRegistry, and PreparingFlowStore into a unified manager API. The module scans flow states from filesystem and git refs with truncation limits and parse-failure diagnostics. It resolves current state with worktree-awareness and explicit mismatch errors when expected files are missing. This class is the orchestration layer for flow lifecycle access patterns.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow manager",
-          "scan flows",
-          "worktree context",
-          "state resolution",
-          "lifecycle orchestration"
-        ]
+        }
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "28ca8dfffce505ae94d723454af14edc",
-        "lines": 264,
-        "mtime": "2026-04-18T21:58:03.712Z",
+        "hash": "b91b789225daea9173d8ea2c76fbb472",
+        "lines": 455,
+        "mtime": "2026-04-19T23:25:00.557Z",
         "className": "flow-store",
         "methods": [
+          "resolveMutationScope",
           "FlowStore",
           "specFlowPath",
-          "specIdFromBranch"
+          "specIdFromBranch",
+          "assertTaskSchema",
+          "validateTaskShape"
         ],
         "imports": [
           "fs",
@@ -4406,6 +4348,7 @@
           "./flow-helpers.js"
         ],
         "exports": [
+          "resolveMutationScope",
           "FlowStore"
         ],
         "extends": null,
@@ -4413,21 +4356,9 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "flow-store.js persists flow state files and provides targeted mutation helpers. It handles spec-id resolution, state paths, and finalized metadata updates.",
-        "detail": "The store reads and writes `specs/<id>/flow.json` with canonical JSON formatting and safe null-return behavior on missing files. It supports read-only loading with malformed JSON diagnostics instead of hard crashes. Utilities derive worktree/main paths and validate ISO timestamps for finalized states. Metric accumulation helpers include fail-soft logging to avoid blocking main workflows.",
-        "chapter": "internal_design",
-        "role": "model",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow store",
-          "state persistence",
-          "flow.json",
-          "finalizedAt",
-          "metric accumulation"
-        ]
+        }
       },
       {
         "file": "src/lib/formatter.js",
@@ -4868,9 +4799,9 @@
       },
       {
         "file": "src/lib/preparing-flow-store.js",
-        "hash": "c9886de1173d95c959fb46f97fe51e11",
-        "lines": 140,
-        "mtime": "2026-04-17T12:39:55.913Z",
+        "hash": "eec0a658dc75f9d8859aa7c42512de3a",
+        "lines": 142,
+        "mtime": "2026-04-19T23:25:00.557Z",
         "className": "preparing-flow-store",
         "methods": [
           "PreparingFlowStore"
@@ -4891,7 +4822,7 @@
         ],
         "id": "14a29a15",
         "enrich": {
-          "attempts": 4
+          "attempts": 1
         }
       },
       {
@@ -4934,7 +4865,7 @@
         ],
         "id": "ae76d513",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -4966,7 +4897,7 @@
         ],
         "id": "6196b26c",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -4992,7 +4923,7 @@
         ],
         "id": "fa23a1ba",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5017,7 +4948,7 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5041,7 +4972,7 @@
         ],
         "id": "8bb94bbb",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5077,7 +5008,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5093,7 +5024,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5114,7 +5045,7 @@
         "usedBy": null,
         "id": "0230d610",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5176,7 +5107,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5202,7 +5133,7 @@
         "usedBy": null,
         "id": "85926390",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -8007,7 +7938,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -8056,7 +7987,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -8077,7 +8008,7 @@
         "usedBy": null,
         "id": "dca811d6",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -8114,7 +8045,7 @@
         "usedBy": null,
         "id": "d63c4335",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -8143,15 +8074,15 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       }
     ],
     "summary": {
       "total": 257,
-      "totalMethods": 750
+      "totalMethods": 754
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-19T22:27:25.013Z"
+  "enrichedAt": "2026-04-19T23:26:39.955Z"
 }
