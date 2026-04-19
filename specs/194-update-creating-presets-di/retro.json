@@ -1,0 +1,89 @@
+{
+  "spec": "specs/194-update-creating-presets-di/spec.md",
+  "date": "2026-04-19T14:11:30.425Z",
+  "requirements": [
+    {
+      "desc": "R1 factory entry only",
+      "status": "done",
+      "note": "Both ja/en guides now require `register(container)` as default export and explicitly reject direct class default export."
+    },
+    {
+      "desc": "R2 container.get for base utils",
+      "status": "done",
+      "note": "Both guides add explicit `container.get(...)` usage for base classes/utilities and forbid old internal import paths."
+    },
+    {
+      "desc": "R3 container.getPreset for parent inheritance",
+      "status": "done",
+      "note": "Both guides describe and exemplify parent Source/Entry inheritance via `container.getPreset(\"<parent>\").dataSources`."
+    },
+    {
+      "desc": "R4 remove legacy-contract examples",
+      "status": "done",
+      "note": "Legacy `sdd-forge/api`/`sdd-forge/presets/*` import patterns and old entry-style guidance were removed/replaced with current DI contract."
+    },
+    {
+      "desc": "R5 update or drop stale pitfalls",
+      "status": "done",
+      "note": "Pitfall sections were updated to current factory/container failure modes and obsolete legacy-contract pitfalls were removed."
+    },
+    {
+      "desc": "R6 ja/en heading structure parity",
+      "status": "done",
+      "note": "ja/en documents were reorganized to matching section structure/numbering, with corresponding headings across both versions."
+    },
+    {
+      "desc": "R7 list all container keys",
+      "status": "done",
+      "note": "A dedicated Container keys chapter was added in both languages, enumerating registered keys and preset-registry access."
+    },
+    {
+      "desc": "R8 peerDependencies only for external presets",
+      "status": "done",
+      "note": "Both guides add an external preset compatibility section that allows only `peerDependencies` and forbids independent Container API version fields."
+    },
+    {
+      "desc": "R9 guide is self-contained",
+      "status": "done",
+      "note": "Both guides include definition, placement/layout, implementation contract, test layout, and validation commands end-to-end."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/194-update-creating-presets-di/draft.md",
+      "change": "Added draft specification document and Q&A rationale artifacts not directly required by R1-R9."
+    },
+    {
+      "file": "specs/194-update-creating-presets-di/spec.md",
+      "change": "Added full feature spec document and acceptance criteria tracking beyond the guide content requirements."
+    },
+    {
+      "file": "specs/194-update-creating-presets-di/flow.json",
+      "change": "Added workflow execution/state metadata file (lifecycle, steps, metrics), not part of guide requirements."
+    },
+    {
+      "file": "specs/194-update-creating-presets-di/issue-log.json",
+      "change": "Added gate/implementation issue log history and guardrail notes not required by R1-R9."
+    },
+    {
+      "file": "specs/194-update-creating-presets-di/qa.md",
+      "change": "Added clarification template file with confirmation prompt, not part of the listed guide requirements."
+    },
+    {
+      "file": "specs/194-update-creating-presets-di/tests/README.md",
+      "change": "Added spec-local test documentation not explicitly required by the requirement list."
+    },
+    {
+      "file": "specs/194-update-creating-presets-di/tests/guide-contract.test.js",
+      "change": "Added static contract test for ja/en guide compliance; useful, but not explicitly listed in R1-R9."
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All nine listed requirements are satisfied by the guide diffs in both languages. Additional spec-process artifacts and spec-local tests were added; these are beneficial but outside the explicit R1-R9 requirement set."
+  }
+}

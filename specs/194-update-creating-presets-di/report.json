@@ -1,0 +1,62 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/templates/en/docs/creating_presets.md   | 571 ++++++++++---------\n .sdd-forge/templates/ja/docs/creating_presets.md   | 619 +++++++++++----------\n specs/194-update-creating-presets-di/draft.md      | 101 ++++\n specs/194-update-creating-presets-di/flow.json     | 188 +++++++\n .../194-update-creating-presets-di/issue-log.json  |  78 +++\n specs/194-update-creating-presets-di/qa.md         |   9 +\n specs/194-update-creating-presets-di/spec.md       | 103 ++++\n .../194-update-creating-presets-di/tests/README.md |  29 +\n .../tests/guide-contract.test.js                   | 166 ++++++\n 9 files changed, 1324 insertions(+), 540 deletions(-)",
+      "commits": [
+        "feat: feature/194-update-creating-presets-di"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "All nine listed requirements are satisfied by the guide diffs in both languages. Additional spec-process artifacts and spec-local tests were added; these are beneficial but outside the explicit R1-R9 requirement set."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 510869,
+      "output": 13379,
+      "cacheRead": 227456,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 18,
+      "durationMs": 357133,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 142977
+        },
+        {
+          "phase": "gate",
+          "durationMs": 43201
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 170955
+        }
+      ]
+    },
+    "tests": {
+      "unit": 83,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 83
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/194-update-creating-presets-di\n    9 files changed, 1324 insertions(+), 540 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 18\n    input tokens ................ 510,869\n    output tokens ............... 13,379\n    cache-read tokens ........... 227,456\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 357.1s\n      gate-draft ................ 143.0s\n      gate ...................... 43.2s\n      gate-impl ................. 171.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 83  integration 0  acceptance 0  total 83"
+}

@@ -1,6 +1,6 @@
 # Preset Creation Guide
 
-This document is the procedure guide for creating a new sdd-forge preset as either **built-in (`src/presets/<key>/`)** or **project-local (`.sdd-forge/presets/<key>/`)**. It covers specifications, procedures, pitfalls, and validation commands so that an AI agent can assemble a preset end-to-end by reading this document alone.
+This document is the procedure guide for creating a new sdd-forge preset as either **built-in (`src/presets/<key>/`)** or **project-local (`.sdd-forge/presets/<key>/`)**. It is based on the DI (Dependency Injection) container contract introduced in spec 191, and covers specifications, procedures, pitfalls, and validation commands so that an AI agent can assemble a preset end-to-end by reading this document alone.
 
 The intended reader is a developer or AI who already understands the sdd-forge internal architecture (`src/CLAUDE.md` / `src/AGENTS.md`) and needs to build a preset for a new framework or project structure.
 
@@ -38,7 +38,7 @@ Before starting the implementation, decide where and what kind of preset to crea
 | Generic framework/library support (reusable) | `src/presets/<key>/` (built-in) |
 | Specific to one project's directory structure / customization | `.sdd-forge/presets/<key>/` (project-local) |
 
-**Project-local presets are leaf-only.** The `parent` chain always points to built-in presets (inheritance among project-local presets is not supported).
+**Project-local presets are leaf-only.** The `parent` chain always points to built-in presets.
 
 ### 2.2 Extend an Existing Preset or Create a New One?
 
@@ -55,23 +55,21 @@ Before starting the implementation, decide where and what kind of preset to crea
 ├── preset.json              Required: metadata, chapters, scan patterns
 ├── guardrail.json           Optional: spec / impl guardrail rules
 ├── data/                    DataSource modules (scan + resolve in one)
-│   └── <category>.js        1 file = 1 category (default export is the Source class)
+│   └── <category>.js        1 file = 1 category (default export is a register factory)
 ├── templates/
 │   ├── ja/                  Chapter templates per language
-│   │   ├── overview.md
-│   │   ├── controller_routes.md
-│   │   └── ...
 │   └── en/
 └── tests/                   Required for built-in presets
     ├── unit/                Unit tests (scan parser I/O)
     ├── e2e/                 Full-scan pipeline tests
-    └── acceptance/          Fixture-based acceptance tests
-        └── test.js
+    ├── acceptance/          Fixture-based acceptance tests
+    │   └── test.js
+    └── analyzers.js         Test-only helpers (may import sdd-forge internals)
 ```
 
-For project-local presets (`.sdd-forge/presets/<key>/`), `tests/` is not required.
+For project-local presets, `tests/` is not required.
 
-**Note**: Previously there was a `scan/` directory that held scan parsers separately, but this layout has been abolished. Scan logic now lives inside the `Scannable` DataSource (`match` / `parse`) in `data/<category>.js`.
+**Note**: Previously there was a `scan/` directory that held scan parsers separately, but this layout has been abolished. Scan logic now lives inside the `Scannable` DataSource in `data/<category>.js`.
 
 ---
 
@@ -98,7 +96,7 @@ For project-local presets (`.sdd-forge/presets/<key>/`), `tests/` is not require
 | `parent` | Optional | Parent preset key. Omit for a standalone preset |
 | `label` | Recommended | Display name |
 | `aliases` | Optional | Alternative names that can appear in `type` of `config.json` |
-| `chapters` | Optional | Chapter order and descriptions. Accepts either a string array `["overview.md", ...]` or an array of `{chapter, desc}` objects. Inherits `chapters` from the parent when omitted |
+| `chapters` | Optional | Chapter order and descriptions. Inherits parent's `chapters` when omitted |
 | `scan.include` | Optional | Scan target globs (POSIX separator) |
 | `scan.exclude` | Optional | Exclusion globs |
 
@@ -123,232 +121,307 @@ A file declaring preset-specific design principles and prohibitions. AI uses it 
     {
       "id": "use-parameterized-queries",
       "title": "Use Parameterized Queries",
-      "body": "DQL and QueryBuilder shall use parameter bindings. String concatenation in queries is prohibited.",
+      "body": "DQL and QueryBuilder shall use parameter bindings.",
       "meta": { "phase": ["spec", "impl"] }
     }
   ]
 }
 ```
 
-| Field | Required | Description |
-|---|---|---|
-| `id` | ✅ | Unique identifier (kebab-case) |
-| `title` | ✅ | Short heading |
-| `body` | ✅ | Concrete rule text (English recommended; the SDD flow translates to other languages) |
-| `meta.phase` | ✅ | The phases the rule applies to. Array of `"spec"` (spec gate) / `"impl"` (impl review) |
-
-**Guidelines for writing rules:**
-
-- Write as "what is prohibited / what must be done," not as "what is ideal" (makes AI violation detection easier)
-- Separate framework axis (e.g., symfony's DTO usage) from principle axis (e.g., SOLID in the principle preset). Do not duplicate the same rule across presets
-- Parent guardrails are inherited (merged), so do not repeat a parent's rule in the child
-- Do not write mechanical rules that a linter could enforce (indent, naming conventions). Reserve guardrails for rules that require AI judgment
-
 ### 4.4 overrides.json (project root, optional)
 
-**Placed at `.sdd-forge/overrides.json`, not inside a preset** — a single dictionary file for the whole project. Use it to manually fix the description text returned by DataSource entries (it takes precedence over enrich's AI-generated summaries).
+A single dictionary file placed at `.sdd-forge/overrides.json` for the whole project. Use it to manually fix descriptions returned by DataSource entries (it takes precedence over enrich's AI-generated summaries).
 
 ```json
 {
-  "tables": {
-    "contents": "Content table (per video episode)",
-    "contracts": "Rights holder contract data"
-  },
-  "controllers": {
-    "UserController": "User authentication and profile management"
-  }
+  "tables": { "contents": "Content table (per video episode)" },
+  "controllers": { "UserController": "User authentication and profile management" }
 }
 ```
 
-- Level 1 = **section name** (typically the DataSource category name)
-- Level 2 = **entry key** (class name, table name, etc.; the value of the field referenced by the DataSource's `keyField`, default `className`)
-- Value = **string** (description; not an object)
-
-The `DataSource` base class `mergeDesc(items, section, keyField)` merges these into each item's `summary`. `desc(section, key)` returns individual descriptions (or `"—"` when undefined).
-
-Not required when creating a preset — it's a file for gradually replacing AI-generated descriptions with human-authored text during project operation.
-
 ---
 
-## 5. DataSource Implementation
+## 5. DataSource Implementation (DI factory contract)
 
-### 5.1 Two Kinds of DataSource
+### 5.1 register Factory Form (MUST)
+
+The **default export of every `src/presets/**/data/*.js` and `.sdd-forge/presets/**/data/*.js` file must be a factory function of the form `register(container)`**. A direct class default export is not allowed. If a class is exported directly, the loader calls it as a factory and fails with a `new` / constructor error.
+
+```javascript
+// NG: exporting a class directly as default is rejected by the loader
+//     (the loader invokes the default export as a factory function and fails)
+
+// OK: register factory
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  class FooSource extends DataSource {
+    list(analysis, labels) { return null; }
+  }
+  return FooSource;
+}
+```
+
+The factory is invoked synchronously, and the returned Source class is registered by the loader under `dataSources.<category>`.
+
+### 5.2 Obtaining Base Classes / Utilities
+
+All sdd-forge base classes and utilities must be **obtained through the Container**. At the top of a data source file, only Node.js built-in modules (`fs`, `path`, `url`, `crypto`) may be imported; relative imports into sdd-forge internals and bare specifier imports are forbidden.
+
+```javascript
+import fs from "fs";
+
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const Scannable = container.get("base.Scannable");
+  const AnalysisEntry = container.get("base.AnalysisEntry");
+  const findFiles = container.get("scanner.findFiles");
+  const stripBlockComments = container.get("phpParser.stripBlockComments");
+  // ...
+}
+```
+
+### 5.3 Inheriting Parent Preset Assets
+
+Parent preset DataSource classes and their `Entry` classes are obtained via the Container's preset registry. The loader registers parent presets before child presets, so inside a child preset's `register()` the call `container.getPreset("<parent>")` is always resolvable.
+
+```javascript
+export default function register(container) {
+  const webapp = container.getPreset("webapp").dataSources;
+  const ControllersSource = webapp.controllers;
+  const ControllerEntry = ControllersSource.Entry;
+
+  class MyControllersSource extends ControllersSource {
+    static Entry = ControllerEntry;
+    match(relPath) { return relPath.endsWith("Controller.php"); }
+    parse(absPath) {
+      const entry = new ControllerEntry();
+      // populate entry fields
+      return entry;
+    }
+  }
+  return MyControllersSource;
+}
+```
+
+Extending `WebappDataSource`:
+
+```javascript
+export default function register(container) {
+  const AnalysisEntry = container.get("base.AnalysisEntry");
+  const WebappDataSource = container.getPreset("webapp").dataSources["webapp-data-source"];
+
+  class ViewEntry extends AnalysisEntry {
+    viewType = null;
+    static summary = {};
+  }
+  class MyViewsSource extends WebappDataSource {
+    static Entry = ViewEntry;
+  }
+  return MyViewsSource;
+}
+```
+
+### 5.4 Two Kinds of DataSource
 
 **(A) Scannable DataSource (scan and data combined)**
 
 `match()` picks up files, and `parse()` returns parse results. The scan pipeline writes the returned entries to `analysis[category].entries` and automatically fills common fields (`file` / `hash` / `lines` / `mtime`). Resolve methods (`list()`, etc.) read `analysis` and produce output.
 
+`Scannable` is exposed as a mixin via `base.Scannable`:
+
 ```javascript
-import { DataSource, Scannable, AnalysisEntry } from "sdd-forge/api";
-
-export class ControllerEntry extends AnalysisEntry {
-  className = null;
-  route = null;
-  action = null;
-  static summary = {};
-}
-
-export default class MyControllersSource extends Scannable(DataSource) {
-  static Entry = ControllerEntry;
-
-  match(relPath) {
-    return relPath.startsWith("src/Controller/") && relPath.endsWith(".php");
-  }
-
-  parse(absPath) {
-    const entry = new ControllerEntry();
-    // Parse and fill fields
-    return entry;
-  }
-
-  list(analysis, labels) {
-    const items = analysis.controllers?.entries ?? [];
-    if (items.length === 0) return null;
-    const rows = this.toRows(items, (c) => [c.className, c.file, c.action ?? "—"]);
-    return this.toMarkdownTable(rows, labels);
-  }
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  const Scannable = container.get("base.Scannable");
+  class WebappDataSource extends Scannable(DataSource) {}
+  return WebappDataSource;
 }
 ```
 
 **(B) Data-only DataSource (reads analysis written by another scan)**
 
-Does not have `match()` / `parse()`; implements only resolve methods. **The analysis key it reads must be written by a scan DataSource somewhere in the chain** (do not create one if no such scan exists).
+Does not have `match()` / `parse()`; implements only resolve methods. **The analysis key it reads must be written by a scan DataSource somewhere in the chain**.
 
 ```javascript
-import { DataSource } from "sdd-forge/api";
-
-export default class SchemaSource extends DataSource {
-  tables(analysis, labels) {
-    const tables = analysis.schemas?.tables ?? [];
-    if (tables.length === 0) return null;
-    const rows = tables.map((t) => [t.name, t.columns.length]);
-    return this.toMarkdownTable(rows, labels);
+export default function register(container) {
+  const DataSource = container.get("base.DataSource");
+  class SchemaSource extends DataSource {
+    tables(analysis, labels) {
+      const tables = analysis.schemas?.tables ?? [];
+      if (tables.length === 0) return null;
+      // ...
+    }
   }
+  return SchemaSource;
 }
 ```
 
-### 5.2 `match(relPath)` Contract
+### 5.5 `match(relPath)` / `parse(absPath)` Contracts
 
-- `relPath` is the path relative to the scan root (`SDD_SOURCE_ROOT`).
-- Separator is always `/` (POSIX). It is not converted to `\` on Windows.
-- No leading `./` (e.g. `src/Controller/UserController.php`).
-- Returns boolean.
+- `match(relPath)`: `relPath` is the path relative to the scan root, separator is `/`, no leading `./`. Returns boolean.
+- `parse(absPath)`: Argument is an absolute path. The scan pipeline invokes `parse` once per file in a synchronous loop by contract, so read synchronously with `fs.readFileSync(absPath, "utf8")` (making `parse` async would change the scan-pipeline contract and is out of scope for an individual preset). Returns `new this.constructor.Entry()` or `null`. Initialize Entry fields with `null`.
 
-### 5.3 `parse(absPath)` Contract
+### 5.6 Resolve Method Return Value
 
-- Argument is an absolute path. Read via `fs.readFileSync(absPath, "utf8")`.
-- Returns `new this.constructor.Entry()` or `null`.
-- Initialize `Entry` fields with `null` (for `isEmptyEntry` detection).
+Returns a **`Table` / `MarkdownText` renderable object, or `null`**. Always return `null` when there is no data (do not render broken empty tables).
 
-### 5.4 Resolve Method Return Value
+### 5.7 Resolve Method Invocation Rules
 
-Returns a **Markdown string or `null`**. Always return `null` when there is no data (do not render broken empty tables).
-
-Helpers provided by the base class:
-
-| Method | Purpose |
-|---|---|
-| `toRows(items, mapper)` | Convert an item array to a row array |
-| `toMarkdownTable(rows, labels)` | Generate a Markdown table string from rows and label arrays (pipe characters are auto-escaped; `null`/`undefined` becomes `—`) |
-| `mergeDesc(items, section, keyField)` | Read descriptions from the given section of `.sdd-forge/overrides.json` and merge them into each item's `summary`, returning a new array |
-| `desc(section, key)` | Look up an individual description from `.sdd-forge/overrides.json` (returns `"—"` when undefined) |
-
-### 5.5 Resolve Method Invocation Rules
-
-A template's `{{data("<preset>.<category>.<method>", {labels: "A|B|C"})}}` calls `dataSources.get(category).method(analysis, labels)`.
-
-- The pipe-separated `labels` string is split into an array `["A", "B", "C"]` before the resolve method is called, so the method receives an **array** (which can be passed directly to `toMarkdownTable`).
-- Category name = file name of `data/<category>.js` (without `.js`).
+A template's `{{data("<preset>.<category>.<method>", {labels: "A|B|C"})}}` calls `dataSources.get(category).method(analysis, labels)`. The `labels` arrive as an array `["A", "B", "C"]`. Category name = file name of `data/<category>.js` (without `.js`).
 
 ---
 
 ## 6. Import Rules (MUST follow)
 
-sdd-forge exposes its official public API via `package.json` `exports`:
+Only **Node.js built-in modules** may be imported at the top of `data/*.js`:
+
+```javascript
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import crypto from "crypto";
+```
+
+**Forbidden:**
+
+1. Relative imports into sdd-forge internals (`../../../docs/lib/...`, `../../lib/...`, `../../<sibling-preset>/...`) are forbidden.
+2. Bare specifiers (`sdd-forge/api`, `sdd-forge/presets/*`, etc.) do not exist (removed in spec 191).
+3. All sdd-forge dependencies must be obtained inside the `register(container)` function via `container.get(...)` / `container.getPreset(...)`.
+
+Test-only helpers that need sdd-forge internal imports must be isolated in `tests/analyzers.js` (see §13.4).
+
+---
+
+## 7. Container Keys
+
+Dependencies available inside a `register(container)` function are listed below (registered by `initContainer()` in `src/lib/container.js`). The Container is extended additively (existing keys are never changed), so new keys can be added in minor/patch releases without breaking existing presets.
+
+### 7.1 Base Classes (base)
+
+| Key | Kind | Purpose |
+|---|---|---|
+| `base.DataSource` | class | DataSource base class (resolve methods / helpers) |
+| `base.Scannable` | mixin function | Adds scan capability (`class X extends Scannable(DataSource)`) |
+| `base.AnalysisEntry` | class | Base class for scan entries (parent of classes assigned to `static Entry`) |
+| `base.ANALYSIS_META_KEYS` | string[] | Array of reserved meta-field names on an Entry |
+
+### 7.2 Scanner Utilities
+
+| Key | Kind | Purpose |
+|---|---|---|
+| `scanner.findFiles` | function | Find files from glob patterns |
+| `scanner.collectFiles` | function | Merge multiple include/exclude and collect files |
+| `scanner.patternToRegex` | function | Convert a glob to a regex |
+| `scanner.parseFile` | function | Dispatch to a language handler's parse by extension |
+| `scanner.parsePHPFile` | function | PHP-specific parse |
+| `scanner.parseJSFile` | function | JS/TS-specific parse |
+| `scanner.camelToSnake` | function | `CamelCase` → `camel_case` |
+| `scanner.pluralize` | function | Simple English pluralization |
+| `scanner.getFileStats` | function | Line counts, hashes, etc. for a file |
+
+### 7.3 PHP Parser Utilities
+
+| Key | Kind | Purpose |
+|---|---|---|
+| `phpParser.stripBlockComments` | function | Remove `/* ... */` comments |
+| `phpParser.extractArrayBody` | function | Extract the body text of `array(...)` |
+| `phpParser.extractTopLevelKeys` | function | Extract top-level keys of an array literal |
+| `phpParser.extractQuotedStrings` | function | Extract quoted string literals |
+
+### 7.4 path-match Utilities
+
+| Key | Kind | Purpose |
+|---|---|---|
+| `pathMatch.hasPathPrefix` | function | Relative path prefix match |
+| `pathMatch.hasSegmentPath` | function | Path-segment containment check |
+| `pathMatch.hasAnyPathPrefix` | function | Match against any of multiple prefixes |
+
+### 7.5 lang / toml / config
+
+| Key | Kind | Purpose |
+|---|---|---|
+| `lang.getHandler` | function | Get a language handler by extension |
+| `toml.parse` | function | Parse TOML text into an object |
+| `config.loadJsonFile` | function | Safely load a JSON file (does not throw on missing/empty) |
+
+### 7.6 Runtime Services
+
+Data sources rarely touch these directly, but some advanced resolve methods reference them:
+
+| Key | Kind | Purpose |
+|---|---|---|
+| `root` | string | Absolute project root path |
+| `mainRoot` | string | Path of the main repo (points to main even from inside a worktree) |
+| `inWorktree` | boolean | Whether executing inside a worktree |
+| `paths` | object | Various paths (srcRoot, sddDir, outputDir, agentWorkDir, logDir, configPath) |
+| `config` | object | Loaded `.sdd-forge/config.json` (null when uninitialized) |
+| `lang` | string | `config.lang` (documentation language) |
+| `i18n` | function | Translation function |
+| `logger` | Logger | Log output |
+| `agent` | Agent | AI agent invocation |
+| `flowManager` | FlowManager | SDD flow state management |
+
+### 7.7 Preset Registry
+
+| Method | Purpose |
+|---|---|
+| `container.getPreset("<key>")` | Returns `{ dataSources: { <category>: SourceClass, ... } }` |
+| `container.hasPreset("<key>")` | Whether registered |
+
+Used by a child preset to inherit parent Source / Entry classes.
+
+---
+
+## 8. External Preset Compatibility (peerDependencies)
+
+An external preset distributed as an npm package expresses its compatibility with sdd-forge **only via `peerDependencies` in `package.json`**. No independent version field is added to the Container API.
 
 ```json
 {
-  "exports": {
-    ".": "./src/sdd-forge.js",
-    "./api": "./src/api.js",
-    "./presets/*": "./src/presets/*"
+  "name": "sdd-forge-preset-foo",
+  "peerDependencies": {
+    "sdd-forge": "^0.1.0-alpha"
   }
 }
 ```
 
-Imports from DataSource files are limited to the following:
-
-```javascript
-// Base classes
-import { DataSource, Scannable, AnalysisEntry } from "sdd-forge/api";
-
-// Preset internal classes (for inheritance)
-import SymfonyControllersSource from "sdd-forge/presets/symfony/data/controllers";
-import { ControllerEntry } from "sdd-forge/presets/webapp/data/controllers";
-import WebappDataSource from "sdd-forge/presets/webapp/data/webapp-data-source";
-```
-
-**Critical rules:**
-
-1. **Do not add the `.js` extension.** `sdd-forge/presets/*` is a wildcard subpath export; adding `.js` produces a double-extension `.js.js` and `ENOENT`. `sdd-forge/api` is a static mapping and also requires no extension.
-2. **Do not reference `sdd-forge/src/...` directly** (not part of `exports`).
-3. **Do not reference `sdd-forge/presets/<key>/templates/...`** (non-public).
-4. If a required class is not included in `api.js`, consider adding it to sdd-forge's `src/api.js` (via PR / issue).
+- peerDependencies declares the minimum sdd-forge version required to satisfy **Container key compatibility**.
+- The Container grows only additively (existing keys never change), so minor/patch updates do not break existing presets.
+- Do not put sdd-forge in `dependencies` (this would install it twice and break resolution).
 
 ---
 
-## 7. Template Design
+## 9. Template Design
 
-### 7.1 Directive List
+### 9.1 Directive List
 
 ```markdown
 <!-- {%extends%} -->                 Inherit the parent template (same file name)
 <!-- {%extends: layout%} -->         Inherit by a different name
 <!-- {%block "name"%} -->...<!-- {%/block%} --> Block definition / override
 
-<!-- {{data("<preset>.<category>.<method>", {labels: "A|B|C", ignoreError: true})}} -->
+<!-- {{data("<preset>.<category>.<method>", {labels: "A|B|C"})}} -->
 <!-- {{/data}} -->
 
 <!-- {{text({prompt: "write description", mode: "deep"})}} -->
 <!-- {{/text}} -->
 ```
 
-- `{{data}}` and `{{/data}}` **remain in the file after resolution** and act as markers for the next build. The resolution result is inserted between them.
+- `{{data}}` and `{{/data}}` **remain in the file after resolution** and serve as markers for the next build.
 - An empty template file acts as a "deletion marker" that removes the parent's block.
 
-### 7.2 When to Use `{{data}}` vs `{{text}}`
+### 9.2 When to Use `{{data}}` vs `{{text}}`
 
 | Condition | Directive |
 |---|---|
-| Mechanically extractable by regex / parser | `{{data(...)}}` (accurate tables from scan data) |
-| Too framework-specific to structure | `{{text(...)}}` (AI-generated) |
+| Mechanically extractable by regex / parser | `{{data(...)}}` |
+| Too framework-specific to structure | `{{text(...)}}` |
 
-### 7.3 Parent Uses `{{text}}`, Child Overrides with `{{data}}`
+### 9.3 Parent Uses `{{text}}`, Child Overrides with `{{data}}`
 
-Upper-level presets like `webapp` use `{{text}}` + `{%block%}`; child presets override the block with `{{data}}`. This yields:
+Upper-level presets like `webapp` use `{{text}}` + `{%block%}`; child presets override the block with `{{data}}`.
 
-- Parent alone (no scan data) still works via AI generation
-- Child preset emits accurate tables from scan data
-- New presets only need to add an override template
-
-```markdown
-<!-- webapp/templates/en/auth_and_session.md -->
-<!-- {%block "auth_config"%} -->
-<!-- {{text({prompt: "Describe the authentication configuration."})}} -->
-<!-- {{/text}} -->
-<!-- {%/block%} -->
-```
-
-```markdown
-<!-- symfony/templates/en/auth_and_session.md -->
-<!-- {%extends%} -->
-<!-- {%block "auth_config"%} -->
-<!-- {{data("symfony.config.auth", {labels: "Item|Value"})}} -->
-<!-- {{/data}} -->
-<!-- {%/block%} -->
-```
-
-### 7.4 Template Resolution Priority (high → low)
+### 9.4 Template Resolution Priority (high → low)
 
 1. Project-local `.sdd-forge/templates/<lang>/docs/`
 2. Project-local preset `.sdd-forge/presets/<key>/templates/<lang>/`
@@ -357,7 +430,7 @@ Upper-level presets like `webapp` use `{{text}}` + `{%block%}`; child presets ov
 
 ---
 
-## 8. MUST: scan / data Pairing Rule
+## 10. MUST: scan / data Pairing Rule
 
 If a data DataSource reads `analysis.X`, there must be a scan DataSource somewhere in the chain that writes `X`.
 
@@ -371,37 +444,33 @@ If a data DataSource reads `analysis.X`, there must be a scan DataSource somewhe
   → no scan DataSource writes analysis.schemas
 ```
 
-If you cannot implement scan, do not create a data DataSource either — switch the relevant template to `{{text}}`.
+---
+
+## 11. enrich Constraints
+
+The enrich phase only attaches `summary` / `chapter` / `role` to entries that scan has collected. **It does not create new analysis categories or invent data that scan failed to find.**
 
 ---
 
-## 9. enrich Constraints
+## 12. Implementation Procedure (Top-down)
 
-The enrich phase only attaches `summary` / `chapter` / `role` to entries that scan has collected. **It does not create new analysis categories or invent data that scan failed to find.** Use `{{text}}` in templates for data that cannot be scanned.
-
----
-
-## 10. Implementation Procedure (Top-down)
-
-### 10.1 Creation Order (MUST)
+### 12.1 Creation Order (MUST)
 
 Build in the order **Templates → DataSources → scan parsers**. Working backwards from the consumer avoids writing unnecessary parsers and prevents missing data.
 
-### 10.2 Step-by-Step
+### 12.2 Step-by-Step
 
 1. **Create preset.json** — define at minimum `parent` / `scan.include` / `chapters`
-2. **Add `<key>` to `type` in config.json** — without this the preset is not loaded (put the leaf first)
-3. **Validate scan patterns with `sdd-forge docs scan --dry-run`** — confirm files are collected correctly
+2. **Add `<key>` to `type` in config.json** — put the leaf first
+3. **Validate scan patterns with `sdd-forge docs scan --dry-run`**
 4. **Place templates** — start with only `{{text}}` to establish the skeleton
-5. **Implement DataSources one at a time** — after each, run `sdd-forge docs scan` and check `<category>.entries.length` in `.sdd-forge/output/analysis.json`
+5. **Implement DataSources one at a time** — each as a `register(container)` factory. After each, run `sdd-forge docs scan` and check `<category>.entries.length`
 6. **Swap the relevant template blocks from `{{text}}` to `{{data}}`**
 7. **Run `sdd-forge docs build`** and verify the entire pipeline
-8. **Add guardrail.json** (polish once build passes). During project operation, create `.sdd-forge/overrides.json` if you need to pin descriptions
+8. **Add guardrail.json** (polish once build passes)
 9. **For built-in presets, set up `tests/`** and run `npm test` to verify integrity
 
-### 10.3 Minimal Working Set
-
-The following is enough to make scan succeed (project-local example):
+### 12.3 Minimal Working Set
 
 ```
 .sdd-forge/
@@ -414,176 +483,162 @@ The following is enough to make scan succeed (project-local example):
 
 ```javascript
 // data/simple.js
-import { AnalysisEntry } from "sdd-forge/api";
-import WebappDataSource from "sdd-forge/presets/webapp/data/webapp-data-source";
+export default function register(container) {
+  const AnalysisEntry = container.get("base.AnalysisEntry");
+  const WebappDataSource = container.getPreset("webapp").dataSources["webapp-data-source"];
 
-export class SimpleEntry extends AnalysisEntry {
-  name = null;
-  static summary = {};
-}
-
-export default class SimpleSource extends WebappDataSource {
-  static Entry = SimpleEntry;
-  match(relPath) { return relPath.endsWith(".js"); }
-  parse(absPath) {
-    const entry = new SimpleEntry();
-    entry.name = absPath.split("/").pop();
-    return entry;
+  class SimpleEntry extends AnalysisEntry {
+    name = null;
+    static summary = {};
   }
-  list(analysis, labels) {
-    const items = analysis.simple?.entries ?? [];
-    if (items.length === 0) return null;
-    const rows = items.map((e) => [e.name, e.file]);
-    return this.toMarkdownTable(rows, labels);
+  class SimpleSource extends WebappDataSource {
+    static Entry = SimpleEntry;
+    match(relPath) { return relPath.endsWith(".js"); }
+    parse(absPath) {
+      const entry = new SimpleEntry();
+      entry.name = absPath.split("/").pop();
+      return entry;
+    }
   }
+  return SimpleSource;
 }
 ```
 
 ---
 
-## 11. Validation Commands
+## 13. Validation Commands and Tests
+
+### 13.1 Validation Commands
 
 ```bash
-# Print a per-category entry-count summary to stdout (does not rewrite analysis.json)
-# Output is a flat JSON object: { categoryName: integerCount, ... }.
-# Categories whose scan DataSource is registered but matched 0 files are reported as 0.
-sdd-forge docs scan --dry-run
-
-# Print the full analysis JSON to stdout (does not rewrite analysis.json)
-sdd-forge docs scan --stdout
-
-# Full run (updates .sdd-forge/output/analysis.json)
-sdd-forge docs scan
-
-# Run the full pipeline
-sdd-forge docs build
-
-# Integrity tests for built-in presets
-npm test
-npm test -- --preset <key>            # per-preset
-node tests/acceptance/run.js <key>    # per-preset acceptance
+sdd-forge docs scan --dry-run         # Per-category entry-count summary
+sdd-forge docs scan --stdout          # Print full analysis JSON
+sdd-forge docs scan                   # Real run
+sdd-forge docs build                  # Full pipeline
+npm test                              # Integrity tests
+npm test -- --preset <key>            # Per-preset
+node tests/acceptance/run.js <key>    # Per-preset acceptance
 ```
+
+### 13.2 Test Layout (Built-in Presets)
+
+- `tests/unit/` — DataSource `match` / `parse` I/O tests
+- `tests/e2e/` — preset.json scan configuration check and full scan
+- `tests/acceptance/test.js` — preset-local fixture acceptance tests
+
+### 13.3 Integrity Tests
+
+`tests/unit/presets/preset-scan-integrity.test.js` automatically verifies:
+
+1. Every preset with scan patterns has a scan DataSource in its chain
+2. Every `{{data}}` directive references a method that exists on the DataSource
+3. For every data DataSource that reads `analysis.X`, some scan DataSource in the chain writes `X`
+
+### 13.4 Test-Only Helpers (`tests/analyzers.js`)
+
+Importing sdd-forge internals from `data/*.js` is forbidden (§6). When a unit test needs to verify "the Source's parse produces a specific AST" or a similar internal assertion, place the test-only helper in `tests/analyzers.js` — that file is free to import sdd-forge internals. Test files (`tests/unit/*.test.js`) should import only from this helper, keeping the Source body free of internal module dependencies.
 
 ---
 
-## 12. Pitfall Checklist
+## 14. Pitfall Checklist
 
-### 12.1 `*/` Inside a JSDoc Comment Closes the Comment
+### 14.1 `*/` Inside a JSDoc Comment Closes the Comment
 
 Writing a file path that contains `*/` inside a doc comment cuts the comment short.
 
 ```javascript
 /**
- * Parses src/app/Plugin/*/PluginManager.php.   ← "*/" closes the comment → SyntaxError
+ * Parses src/app/Plugin/*/PluginManager.php.   ← "*/" closes the comment
  */
 ```
 
-**Fix**: Replace wildcards in paths with placeholders such as `{name}`.
-Use `node --input-type=module --check <file>` to validate (plain `node --check` is ambiguous between ESM/CJS and reports false positives).
+**Fix**: Replace wildcards in paths with placeholders such as `{name}`. Validate with `node --input-type=module --check <file>`.
 
-### 12.2 Import Extensions
+### 14.2 Do Not Default-Export a Class Directly
 
-Do not append `.js` when importing from `sdd-forge/api` or `sdd-forge/presets/*`.
+The loader invokes the default export as a factory function. A class default export is called in a non-`new` manner and fails with "Class constructor X cannot be invoked without 'new'". **Always wrap it as `register(container) { return class ... }`**.
 
-### 12.3 Loader Behavior
+### 14.3 No Self-Reference Within the Same Preset
 
-`src/docs/lib/data-source-loader.js` dynamically imports every `.js` file under `data/`. It registers a DataSource in the sources Map **only when the default export is a class / function**. If you want to keep a side-effect-only helper module under `data/`, omit the default export and the loader will skip it (usually unnecessary since `sdd-forge/api` exists).
+Inside the `data/` files of a parent preset (e.g. webapp itself), do not rely on `container.getPreset("webapp")` for self-reference. The loader processes files in `readdir` order and registers the preset only after all files in `data/` have been processed. If a sibling Source in the same preset needs to be extended, load it from its own file first and reconstruct the class hierarchy from the base classes inside `register(container)`.
 
-### 12.4 Strictness of `chapters`
+### 14.4 Strictness of `chapters`
 
-Chapters declared in `chapters` require a template in the preset itself or an ancestor. For chapters you do not override, placing a thin template with `{%extends%}` is the safest option.
+Chapters declared in `chapters` require a template in the preset itself or an ancestor. For chapters you do not override, place a thin template with `{%extends%}`.
 
-### 12.5 `[init] ERROR:` Is an Informational Message
+### 14.5 `[init] ERROR:` Is an Informational Message
 
 `sdd-forge docs init`'s `[init] ERROR: N files already exist under docs/` is an **informational** notice (about `--force`), not a failure. Judge by exit code.
 
-### 12.6 Bash Test Scripts
-
-`set -uo pipefail` + `echo "$big" | grep -q` tends to fail with SIGPIPE (exit 141). Use bash string matching: `[[ "$x" == *"pat"* ]]`.
-
-### 12.7 Common Errors
+### 14.6 Common Errors
 
 | Error | Cause |
 |---|---|
-| `[datasource] failed to load DataSource X: Unexpected identifier ...` | A `*/` inside a JSDoc closed the comment, or an import path includes `.js` |
-| `<category>.entries.length === 0` | `match()` is always false, or `scan.include` has no matching pattern |
+| `Class constructor X cannot be invoked without 'new'` | A class was default-exported directly (not wrapped in a register factory) |
+| `Container: dependency not registered: <key>` | `container.get()` was called with an unregistered key |
+| `Cannot read properties of null (reading 'dataSources')` | `container.getPreset("<key>")` referred to an unregistered preset |
+| `<category>.entries.length === 0` | `match()` is always false, or `scan.include` is missing |
 | `Preset not found: <key>` | Not listed in `type` of `config.json` |
 | `[data] UNRESOLVED {{data}} in foo.md: <cat>.<sub>.<method>` | The DataSource does not exist or the resolve method is not defined |
-| `ENOENT` with double-extension `.js.js` | An import path includes `.js` (e.g. `sdd-forge/presets/.../foo.js`) |
 
 ---
 
-## 13. Additional Requirements for Built-in Presets
+## 15. Additional Requirements for Built-in Presets
 
-### 13.1 Tests (MUST)
-
-- `tests/unit/` — Scan parser I/O tests (minimal fixtures via `createTmpDir()`)
-- `tests/e2e/` — Verify `preset.json` scan configuration and run a full scan
-- `tests/acceptance/test.js` — Acceptance tests using preset-local fixtures. Shared helpers live in `tests/acceptance/lib/`
-- Each preset must be runnable on its own via `npm test -- --preset <name>`
-
-### 13.2 Integrity Tests
-
-`tests/unit/presets/preset-scan-integrity.test.js` automatically verifies the following. **Run `npm test` and ensure it passes after every addition or change.**
-
-1. Every preset with scan patterns has a scan DataSource in its chain
-2. Every `{{data}}` directive in templates references a method that exists on the DataSource
-3. For every data DataSource that reads `analysis.X`, some scan DataSource in the chain writes `X`
-
-### 13.3 No Project-Specific Values
+### 15.1 No Project-Specific Values
 
 Do not write project-specific values (project name, host, port, container name, etc.) into `src/presets/`. Keep only generic parsing logic. Externalize project-specific values in `.sdd-forge/config.json`.
 
+### 15.2 Tests (MUST)
+
+Provide `tests/unit/` / `tests/e2e/` / `tests/acceptance/test.js` and make each preset runnable on its own via `npm test -- --preset <name>`.
+
 ---
 
-## 14. Additional Requirements for Project-Local Presets
+## 16. Additional Requirements for Project-Local Presets
 
 - Leaf-only. `parent` must point to a built-in key.
 - `preset.json` may be omitted (inherits defaults from the built-in chain).
 - Files under `.sdd-forge/templates/<lang>/docs/` have the highest priority (stronger than preset templates).
-- Pitfall: a project-local preset does not need its own `package.json`. When sdd-forge dynamically imports a DataSource, its own package resolution context is used, so bare specifiers (`sdd-forge/api`, etc.) resolve correctly.
+- `package.json` is not needed (the loader uses sdd-forge's own resolution context).
 
 ---
 
-## 15. AI Execution Checklist
+## 17. AI Execution Checklist
 
-When asked to create a preset, perform the following in order:
-
-1. [ ] Inspect the target project's directory structure and framework with `ls` / `fd`
-2. [ ] Choose the closest parent among existing presets (read `src/presets/`)
-3. [ ] Create `<preset-root>/<key>/preset.json` (minimum: `parent`, `scan.include`, `chapters`)
+1. [ ] Inspect the target project's directory structure and framework
+2. [ ] Choose the closest parent among existing presets
+3. [ ] Create `<preset-root>/<key>/preset.json`
 4. [ ] Add `<key>` to the head of the `type` array in `.sdd-forge/config.json`
 5. [ ] Confirm file collection with `sdd-forge docs scan --dry-run`
 6. [ ] Place skeleton templates under `templates/<lang>/` (start with `{{text}}` only)
-7. [ ] Implement DataSources one by one (import only from `sdd-forge/api` / `sdd-forge/presets/*`, without extensions)
-8. [ ] After each DataSource, run `sdd-forge docs scan` and check `<category>.entries.length` in `.sdd-forge/output/analysis.json`
-9. [ ] Judge `match()` on a `relPath` that uses `/` separators and has no leading `./`
-10. [ ] Return the result of `toMarkdownTable(rows, labels)` (a Markdown string) or `null` from resolve methods. Return `null` when there is no data
+7. [ ] Implement DataSources one by one as `register(container)` factories
+8. [ ] Obtain dependencies via `container.get(...)` / `container.getPreset(...).dataSources`
+9. [ ] Verify there is no direct class export and no relative import into sdd-forge internals
+10. [ ] After each DataSource, run `sdd-forge docs scan` and inspect `analysis.json`
 11. [ ] If you read `analysis.X`, verify that a scan DataSource in the chain writes `X`
 12. [ ] Gradually replace `{{text}}` with `{{data}}` in templates
 13. [ ] Confirm the whole pipeline passes with `sdd-forge docs build`
 14. [ ] For built-in presets, set up `tests/` and ensure `npm test` passes
-15. [ ] (Optional) Add `guardrail.json`. If you need to pin descriptions, create `.sdd-forge/overrides.json` at the project root
+15. [ ] For external distribution, declare `sdd-forge` under `peerDependencies` in `package.json`
 
 ---
 
-## 16. Reference Files
+## 18. Reference Files
 
 sdd-forge core:
 
 | File | Content |
 |---|---|
-| `src/api.js` | Publicly exported base classes (`DataSource`, `Scannable`, `AnalysisEntry`) |
-| `src/lib/presets.js` | Preset discovery and chain resolution |
+| `src/lib/container.js` | Container implementation and `initContainer()` key registration |
+| `src/lib/presets.js` | Preset discovery, chain resolution, and loader |
 | `src/docs/lib/data-source.js` | `DataSource` base class |
 | `src/docs/lib/scan-source.js` | `Scannable` mixin (`match`, `parse`) |
 | `src/docs/lib/analysis-entry.js` | `AnalysisEntry` base class |
-| `src/docs/lib/data-source-loader.js` | DataSource dynamic loading |
 | `src/docs/lib/template-merger.js` | Template inheritance and block merging |
-| `src/presets/webapp/data/webapp-data-source.js` | `WebappDataSource = Scannable(DataSource)` |
-| `src/presets/symfony/data/*.js` | Reference implementation for a PHP framework |
-| `src/presets/cakephp2/data/*.js` | Alternative PHP implementation (PHP parser utilities) |
-| `src/presets/nextjs/data/*.js` | Reference for frontend DataSources |
+| `src/presets/base/data/*.js` | Reference for the base factory pattern |
+| `src/presets/webapp/data/webapp-data-source.js` | Reference for `Scannable(DataSource)` factory |
+| `src/presets/cakephp2/data/*.js` | Reference implementation for a PHP framework |
 
 Project rules:
 

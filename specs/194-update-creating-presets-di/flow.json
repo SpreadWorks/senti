@@ -1,0 +1,188 @@
+{
+  "spec": "specs/194-update-creating-presets-di/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/194-update-creating-presets-di",
+  "runId": "aefa954a-954d-4143-baab-d08bbb91c84c",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "skipped"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1 factory entry only",
+      "status": "done"
+    },
+    {
+      "desc": "R2 container.get for base utils",
+      "status": "done"
+    },
+    {
+      "desc": "R3 container.getPreset for parent inheritance",
+      "status": "done"
+    },
+    {
+      "desc": "R4 remove legacy-contract examples",
+      "status": "done"
+    },
+    {
+      "desc": "R5 update or drop stale pitfalls",
+      "status": "done"
+    },
+    {
+      "desc": "R6 ja/en heading structure parity",
+      "status": "done"
+    },
+    {
+      "desc": "R7 list all container keys",
+      "status": "done"
+    },
+    {
+      "desc": "R8 peerDependencies only for external presets",
+      "status": "done"
+    },
+    {
+      "desc": "R9 guide is self-contained",
+      "status": "done"
+    }
+  ],
+  "request": "creating_presets.md を spec 191 の factory 形式 DI 契約に合わせて更新する (ja/en 両言語)",
+  "worktree": true,
+  "autoApprove": true,
+  "notes": [
+    "Q1 approved: update ja/en creating_presets.md to factory DI contract. Key requirement: make the doc concrete enough that an AI can implement a new preset without errors by reading it alone. User requested auto mode.",
+    "finalize.mode: [1] all (auto, per user skip instruction)"
+  ],
+  "metrics": {
+    "gate-draft": {
+      "tokens": {
+        "input": 57784,
+        "output": 5646,
+        "cacheRead": 93056,
+        "cacheCreation": 0
+      },
+      "callCount": 6,
+      "responseChars": 8746,
+      "durationMs": 142977
+    },
+    "gate": {
+      "tokens": {
+        "input": 22164,
+        "output": 1946,
+        "cacheRead": 28416,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 2239,
+      "durationMs": 43201
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 430921,
+        "output": 5787,
+        "cacheRead": 105984,
+        "cacheCreation": 0
+      },
+      "callCount": 10,
+      "responseChars": 14669,
+      "durationMs": 170955
+    },
+    "impl": {
+      "issueLog": 1
+    }
+  },
+  "test": {
+    "summary": {
+      "unit": 83
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-19T14:10:58.032Z"
+  }
+}
