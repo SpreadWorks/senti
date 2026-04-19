@@ -16,7 +16,7 @@ import { VALID_PHASES, VALID_METRIC_COUNTERS } from "../lib/constants.js";
  */
 function deriveActivePhase(ctx) {
   const state = ctx.flowManager.load();
-  return derivePhase(state?.steps);
+  return derivePhase(state);
 }
 
 /**

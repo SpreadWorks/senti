@@ -9,7 +9,7 @@ import { derivePhase } from "../../lib/flow-helpers.js";
 import { FlowCommand } from "./base-command.js";
 
 function buildStatusOutput(state) {
-  const phase = state.steps ? derivePhase(state.steps) : null;
+  const phase = state.steps ? derivePhase(state) : null;
   const doneSteps = state.steps ? state.steps.filter((s) => s.status === "done").length : 0;
   const totalSteps = state.steps ? state.steps.length : 0;
   const doneReqs = state.requirements ? state.requirements.filter((r) => r.status === "done").length : 0;

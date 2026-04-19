@@ -61,16 +61,43 @@ export class FlowManager {
     return new FlowManager({ root, mainRoot: this._mainRoot, inWorktree: root !== this._mainRoot });
   }
 
-  updateStepStatus(stepId, status) { return this._store.updateStepStatus(stepId, status); }
-  setRequirements(descs) { return this._store.setRequirements(descs); }
-  setTestSummary(summary) { return this._store.setTestSummary(summary); }
-  updateRequirement(index, status) { return this._store.updateRequirement(index, status); }
+  updateStepStatus(stepId, status, opts) { return this._store.updateStepStatus(stepId, status, opts); }
+  setRequirements(descs, opts) { return this._store.setRequirements(descs, opts); }
+  setTestSummary(summary, opts) { return this._store.setTestSummary(summary, opts); }
+  updateRequirement(index, status, opts) { return this._store.updateRequirement(index, status, opts); }
   setRequest(text) { return this._store.setRequest(text); }
   setIssue(issue) { return this._store.setIssue(issue); }
-  addNote(text) { return this._store.addNote(text); }
-  incrementMetric(phase, counter) { return this._store.incrementMetric(phase, counter); }
+  addNote(text, opts) { return this._store.addNote(text, opts); }
+  incrementMetric(phase, counter, opts) { return this._store.incrementMetric(phase, counter, opts); }
   accumulateAgentMetrics(phase, options) {
     return this._store.accumulateAgentMetrics(phase, options);
+  }
+
+  // ── task primitives (cac6/T2) ───────────────────────────────────────────────
+
+  /** Add a new task and set it as the current task. */
+  addTask(task) { return this._store.addTask(task); }
+
+  /** Mark a task done; clears currentTaskId if it pointed at this task. */
+  completeTask(taskId) { return this._store.completeTask(taskId); }
+
+  /** Get the current task object or null. */
+  getCurrentTask() {
+    const state = this._store.load();
+    if (!state || state.currentTaskId == null) return null;
+    return (state.tasks || []).find((t) => t.id === state.currentTaskId) ?? null;
+  }
+
+  /** Get the in_progress step of the current task, or null. */
+  getCurrentTaskStep() {
+    const task = this.getCurrentTask();
+    if (!task) return null;
+    return (task.steps || []).find((s) => s.status === "in_progress") ?? null;
+  }
+
+  /** Update a step status on the current task. */
+  setCurrentTaskStep(stepId, status) {
+    return this._store.setCurrentTaskStep(stepId, status);
   }
 
   /**

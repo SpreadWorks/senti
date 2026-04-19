@@ -1,0 +1,153 @@
+{
+  "spec": "specs/196-flow-tasks-extension/spec.md",
+  "date": "2026-04-19T23:24:59.521Z",
+  "requirements": [
+    {
+      "desc": "REQ-1 PreparingFlowStore.create 初期値に tasks:[] と currentTaskId:null を含む",
+      "status": "done",
+      "note": "src/lib/preparing-flow-store.js の create 初期状態に tasks:[] と currentTaskId:null が追加されている。"
+    },
+    {
+      "desc": "REQ-2 FlowStore.load/loadReadOnly は tasks 未定義なら throw",
+      "status": "done",
+      "note": "assertTaskSchema() を load と loadReadOnly の両方で実行し、tasks/currentTaskId 欠落時に Error を投げる。"
+    },
+    {
+      "desc": "REQ-3 FlowStore.save は常に tasks/currentTaskId を書く",
+      "status": "done",
+      "note": "save() 内で tasks 未定義時は []、currentTaskId 未定義時は null を補完してから保存している。"
+    },
+    {
+      "desc": "REQ-4 addTask(task) 実装：バリデーション＋追加＋currentTaskId 設定",
+      "status": "done",
+      "note": "validateTaskShape() で属性検証し、重複IDを拒否して state.tasks へ追加、currentTaskId を task.id に設定している。"
+    },
+    {
+      "desc": "REQ-5 completeTask(taskId) 実装：status done 化＋currentTaskId 解除",
+      "status": "done",
+      "note": "該当 task を done に更新し、currentTaskId 一致時は null 化、未知 taskId は throw。"
+    },
+    {
+      "desc": "REQ-6 getCurrentTask() 実装",
+      "status": "done",
+      "note": "FlowManager.getCurrentTask() が currentTaskId から task を解決し、null の場合は null を返す。"
+    },
+    {
+      "desc": "REQ-7 getCurrentTaskStep() 実装",
+      "status": "done",
+      "note": "FlowManager.getCurrentTaskStep() が現在 task の in_progress step を返し、無ければ null。"
+    },
+    {
+      "desc": "REQ-8 setCurrentTaskStep(stepId,status) 実装",
+      "status": "done",
+      "note": "FlowStore.setCurrentTaskStep() が現在 task 不在・未知 step を throw し、対象 step を更新する。"
+    },
+    {
+      "desc": "REQ-9 既存 mutator 群の scope 推論（省略時は現在 task か親）",
+      "status": "done",
+      "note": "対象 mutator が resolveMutationScope(state, opts) を使い、opts 省略時は currentTaskId 優先で scope を決定する。"
+    },
+    {
+      "desc": "REQ-10 既存 mutator 群の明示 {taskId} 引数対応",
+      "status": "done",
+      "note": "mutator に opts/taskId が追加され、taskId:null は親スコープ、未知 taskId は throw になる。"
+    },
+    {
+      "desc": "REQ-11 _resolveScope ヘルパに scope 推論ロジックを集約",
+      "status": "partial",
+      "note": "集約自体は実施済みだが、実装名は _resolveScope ではなく resolveMutationScope。"
+    },
+    {
+      "desc": "REQ-12 TASK_STEPS_PLAN と TASK_STEPS_ADDITION 定数追加",
+      "status": "done",
+      "note": "src/lib/flow-helpers.js に両定数が追加され、指定シーケンス（approval-2 含む）になっている。"
+    },
+    {
+      "desc": "REQ-13 buildInitialTaskSteps(origin) 追加、未知 origin throw",
+      "status": "done",
+      "note": "plan/integration/addition の分岐を実装し、未知 origin で throw する。"
+    },
+    {
+      "desc": "REQ-14 derivePhase(state) へシグネチャ変更＋TASK_PHASE_MAP 追加",
+      "status": "done",
+      "note": "derivePhase(state) に変更され TASK_PHASE_MAP で task優先判定、呼び出し側も state 渡しへ更新されている。"
+    },
+    {
+      "desc": "REQ-15 tests/unit/flow-manager-tasks.test.js 追加（task API 全面）",
+      "status": "partial",
+      "note": "網羅テストは追加されているが、実ファイルは tests/unit/lib/flow-manager-tasks.test.js。"
+    },
+    {
+      "desc": "REQ-16 tests/unit/flow-helpers-tasks.test.js 追加（helpers 全面）",
+      "status": "partial",
+      "note": "網羅テストは追加されているが、実ファイルは tests/unit/lib/flow-helpers-tasks.test.js。"
+    },
+    {
+      "desc": "REQ-17 既存 flow-*.test.js のモック整合修正（tasks:[], currentTaskId:null 追加）",
+      "status": "done",
+      "note": "tests/helpers/flow-setup.js と tests/unit/flow.test.js の state fixture に tasks/currentTaskId が追加された。"
+    },
+    {
+      "desc": "REQ-18 npm test が exit 0 で PASS",
+      "status": "partial",
+      "note": "report/flow.json に pass 相当の記録はあるが、実行ログや終了コードの一次証跡は diff 単体では確認できない。"
+    },
+    {
+      "desc": "REQ-19 第1コミットで本 spec の flow.json に tasks:[], currentTaskId:null 追記",
+      "status": "partial",
+      "note": "flow.json への追記自体は確認できるが、『第1コミットで実施』は diff だけでは検証不能。"
+    },
+    {
+      "desc": "REQ-20 他 active flow 不在を着手時に確認",
+      "status": "partial",
+      "note": "関連メモはあるが、着手時点で他 active flow 不在を示す直接的証跡は diff 上で限定的。"
+    },
+    {
+      "desc": "REQ-21 Exit code contract: 失敗時は非ゼロ、成功時は 0",
+      "status": "partial",
+      "note": "load/scope 失敗の throw と ambient metric no-op は実装されているが、CLI 終了コード契約全体の実証までは diff では不足。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/196-flow-tasks-extension/draft.md",
+      "change": "要件評価対象外のドラフト文書を新規追加。"
+    },
+    {
+      "file": "specs/196-flow-tasks-extension/qa.md",
+      "change": "要件に直接対応しない Q&A テンプレートを追加。"
+    },
+    {
+      "file": "specs/196-flow-tasks-extension/review.md",
+      "change": "要件外のレビュー記録ファイルを追加。"
+    },
+    {
+      "file": "specs/196-flow-tasks-extension/report.json",
+      "change": "要件外の実装レポート生成物を追加。"
+    },
+    {
+      "file": "specs/196-flow-tasks-extension/retro.json",
+      "change": "要件外のレトロスペクティブ記録を追加。"
+    },
+    {
+      "file": "specs/196-flow-tasks-extension/issue-log.json",
+      "change": "要件外の運用ログ（gate/finalize履歴）を追加。"
+    },
+    {
+      "file": "specs/196-flow-tasks-extension/tests/README.md",
+      "change": "テスト運用説明ドキュメントを追加（要件に明示なし）。"
+    },
+    {
+      "file": "src/lib/flow-store.js",
+      "change": "setCurrentTaskStep で他 in_progress step を pending に戻す追加挙動を導入（要件明記なし）。"
+    }
+  ],
+  "summary": {
+    "total": 21,
+    "done": 14,
+    "partial": 7,
+    "not_done": 0,
+    "rate": 0.83,
+    "notes": "コア実装要件（REQ-1〜10,12〜14,17）は満たしている。未充足は主に要件文言との不一致（REQ-11 名称、REQ-15/16 パス）と、diffだけでは証明困難な運用・実行証跡系（REQ-18〜21）。"
+  }
+}

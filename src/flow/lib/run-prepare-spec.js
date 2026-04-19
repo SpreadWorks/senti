@@ -251,6 +251,8 @@ export class RunPrepareSpecCommand extends FlowCommand {
         lifecycle: "active",
         steps,
         requirements: [],
+        tasks: [],
+        currentTaskId: null,
         ...(issue ? { issue: Number(issue) } : {}),
         ...(request ? { request } : {}),
         ...extra,

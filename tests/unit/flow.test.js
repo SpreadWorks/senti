@@ -114,6 +114,8 @@ describe("flow-state (specs-based storage)", () => {
       spec: `specs/${specId}/spec.md`,
       baseBranch: "main",
       featureBranch: "feature/001-test",
+      tasks: [],
+      currentTaskId: null,
     };
     // Manually set up: write flow.json + .active-flow
     const flowDir = join(tmp, "specs", specId);

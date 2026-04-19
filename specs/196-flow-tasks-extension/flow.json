@@ -1,0 +1,249 @@
+{
+  "spec": "specs/196-flow-tasks-extension/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/196-flow-tasks-extension",
+  "runId": "e67485c5-be93-4e47-b847-99bb8bad17fc",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "in_progress"
+    },
+    {
+      "id": "gate-impl",
+      "status": "pending"
+    },
+    {
+      "id": "review",
+      "status": "pending"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "REQ-1 PreparingFlowStore.create 初期値に tasks:[] と currentTaskId:null を含む",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-2 FlowStore.load/loadReadOnly は tasks 未定義なら throw",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-3 FlowStore.save は常に tasks/currentTaskId を書く",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-4 addTask(task) 実装：バリデーション＋追加＋currentTaskId 設定",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-5 completeTask(taskId) 実装：status done 化＋currentTaskId 解除",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-6 getCurrentTask() 実装",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-7 getCurrentTaskStep() 実装",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-8 setCurrentTaskStep(stepId,status) 実装",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-9 既存 mutator 群の scope 推論（省略時は現在 task か親）",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-10 既存 mutator 群の明示 {taskId} 引数対応",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-11 _resolveScope ヘルパに scope 推論ロジックを集約",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-12 TASK_STEPS_PLAN と TASK_STEPS_ADDITION 定数追加",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-13 buildInitialTaskSteps(origin) 追加、未知 origin throw",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-14 derivePhase(state) へシグネチャ変更＋TASK_PHASE_MAP 追加",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-15 tests/unit/flow-manager-tasks.test.js 追加（task API 全面）",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-16 tests/unit/flow-helpers-tasks.test.js 追加（helpers 全面）",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-17 既存 flow-*.test.js のモック整合修正（tasks:[], currentTaskId:null 追加）",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-18 npm test が exit 0 で PASS",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-19 第1コミットで本 spec の flow.json に tasks:[], currentTaskId:null 追記",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-20 他 active flow 不在を着手時に確認",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-21 Exit code contract: 失敗時は非ゼロ、成功時は 0",
+      "status": "pending"
+    }
+  ],
+  "issue": 183,
+  "request": "#183 issueの対応を進めてください",
+  "worktree": true,
+  "notes": [
+    "Q1: issue #183 summary approved as-is",
+    "Q2: T2 scope - full scope per issue (FlowStore/FlowManager/flow-helpers + existing methods scope-aware). CLI wiring is in scope for methods but broader gate/run rewrite is T5/T7.",
+    "Q2 answer: [2] strict - load throws if tasks missing. Our own flow.json normalized manually as first impl step.",
+    "Q3 answer: [1] flow.json currentTaskId: string|null. Single active task (cac6 sequential policy). Future parallel renames/broadens, alpha allows break.",
+    "Q4 answer: [1] buildInitialTaskSteps(origin) with 2 patterns (plan 6-step, addition 8-step). T4 will refine test-first split.",
+    "Q5 answer: [1] tests/unit/ formal tests."
+  ],
+  "metrics": {
+    "plan": {
+      "docsRead": 2
+    },
+    "draft": {
+      "question": 4
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 100795,
+        "output": 8609,
+        "cacheRead": 137088,
+        "cacheCreation": 0
+      },
+      "callCount": 9,
+      "responseChars": 12461,
+      "durationMs": 202786
+    },
+    "gate": {
+      "tokens": {
+        "input": 15503,
+        "output": 1804,
+        "cacheRead": 40448,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 4164,
+      "durationMs": 40956
+    },
+    "impl": {
+      "issueLog": 1
+    },
+    "implement": {
+      "tokens": {
+        "input": 38062,
+        "output": 3300,
+        "cacheRead": 18560,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 5163,
+      "durationMs": 64732
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 2
+    }
+  },
+  "tasks": [],
+  "currentTaskId": null,
+  "state": {
+    "finalizedAt": "2026-04-19T23:23:54.710Z"
+  }
+}

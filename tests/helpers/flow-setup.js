@@ -31,6 +31,8 @@ export function makeFlowState(overrides = {}) {
     featureBranch: "feature/001-test",
     steps,
     requirements: [],
+    tasks: [],
+    currentTaskId: null,
     ...overrides,
   };
 }

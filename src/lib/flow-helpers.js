@@ -17,7 +17,7 @@ export const PREPARING_TTL_MS = 24 * 60 * 60 * 1000;
 export const PREPARING_SCAN_LIMIT = 100;
 export const SCAN_FLOWS_LIMIT = 200;
 
-/** SDD workflow step IDs in order. */
+/** SDD workflow step IDs in order (flow level). */
 export const FLOW_STEPS = [
   "branch", "prepare-spec", "draft", "gate-draft", "spec",
   "gate", "approval", "test", "implement", "gate-impl", "review", "finalize",
@@ -25,7 +25,7 @@ export const FLOW_STEPS = [
   "pr-merge", "sync-cleanup", "docs-update", "docs-review", "docs-commit",
 ];
 
-/** Step ID → phase mapping. */
+/** Step ID → phase mapping (flow level). */
 export const PHASE_MAP = {
   branch: "plan", "prepare-spec": "plan", draft: "plan",
   "gate-draft": "plan", spec: "plan", gate: "plan", approval: "plan", test: "plan",
@@ -34,6 +34,39 @@ export const PHASE_MAP = {
   "pr-create": "finalize", "branch-cleanup": "finalize",
   "pr-merge": "sync", "sync-cleanup": "sync",
   "docs-update": "sync", "docs-review": "sync", "docs-commit": "sync",
+};
+
+/** Valid values for Task.origin. */
+export const TASK_ORIGINS = ["plan", "addition", "integration"];
+
+/** Valid values for Task.status. */
+export const TASK_STATUSES = ["pending", "in_progress", "done", "skipped"];
+
+/** Valid values for Task.steps[].status. */
+export const TASK_STEP_STATUSES = ["pending", "in_progress", "done", "skipped"];
+
+/** Valid values for Task.requirements[].status. */
+export const TASK_REQUIREMENT_STATUSES = ["pending", "done"];
+
+/** Task-level step sequences (cac6/T2). */
+export const TASK_STEPS_PLAN = [
+  "gate", "approval", "impl", "test", "review", "update-overview",
+];
+
+export const TASK_STEPS_ADDITION = [
+  "draft", "approval", "gate", "approval-2", "impl", "test", "review", "update-overview",
+];
+
+/** Task-level step → phase mapping. */
+export const TASK_PHASE_MAP = {
+  draft: "task-plan",
+  gate: "task-plan",
+  approval: "task-plan",
+  "approval-2": "task-plan",
+  impl: "task-impl",
+  test: "task-impl",
+  review: "task-impl",
+  "update-overview": "task-impl",
 };
 
 /**
@@ -65,13 +98,27 @@ export function getSpecDir(flowOrState, root) {
 }
 
 /**
- * Derive current phase from steps.
- * Returns the phase of the first in_progress step,
- * or the phase after the last done/skipped step.
- * @param {Array<{id:string, status:string}>} [steps]
- * @returns {"plan"|"impl"|"finalize"|"sync"}
+ * Derive current phase from a flow state (task-aware).
+ *
+ * If the state has a current task with an in_progress step, returns the
+ * task-level phase (e.g. "task-plan" / "task-impl"). Otherwise falls back
+ * to the flow-level phase based on FLOW_STEPS.
+ *
+ * @param {object|null|undefined} state - Full flow state.
+ * @returns {"plan"|"impl"|"finalize"|"sync"|"task-plan"|"task-impl"}
  */
-export function derivePhase(steps) {
+export function derivePhase(state) {
+  if (!state) return "plan";
+
+  if (state.currentTaskId != null && Array.isArray(state.tasks)) {
+    const task = state.tasks.find((t) => t.id === state.currentTaskId);
+    if (task && Array.isArray(task.steps)) {
+      const inProgress = task.steps.find((s) => s.status === "in_progress" && TASK_PHASE_MAP[s.id]);
+      if (inProgress) return TASK_PHASE_MAP[inProgress.id];
+    }
+  }
+
+  const steps = state.steps;
   if (!steps?.length) return "plan";
   const inProgress = steps.find((s) => s.status === "in_progress" && PHASE_MAP[s.id]);
   if (inProgress) return PHASE_MAP[inProgress.id];
@@ -84,11 +131,25 @@ export function derivePhase(steps) {
 }
 
 /**
- * Build initial steps array with all steps set to "pending".
+ * Build initial flow-level steps array with all steps set to "pending".
  * @returns {Array<{id:string, status:"pending"}>}
  */
 export function buildInitialSteps() {
   return FLOW_STEPS.map((id) => ({ id, status: "pending" }));
+}
+
+/**
+ * Build initial task-level steps array based on the task's origin.
+ *
+ * @param {"plan"|"addition"|"integration"} origin
+ * @returns {Array<{id:string, status:"pending"}>}
+ */
+export function buildInitialTaskSteps(origin) {
+  let ids;
+  if (origin === "plan" || origin === "integration") ids = TASK_STEPS_PLAN;
+  else if (origin === "addition") ids = TASK_STEPS_ADDITION;
+  else throw new Error(`unknown task origin: ${origin}`);
+  return ids.map((id) => ({ id, status: "pending" }));
 }
 
 /**

@@ -40,7 +40,7 @@ export default class GetResolveContextCommand extends FlowCommand {
     const flowJsonPath = path.resolve(root, `specs/${specId}/flow.json`);
 
     const steps = state.steps || [];
-    const phase = derivePhase(steps);
+    const phase = derivePhase(state);
     const currentStep = steps.find((s) => s.status === "in_progress");
     const doneSteps = steps.filter((s) => s.status === "done" || s.status === "skipped");
 

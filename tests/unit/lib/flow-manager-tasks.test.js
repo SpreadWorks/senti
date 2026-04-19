@@ -1,0 +1,231 @@
+import { describe, it, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import fs from "fs";
+import path from "path";
+import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
+import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+
+function makeState(overrides = {}) {
+  return {
+    spec: "specs/001-test/spec.md",
+    baseBranch: "main",
+    featureBranch: "feature/001-test",
+    worktree: false,
+    steps: buildInitialSteps(),
+    requirements: [],
+    tasks: [],
+    currentTaskId: null,
+    ...overrides,
+  };
+}
+
+function makeTask(overrides = {}) {
+  return {
+    id: "001",
+    spec: "specs/001-test/tasks/001-first.md",
+    origin: "plan",
+    parent: null,
+    status: "pending",
+    steps: [
+      { id: "gate", status: "pending" },
+      { id: "approval", status: "pending" },
+      { id: "impl", status: "pending" },
+      { id: "test", status: "pending" },
+      { id: "review", status: "pending" },
+      { id: "update-overview", status: "pending" },
+    ],
+    requirements: [],
+    summary: null,
+    ...overrides,
+  };
+}
+
+function setupFlow(tmp, stateOverrides = {}) {
+  const state = makeState(stateOverrides);
+  const fm = makeFlowManager(tmp);
+  fm.save(state);
+  fm.addActiveFlow("001-test", "local");
+  return fm;
+}
+
+describe("FlowManager task API", () => {
+  let tmp;
+  afterEach(() => tmp && removeTmpDir(tmp));
+
+  describe("addTask", () => {
+    it("adds task to state.tasks and sets currentTaskId", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask());
+      const loaded = fm.load("001-test");
+      assert.equal(loaded.tasks.length, 1);
+      assert.equal(loaded.tasks[0].id, "001");
+      assert.equal(loaded.currentTaskId, "001");
+    });
+
+    it("throws on duplicate task id", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask({ id: "001" }));
+      assert.throws(() => fm.addTask(makeTask({ id: "001" })), /duplicate|exist/i);
+    });
+
+    it("throws when task misses required fields", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      assert.throws(() => fm.addTask({ id: "001" }), /invalid|required|missing/i);
+    });
+  });
+
+  describe("completeTask", () => {
+    it("marks task done and clears currentTaskId when it matches", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask({ id: "001" }));
+      fm.completeTask("001");
+      const loaded = fm.load("001-test");
+      assert.equal(loaded.tasks[0].status, "done");
+      assert.equal(loaded.currentTaskId, null);
+    });
+
+    it("does not touch currentTaskId if it points elsewhere", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask({ id: "001" }));
+      fm.addTask(makeTask({ id: "002" }));
+      // currentTaskId now points to "002"
+      fm.completeTask("001");
+      const loaded = fm.load("001-test");
+      assert.equal(loaded.currentTaskId, "002");
+      assert.equal(loaded.tasks.find((t) => t.id === "001").status, "done");
+    });
+
+    it("throws on unknown task id", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      assert.throws(() => fm.completeTask("999"), /unknown|not found/i);
+    });
+  });
+
+  describe("getCurrentTask / getCurrentTaskStep / setCurrentTaskStep", () => {
+    it("getCurrentTask returns null when currentTaskId is null", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      assert.equal(fm.getCurrentTask(), null);
+    });
+
+    it("getCurrentTask returns the task pointed by currentTaskId", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask({ id: "001" }));
+      const t = fm.getCurrentTask();
+      assert.ok(t);
+      assert.equal(t.id, "001");
+    });
+
+    it("getCurrentTaskStep returns null when no current task", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      assert.equal(fm.getCurrentTaskStep(), null);
+    });
+
+    it("getCurrentTaskStep returns the in_progress step of current task", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask({ id: "001" }));
+      fm.setCurrentTaskStep("impl", "in_progress");
+      const s = fm.getCurrentTaskStep();
+      assert.ok(s);
+      assert.equal(s.id, "impl");
+      assert.equal(s.status, "in_progress");
+    });
+
+    it("setCurrentTaskStep throws when no current task", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      assert.throws(() => fm.setCurrentTaskStep("impl", "in_progress"), /no current task|no task/i);
+    });
+
+    it("setCurrentTaskStep throws on unknown step id", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask({ id: "001" }));
+      assert.throws(() => fm.setCurrentTaskStep("unknown-step", "in_progress"), /unknown step/i);
+    });
+  });
+
+  describe("scope inference on existing mutators", () => {
+    it("addNote writes to task when current task exists", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask({ id: "001" }));
+      fm.addNote("task-note");
+      const loaded = fm.load("001-test");
+      assert.equal(loaded.tasks[0].notes?.length, 1);
+      assert.equal(loaded.tasks[0].notes[0], "task-note");
+      assert.ok(!loaded.notes || loaded.notes.length === 0);
+    });
+
+    it("addNote writes to parent when no current task", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addNote("parent-note");
+      const loaded = fm.load("001-test");
+      assert.equal(loaded.notes?.length, 1);
+      assert.equal(loaded.notes[0], "parent-note");
+    });
+  });
+
+  describe("explicit scope argument", () => {
+    it("addNote({ taskId: null }) writes to parent even when current task exists", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask({ id: "001" }));
+      fm.addNote("parent-explicit", { taskId: null });
+      const loaded = fm.load("001-test");
+      assert.equal(loaded.notes?.length, 1);
+      assert.equal(loaded.notes[0], "parent-explicit");
+      assert.ok(!loaded.tasks[0].notes || loaded.tasks[0].notes.length === 0);
+    });
+
+    it("addNote({ taskId: '001' }) writes to specified task", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      fm.addTask(makeTask({ id: "001" }));
+      fm.addTask(makeTask({ id: "002" }));
+      // currentTaskId is now "002"
+      fm.addNote("for-001", { taskId: "001" });
+      const loaded = fm.load("001-test");
+      const t1 = loaded.tasks.find((t) => t.id === "001");
+      const t2 = loaded.tasks.find((t) => t.id === "002");
+      assert.equal(t1.notes[0], "for-001");
+      assert.ok(!t2.notes || t2.notes.length === 0);
+    });
+
+    it("addNote({ taskId: 'unknown' }) throws", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      assert.throws(() => fm.addNote("x", { taskId: "unknown" }), /unknown|not found/i);
+    });
+  });
+
+  describe("strict load: legacy format rejected", () => {
+    it("load throws when tasks field is missing", () => {
+      tmp = createTmpDir();
+      const fm = setupFlow(tmp);
+      // Manually write a legacy flow.json without tasks field.
+      const p = path.join(tmp, "specs/001-test/flow.json");
+      const legacy = {
+        spec: "specs/001-test/spec.md",
+        baseBranch: "main",
+        featureBranch: "feature/001-test",
+        worktree: false,
+        steps: buildInitialSteps(),
+        requirements: [],
+      };
+      fs.writeFileSync(p, JSON.stringify(legacy, null, 2));
+      assert.throws(() => fm.load("001-test"), /tasks|schema|legacy/i);
+    });
+  });
+});

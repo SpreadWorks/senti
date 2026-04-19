@@ -1,0 +1,68 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/196-flow-tasks-extension/draft.md        | 123 +++++++++++\n specs/196-flow-tasks-extension/flow.json       | 238 +++++++++++++++++++++\n specs/196-flow-tasks-extension/issue-log.json  |  65 ++++++\n specs/196-flow-tasks-extension/qa.md           |   9 +\n specs/196-flow-tasks-extension/report.json     |  73 +++++++\n specs/196-flow-tasks-extension/retro.json      | 141 +++++++++++++\n specs/196-flow-tasks-extension/review.md       |  49 +++++\n specs/196-flow-tasks-extension/spec.md         | 210 +++++++++++++++++++\n specs/196-flow-tasks-extension/tests/README.md |  39 ++++\n src/flow/lib/get-resolve-context.js            |   2 +-\n src/flow/lib/get-status.js                     |   2 +-\n src/flow/lib/run-prepare-spec.js               |   2 +\n src/flow/lib/run-resume.js                     |   2 +-\n src/flow/registry.js                           |   2 +-\n src/lib/flow-helpers.js                        |  79 ++++++-\n src/lib/flow-manager.js                        |  39 +++-\n src/lib/flow-store.js                          | 273 +++++++++++++++++++++----\n src/lib/preparing-flow-store.js                |   2 +\n tests/helpers/flow-setup.js                    |   2 +\n tests/unit/flow.test.js                        |   2 +\n tests/unit/lib/flow-helpers-tasks.test.js      | 129 ++++++++++++\n tests/unit/lib/flow-manager-tasks.test.js      | 231 +++++++++++++++++++++\n 22 files changed, 1654 insertions(+), 60 deletions(-)",
+      "commits": [
+        "feat: feature/196-flow-tasks-extension",
+        "chore: update flow.json and issue-log after rebase",
+        "chore: add retro and report",
+        "feat: feature/196-flow-tasks-extension",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 21,
+      "done": 14,
+      "partial": 7,
+      "not_done": 0,
+      "rate": 0.83,
+      "notes": "コア実装要件（REQ-1〜10,12〜14,17）は満たしている。未充足は主に要件文言との不一致（REQ-11 名称、REQ-15/16 パス）と、diffだけでは証明困難な運用・実行証跡系（REQ-18〜21）。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 0,
+      "question": 4,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 116298,
+      "output": 10413,
+      "cacheRead": 177536,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 243742,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 202786
+        },
+        {
+          "phase": "gate",
+          "durationMs": 40956
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 2
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/196-flow-tasks-extension\n    chore: update flow.json and issue-log after rebase\n    chore: add retro and report\n    feat: feature/196-flow-tasks-extension\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    22 files changed, 1654 insertions(+), 60 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (14 done / 7 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 0\n    Q&A ......................... 4\n    issue-log ................... 1\n    agent calls ................. 11\n    input tokens ................ 116,298\n    output tokens ............... 10,413\n    cache-read tokens ........... 177,536\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 243.7s\n      gate-draft ................ 202.8s\n      gate ...................... 41.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2  integration 0  acceptance 0  total 2"
+}
