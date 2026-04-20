@@ -16,6 +16,7 @@ import { join } from "path";
 import fs from "fs";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { setupFlow } from "../../helpers/flow-setup.js";
+import { PASS_DRAFT_ESCAPED } from "./fixtures/drafts.js";
 
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
@@ -24,6 +25,8 @@ function writeStubAgent(tmp, script) {
   fs.writeFileSync(p, script);
   return p;
 }
+
+const PASS_DRAFT = PASS_DRAFT_ESCAPED;
 
 function makeFlowWithAdditionTask(tmp, overrides = {}) {
   return setupFlow(tmp, {
@@ -59,7 +62,7 @@ describe("flow run draft-task CLI", () => {
     tmp = createTmpDir();
     makeFlowWithAdditionTask(tmp);
     const stub = writeStubAgent(tmp,
-      `process.stdout.write(JSON.stringify({ draft: "# Draft\\n## Goal\\nstub goal\\n" }));`);
+      `process.stdout.write(JSON.stringify({ draft: "${PASS_DRAFT}" }));`);
     const out = execFileSync(
       "node", [FLOW_CMD, "run", "draft-task", "--task-id", "T-add"],
       { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_AGENT_STUB: stub }, cwd: tmp },
@@ -75,7 +78,7 @@ describe("flow run draft-task CLI", () => {
     tmp = createTmpDir();
     makeFlowWithAdditionTask(tmp);
     const stub = writeStubAgent(tmp,
-      `process.stdout.write(JSON.stringify({ draft: "# Draft\\n## Goal\\npass\\n", selfApproved: true }));`);
+      `process.stdout.write(JSON.stringify({ draft: "${PASS_DRAFT}", selfApproved: true }));`);
     const out = execFileSync(
       "node", [FLOW_CMD, "run", "draft-task", "--task-id", "T-add"],
       { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_AGENT_STUB: stub }, cwd: tmp },
@@ -123,7 +126,7 @@ describe("flow run draft-task CLI", () => {
       }
     }
     const stub = writeStubAgent(tmp,
-      `process.stdout.write(JSON.stringify({ draft: "# Draft\\n## Goal\\nauto\\n" }));`);
+      `process.stdout.write(JSON.stringify({ draft: "${PASS_DRAFT}" }));`);
     const out = execFileSync(
       "node", [FLOW_CMD, "run", "draft-task", "--task-id", "T-add"],
       { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_AGENT_STUB: stub }, cwd: tmp },

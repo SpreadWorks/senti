@@ -54,6 +54,16 @@ describe("Agent.resolve(commandId)", () => {
     assert.equal(agent.resolve(), null);
   });
 
+  it("REQ-P5 (spec 199): resolves flow.draft-task via default fallback when no profile entry exists", () => {
+    // agent.default set, no useProfile / profiles defined → matchProfilePrefix
+    // returns null for flow.draft-task, defaultKey is used.
+    const cfg = { agent: { default: "claude/opus", timeout: 300 } };
+    const agent = makeAgent({ config: cfg });
+    const resolved = agent.resolve("flow.draft-task");
+    assert.ok(resolved, "flow.draft-task must resolve via default fallback");
+    assert.equal(resolved.profile.command, "claude");
+  });
+
   it("resolves to a profile-routed provider when SDD_FORGE_PROFILE is unset and useProfile is configured", () => {
     const cfg = {
       agent: {

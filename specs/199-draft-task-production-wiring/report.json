@@ -1,0 +1,69 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/199-draft-task-production-wiring/draft.md    |  85 ++++++++\n specs/199-draft-task-production-wiring/flow.json   | 224 +++++++++++++++++++++\n .../issue-log.json                                 |  60 ++++++\n specs/199-draft-task-production-wiring/qa.md       |   9 +\n specs/199-draft-task-production-wiring/review.md   |  41 ++++\n specs/199-draft-task-production-wiring/spec.md     | 116 +++++++++++\n .../tests/README.md                                |  27 +++\n .../tests/skill-has-addition-task-step.test.js     |  38 ++++\n src/flow/lib/run-draft-task.js                     | 138 ++++++++++---\n src/templates/skills/sdd-forge.flow-impl/SKILL.md  |  24 ++-\n tests/unit/flow/fixtures/drafts.js                 |  40 ++++\n tests/unit/flow/flow-run-draft-task-prompt.test.js |  75 +++++++\n .../flow-run-draft-task-reasons-feedback.test.js   | 113 +++++++++++\n tests/unit/flow/flow-run-draft-task.test.js        |   9 +-\n tests/unit/lib/agent-service.test.js               |  10 +\n 15 files changed, 969 insertions(+), 40 deletions(-)",
+      "commits": [
+        "feat: feature/199-draft-task-production-wiring",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 7,
+      "partial": 2,
+      "not_done": 0,
+      "rate": 0.89,
+      "notes": "Implementation aligns with most core requirements (P1–P7), with strongest evidence in run-draft-task wiring, skill sequence update, and added unit tests. Two contract-level points remain only partially evidenced from this diff: strict retry bound semantics (off-by-one style loop) and explicit process exit-code/envelope behavior, which depends on outer CLI handling not included here."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 5,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 393386,
+      "output": 15565,
+      "cacheRead": 241152,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 390552,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 98202
+        },
+        {
+          "phase": "gate",
+          "durationMs": 46718
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 191579
+        },
+        {
+          "phase": "review",
+          "durationMs": 54053
+        }
+      ]
+    },
+    "tests": {
+      "unit": 10,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 10
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/199-draft-task-production-wiring\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    15 files changed, 969 insertions(+), 40 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 89%  (7 done / 2 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 5\n    issue-log ................... 1\n    agent calls ................. 16\n    input tokens ................ 393,386\n    output tokens ............... 15,565\n    cache-read tokens ........... 241,152\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 390.6s\n      gate-draft ................ 98.2s\n      gate ...................... 46.7s\n      gate-impl ................. 191.6s\n      review .................... 54.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 10  integration 0  acceptance 0  total 10"
+}

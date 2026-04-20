@@ -1,0 +1,224 @@
+{
+  "spec": "specs/199-draft-task-production-wiring/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/199-draft-task-production-wiring",
+  "runId": "58c1b0a9-c7e9-4e62-8761-8718dcbea25c",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "[P1] task-spec full gate evaluation via same-process RunGateCommand",
+      "status": "done"
+    },
+    {
+      "desc": "[P2] inject gate FAIL reasons into retry prompt as dedicated section",
+      "status": "done"
+    },
+    {
+      "desc": "[P3] flow-impl skill Required Sequence includes addition task branch to call flow run draft-task",
+      "status": "done"
+    },
+    {
+      "desc": "[P4] buildDraftPrompt exported with reasons param for unit testing",
+      "status": "done"
+    },
+    {
+      "desc": "[P5] agent.resolve(flow.draft-task) falls back to agent.default",
+      "status": "done"
+    },
+    {
+      "desc": "[P6] SDD_FORGE_AGENT_STUB contract preserved",
+      "status": "done"
+    },
+    {
+      "desc": "[P7] simpleGate removed from run-draft-task.js",
+      "status": "done"
+    },
+    {
+      "desc": "[P8] retry loop bounded by config.flow.retry.max (default 10), escalates with ESCALATE_RETRY_EXHAUSTED",
+      "status": "done"
+    },
+    {
+      "desc": "[P9] non-zero exit code and ok:false on failure, zero and ok:true only on PASS",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 189,
+  "request": "#189 Issue 対応: draft-task production AI provider 配線と full gate 統合 (spec 198 REQ-P3 残作業)",
+  "worktree": true,
+  "notes": [
+    "Q1 approved: 4 scope items — agent profile registration, simpleGate → run gate replacement, FAIL reasons into retry prompt, skill template consolidation"
+  ],
+  "metrics": {
+    "plan": {
+      "srcRead": 1,
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 5
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 37989,
+        "output": 3930,
+        "cacheRead": 67072,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 8703,
+      "durationMs": 98202
+    },
+    "gate": {
+      "tokens": {
+        "input": 16168,
+        "output": 1904,
+        "cacheRead": 38656,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 4931,
+      "durationMs": 46718
+    },
+    "impl": {
+      "issueLog": 1
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 243891,
+        "output": 7435,
+        "cacheRead": 127488,
+        "cacheCreation": 0
+      },
+      "callCount": 8,
+      "responseChars": 9270,
+      "durationMs": 191579
+    },
+    "review": {
+      "tokens": {
+        "input": 95338,
+        "output": 2296,
+        "cacheRead": 7936,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3584,
+      "durationMs": 54053
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 10
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-20T12:53:28.473Z"
+  }
+}

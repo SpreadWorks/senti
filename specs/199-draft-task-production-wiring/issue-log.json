@@ -1,0 +1,60 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: productionizing draft-task generation and validation flow.; Unambiguous Requirements — Requirements are mostly concrete and testable with explicit conditions and expected outcomes.; Complete Context — Several requirements state behavior without an explicit trigger condition (e.g., export/remove/retain requirements).; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are present in the draft content.; Prioritize Requirements — There are more than three requirements, but no explicit priority order is defined.; Impact on Existing Features — Impact on existing features is not explicitly summarized as a dedicated impact statement.; Present Recommendations with Reasoning — Q&A includes recommendations, but reasoning basis (docs/guardrails/code patterns) is not explicitly stated for each answer.; Explore Before Asking — No unresolved user-directed questions are present; the draft provides direct decisions.; Proactively Raise Related Implications — Related implications are proactively covered via Out of Scope and Alternatives sections.; Confirm Brainstorm vs. Decision Before Critiquing — Content is framed as a decided draft with user approval, not critique of brainstorming ideas.; Capture Digressions in draft.md — No discussion digressions are evident in the provided content.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files, functions, call patterns), exceeding pure requirements level.; Backward-Compatible CLI Interface — No command/option removal or semantic break in CLI interface is proposed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:25:53.726Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: productionizing `draft-task` generation flow and its validation wiring.; Unambiguous Requirements — Requirements are written as verifiable conditions (When/shall) with concrete expected behavior.; Complete Context — Each listed requirement pairs a trigger/context with a required outcome.; No Hardcoded Secrets — No secrets (keys/tokens/passwords) are present in the draft content.; Prioritize Requirements — More than three requirements are explicitly prioritized as P1–P6 in order.; Impact on Existing Features — Impact on existing features is explicitly enumerated, including unaffected areas.; Present Recommendations with Reasoning — Q&A leads with recommendations and gives concise rationale grounded in guardrails/code patterns.; Explore Before Asking — This requires process/runtime evidence of what was explored before user interaction, not fully provable from draft text alone.; Proactively Raise Related Implications — Related implications are proactively surfaced via Impact, Out of Scope, and Alternatives sections.; Confirm Brainstorm vs. Decision Before Critiquing — Whether brainstorming vs decision mode was confirmed depends on conversation flow not included here.; Capture Digressions in draft.md — Need discussion-history evidence to determine if digressions occurred and were captured.; Draft Stays at Requirements Level — Draft includes implementation/function-level details (e.g., specific functions, export/test wiring), exceeding pure requirements level.; Backward-Compatible CLI Interface — Draft states CLI interface is unchanged; no command/option meaning change requiring migration plan.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:27:15.571Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: productionizing addition-task draft generation flow wiring.; Unambiguous Requirements — Requirements are mostly stated as verifiable When/shall conditions without vague adjectives.; Complete Context — Requirement P6 lacks an explicit trigger condition (When/If), so context-behavior pairing is incomplete.; No Hardcoded Secrets — No secrets (API keys/tokens/passwords) are present in the draft content.; Prioritize Requirements — More than three requirements are provided and explicitly prioritized as P1-P6.; Impact on Existing Features — Impact section explicitly lists affected areas and states unaffected areas.; Present Recommendations with Reasoning — Q&A includes recommendations, but at least one rationale cites issue wording rather than the allowed bases (docs/guardrails/code patterns).; Explore Before Asking — No unresolved user-directed questions remain; recommendations are provided directly.; Proactively Raise Related Implications — Related implications are proactively covered via Impact, Scope/Out of Scope, and Alternatives.; Confirm Brainstorm vs. Decision Before Critiquing — Requires conversation-level evidence of user intent confirmation, which is not provided in this content.; Capture Digressions in draft.md — Requires discussion-history evidence of digressions and capture actions, not visible in the draft alone.; Draft Stays at Requirements Level — Draft includes implementation-level details (e.g., process model/container call pattern/function exposure), exceeding pure requirements level.; Backward-Compatible CLI Interface — Draft states CLI interface remains unchanged, so no migration plan is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:29:04.114Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 105: unchecked task/question (- [ ] `buildDraftPrompt` の reasons 引数は配列のみを受ける想定だが、`run-gate.js` が返す `artifacts.reasons` の型は `{verdict, detail, guardrail_id, category}` 形式。プロンプト注入時にどのフィールドをどの形式で展開するか（例: `- [FAIL] <detail>` 箇条書き形式を想定）は実装時に確定する。)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:31:55.612Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: production wiring for draft-task generation and gating.; Unambiguous Requirements — Requirements are mostly concrete and verifiable with explicit conditions and expected outcomes.; Complete Context — Not all requirements include both trigger context and expected behavior (e.g., simpleGate removal is stated without When/If context).; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present in the spec content.; No Silent Error Swallowing — No silent error swallowing pattern is specified; article is inapplicable to this specification text.; Prioritize Requirements — More than three requirements are present and explicit priority ordering (P1-P7) is defined.; Impact on Existing Features — Spec does not provide a clear explicit impact summary for existing features or state that none are affected.; Bounded Resource Usage — Retry behavior is required but no explicit upper bound for retries/attempts is specified.; Changes Require Test Coverage — Spec includes unit and acceptance coverage for new behavior and compatibility paths.; Spec Includes Test Strategy — A dedicated Test Strategy section describes what to test and how.; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs direct copying without the original draft source content.; Record Unresolved Points as Open Questions — Open Questions section explicitly states no unresolved items and records the decided policy.; Include 'Why This Approach' Rationale — Spec includes a clear 'Why This Approach' rationale section.; Backward-Compatible CLI Interface — No command/option removal or semantic CLI break is introduced, so migration plan is not required.; Exit Code Contract — Spec does not define or reaffirm non-zero exit code behavior on command failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:32:30.160Z"
+    },
+    {
+      "step": "implement",
+      "reason": "spec 198 era tests (REQ-P3-1/2/4) used minimal simpleGate-compatible drafts; spec 199 replaced simpleGate with task-spec full gate (REQ-P7), so stub draft fixtures were updated to include spec-compatible sections",
+      "trigger": "full test suite regression after simpleGate → task-spec gate swap",
+      "resolution": "introduced shared PASS_DRAFT fixture with full section set; stub scripts reference it",
+      "guardrailCandidate": "when a behavior change makes existing test fixtures obsolete, update fixtures and record the rationale",
+      "timestamp": "2026-04-20T12:46:22.130Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements the spec’s required wiring: simpleGate removed, same-process task-spec RunGateCommand integration, retry reason feedback prompt section, flow-impl Step 0 addition-task procedure, exported buildDraftPrompt, and related unit/spec-scoped tests with provided passing evidence.; No Hardcoded Secrets — No added or modified lines contain hardcoded API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added test stub code includes an empty catch block (`catch {}`) that silently discards errors.; Bounded Resource Usage — Retry behavior in added logic remains explicitly bounded by `retryMax`/`config.flow.retry.max`.; No Sensitive Data in Logs — No added/modified lines log explicit passwords, tokens, or PII fields.; No Disabling Existing Tests — Diff does not skip, comment out, or delete existing tests to force passing results.; Escalate When New Tests Break Existing Tests — Requires user-communication/runtime evidence (whether failures were escalated to the user), which is not fully verifiable from diff content alone.; Do Not Modify Existing Tests Without Approval — Existing tests were modified, but whether explicit user approval was granted cannot be determined from provided diff alone.; Flag Tests That Become Irrelevant — Diff includes explicit flagging/rationale in `issue-log.json` that old simpleGate-era fixtures became obsolete after behavior change.; Exit Code Contract — Added runtime code throws on terminal failure and does not introduce any added line that forces success exit behavior on failure.; No Synchronous I/O in Hot Paths — No newly introduced synchronous I/O is shown in a new unbounded bulk-processing hot path.; Validate User Input at Entry Point — No added/modified entry-point code in this diff introduces unvalidated CLI/stdin input flow.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:47:34.741Z"
+    }
+  ]
+}

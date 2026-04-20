@@ -1,0 +1,81 @@
+{
+  "spec": "specs/199-draft-task-production-wiring/spec.md",
+  "date": "2026-04-20T12:54:16.881Z",
+  "requirements": [
+    {
+      "desc": "[P1] task-spec full gate evaluation via same-process RunGateCommand",
+      "status": "done",
+      "note": "run-draft-task now instantiates RunGateCommand in-process, executes with phase:\"task-spec\", and only accepts result === \"pass\"."
+    },
+    {
+      "desc": "[P2] inject gate FAIL reasons into retry prompt as dedicated section",
+      "status": "done",
+      "note": "FAIL feedback is carried via priorReasons into the next buildDraftPrompt call; prompt adds \"## Previous attempt failed — reasons\" only when FAIL entries exist."
+    },
+    {
+      "desc": "[P3] flow-impl skill Required Sequence includes addition task branch to call flow run draft-task",
+      "status": "done",
+      "note": "SKILL.md adds Required Sequence step 0 for addition-task detection and explicit `sdd-forge flow run draft-task --task-id <id>` execution before continuing."
+    },
+    {
+      "desc": "[P4] buildDraftPrompt exported with reasons param for unit testing",
+      "status": "done",
+      "note": "buildDraftPrompt is now exported with a third `reasons` parameter; new unit tests directly import and verify prompt differences with/without reasons."
+    },
+    {
+      "desc": "[P5] agent.resolve(flow.draft-task) falls back to agent.default",
+      "status": "done",
+      "note": "Behavior is validated by new unit test in agent-service.test.js confirming non-null resolve via default fallback when no profile mapping exists."
+    },
+    {
+      "desc": "[P6] SDD_FORGE_AGENT_STUB contract preserved",
+      "status": "done",
+      "note": "Stub path still passes task context via env and consumes stdout JSON with `{draft: ...}`; existing contract remains, with additional optional env variable added."
+    },
+    {
+      "desc": "[P7] simpleGate removed from run-draft-task.js",
+      "status": "done",
+      "note": "simpleGate function and its call site were removed from run-draft-task.js."
+    },
+    {
+      "desc": "[P8] retry loop bounded by config.flow.retry.max (default 10), escalates with ESCALATE_RETRY_EXHAUSTED",
+      "status": "partial",
+      "note": "ESCALATE_RETRY_EXHAUSTED and config/default wiring are present, but loop condition `while (attempts <= retryMax)` with pre-increment allows retryMax+1 attempts."
+    },
+    {
+      "desc": "[P9] non-zero exit code and ok:false on failure, zero and ok:true only on PASS",
+      "status": "partial",
+      "note": "On non-PASS terminal state, command throws (expected failure path), and success path returns ok:true; explicit non-zero/ok:false enforcement is delegated to outer CLI envelope code not shown in this diff."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-draft-task.js",
+      "change": "Prompt format/rules were materially changed (e.g., `# Spec:` and required heading set) beyond the explicit requirements."
+    },
+    {
+      "file": "src/flow/lib/run-draft-task.js",
+      "change": "Added stderr diagnostic logging for agent container resolution failures/null profile fallback (not explicitly required)."
+    },
+    {
+      "file": "src/flow/lib/run-draft-task.js",
+      "change": "Added `SDD_FORGE_STUB_PROMPT` env propagation to stub path (extra testability hook not explicitly required)."
+    },
+    {
+      "file": "src/flow/lib/run-draft-task.js",
+      "change": "Retry feedback now merges `artifacts.issues` into synthetic FAIL entries (`guardrail_id: \"text-check\"`), extending beyond strict `artifacts.reasons` forwarding."
+    },
+    {
+      "file": "tests/unit/flow/fixtures/drafts.js",
+      "change": "Introduced shared PASS draft fixtures and refactored existing tests to consume them (maintenance improvement not a stated requirement)."
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "done": 7,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.89,
+    "notes": "Implementation aligns with most core requirements (P1–P7), with strongest evidence in run-draft-task wiring, skill sequence update, and added unit tests. Two contract-level points remain only partially evidenced from this diff: strict retry bound semantics (off-by-one style loop) and explicit process exit-code/envelope behavior, which depends on outer CLI handling not included here."
+  }
+}

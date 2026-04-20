@@ -43,10 +43,11 @@ Before starting, run `sdd-forge flow get check impl` to verify prerequisites.
 ## Addition task draft (tool-driven)
 
 When an addition task is inserted, draft generation is handled entirely by
-`sdd-forge flow run draft-task --task-id <id>`. Do not generate the addition
-task's draft inside the skill or by free-form AI prompt — the tool path
-collects parent spec / sibling tasks / request context, calls the agent,
-runs the gate, and retries up to `config.flow.retry.max` before escalating.
+`sdd-forge flow run draft-task --task-id <id>` (see Required Sequence step 0).
+Do not generate the addition task's draft inside the skill or by free-form AI
+prompt — the tool path collects parent spec / sibling tasks / request context,
+calls the agent, runs the task-spec gate, injects any FAIL reasons into the
+next retry prompt, and retries up to `config.flow.retry.max` before escalating.
 Gate PASS is the trust point; an AI-side "I think this is good" is not.
 
 ## Task write-tests step (test-first determinism)
@@ -66,6 +67,21 @@ When a task enters its `write-tests` step, the AI is writing tests against the s
   the intended implementation.
 
 ## Required Sequence
+
+0. Addition task detection.
+   - Before step 1, inspect `flow.json` for addition tasks awaiting draft.
+     Run `sdd-forge flow get status` and look for entries in `tasks[]` with
+     `origin === "addition"` whose `draft` step is not `done`.
+   - For each such task, invoke:
+     `sdd-forge flow run draft-task --task-id <id>`
+     The command generates the draft via the registered agent, evaluates it
+     with the `task-spec` full gate (guardrail AI included), feeds any FAIL
+     reasons into the next retry prompt, and marks the task's `draft` step
+     `done` on gate PASS.
+   - Do not write addition task drafts directly from this skill — the tool
+     owns the draft → gate → retry loop. Wait for PASS before proceeding
+     to step 1 for that task.
+   - If no addition tasks are pending, skip this step.
 
 1. Implement changes.
    - **On start**: `sdd-forge flow set step implement in_progress`
