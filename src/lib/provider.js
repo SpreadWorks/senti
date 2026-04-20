@@ -38,15 +38,27 @@ class ClaudeProvider extends Provider {
   static key = "claude";
 
   parse(stdout) {
-    const data = JSON.parse(stdout);
+    const parsed = JSON.parse(stdout);
+    // claude CLI --output-format json shape varies by version:
+    //   - single object: { result, usage, total_cost_usd, ... }
+    //   - event array (2.1.114+): [{type:"system"...}, ..., {type:"result", result, usage, ...}]
+    let envelope;
+    if (Array.isArray(parsed)) {
+      envelope = [...parsed].reverse().find((e) => e && e.type === "result");
+      if (!envelope) {
+        throw new Error("claude output: no 'result' event found in array envelope");
+      }
+    } else {
+      envelope = parsed;
+    }
     return {
-      text: String(data.result ?? ""),
+      text: String(envelope.result ?? ""),
       usage: {
-        input_tokens: data.usage?.input_tokens ?? 0,
-        output_tokens: data.usage?.output_tokens ?? 0,
-        cache_read_tokens: data.usage?.cache_read_input_tokens ?? 0,
-        cache_creation_tokens: data.usage?.cache_creation_input_tokens ?? 0,
-        cost_usd: data.total_cost_usd ?? null,
+        input_tokens: envelope.usage?.input_tokens ?? 0,
+        output_tokens: envelope.usage?.output_tokens ?? 0,
+        cache_read_tokens: envelope.usage?.cache_read_input_tokens ?? 0,
+        cache_creation_tokens: envelope.usage?.cache_creation_input_tokens ?? 0,
+        cost_usd: envelope.total_cost_usd ?? null,
       },
     };
   }

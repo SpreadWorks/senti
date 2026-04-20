@@ -69,6 +69,37 @@ describe("ClaudeProvider", () => {
     assert.equal(usage.cost_usd, 0.0025);
   });
 
+  it("parse() extracts result event from claude CLI array envelope (2.1.114+)", () => {
+    const events = [
+      { type: "system", subtype: "init" },
+      { type: "assistant", message: {} },
+      {
+        type: "result",
+        subtype: "success",
+        result: "hello-array",
+        usage: {
+          input_tokens: 7,
+          output_tokens: 4,
+          cache_read_input_tokens: 2,
+          cache_creation_input_tokens: 1,
+        },
+        total_cost_usd: 0.0011,
+      },
+    ];
+    const { text, usage } = provider.parse(JSON.stringify(events));
+    assert.equal(text, "hello-array");
+    assert.equal(usage.input_tokens, 7);
+    assert.equal(usage.output_tokens, 4);
+    assert.equal(usage.cache_read_tokens, 2);
+    assert.equal(usage.cache_creation_tokens, 1);
+    assert.equal(usage.cost_usd, 0.0011);
+  });
+
+  it("parse() throws a descriptive error when array envelope has no result event", () => {
+    const stdout = JSON.stringify([{ type: "system" }, { type: "assistant" }]);
+    assert.throws(() => provider.parse(stdout), /no 'result' event/);
+  });
+
   it("builtinProfiles includes claude/opus and claude/sonnet", () => {
     const profiles = provider.builtinProfiles();
     assert.ok(profiles["claude/opus"]);
