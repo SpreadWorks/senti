@@ -1,0 +1,68 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/201-scope-review-to-spec-diff/draft.md       |  84 +++++++++\n specs/201-scope-review-to-spec-diff/flow.json      | 199 +++++++++++++++++++++\n specs/201-scope-review-to-spec-diff/issue-log.json |  44 +++++\n specs/201-scope-review-to-spec-diff/qa.md          |   9 +\n specs/201-scope-review-to-spec-diff/review.md      |  41 +++++\n specs/201-scope-review-to-spec-diff/spec.md        |  77 ++++++++\n .../201-scope-review-to-spec-diff/tests/README.md  |  35 ++++\n src/flow/commands/review.js                        | 121 +++++++++++--\n tests/unit/flow/commands/review.test.js            | 126 +++++++++++++\n 9 files changed, 724 insertions(+), 12 deletions(-)",
+      "commits": [
+        "feat: feature/201-scope-review-to-spec-diff",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 4,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.9,
+      "notes": "R-P1〜R-P4 は実装差分上で満たされている。R-P5 は追加単体テスト実装は確認できるが、指定された既存 review 関連4テスト群の継続グリーンは diff 情報だけでは断定しづらく partial。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 553333,
+      "output": 12902,
+      "cacheRead": 122240,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 339350,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 47534
+        },
+        {
+          "phase": "gate",
+          "durationMs": 126304
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 85861
+        },
+        {
+          "phase": "review",
+          "durationMs": 79651
+        }
+      ]
+    },
+    "tests": {
+      "unit": 8,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 8
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/201-scope-review-to-spec-diff\n    chore: add retro and report\n    chore: add retro and report\n    9 files changed, 724 insertions(+), 12 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 90%  (4 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 13\n    input tokens ................ 553,333\n    output tokens ............... 12,902\n    cache-read tokens ........... 122,240\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 339.4s\n      gate-draft ................ 47.5s\n      gate ...................... 126.3s\n      gate-impl ................. 85.9s\n      review .................... 79.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 8  integration 0  acceptance 0  total 8"
+}

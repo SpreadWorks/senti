@@ -1,0 +1,199 @@
+{
+  "spec": "specs/201-scope-review-to-spec-diff/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/201-scope-review-to-spec-diff",
+  "runId": "0c0a0ba4-3164-4759-ac41-c20e7b5a36c3",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R-P1: 今回 touch したファイル集合外への提案は review.md に残さない",
+      "status": "done"
+    },
+    {
+      "desc": "R-P2: review draft プロンプトに diff 対象ファイルのみという指示を含める",
+      "status": "done"
+    },
+    {
+      "desc": "R-P3: File 情報欠落の提案は除外し、除外件数を可観測にする",
+      "status": "done"
+    },
+    {
+      "desc": "R-P4: spec.md Scope が空でも diff touch ファイル集合で拘束する",
+      "status": "done"
+    },
+    {
+      "desc": "R-P5: 既存 review テストを維持し scope 拘束の単体テストを追加する",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 193,
+  "request": "#193 issueの対応を進めてください",
+  "worktree": true,
+  "notes": [
+    "Q1: auto-approved — #193 の review scope 逸脱を修正する方針で進める",
+    "review: [1] auto-fix (user approved auto mode)",
+    "finalize: [1] all (auto)"
+  ],
+  "metrics": {
+    "gate-draft": {
+      "tokens": {
+        "input": 45118,
+        "output": 2090,
+        "cacheRead": 7936,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 4470,
+      "durationMs": 47534
+    },
+    "gate": {
+      "tokens": {
+        "input": 53032,
+        "output": 5148,
+        "cacheRead": 77184,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 12534,
+      "durationMs": 126304
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 402249,
+        "output": 2810,
+        "cacheRead": 15872,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 4701,
+      "durationMs": 85861
+    },
+    "review": {
+      "tokens": {
+        "input": 52934,
+        "output": 2854,
+        "cacheRead": 21248,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 2290,
+      "durationMs": 79651
+    }
+  },
+  "test": {
+    "summary": {
+      "unit": 8
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-20T14:28:40.796Z"
+  }
+}

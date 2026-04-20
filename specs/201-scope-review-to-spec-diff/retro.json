@@ -1,0 +1,77 @@
+{
+  "spec": "specs/201-scope-review-to-spec-diff/spec.md",
+  "date": "2026-04-20T14:29:16.970Z",
+  "requirements": [
+    {
+      "desc": "R-P1: 今回 touch したファイル集合外への提案は review.md に残さない",
+      "status": "done",
+      "note": "runReview で parse 後に collectTouchedFiles + filterProposalsByScope を適用し、out-of-scope 提案を除外してから review.md を生成している。"
+    },
+    {
+      "desc": "R-P2: review draft プロンプトに diff 対象ファイルのみという指示を含める",
+      "status": "done",
+      "note": "buildDraftSystemPrompt に diff 内ファイルのみ提案すること、diff 外提案禁止、**File:** 必須の指示が追加されている。"
+    },
+    {
+      "desc": "R-P3: File 情報欠落の提案は除外し、除外件数を可観測にする",
+      "status": "done",
+      "note": "parseProposals/extractProposalFile で file 抽出し、filterProposalsByScope で file なしを除外。除外件数を stderr に `excluded ... missing-file ...` として出力している。"
+    },
+    {
+      "desc": "R-P4: spec.md Scope が空でも diff touch ファイル集合で拘束する",
+      "status": "done",
+      "note": "runReview は spec Scope 抽出結果に依存せず、常に collectTouchedFiles(root, baseBranch) の diff+staged 集合でスコープ判定している。"
+    },
+    {
+      "desc": "R-P5: 既存 review テストを維持し scope 拘束の単体テストを追加する",
+      "status": "partial",
+      "note": "tests/unit/flow/commands/review.test.js に R-P1/R-P3/R-P4（＋R-P2）検証テストは追加済み。既存4テストファイル全体が継続してパスしたことは、この diff 単体からは十分に確認できない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/commands/review.js",
+      "change": "writeReviewMd ヘルパー追加と NO_PROPOSALS 時の出力経路統一（フォーマッタ経由化）は要件一覧に直接は記載されていない。"
+    },
+    {
+      "file": "src/flow/commands/review.js",
+      "change": "export 公開面の拡張（buildFinalSystemPrompt など追加 export）は要件に明示されていない。"
+    },
+    {
+      "file": "specs/201-scope-review-to-spec-diff/draft.md",
+      "change": "仕様運用用ドキュメント追加（実装要件そのものではない管理変更）。"
+    },
+    {
+      "file": "specs/201-scope-review-to-spec-diff/flow.json",
+      "change": "フロー状態・メトリクス記録ファイル追加（実装要件外の管理変更）。"
+    },
+    {
+      "file": "specs/201-scope-review-to-spec-diff/issue-log.json",
+      "change": "ゲート評価ログ追加（実装要件外の管理変更）。"
+    },
+    {
+      "file": "specs/201-scope-review-to-spec-diff/qa.md",
+      "change": "Q&A テンプレート追加（実装要件外の管理変更）。"
+    },
+    {
+      "file": "specs/201-scope-review-to-spec-diff/review.md",
+      "change": "レビュー結果ドキュメント追加（実装要件外の管理変更）。"
+    },
+    {
+      "file": "specs/201-scope-review-to-spec-diff/spec.md",
+      "change": "仕様書本体追加（要件定義成果物であり、コード要件実装そのものではない）。"
+    },
+    {
+      "file": "specs/201-scope-review-to-spec-diff/tests/README.md",
+      "change": "spec 用テスト説明ドキュメント追加（実装要件外の管理変更）。"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 4,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.9,
+    "notes": "R-P1〜R-P4 は実装差分上で満たされている。R-P5 は追加単体テスト実装は確認できるが、指定された既存 review 関連4テスト群の継続グリーンは diff 情報だけでは断定しづらく partial。"
+  }
+}

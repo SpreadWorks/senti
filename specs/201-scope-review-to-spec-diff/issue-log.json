@@ -1,0 +1,44 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: constraining review proposals to spec diff scope.; Unambiguous Requirements — Acceptance criteria are mostly stated as testable, concrete conditions.; Complete Context — Several requirements are assertions without explicit When/If trigger context paired with shall behavior.; No Hardcoded Secrets — No secrets or credential values are present; article is inapplicable to this draft text.; Prioritize Requirements — More than three requirements are listed, but no priority order is specified.; Impact on Existing Features — Impact on existing tests/features is explicitly described, including unaffected areas.; Present Recommendations with Reasoning — Options are compared and recommendations are stated with concise rationale from code/issue context.; Explore Before Asking — Open question about test file existence appears answerable via codebase exploration before asking/deferring.; Proactively Raise Related Implications — Related implications (fallback behavior, parsing failures, test impact, observability) are proactively raised.; Confirm Brainstorm vs. Decision Before Critiquing — Content is framed as a decided draft with explicit approval; no unconfirmed critique of user brainstorming is evident.; Capture Digressions in draft.md — Cannot verify whether digressions were captured in draft.md without runtime discussion history/evidence.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions/parsing mechanics), exceeding pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed, so migration-plan requirement is inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T14:02:50.945Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 69: unchecked task/question (- [ ] なし)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T14:04:50.865Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: constraining review suggestions to touched diff files.; Unambiguous Requirements — Requirements and ACs are specific and verifiable (file scope, filtering behavior, tests, observability).; Complete Context — Requirements/ACs include trigger conditions and expected outcomes (e.g., when file info missing, exclude proposal and expose count).; No Hardcoded Secrets — No source code secrets or credential literals are present in this spec content.; No Silent Error Swallowing — No error-handling implementation is specified here; nothing indicates silent swallowing.; Prioritize Requirements — More than three requirements are explicitly prioritized with P1-P5.; Impact on Existing Features — Impact on existing features is not explicitly summarized (only scope/out-of-scope and test preservation are listed).; Bounded Resource Usage — Spec does not introduce recursive/retry/bulk-processing flows requiring explicit bounds.; Changes Require Test Coverage — Spec requires new unit tests for core behaviors and preserving existing review-related test suite.; Spec Includes Test Strategy — Includes concrete test strategy via acceptance criteria and explicit test targets/command.; Synthesize Draft, Do Not Copy — Cannot determine whether content was synthesized vs copied without the original draft source.; Record Unresolved Points as Open Questions — Open Questions section is present and states none unresolved; no unresolved gaps are left unrecorded in the document.; Include 'Why This Approach' Rationale — Rationale is provided through Goal, Q&A clarifications, and Alternatives Considered with rejection reasons.; Backward-Compatible CLI Interface — No command/option removal or semantic CLI contract change is specified, so migration plan is not required.; Exit Code Contract — Spec does not define failure handling that would alter exit-code behavior; no conflict stated.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T14:05:24.420Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: constraining review suggestions to files touched by the current diff.; Unambiguous Requirements — Requirements and acceptance criteria are stated as testable, concrete conditions.; Complete Context — Several requirements are normative statements without explicit trigger-condition phrasing (When/If + shall).; No Hardcoded Secrets — No secrets or credential values are present in the spec content.; No Silent Error Swallowing — Inapplicable to this spec text; no code-level error handling behavior is defined.; Prioritize Requirements — Requirements are explicitly prioritized (R-P1 to R-P5).; Impact on Existing Features — A dedicated impact section lists affected and unaffected existing features.; Bounded Resource Usage — No recursive/retry/bulk-processing design with unbounded behavior is introduced.; Changes Require Test Coverage — Spec requires new unit tests and keeping existing related tests green.; Spec Includes Test Strategy — Test strategy is present via concrete test targets and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot verify whether content was synthesized vs copied without the original draft source.; Record Unresolved Points as Open Questions — Unresolved points are addressed and Open Questions explicitly states none.; Include 'Why This Approach' Rationale — Rationale is documented through clarified decisions and rejected alternatives.; Backward-Compatible CLI Interface — Spec states no command/option removal or semantic change; migration plan not required.; Exit Code Contract — No change in command failure signaling is proposed in this spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T14:06:03.240Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: constraining review proposals to files touched by the current diff.; Unambiguous Requirements — Requirements and acceptance criteria are mostly testable and framed with concrete expected outcomes.; Complete Context — Several requirements state outcomes but omit explicit trigger context (When/If), so not all are fully contextualized.; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values appear in the spec content.; No Silent Error Swallowing — This requires implementation/runtime code evidence (e.g., catch handling), which is not provided in the spec text.; Prioritize Requirements — Requirements are explicitly prioritized (P1–P5) with ordering semantics defined.; Impact on Existing Features — A dedicated impact section lists affected and unaffected areas, compatibility, and test impact.; Bounded Resource Usage — No recursive/retry/bulk unbounded processing design is introduced in this spec.; Changes Require Test Coverage — Spec explicitly requires new unit tests and preservation of existing related test suites.; Spec Includes Test Strategy — Test strategy is present via requirement/test-file targets and concrete acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs direct copy without the original draft source for comparison.; Record Unresolved Points as Open Questions — Open questions are explicitly handled (none), and clarified decisions are documented rather than guessed.; Include 'Why This Approach' Rationale — Rationale is provided through Alternatives Considered with explicit rejection reasons.; Backward-Compatible CLI Interface — Spec states no command/option removal or semantic change, so migration plan is not required.; Exit Code Contract — No change to command failure signaling is specified; this article is inapplicable to the described scope.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T14:07:01.872Z"
+    }
+  ]
+}

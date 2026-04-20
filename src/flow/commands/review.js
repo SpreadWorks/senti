@@ -148,6 +148,11 @@ function buildDraftSystemPrompt() {
     "- Design pattern consistency",
     "- Simplification opportunities",
     "",
+    "Scope constraint (MANDATORY):",
+    "- Propose changes ONLY for files that appear in the diff you are given (the touched files of this change set).",
+    "- Do not propose changes to files outside the diff, even if you believe they could be improved.",
+    "- Every proposal MUST include a '**File:** <path>' line pointing to a file present in the diff. Proposals without this line will be discarded.",
+    "",
     "Output a numbered list of proposals in this format:",
     "### 1. <title>",
     "**File:** `<path>`",
@@ -179,8 +184,9 @@ function buildFinalSystemPrompt() {
 
 /**
  * Parse proposals from draft output.
+ * Also extracts the first '**File:** <path>' marker in the body (if any).
  * @param {string} text
- * @returns {{ title: string, body: string }[]}
+ * @returns {{ title: string, body: string, file: string|null }[]}
  */
 function parseProposals(text) {
   const proposals = [];
@@ -189,9 +195,74 @@ function parseProposals(text) {
     const nlIdx = part.indexOf("\n");
     const title = nlIdx >= 0 ? part.slice(0, nlIdx).trim() : part.trim();
     const body = nlIdx >= 0 ? part.slice(nlIdx + 1).trim() : "";
-    proposals.push({ title, body });
+    proposals.push({ title, body, file: extractProposalFile(body) });
   }
   return proposals;
+}
+
+/**
+ * Extract the file path from a proposal body's '**File:**' marker.
+ * Accepts `**File:** `path`` or `**File:** path` forms.
+ * @param {string} body
+ * @returns {string|null}
+ */
+function extractProposalFile(body) {
+  if (!body) return null;
+  const m = body.match(/\*\*File:\*\*\s*`?([^`\n]+?)`?\s*$/m);
+  if (!m) return null;
+  const file = m[1].trim();
+  return file || null;
+}
+
+/**
+ * Collect the set of files touched by the current change set.
+ * The "touched" set is the union of:
+ *   - files changed in the committed diff against baseBranch (`git diff <base>`)
+ *   - files changed in the staged (index) diff (`git diff --cached`)
+ * Untracked files that are not staged are intentionally NOT included — this
+ * matches the review pipeline's scope, which only considers changes that are
+ * either committed on the feature branch or staged for commit.
+ * @param {string} root
+ * @param {string} baseBranch
+ * @returns {Set<string>}
+ */
+function collectTouchedFiles(root, baseBranch) {
+  const touched = new Set();
+  const runNames = (diffArgs, label) => {
+    const res = runGit(["-C", root, "diff", "--name-only", ...diffArgs]);
+    if (!res.ok) throw new Error(`git diff --name-only ${label} failed: ${res.stderr}`);
+    for (const line of res.stdout.split("\n")) {
+      const p = line.trim();
+      if (p) touched.add(p);
+    }
+  };
+  runNames([baseBranch], baseBranch);
+  runNames(["--cached"], "--cached");
+  return touched;
+}
+
+/**
+ * Filter proposals to keep only those whose 'file' is in the touched set.
+ * Proposals without an extractable file are dropped as well.
+ * @param {{title: string, body: string, file: string|null}[]} proposals
+ * @param {Set<string>} touchedFiles
+ * @returns {{kept: object[], excluded: {outOfScope: number, missingFile: number}}}
+ */
+function filterProposalsByScope(proposals, touchedFiles) {
+  const kept = [];
+  const excluded = { outOfScope: 0, missingFile: 0 };
+  for (const p of proposals) {
+    if (!p.file) {
+      excluded.missingFile += 1;
+      continue;
+    }
+    if (!touchedFiles.has(p.file)) {
+      excluded.outOfScope += 1;
+      continue;
+    }
+    kept.push(p);
+  }
+  return { kept, excluded };
 }
 
 /**
@@ -219,6 +290,22 @@ function mergeVerdicts(text, proposals) {
     const v = verdictMap.get(i) || { verdict: "REJECTED", reason: "No verdict provided" };
     return { ...p, verdict: v.verdict, reason: v.reason };
   });
+}
+
+/**
+ * Write review.md for the current spec under specDir, using formatReviewMd
+ * as the single source of truth for the on-disk format. Returns the absolute
+ * path written.
+ * @param {string} root
+ * @param {object} flow
+ * @param {object[]} results
+ * @returns {string} absolute path of review.md
+ */
+function writeReviewMd(root, flow, results) {
+  const specDir = path.dirname(path.resolve(root, flow.spec));
+  const reviewPath = path.join(specDir, "review.md");
+  fs.writeFileSync(reviewPath, formatReviewMd(results));
+  return reviewPath;
 }
 
 /**
@@ -873,20 +960,30 @@ async function runReview(rawArgs) {
 
   if (draftResult.includes("NO_PROPOSALS")) {
     console.log("No improvement proposals found. Code looks good.");
-    // Write empty review.md
-    const specDir = path.dirname(path.resolve(root, flow.spec));
-    const reviewPath = path.join(specDir, "review.md");
-    fs.writeFileSync(reviewPath, "# Code Review Results\n\nNo proposals.\n");
+    writeReviewMd(root, flow, []);
     return;
   }
 
-  const proposals = parseProposals(draftResult);
-  if (proposals.length === 0) {
+  const rawProposals = parseProposals(draftResult);
+  if (rawProposals.length === 0) {
     console.log("No structured proposals found.");
     return;
   }
 
-  console.error(`  [draft] ${proposals.length} proposal(s) generated.`);
+  const touchedFiles = collectTouchedFiles(root, flow.baseBranch);
+  const { kept: proposals, excluded } = filterProposalsByScope(rawProposals, touchedFiles);
+  if (excluded.outOfScope > 0 || excluded.missingFile > 0) {
+    console.error(
+      `  [draft] excluded ${excluded.outOfScope} out-of-scope + ${excluded.missingFile} missing-file proposal(s).`,
+    );
+  }
+  if (proposals.length === 0) {
+    console.log("All proposals were outside the current change scope. No review output.");
+    writeReviewMd(root, flow, []);
+    return;
+  }
+
+  console.error(`  [draft] ${proposals.length} proposal(s) generated (after scope filter).`);
 
   // --- Final phase ---
   console.error("  [final] Validating proposals...");
@@ -907,9 +1004,7 @@ async function runReview(rawArgs) {
   const rejected = results.filter((r) => r.verdict === "REJECTED");
 
   // Write review.md
-  const specDir = path.dirname(path.resolve(root, flow.spec));
-  const reviewPath = path.join(specDir, "review.md");
-  fs.writeFileSync(reviewPath, formatReviewMd(results));
+  const reviewPath = writeReviewMd(root, flow, results);
   console.error(`  [final] Results saved to ${path.relative(root, reviewPath)}`);
   console.error(`  [final] ${approved.length} approved, ${rejected.length} rejected.`);
 
@@ -971,6 +1066,8 @@ function isValidSpecOutput(text) {
 
 export {
   parseProposals, mergeVerdicts, formatReviewMd, resolveReviewTarget,
+  buildDraftSystemPrompt, buildFinalSystemPrompt,
+  collectTouchedFiles, filterProposalsByScope, extractProposalFile,
   MAX_REVIEW_RETRIES, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
   applyTestFixes, formatTestReviewMd, runReviewLoop,
   extractGoalAndScope, buildSpecReviewPrompt, formatSpecReviewMd,
