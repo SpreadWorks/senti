@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-19T23:25:00.849Z",
+  "analyzedAt": "2026-04-20T02:05:16.760Z",
   "package": {
     "entries": [
       {
@@ -2507,6 +2507,29 @@
         ]
       },
       {
+        "file": "src/flow/lib/gate-step.js",
+        "hash": "7816a278b3aff89998e2ae070ba9a5e6",
+        "lines": 13,
+        "mtime": "2026-04-20T02:05:16.466Z",
+        "className": "gate-step",
+        "methods": [
+          "resolveGateStepId"
+        ],
+        "imports": [],
+        "exports": [
+          "resolveGateStepId"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js",
+          "src/flow/registry.js"
+        ],
+        "id": "9bbc3f1d",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/lib/get-check.js",
         "hash": "817db024654161edc92b0ff46ea47b3e",
         "lines": 83,
@@ -2769,7 +2792,7 @@
         ],
         "id": "c2848d40",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -2792,7 +2815,7 @@
         "usedBy": null,
         "id": "9aca938f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -2900,13 +2923,16 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "515e2b78a1aac73181e2aa7550283a02",
-        "lines": 613,
-        "mtime": "2026-04-19T14:42:06.509Z",
+        "hash": "72a66b7076eadc9b33ae604d7524e0e5",
+        "lines": 827,
+        "mtime": "2026-04-20T02:05:16.467Z",
         "className": "run-gate",
         "methods": [
+          "validateLevelPhase",
+          "EvaluationSchemaError",
+          "parseEvaluationResponse",
+          "buildGateReport",
           "RunGateCommand",
-          "resolveGateStepId",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
           "runGitDiff",
@@ -2915,11 +2941,15 @@
           "buildDraftFieldPattern",
           "checkDraftText",
           "buildGuardrailPrompt",
-          "parseGuardrailResponse",
+          "buildGuardrailPromptFromFiltered",
+          "extractJsonCandidate",
           "checkGuardrail",
           "buildImplCheckPrompt",
+          "extractRequirementIds",
+          "reasonsFromEvaluations",
           "gatePass",
-          "gateFail"
+          "gateFail",
+          "runGateFlow"
         ],
         "imports": [
           "fs",
@@ -2932,39 +2962,32 @@
           "./get-test-result.js",
           "../../lib/constants.js",
           "./base-command.js",
-          "./set-issue-log.js"
+          "./set-issue-log.js",
+          "./gate-step.js"
         ],
         "exports": [
+          "validateLevelPhase",
+          "EvaluationSchemaError",
+          "parseEvaluationResponse",
+          "buildGateReport",
           "RunGateCommand",
-          "resolveGateStepId",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
           "default",
+          "resolveGateStepId",
           "checkSpecText",
           "checkDraftText",
           "buildGuardrailPrompt",
-          "parseGuardrailResponse",
           "checkGuardrail",
+          "PHASE_TO_LEVEL",
           "IMPL_DIFF_SCOPE_LINES"
         ],
-        "extends": "FlowCommand",
+        "extends": "Error",
         "usedBy": null,
         "id": "b4aa4dad",
-        "summary": "Implements gate checks for draft, spec, and implementation phases with optional guardrail validation. It evaluates document quality, diff scope, and test evidence.",
-        "detail": "The command validates phase input, loads required artifacts, and performs phase-specific checks using regex rules and structural criteria. For implementation gates, it compares git diffs against base branches and integrates test evidence from log summaries. Guardrail checks can be run through AI prompts and parsed into pass/fail results with reasons. Outputs include next-step guidance and issue logging metadata for workflow continuity.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
           "attempts": 1
-        },
-        "keywords": [
-          "gate command",
-          "phase validation",
-          "guardrail check",
-          "impl diff check",
-          "quality gate"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -3081,7 +3104,7 @@
         "usedBy": null,
         "id": "59eeacc6",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3146,7 +3169,7 @@
         "usedBy": null,
         "id": "abe5ac21",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3658,21 +3681,21 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "61f8e4e83577b525ba92f97379aa6482",
-        "lines": 478,
-        "mtime": "2026-04-19T23:25:00.557Z",
+        "hash": "41ad592c0a759850ac4ff041d1fb47f9",
+        "lines": 469,
+        "mtime": "2026-04-20T02:05:16.467Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
           "tryUpdateStepStatus",
           "tryAppendIssueLog",
           "stepPre",
-          "stepPost",
-          "resolveGateStepId"
+          "stepPost"
         ],
         "imports": [
           "../lib/flow-helpers.js",
-          "../lib/constants.js"
+          "../lib/constants.js",
+          "./lib/gate-step.js"
         ],
         "exports": [
           "FLOW_COMMANDS"
@@ -3941,7 +3964,7 @@
         ],
         "id": "0d680f4f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4050,9 +4073,9 @@
       },
       {
         "file": "src/lib/constants.js",
-        "hash": "82e9bde7c6f991c13540b1b37603903b",
-        "lines": 117,
-        "mtime": "2026-04-17T05:45:21.328Z",
+        "hash": "72ab2e8b8094b6520dc67df20b98c8cf",
+        "lines": 165,
+        "mtime": "2026-04-20T02:05:16.467Z",
         "className": "constants",
         "methods": [],
         "imports": [],
@@ -4060,6 +4083,10 @@
           "VALID_PHASES",
           "VALID_STEP_STATUSES",
           "VALID_GATE_PHASES",
+          "VALID_GATE_LEVELS",
+          "VALID_LEVEL_PHASE_COMBINATIONS",
+          "VALID_GUARDRAIL_CATEGORIES",
+          "VALID_GUARDRAIL_PHASES",
           "VALID_METRIC_COUNTERS",
           "VALID_CHECK_TARGETS",
           "VALID_REVIEW_PHASES",
@@ -4075,29 +4102,18 @@
           "src/check.js",
           "src/docs.js",
           "src/flow.js",
+          "src/lib/guardrail.js",
           "src/metrics.js",
           "src/presets-cmd.js",
           "src/sdd-forge.js",
           "src/setup.js",
-          "src/upgrade.js",
-          "src/spec.js"
+          "src/spec.js",
+          "src/upgrade.js"
         ],
         "id": "74b5e1c3",
-        "summary": "constants.js defines shared enum-like value sets and exit codes used across flow and CLI logic. It is the single source for valid phases, statuses, and modes.",
-        "detail": "Constants are frozen to prevent mutation and keep runtime behavior predictable. Modules such as set-commands and review handlers depend on these sets for validation. The file also exports standardized success and error exit codes. Centralizing these values avoids duplicated literals and drift.",
-        "chapter": "configuration",
-        "role": "config",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "constants",
-          "valid phases",
-          "status enums",
-          "exit codes",
-          "shared values"
-        ]
+        }
       },
       {
         "file": "src/lib/container.js",
@@ -4292,7 +4308,7 @@
         ],
         "id": "09ff0ab4",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4322,7 +4338,7 @@
         ],
         "id": "3d2ed4c0",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4357,7 +4373,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4451,9 +4467,9 @@
       },
       {
         "file": "src/lib/guardrail.js",
-        "hash": "a3c8852c56c6cc5d61d0d8ddd42f218b",
-        "lines": 184,
-        "mtime": "2026-04-08T09:17:36.520Z",
+        "hash": "d83c26f6796df31ae02605d8d5b9f042",
+        "lines": 208,
+        "mtime": "2026-04-20T02:05:16.467Z",
         "className": "guardrail",
         "methods": [
           "filterByPhase",
@@ -4472,7 +4488,8 @@
           "path",
           "./config.js",
           "./presets.js",
-          "../docs/lib/scanner.js"
+          "../docs/lib/scanner.js",
+          "./constants.js"
         ],
         "exports": [
           "filterByPhase",
@@ -4484,21 +4501,9 @@
           "src/lib/lint.js"
         ],
         "id": "bb462f4e",
-        "summary": "guardrail.js loads, merges, filters, and scope-matches lint guardrails from preset and project sources. It is the core policy engine behind rule-based lint checks.",
-        "detail": "The module parses guardrail entries, hydrates regex metadata, and validates phase applicability. It resolves context from config preset chains and reads guardrail JSON files with precedence merging by id. Scope matching supports exact paths, globs, and filename-based targeting. This design enables layered policy customization while keeping rule evaluation deterministic.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "guardrail policy",
-          "lint rules",
-          "scope matching",
-          "phase filter",
-          "preset merge"
-        ]
+        }
       },
       {
         "file": "src/lib/i18n.js",
@@ -4822,7 +4827,7 @@
         ],
         "id": "14a29a15",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4865,7 +4870,7 @@
         ],
         "id": "ae76d513",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -4897,7 +4902,7 @@
         ],
         "id": "6196b26c",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -4923,7 +4928,7 @@
         ],
         "id": "fa23a1ba",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -4948,7 +4953,7 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -4972,7 +4977,7 @@
         ],
         "id": "8bb94bbb",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -5008,7 +5013,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -5024,7 +5029,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -5045,7 +5050,7 @@
         "usedBy": null,
         "id": "0230d610",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -5107,7 +5112,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -5133,7 +5138,7 @@
         "usedBy": null,
         "id": "85926390",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -7938,7 +7943,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7987,7 +7992,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -8008,7 +8013,7 @@
         "usedBy": null,
         "id": "dca811d6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8045,8 +8050,22 @@
         "usedBy": null,
         "id": "d63c4335",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-20T02:05:33.139Z",
+          "attempts": 3
+        },
+        "summary": "This module implements the `spec render` CLI command that converts a flow spec JSON into Markdown. It also validates inputs, resolves the target spec directory, and writes the rendered output file.",
+        "detail": "The command loads a JSON schema from a fixed internal path and validates `spec.json` before rendering, failing fast with explicit stderr messages and `EXIT_ERROR` on invalid input. It normalizes CLI options for `--spec-dir` and `--out`, supporting both absolute and root-relative paths, and rejects malformed path values such as empty strings or NUL bytes. The renderer builds structured Markdown sections, including overview and requirement lists, with helper functions for bullet formatting and fallback text for empty collections. It derives metadata such as spec directory name and creation date from filesystem state, then writes `spec.md` (or a custom output path) synchronously. The exported `SpecRenderCommand` class delegates execution to `runSpecRender`, keeping command wiring separate from rendering logic.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "keywords": [
+          "spec render",
+          "markdown generation",
+          "schema validation",
+          "path resolution",
+          "flow spec",
+          "command handler",
+          "cli output"
+        ]
       },
       {
         "file": "src/upgrade.js",
@@ -8074,15 +8093,29 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-04-20T02:05:33.139Z",
+          "attempts": 6
+        },
+        "summary": "This file defines the `upgrade` command entrypoint that updates project-managed assets and configuration. It parses CLI flags, orchestrates skill/template deployment, and handles upgrade-related filesystem writes.",
+        "detail": "The module parses arguments through a shared CLI utility and runs an async `main` flow that coordinates upgrade operations from repository and package-root context. It integrates configuration loading and i18n translation helpers so user-facing messages remain centralized and localized. Skill synchronization is delegated to specialized helpers for deploying shared skills, deploying project skills, and removing obsolete skill files, with a result logger that reports outcomes. It also reads and rewrites JSON config files in UTF-8 using normalized formatting to persist updates deterministically. Errors are surfaced via standard process exit handling with `EXIT_ERROR`, matching the CLI’s consistent failure behavior.",
+        "chapter": "development",
+        "role": "cli",
+        "keywords": [
+          "upgrade command",
+          "skill deployment",
+          "config rewrite",
+          "project scaffolding",
+          "maintenance task",
+          "cli orchestration",
+          "migration utility"
+        ]
       }
     ],
     "summary": {
-      "total": 257,
-      "totalMethods": 754
+      "total": 258,
+      "totalMethods": 761
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-19T23:26:39.955Z"
+  "enrichedAt": "2026-04-20T02:06:51.795Z"
 }

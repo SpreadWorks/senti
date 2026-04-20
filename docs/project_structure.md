@@ -31,7 +31,7 @@ src/flow/commands/    (controller)
 src/flow/lib/    (controller, lib)
 src/lib/    (lib, model, config, middleware, controller, view)
 src/metrics/commands/    
-src/spec/commands/    
+src/spec/commands/    (cli)
 ```
 <!-- {{/data}} -->
 
@@ -41,12 +41,12 @@ src/spec/commands/
 | Directory | Files | Role |
 | --- | --- | --- |
 | src/docs | 43 | cli, controller, model, lib |
-| src/flow | 36 | controller, lib |
+| src/flow | 37 | controller, lib |
 | src/lib | 32 | lib, model, config, middleware, controller, view |
 | src | 10 | cli |
 | src/check | 3 | cli |
 | src/metrics | 1 | — |
-| src/spec | 1 | — |
+| src/spec | 1 | cli |
 <!-- {{/data}} -->
 
 ### Shared Libraries
