@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-20T14:29:18.799Z",
+  "analyzedAt": "2026-04-20T16:14:41.720Z",
   "package": {
     "entries": [
       {
@@ -2395,7 +2395,10 @@
         ],
         "extends": "Command",
         "usedBy": null,
-        "id": "331cf497"
+        "id": "331cf497",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/base-command.js",
@@ -2841,7 +2844,10 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "9aca938f"
+        "id": "9aca938f",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/get-test-result.js",
@@ -2997,15 +3003,17 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "72a66b7076eadc9b33ae604d7524e0e5",
-        "lines": 827,
-        "mtime": "2026-04-20T02:05:16.467Z",
+        "hash": "ebceae5252793a576077a7b9bb14b0bf",
+        "lines": 1023,
+        "mtime": "2026-04-20T16:14:41.463Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
           "EvaluationSchemaError",
           "parseEvaluationResponse",
           "buildGateReport",
+          "checkTestChanges",
+          "updateGateRetryCounter",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
@@ -3018,6 +3026,14 @@
           "buildGuardrailPromptFromFiltered",
           "extractJsonCandidate",
           "checkGuardrail",
+          "globToRegExp",
+          "isTestFile",
+          "parseDiffHunks",
+          "resolveTestGlobs",
+          "resolveRetryMax",
+          "readGateRetryCount",
+          "formatRetryHistory",
+          "assertRetryBelowMax",
           "buildImplCheckPrompt",
           "extractRequirementIds",
           "reasonsFromEvaluations",
@@ -3044,6 +3060,8 @@
           "EvaluationSchemaError",
           "parseEvaluationResponse",
           "buildGateReport",
+          "checkTestChanges",
+          "updateGateRetryCounter",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
@@ -3062,21 +3080,8 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 3
-        },
-        "summary": "This is the core gate engine for spec, draft, and diff-based quality checks across flow phases. It validates level-phase combinations and produces normalized pass/fail gate reports.",
-        "detail": "The module combines rule-based checks, guardrail evaluation, and optional AI response parsing with strict schema validation. It scopes checks by phase, builds guardrail prompts, and converts evaluation output into typed results with explicit error classes. Diff-based implementation gates integrate requirement extraction and test evidence to verify coverage and conformance. It also appends gate outcomes and failures into issue logs, making it the central quality-control component in the flow pipeline.",
-        "chapter": "internal_design",
-        "role": "controller",
-        "keywords": [
-          "quality gate",
-          "guardrails",
-          "evaluation schema",
-          "diff validation",
-          "requirement coverage",
-          "issue log"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -3920,9 +3925,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "e190d8709fcd33f222a8f3e28af1866d",
-        "lines": 500,
-        "mtime": "2026-04-20T14:03:10.694Z",
+        "hash": "2096fa3e2acceaa490d9e1ee3d82ad64",
+        "lines": 507,
+        "mtime": "2026-04-20T16:14:41.463Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -3941,7 +3946,10 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "d64f4095"
+        "id": "d64f4095",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/help.js",
@@ -4322,9 +4330,9 @@
       },
       {
         "file": "src/lib/constants.js",
-        "hash": "72ab2e8b8094b6520dc67df20b98c8cf",
-        "lines": 165,
-        "mtime": "2026-04-20T02:05:16.467Z",
+        "hash": "787ccbbbdb7c90752c5e680d32d7301d",
+        "lines": 166,
+        "mtime": "2026-04-20T16:14:41.463Z",
         "className": "constants",
         "methods": [],
         "imports": [],
@@ -4361,20 +4369,8 @@
         ],
         "id": "74b5e1c3",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 3
-        },
-        "summary": "This constants module defines canonical allowed values and exit codes used across the CLI. It standardizes phases, statuses, gate levels, and related enums.",
-        "detail": "All sets are frozen to prevent accidental mutation at runtime. Validation logic in other modules references these constants to enforce consistent behavior and error messages. The file also exports success and error exit code values for process control. It functions as a shared contract surface for cross-module semantics.",
-        "chapter": "stack_and_ops",
-        "role": "config",
-        "keywords": [
-          "constants",
-          "valid phases",
-          "enum values",
-          "exit codes",
-          "shared contract"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/container.js",
@@ -5312,7 +5308,10 @@
           "src/lib/config.js",
           "src/lib/container.js"
         ],
-        "id": "0e966da6"
+        "id": "0e966da6",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/schema-validate.js",
@@ -8437,7 +8436,10 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "9820c9db"
+        "id": "9820c9db",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/spec.js",
@@ -8572,9 +8574,9 @@
     ],
     "summary": {
       "total": 262,
-      "totalMethods": 782
+      "totalMethods": 792
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-20T13:45:22.534Z"
+  "enrichedAt": "2026-04-20T16:15:21.103Z"
 }
