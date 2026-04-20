@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-20T12:45:48.828Z",
+  "analyzedAt": "2026-04-20T12:54:18.960Z",
   "package": {
     "entries": [
       {
@@ -2905,47 +2905,51 @@
       },
       {
         "file": "src/flow/lib/run-draft-task.js",
-        "hash": "6cee8e98d32f53e01bc3420ed47f1d8d",
-        "lines": 196,
-        "mtime": "2026-04-20T12:13:22.615Z",
+        "hash": "f0ebfb4ab6b91e0ac362d9cfc57745a1",
+        "lines": 268,
+        "mtime": "2026-04-20T12:54:18.688Z",
         "className": "run-draft-task",
         "methods": [
           "RunDraftTaskCommand",
-          "invokeAgent",
           "buildDraftPrompt",
+          "invokeAgent",
+          "collectGateFeedback",
           "extractDraft",
-          "collectContext",
-          "simpleGate"
+          "collectContext"
         ],
         "imports": [
           "child_process",
           "fs",
           "path",
           "./base-command.js",
-          "../../lib/container.js"
+          "../../lib/container.js",
+          "./run-gate.js"
         ],
         "exports": [
           "RunDraftTaskCommand",
+          "buildDraftPrompt",
           "default"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "ebc8234d",
-        "summary": "This command generates and stores per-task draft documents during flow execution. It can call an agent subprocess and apply simple gating on returned draft text.",
-        "detail": "It creates a task-scoped directory, writes `draft.md`, and returns relative paths for downstream steps. Agent invocation is isolated behind environment variables and robustly falls back to empty output on parse or process errors. Prompt construction includes sibling task context and parent spec content to keep generated drafts coherent. A minimal gate function currently marks non-empty drafts as pass, making this a lightweight draft orchestration layer.",
-        "chapter": "development",
-        "role": "controller",
+        "summary": "RunDraftTaskCommand orchestrates draft generation for a specific flow task and persists the result under the task workspace. It wraps agent invocation, context collection, and retry/gate feedback handling in a single flow command path.",
+        "detail": "The command resolves the spec-relative task directory, creates `tasks/<id>` if needed, and writes the generated draft to `draft.md` using synchronous filesystem operations. It delegates generation to an agent call that can be stubbed via environment variables, passes structured context like sibling tasks, and safely parses JSON output from the agent process. The implementation includes resilient fallback behavior: parse failures, agent call errors, and empty responses are handled without crashing the flow, with diagnostics written to stderr. It also integrates gate feedback and reason lists into prompt construction so retries can incorporate prior validation outcomes. Helper functions separate concerns for prompt building, feedback extraction, context gathering, and response normalization.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
+          "processedAt": "2026-04-20T12:54:33.739Z",
           "attempts": 1
         },
         "keywords": [
           "draft generation",
+          "flow command",
           "task orchestration",
-          "agent subprocess",
-          "prompt building",
-          "flow tasks",
-          "draft gate"
+          "agent invocation",
+          "retry logic",
+          "gate feedback",
+          "prompt construction",
+          "context collection"
         ]
       },
       {
@@ -3072,7 +3076,9 @@
           "IMPL_DIFF_SCOPE_LINES"
         ],
         "extends": "Error",
-        "usedBy": null,
+        "usedBy": [
+          "src/flow/lib/run-draft-task.js"
+        ],
         "id": "b4aa4dad",
         "enrich": {
           "processedAt": "2026-04-20T12:14:53.174Z",
@@ -8556,5 +8562,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-20T12:46:00.655Z"
+  "enrichedAt": "2026-04-20T12:54:33.739Z"
 }
