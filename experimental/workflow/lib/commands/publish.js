@@ -110,6 +110,11 @@ ${sourceBody}
 
     const { meta, optionId } = ensureStatusOption(boardConfig, "Todo");
     setItemStatus(meta.projectId, item.id, meta.statusField.id, optionId);
+    // GitHub Projects v2 Board layout caches column membership from the draft
+    // state; a second status write after a short delay forces the board view
+    // to re-group the converted item into the Todo column.
+    await new Promise((r) => setTimeout(r, 500));
+    setItemStatus(meta.projectId, item.id, meta.statusField.id, optionId);
 
     return {
       hash,
