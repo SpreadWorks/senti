@@ -1,0 +1,69 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/201-gate-impl-eval-accuracy/draft.md        | 128 ++++++++++++\n specs/201-gate-impl-eval-accuracy/flow.json       | 233 ++++++++++++++++++++++\n specs/201-gate-impl-eval-accuracy/issue-log.json  | 122 +++++++++++\n specs/201-gate-impl-eval-accuracy/qa.md           |   9 +\n specs/201-gate-impl-eval-accuracy/review.md       |   1 +\n specs/201-gate-impl-eval-accuracy/spec.md         | 110 ++++++++++\n specs/201-gate-impl-eval-accuracy/tests/README.md |  42 ++++\n src/flow/lib/run-gate.js                          | 196 ++++++++++++++++++\n src/flow/registry.js                              |  11 +-\n src/lib/constants.js                              |   1 +\n src/presets/base/guardrail.json                   |   4 +-\n tests/unit/flow/gate-retry-counter.test.js        |  67 +++++++\n tests/unit/flow/gate-test-change-check.test.js    | 133 ++++++++++++\n 13 files changed, 1052 insertions(+), 5 deletions(-)",
+      "commits": [
+        "feat: feature/201-gate-impl-eval-accuracy",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 10,
+      "done": 10,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "要求リスト10件は、差分上の実装（`run-gate.js`/`registry.js`/`constants.js`/unit tests）で概ね満たされている。未計画要素は主に spec運用ドキュメント・履歴ファイルの追加。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 7,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 869664,
+      "output": 20391,
+      "cacheRead": 294656,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 22,
+      "durationMs": 559602,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 344656
+        },
+        {
+          "phase": "gate",
+          "durationMs": 28175
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 154351
+        },
+        {
+          "phase": "review",
+          "durationMs": 32420
+        }
+      ]
+    },
+    "tests": {
+      "unit": 13,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 13
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/201-gate-impl-eval-accuracy\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    13 files changed, 1052 insertions(+), 5 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (10 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 7\n    issue-log ................... 0\n    agent calls ................. 22\n    input tokens ................ 869,664\n    output tokens ............... 20,391\n    cache-read tokens ........... 294,656\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 559.6s\n      gate-draft ................ 344.7s\n      gate ...................... 28.2s\n      gate-impl ................. 154.4s\n      review .................... 32.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 13  integration 0  acceptance 0  total 13"
+}

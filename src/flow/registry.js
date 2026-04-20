@@ -306,11 +306,18 @@ export const FLOW_COMMANDS = {
         const status = result?.result === "pass" ? "done" : "in_progress";
         tryUpdateStepStatus(ctx, resolveGateStepId(ctx.phase), status);
 
+        const gateMod = await import("./lib/run-gate.js");
+        // spec 201 P2-R1: update gateRetry counter for task-impl/integration.
+        try {
+          gateMod.updateGateRetryCounter(ctx, result);
+        } catch (err) {
+          process.stderr.write(`[sdd-forge] updateGateRetryCounter failed: ${err.message}\n`);
+        }
+
         // Auto-record issue-log on gate FAIL — delegate to run-gate.js so
         // the registry hook stays free of issue-log domain logic.
         if (result?.result !== "pass") {
-          const { appendIssueLogFromGateResult } = await import("./lib/run-gate.js");
-          tryAppendIssueLog(() => appendIssueLogFromGateResult(ctx, result));
+          tryAppendIssueLog(() => gateMod.appendIssueLogFromGateResult(ctx, result));
         }
       },
       async onError(ctx, err) {

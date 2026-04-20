@@ -1,0 +1,233 @@
+{
+  "spec": "specs/201-gate-impl-eval-accuracy/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/201-gate-impl-eval-accuracy",
+  "runId": "a30014f8-2e19-438d-b6b5-4ffe4afa7ee7",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "P1-R1: test変更判定をAIから機械判定へ移管",
+      "status": "done"
+    },
+    {
+      "desc": "P1-R2: 既存行削除・改変の検出",
+      "status": "done"
+    },
+    {
+      "desc": "P1-R3: 1行追加の検出",
+      "status": "done"
+    },
+    {
+      "desc": "P1-R4: 複数行追加の許容",
+      "status": "done"
+    },
+    {
+      "desc": "P1-R5: FAIL理由の具体性",
+      "status": "done"
+    },
+    {
+      "desc": "P1-R6: 言語非依存",
+      "status": "done"
+    },
+    {
+      "desc": "P2-R1: retry回数の計測",
+      "status": "done"
+    },
+    {
+      "desc": "P2-R2: 上限到達時のエスカレーション",
+      "status": "done"
+    },
+    {
+      "desc": "P2-R3: デフォルト上限値=3",
+      "status": "done"
+    },
+    {
+      "desc": "P2-R4: AI判断排除",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 194,
+  "worktree": true,
+  "request": "gate-impl 評価器の判定精度改善: retry上限エスカレーション / baseline差分認識 / テスト変更種別区別",
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 7
+    },
+    "gate-draft": {
+      "callCount": 13,
+      "responseChars": 20413,
+      "durationMs": 344656,
+      "tokens": {
+        "input": 122677,
+        "output": 12540,
+        "cacheRead": 173440,
+        "cacheCreation": 0
+      }
+    },
+    "gate": {
+      "tokens": {
+        "input": 7639,
+        "output": 1200,
+        "cacheRead": 19072,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 2441,
+      "durationMs": 28175
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 682142,
+        "output": 5156,
+        "cacheRead": 98688,
+        "cacheCreation": 0
+      },
+      "callCount": 7,
+      "responseChars": 7314,
+      "durationMs": 154351
+    },
+    "review": {
+      "tokens": {
+        "input": 57206,
+        "output": 1495,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 2402,
+      "durationMs": 32420
+    }
+  },
+  "notes": [
+    "draft: Q1 intent approved (3軸すべてスコープ)",
+    "draft Q2: retry上限は flow.json counter + gate post hook で強制。AI判断を排し決定的ロジックに寄せる方針",
+    "draft Q3: カウンタは metrics.<phase>.gateRetry として既存 metrics 基盤に相乗り。VALID_METRIC_COUNTERS に gateRetry 追加",
+    "draft Q4: 上限は hard ceiling のみ強制、早期停止は AI 判断維持。デフォルト retry 上限の引き下げが別途必要",
+    "draft Q7: 軸C決着。impl-test-preservation guardrail を AI評価から外し、run-gate.js の機械的 checkTestChanges() に移管（- 行検知 + 1行+ 検知）。multi-line + only は skip",
+    "draft Q8: テストは tests/ 配下の unit + integration のみ。spec 固有の reproduction test は作らない",
+    "draft Q9: 上限到達時は throw Error(code: ESCALATE_RETRY_EXHAUSTED)。run-draft-task.js と一致",
+    "impl approach: checkTestChanges新設 / guardrail task-impl除去 / VALID_METRIC_COUNTERSにgateRetry追加 / run-gate post hookでcounter更新 / 上限到達時は入口で throw ESCALATE_RETRY_EXHAUSTED"
+  ],
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 13,
+      "integration": 0,
+      "acceptance": 0
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-20T16:13:47.357Z"
+  }
+}

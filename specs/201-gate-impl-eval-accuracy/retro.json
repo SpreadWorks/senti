@@ -1,0 +1,94 @@
+{
+  "spec": "specs/201-gate-impl-eval-accuracy/spec.md",
+  "date": "2026-04-20T16:14:40.004Z",
+  "requirements": [
+    {
+      "desc": "P1-R1: test変更判定をAIから機械判定へ移管",
+      "status": "done",
+      "note": "`run-gate.js` に `checkTestChanges()` を追加し、AI評価前に決定論的diff判定でFAILを返す実装になっている。"
+    },
+    {
+      "desc": "P1-R2: 既存行削除・改変の検出",
+      "status": "done",
+      "note": "testファイルの各hunkで `removed >= 1` を検出したら issue を追加しFAILにするロジックがある。"
+    },
+    {
+      "desc": "P1-R3: 1行追加の検出",
+      "status": "done",
+      "note": "testファイルのhunkで `added === 1 && removed === 0` を検出したらFAIL issueを出す実装。"
+    },
+    {
+      "desc": "P1-R4: 複数行追加の許容",
+      "status": "done",
+      "note": "FAIL条件が削除あり/1行追加のみのため、`added >= 2 && removed === 0` のみならFAILしない（test変更なしもFAILしない）。"
+    },
+    {
+      "desc": "P1-R5: FAIL理由の具体性",
+      "status": "done",
+      "note": "FAIL理由文字列に常に `file:newStart` 形式（ファイル名と行番号）を含めている。"
+    },
+    {
+      "desc": "P1-R6: 言語非依存",
+      "status": "done",
+      "note": "判定はdiffの `+/-` 行数のみを使い、`it/test/def` 等の言語別パースを行っていない。"
+    },
+    {
+      "desc": "P2-R1: retry回数の計測",
+      "status": "done",
+      "note": "`updateGateRetryCounter()` で FAIL時 `+1`、PASS時 `0` リセットを `task-impl/integration` に対して実施。"
+    },
+    {
+      "desc": "P2-R2: 上限到達時のエスカレーション",
+      "status": "done",
+      "note": "`assertRetryBelowMax()` が上限到達時に `ESCALATE_RETRY_EXHAUSTED` をthrowし、メッセージに過去attempt理由一覧を含める。"
+    },
+    {
+      "desc": "P2-R3: デフォルト上限値=3",
+      "status": "done",
+      "note": "`DEFAULT_GATE_RETRY_MAX = 3` を定義し、未設定時はこれを使用する。"
+    },
+    {
+      "desc": "P2-R4: AI判断排除",
+      "status": "done",
+      "note": "retry管理（上限判定/カウンタ更新）はローカルの決定論的ロジックのみで、AI呼び出しに依存しない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/201-gate-impl-eval-accuracy/draft.md",
+      "change": "仕様ドラフト文書の新規追加（要求実装そのものではなくプロセス成果物）。"
+    },
+    {
+      "file": "specs/201-gate-impl-eval-accuracy/flow.json",
+      "change": "flow実行状態・メトリクス・ノートの記録追加（要求機能とは別の運用メタデータ）。"
+    },
+    {
+      "file": "specs/201-gate-impl-eval-accuracy/issue-log.json",
+      "change": "gate実行ログ/失敗履歴の記録追加（要求項目外の履歴ファイル更新）。"
+    },
+    {
+      "file": "specs/201-gate-impl-eval-accuracy/qa.md",
+      "change": "Q&Aテンプレート文書の新規追加。"
+    },
+    {
+      "file": "specs/201-gate-impl-eval-accuracy/review.md",
+      "change": "レビュー結果テンプレートの新規追加。"
+    },
+    {
+      "file": "specs/201-gate-impl-eval-accuracy/spec.md",
+      "change": "仕様書本体の新規追加（実装コード変更ではない）。"
+    },
+    {
+      "file": "specs/201-gate-impl-eval-accuracy/tests/README.md",
+      "change": "spec配下のテスト説明ドキュメント追加。"
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "要求リスト10件は、差分上の実装（`run-gate.js`/`registry.js`/`constants.js`/unit tests）で概ね満たされている。未計画要素は主に spec運用ドキュメント・履歴ファイルの追加。"
+  }
+}

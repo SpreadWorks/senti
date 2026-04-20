@@ -450,6 +450,191 @@ async function checkGuardrail(root, targetText, _config, phase, role) {
 }
 
 // ---------------------------------------------------------------------------
+// Test-file change detection (spec 201, P1-R1〜P1-R6)
+//
+// Deterministic mechanical check that replaces the retired
+// `impl-test-preservation` AI guardrail. Classifies each test-file hunk by
+// pure diff structure (line counts of `+` / `-`) without any language parsing.
+// ---------------------------------------------------------------------------
+
+const DEFAULT_TEST_GLOBS = Object.freeze([
+  "**/*.test.*",
+  "**/*_test.*",
+  "**/*.spec.*",
+  "tests/**",
+]);
+
+function globToRegExp(glob) {
+  const escaped = glob
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*/g, "§§")
+    .replace(/\*/g, "[^/]*")
+    .replace(/§§/g, ".*")
+    .replace(/\?/g, "[^/]");
+  return new RegExp(`^${escaped}$`);
+}
+
+function isTestFile(filePath, testGlobs) {
+  return testGlobs.some((g) => globToRegExp(g).test(filePath));
+}
+
+/**
+ * Parse a raw git diff into per-file, per-hunk records.
+ * @param {string} diff
+ * @returns {Array<{file: string, hunks: Array<{newStart: number, added: number, removed: number}>}>}
+ */
+function parseDiffHunks(diff) {
+  const files = [];
+  const lines = diff.split("\n");
+  let curFile = null;
+  let curHunk = null;
+
+  for (const line of lines) {
+    const fileMatch = line.match(/^diff --git a\/(.+) b\/(.+)$/);
+    if (fileMatch) {
+      curFile = { file: fileMatch[2], hunks: [] };
+      files.push(curFile);
+      curHunk = null;
+      continue;
+    }
+    if (!curFile) continue;
+
+    const hunkMatch = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunkMatch) {
+      curHunk = { newStart: Number(hunkMatch[1]), added: 0, removed: 0 };
+      curFile.hunks.push(curHunk);
+      continue;
+    }
+    if (!curHunk) continue;
+
+    if (line.startsWith("+") && !line.startsWith("+++")) curHunk.added += 1;
+    else if (line.startsWith("-") && !line.startsWith("---")) curHunk.removed += 1;
+  }
+
+  return files;
+}
+
+/**
+ * Check a git diff for disallowed changes to test files.
+ *
+ * Rules:
+ *   - Any hunk with `removed >= 1` (delete or modify existing line) → FAIL
+ *   - Any hunk with `added === 1 && removed === 0`                  → FAIL
+ *   - Multi-line `+` only hunks (added >= 2, removed === 0)         → PASS (skip)
+ *
+ * Language parsing is NOT used (P1-R6).
+ *
+ * @param {string} diff        raw unified diff text
+ * @param {string[]} [testGlobs] optional override; defaults to common test patterns
+ * @returns {{ issues: string[] }}
+ */
+export function checkTestChanges(diff, testGlobs) {
+  const globs = Array.isArray(testGlobs) && testGlobs.length > 0
+    ? testGlobs
+    : DEFAULT_TEST_GLOBS;
+
+  const issues = [];
+  for (const f of parseDiffHunks(diff)) {
+    if (!isTestFile(f.file, globs)) continue;
+    for (const h of f.hunks) {
+      if (h.removed >= 1) {
+        issues.push(
+          `${f.file}:${h.newStart}: existing line modified/deleted in test file (removed=${h.removed}, added=${h.added})`,
+        );
+      } else if (h.added === 1 && h.removed === 0) {
+        issues.push(
+          `${f.file}:${h.newStart}: single-line addition in test file (likely assertion insertion)`,
+        );
+      }
+    }
+  }
+  return { issues };
+}
+
+function resolveTestGlobs(config) {
+  const configured = config?.flow?.gate?.testGlobs;
+  return Array.isArray(configured) && configured.length > 0
+    ? configured
+    : DEFAULT_TEST_GLOBS;
+}
+
+// ---------------------------------------------------------------------------
+// Retry counter & escalation (spec 201, P2-R1〜P2-R4)
+// ---------------------------------------------------------------------------
+
+const DEFAULT_GATE_RETRY_MAX = 3;
+const RETRY_TRACKED_PHASES = Object.freeze(["task-impl", "integration"]);
+
+function resolveRetryMax(config) {
+  const n = Number(config?.flow?.retry?.max);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_GATE_RETRY_MAX;
+}
+
+function readGateRetryCount(state, phase) {
+  return Number(state?.metrics?.[phase]?.gateRetry || 0);
+}
+
+function formatRetryHistory(root, specPath, limit) {
+  let log;
+  try {
+    log = loadIssueLog(root, specPath);
+  } catch (err) {
+    process.stderr.write(`[sdd-forge] formatRetryHistory: loadIssueLog failed: ${err.message}\n`);
+    return "";
+  }
+  const gateEntries = (log.entries || [])
+    .filter((e) => String(e.step || "").startsWith("gate-"))
+    .slice(-limit);
+  if (gateEntries.length === 0) return "";
+  return gateEntries
+    .map((e, i) => `  attempt ${i + 1}: ${e.reason}`)
+    .join("\n");
+}
+
+function assertRetryBelowMax(ctx, phase) {
+  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+  const count = readGateRetryCount(ctx.flowState, phase);
+  const max = resolveRetryMax(ctx.config);
+  if (count < max) return;
+
+  const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max);
+  const msg = [
+    `gate retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${phase}".`,
+    "Previous FAIL reasons:",
+    history || "  (no issue-log entries found)",
+    "",
+    "Stop the automatic retry loop and return control to the user.",
+  ].join("\n");
+  const err = new Error(msg);
+  err.code = "ESCALATE_RETRY_EXHAUSTED";
+  err.data = { phase, attempts: count, max };
+  throw err;
+}
+
+/**
+ * Post-hook: update `state.metrics[phase].gateRetry`.
+ *   - PASS → reset to 0
+ *   - FAIL → increment by 1
+ * No-op for non-tracked phases (draft / spec / task-spec).
+ */
+export function updateGateRetryCounter(ctx, result) {
+  const phase = result?.artifacts?.phase || ctx?.phase;
+  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+  const mgr = ctx.flowManager;
+  if (!mgr) return;
+  mgr.mutate((state) => {
+    if (!state.metrics) state.metrics = {};
+    if (!state.metrics[phase]) state.metrics[phase] = {};
+    if (result?.result === "pass") {
+      state.metrics[phase].gateRetry = 0;
+    } else {
+      state.metrics[phase].gateRetry =
+        Number(state.metrics[phase].gateRetry || 0) + 1;
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Task-impl / integration: requirements check
 // ---------------------------------------------------------------------------
 
@@ -724,6 +909,9 @@ export class RunGateCommand extends FlowCommand {
     if (!state?.spec) throw new Error("no active flow found");
     if (!state.baseBranch) throw new Error("baseBranch not set in flow.json");
 
+    // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
+    assertRetryBelowMax(ctx, phase);
+
     const specPath = state.spec;
     const absSpecPath = path.resolve(root, specPath);
     if (!fs.existsSync(absSpecPath)) {
@@ -740,6 +928,14 @@ export class RunGateCommand extends FlowCommand {
       return gateFail(level, phase, specPath, [], [
         "no changes found (committed or uncommitted) against base branch",
       ]);
+    }
+
+    // spec 201 P1: mechanical check on test-file changes (replaces retired
+    // `impl-test-preservation` AI guardrail). Skips the AI path entirely when
+    // the mechanical check already found a violation.
+    const testIssues = checkTestChanges(diff, resolveTestGlobs(ctx.config)).issues;
+    if (testIssues.length > 0) {
+      return gateFail(level, phase, specPath, [], testIssues);
     }
 
     const agent = container.get("agent");
