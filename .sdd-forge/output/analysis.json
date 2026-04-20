@@ -1,39 +1,41 @@
 {
-  "analyzedAt": "2026-04-20T13:17:29.039Z",
+  "analyzedAt": "2026-04-20T13:44:52.752Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "03fa14a1066b73b75edbd40a67c576c6",
-        "lines": 38,
-        "mtime": "2026-04-19T12:12:39.673Z",
+        "hash": "40c12bb8a8f1bd9ee41eefbd190f25d9",
+        "lines": 39,
+        "mtime": "2026-04-20T13:44:52.497Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
         },
         "packageScripts": {
+          "test": "node tests/run.js",
           "test:unit": "node tests/run.js --scope unit",
           "test:e2e": "node tests/run.js --scope e2e",
           "test:acceptance": "node tests/acceptance/run.js"
         },
         "composerDeps": null,
         "id": "451a9f25",
-        "summary": "This package manifest defines sdd-forge as an ESM CLI tool for spec-driven documentation workflows. It publishes only runtime source files and exposes the main command entrypoint.",
-        "detail": "The manifest pins the package as `type: module` and maps the `sdd-forge` binary to `src/sdd-forge.js`. It declares Node.js engine compatibility at `>=18.19.0` and avoids external runtime dependencies. Publishing scope is constrained through the `files` field, including `src/` while excluding preset test folders. Scripts are focused on unit, e2e, and acceptance test runners. Metadata such as repository URL, keywords, and package manager lock strengthen reproducibility and discoverability.",
+        "summary": "This package manifest defines sdd-forge as a Node.js ESM CLI and distributable module. It also declares runtime constraints, publish scope, and test entrypoints.",
+        "detail": "The file exposes `sdd-forge` through both `bin` and `exports`, making the same entry file usable as a command and module root. It constrains runtime compatibility to Node.js 18.19.0 or newer and uses pnpm as the package manager lock target. Packaging is intentionally narrow through the `files` field, including `src/` while excluding preset test directories from published artifacts. Test scripts are split into unit, e2e, and acceptance scopes through a shared Node-based runner, which aligns with structured verification workflows.",
         "chapter": "stack_and_ops",
         "role": "config",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
+          "processedAt": "2026-04-20T13:45:22.534Z",
           "attempts": 1
         },
         "keywords": [
           "package manifest",
           "npm metadata",
-          "ESM CLI",
-          "node engines",
+          "cli entrypoint",
+          "esm module",
+          "node engine",
           "publish files",
-          "binary entrypoint",
-          "test scripts"
+          "test scripts",
+          "pnpm lock"
         ]
       }
     ],
@@ -3440,22 +3442,23 @@
       },
       {
         "file": "src/flow/lib/run-tests.js",
-        "hash": "59d84e2390465ce35ff9367570c4e97f",
-        "lines": 143,
-        "mtime": "2026-04-20T12:13:22.616Z",
+        "hash": "9630a6e93515e4d9a39c2c7ff89791c7",
+        "lines": 125,
+        "mtime": "2026-04-20T13:44:52.498Z",
         "className": "run-tests",
         "methods": [
           "RunTestsCommand",
+          "extractPresetKey",
           "resolveTestCommand",
-          "readPkgScripts",
-          "parseCountsFromLog"
+          "readPkgScripts"
         ],
         "imports": [
           "child_process",
           "fs",
           "path",
           "./base-command.js",
-          "../../lib/config.js"
+          "../../lib/config.js",
+          "./test-parser-loader.js"
         ],
         "exports": [
           "RunTestsCommand",
@@ -3464,20 +3467,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c016d8e6",
-        "summary": "This command runs tests for a selected scope and writes combined output to a persistent log file. It also parses rough pass/fail counts from logs for summary reporting.",
-        "detail": "It resolves test commands from config or package scripts, executes synchronously, and captures stdout/stderr into `logs/test-output.log`. The implementation returns structured result metadata including relative log paths. It handles command failures while still preserving log artifacts for diagnosis. A parser extracts numeric test counters to support quick health snapshots in flow status.",
-        "chapter": "development",
+        "summary": "This command module runs flow-scoped tests, captures output, and persists logs for later analysis. It encapsulates test command resolution and integrates parser loading for result extraction.",
+        "detail": "The implementation uses `spawnSync` to execute tests in a resolved working directory, then writes combined stdout/stderr to a stable log path under `logs/test-output.log`. It normalizes absolute and relative work directories against the project root and ensures log directories exist before writing. The command selects executable test scripts by reading `package.json` scripts and mapping scope settings into runnable commands. It loads a parser via `loadTestParser` and returns structured results, while rethrowing operational errors after preserving context.",
+        "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
+          "processedAt": "2026-04-20T13:45:22.534Z",
           "attempts": 1
         },
         "keywords": [
           "test runner",
-          "test log",
-          "scope command",
-          "result parsing",
-          "flow testing"
+          "flow command",
+          "child process",
+          "log capture",
+          "script resolution",
+          "command orchestration",
+          "workdir handling",
+          "result parsing"
         ]
       },
       {
@@ -3852,6 +3858,85 @@
           "flow state update",
           "validation",
           "unit integration acceptance"
+        ]
+      },
+      {
+        "file": "src/flow/lib/test-log-parser.js",
+        "hash": "9c8f969f547c9b47d962c80c4e8479a9",
+        "lines": 34,
+        "mtime": "2026-04-20T13:44:52.498Z",
+        "className": "test-log-parser",
+        "methods": [
+          "parseCountsFromLog"
+        ],
+        "imports": [],
+        "exports": [
+          "parseCountsFromLog"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/test-parser-loader.js"
+        ],
+        "id": "eef9716a",
+        "summary": "This utility parses test log text into structured count values by test type. It provides a lightweight built-in fallback parser for standard categories.",
+        "detail": "The module defines a fixed test type list including unit, integration, and acceptance categories. Its parser function scans log content and populates an output object with numeric counts keyed by those categories. The implementation is intentionally minimal and deterministic, making it suitable as a default parser when no preset-specific logic is available. By isolating parsing in a small pure function, the code supports consistent downstream consumption and simpler custom parser substitution.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-20T13:45:22.534Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "log parser",
+          "test counts",
+          "unit tests",
+          "integration tests",
+          "acceptance tests",
+          "text parsing",
+          "fallback parser",
+          "metrics extraction"
+        ]
+      },
+      {
+        "file": "src/flow/lib/test-parser-loader.js",
+        "hash": "f1773a3f32a0d77d8c96c24e4c193ece",
+        "lines": 32,
+        "mtime": "2026-04-20T13:44:52.498Z",
+        "className": "test-parser-loader",
+        "methods": [
+          "loadTestParser"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "url",
+          "./test-log-parser.js"
+        ],
+        "exports": [
+          "loadTestParser"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-tests.js"
+        ],
+        "id": "64a5621b",
+        "summary": "This loader resolves and imports a preset-specific test parser when present, otherwise falling back to the built-in parser. It enables extensible parsing behavior per preset without changing core flow code.",
+        "detail": "The module constructs a deterministic parser file path under `src/presets/<presetKey>/test-parser.js` from the project root. When the file exists, it dynamically imports the module through a file URL and returns its `parseCountsFromLog` implementation. If no custom parser is found, it returns the built-in parser imported from `test-log-parser.js`. This pattern cleanly separates extension points from default behavior and keeps parser selection logic centralized in one place.",
+        "chapter": "creating_presets",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-20T13:45:22.534Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "dynamic import",
+          "preset extension",
+          "plugin loading",
+          "fallback strategy",
+          "parser hook",
+          "file url import",
+          "custom test parser",
+          "extensibility"
         ]
       },
       {
@@ -8557,10 +8642,10 @@
       }
     ],
     "summary": {
-      "total": 260,
-      "totalMethods": 776
+      "total": 262,
+      "totalMethods": 778
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-20T12:54:33.739Z"
+  "enrichedAt": "2026-04-20T13:45:22.534Z"
 }

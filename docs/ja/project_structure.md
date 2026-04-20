@@ -41,7 +41,7 @@ src/spec/commands/    (cli)
 | ディレクトリ | ファイル数 | 役割 |
 | --- | --- | --- |
 | src/docs | 43 | cli, controller, model, lib |
-| src/flow | 39 | controller, lib, cli, route |
+| src/flow | 41 | controller, lib, cli, route |
 | src/lib | 32 | lib, route, model, config, middleware, controller, view |
 | src | 10 | cli, controller |
 | src/check | 3 | cli |
