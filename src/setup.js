@@ -121,19 +121,30 @@ function ensureProjectDirs(workRoot) {
 
 function ensureGitignore(workRoot) {
   const rootGitignore = path.join(workRoot, ".gitignore");
-  const rootEntries = [".tmp", ".sdd-forge/worktree"];
+  const block = [
+    ".tmp/",
+    "",
+    ".sdd-forge/*",
+    "!.sdd-forge/config.json",
+    "!.sdd-forge/templates/",
+    "!.sdd-forge/output/",
+    "!.sdd-forge/presets/",
+    ".sdd-forge/output/acceptance-report-*.json",
+    "",
+    ".agents/*",
+    "!.agents/skills*",
+    ".claude/*",
+    "!.claude/skills*",
+    ".codex",
+  ];
+  const sentinel = ".sdd-forge/*";
   if (fs.existsSync(rootGitignore)) {
-    const lines = fs.readFileSync(rootGitignore, "utf8").split("\n");
-    const toAdd = rootEntries.filter((entry) => {
-      const has = lines.some((l) => l.trim() === entry);
-      const negated = lines.some((l) => l.trim() === `!${entry}`);
-      return !has && !negated;
-    });
-    if (toAdd.length) {
-      fs.appendFileSync(rootGitignore, `\n${toAdd.join("\n")}\n`);
-    }
+    const content = fs.readFileSync(rootGitignore, "utf8");
+    if (content.split("\n").some((l) => l.trim() === sentinel)) return;
+    const prefix = content.endsWith("\n") || content === "" ? "" : "\n";
+    fs.appendFileSync(rootGitignore, `${prefix}${block.join("\n")}\n`);
   } else {
-    fs.writeFileSync(rootGitignore, `${rootEntries.join("\n")}\n`);
+    fs.writeFileSync(rootGitignore, `${block.join("\n")}\n`);
   }
 }
 
