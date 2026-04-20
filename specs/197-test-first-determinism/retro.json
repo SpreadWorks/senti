@@ -1,0 +1,94 @@
+{
+  "spec": "specs/197-test-first-determinism/spec.md",
+  "date": "2026-04-20T08:34:23.249Z",
+  "requirements": [
+    {
+      "desc": "task step 列 3 段階分解 (plan/addition 両 origin)",
+      "status": "done",
+      "note": "src/lib/flow-helpers.js で plan/addition 両方の task step が write-tests→impl→run-tests に更新され、対応 unit test も追加。"
+    },
+    {
+      "desc": "テスト実行 CLI 新設 (AI 非介入・結果記録)",
+      "status": "not_done",
+      "note": "CLI 新設や実行結果記録ロジックの実装差分がない。"
+    },
+    {
+      "desc": "テスト作成段階の context フィルタ + skill 明文化",
+      "status": "not_done",
+      "note": "context filter 実装や skill 側の更新差分がない。"
+    },
+    {
+      "desc": "task→親 test summary 合算 (task 完了契機)",
+      "status": "done",
+      "note": "src/lib/flow-store.js の completeTask で親 summary へ unit/integration/acceptance を加算する処理を追加し、専用 test で検証。"
+    },
+    {
+      "desc": "integration 段階のテスト実行は親スコープ直接記録",
+      "status": "partial",
+      "note": "current task 不在時に親へ記録する既存契約の再テストはあるが、integration 実行経路の新規実装は確認できない。"
+    },
+    {
+      "desc": "親 flow に integration 段階 4 step 追加 (tasks 不在時 skip)",
+      "status": "partial",
+      "note": "integration 4 step と PHASE_MAP 追加は実装済みだが、tasks 不在時 skip 初期化の実装は見当たらない。"
+    },
+    {
+      "desc": "addition origin auto-draft + gate 厳格 + FAIL リトライ上限で escalate",
+      "status": "not_done",
+      "note": "addition auto-draft/gate/retry-escalate の実装差分がない。"
+    },
+    {
+      "desc": "公開 API 契約の formal tests (unit + e2e) 追加",
+      "status": "partial",
+      "note": "unit tests は追加されたが、e2e 追加は確認できない。"
+    },
+    {
+      "desc": "プロジェクト標準テストが全 PASS",
+      "status": "partial",
+      "note": "issue-log.json には pass 記録があるが、diff 自体は実行結果ログ本体を含まないため証跡は限定的。"
+    },
+    {
+      "desc": "Exit Code Contract (非ゼロ終了 + エラー明示)",
+      "status": "not_done",
+      "note": "非ゼロ終了時の契約や明示的エラー出力に関する実装差分がない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/197-test-first-determinism/draft.md",
+      "change": "要件本体とは別のドラフト文書を新規追加。"
+    },
+    {
+      "file": "specs/197-test-first-determinism/spec.md",
+      "change": "Feature spec 文書を新規追加（実装要件外の設計記録）。"
+    },
+    {
+      "file": "specs/197-test-first-determinism/flow.json",
+      "change": "実行状態・メトリクス・ノートを含むフロー管理ファイルを新規追加。"
+    },
+    {
+      "file": "specs/197-test-first-determinism/issue-log.json",
+      "change": "ゲート評価ログ/運用ログを新規追加。"
+    },
+    {
+      "file": "specs/197-test-first-determinism/qa.md",
+      "change": "Q&A テンプレート文書を新規追加。"
+    },
+    {
+      "file": "specs/197-test-first-determinism/review.md",
+      "change": "コードレビュー結果メモを新規追加。"
+    },
+    {
+      "file": "specs/197-test-first-determinism/tests/README.md",
+      "change": "spec 配下のテスト説明ドキュメントを新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "done": 2,
+    "partial": 4,
+    "not_done": 4,
+    "rate": 0.4,
+    "notes": "Phase 1 骨格としては REQ-1/4 と integration step 追加の主要部分は実装済み。一方で CLI 実行契約・context filter・addition 自動化・exit code contract・e2e を含む後半要件は未実装または部分対応で、全体達成度は部分完了。"
+  }
+}

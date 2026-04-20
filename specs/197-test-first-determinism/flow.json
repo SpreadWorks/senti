@@ -1,0 +1,216 @@
+{
+  "spec": "specs/197-test-first-determinism/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/197-test-first-determinism",
+  "runId": "ca4d4968-6673-44ad-aad6-8d94752fee3b",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "task step 列 3 段階分解 (plan/addition 両 origin)",
+      "status": "pending"
+    },
+    {
+      "desc": "テスト実行 CLI 新設 (AI 非介入・結果記録)",
+      "status": "pending"
+    },
+    {
+      "desc": "テスト作成段階の context フィルタ + skill 明文化",
+      "status": "pending"
+    },
+    {
+      "desc": "task→親 test summary 合算 (task 完了契機)",
+      "status": "pending"
+    },
+    {
+      "desc": "integration 段階のテスト実行は親スコープ直接記録",
+      "status": "pending"
+    },
+    {
+      "desc": "親 flow に integration 段階 4 step 追加 (tasks 不在時 skip)",
+      "status": "pending"
+    },
+    {
+      "desc": "addition origin auto-draft + gate 厳格 + FAIL リトライ上限で escalate",
+      "status": "pending"
+    },
+    {
+      "desc": "公開 API 契約の formal tests (unit + e2e) 追加",
+      "status": "pending"
+    },
+    {
+      "desc": "プロジェクト標準テストが全 PASS",
+      "status": "pending"
+    },
+    {
+      "desc": "Exit Code Contract (非ゼロ終了 + エラー明示)",
+      "status": "pending"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 185,
+  "request": "#185 issueを進めてください - cac6/T4 test-first 決定論化",
+  "worktree": true,
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 6
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 149428,
+        "output": 10001,
+        "cacheRead": 94336,
+        "cacheCreation": 0
+      },
+      "callCount": 9,
+      "responseChars": 19907,
+      "durationMs": 241786
+    },
+    "gate": {
+      "tokens": {
+        "input": 51640,
+        "output": 2944,
+        "cacheRead": 30848,
+        "cacheCreation": 0
+      },
+      "callCount": 3,
+      "responseChars": 7302,
+      "durationMs": 73969
+    },
+    "impl": {
+      "issueLog": 1
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 653907,
+        "output": 5093,
+        "cacheRead": 59264,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 8051,
+      "durationMs": 133333
+    },
+    "review": {
+      "tokens": {
+        "input": 173850,
+        "output": 1996,
+        "cacheRead": 26368,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3210,
+      "durationMs": 61937
+    }
+  },
+  "notes": [
+    "addition 残す + AI auto-draft + gate 厳格で進める（T4 は test-first 分解のみ、replan は別 task）",
+    "run-tests: 新設 sdd-forge flow run tests コマンド。config.commands.test または package.json scripts 推論で実行、log は workDir/logs/test-output.log、exit+件数を flow.json task.test.summary に記録",
+    "context-rules: C案 CLI filter + skill 明文化併用。write-tests phase で impl 関連 path を flow get context から自動除外、skill でも git diff 禁止を明記",
+    "test-summary 分離: 合算方式。task 完了時に task.test.summary を親 state.test.summary に合算。integration phase は親直接記録",
+    "integration phase も T4 スコープ。FLOW_STEPS に integration-write-tests / integration-run-tests / integration-run-all-tests / integration-evaluate を task 完了後・review 前に挿入。tasks.length===0 ではスキップ",
+    "テスト配置: formal tests (tests/unit/ + tests/e2e/)。公開 API 契約のため。spec verification tests は不要"
+  ],
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 22
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-20T08:33:47.018Z"
+  }
+}

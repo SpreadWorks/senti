@@ -355,6 +355,7 @@ export class FlowStore {
       if (!task) throw new Error(`unknown task id: ${taskId}`);
       task.status = "done";
       if (state.currentTaskId === taskId) state.currentTaskId = null;
+      aggregateTaskSummaryIntoParent(state, task);
     });
   }
 
@@ -394,6 +395,22 @@ export class FlowStore {
       if (currentBranch === `feature/${entry.spec}`) return entry;
     }
     return null;
+  }
+}
+
+/**
+ * Aggregate a completed task's test.summary counts into the parent state's
+ * test.summary. Sums unit / integration / acceptance fields. No-op when the
+ * task has no summary.
+ */
+function aggregateTaskSummaryIntoParent(state, task) {
+  const taskSummary = task?.test?.summary;
+  if (!taskSummary || typeof taskSummary !== "object") return;
+  if (!state.test) state.test = {};
+  if (!state.test.summary) state.test.summary = {};
+  for (const key of ["unit", "integration", "acceptance"]) {
+    const add = Number(taskSummary[key]) || 0;
+    state.test.summary[key] = (Number(state.test.summary[key]) || 0) + add;
   }
 }
 

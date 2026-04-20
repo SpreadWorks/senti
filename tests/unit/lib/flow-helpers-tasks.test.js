@@ -12,20 +12,20 @@ describe("flow-helpers task-aware APIs", () => {
   describe("buildInitialTaskSteps", () => {
     it("returns TASK_STEPS_PLAN sequence for origin=plan", () => {
       const steps = buildInitialTaskSteps("plan");
-      assert.equal(steps.length, 6);
+      assert.equal(steps.length, TASK_STEPS_PLAN.length);
       assert.deepEqual(steps.map((s) => s.id), TASK_STEPS_PLAN);
       for (const s of steps) assert.equal(s.status, "pending");
     });
 
     it("returns TASK_STEPS_PLAN sequence for origin=integration", () => {
       const steps = buildInitialTaskSteps("integration");
-      assert.equal(steps.length, 6);
+      assert.equal(steps.length, TASK_STEPS_PLAN.length);
       assert.deepEqual(steps.map((s) => s.id), TASK_STEPS_PLAN);
     });
 
     it("returns TASK_STEPS_ADDITION sequence for origin=addition", () => {
       const steps = buildInitialTaskSteps("addition");
-      assert.equal(steps.length, 8);
+      assert.equal(steps.length, TASK_STEPS_ADDITION.length);
       assert.deepEqual(steps.map((s) => s.id), TASK_STEPS_ADDITION);
     });
 

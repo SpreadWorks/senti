@@ -1,0 +1,69 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/197-test-first-determinism/draft.md         | 159 ++++++++++++++++\n specs/197-test-first-determinism/flow.json        | 216 ++++++++++++++++++++++\n specs/197-test-first-determinism/issue-log.json   |  91 +++++++++\n specs/197-test-first-determinism/qa.md            |   9 +\n specs/197-test-first-determinism/review.md        |  41 ++++\n specs/197-test-first-determinism/spec.md          | 143 ++++++++++++++\n specs/197-test-first-determinism/tests/README.md  |  53 ++++++\n src/lib/flow-helpers.js                           |  23 ++-\n src/lib/flow-store.js                             |  17 ++\n tests/unit/lib/flow-helpers-task-steps-v2.test.js | 177 ++++++++++++++++++\n tests/unit/lib/flow-helpers-tasks.test.js         |   6 +-\n tests/unit/lib/test-summary-aggregate.test.js     | 117 ++++++++++++\n 12 files changed, 1043 insertions(+), 9 deletions(-)",
+      "commits": [
+        "feat: feature/197-test-first-determinism",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 10,
+      "done": 2,
+      "partial": 4,
+      "not_done": 4,
+      "rate": 0.4,
+      "notes": "Phase 1 骨格としては REQ-1/4 と integration step 追加の主要部分は実装済み。一方で CLI 実行契約・context filter・addition 自動化・exit code contract・e2e を含む後半要件は未実装または部分対応で、全体達成度は部分完了。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 6,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 1028825,
+      "output": 20034,
+      "cacheRead": 210816,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 19,
+      "durationMs": 511025,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 241786
+        },
+        {
+          "phase": "gate",
+          "durationMs": 73969
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 133333
+        },
+        {
+          "phase": "review",
+          "durationMs": 61937
+        }
+      ]
+    },
+    "tests": {
+      "unit": 22,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 22
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/197-test-first-determinism\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    12 files changed, 1043 insertions(+), 9 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███░░░░░ 40%  (2 done / 4 partial / 4 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 6\n    issue-log ................... 1\n    agent calls ................. 19\n    input tokens ................ 1,028,825\n    output tokens ............... 20,034\n    cache-read tokens ........... 210,816\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 511.0s\n      gate-draft ................ 241.8s\n      gate ...................... 74.0s\n      gate-impl ................. 133.3s\n      review .................... 61.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 22  integration 0  acceptance 0  total 22"
+}

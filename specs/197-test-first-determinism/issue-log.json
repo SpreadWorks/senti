@@ -1,0 +1,91 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All scoped changes are tied to one concern: enforcing deterministic test-first workflow behavior.; Unambiguous Requirements — Most requirements are stated as concrete step/command/state changes with observable outcomes.; Complete Context — Requirements generally include triggering conditions and expected behavior (e.g., on completeTask, on missing test command, on tasks.length===0).; No Hardcoded Secrets — No secrets (keys/tokens/passwords) are present; this draft is requirements text.; Prioritize Requirements — There are more than three requirements, but no explicit priority labels (e.g., P0/P1/P2 or must/should ordering semantics).; Impact on Existing Features — A dedicated impact section explicitly lists breaking and additive effects, plus unaffected behavior.; Present Recommendations with Reasoning — Q&A provides answers, but several recommendations are not consistently led by concise rationale grounded in docs/guardrails/code patterns.; Explore Before Asking — Whether each question was answerable from docs/code before asking requires runtime interaction evidence not included here.; Proactively Raise Related Implications — The draft proactively covers implications via Impact, Edge Cases, Alternatives, and Future Extensibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — The draft shows decisions and critique outcomes but does not explicitly confirm brainstorm-vs-decision mode before critique.; Capture Digressions in draft.md — Discussion outcomes and side topics are captured in Alternatives/Q&A/Open Questions within the draft.; Draft Stays at Requirements Level — It includes implementation-level details (specific command mechanics, function names, file-level test targets) beyond pure requirements level.; Backward-Compatible CLI Interface — It introduces a new CLI command and explicitly states existing CLI args/exit codes are unchanged; no command semantic change is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T08:10:09.580Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: enforcing test-first determinism in flow/task behavior, with related scope items tied to that goal.; Unambiguous Requirements — Several requirements use non-verifiable wording (e.g., strict/low impact/autonomous) without measurable acceptance criteria.; Complete Context — Many requirement bullets do not consistently use explicit trigger-condition plus expected-shall structure.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present in the draft content.; Prioritize Requirements — Requirements are explicitly prioritized with P1-P4 and ordered items.; Impact on Existing Features — A dedicated impact section lists breaking/additive effects and unaffected behavior.; Present Recommendations with Reasoning — Q&A entries provide recommended answers and include rationale sources (docs, guardrails, code patterns).; Explore Before Asking — This requires process/runtime evidence of what was explored before asking; draft text alone cannot prove it.; Proactively Raise Related Implications — Related implications are proactively covered via Impact, Edge Cases, Alternatives, and Future Extensibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — Discussion mode is explicitly marked as Decision, confirming non-brainstorm status before critique.; Capture Digressions in draft.md — Side discussions and off-scope decisions are captured in Alternatives/Q&A/Out of Scope within the draft.; Draft Stays at Requirements Level — Content remains at requirements/spec level and avoids function-level implementation design details.; Backward-Compatible CLI Interface — No existing command/option semantic change is specified; draft adds a new CLI and notes existing CLI args/exit codes stay unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T08:12:05.738Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 仕様全体は test-first の機械化とその周辺統合に集中しており、無関係な機能追加は含まれていない。; Unambiguous Requirements — 各 REQ は順序・条件・記録項目・終了コードなど検証可能な条件で記述され、曖昧語への依存が少ない。; Complete Context — REQ-1〜REQ-9 が When/If のトリガーと shall の期待動作を対で記述している。; No Hardcoded Secrets — ドラフト内に API キー・パスワード・トークン等の秘密情報の直書きはない。; Prioritize Requirements — 要件が 3 件を超える中で P1〜P4 の優先度順が明示されている。; Impact on Existing Features — 既存機能への影響を破壊的変更/追加として明示し、影響内容を列挙している。; Present Recommendations with Reasoning — Q&A で各問いに推奨回答を先に示し、docs/guardrail/既存パターンを根拠として明記している。; Explore Before Asking — Q&A の根拠が Issue・既存コードパターン・docs 参照に基づいており、探索結果を踏まえて判断している。; Proactively Raise Related Implications — Impact/Edge Cases/Out of Scope/Future Extensibility で関連含意を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 冒頭で Discussion Mode を Decision と明記し、ブレストではないことを確認している。; Capture Digressions in draft.md — 命名整理や replan など本筋外論点を Out of Scope/Alternatives に記録している。; Draft Stays at Requirements Level — `completeTask(taskId)`・`FLOW_STEPS`・`spawn` など実装/関数設計レベルの詳細が含まれ、要件レベルを超えている。; Backward-Compatible CLI Interface — 既存 CLI の引数・終了コードは変更しないと明示されており、互換性破壊を伴う CLI 変更は定義されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T08:13:23.594Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays focused on one coherent concern: enforcing test-first determinism in the flow/task process.; Unambiguous Requirements — Requirements are mostly written as verifiable conditions with explicit triggers, expected behavior, and measurable outputs.; Complete Context — Each listed requirement pairs a When/If trigger with a shall outcome, meeting context-and-expectation completeness.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in this draft content.; Prioritize Requirements — More than three requirements are present and clearly ordered by P1-P4 priority tiers.; Impact on Existing Features — The draft includes an explicit impact section detailing breaking and additive effects, including unaffected behavior notes.; Present Recommendations with Reasoning — Each Q&A provides a recommended decision and cites basis from docs, guardrails, or existing code patterns.; Explore Before Asking — The draft references issue text, existing task-origin definitions, and code-pattern constraints, indicating prior exploration.; Proactively Raise Related Implications — Related implications are proactively documented in Impact, Edge Cases, Alternatives, Out of Scope, and Future Extensibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — It explicitly states Decision mode and that this records approved design decisions rather than brainstorming.; Capture Digressions in draft.md — Digressive discussions and outcomes are captured in-place via Alternatives Considered and Q&A decision records.; Draft Stays at Requirements Level — The draft includes implementation-level details (e.g., specific command/process behavior, file/path-level patterns) beyond pure requirements-level scope.; Backward-Compatible CLI Interface — It introduces a new CLI command while explicitly stating existing CLI arguments/exit-code behavior are unchanged; no CLI migration is needed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T08:14:23.724Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays focused on one cohesive concern: enforcing test-first determinism in flow/task behavior.; Unambiguous Requirements — Requirements are mostly stated as verifiable conditions with concrete triggers and outcomes.; Complete Context — Each listed requirement includes a When/If trigger and a shall expectation.; No Hardcoded Secrets — No source code secrets (keys/tokens/passwords) are present in this draft content.; Prioritize Requirements — More than three requirements are present and explicitly prioritized (P1-P4).; Impact on Existing Features — A dedicated impact section explicitly describes breaking, additive, and unchanged behaviors.; Present Recommendations with Reasoning — Q&A entries provide recommended answers and cite clear bases (docs, guardrails, code patterns).; Explore Before Asking — The draft references docs/code, but process-level proof of what was explored before asking is not fully observable from this artifact alone.; Proactively Raise Related Implications — Related implications are proactively covered via impact analysis, edge cases, alternatives, and extensibility notes.; Confirm Brainstorm vs. Decision Before Critiquing — The draft explicitly states decision mode and that it is not brainstorming.; Capture Digressions in draft.md — Whether discussion digressions occurred and were captured cannot be confirmed from the draft alone.; Draft Stays at Requirements Level — It includes implementation-level details (e.g., specific command/process behavior and module-level patterns) beyond pure requirements level.; Backward-Compatible CLI Interface — No existing CLI command/option meaning is changed; a new CLI is added and existing interfaces are stated as unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T08:14:49.512Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft centers on one enhancement concern: enforcing test-first determinism in flow/task execution, with related integration behavior scoped to that concern.; Unambiguous Requirements — Requirements are mostly measurable and specific (ordered steps, exit codes, integer summaries, retry limits) rather than vague adjectives.; Complete Context — Each listed requirement uses explicit trigger context (When/If) and expected behavior (shall).; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in the draft content.; Prioritize Requirements — Requirements exceed three items and are explicitly prioritized with P1-P4 tiers.; Impact on Existing Features — A dedicated impact section lists destructive/additive effects and explicitly states unchanged areas.; Present Recommendations with Reasoning — Q&A provides a recommended answer per question and cites basis from docs, guardrails, or existing code patterns.; Explore Before Asking — Draft references project docs, issue text, and existing code patterns as evidence for decisions.; Proactively Raise Related Implications — It proactively covers impacts, edge cases, alternatives, constraints, and future extensibility implications.; Confirm Brainstorm vs. Decision Before Critiquing — Discussion mode is explicitly marked as decision mode and user approval is recorded.; Capture Digressions in draft.md — Cannot verify from this document alone whether any live discussion digressions were captured at the time they occurred.; Draft Stays at Requirements Level — Draft includes implementation-level design details (specific file patterns, command architecture, and function-structure guidance) beyond pure requirements level.; Backward-Compatible CLI Interface — CLI impact is addressed; draft states existing command arguments/exit codes remain unchanged and only a new command is added.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T08:15:51.814Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — test-first determinismとその直接的な周辺（integration段階・集計）に焦点が絞られている。; Unambiguous Requirements — 各要件は条件・動作・記録項目が具体化され、検証可能な記述になっている。; Complete Context — REQ-1〜REQ-9がWhen/If条件とshall期待動作の組で記述されている。; No Hardcoded Secrets — 本ドラフト内にAPIキー・トークン・パスワード等の秘密情報は含まれていない。; Prioritize Requirements — 要件がP1〜P4で優先度付きで整理されている。; Impact on Existing Features — 既存機能への破壊的/追加影響が明示されている。; Present Recommendations with Reasoning — Q&Aで推奨回答を先に示し、docs/guardrail/既存パターンの根拠を併記している。; Explore Before Asking — 実際に質問前にdocs/コード探索を完了していたかは、本文だけでは実行過程を断定できない。; Proactively Raise Related Implications — Impact/Edge Cases/Alternatives/Future Extensibilityで関連含意を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — Discussion ModeでDecisionと明示し、ブレストではないことを先に確定している。; Capture Digressions in draft.md — 代替案・スコープ外事項・最終判断がdraft内に整理され、脱線論点の回収が行われている。; Draft Stays at Requirements Level — `src/flow/lib/run-*.js`や`TASK_ORIGINS`など実装/設計詳細に踏み込み、要求レベルを超えている。; Backward-Compatible CLI Interface — 既存CLIの引数・終了コードは不変と明記され、CLI互換性破壊は含まれていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T08:16:20.548Z"
+    },
+    {
+      "step": "implement",
+      "reason": "REQ-2 (run-tests CLI), REQ-3 (context filter), REQ-7 (addition auto-draft) are deferred from this implementation pass — each is a substantial feature requiring new modules/CLI routing/skill updates that exceed a single task's scope",
+      "trigger": "scope review during implementation",
+      "resolution": "implemented REQ-1/4/5/6 (step列再定義、summary合算、integration phase FLOW_STEPS追加); REQ-2/3/7 tracked for follow-up",
+      "guardrailCandidate": "auto-drafted specs should check implementation feasibility per requirement before approval",
+      "timestamp": "2026-04-20T08:26:27.838Z"
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-20T08:26:35.165Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "REQ-1 — `TASK_STEPS_PLAN`/`TASK_STEPS_ADDITION` were changed to `write-tests -> impl -> run-tests` order for both plan and addition origins, with passing unit tests.; REQ-2 — No implementation of a new test-execution CLI that enforces tool-side execution/recording (exit code, log path, unit/integration/acceptance summary) is present in the diff.; REQ-3 — No structural context-filter implementation excluding implementation diffs/content for write-tests phase, and no corresponding skill-doc policy update, are shown in the diff.; REQ-4 — `completeTask` now aggregates `task.test.summary` into parent `state.test.summary` with null-summary no-op behavior, covered by new passing tests.; REQ-5 — Parent-scope test summary write behavior without a current task is verified by added passing tests, matching integration-to-parent recording intent.; REQ-6 — Integration 4 steps were added before review, but the required behavior 'flows without tasks initialize these steps as skipped' is not implemented/verified in the diff.; REQ-7 — No addition-origin auto-draft/gate-pass continuation/retry-limit escalation logic is implemented in the diff (also explicitly logged as deferred).; REQ-8 — Added tests cover only part of required coverage; missing coverage includes context filter, CLI test execution recording, integration no-task skip behavior, and full end-to-end order+aggregation validation.; REQ-9 — Provided execution evidence shows the project standard test run passed completely (all tests pass, exit code 0).; REQ-10 — No implemented test-execution/integration CLI failure-path contract (non-zero exit + stderr/errors recording) is shown in the diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T08:28:24.108Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "REQ-1 — `TASK_STEPS_PLAN`/`TASK_STEPS_ADDITION` were updated to include `write-tests -> impl -> run-tests` in order for both plan and addition origins, with passing unit tests.; REQ-2 — No implementation of a dedicated test-execution CLI with tool-side run/recording (exit code, log path, unit/integration/acceptance summary) is present in the diff.; REQ-3 — No structural context-filter implementation (excluding implementation diffs/content in test-writing phase) or corresponding skill-policy update is shown in the diff.; REQ-4 — `completeTask` now aggregates `task.test.summary` into parent `state.test.summary` with null-summary no-op behavior, covered by passing tests.; REQ-5 — Parent-scope summary recording behavior is validated (`setTestSummary` writes to parent when no current task), matching integration-scope-to-parent recording intent.; REQ-6 — Integration 4-step insertion before review is implemented, but required initial `skipped` behavior for flows with no tasks is not implemented/verified in the diff.; REQ-7 — No addition-origin auto-draft/gate-pass continuation/retry-limit escalation logic is implemented in the diff.; REQ-8 — Added tests cover only part of required scope; missing coverage includes context filter, test-execution CLI recording, no-task integration skip behavior, and required end-to-end order+aggregation validation.; REQ-9 — Execution evidence shows the project test run passed fully with exit code 0 (`pass 1534`, `fail 0`).; REQ-10 — No implementation is shown for test-execution/integration CLI failure contract requiring non-zero exit and explicit stderr/`errors` reporting.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T08:28:59.901Z"
+    }
+  ]
+}

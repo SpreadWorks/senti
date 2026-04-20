@@ -20,7 +20,10 @@ export const SCAN_FLOWS_LIMIT = 200;
 /** SDD workflow step IDs in order (flow level). */
 export const FLOW_STEPS = [
   "branch", "prepare-spec", "draft", "gate-draft", "spec",
-  "gate", "approval", "test", "implement", "gate-impl", "review", "finalize",
+  "gate", "approval", "test", "implement", "gate-impl",
+  "integration-write-tests", "integration-run-tests",
+  "integration-run-all-tests", "integration-evaluate",
+  "review", "finalize",
   "commit", "push", "merge", "pr-create", "branch-cleanup",
   "pr-merge", "sync-cleanup", "docs-update", "docs-review", "docs-commit",
 ];
@@ -29,7 +32,12 @@ export const FLOW_STEPS = [
 export const PHASE_MAP = {
   branch: "plan", "prepare-spec": "plan", draft: "plan",
   "gate-draft": "plan", spec: "plan", gate: "plan", approval: "plan", test: "plan",
-  implement: "impl", "gate-impl": "impl", review: "impl", finalize: "impl",
+  implement: "impl", "gate-impl": "impl",
+  "integration-write-tests": "impl",
+  "integration-run-tests": "impl",
+  "integration-run-all-tests": "impl",
+  "integration-evaluate": "impl",
+  review: "impl", finalize: "impl",
   commit: "finalize", push: "finalize", merge: "finalize",
   "pr-create": "finalize", "branch-cleanup": "finalize",
   "pr-merge": "sync", "sync-cleanup": "sync",
@@ -48,13 +56,15 @@ export const TASK_STEP_STATUSES = ["pending", "in_progress", "done", "skipped"];
 /** Valid values for Task.requirements[].status. */
 export const TASK_REQUIREMENT_STATUSES = ["pending", "done"];
 
-/** Task-level step sequences (cac6/T2). */
+/** Task-level step sequences (cac6/T2 + T4 test-first decomposition). */
 export const TASK_STEPS_PLAN = [
-  "gate", "approval", "impl", "test", "review", "update-overview",
+  "gate", "approval", "write-tests", "impl", "run-tests", "review", "update-overview",
 ];
 
 export const TASK_STEPS_ADDITION = [
-  "draft", "approval", "gate", "approval-2", "impl", "test", "review", "update-overview",
+  "draft", "approval", "gate", "approval-2",
+  "write-tests", "impl", "run-tests",
+  "review", "update-overview",
 ];
 
 /** Task-level step → phase mapping. */
@@ -63,8 +73,9 @@ export const TASK_PHASE_MAP = {
   gate: "task-plan",
   approval: "task-plan",
   "approval-2": "task-plan",
+  "write-tests": "task-impl",
   impl: "task-impl",
-  test: "task-impl",
+  "run-tests": "task-impl",
   review: "task-impl",
   "update-overview": "task-impl",
 };
