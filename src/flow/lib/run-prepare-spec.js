@@ -238,7 +238,11 @@ export class RunPrepareSpecCommand extends FlowCommand {
     // Helper: write flow.json state
     const flowRunId = runIdArg || flowManager.generateRunId();
     function writeFlowState(extra) {
-      const steps = buildInitialSteps();
+      // At prepare time a fresh flow has no tasks. Integration steps
+      // initialize as `skipped` (spec 198 REQ-P4-1); tasks added later
+      // during the flow do not retroactively un-skip them — the skip
+      // state reflects "no tasks declared up-front".
+      const steps = buildInitialSteps({ tasks: [] });
       for (const id of ["branch", "spec"]) {
         const step = steps.find((s) => s.id === id);
         if (step) step.status = "done";

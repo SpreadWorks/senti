@@ -40,6 +40,31 @@ Before starting, run `sdd-forge flow get check impl` to verify prerequisites.
 - If PASS, proceed to step 1.
 - If FAIL, inform the user which steps are incomplete and stop.
 
+## Addition task draft (tool-driven)
+
+When an addition task is inserted, draft generation is handled entirely by
+`sdd-forge flow run draft-task --task-id <id>`. Do not generate the addition
+task's draft inside the skill or by free-form AI prompt — the tool path
+collects parent spec / sibling tasks / request context, calls the agent,
+runs the gate, and retries up to `config.flow.retry.max` before escalating.
+Gate PASS is the trust point; an AI-side "I think this is good" is not.
+
+## Task write-tests step (test-first determinism)
+
+When a task enters its `write-tests` step, the AI is writing tests against the spec
+*before* implementation. To preserve test-first determinism:
+
+- **MUST: Do not reference implementation diffs or implementation target files while
+  the task is in `write-tests`.** Writing tests from the implementation shape leaks
+  the implementation's assumptions into the tests and breaks test-first.
+- The `flow get context` tool enforces this as a hard wall: files listed in the
+  spec's `implementationTargets` are blocked in path mode and silently excluded
+  from list / search results while `write-tests` is in progress. This skill
+  policy is the redundant textual reinforcement of that tool-side block.
+- Derive tests from spec requirements and acceptance criteria alone; if the spec
+  is ambiguous, resolve ambiguity in the spec (plan phase), not by peeking at
+  the intended implementation.
+
 ## Required Sequence
 
 1. Implement changes.

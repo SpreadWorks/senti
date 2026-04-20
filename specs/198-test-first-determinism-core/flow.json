@@ -1,0 +1,247 @@
+{
+  "spec": "specs/198-test-first-determinism-core/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/198-test-first-determinism-core",
+  "runId": "9a99146f-6b75-4f88-9193-f04d32525335",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "in_progress"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "REQ-P1-1: テストコマンド決定・子プロセス起動・結果保存",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P1-2: task/parent スコープ推論",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P1-3: 明示設定優先・script推論フォールバック",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P1-4: 終了コードと種別件数サマリ記録",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P1-5: AI書込遮断（ツール独占）",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P1-6: 失敗時非0 exit",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P2-1: テスト記述段階でimpl対象を遮断",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P2-2: spec構造化データでimpl対象列挙",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P2-3: パス指定アクセスはエラー",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P2-4: 一覧/検索から除外",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P2-5: skill/プロンプトに方針明記",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P3-1: 追加タスクdraftツール主導生成",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P3-2: gate判定のみ信頼点",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P3-3: retry上限でescalate",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P3-4: autoApproveでgate PASS自動承認",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P3-5: skill独自経路廃止",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P4-1: 新規flowでtasks無なら統合skipped初期化",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P4-2: 既存flow非書換",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-P4-3: skipped統合stepは次アクション判定で読飛ばし",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 186,
+  "request": "#186 issueを進めてください",
+  "worktree": true,
+  "notes": [
+    "Q1: 解釈承認 (REQ-2/3/7 + integration skip 初期化)",
+    "Q2: commands.test top-level、{task,parent} 構造。省略時 scripts 推論",
+    "Q3: write-tests context filter の実装対象 path は spec.json.implementationTargets フィールドのみ（config 配置は不要）",
+    "Q4: addition auto-draft は新規 CLI sdd-forge flow run draft-task で実装。ツール側が agent呼び出し+gate+retry制御",
+    "Q5: integration skip 初期化は新規 flow のみ適用（buildInitialSteps 変更、migration なし）",
+    "Q6: テスト配置は混在（CLI契約/helpers恒久→tests/unit、E2Eシナリオ→specs/198/tests）"
+  ],
+  "metrics": {
+    "plan": {
+      "docsRead": 1,
+      "issueLog": 1
+    },
+    "draft": {
+      "question": 5
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 72610,
+        "output": 4539,
+        "cacheRead": 33024,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 8871,
+      "durationMs": 104287
+    },
+    "gate": {
+      "tokens": {
+        "input": 469015,
+        "output": 14367,
+        "cacheRead": 219648,
+        "cacheCreation": 0
+      },
+      "callCount": 14,
+      "responseChars": 17023,
+      "durationMs": 346272
+    },
+    "impl": {
+      "issueLog": 1
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 23
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-20T12:12:18.684Z"
+  }
+}

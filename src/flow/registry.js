@@ -419,6 +419,35 @@ export const FLOW_COMMANDS = {
         "  --dry-run   Preview only",
       ].join("\n"),
     },
+    "draft-task": {
+      helpKey: "flow.run.draft-task",
+      command: () => import("./lib/run-draft-task.js"),
+      args: { options: ["--task-id"] },
+      help: [
+        "Usage: sdd-forge flow run draft-task --task-id <id>",
+        "",
+        "Generate an addition task's draft via tool-driven agent call,",
+        "gate it, retry on FAIL up to config.flow.retry.max, and (when",
+        "autoApprove is on) auto-approve on PASS.",
+      ].join("\n"),
+    },
+    tests: {
+      helpKey: "flow.run.tests",
+      command: () => import("./lib/run-tests.js"),
+      help: [
+        "Usage: sdd-forge flow run tests",
+        "",
+        "Execute the project's test suite and record results to flow.json test.summary.",
+        "",
+        "Scope inference:",
+        "  task    when state.currentTaskId is set",
+        "  parent  otherwise",
+        "",
+        "Command resolution:",
+        "  1. config.commands.test.{task|parent}",
+        "  2. package.json scripts inference",
+      ].join("\n"),
+    },
     // lint is a sub-task of the implement phase; it does not exclusively own the step.
     // Step status is managed by the skill, not hooks.
     lint: {

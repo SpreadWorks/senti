@@ -45,7 +45,7 @@ export class PreparingFlowStore {
       baseBranch: null,
       featureBranch: null,
       worktree: null,
-      steps: buildInitialSteps(),
+      steps: buildInitialSteps({ tasks: [] }),
       requirements: [],
       tasks: [],
       currentTaskId: null,

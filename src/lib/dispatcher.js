@@ -261,9 +261,10 @@ function emitFailure({ err, mode, envelopeType, envelopeKey, writeOut, writeErr,
   if (mode === "envelope") {
     const code = err?.code || "ERROR";
     const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", code, String(err?.message || err));
+    if (err?.data !== undefined) env.data = err.data;
     writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
   } else {
     writeErr(`${err?.stack || err?.message || err}\n`);
   }
-  setExit(1);
+  setExit(err?.exitCode ?? 1);
 }

@@ -31,6 +31,19 @@ export default class SetTestSummaryCommand extends FlowCommand {
       throw new Error("usage: flow set test-summary --unit N [--integration N] [--acceptance N]");
     }
 
+    // Tool monopoly (REQ-P1-5, spec 198): once `flow run tests` has
+    // recorded an execution summary (signaled by the presence of
+    // `exitCode`), AI-side writes via this command are rejected so they
+    // cannot overwrite tool-measured results.
+    const state = ctx.flowState;
+    if (state?.test?.summary?.exitCode != null) {
+      const err = new Error(
+        "test.summary.exitCode is tool-recorded; AI-side write rejected (use `flow run tests` to re-measure)",
+      );
+      err.code = "TEST_SUMMARY_LOCKED";
+      throw err;
+    }
+
     ctx.flowManager.setTestSummary(summary);
 
     return { summary };

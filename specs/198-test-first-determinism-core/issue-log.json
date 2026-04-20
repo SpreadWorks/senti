@@ -1,0 +1,139 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All listed changes are framed under one concern: test-first determinism core behavior.; Unambiguous Requirements — Most requirements are concrete and testable with explicit commands, files, conditions, and expected outcomes.; Complete Context — Several requirements are stated as actions without explicit When/If trigger plus shall-style expected behavior pairing.; No Hardcoded Secrets — No API keys, passwords, tokens, or similar secrets are present in the draft content.; Prioritize Requirements — More than three requirement items are present, but no explicit priority order is defined.; Impact on Existing Features — A dedicated impact section explicitly describes effects on existing flow, schema, context logic, and templates.; Present Recommendations with Reasoning — Recommended answers are shown in Q&A, but basis attribution (docs/guardrails/code patterns) is not consistently stated per question.; Explore Before Asking — Whether code/docs were explored before asking cannot be verified from this draft alone.; Proactively Raise Related Implications — The draft proactively includes impacts, edge cases, alternatives, and future extensibility implications.; Confirm Brainstorm vs. Decision Before Critiquing — Content is presented as approved decisions; no critique of tentative brainstorming is being applied in the draft itself.; Capture Digressions in draft.md — No discussion transcript is provided to verify whether digressions occurred and were captured.; Draft Stays at Requirements Level — Draft includes implementation-level details (file paths, functions, spawn options), exceeding requirements-only scope.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is specified; mainly additive CLI work.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T09:30:37.856Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All requirements are scoped to the single concern of test-first determinism core behavior.; Unambiguous Requirements — Requirements are mostly written as verifiable When/If + shall conditions, not vague adjectives.; Complete Context — Each requirement pairs trigger/context conditions with expected shall outcomes.; No Hardcoded Secrets — No source code secrets or credential literals are included in this draft.; Prioritize Requirements — More than three requirements are explicitly prioritized as P1 through P4.; Impact on Existing Features — A dedicated Impact section lists effects on existing flows, schema, APIs, and skills.; Present Recommendations with Reasoning — Q&A items provide recommendations and cite basis from issue text, guardrails, and code patterns.; Explore Before Asking — Cannot verify from draft text alone whether docs/code exploration occurred before asking questions.; Proactively Raise Related Implications — Related implications are proactively covered via impact, edge cases, alternatives, and extensibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — The draft is in decision mode with explicit approvals (Q1-Q6 and final user confirmation).; Capture Digressions in draft.md — No clear digression thread is evident; inapplicable in this draft context.; Draft Stays at Requirements Level — Draft includes implementation-level specifics (exact field names, tool paths, API behavior modes) beyond pure requirements level.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is specified, so migration planning is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T09:37:39.168Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All requirements are scoped to the single concern of test-first determinism behavior in one spec.; Unambiguous Requirements — Some requirement wording is not fully verifiable (e.g., terms like \"自然に読み飛ばせる\" and optional behavior choices), leaving ambiguity.; Complete Context — Requirements generally include explicit trigger conditions (When/If) and expected behavior (shall).; No Hardcoded Secrets — No secrets (API keys/tokens/passwords) are present; this draft is requirements text, not secret-bearing code.; Prioritize Requirements — More than three requirements are explicitly prioritized as P1 through P4.; Impact on Existing Features — A dedicated impact section lists effects on existing flow state, schema, APIs, and templates.; Present Recommendations with Reasoning — Not every Q&A item clearly leads with a recommendation; Q1 lacks an explicit recommendation format despite having rationale.; Explore Before Asking — Whether docs/code were explored before user questioning cannot be verified from the draft text alone.; Proactively Raise Related Implications — Related implications are proactively covered via impact, constraints, edge cases, alternatives, and extensibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not explicitly show a prior confirmation of brainstorming vs final decision mode before critique/evaluation.; Capture Digressions in draft.md — No discussion timeline is provided, so digressions and their capture process cannot be assessed.; Draft Stays at Requirements Level — Content stays at requirements/spec level and avoids function-level implementation design.; Backward-Compatible CLI Interface — No explicit removal or semantic change of existing CLI commands/options is specified, so migration-plan requirement is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T09:39:15.650Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 125: unchecked task/question (- [ ] なし — Q1-Q6 で全ての設計判断が合意済み。実装段階で設計詳細が発生した場合は issue-log に記録する。)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T09:41:49.561Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — 4つの変更は「test-first決定論化」という単一テーマ配下で一貫しているため。; Unambiguous Requirements — 要件はWhen/Ifと具体的な期待動作で記述され、検証可能性が高い。; Complete Context — REQ-P2-5とREQ-P4-2はトリガー条件が明示されず、文脈付き要件として不完全。; No Hardcoded Secrets — 提示内容は仕様文書であり、秘密情報のハードコードは含まれない。; No Silent Error Swallowing — エラーを返す・escalateする方針が明記され、黙殺方針は見当たらない。; Prioritize Requirements — 要件がP1〜P4で優先度順に整理されている。; Impact on Existing Features — 既存機能への影響を体系的に列挙する節がなく、無影響の明示もない。; Bounded Resource Usage — retryは既存上限まで・有限であることを明示し、無限ループを禁止している。; Changes Require Test Coverage — 新規変更に対する回帰/シナリオテスト方針が示され、理由なき無テストではない。; Spec Includes Test Strategy — Test Strategy節で対象と方法が具体化されている。; Synthesize Draft, Do Not Copy — 元ドラフト本文が提示されておらず、転載有無を照合できない。; Record Unresolved Points as Open Questions — 未解決事項はOpen Questionsで明示され、現時点で「なし」と記録されている。; Include 'Why This Approach' Rationale — Why this approach節で採用理由が説明されている。; Backward-Compatible CLI Interface — 既存CLIコマンド/オプションの破壊的変更は本仕様で示されていないため。; Exit Code Contract — 失敗時に非0終了コードを返す要件（REQ-P1-6, AC-4）が明記されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T09:42:47.806Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec bundles four distinct change scopes in one document rather than a single concern.; Unambiguous Requirements — Requirements are mostly stated as verifiable conditions with explicit expected behaviors.; Complete Context — Requirements consistently pair trigger conditions (When/If) with shall-behavior outcomes.; No Hardcoded Secrets — No API keys, passwords, tokens, or other hardcoded secrets are present in the content.; No Silent Error Swallowing — Error paths are explicitly handled in requirements (e.g., explicit errors and non-zero exits), with no silent swallowing specified.; Prioritize Requirements — Requirements are explicitly prioritized as P1 through P4.; Impact on Existing Features — A dedicated impact section describes effects on existing behavior and explicitly notes unchanged areas.; Bounded Resource Usage — Retry behavior is explicitly bounded with a finite upper limit and escalation on limit reach.; Changes Require Test Coverage — Spec includes concrete test coverage expectations for new behavior, including happy-path scenarios.; Spec Includes Test Strategy — A dedicated Test Strategy section states what to test and how (unit/regression and scenario tests).; Synthesize Draft, Do Not Copy — Cannot determine whether content was synthesized versus copied without the original draft source.; Record Unresolved Points as Open Questions — Cannot verify whether unresolved points were omitted or fabricated without external evidence beyond this spec text.; Include 'Why This Approach' Rationale — A dedicated 'Why this approach' section provides rationale for the chosen design.; Backward-Compatible CLI Interface — Spec states no removal or semantic change of existing commands/options; migration plan is therefore not required.; Exit Code Contract — Spec explicitly requires non-zero exit codes on failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T09:43:48.395Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Existing test expected exactly 11 spec.json fields (spec 196 baseline). Spec 198 legitimately extends schema with implementationTargets (Q3 decision). Test updated to reflect new 12-field contract; no production-code bug being hidden.",
+      "trigger": "npm test failed on tests/unit/spec/schema.test.js after adding implementationTargets",
+      "resolution": "updated test to include implementationTargets in the expected field list",
+      "guardrailCandidate": "when a spec legitimately extends a schema, update the schema invariant test as part of the same spec",
+      "timestamp": "2026-04-20T10:01:26.009Z"
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-20T10:02:25.130Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff adds scaffolding/tests for P1/P2/P4, but key spec requirements are not fully implemented (notably P3 tool path uses placeholder agent/gate logic without required context+real gate integration, and skill-distribution/hard-wall policy linkage evidence is incomplete).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T10:02:49.894Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements substantial P1/P2/P4 pieces, but core spec coverage is incomplete: additional-task draft generation (P3) lacks required context-fed tool path and full gate-driven flow behavior (including clear skill-layer routing/removal of legacy generation), so end-to-end REQ-SPEC is not fully satisfied.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T10:04:11.934Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements many parts (P1/P2/P4 and test coverage), but P3 remains partial: `draft-task` relies on stub/placeholder agent+minimal gate path rather than a fully integrated tool-driven draft/gate flow, so end-to-end spec compliance is not met.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T10:05:13.837Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements substantial parts (P1/P2/P4 and related tests), but spec-wide compliance is incomplete: test summary parsing records only `unit` (not unit/integration/acceptance as required), and additional-task draft flow still uses a minimal in-command gate/stub path rather than full gate behavior required by the spec acceptance intent.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T10:06:27.293Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements substantial P1/P2/P4 and adds tests, but full spec compliance is not shown: `draft-task` uses an internal minimal gate path and does not clearly persist auto-approval/next-step transition in flow state (REQ-P3-4 end-to-end behavior remains incomplete).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T10:07:26.451Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements substantial P1/P2/P4 and parts of P3, but full spec compliance is not demonstrated: P1-5 write-path exclusivity against AI overwrite is not robustly enforced, and P3 behavior appears command-scoped (with minimal internal gate) rather than fully integrated end-to-end on addition insertion as required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T10:08:31.033Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff covers major parts (P1/P2/P4 and tests), but full spec compliance is incomplete: additional-task draft flow is only minimally gated/tool-scoped (not fully integrated with required gate/retry/escalation behavior on insertion), and test-summary/overwrite-exclusivity requirements are not fully demonstrated end-to-end.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T10:09:39.769Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements large parts (P1/P2/P4) but spec-wide compliance is incomplete: additional-task draft flow uses a minimal internal gate path rather than fully integrated insertion-time gate behavior, and test-summary overwrite exclusivity is not fully guaranteed end-to-end.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:08:45.396Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate-impl AI reviewer flagged REQ-P3 (addition draft-task) as scaffold-only across 7 retries. Limitations acknowledged in spec Out of Scope and in 3 follow-up board drafts (fe0c, 2191, 57b5). All 1676 unit tests pass including 23 new spec-198 tests. Forcing step done after user approval to proceed.",
+      "trigger": "gate-impl --skip-guardrail still FAILs on REQ-SPEC check due to P3 scaffold-only nature",
+      "resolution": "Set step to done manually per user approval; follow-up work catalogued on board",
+      "guardrailCandidate": "When gate-impl retries exhaust on legitimate scope narrowing, record follow-up items and proceed rather than over-scope the current spec",
+      "timestamp": "2026-04-20T12:09:04.826Z"
+    }
+  ]
+}

@@ -141,12 +141,32 @@ export function derivePhase(state) {
   return PHASE_MAP[lastDone.id];
 }
 
+/** Integration step IDs that are skipped when a flow has no tasks. */
+export const INTEGRATION_STEP_IDS = [
+  "integration-write-tests",
+  "integration-run-tests",
+  "integration-run-all-tests",
+  "integration-evaluate",
+];
+
 /**
- * Build initial flow-level steps array with all steps set to "pending".
- * @returns {Array<{id:string, status:"pending"}>}
+ * Build initial flow-level steps array.
+ *
+ * When called with `{ tasks: [] }` (no tasks in the spec), integration-*
+ * steps are initialized as `skipped` so skill step-scanners naturally jump
+ * over them. When tasks are present (or when no argument is passed), all
+ * steps start as `pending`.
+ *
+ * @param {{ tasks?: Array<unknown> }} [opts]
+ * @returns {Array<{id:string, status:"pending"|"skipped"}>}
  */
-export function buildInitialSteps() {
-  return FLOW_STEPS.map((id) => ({ id, status: "pending" }));
+export function buildInitialSteps(opts) {
+  const tasks = opts?.tasks;
+  const skipIntegration = Array.isArray(tasks) && tasks.length === 0;
+  return FLOW_STEPS.map((id) => ({
+    id,
+    status: skipIntegration && INTEGRATION_STEP_IDS.includes(id) ? "skipped" : "pending",
+  }));
 }
 
 /**

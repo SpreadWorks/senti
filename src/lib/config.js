@@ -242,6 +242,14 @@ const CONFIG_SCHEMA = {
       type: "object",
       properties: {
         gh: { type: "string", enum: ["enable", "disable"] },
+        test: {
+          type: "object",
+          required: ["task", "parent"],
+          properties: {
+            task: { type: "string", minLength: 1 },
+            parent: { type: "string", minLength: 1 },
+          },
+        },
       },
     },
 

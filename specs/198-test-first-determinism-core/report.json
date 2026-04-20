@@ -1,0 +1,55 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/198-test-first-determinism-core/draft.md     | 128 +++++++++++\n specs/198-test-first-determinism-core/flow.json    | 247 +++++++++++++++++++++\n .../198-test-first-determinism-core/issue-log.json | 139 ++++++++++++\n specs/198-test-first-determinism-core/qa.md        |   9 +\n specs/198-test-first-determinism-core/review.md    |  49 ++++\n specs/198-test-first-determinism-core/spec.md      | 146 ++++++++++++\n .../tests/README.md                                |  39 ++++\n .../tests/e2e-task-complete-run.test.js            |  63 ++++++\n src/flow/lib/get-context.js                        |  86 ++++++-\n src/flow/lib/run-draft-task.js                     | 195 ++++++++++++++++\n src/flow/lib/run-prepare-spec.js                   |   6 +-\n src/flow/lib/run-tests.js                          | 142 ++++++++++++\n src/flow/lib/set-test-summary.js                   |  13 ++\n src/flow/registry.js                               |  29 +++\n src/flow/schemas/spec.schema.json                  |   4 +\n src/lib/config.js                                  |   8 +\n src/lib/dispatcher.js                              |   3 +-\n src/lib/flow-helpers.js                            |  28 ++-\n src/lib/preparing-flow-store.js                    |   2 +-\n src/templates/skills/sdd-forge.flow-impl/SKILL.md  |  25 +++\n tests/unit/flow/flow-run-draft-task.test.js        | 143 ++++++++++++\n tests/unit/flow/flow-run-tests.test.js             | 123 ++++++++++\n .../flow/get-context-write-tests-filter.test.js    | 146 ++++++++++++\n tests/unit/lib/config-schema-commands-test.test.js |  45 ++++\n .../unit/lib/flow-helpers-integration-skip.test.js |  48 ++++\n tests/unit/spec/schema.test.js                     |   3 +-\n 26 files changed, 1857 insertions(+), 12 deletions(-)",
+      "commits": [
+        "feat: feature/198-test-first-determinism-core",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 5,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 490203,
+      "output": 15764,
+      "cacheRead": 249216,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 17,
+      "durationMs": 388818,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 104287
+        },
+        {
+          "phase": "gate",
+          "durationMs": 284531
+        }
+      ]
+    },
+    "tests": {
+      "unit": 23,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 23
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/198-test-first-determinism-core\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    26 files changed, 1857 insertions(+), 12 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 5\n    issue-log ................... 2\n    agent calls ................. 17\n    input tokens ................ 490,203\n    output tokens ............... 15,764\n    cache-read tokens ........... 249,216\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 388.8s\n      gate-draft ................ 104.3s\n      gate ...................... 284.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 23  integration 0  acceptance 0  total 23"
+}
