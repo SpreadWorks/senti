@@ -156,6 +156,10 @@ export function renderSpecMarkdown(spec, meta) {
   sections.push(renderList(spec.acceptance_criteria, bullet));
   sections.push("");
 
+  sections.push("## Implementation Targets");
+  sections.push(renderList(spec.implementationTargets, bullet));
+  sections.push("");
+
   sections.push("## Open Questions");
   sections.push(renderList(spec.open_questions, openCheckbox, "- [ ]"));
   sections.push("");

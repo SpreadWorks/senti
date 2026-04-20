@@ -1,0 +1,73 @@
+{
+  "spec": "specs/199-spec-render-impl-targets/spec.md",
+  "date": "2026-04-20T12:45:47.080Z",
+  "requirements": [
+    {
+      "desc": "spec.json に implementationTargets が設定されている場合、spec render は spec.md に Implementation Targets セクションを出力し、各エントリを列挙する (R1, P1)",
+      "status": "done",
+      "note": "renderSpecMarkdown に Implementation Targets を追加し、renderList(spec.implementationTargets, bullet) で各要素を箇条書き出力している。対応テストも追加済み。"
+    },
+    {
+      "desc": "implementationTargets が空配列または未定義の場合、Implementation Targets セクションを出力し、既存 optional 列挙セクションと同じプレースホルダを表示する (R2, P1)",
+      "status": "done",
+      "note": "常にセクションを出力し、renderList の既存プレースホルダ動作（\"-\"）が適用される実装。empty/undefined の両ケースを検証するテストが追加されている。"
+    },
+    {
+      "desc": "Implementation Targets セクションは Acceptance Criteria の直後かつ Open Questions の直前に位置する (R3, P1)",
+      "status": "done",
+      "note": "render.js で Acceptance Criteria の直後に Implementation Targets を挿入し、その次に Open Questions を出力する順序になっている。順序検証テストも追加。"
+    },
+    {
+      "desc": "spec.json の内容が変化しない場合、spec render は連続実行で byte-identical な spec.md を出力する (R4, P2)",
+      "status": "done",
+      "note": "追加処理は固定見出し＋入力配列の順序そのままの描画で、非決定的要素を導入していない。既存 determinism テストを壊す変更もない。"
+    },
+    {
+      "desc": "本改修後も既存の spec render 関連自動テストが全通する (R5, P2)",
+      "status": "partial",
+      "note": "既存 render テストを無効化せず新規テストを追加している点は満たすが、git diff 自体には実行ログがなく“全通”を客観確証できない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "tests/unit/spec/render.test.js",
+      "change": "Implementation Targets 要件に直接必須ではないテスト補助の抽出（見出し定数と sectionBetween ヘルパー）が追加されている。"
+    },
+    {
+      "file": "specs/199-spec-render-impl-targets/draft.md",
+      "change": "仕様ドラフト文書の新規追加（実装要件そのものではなくプロセス成果物）。"
+    },
+    {
+      "file": "specs/199-spec-render-impl-targets/flow.json",
+      "change": "フロー実行状態・メトリクス記録の追加（機能要件外の運用メタデータ）。"
+    },
+    {
+      "file": "specs/199-spec-render-impl-targets/issue-log.json",
+      "change": "ゲート評価・テスト失敗メモ等の運用ログ追加（機能要件外）。"
+    },
+    {
+      "file": "specs/199-spec-render-impl-targets/qa.md",
+      "change": "Q&A テンプレートファイルの追加（機能要件外）。"
+    },
+    {
+      "file": "specs/199-spec-render-impl-targets/review.md",
+      "change": "コードレビュー結果ドキュメントの追加（機能要件外）。"
+    },
+    {
+      "file": "specs/199-spec-render-impl-targets/spec.md",
+      "change": "機能仕様ドキュメントの新規追加（実装コード要件外の成果物）。"
+    },
+    {
+      "file": "specs/199-spec-render-impl-targets/tests/README.md",
+      "change": "テスト説明ドキュメントの追加（機能要件外）。"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 4,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.9,
+    "notes": "実装コード差分（src/spec/commands/render.js）とテスト追加により R1-R4 は満たしている。R5 は差分上でテスト方針・追加ケースは妥当だが、全通の実行証跡は diff 単体では確認不能のため partial。"
+  }
+}

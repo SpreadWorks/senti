@@ -2,6 +2,14 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { renderSpecMarkdown } from "../../../src/spec/commands/render.js";
 
+const IMPL_TARGETS_HEADING = "## Implementation Targets";
+const OPEN_QUESTIONS_HEADING = "## Open Questions";
+const ACCEPTANCE_HEADING = "## Acceptance Criteria";
+
+function sectionBetween(md, fromHeading, toHeading) {
+  return md.slice(md.indexOf(fromHeading), md.indexOf(toHeading));
+}
+
 function sampleSpec() {
   return {
     goal: "Introduce spec.json schema and render command.",
@@ -126,5 +134,41 @@ describe("renderSpecMarkdown", () => {
     assert.ok(scopeSection.includes("Define schema."));
     const outSection = md.slice(md.indexOf("## Out of Scope"), md.indexOf("## Constraints"));
     assert.ok(outSection.includes("Replace existing spec.md read sites (T8)."));
+  });
+
+  it("renders Implementation Targets section with each entry as bullet", () => {
+    const spec = sampleSpec();
+    spec.implementationTargets = ["src/foo.js", "tests/foo.test.js"];
+    const md = renderSpecMarkdown(spec, sampleMeta());
+    const section = sectionBetween(md, IMPL_TARGETS_HEADING, OPEN_QUESTIONS_HEADING);
+    assert.ok(section.includes("- src/foo.js"));
+    assert.ok(section.includes("- tests/foo.test.js"));
+  });
+
+  for (const [label, value] of [
+    ["empty array", []],
+    ["undefined", undefined],
+  ]) {
+    it(`emits Implementation Targets section with placeholder when ${label}`, () => {
+      const spec = sampleSpec();
+      if (value === undefined) delete spec.implementationTargets;
+      else spec.implementationTargets = value;
+      const md = renderSpecMarkdown(spec, sampleMeta());
+      assert.ok(md.includes(IMPL_TARGETS_HEADING));
+      const section = sectionBetween(md, IMPL_TARGETS_HEADING, OPEN_QUESTIONS_HEADING);
+      assert.match(section, /## Implementation Targets\n-\n/);
+    });
+  }
+
+  it("places Implementation Targets after Acceptance Criteria and before Open Questions", () => {
+    const md = renderSpecMarkdown(sampleSpec(), sampleMeta());
+    const acceptance = md.indexOf(ACCEPTANCE_HEADING);
+    const implTargets = md.indexOf(IMPL_TARGETS_HEADING);
+    const openQuestions = md.indexOf(OPEN_QUESTIONS_HEADING);
+    assert.ok(acceptance >= 0, `${ACCEPTANCE_HEADING} missing`);
+    assert.ok(implTargets >= 0, `${IMPL_TARGETS_HEADING} missing`);
+    assert.ok(openQuestions >= 0, `${OPEN_QUESTIONS_HEADING} missing`);
+    assert.ok(acceptance < implTargets);
+    assert.ok(implTargets < openQuestions);
   });
 });

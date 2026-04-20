@@ -1,0 +1,79 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 単一の変更点（spec.mdレンダラへのimplementationTargets反映）に集中している。; Unambiguous Requirements — 受け入れ基準が出力内容・順序・空時挙動まで検証可能な形で記述されている。; Complete Context — 各基準で条件（implementationTargets有無・render実行）と期待結果（出力内容）が対で示されている。; No Hardcoded Secrets — 仕様文書であり、秘密情報の直書きは含まれていない。; Prioritize Requirements — 要件項目が3件を超えるが、優先順位（P1/P2等）が明示されていない。; Impact on Existing Features — 既存機能への影響が明示され、影響範囲も具体的に記載されている。; Present Recommendations with Reasoning — Q&Aの回答はあるが、各回答の根拠をdocs/・guardrail・既存コードパターンのいずれかで明示していない。; Explore Before Asking — コードパスや既存テストへの具体的言及があり、事前調査した内容に基づいている。; Proactively Raise Related Implications — 既存機能影響・代替案・将来拡張など関連含意を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 最終判断としてUser approvedが明記され、ブレインストーミング案を確定判断として誤評価していない。; Capture Digressions in draft.md — 脱線した議論の記録が必要な状況は示されておらず、適用上問題ない。; Draft Stays at Requirements Level — 関数名・テストファイル・レンダリング挙動など実装/設計詳細が含まれ、要件レベルを超えている。; Backward-Compatible CLI Interface — 既存CLIコマンドやオプションの意味変更・削除を伴わないため移行計画は不要。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:23:27.013Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 仕様は implementationTargets を spec.md に反映する単一目的に集中している。; Unambiguous Requirements — 要件は出力位置・空時挙動・テスト通過など検証可能な条件で記述されている。; Complete Context — 要件文の多くが When/If と shall の対で明示されておらず、文脈条件が暗黙的。; No Hardcoded Secrets — APIキー等の機密情報は含まれていない。; Prioritize Requirements — 4件以上の要件に対して P1/P2 の優先度が明示されている。; Impact on Existing Features — 既存機能への影響が専用セクションで具体的に列挙されている。; Present Recommendations with Reasoning — Q&Aで各質問に推奨回答を先に示し、既存コードパターン等の根拠を併記している。; Explore Before Asking — docs/やコード探索を事前実施したかは本文だけでは実行証跡を確認できない。; Proactively Raise Related Implications — 既存出力への影響や将来拡張時の含意を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 本稿は最終案として確定されており、ブレインストーミング案の批評は行っていない。; Capture Digressions in draft.md — 脱線した議論の形跡はなく、本件では追加の記録要件は発生していない。; Draft Stays at Requirements Level — `renderList` や既存アサーション条件など実装寄りの詳細が含まれている。; Backward-Compatible CLI Interface — 既存CLIコマンドやオプションの意味変更・削除を伴う提案ではない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:24:28.379Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: rendering implementationTargets into spec.md.; Unambiguous Requirements — Requirements are mostly concrete and verifiable (conditions, placement, determinism, test pass criteria).; Complete Context — Each requirement pairs conditions with expected shall/must behavior.; No Hardcoded Secrets — Inapplicable to this spec text; no secrets or credential material is present.; No Silent Error Swallowing — Inapplicable to this spec text; no error-handling code pattern is specified.; Prioritize Requirements — Five requirements are explicitly prioritized with P1/P2 tags.; Impact on Existing Features — Impact on existing features is not explicitly listed, and no explicit 'no impact' statement is provided.; Bounded Resource Usage — Inapplicable; the spec does not introduce recursive/retry/bulk processing behavior.; Changes Require Test Coverage — Spec requires existing tests to pass but does not specify new happy-path coverage or a reason for omitting it.; Spec Includes Test Strategy — No explicit test strategy section describing what to test and how is provided.; Synthesize Draft, Do Not Copy — Cannot evaluate synthesis vs direct copying without the original draft source for comparison.; Record Unresolved Points as Open Questions — Open Questions section is present and unresolved items are not fabricated in the spec body.; Include 'Why This Approach' Rationale — Rationale is provided via Clarifications and Alternatives Considered with rejection reasons.; Backward-Compatible CLI Interface — No CLI command/option semantic change is proposed, so migration plan is not required.; Exit Code Contract — Inapplicable here; spec does not define failure-handling behavior or alter command exit semantics.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:26:28.860Z"
+    },
+    {
+      "step": "implement",
+      "reason": "3 pre-existing test failures exist on baseline main (runPipeline step timing, acceptance report pipeline traceability, sdd-forge dispatcher rejects spec). Same failures observed before and after this spec's changes.",
+      "trigger": "full test suite run after implementation",
+      "resolution": "out of spec 199 scope; left as-is",
+      "timestamp": "2026-04-20T12:30:54.913Z"
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-20T12:31:02.127Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements Implementation Targets rendering, placeholder behavior, and section placement, but compliance is not fully met because existing test pass requirement is not demonstrated (evidence only shows unit:4 and issue log reports pre-existing test failures).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:31:16.546Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Evidence: all 17 tests in tests/unit/spec/render.test.js pass (13 pre-existing + 4 new). Baseline-only test failures are in unrelated suites (runPipeline, acceptance-report, sdd-forge dispatcher) and pre-exist on main.",
+      "timestamp": "2026-04-20T12:32:43.018Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Code diff satisfies Implementation Targets rendering, placeholder behavior, and placement, but provided test execution evidence is only {\"unit\":4} and does not demonstrate that pre-existing spec render tests all passed as required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:32:58.367Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff adds Implementation Targets rendering with correct placeholder and placement, and provided test evidence shows renderSpecMarkdown coverage passes including determinism and ordering checks (all 13 render tests passed).; No Hardcoded Secrets — Added/modified diff lines contain no API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — No added error-handling code introduces empty catch blocks or silent discard patterns.; Bounded Resource Usage — Diff adds section rendering/tests/docs only; no new unbounded recursion, retry, or bulk-loading logic.; No Sensitive Data in Logs — Added log/document text includes no passwords, tokens, or clear PII in diff-added lines.; No Disabling Existing Tests — Diff adds new tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Diff-added issue-log entries note existing failures were left out-of-scope, but no evidence of informing the user and asking how to proceed.; Do Not Modify Existing Tests Without Approval — No existing tests are modified/deleted in a way that indicates removal or weakening; new cases are appended.; Flag Tests That Become Irrelevant — No evidence that prior tests became irrelevant due to this change; article is inapplicable here.; Exit Code Contract — No added command/exit-path implementation changes in diff scope affect exit code behavior.; No Synchronous I/O in Hot Paths — No synchronous I/O APIs were introduced in loops or bulk paths in added code.; Validate User Input at Entry Point — Diff does not add or change CLI entry-point input handling; no unvalidated new input path introduced.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:33:52.422Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Escalated to user: 3 pre-existing test failures on main baseline are unrelated to this spec's changes. User selected [1] 'proceed as-is, out of spec 199 scope' and instructed to record on project board. Board draft 7287 created with failure details.",
+      "trigger": "gate-impl FAIL: Escalate When New Tests Break Existing Tests",
+      "resolution": "User acknowledged and chose [1]. Board draft 7287 logs the failures for separate follow-up.",
+      "guardrailCandidate": "pre-existing baseline failures are distinct from 'new tests break existing tests' — gate should differentiate",
+      "timestamp": "2026-04-20T12:41:13.403Z"
+    }
+  ]
+}

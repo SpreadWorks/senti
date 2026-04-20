@@ -1,0 +1,186 @@
+{
+  "spec": "specs/199-spec-render-impl-targets/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/199-spec-render-impl-targets",
+  "runId": "5e52e1c2-8f03-4923-a394-c864a8b5f216",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "in_progress"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "spec.json に implementationTargets が設定されている場合、spec render は spec.md に Implementation Targets セクションを出力し、各エントリを列挙する (R1, P1)",
+      "status": "done"
+    },
+    {
+      "desc": "implementationTargets が空配列または未定義の場合、Implementation Targets セクションを出力し、既存 optional 列挙セクションと同じプレースホルダを表示する (R2, P1)",
+      "status": "done"
+    },
+    {
+      "desc": "Implementation Targets セクションは Acceptance Criteria の直後かつ Open Questions の直前に位置する (R3, P1)",
+      "status": "done"
+    },
+    {
+      "desc": "spec.json の内容が変化しない場合、spec render は連続実行で byte-identical な spec.md を出力する (R4, P2)",
+      "status": "done"
+    },
+    {
+      "desc": "本改修後も既存の spec render 関連自動テストが全通する (R5, P2)",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 190,
+  "request": "#190 issueの対応を進めて",
+  "worktree": true,
+  "metrics": {
+    "plan": {
+      "docsRead": 1,
+      "issueLog": 2
+    },
+    "draft": {
+      "question": 2
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 53639,
+        "output": 3267,
+        "cacheRead": 23680,
+        "cacheCreation": 0
+      },
+      "callCount": 3,
+      "responseChars": 5120,
+      "durationMs": 72165
+    },
+    "gate": {
+      "tokens": {
+        "input": 691929,
+        "output": 9242,
+        "cacheRead": 118656,
+        "cacheCreation": 0
+      },
+      "callCount": 13,
+      "responseChars": 16266,
+      "durationMs": 259530
+    },
+    "impl": {
+      "issueLog": 1
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 4
+    }
+  },
+  "notes": [
+    "implement: 3 pre-existing test failures (runPipeline, acceptance-report, sdd-forge dispatcher) are unrelated to spec 199. User chose [1] proceed-as-is and requested board record. Board draft 7287 created."
+  ],
+  "state": {
+    "finalizedAt": "2026-04-20T12:45:15.992Z"
+  }
+}

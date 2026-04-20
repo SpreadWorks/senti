@@ -1,0 +1,62 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/199-spec-render-impl-targets/draft.md        |  83 +++++++++\n specs/199-spec-render-impl-targets/flow.json       | 186 +++++++++++++++++++++\n specs/199-spec-render-impl-targets/issue-log.json  |  79 +++++++++\n specs/199-spec-render-impl-targets/qa.md           |   9 +\n specs/199-spec-render-impl-targets/review.md       |  33 ++++\n specs/199-spec-render-impl-targets/spec.md         |  76 +++++++++\n specs/199-spec-render-impl-targets/tests/README.md |  35 ++++\n src/spec/commands/render.js                        |   4 +\n tests/unit/spec/render.test.js                     |  44 +++++\n 9 files changed, 549 insertions(+)",
+      "commits": [
+        "feat: feature/199-spec-render-impl-targets",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 4,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.9,
+      "notes": "実装コード差分（src/spec/commands/render.js）とテスト追加により R1-R4 は満たしている。R5 は差分上でテスト方針・追加ケースは妥当だが、全通の実行証跡は diff 単体では確認不能のため partial。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 2,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 734942,
+      "output": 11040,
+      "cacheRead": 119424,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 15,
+      "durationMs": 300673,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 72165
+        },
+        {
+          "phase": "gate",
+          "durationMs": 228508
+        }
+      ]
+    },
+    "tests": {
+      "unit": 4,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 4
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/199-spec-render-impl-targets\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    9 files changed, 549 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 90%  (4 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 2\n    issue-log ................... 3\n    agent calls ................. 15\n    input tokens ................ 734,942\n    output tokens ............... 11,040\n    cache-read tokens ........... 119,424\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 300.7s\n      gate-draft ................ 72.2s\n      gate ...................... 228.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 4  integration 0  acceptance 0  total 4"
+}
