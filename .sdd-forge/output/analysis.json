@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-20T12:13:22.885Z",
+  "analyzedAt": "2026-04-20T12:45:48.828Z",
   "package": {
     "entries": [
       {
@@ -8455,9 +8455,9 @@
       },
       {
         "file": "src/spec/commands/render.js",
-        "hash": "d1266fb93733674cb5cd995861b3f57f",
-        "lines": 247,
-        "mtime": "2026-04-19T22:26:12.754Z",
+        "hash": "f4f9f72beb67265bfb69d5b089369204",
+        "lines": 251,
+        "mtime": "2026-04-20T12:45:48.297Z",
         "className": "render",
         "methods": [
           "renderSpecMarkdown",
@@ -8486,22 +8486,24 @@
         "extends": "Command",
         "usedBy": null,
         "id": "d63c4335",
-        "enrich": {
-          "processedAt": "2026-04-20T02:05:33.139Z",
-          "attempts": 3
-        },
-        "summary": "This module implements the `spec render` CLI command that converts a flow spec JSON into Markdown. It also validates inputs, resolves the target spec directory, and writes the rendered output file.",
-        "detail": "The command loads a JSON schema from a fixed internal path and validates `spec.json` before rendering, failing fast with explicit stderr messages and `EXIT_ERROR` on invalid input. It normalizes CLI options for `--spec-dir` and `--out`, supporting both absolute and root-relative paths, and rejects malformed path values such as empty strings or NUL bytes. The renderer builds structured Markdown sections, including overview and requirement lists, with helper functions for bullet formatting and fallback text for empty collections. It derives metadata such as spec directory name and creation date from filesystem state, then writes `spec.md` (or a custom output path) synchronously. The exported `SpecRenderCommand` class delegates execution to `runSpecRender`, keeping command wiring separate from rendering logic.",
+        "summary": "This module implements the `sdd-forge spec render` command that converts a validated `spec.json` into Markdown output. It handles CLI argument parsing, path resolution, schema validation, and file writing in one command flow.",
+        "detail": "The command loads a JSON schema from the flow schema directory and validates the loaded `spec.json` before rendering, exiting with explicit error messages when validation fails. It normalizes and validates path-like options (`--spec-dir`, `--out`) with strict string, emptiness, and NUL-byte checks to avoid unsafe filesystem inputs. If a spec directory is not provided, it resolves the active flow directory from runtime container context and errors when no active flow is configured. Rendering is composed through helper functions that format section lists, requirement bullets, and subsection blocks into a final Markdown document with metadata such as creation date and source directory name. The command defaults output to `spec.md` inside the spec directory, writes synchronously, and prints a relative success path to stdout.",
         "chapter": "cli_commands",
         "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-20T12:46:00.655Z",
+          "attempts": 1
+        },
         "keywords": [
+          "CLI command",
           "spec render",
           "markdown generation",
           "schema validation",
+          "argument parsing",
           "path resolution",
-          "flow spec",
-          "command handler",
-          "cli output"
+          "filesystem I/O",
+          "exit codes",
+          "flow context"
         ]
       },
       {
@@ -8554,5 +8556,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-20T12:14:53.174Z"
+  "enrichedAt": "2026-04-20T12:46:00.655Z"
 }
