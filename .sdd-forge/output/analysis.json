@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-20T13:44:52.752Z",
+  "analyzedAt": "2026-04-20T14:29:18.799Z",
   "package": {
     "entries": [
       {
@@ -2315,9 +2315,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "c5cbcf5ad81fea53a0f264aee671dde1",
-        "lines": 997,
-        "mtime": "2026-04-18T20:35:29.039Z",
+        "hash": "dc8ea1f46ed1cc0c06cd4a325642c1e6",
+        "lines": 1094,
+        "mtime": "2026-04-20T14:29:18.524Z",
         "className": "review",
         "methods": [
           "ensureAgent",
@@ -2328,7 +2328,11 @@
           "buildDraftSystemPrompt",
           "buildFinalSystemPrompt",
           "parseProposals",
+          "extractProposalFile",
+          "collectTouchedFiles",
+          "filterProposalsByScope",
           "mergeVerdicts",
+          "writeReviewMd",
           "formatReviewMd",
           "buildApplyPrompt",
           "runReviewLoop",
@@ -2369,6 +2373,11 @@
           "mergeVerdicts",
           "formatReviewMd",
           "resolveReviewTarget",
+          "buildDraftSystemPrompt",
+          "buildFinalSystemPrompt",
+          "collectTouchedFiles",
+          "filterProposalsByScope",
+          "extractProposalFile",
           "MAX_REVIEW_RETRIES",
           "REVIEW_PHASES",
           "extractRequirements",
@@ -2386,22 +2395,7 @@
         ],
         "extends": "Command",
         "usedBy": null,
-        "id": "331cf497",
-        "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Implements the flow review command for spec, test, and code review loops with AI-assisted fixes. It manages retries, parsing of proposals, and result artifacts.",
-        "detail": "The module builds specialized prompts for draft/final code review, test design and gap analysis, and spec quality checks. It extracts diffs from committed and staged changes, applies approved patch outputs, and writes review markdown files per phase. Retry loops merge verdicts, track history, and stop on pass/fail criteria with bounded attempts. It also includes output sanitization and validation helpers for robust automated review cycles.",
-        "chapter": "development",
-        "role": "controller",
-        "keywords": [
-          "review loop",
-          "AI code review",
-          "test gap analysis",
-          "spec review",
-          "auto-fix"
-        ]
+        "id": "331cf497"
       },
       {
         "file": "src/flow/lib/base-command.js",
@@ -2831,9 +2825,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "cc9a3d2e5a2a2e3c742fa487c52f566f",
-        "lines": 66,
-        "mtime": "2026-04-19T23:25:00.556Z",
+        "hash": "3f03ba76bbaa579cb2a614f655a70d1e",
+        "lines": 68,
+        "mtime": "2026-04-20T14:03:26.634Z",
         "className": "get-status",
         "methods": [
           "buildStatusOutput"
@@ -2847,22 +2841,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "9aca938f",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 4
-        },
-        "summary": "This module implements flow status retrieval for active or explicit run IDs. It converts flow state into a stable status output shape.",
-        "detail": "A helper assembles concise status fields from the persisted flow record. The command supports direct lookup by run id and fallback to the currently active flow. It emits explicit errors for missing run ids and missing active flow state. The output structure is designed for CLI display and machine-readable consumption.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "flow status",
-          "run id",
-          "active flow",
-          "status output",
-          "state lookup"
-        ]
+        "id": "9aca938f"
       },
       {
         "file": "src/flow/lib/get-test-result.js",
@@ -3941,9 +3920,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "b1a982bf536c923c10a94357eb7ff7bc",
-        "lines": 498,
-        "mtime": "2026-04-20T12:13:22.616Z",
+        "hash": "e190d8709fcd33f222a8f3e28af1866d",
+        "lines": 500,
+        "mtime": "2026-04-20T14:03:10.694Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -3962,23 +3941,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "d64f4095",
-        "summary": "This registry declares flow subcommands, hooks, and lifecycle wrappers for execution. It wires step status updates and issue-log appends around command handlers.",
-        "detail": "Pre and post wrappers update step status while tolerating non-critical failures via guarded helpers. The registry derives active phase context and coordinates command-level side effects consistently. It exposes help text and command metadata for dispatcher consumption. This file is the central routing map for all `flow` command behaviors.",
-        "chapter": "project_structure",
-        "role": "route",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "command registry",
-          "flow routing",
-          "pre post hooks",
-          "step status",
-          "issue log",
-          "phase derivation"
-        ]
+        "id": "d64f4095"
       },
       {
         "file": "src/help.js",
@@ -5331,9 +5294,9 @@
       },
       {
         "file": "src/lib/provider.js",
-        "hash": "2943c6854054edc3268116a60ef130a8",
-        "lines": 195,
-        "mtime": "2026-04-18T09:19:45.911Z",
+        "hash": "0448d27bb3f3404a2f78997fbded489d",
+        "lines": 207,
+        "mtime": "2026-04-20T13:56:12.738Z",
         "className": "provider",
         "methods": [],
         "imports": [],
@@ -5349,23 +5312,7 @@
           "src/lib/config.js",
           "src/lib/container.js"
         ],
-        "id": "0e966da6",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 8
-        },
-        "summary": "This module defines provider abstractions and concrete adapters for Claude, Codex, and user-defined providers. It normalizes parse logic and command argument conventions.",
-        "detail": "Base `Provider` methods establish required interfaces for parsing model output and system/workdir flags. Concrete providers handle provider-specific output formats, including JSON event streams and profile-driven options. `ProviderRegistry` resolves merged profiles and returns selected provider instances by key. This design isolates provider variability behind a common runtime contract.",
-        "chapter": "configuration",
-        "role": "model",
-        "keywords": [
-          "provider abstraction",
-          "adapter pattern",
-          "codex provider",
-          "claude provider",
-          "registry",
-          "agent profile"
-        ]
+        "id": "0e966da6"
       },
       {
         "file": "src/lib/schema-validate.js",
@@ -8448,9 +8395,9 @@
       },
       {
         "file": "src/setup.js",
-        "hash": "f808c48be3d2c7a6cdfc9eb9ffc73a22",
-        "lines": 560,
-        "mtime": "2026-04-17T10:27:42.798Z",
+        "hash": "b3051cc6bf20dcfb53fc8d4ed009a5f7",
+        "lines": 571,
+        "mtime": "2026-04-20T14:06:24.424Z",
         "className": "setup",
         "methods": [
           "ask",
@@ -8490,25 +8437,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "9820c9db",
-        "enrich": {
-          "processedAt": "2026-04-20T12:13:54.794Z",
-          "attempts": 8
-        },
-        "summary": "Implements the interactive `setup` workflow that initializes project configuration, directory layout, agent files, and skills. It combines CLI flags with wizard prompts and default inference from existing config.",
-        "detail": "The module includes argument parsing, prompt utilities, and config loading logic that merges persisted defaults with user input. It provisions required directories under `.sdd-forge`, ensures repository hygiene files such as `.gitignore` and `.gitattributes`, and writes validated `config.json`. Agent documentation files are created or updated with managed directive blocks, and legacy symlink handling is included for compatibility cleanup. It resolves preset chains, builds summary output, and deploys skills according to selected language/provider settings. The implementation is orchestration-heavy and relies on focused helpers for each setup concern rather than a single monolithic procedure.",
-        "chapter": "configuration",
-        "role": "controller",
-        "keywords": [
-          "project setup",
-          "configuration wizard",
-          "config.json",
-          "interactive prompt",
-          "preset selection",
-          "agent file generation",
-          "skills deployment",
-          "repository bootstrap"
-        ]
+        "id": "9820c9db"
       },
       {
         "file": "src/spec.js",
@@ -8643,7 +8572,7 @@
     ],
     "summary": {
       "total": 262,
-      "totalMethods": 778
+      "totalMethods": 782
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
