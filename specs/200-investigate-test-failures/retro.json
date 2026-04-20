@@ -1,0 +1,68 @@
+{
+  "spec": "specs/200-investigate-test-failures/spec.md",
+  "date": "2026-04-20T13:17:27.292Z",
+  "requirements": [
+    {
+      "desc": "R1: acceptance 3テスト pass",
+      "status": "partial",
+      "note": "tests/acceptance/lib/pipeline.js was updated to use Command class default exports and container-based execution, matching the stated API alignment; however, the diff itself does not prove all 3 target tests actually pass."
+    },
+    {
+      "desc": "R2: dispatcher spec テスト置換",
+      "status": "done",
+      "note": "The outdated `rejects 'spec' with no args as unknown command` test was replaced with a test asserting non-zero exit and spec subcommand usage output (`Usage: sdd-forge spec`, `render`) in tests/e2e/dispatchers.test.js."
+    },
+    {
+      "desc": "R3: node tests/run.js が # fail 0",
+      "status": "partial",
+      "note": "The diff includes test/helper changes intended to fix failures, but no actual `node tests/run.js` result (`# fail 0`) is present in executable evidence within the diff."
+    },
+    {
+      "desc": "R4: src/ 変更なし (tests/ のみ)",
+      "status": "not_done",
+      "note": "No `src/` files were changed, but changes are not limited to `tests/` only: multiple new files under `specs/200-investigate-test-failures/` were added."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/200-investigate-test-failures/draft.md",
+      "change": "New spec process artifact added; not required by R1-R4."
+    },
+    {
+      "file": "specs/200-investigate-test-failures/flow.json",
+      "change": "New flow metadata file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/200-investigate-test-failures/issue-log.json",
+      "change": "New issue/gate log artifact added; not required by R1-R4."
+    },
+    {
+      "file": "specs/200-investigate-test-failures/qa.md",
+      "change": "New Q&A template file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/200-investigate-test-failures/review.md",
+      "change": "New review notes file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/200-investigate-test-failures/spec.md",
+      "change": "New feature spec document added; not required by R1-R4."
+    },
+    {
+      "file": "specs/200-investigate-test-failures/tests/README.md",
+      "change": "New test summary/readme artifact added; not required by R1-R4."
+    },
+    {
+      "file": "tests/e2e/dispatchers.test.js",
+      "change": "Renamed an existing test title (`rejects 'spec' as unknown command (spec dispatcher removed)` -> `rejects unknown spec subcommand`), which is not explicitly required by R2."
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 1,
+    "partial": 2,
+    "not_done": 1,
+    "rate": 0.5,
+    "notes": "Core intent for R1/R2 is implemented in tests, but runtime pass assertions (R1 full pass and R3 `# fail 0`) are not directly evidenced in the provided diff. R4 is not satisfied strictly because non-test `specs/` artifacts were added."
+  }
+}

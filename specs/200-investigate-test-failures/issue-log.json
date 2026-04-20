@@ -1,0 +1,51 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 主題は「既知の4件のテスト失敗の原因特定と修正」に一貫しており、別件変更は含まれていない。; Unambiguous Requirements — `削除または書き直す` や `1939/0 (もしくは...)` のように受け入れ条件が分岐しており、単一で検証可能な条件に固定されていない。; Complete Context — 要求の多くが When/If 条件と shall 相当の期待結果の対で明示されておらず、文脈付き要件として不完全。; No Hardcoded Secrets — APIキー・トークン・パスワード等の機密情報は記載されていない。; Prioritize Requirements — 主要な実施要求は3件に収まっており、優先順位明示の必須条件には該当しない。; Impact on Existing Features — `影響を受ける既存機能: なし` と明示され、影響範囲も記載されている。; Present Recommendations with Reasoning — Q&Aの回答はあるが、各質問ごとに推奨案を先頭提示し、根拠を docs/・guardrail・既存コードパターンに紐づけて明示する形式になっていない。; Explore Before Asking — コードパス・挙動差分・失効シナリオまで調査結果が示されており、質問前に探索している。; Proactively Raise Related Implications — 制約、影響範囲、代替案、将来拡張、エッジケースを先回りで提示している。; Confirm Brainstorm vs. Decision Before Critiquing — User ConfirmationとQ&Aで実施方針（調査＋修正）が決定事項として確認されている。; Capture Digressions in draft.md — 議論の脱線が発生したかどうかの対話ログがなく、draft.mdへの記録要否を判定できない。; Draft Stays at Requirements Level — importコード断片、対象ファイル・行番号、`run()`シグネチャ言及など実装寄り詳細が含まれ、要件レベルを超えている。; Backward-Compatible CLI Interface — 既存CLIの意味変更や削除を提案しておらず、移行計画が必要な変更には該当しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:52:25.949Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: investigating and resolving the recorded test failures.; Unambiguous Requirements — Requirements are mostly verifiable with concrete commands/outcomes (pass/fail, exit behavior, fail count).; Complete Context — One requirement ('expired unknown command scenario is removed') lacks explicit When/If trigger context.; No Hardcoded Secrets — No API keys, passwords, tokens, or similar secrets are present.; Prioritize Requirements — There are three top-level requirements (R1-R3), so priority ordering beyond that is not required.; Impact on Existing Features — Impact is explicitly stated: no existing product feature impact, test infrastructure only.; Present Recommendations with Reasoning — Each question includes a recommended answer first and a concise basis (code pattern/risk rationale).; Explore Before Asking — The draft documents concrete root-cause investigation results before finalizing decisions.; Proactively Raise Related Implications — Related implications are proactively covered via scope, out-of-scope, constraints, and impact sections.; Confirm Brainstorm vs. Decision Before Critiquing — The draft records explicit decision confirmation and user approval, indicating decision mode.; Capture Digressions in draft.md — Cannot determine whether digressions occurred during discussion from this draft alone.; Draft Stays at Requirements Level — Content stays at requirements/spec level and avoids function-level implementation design.; Backward-Compatible CLI Interface — No CLI behavior change is proposed in the spec; it aligns tests to current behavior, so migration plan is not applicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:53:27.566Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 61: unchecked task/question (- [ ] なし)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:54:36.211Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: resolving the four known test failures.; Unambiguous Requirements — Requirements and acceptance criteria are mostly concrete and verifiable (tests, files, exit code, fail count).; Complete Context — Requirements do not consistently pair explicit When/If trigger conditions with shall-style expected behavior.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present in the content.; No Silent Error Swallowing — No implementation details indicating empty catch blocks or silent error suppression are specified.; Prioritize Requirements — There are four requirements (R1-R4) but no priority order is defined.; Impact on Existing Features — Impact on existing features is not explicitly listed, and no explicit 'no impact' statement is provided.; Bounded Resource Usage — No recursive processing, retry loops, or bulk-loading design requiring explicit bounds is introduced.; Changes Require Test Coverage — The spec includes concrete test updates and full-suite verification for the fix scope.; Spec Includes Test Strategy — It states what to test and how to validate via specific test cases and `node tests/run.js`.; Synthesize Draft, Do Not Copy — Cannot verify whether draft content was synthesized vs copied without the original draft/source text.; Record Unresolved Points as Open Questions — Open Questions section is present and explicitly states none unresolved.; Include 'Why This Approach' Rationale — Rationale is provided via Alternatives Considered with explicit rejection reasons.; Backward-Compatible CLI Interface — No CLI command/option meaning changes are proposed, so migration planning is not applicable.; Exit Code Contract — Requirement R2 explicitly requires non-zero exit code on failure behavior.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:55:06.899Z"
+    },
+    {
+      "step": "review",
+      "reason": "review approved 3 proposals on src/flow/lib/run-draft-task.js and tests/unit/flow/flow-run-draft-task.test.js, all outside this spec's diff (spec R4 limits changes to tests/acceptance/lib/pipeline.js and tests/e2e/dispatchers.test.js)",
+      "trigger": "sdd-forge flow run review",
+      "resolution": "did not apply; proposals unrelated to this spec's changes",
+      "guardrailCandidate": "review should ground proposals in git diff baseBranch...HEAD to avoid out-of-scope suggestions",
+      "timestamp": "2026-04-20T13:16:20.114Z"
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-20T13:16:20.699Z"
+    }
+  ]
+}

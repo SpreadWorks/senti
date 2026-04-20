@@ -1,0 +1,191 @@
+{
+  "spec": "specs/200-investigate-test-failures/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/200-investigate-test-failures",
+  "runId": "4ef251af-17ee-4506-a21e-15192c168d95",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "in_progress"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "skipped"
+    },
+    {
+      "id": "gate-impl",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: acceptance 3テスト pass",
+      "status": "done"
+    },
+    {
+      "desc": "R2: dispatcher spec テスト置換",
+      "status": "done"
+    },
+    {
+      "desc": "R3: node tests/run.js が # fail 0",
+      "status": "done"
+    },
+    {
+      "desc": "R4: src/ 変更なし (tests/ のみ)",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 191,
+  "worktree": true,
+  "request": "issue #191: main ブランチで既発生の4テスト失敗を調査する",
+  "notes": [
+    "Q1: intent 調査スコープで進める [1] 承認"
+  ],
+  "metrics": {
+    "draft": {
+      "question": 1
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 19156,
+        "output": 3285,
+        "cacheRead": 57216,
+        "cacheCreation": 0
+      },
+      "callCount": 3,
+      "responseChars": 5238,
+      "durationMs": 77244
+    },
+    "gate": {
+      "tokens": {
+        "input": 61571,
+        "output": 3235,
+        "cacheRead": 22656,
+        "cacheCreation": 0
+      },
+      "callCount": 3,
+      "responseChars": 7563,
+      "durationMs": 80484
+    },
+    "review": {
+      "tokens": {
+        "input": 82248,
+        "output": 1968,
+        "cacheRead": 22784,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 2845,
+      "durationMs": 50452
+    },
+    "impl": {
+      "issueLog": 1
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 0,
+      "integration": 0,
+      "acceptance": 2
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-20T13:16:54.418Z"
+  }
+}

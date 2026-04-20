@@ -2,7 +2,8 @@
  * tests/acceptance/lib/pipeline.js
  *
  * Runs the sdd-forge pipeline (scan → enrich → init → data → text → readme)
- * against a fixture project using in-process main() calls.
+ * against a fixture project by instantiating each pipeline step's Command
+ * class and invoking `cmd.run(container, { docsCtx, _rawArgs: [] })`.
  */
 
 import fs from "fs";
@@ -14,7 +15,14 @@ import { Agent } from "../../../src/lib/agent.js";
 import { ProviderRegistry } from "../../../src/lib/provider.js";
 import { Logger } from "../../../src/lib/log.js";
 import { createI18n } from "../../../src/lib/i18n.js";
-import { resolveChaptersOrder } from "../../../src/docs/lib/template-merger.js";
+import { Container } from "../../../src/lib/container.js";
+
+import DocsScanCommand from "../../../src/docs/commands/scan.js";
+import DocsEnrichCommand from "../../../src/docs/commands/enrich.js";
+import DocsInitCommand from "../../../src/docs/commands/init.js";
+import DocsDataCommand from "../../../src/docs/commands/data.js";
+import DocsTextCommand from "../../../src/docs/commands/text.js";
+import DocsReadmeCommand from "../../../src/docs/commands/readme.js";
 
 export function copyFixtureInto(fixtureDir, dest, configOverrides) {
   copyDirSync(fixtureDir, dest);
@@ -45,7 +53,10 @@ export function copyFixture(fixtureDir, configOverrides) {
 }
 
 /**
- * Build a command context object compatible with resolveCommandContext() output.
+ * Build a docs command context object and an isolated Container scoped to the
+ * fixture tmp directory. The Container is populated with config/paths/agent/
+ * i18n/logger so Command subclasses that read from the container at runtime
+ * still see fixture-scoped values.
  */
 export function buildCtx(tmp) {
   const configPath = path.join(tmp, ".sdd-forge", "config.json");
@@ -55,12 +66,22 @@ export function buildCtx(tmp) {
   const type = config.type || "base";
   const docsDir = path.join(tmp, "docs");
   const registry = new ProviderRegistry(config?.agent?.providers || {});
-  const paths = { root: tmp, agentWorkDir: path.join(tmp, ".tmp") };
-  const agentService = new Agent({ config, paths, registry, logger: new Logger({ logDir: os.tmpdir(), enabled: false }) });
+  const paths = { root: tmp, srcRoot: tmp, agentWorkDir: path.join(tmp, ".tmp") };
+  const logger = new Logger({ logDir: os.tmpdir(), enabled: false });
+  const agentService = new Agent({ config, paths, registry, logger });
   const agent = agentService.resolve() ? agentService : null;
   const t = createI18n(lang, { domain: "messages" });
 
-  return {
+  const container = new Container();
+  container.register("root", tmp);
+  container.register("config", config);
+  container.register("paths", paths);
+  container.register("logger", logger);
+  container.register("agent", agentService);
+  container.register("i18n", t);
+  container.register("lang", lang);
+
+  const ctx = {
     root: tmp,
     srcRoot: tmp,
     config,
@@ -71,12 +92,15 @@ export function buildCtx(tmp) {
     agent,
     t,
   };
+
+  return { ctx, container };
 }
 
-async function runStep(name, fn) {
+async function runStep(name, CommandClass, container, docsCtx) {
   const start = performance.now();
   try {
-    await fn();
+    const cmd = new CommandClass();
+    await cmd.run(container, { docsCtx, _rawArgs: [] });
     const durationMs = Math.round(performance.now() - start);
     console.log(`  [pipeline] ${name}: ok (${durationMs}ms)`);
     return { name, status: "ok", durationMs };
@@ -88,43 +112,49 @@ async function runStep(name, fn) {
 }
 
 export async function runPipeline(tmp) {
-  const ctx = buildCtx(tmp);
+  const { ctx, container } = buildCtx(tmp);
   const steps = [];
 
-  const { main: scanMain } = await import("../../../src/docs/commands/scan.js");
-  steps.push(await runStep("scan", () => scanMain({ ...ctx })));
+  // Preserve then reset process.exitCode around the pipeline. Some steps
+  // (e.g. text) set process.exitCode=1 on soft failures (AI empty response,
+  // batch parse error) without throwing. In test context this would cause
+  // node --test to report the file as failed even though all subtests pass.
+  const prevExitCode = process.exitCode;
 
-  if (ctx.agent) {
-    const { main: enrichMain } = await import("../../../src/docs/commands/enrich.js");
-    try {
-      steps.push(await runStep("enrich", () =>
-        enrichMain({ ...ctx, agentName: ctx.config.agent?.default }),
-      ));
-    } catch (e) {
-      steps.push(e.stepResult);
-      console.error(`[acceptance] enrich warning: continuing without enrichment`);
+  try {
+    steps.push(await runStep("scan", DocsScanCommand, container, { ...ctx }));
+
+    if (ctx.agent) {
+      try {
+        steps.push(await runStep("enrich", DocsEnrichCommand, container, {
+          ...ctx,
+          commandId: "docs.enrich",
+        }));
+      } catch (e) {
+        steps.push(e.stepResult);
+        console.error(`[acceptance] enrich warning: continuing without enrichment`);
+      }
+    } else {
+      steps.push({ name: "enrich", status: "skipped", durationMs: 0 });
     }
-  } else {
-    steps.push({ name: "enrich", status: "skipped", durationMs: 0 });
+
+    steps.push(await runStep("init", DocsInitCommand, container, { ...ctx, force: true }));
+
+    steps.push(await runStep("data", DocsDataCommand, container, { ...ctx }));
+
+    if (ctx.agent) {
+      steps.push(await runStep("text", DocsTextCommand, container, {
+        ...ctx,
+        commandId: "docs.text",
+      }));
+    } else {
+      steps.push({ name: "text", status: "skipped", durationMs: 0 });
+    }
+
+    steps.push(await runStep("readme", DocsReadmeCommand, container, { ...ctx }));
+  } finally {
+    process.exitCode = prevExitCode;
   }
-
-  const { main: initMain } = await import("../../../src/docs/commands/init.js");
-  steps.push(await runStep("init", () => initMain({ ...ctx, force: true })));
-
-  const { main: dataMain } = await import("../../../src/docs/commands/data.js");
-  steps.push(await runStep("data", () => dataMain({ ...ctx })));
-
-  if (ctx.agent) {
-    const { main: textMain } = await import("../../../src/docs/commands/text.js");
-    steps.push(await runStep("text", () =>
-      textMain({ ...ctx, agentName: ctx.config.agent?.default }),
-    ));
-  } else {
-    steps.push({ name: "text", status: "skipped", durationMs: 0 });
-  }
-
-  const { main: readmeMain } = await import("../../../src/docs/commands/readme.js");
-  steps.push(await runStep("readme", () => readmeMain({ ...ctx })));
 
   return { ctx, steps };
 }

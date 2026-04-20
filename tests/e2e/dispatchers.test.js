@@ -23,7 +23,7 @@ describe("sdd-forge dispatcher", () => {
     }
   });
 
-  it("rejects 'spec' as unknown command (spec dispatcher removed)", () => {
+  it("rejects unknown spec subcommand", () => {
     try {
       execFileSync("node", [SDD_FORGE, "spec", "gate"], { encoding: "utf8" });
       assert.fail("should exit non-zero");
@@ -66,12 +66,14 @@ describe("sdd-forge dispatcher", () => {
     }
   });
 
-  it("rejects 'spec' with no args as unknown command", () => {
+  it("shows spec subcommand usage when 'spec' has no args", () => {
     try {
       execFileSync("node", [SDD_FORGE, "spec"], { encoding: "utf8" });
-      assert.fail("should exit non-zero");
+      assert.fail("should exit non-zero without subcommand");
     } catch (err) {
-      assert.match(err.stderr, /unknown command/);
+      const out = `${err.stdout || ""}${err.stderr || ""}`;
+      assert.match(out, /Usage: sdd-forge spec/);
+      assert.match(out, /render/);
     }
   });
 
