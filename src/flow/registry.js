@@ -10,6 +10,7 @@
 
 import { derivePhase } from "../lib/flow-helpers.js";
 import { VALID_PHASES, VALID_METRIC_COUNTERS } from "../lib/constants.js";
+import { resolveGateStepId } from "./lib/gate-step.js";
 
 /**
  * Load flow state and derive the current phase.
@@ -64,16 +65,6 @@ function stepPost(stepId, statusFn) {
     const status = statusFn ? statusFn(result) : "done";
     tryUpdateStepStatus(ctx, stepId, status);
   };
-}
-
-/**
- * Resolve the step id targeted by a `gate` invocation. Defined locally
- * (mirroring run-gate.js) so registry stays free of domain imports.
- */
-function resolveGateStepId(phase) {
-  if (phase === "draft") return "gate-draft";
-  if (phase === "impl") return "gate-impl";
-  return "gate";
 }
 
 export const FLOW_COMMANDS = {

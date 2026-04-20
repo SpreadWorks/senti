@@ -7,8 +7,9 @@
       "meta": {
         "phase": [
           "spec",
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -18,8 +19,9 @@
       "meta": {
         "phase": [
           "spec",
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -28,8 +30,9 @@
       "body": "Next.js APIs change frequently and AI knowledge may be outdated. Verify current API behavior against official documentation during implementation.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -39,8 +42,9 @@
       "meta": {
         "phase": [
           "spec",
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "process"
       }
     },
     {
@@ -50,7 +54,8 @@
       "meta": {
         "phase": [
           "spec"
-        ]
+        ],
+        "category": "process"
       }
     },
     {
@@ -59,9 +64,10 @@
       "body": "Use next/image for images, next/font for fonts, next/link for internal links, and next/script for external scripts. Do not use HTML standard elements (img, link, a, script) directly. Import fonts only once in the root layout.",
       "meta": {
         "phase": [
-          "impl",
+          "task-impl",
           "review"
-        ]
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -70,8 +76,9 @@
       "body": "In Next.js 15 and later, cookies(), headers(), params, and searchParams are asynchronous APIs (Promises) and require await. Accessing them synchronously causes a runtime error.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -80,8 +87,9 @@
       "body": "Wrap components that use useSearchParams() in a Suspense boundary. Without this, the entire route falls back to client-side rendering.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -90,8 +98,9 @@
       "body": "Each @slot in parallel routes must have a default.tsx. Without it, soft navigation results in a 404 error.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -100,8 +109,9 @@
       "body": "error.tsx files require the 'use client' directive. global-error.tsx must include html and body elements.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -111,7 +121,8 @@
       "meta": {
         "phase": [
           "review"
-        ]
+        ],
+        "category": "process"
       }
     },
     {
@@ -121,7 +132,8 @@
       "meta": {
         "phase": [
           "review"
-        ]
+        ],
+        "category": "requirements"
       }
     }
   ]

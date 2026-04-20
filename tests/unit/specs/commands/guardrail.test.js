@@ -8,7 +8,7 @@ import { setupFlow } from "../../../helpers/flow-setup.js";
 const SDD_FORGE = join(process.cwd(), "src/sdd-forge.js");
 
 // Dynamically import gate functions for unit tests
-const { buildGuardrailPrompt, parseGuardrailResponse, IMPL_DIFF_SCOPE_LINES } = await import(
+const { buildGuardrailPrompt, parseEvaluationResponse, IMPL_DIFF_SCOPE_LINES } = await import(
   "../../../../src/flow/lib/run-gate.js"
 );
 
@@ -66,7 +66,12 @@ describe("gate guardrail integration", () => {
   it("passes with guardrail.json present (no agent = skip AI check with warn)", () => {
     createGateFixture({
       guardrails: [
-        { id: "no-external-deps", title: "No External Dependencies", body: "Use only Node.js built-in modules.", meta: { phase: ["spec"] } },
+        {
+          id: "no-external-deps",
+          title: "No External Dependencies",
+          body: "Use only Node.js built-in modules.",
+          meta: { phase: ["spec"], category: "code-quality" },
+        },
       ],
     });
     const envelope = JSON.parse(runGate(tmp));
@@ -81,7 +86,12 @@ describe("gate guardrail integration", () => {
         agent: { default: "claude", providers: { claude: { command: "echo", args: ["FAIL"] } } },
       },
       guardrails: [
-        { id: "rule", title: "Rule", body: "Some rule.", meta: { phase: ["spec"] } },
+        {
+          id: "rule",
+          title: "Rule",
+          body: "Some rule.",
+          meta: { phase: ["spec"], category: "process" },
+        },
       ],
     });
     const envelope = JSON.parse(runGate(tmp, ["--skip-guardrail"]));
@@ -90,60 +100,39 @@ describe("gate guardrail integration", () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildGuardrailPrompt / parseGuardrailResponse unit tests
+// buildGuardrailPrompt: structured JSON output format
 // ---------------------------------------------------------------------------
 
-describe("buildGuardrailPrompt", () => {
+describe("buildGuardrailPrompt (structured JSON)", () => {
   it("includes all guardrails and spec text", () => {
     const guardrails = [
-      { title: "Rule A", body: "Description A", meta: { phase: ["spec"] } },
-      { title: "Rule B", body: "Description B", meta: { phase: ["spec"] } },
+      { id: "a", title: "Rule A", body: "Description A", meta: { phase: ["spec"], category: "requirements" } },
+      { id: "b", title: "Rule B", body: "Description B", meta: { phase: ["spec"], category: "requirements" } },
     ];
     const prompt = buildGuardrailPrompt("spec content here", guardrails, "spec");
     assert.ok(prompt.includes("Rule A"));
     assert.ok(prompt.includes("Rule B"));
     assert.ok(prompt.includes("spec content here"));
-    assert.ok(prompt.includes("PASS"));
-    assert.ok(prompt.includes("FAIL"));
+    assert.ok(prompt.includes("evaluations"));
+    assert.ok(prompt.includes("pass"));
+    assert.ok(prompt.includes("fail"));
+    assert.ok(prompt.includes("JSON"));
   });
 });
 
-describe("parseGuardrailResponse", () => {
-  it("parses PASS and FAIL lines", () => {
-    const response = [
-      "PASS: Single Responsibility — spec addresses one concern",
-      "FAIL: Unambiguous Requirements — uses vague term 'appropriate'",
-      "PASS: Complete Context — all requirements have triggers",
-    ].join("\n");
+// ---------------------------------------------------------------------------
+// parseEvaluationResponse: sanity delegating tests — full contract covered in
+// tests/unit/flow/gate-evaluation-schema.test.js.
+// ---------------------------------------------------------------------------
 
-    const results = parseGuardrailResponse(response);
-    assert.equal(results.length, 3);
-    assert.equal(results[0].title, "Single Responsibility");
-    assert.equal(results[0].passed, true);
-    assert.equal(results[1].title, "Unambiguous Requirements");
-    assert.equal(results[1].passed, false);
-    assert.ok(results[1].reason.includes("vague"));
-    assert.equal(results[2].title, "Complete Context");
-    assert.equal(results[2].passed, true);
-  });
-
-  it("ignores non-matching lines", () => {
-    const response = "Some preamble\nPASS: Rule — ok\nSome trailing text";
-    const results = parseGuardrailResponse(response);
-    assert.equal(results.length, 1);
-    assert.equal(results[0].title, "Rule");
-  });
-
-  it("returns empty array for empty response", () => {
-    assert.deepEqual(parseGuardrailResponse(""), []);
-  });
-
-  it("handles en-dash and hyphen separators", () => {
-    const r1 = parseGuardrailResponse("PASS: Rule \u2013 reason with en-dash");
-    assert.equal(r1.length, 1);
-    const r2 = parseGuardrailResponse("FAIL: Rule - reason with hyphen");
-    assert.equal(r2.length, 1);
-    assert.equal(r2[0].passed, false);
+describe("parseEvaluationResponse (smoke)", () => {
+  it("parses a well-formed response", () => {
+    const resp = JSON.stringify({
+      evaluations: [{ guardrail_id: "a", result: "pass", reason: "ok" }],
+    });
+    const r = parseEvaluationResponse(resp, ["a"]);
+    assert.equal(r.length, 1);
+    assert.equal(r[0].result, "pass");
   });
 });
 
@@ -153,9 +142,9 @@ describe("parseGuardrailResponse", () => {
 
 describe("buildGuardrailPrompt ignores exemption sections", () => {
   const guardrails = [
-    { title: "Rule A", body: "Description A", meta: { phase: ["spec"] } },
-    { title: "Rule B", body: "Description B", meta: { phase: ["spec"] } },
-    { title: "Rule C", body: "Description C", meta: { phase: ["spec"] } },
+    { id: "a", title: "Rule A", body: "Description A", meta: { phase: ["spec"], category: "requirements" } },
+    { id: "b", title: "Rule B", body: "Description B", meta: { phase: ["spec"], category: "requirements" } },
+    { id: "c", title: "Rule C", body: "Description C", meta: { phase: ["spec"], category: "requirements" } },
   ];
 
   it("includes all spec-phase guardrails even with exemptions section in spec", () => {
@@ -167,59 +156,67 @@ describe("buildGuardrailPrompt ignores exemption sections", () => {
     assert.ok(!prompt.includes("Exempted Articles"), "should not have Exempted Articles section");
   });
 
-  it("includes inapplicable-PASS instruction", () => {
+  it("includes inapplicable instruction", () => {
     const prompt = buildGuardrailPrompt("## Requirements\n- R1\n", guardrails, "spec");
     assert.ok(prompt.includes("inapplicable"), "should include inapplicable instruction");
   });
 });
 
 // ---------------------------------------------------------------------------
-// buildGuardrailPrompt impl phase: diff-scope constraint (Issue #180)
+// buildGuardrailPrompt: diff-scope constraint for task-impl and integration
 // ---------------------------------------------------------------------------
 
-describe("buildGuardrailPrompt impl-phase diff-scope constraint", () => {
+describe("buildGuardrailPrompt diff-scope constraint (task-impl / integration)", () => {
   const implGuardrails = [
-    { title: "No Sync I/O in Hot Paths", body: "Avoid sync I/O", meta: { phase: ["impl"] } },
+    {
+      id: "no-sync-io",
+      title: "No Sync I/O in Hot Paths",
+      body: "Avoid sync I/O",
+      meta: { phase: ["task-impl", "integration"], category: "code-quality" },
+    },
   ];
-  // Canonical contract phrases exposed by the implementation. Breaking any of these
-  // would semantically regress the Issue #180 fix, so we assert on them directly.
   const DIFF_SCOPE_HEADING = "## Diff Scope Constraint";
   const CANONICAL_PHRASES = IMPL_DIFF_SCOPE_LINES.join("\n");
 
-  it("embeds the canonical diff-scope heading in impl-phase prompts", () => {
+  it("embeds diff-scope heading in task-impl prompts", () => {
     const targetText = "## Spec\nR1\n\n## Git Diff\ndiff --git a/x.js b/x.js\n+new line\n";
-    const prompt = buildGuardrailPrompt(targetText, implGuardrails, "impl");
-    assert.ok(prompt, "impl-phase prompt should be generated");
-    assert.ok(
-      prompt.includes(DIFF_SCOPE_HEADING),
-      `impl prompt should contain "${DIFF_SCOPE_HEADING}" section`,
-    );
+    const prompt = buildGuardrailPrompt(targetText, implGuardrails, "task-impl");
+    assert.ok(prompt, "task-impl prompt should be generated");
+    assert.ok(prompt.includes(DIFF_SCOPE_HEADING));
+  });
+
+  it("embeds diff-scope heading in integration prompts", () => {
+    const targetText = "## Spec\nR1\n\n## Git Diff\ndiff --git a/x.js b/x.js\n+new line\n";
+    const prompt = buildGuardrailPrompt(targetText, implGuardrails, "integration");
+    assert.ok(prompt, "integration prompt should be generated");
+    assert.ok(prompt.includes(DIFF_SCOPE_HEADING));
   });
 
   it("embeds the full canonical diff-scope instruction block", () => {
     const targetText = "## Spec\nR1\n\n## Git Diff\ndiff --git a/x.js b/x.js\n+new line\n";
-    const prompt = buildGuardrailPrompt(targetText, implGuardrails, "impl");
+    const prompt = buildGuardrailPrompt(targetText, implGuardrails, "task-impl");
     assert.ok(
       prompt.includes(CANONICAL_PHRASES.trim()),
-      "impl prompt should embed IMPL_DIFF_SCOPE_LINES verbatim",
+      "task-impl prompt should embed IMPL_DIFF_SCOPE_LINES verbatim",
     );
   });
 
-  it("does not add diff-scope constraint to draft/spec phase prompts", () => {
+  it("does not add diff-scope constraint to draft/spec/task-spec phase prompts", () => {
     const multiPhaseGuardrails = [
-      { title: "Rule A", body: "Desc A", meta: { phase: ["draft", "spec", "impl"] } },
+      {
+        id: "rule-a",
+        title: "Rule A",
+        body: "Desc A",
+        meta: { phase: ["draft", "spec", "task-spec", "task-impl", "integration"], category: "requirements" },
+      },
     ];
-    const draftPrompt = buildGuardrailPrompt("content", multiPhaseGuardrails, "draft");
-    const specPrompt = buildGuardrailPrompt("content", multiPhaseGuardrails, "spec");
-    assert.ok(draftPrompt, "draft prompt should be generated for draft-phase guardrails");
-    assert.ok(specPrompt, "spec prompt should be generated for spec-phase guardrails");
-    assert.ok(
-      !draftPrompt.includes(DIFF_SCOPE_HEADING),
-      "draft prompt should not carry impl-specific diff-scope heading",
-    );
-    assert.ok(
-      !specPrompt.includes(DIFF_SCOPE_HEADING),
-      "spec prompt should not carry impl-specific diff-scope heading",
-    );
+    for (const phase of ["draft", "spec", "task-spec"]) {
+      const prompt = buildGuardrailPrompt("content", multiPhaseGuardrails, phase);
+      assert.ok(prompt, `${phase} prompt should be generated`);
+      assert.ok(
+        !prompt.includes(DIFF_SCOPE_HEADING),
+        `${phase} prompt should not carry diff-scope heading`,
+      );
+    }
   });
 });

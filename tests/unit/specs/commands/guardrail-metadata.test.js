@@ -16,8 +16,8 @@ describe("filterByPhase", () => {
   it("filters guardrails by phase", () => {
     const guardrails = [
       { title: "A", body: "", meta: { phase: ["spec"] } },
-      { title: "B", body: "", meta: { phase: ["impl", "lint"] } },
-      { title: "C", body: "", meta: { phase: ["spec", "impl"] } },
+      { title: "B", body: "", meta: { phase: ["task-impl", "lint"] } },
+      { title: "C", body: "", meta: { phase: ["spec", "task-impl"] } },
       { title: "D", body: "", meta: { phase: ["lint"] } },
     ];
 
@@ -25,7 +25,7 @@ describe("filterByPhase", () => {
     assert.equal(specGuardrails.length, 2);
     assert.deepEqual(specGuardrails.map((g) => g.title), ["A", "C"]);
 
-    const implGuardrails = filterByPhase(guardrails, "impl");
+    const implGuardrails = filterByPhase(guardrails, "task-impl");
     assert.equal(implGuardrails.length, 2);
     assert.deepEqual(implGuardrails.map((g) => g.title), ["B", "C"]);
 
@@ -68,9 +68,9 @@ describe("matchScope", () => {
 describe("buildGuardrailPrompt with phase filtering", () => {
   it("excludes non-spec guardrails from prompt", () => {
     const guardrails = [
-      { title: "Spec Rule", body: "Check in spec.", meta: { phase: ["spec"] } },
-      { title: "Lint Rule", body: "Check in lint.", meta: { phase: ["lint"] } },
-      { title: "Both Rule", body: "Check in both.", meta: { phase: ["spec", "lint"] } },
+      { id: "a", title: "Spec Rule", body: "Check in spec.", meta: { phase: ["spec"], category: "requirements" } },
+      { id: "b", title: "Lint Rule", body: "Check in lint.", meta: { phase: ["lint"], category: "code-quality" } },
+      { id: "c", title: "Both Rule", body: "Check in both.", meta: { phase: ["spec", "lint"], category: "requirements" } },
     ];
     const prompt = buildGuardrailPrompt("spec content", guardrails, "spec");
     assert.ok(prompt.includes("Spec Rule"));
@@ -80,8 +80,8 @@ describe("buildGuardrailPrompt with phase filtering", () => {
 
   it("returns null when no spec-phase guardrails remain after filtering", () => {
     const guardrails = [
-      { title: "Lint Only", body: "Lint check.", meta: { phase: ["lint"] } },
-      { title: "Impl Only", body: "Impl check.", meta: { phase: ["impl"] } },
+      { id: "a", title: "Lint Only", body: "Lint check.", meta: { phase: ["lint"], category: "code-quality" } },
+      { id: "b", title: "Impl Only", body: "Impl check.", meta: { phase: ["task-impl"], category: "code-quality" } },
     ];
     const prompt = buildGuardrailPrompt("spec content", guardrails, "spec");
     assert.equal(prompt, null);

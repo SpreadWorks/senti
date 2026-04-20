@@ -1,0 +1,214 @@
+{
+  "spec": "specs/197-guardrail-3tier-format/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/197-guardrail-3tier-format",
+  "runId": "2f2e43a0-6633-4768-a37d-6511fc038b32",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "in_progress"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "REQ-1: phase enum に新語彙限定",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-2: level/phase 許容5組以外拒否",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-3: guardrail category 必須",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-4: category 欠落/範囲外はエラー停止",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-5: AI 評価 schema 強制",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-6: schema 不適合はエラー停止",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-7: 未知/重複 guardrail_id はエラー",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-8: gate 結果に level/phase/evaluations 必須",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-9: preset phase 新語彙整合",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-10: preset category enum 整合",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-11: 共通評価フロー集約",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-12: skill テンプレートから旧phase除去",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-13: 新 phase 検証・schema 失敗のテスト",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-14: preset 整合性テスト拡張",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-15: issue-log に level/phase 記録",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-16: diff-scope 制約を task-impl/integration に拡張",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 184,
+  "request": "#184 issueの対応を進めてください",
+  "worktree": true,
+  "notes": [
+    "Q1 approved: cac6/T3 guardrail 3-tier + unified gate format",
+    "draft approved by user (auto mode enabled)"
+  ],
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 1
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 91757,
+        "output": 10543,
+        "cacheRead": 199808,
+        "cacheCreation": 0
+      },
+      "callCount": 11,
+      "responseChars": 14001,
+      "durationMs": 234233
+    },
+    "gate": {
+      "tokens": {
+        "input": 1993852,
+        "output": 25193,
+        "cacheRead": 124416,
+        "cacheCreation": 0
+      },
+      "callCount": 18,
+      "responseChars": 42522,
+      "durationMs": 564965
+    },
+    "impl": {
+      "issueLog": 1
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 4
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-20T02:04:22.952Z"
+  }
+}

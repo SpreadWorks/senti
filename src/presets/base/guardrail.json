@@ -8,7 +8,8 @@
         "phase": [
           "draft",
           "spec"
-        ]
+        ],
+        "category": "process"
       }
     },
     {
@@ -19,7 +20,8 @@
         "phase": [
           "draft",
           "spec"
-        ]
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -30,7 +32,8 @@
         "phase": [
           "draft",
           "spec"
-        ]
+        ],
+        "category": "process"
       }
     },
     {
@@ -41,8 +44,9 @@
         "phase": [
           "draft",
           "spec",
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -52,8 +56,9 @@
       "meta": {
         "phase": [
           "spec",
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -64,7 +69,8 @@
         "phase": [
           "draft",
           "spec"
-        ]
+        ],
+        "category": "process"
       }
     },
     {
@@ -75,7 +81,8 @@
         "phase": [
           "draft",
           "spec"
-        ]
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -85,8 +92,9 @@
       "meta": {
         "phase": [
           "spec",
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -95,8 +103,9 @@
       "body": "Logs shall not contain passwords, tokens, or personally identifiable information. Sensitive data shall be masked or excluded.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -106,8 +115,9 @@
       "meta": {
         "phase": [
           "test",
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "testing"
       }
     },
     {
@@ -118,7 +128,8 @@
         "phase": [
           "spec",
           "test"
-        ]
+        ],
+        "category": "testing"
       }
     },
     {
@@ -128,7 +139,8 @@
       "meta": {
         "phase": [
           "test"
-        ]
+        ],
+        "category": "testing"
       }
     },
     {
@@ -138,7 +150,8 @@
       "meta": {
         "phase": [
           "spec"
-        ]
+        ],
+        "category": "testing"
       }
     },
     {
@@ -146,7 +159,10 @@
       "title": "Present Recommendations with Reasoning",
       "body": "For each question, present a recommended answer. State the basis: (1) project docs/, (2) guardrail principles, or (3) existing code patterns. Lead with the recommendation and keep it concise.",
       "meta": {
-        "phase": ["draft"]
+        "phase": [
+          "draft"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -154,7 +170,10 @@
       "title": "Explore Before Asking",
       "body": "If a question can be answered by reading docs/ or exploring the codebase, do so before asking the user.",
       "meta": {
-        "phase": ["draft"]
+        "phase": [
+          "draft"
+        ],
+        "category": "process"
       }
     },
     {
@@ -162,7 +181,10 @@
       "title": "Proactively Raise Related Implications",
       "body": "When a decision has obvious related implications, raise them proactively. Do not wait for the user to notice the gap.",
       "meta": {
-        "phase": ["draft"]
+        "phase": [
+          "draft"
+        ],
+        "category": "process"
       }
     },
     {
@@ -170,7 +192,10 @@
       "title": "Confirm Brainstorm vs. Decision Before Critiquing",
       "body": "Before critiquing a decision, confirm whether the user is brainstorming or deciding. Do not evaluate brainstorming ideas as final decisions.",
       "meta": {
-        "phase": ["draft"]
+        "phase": [
+          "draft"
+        ],
+        "category": "process"
       }
     },
     {
@@ -178,7 +203,10 @@
       "title": "Capture Digressions in draft.md",
       "body": "When a discussion digresses, capture key insights and decisions in draft.md before returning to the main thread.",
       "meta": {
-        "phase": ["draft"]
+        "phase": [
+          "draft"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -186,7 +214,10 @@
       "title": "Draft Stays at Requirements Level",
       "body": "Draft is RFP/requirements level only. Do not include implementation details or function-level design.",
       "meta": {
-        "phase": ["draft"]
+        "phase": [
+          "draft"
+        ],
+        "category": "process"
       }
     },
     {
@@ -194,7 +225,10 @@
       "title": "Synthesize Draft, Do Not Copy",
       "body": "Organize and abstract draft content rather than copying it directly. Do not invent content not present in the draft.",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "process"
       }
     },
     {
@@ -202,7 +236,10 @@
       "title": "Record Unresolved Points as Open Questions",
       "body": "Place unresolved points in the Open Questions section. Do not fabricate answers.",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "process"
       }
     },
     {
@@ -210,7 +247,10 @@
       "title": "Include 'Why This Approach' Rationale",
       "body": "The spec shall include the rationale for why this approach was chosen.",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "process"
       }
     },
     {
@@ -218,7 +258,10 @@
       "title": "Escalate When New Tests Break Existing Tests",
       "body": "If new tests cause existing tests to fail, inform the user and ask how to proceed.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "testing"
       }
     },
     {
@@ -226,7 +269,10 @@
       "title": "Do Not Modify Existing Tests Without Approval",
       "body": "Do not modify or delete existing tests without user approval.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "testing"
       }
     },
     {
@@ -234,7 +280,10 @@
       "title": "Flag Tests That Become Irrelevant",
       "body": "If past tests become irrelevant due to feature changes, flag them to the user.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "testing"
       }
     }
   ]

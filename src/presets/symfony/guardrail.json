@@ -5,7 +5,11 @@
       "title": "Use Parameterized Queries",
       "body": "DQL and QueryBuilder shall use parameter bindings. String concatenation in queries is prohibited.",
       "meta": {
-        "phase": ["spec", "impl"]
+        "phase": [
+          "spec",
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -13,7 +17,11 @@
       "title": "Service Layer Separation",
       "body": "Business logic shall reside in Service classes. Controllers shall remain thin.",
       "meta": {
-        "phase": ["spec", "impl"]
+        "phase": [
+          "spec",
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -21,7 +29,11 @@
       "title": "Use Voter for Authorization",
       "body": "Authorization logic shall be consolidated in Voter classes. Scattering permission checks across controllers is prohibited.",
       "meta": {
-        "phase": ["spec", "impl"]
+        "phase": [
+          "spec",
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -29,7 +41,10 @@
       "title": "Use DTO for External Input",
       "body": "External input shall be received via DTO combined with Validator. Direct mapping from Request to Entity is prohibited.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -37,7 +52,10 @@
       "title": "No Bundles for Application Code",
       "body": "When adding application code: do not wrap it in a Bundle. Use the default Symfony directory structure (config/, src/, templates/) and organize with PHP namespaces.",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -45,7 +63,10 @@
       "title": "Environment Variables for Infrastructure Only",
       "body": "When deciding configuration strategy: use environment variables only for infrastructure settings (DB connections, external API URLs, etc.). Use parameters in config/services.yaml (with the app. prefix) for application behavior.",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -53,7 +74,10 @@
       "title": "Use Messenger for Async Processing",
       "body": "When designing asynchronous or background processing: use Symfony Messenger and always configure a failure transport.",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -61,7 +85,10 @@
       "title": "UX Package Selection Criteria",
       "body": "For projects using Symfony UX when designing frontend: static components→TwigComponent, JS behavior→Stimulus, server-side reactive→LiveComponent, partial updates→Turbo Frame, multi-target DOM→Turbo Stream, real-time→Mercure + Turbo Stream.",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -69,7 +96,10 @@
       "title": "LiveComponent Performance Design",
       "body": "For projects using Symfony UX LiveComponent: plan to avoid unnecessary re-renders at the spec stage. Specify LiveProp granularity, debounce settings, and where to apply defer/lazy.",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "process"
       }
     },
     {
@@ -77,7 +107,10 @@
       "title": "Stable Public Interfaces",
       "body": "When modifying public interfaces (Contracts/, etc.): treat them as stable APIs and be careful about breaking changes.",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -85,7 +118,10 @@
       "title": "Use Enums for Fixed Values",
       "body": "When defining a fixed set of values: use PHP 8.1 enums instead of constants (case names in UpperCamelCase).",
       "meta": {
-        "phase": ["spec"]
+        "phase": [
+          "spec"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -93,7 +129,10 @@
       "title": "Constructor Injection Only",
       "body": "When using services: use constructor injection only. Prohibit service retrieval via $container->get(). Default to autowiring + autoconfiguration and keep services private.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -101,7 +140,10 @@
       "title": "Define Forms as PHP Classes",
       "body": "When creating forms: define them as PHP classes. Do not build forms directly in controllers. Place buttons in templates and define validation constraints on the target object.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -109,7 +151,10 @@
       "title": "Restrict |raw Filter Usage",
       "body": "When writing Twig templates: use |raw only for trusted and sanitized content. Do not disable default escaping.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -117,7 +162,10 @@
       "title": "snake_case for Template Naming",
       "body": "When creating templates: use snake_case for template names, directory names, and variable names. Prefix template fragments with an underscore (_partial.html.twig).",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -125,7 +173,10 @@
       "title": "Key-Based Translations",
       "body": "When implementing translations: use keys that describe intent rather than literal strings. Use XLIFF format for translation files.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -133,7 +184,10 @@
       "title": "Doctrine Mapping with PHP Attributes",
       "body": "When defining Doctrine entities: use PHP attributes (#[ORM\\Entity], etc.) instead of XML/YAML mappings.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -141,7 +195,10 @@
       "title": "Schema Changes via Migrations",
       "body": "When modifying database schema: prohibit direct manipulation. Use Doctrine Migrations.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -149,7 +206,10 @@
       "title": "Use AssetMapper for Web Assets",
       "body": "When managing web assets: use AssetMapper. Do not introduce unnecessary frontend build complexity.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -157,7 +217,10 @@
       "title": "Prefer Single Firewall",
       "body": "When configuring security: use a single firewall unless multiple systems are required. Use auto for the password hasher.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -165,7 +228,10 @@
       "title": "Stimulus Controller Name Match",
       "body": "For projects using Stimulus: ensure the controller filename (kebab-case) matches the HTML data-controller attribute value. Name mismatches are the most common source of bugs.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -173,7 +239,10 @@
       "title": "Stimulus: No DOM Assumptions on connect()",
       "body": "For projects using Stimulus: do not assume DOM elements exist at connect() time. Check element existence or use the appropriate lifecycle hook.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -181,7 +250,10 @@
       "title": "Turbo Frame ID Match",
       "body": "For projects using Turbo: the Frame id must match the <turbo-frame id> in the server response. A mismatch fails silently.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -189,7 +261,10 @@
       "title": "Turbo Cache JS Re-initialization",
       "body": "For projects using Turbo: account for cases where Stimulus controller connect() is not re-executed when Turbo Drive restores from cache.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -197,7 +272,10 @@
       "title": "Turbo Stream Redirect Loss",
       "body": "For projects using Turbo: account for cases where Turbo Stream responses disappear in a form submit → redirect flow.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -205,7 +283,10 @@
       "title": "TwigComponent Props Leak",
       "body": "For projects using TwigComponent: control ExposeInTemplate properly to prevent unwanted props from leaking into HTML attributes.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -213,7 +294,10 @@
       "title": "LiveProp Required for State",
       "body": "For projects using LiveComponent: add the LiveProp attribute to any property whose state should be preserved. Properties without LiveProp are reset on re-render.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -221,7 +305,10 @@
       "title": "No Complex Objects as LiveProp",
       "body": "For projects using LiveComponent: limit LiveProps to scalar values or simple DTOs. Complex objects cause hydration errors.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -229,7 +316,10 @@
       "title": "Lock UX Icons Before Deploy",
       "body": "For projects using UX Icons: run ux:icons:lock before deploying to production to eliminate the Iconify API dependency.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -237,7 +327,10 @@
       "title": "UX Map Height Required",
       "body": "For projects using UX Map: always set an explicit CSS height on the map container. Omitting it collapses the map to 0px.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -245,7 +338,11 @@
       "title": "No $container->get()",
       "body": "When using services: prohibit the service locator pattern via $container->get(). Use constructor injection.",
       "meta": {
-        "phase": ["impl", "review"]
+        "phase": [
+          "task-impl",
+          "review"
+        ],
+        "category": "security"
       }
     },
     {
@@ -253,7 +350,11 @@
       "title": "No Direct Form Building in Controllers",
       "body": "When creating forms: prohibit $this->createFormBuilder() and similar direct form building in controllers. Use form PHP classes.",
       "meta": {
-        "phase": ["impl", "review"]
+        "phase": [
+          "task-impl",
+          "review"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -261,7 +362,11 @@
       "title": "|trans Filter Required",
       "body": "When displaying user-facing text: apply the |trans filter to all user-facing strings in templates. Hardcoded strings are prohibited.",
       "meta": {
-        "phase": ["impl", "review"]
+        "phase": [
+          "task-impl",
+          "review"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -269,7 +374,10 @@
       "title": "Detect |raw Filter Usage",
       "body": "During review: detect |raw filter usage in Twig templates and verify the XSS risk is justified.",
       "meta": {
-        "phase": ["review"]
+        "phase": [
+          "review"
+        ],
+        "category": "security"
       }
     },
     {
@@ -277,7 +385,10 @@
       "title": "Detect Stimulus Name Mismatch",
       "body": "During review for projects using Stimulus: verify that data-controller attribute values in HTML correspond to files under controllers/.",
       "meta": {
-        "phase": ["review"]
+        "phase": [
+          "review"
+        ],
+        "category": "process"
       }
     },
     {
@@ -285,7 +396,10 @@
       "title": "Detect Turbo Frame ID Mismatch",
       "body": "During review for projects using Turbo: verify that turbo-frame id matches between request origin and response.",
       "meta": {
-        "phase": ["review"]
+        "phase": [
+          "review"
+        ],
+        "category": "process"
       }
     },
     {
@@ -293,7 +407,10 @@
       "title": "Detect Non-LiveProp State Dependency",
       "body": "During review for projects using LiveComponent: detect patterns where state is held in properties lacking the LiveProp attribute.",
       "meta": {
-        "phase": ["review"]
+        "phase": [
+          "review"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -301,7 +418,10 @@
       "title": "Verify ux:icons:lock Execution",
       "body": "During review for projects using UX Icons: verify that ux:icons:lock is included in the deployment configuration.",
       "meta": {
-        "phase": ["review"]
+        "phase": [
+          "review"
+        ],
+        "category": "process"
       }
     }
   ]

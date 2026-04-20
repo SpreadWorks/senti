@@ -1,0 +1,63 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/197-guardrail-3tier-format/draft.md          | 144 +++++\n specs/197-guardrail-3tier-format/flow.json         | 214 +++++++\n specs/197-guardrail-3tier-format/issue-log.json    | 118 ++++\n specs/197-guardrail-3tier-format/qa.md             |   9 +\n specs/197-guardrail-3tier-format/review.md         |  49 ++\n specs/197-guardrail-3tier-format/spec.md           | 140 +++++\n specs/197-guardrail-3tier-format/tests/README.md   |  39 ++\n src/flow/lib/gate-step.js                          |  12 +\n src/flow/lib/run-gate.js                           | 686 ++++++++++++++-------\n src/flow/registry.js                               |  11 +-\n src/lib/constants.js                               |  54 +-\n src/lib/guardrail.js                               |  28 +-\n src/presets/api/guardrail.json                     |   6 +-\n src/presets/architecture/guardrail.json            |   3 +-\n src/presets/base/guardrail.json                    | 109 +++-\n src/presets/cakephp2/guardrail.json                |  20 +-\n src/presets/ci/guardrail.json                      |  10 +-\n src/presets/cli/guardrail.json                     |   8 +-\n src/presets/coding-rule/guardrail.json             |  23 +-\n src/presets/database/guardrail.json                |  21 +-\n src/presets/document/guardrail.json                |  10 +-\n src/presets/edge/guardrail.json                    |  13 +-\n src/presets/github-actions/guardrail.json          |  15 +-\n src/presets/graphql/guardrail.json                 |  15 +-\n src/presets/greenfield/guardrail.json              |  30 +-\n src/presets/infrastructure/guardrail.json          |   5 +-\n src/presets/js-webapp/guardrail.json               |   5 +-\n src/presets/laravel/guardrail.json                 |  20 +-\n src/presets/library/guardrail.json                 |  11 +-\n src/presets/maintenance/guardrail.json             |  18 +-\n src/presets/monorepo/guardrail.json                |   8 +-\n src/presets/mysql/guardrail.json                   |  69 ++-\n src/presets/nextjs/guardrail.json                  |  54 +-\n src/presets/node-cli/guardrail.json                |  10 +-\n src/presets/oss-contribute/guardrail.json          |  13 +-\n src/presets/rest/guardrail.json                    |   5 +-\n src/presets/storage/guardrail.json                 |  10 +-\n src/presets/symfony/guardrail.json                 | 196 ++++--\n src/presets/web-design/guardrail.json              |  35 +-\n src/presets/webapp/guardrail.json                  |  53 +-\n src/presets/workers/guardrail.json                 |   5 +-\n src/templates/skills/sdd-forge.flow-impl/SKILL.md  |   4 +-\n tests/unit/flow/gate-evaluation-schema.test.js     |  83 +++\n tests/unit/flow/gate-phase-validation.test.js      |  73 +++\n tests/unit/flow/gate-report-shape.test.js          |  60 ++\n .../presets/guardrail-category-integrity.test.js   |  85 +++\n tests/unit/specs/commands/gate.test.js             |  29 +-\n .../unit/specs/commands/guardrail-metadata.test.js |  16 +-\n tests/unit/specs/commands/guardrail.test.js        | 149 +++--\n 49 files changed, 2205 insertions(+), 598 deletions(-)",
+      "commits": [
+        "feat: feature/197-guardrail-3tier-format",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 16,
+      "done": 12,
+      "partial": 4,
+      "not_done": 0,
+      "rate": 0.88,
+      "notes": "実装は中核要件（REQ-1〜8,10,11,14,16）を概ね満たしている。主な不足は、REQ-9 の語彙集合厳密性、REQ-12/13 の全体完了証跡、REQ-15 の error 経路での level 記録。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 1,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 2012464,
+      "output": 33116,
+      "cacheRead": 318720,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 28,
+      "durationMs": 746875,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 234233
+        },
+        {
+          "phase": "gate",
+          "durationMs": 512642
+        }
+      ]
+    },
+    "tests": {
+      "unit": 4,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 4
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/197-guardrail-3tier-format\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    49 files changed, 2205 insertions(+), 598 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 88%  (12 done / 4 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 1\n    issue-log ................... 1\n    agent calls ................. 28\n    input tokens ................ 2,012,464\n    output tokens ............... 33,116\n    cache-read tokens ........... 318,720\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 746.9s\n      gate-draft ................ 234.2s\n      gate ...................... 512.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 4  integration 0  acceptance 0  total 4"
+}

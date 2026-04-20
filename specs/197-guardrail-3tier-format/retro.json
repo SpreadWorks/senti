@@ -1,0 +1,108 @@
+{
+  "spec": "specs/197-guardrail-3tier-format/spec.md",
+  "date": "2026-04-20T02:05:15.359Z",
+  "requirements": [
+    {
+      "desc": "REQ-1: phase enum に新語彙限定",
+      "status": "done",
+      "note": "`VALID_GATE_PHASES` が `draft|spec|task-spec|task-impl|integration` のみに更新され、旧 `pre|post|impl` は invalid として拒否される。"
+    },
+    {
+      "desc": "REQ-2: level/phase 許容5組以外拒否",
+      "status": "done",
+      "note": "`validateLevelPhase` と `VALID_LEVEL_PHASE_COMBINATIONS` で5組のみ許可し、その他をエラー化している。"
+    },
+    {
+      "desc": "REQ-3: guardrail category 必須",
+      "status": "done",
+      "note": "guardrail hydrate 時に `meta.category` 欠落を明示エラーにし、enum 検証を追加している。"
+    },
+    {
+      "desc": "REQ-4: category 欠落/範囲外はエラー停止",
+      "status": "done",
+      "note": "欠落・不正値の双方で `throw` する実装に変更され、PASS 継続しない。"
+    },
+    {
+      "desc": "REQ-5: AI 評価 schema 強制",
+      "status": "done",
+      "note": "guardrail/impl 両プロンプトで JSON schema (`evaluations[]`) の厳格出力を要求している。"
+    },
+    {
+      "desc": "REQ-6: schema 不適合はエラー停止",
+      "status": "done",
+      "note": "`parseEvaluationResponse` が不適合時に `EvaluationSchemaError` を投げ、呼び出し側で失敗終了する。"
+    },
+    {
+      "desc": "REQ-7: 未知/重複 guardrail_id はエラー",
+      "status": "done",
+      "note": "unknown/duplicate/missing id を明示検知してエラー化している。"
+    },
+    {
+      "desc": "REQ-8: gate 結果に level/phase/evaluations 必須",
+      "status": "done",
+      "note": "gate pass/fail artifacts に `level` `phase` `evaluations` を常時含め、evaluation には `guardrail_id/result/reason/category` が載る。"
+    },
+    {
+      "desc": "REQ-9: preset phase 新語彙整合",
+      "status": "partial",
+      "note": "`impl` は `task-impl` へ移行されたが、許容集合実装は `test/review` も含むため、要件記載の新語彙集合（6値）への厳密一致ではない。"
+    },
+    {
+      "desc": "REQ-10: preset category enum 整合",
+      "status": "done",
+      "note": "preset guardrail 全体に category が追加され、enum 整合テストも追加されている。"
+    },
+    {
+      "desc": "REQ-11: 共通評価フロー集約",
+      "status": "done",
+      "note": "`runGateFlow` に共通化され、level/phase 検証と共通 pass/fail 生成が集約された。"
+    },
+    {
+      "desc": "REQ-12: skill テンプレートから旧phase除去",
+      "status": "partial",
+      "note": "少なくとも `sdd-forge.flow-impl/SKILL.md` の `impl` 呼び出しは置換済みだが、全テンプレート網羅を diff 単体では断定できない。"
+    },
+    {
+      "desc": "REQ-13: 新 phase 検証・schema 失敗のテスト",
+      "status": "partial",
+      "note": "該当ユニットテストは追加されているが、この diff 自体には `npm test` 全体グリーンの実行証跡までは含まれない。"
+    },
+    {
+      "desc": "REQ-14: preset 整合性テスト拡張",
+      "status": "done",
+      "note": "`guardrail-category-integrity.test.js` で phase/category enum 検証が追加されている。"
+    },
+    {
+      "desc": "REQ-15: issue-log に level/phase 記録",
+      "status": "partial",
+      "note": "gate FAIL 結果の issue-log 追記には `level`/`phase` を追加済みだが、gate error 追記側は `phase` のみ。"
+    },
+    {
+      "desc": "REQ-16: diff-scope 制約を task-impl/integration に拡張",
+      "status": "done",
+      "note": "`DIFF_SCOPED_PHASES` が `task-impl` と `integration` を対象にし、関連テストも追加されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/gate-step.js",
+      "change": "gate phase→step のマッピング重複解消（共通ヘルパー抽出）は要件一覧に明示されていない保守改善。"
+    },
+    {
+      "file": "src/flow/registry.js",
+      "change": "ローカル `resolveGateStepId` を削除して共通モジュール参照へ変更（重複排除リファクタ）。"
+    },
+    {
+      "file": "specs/197-guardrail-3tier-format/*",
+      "change": "draft/spec/flow/issue-log/review/tests README などの spec 運用成果物追加は、機能要件そのものではなくプロセス記録の追加。"
+    }
+  ],
+  "summary": {
+    "total": 16,
+    "done": 12,
+    "partial": 4,
+    "not_done": 0,
+    "rate": 0.88,
+    "notes": "実装は中核要件（REQ-1〜8,10,11,14,16）を概ね満たしている。主な不足は、REQ-9 の語彙集合厳密性、REQ-12/13 の全体完了証跡、REQ-15 の error 経路での level 記録。"
+  }
+}

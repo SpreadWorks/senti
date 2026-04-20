@@ -7,8 +7,9 @@
       "meta": {
         "phase": [
           "spec",
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -17,8 +18,9 @@
       "body": "Avoid extracting functions called from only one place, or assigning values to variables that could be used directly. Unnecessary indirection harms code readability.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -28,7 +30,8 @@
       "meta": {
         "phase": [
           "spec"
-        ]
+        ],
+        "category": "process"
       }
     },
     {
@@ -36,7 +39,10 @@
       "title": "Strict Comparison Only",
       "body": "When performing comparisons: use only === and !==. Prohibit == and !=.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -44,7 +50,10 @@
       "title": "No else After return/throw",
       "body": "When writing conditionals: do not write else/elseif after return or throw. Use the early-return pattern to reduce nesting.",
       "meta": {
-        "phase": ["impl"]
+        "phase": [
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     }
   ]

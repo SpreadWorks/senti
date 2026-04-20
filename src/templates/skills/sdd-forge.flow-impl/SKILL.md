@@ -99,7 +99,7 @@ Before starting, run `sdd-forge flow get check impl` to verify prerequisites.
      - `sdd-forge flow set step implement done`
 
 2. Run gate impl (after implementation, BEFORE review).
-   - `sdd-forge flow run gate --phase impl` (step status is automatically managed by hooks: pre sets gate-impl to in_progress, post sets done on PASS)
+   - `sdd-forge flow run gate --phase task-impl` (step status is automatically managed by hooks: pre sets gate-impl to in_progress, post sets done on PASS)
    - Checks spec requirements against `git diff baseBranch...HEAD` + guardrail compliance via AI.
    - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.reasons`. Fix using only the failure reasons and `git diff baseBranch...HEAD` — do NOT re-read the full spec, context, or guardrail. Re-run gate.
    - **Retry limit: 5 attempts.** If gate does not PASS after 5 fix-and-rerun cycles, STOP and return control to the user.
@@ -168,7 +168,7 @@ Before starting, run `sdd-forge flow get check impl` to verify prerequisites.
    - Proceed to Step 3.
 
 3b. Re-run gate impl (after review, BEFORE finalize).
-   - Run `sdd-forge flow run gate --phase impl` to re-validate that review's auto-corrections have not broken spec requirements or guardrail compliance.
+   - Run `sdd-forge flow run gate --phase task-impl` to re-validate that review's auto-corrections have not broken spec requirements or guardrail compliance.
    - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.reasons`. Fix using only the failure reasons and `git diff baseBranch...HEAD` — do NOT re-read the full spec, context, or guardrail. Re-run gate.
    - **Retry limit: 5 attempts.** If gate does not PASS after 5 fix-and-rerun cycles, STOP and return control to the user.
    - If review was skipped (step 3 chose option 3), skip this step as well.

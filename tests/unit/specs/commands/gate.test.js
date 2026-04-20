@@ -66,7 +66,7 @@ describe("checkSpecText", () => {
     assert.ok(issues.some((i) => i.includes("User Confirmation")));
   });
 
-  it("detects unapproved spec in post phase", () => {
+  it("strict mode detects unapproved spec", () => {
     const text = [
       "# Spec",
       "## Clarifications (Q&A)",
@@ -75,11 +75,11 @@ describe("checkSpecText", () => {
       "- [ ] User approved this spec",
       "## Acceptance Criteria",
     ].join("\n");
-    const issues = checkSpecText(text, { phase: "post" });
+    const issues = checkSpecText(text, { strict: true });
     assert.ok(issues.some((i) => i.includes("user confirmation is required")));
   });
 
-  it("skips approval check in pre phase", () => {
+  it("lenient mode skips approval check", () => {
     const text = [
       "# Spec",
       "## Clarifications (Q&A)",
@@ -88,7 +88,7 @@ describe("checkSpecText", () => {
       "- [ ] User approved this spec",
       "## Acceptance Criteria",
     ].join("\n");
-    const issues = checkSpecText(text, { phase: "pre" });
+    const issues = checkSpecText(text, { strict: false });
     assert.ok(!issues.some((i) => i.includes("user confirmation is required")));
   });
 
@@ -145,7 +145,7 @@ describe("checkSpecText", () => {
     assert.deepEqual(issues, []);
   });
 
-  it("pre phase skips unchecked items in Acceptance Criteria", () => {
+  it("lenient mode skips unchecked items in Acceptance Criteria", () => {
     const text = [
       "# Spec",
       "## Clarifications (Q&A)",
@@ -156,11 +156,11 @@ describe("checkSpecText", () => {
       "- [ ] feature works",
       "- [ ] tests pass",
     ].join("\n");
-    const issues = checkSpecText(text, { phase: "pre" });
+    const issues = checkSpecText(text, { strict: false });
     assert.deepEqual(issues, []);
   });
 
-  it("pre phase skips unchecked items in Status section", () => {
+  it("lenient mode skips unchecked items in Status section", () => {
     const text = [
       "# Spec",
       "## Status",
@@ -173,11 +173,11 @@ describe("checkSpecText", () => {
       "## Acceptance Criteria",
       "- [ ] done",
     ].join("\n");
-    const issues = checkSpecText(text, { phase: "pre" });
+    const issues = checkSpecText(text, { strict: false });
     assert.deepEqual(issues, []);
   });
 
-  it("post phase detects unchecked items in Acceptance Criteria", () => {
+  it("strict mode detects unchecked items in Acceptance Criteria", () => {
     const text = [
       "# Spec",
       "## Clarifications (Q&A)",
@@ -187,11 +187,11 @@ describe("checkSpecText", () => {
       "## Acceptance Criteria",
       "- [ ] feature works",
     ].join("\n");
-    const issues = checkSpecText(text, { phase: "post" });
+    const issues = checkSpecText(text, { strict: true });
     assert.ok(issues.some((i) => i.includes("unchecked task")));
   });
 
-  it("pre phase still detects unchecked items in Open Questions", () => {
+  it("lenient mode still detects unchecked items in Open Questions", () => {
     const text = [
       "# Spec",
       "## Clarifications (Q&A)",
@@ -202,11 +202,11 @@ describe("checkSpecText", () => {
       "## Acceptance Criteria",
       "- [ ] done",
     ].join("\n");
-    const issues = checkSpecText(text, { phase: "pre" });
+    const issues = checkSpecText(text, { strict: false });
     assert.ok(issues.some((i) => i.includes("unchecked task")));
   });
 
-  it("default phase is pre (skips Acceptance Criteria unchecked)", () => {
+  it("default mode is lenient (skips Acceptance Criteria unchecked)", () => {
     const text = [
       "# Spec",
       "## Clarifications (Q&A)",
@@ -216,7 +216,6 @@ describe("checkSpecText", () => {
       "## Acceptance Criteria",
       "- [ ] not done yet",
     ].join("\n");
-    // No opts passed = default pre
     const issues = checkSpecText(text);
     assert.deepEqual(issues, []);
   });
@@ -226,7 +225,7 @@ describe("checkSpecText", () => {
       "# Spec",
       "| Phase | TODO |",
       "| --- | --- |",
-      "| pre | skip TODO items |",
+      "| spec | skip TODO items |",
       "## Clarifications (Q&A)",
       "## Open Questions",
       "## User Confirmation",

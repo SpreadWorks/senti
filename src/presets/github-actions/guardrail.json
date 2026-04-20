@@ -6,8 +6,9 @@
       "body": "Workflows shall explicitly set `permissions` to the minimum required scope. Do not rely on the default broad permissions of GITHUB_TOKEN.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -16,8 +17,9 @@
       "body": "Do not directly interpolate externally-sourced values (e.g. `${{ github.event.*.title }}`) in `run:` blocks. Pass them via environment variables to prevent script injection.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -26,8 +28,9 @@
       "body": "Do not check out and execute PR code under the `pull_request_target` trigger. This exposes secrets to untrusted code from forks.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     }
   ]

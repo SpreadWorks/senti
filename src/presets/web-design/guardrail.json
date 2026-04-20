@@ -6,8 +6,9 @@
       "body": "Do not use generic font names (e.g. Arial, Times New Roman, Helvetica) directly. Define project fonts as CSS custom properties or design tokens and reference those instead.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -16,8 +17,9 @@
       "body": "All colors shall be defined as CSS custom properties (e.g. `--color-primary`). Hard-coded hex/rgb values in component styles are prohibited. Use the project's color system.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -26,8 +28,9 @@
       "body": "Prefer CSS animations and transitions over JavaScript-driven animations. Use JavaScript animation only when CSS cannot achieve the required effect (e.g. scroll-linked, physics-based).",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -36,8 +39,9 @@
       "body": "Inline `style` attributes in component templates are prohibited. Use CSS classes, CSS modules, or styled-components instead.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     },
     {
@@ -46,8 +50,9 @@
       "body": "Media query breakpoints shall reference design tokens or shared variables. Hard-coded pixel values in individual components are prohibited.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "security"
       }
     },
     {
@@ -57,8 +62,9 @@
       "meta": {
         "phase": [
           "spec",
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "requirements"
       }
     },
     {
@@ -67,8 +73,9 @@
       "body": "Images shall use modern formats (WebP, AVIF) with appropriate fallbacks. Unoptimized images (BMP, uncompressed PNG/TIFF) are prohibited in production builds.",
       "meta": {
         "phase": [
-          "impl"
-        ]
+          "task-impl"
+        ],
+        "category": "code-quality"
       }
     }
   ]

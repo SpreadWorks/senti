@@ -9,6 +9,10 @@ import path from "path";
 import { loadConfig, sddDir } from "./config.js";
 import { resolveChainSafe } from "./presets.js";
 import { patternToRegex } from "../docs/lib/scanner.js";
+import {
+  VALID_GUARDRAIL_CATEGORIES,
+  VALID_GUARDRAIL_PHASES,
+} from "./constants.js";
 
 const GUARDRAIL_FILENAME = "guardrail.json";
 
@@ -35,10 +39,30 @@ function parseLintString(lintStr) {
  * @param {Object} entry - Raw guardrail from JSON
  * @returns {Object} Hydrated guardrail
  */
-function hydrate(entry) {
+function hydrate(entry, sourcePath) {
   const meta = { ...entry.meta };
   if (!meta.phase || meta.phase.length === 0) {
     meta.phase = [...DEFAULT_PHASE];
+  }
+  for (const p of meta.phase) {
+    if (!VALID_GUARDRAIL_PHASES.includes(p)) {
+      throw new Error(
+        `guardrail ${entry.id || "(unknown)"} in ${sourcePath}: invalid phase "${p}" ` +
+          `(valid: ${VALID_GUARDRAIL_PHASES.join(", ")})`,
+      );
+    }
+  }
+  if (!meta.category) {
+    throw new Error(
+      `guardrail ${entry.id || "(unknown)"} in ${sourcePath}: missing required field meta.category ` +
+        `(valid: ${VALID_GUARDRAIL_CATEGORIES.join(", ")})`,
+    );
+  }
+  if (!VALID_GUARDRAIL_CATEGORIES.includes(meta.category)) {
+    throw new Error(
+      `guardrail ${entry.id || "(unknown)"} in ${sourcePath}: invalid category "${meta.category}" ` +
+        `(valid: ${VALID_GUARDRAIL_CATEGORIES.join(", ")})`,
+    );
   }
   if (typeof meta.lint === "string") {
     meta.lint = parseLintString(meta.lint);
@@ -55,7 +79,7 @@ function hydrate(entry) {
 function loadGuardrailFile(filePath) {
   const content = fs.readFileSync(filePath, "utf8");
   const data = JSON.parse(content);
-  return (data.guardrails || []).map(hydrate);
+  return (data.guardrails || []).map((e) => hydrate(e, filePath));
 }
 
 /**
