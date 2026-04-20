@@ -1,0 +1,62 @@
+{
+  "spec": "specs/200-test-type-labels-parser/spec.md",
+  "date": "2026-04-20T13:44:50.867Z",
+  "requirements": [
+    {
+      "desc": "REQ-1: test runner が 3 種別ラベル行を stdout に emit する",
+      "status": "done",
+      "note": "tests/run.js now prints `unit/integration/acceptance` label lines via `formatLabelSummary`, and missing categories are explicitly emitted as 0."
+    },
+    {
+      "desc": "REQ-2: flow.json test.summary に unit/integration/acceptance/exitCode が記録される",
+      "status": "partial",
+      "note": "`exitCode` is always written, but default parser regex in `src/flow/lib/test-log-parser.js` is malformed, so labeled integration/acceptance counts are not reliably parsed and persisted."
+    },
+    {
+      "desc": "REQ-3: 組込 parser は 3 種別独立パース、欠損キーは書き込まない",
+      "status": "partial",
+      "note": "Implementation intends independent parsing and omit-missing behavior, but the labeled-count regex is broken (`..., \"im` inside pattern), so required parsing behavior is not correctly achieved."
+    },
+    {
+      "desc": "REQ-4: 既存 TAP 出力・終了コード・既存テスト pass 状態を維持",
+      "status": "partial",
+      "note": "Exit-code propagation is preserved, but runner execution strategy/output shape changed (per-category runs plus extra label block), so full non-regression of TAP/pass-state is not demonstrated by the diff alone."
+    },
+    {
+      "desc": "REQ-5: preset 独自 parser が提供されていれば優先、なければ組込 default",
+      "status": "done",
+      "note": "`loadTestParser` prefers `src/presets/<key>/test-parser.js` when present and falls back to builtin parser; `run-tests` now resolves parser through this loader."
+    },
+    {
+      "desc": "REQ-6: preset parser は検出できたキーのみ返す契約",
+      "status": "done",
+      "note": "Loader/consumer accept sparse parser results as-is, and tests cover 3-key/2-key/empty-object custom parser cases without fabricating missing keys."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "package.json",
+      "change": "Added top-level `test` npm script (`node tests/run.js`), which is not explicitly required in REQ-1..REQ-6."
+    },
+    {
+      "file": "specs/200-test-type-labels-parser/qa.md",
+      "change": "Added QA template/documentation file unrelated to runtime requirement fulfillment."
+    },
+    {
+      "file": "specs/200-test-type-labels-parser/review.md",
+      "change": "Added review record document not covered by functional requirements."
+    },
+    {
+      "file": "specs/200-test-type-labels-parser/issue-log.json",
+      "change": "Added process/gate log artifacts outside the specified feature behavior requirements."
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 3,
+    "partial": 3,
+    "not_done": 0,
+    "rate": 0.75,
+    "notes": "Feature direction is mostly implemented (label emission and preset-parser override), but a parser regex defect prevents reliable satisfaction of the core summary-recording requirements; overall status is incomplete until that parsing bug is fixed and regression expectations are re-validated."
+  }
+}

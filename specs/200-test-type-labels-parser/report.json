@@ -1,0 +1,65 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "package.json                                      |   1 +\n specs/200-test-type-labels-parser/draft.md        | 102 ++++++++++++\n specs/200-test-type-labels-parser/flow.json       | 185 ++++++++++++++++++++++\n specs/200-test-type-labels-parser/issue-log.json  | 107 +++++++++++++\n specs/200-test-type-labels-parser/qa.md           |   9 ++\n specs/200-test-type-labels-parser/review.md       |  49 ++++++\n specs/200-test-type-labels-parser/spec.md         |  70 ++++++++\n specs/200-test-type-labels-parser/tests/README.md |  36 +++++\n src/flow/lib/run-tests.js                         |  52 ++----\n src/flow/lib/test-log-parser.js                   |  33 ++++\n src/flow/lib/test-parser-loader.js                |  31 ++++\n tests/helpers/test-runner-labels.js               |  42 +++++\n tests/run.js                                      |  44 ++++-\n tests/unit/flow/run-tests-three-keys.test.js      |  60 +++++++\n tests/unit/flow/test-log-parser.test.js           |  49 ++++++\n tests/unit/flow/test-parser-loader.test.js        |  78 +++++++++\n tests/unit/test-runner-labels.test.js             |  59 +++++++\n 17 files changed, 966 insertions(+), 41 deletions(-)",
+      "commits": [
+        "feat: feature/200-test-type-labels-parser",
+        "Merge branch 'main' into feature/200-test-type-labels-parser",
+        "WIP: spec 200 in progress before main merge",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 3,
+      "partial": 3,
+      "not_done": 0,
+      "rate": 0.75,
+      "notes": "Feature direction is mostly implemented (label emission and preset-parser override), but a parser regex defect prevents reliable satisfaction of the core summary-recording requirements; overall status is incomplete until that parsing bug is fixed and regression expectations are re-validated."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 479649,
+      "output": 14124,
+      "cacheRead": 203264,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 373370,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 154932
+        },
+        {
+          "phase": "gate",
+          "durationMs": 218438
+        }
+      ]
+    },
+    "tests": {
+      "unit": 1707,
+      "integration": 259,
+      "acceptance": 0,
+      "total": 1966
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/200-test-type-labels-parser\n    Merge branch 'main' into feature/200-test-type-labels-parser\n    WIP: spec 200 in progress before main merge\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    17 files changed, 966 insertions(+), 41 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ██████░░ 75%  (3 done / 3 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 16\n    input tokens ................ 479,649\n    output tokens ............... 14,124\n    cache-read tokens ........... 203,264\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 373.4s\n      gate-draft ................ 154.9s\n      gate ...................... 218.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 1707  integration 259  acceptance 0  total 1966"
+}

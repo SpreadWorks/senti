@@ -1,0 +1,107 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — テスト種別サマリの記録改善とその parser 拡張という単一テーマに収まっている。; Unambiguous Requirements — 出力形式・キー名・マッピング・受け入れ基準が具体的で検証可能に定義されている。; Complete Context — 多くの要件が条件（When/If）と期待動作（shall）の対になっておらず、文脈が省略されている。; No Hardcoded Secrets — APIキー等の秘密情報の直書きは含まれていない。; Prioritize Requirements — 要件項目が3件を超えるが優先順位（Must/ShouldやP1/P2等）が明示されていない。; Impact on Existing Features — 影響範囲と既存挙動維持（TAP/終了コード維持、既存tests pass）が明記されている。; Present Recommendations with Reasoning — Open Questions で推奨案が未確定で、根拠付きの推奨回答を先頭提示できていない箇所がある。; Explore Before Asking — parser 発見方式の未解決質問は既存コード/docs調査で先に判断できる可能性が高い。; Proactively Raise Related Implications — 将来拡張や互換性、代替案まで含めて関連含意を先回りで記載している。; Confirm Brainstorm vs. Decision Before Critiquing — Q1で解釈確認し、User approved を明示して意思決定として扱っている。; Capture Digressions in draft.md — 会話の脱線有無や draft.md への記録実施は提示内容だけでは検証できない。; Draft Stays at Requirements Level — 関数名・ファイル名・export 形状・正規表現など実装詳細に踏み込んでいる。; Backward-Compatible CLI Interface — 既存CLIコマンド/オプションの意味変更や削除を伴う提案はなく、移行計画要件は実質的に非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:51:51.517Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft centers on one concern: reliable test-type summary recording plus parser extensibility for that same flow.; Unambiguous Requirements — Requirements are mostly stated with verifiable conditions (specific keys, labels, outputs, and behaviors).; Complete Context — Not all requirements include both trigger and expected behavior; REQ-4 and REQ-6 lack full When/If + shall structure.; No Hardcoded Secrets — No secrets (API keys/passwords/tokens) are present; this draft is requirements text, not secret-bearing code.; Prioritize Requirements — More than three requirements are explicitly prioritized via Must/Should and scoped tiers (P1/P2).; Impact on Existing Features — Impact on existing features is explicitly listed, including what remains unchanged.; Present Recommendations with Reasoning — Not every question is presented as a recommendation with explicit basis from docs/guardrails/code patterns (e.g., Q1 lacks basis).; Explore Before Asking — Draft does not show evidence that docs/code exploration answered all askable items before user confirmation questions.; Proactively Raise Related Implications — Related implications are proactively covered (impact, alternatives, extensibility, schema mapping effects).; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation of brainstorming vs decision mode is documented before evaluating/locking decisions.; Capture Digressions in draft.md — Cannot determine from the provided draft alone whether any discussion digressions occurred and were captured in draft.md.; Draft Stays at Requirements Level — Includes implementation-level detail (e.g., specific discovery path like test-parser.js) beyond pure requirements scope.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is proposed, so migration planning is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:53:37.820Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft centers on one coherent concern: ensuring test-type summary counts and parser extensibility for the same `flow run tests` outcome.; Unambiguous Requirements — Requirements are mostly stated in verifiable terms (explicit keys, labeled output, fallback behavior, acceptance criteria).; Complete Context — Each listed requirement includes trigger context (When/If) and expected behavior (shall).; No Hardcoded Secrets — No API keys, passwords, tokens, or similar secrets are present in the draft content.; Prioritize Requirements — The draft includes clear prioritization via Must/Should and P1/P2 scope separation for more than three requirements.; Impact on Existing Features — It explicitly lists affected areas and states unchanged behavior for existing features.; Present Recommendations with Reasoning — Q&A entries provide recommendations/decisions with concise rationale tied to issue text, existing schema, and code/project patterns.; Explore Before Asking — An explicit pre-investigation section documents code/docs exploration before narrowing user confirmations.; Proactively Raise Related Implications — Related implications are proactively covered through impact scope, alternatives, and extensibility notes.; Confirm Brainstorm vs. Decision Before Critiquing — The draft explicitly declares decision mode and states it is not brainstorming.; Capture Digressions in draft.md — Whether conversation digressions occurred cannot be confirmed from the draft alone without runtime discussion history.; Draft Stays at Requirements Level — The draft includes implementation-leaning details (specific file paths, module discovery approach, contract shape) beyond pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed, so migration planning is not applicable here.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:55:12.131Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — テスト種別サマリの確実な記録とそのためのparser拡張という同一目的に収束しており、主題は一貫している。; Unambiguous Requirements — REQ-6の「後方互換が保てる契約形状」は検証条件が具体化されておらず曖昧。; Complete Context — 要件は概ねWhen/shallで記述され、条件と期待動作の組が明示されている。; No Hardcoded Secrets — APIキーやトークン等の機密情報の記載はなく、本ドラフトでは該当なし。; Prioritize Requirements — 要件が3件を超える中でMust/Should/Out of Scopeおよび優先度が明示されている。; Impact on Existing Features — 影響範囲セクションで既存機能への影響と非変更点が明示されている。; Present Recommendations with Reasoning — Q&Aで推奨/決定を先に示し、spec・issue・既存慣習に基づく根拠が添えられている。; Explore Before Asking — 事前調査セクションでdocs/コード探索に基づく確認済み事項が具体的に列挙されている。; Proactively Raise Related Implications — schemaとのsemantic mapping、欠損時挙動、将来拡張など関連含意を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 冒頭で決定モードであることを明示し、ブレインストーミングではないと確認している。; Capture Digressions in draft.md — 明確な脱線は見当たらず、本件で追加のdigression記録は不要。; Draft Stays at Requirements Level — 内容はRFP/要件レベルに留まり、関数設計や実装詳細への踏み込みを抑制している。; Backward-Compatible CLI Interface — 既存CLIコマンド/オプションの削除や意味変更を含む提案はなく、移行計画要件は非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:56:32.324Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Scope is cohesive around test-summary labeling/parsing for flow test execution, with related extensibility in the same concern.; Unambiguous Requirements — Most requirements are testable, but REQ-6 uses vague wording (e.g., 'backward-compatible contract shape') without concrete verification criteria.; Complete Context — Requirements are consistently written with trigger conditions (When) and expected behavior (shall).; No Hardcoded Secrets — No source code secrets or credential literals are present in the draft content.; Prioritize Requirements — More than three requirements are present and priority is explicitly structured via Must/Should and P-levels.; Impact on Existing Features — An explicit impact section describes affected areas and clarifies unchanged behavior where applicable.; Present Recommendations with Reasoning — Q&A items provide recommendations/decisions and concise rationale grounded in issue scope, prior spec, and existing patterns.; Explore Before Asking — The draft explicitly documents pre-reading/exploration before narrowing user confirmation questions.; Proactively Raise Related Implications — It proactively captures implications through impact, alternatives, mapping decisions, and future extensibility notes.; Confirm Brainstorm vs. Decision Before Critiquing — It explicitly states decision mode and that items are treated as finalized rather than brainstorming.; Capture Digressions in draft.md — No digression is evident in the provided content; nothing appears omitted from the main draft thread.; Draft Stays at Requirements Level — Content stays at requirements/spec level and avoids function-level or implementation-specific design details.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is specified, so migration planning is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:57:00.058Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 70: unchecked task/question (- [ ] なし（Q4 を推奨案として決定扱い）)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:58:15.688Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec stays focused on test-type summary labeling/parsing and related extension points.; Unambiguous Requirements — Requirements are mostly measurable with explicit outputs, keys, and behaviors.; Complete Context — Each REQ uses trigger context (When) and expected behavior (shall).; No Hardcoded Secrets — Inapplicable to this spec text; no source code or embedded credentials are present.; No Silent Error Swallowing — Inapplicable to this spec text; no implementation-level error handling is defined here.; Prioritize Requirements — There are more than three requirements, but all are marked P1, so priority order is not effectively differentiated.; Impact on Existing Features — Impact is explicitly addressed (existing TAP output, exit-code propagation, and passing tests remain unchanged).; Bounded Resource Usage — No recursive/retry/bulk-loading design requiring explicit bounds is introduced in this spec.; Changes Require Test Coverage — Acceptance criteria and parser test cases cover happy paths and key variants.; Spec Includes Test Strategy — Spec includes concrete test strategy via acceptance criteria and unit-test scenarios.; Synthesize Draft, Do Not Copy — Cannot evaluate synthesis vs. source draft because the original draft content is not provided.; Record Unresolved Points as Open Questions — Clarifications are documented and unresolved points are explicitly stated as none.; Include 'Why This Approach' Rationale — Rationale is provided through alternatives considered and rejection reasons.; Backward-Compatible CLI Interface — No CLI command/option semantic removal is specified, so migration plan is not required.; Exit Code Contract — Spec requires child process exit-code propagation, which preserves non-zero signaling on failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:59:03.395Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one cohesive concern: test summary label parsing and extensibility for that flow.; Unambiguous Requirements — Requirements use concrete, verifiable conditions (keys, outputs, parser behavior, exit code).; Complete Context — Each requirement includes a trigger condition (When) and expected behavior (shall).; No Hardcoded Secrets — No credentials or secret literals are included in the specification content.; No Silent Error Swallowing — No error-handling code patterns are specified; nothing indicates silent swallowing.; Prioritize Requirements — More than three requirements are present and each is prioritized (P1/P2).; Impact on Existing Features — Impact is explicitly addressed, including unchanged TAP output, exit code propagation, and existing tests.; Bounded Resource Usage — Spec does not introduce recursive/retry/bulk-loading flows requiring explicit bounds.; Changes Require Test Coverage — Includes concrete test coverage expectations for new behavior and compatibility paths.; Spec Includes Test Strategy — Acceptance criteria define what to test and expected outcomes across key scenarios.; Synthesize Draft, Do Not Copy — No source draft content is provided, so copy-vs-synthesis cannot be verified.; Record Unresolved Points as Open Questions — An unresolved detail (preset parser detailed placement deferred to implementation) exists while Open Questions states none.; Include 'Why This Approach' Rationale — Rationale is present via alternatives considered and rejection reasons.; Backward-Compatible CLI Interface — No CLI command/option meaning change is proposed; migration plan is not required.; Exit Code Contract — Spec explicitly requires exit code propagation and preserves non-zero failure signaling.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T12:59:43.903Z"
+    },
+    {
+      "step": "implement",
+      "reason": "pre-existing e2e failures unrelated to spec 200: acceptance/report.test.js expects scan.js to export 'main' but it only exports class DocsScanCommand; dispatcher test fails rejecting 'spec' with no args. Neither involves files modified in this spec.",
+      "trigger": "running full node tests/run.js suite after implementing spec 200",
+      "resolution": "documented as pre-existing; my changes only touch run-tests.js / tests/run.js / new parser module files, none of which relate to scan command main export or spec dispatcher",
+      "guardrailCandidate": "baseline test failures should be captured in evidence before starting implementation",
+      "timestamp": "2026-04-20T13:08:46.661Z"
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-20T13:09:08.277Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "REQ-SPEC — Diff introduces required components, but default parser regex is incorrect (`..., \"im` embedded in pattern), so labeled `unit/integration/acceptance` lines would not parse as specified; provided evidence also shows only `{\"unit\":19}` rather than full 3-key summary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T13:09:29.731Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "REQ-SPEC — Diff adds runner labels/parser hooks, but provided execution evidence shows test exitCode=1 and only exitCode in summary evidence (no confirmed unit/integration/acceptance recording), so full spec compliance is not demonstrated.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T13:34:02.964Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "REQ-SPEC — Diff and evidence show label emission, parser extensibility, and summary keys are implemented, but test execution ended with exitCode=1, so full spec compliance (notably existing test pass-state preservation) is not satisfied.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T13:36:08.499Z"
+    }
+  ]
+}

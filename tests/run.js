@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
+import { writeSync } from "node:fs";
 import { getPresetAliasNames, resolvePresetTestName } from "./helpers/preset-aliases.js";
+import { groupTestFilesByCategory, formatLabelSummary } from "./helpers/test-runner-labels.js";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const PRESETS_DIR = join(ROOT, "src", "presets");
@@ -97,11 +99,41 @@ if (testFiles.length === 0) {
   process.exit(1);
 }
 
-try {
-  execFileSync("node", ["--test", ...testFiles], {
-    stdio: "inherit",
+function runNodeTests(files) {
+  const res = spawnSync("node", ["--test", ...files], {
     cwd: ROOT,
+    stdio: ["ignore", "pipe", "pipe"],
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
   });
-} catch (err) {
-  process.exit(err.status || 1);
+  const stdout = res.stdout || "";
+  const stderr = res.stderr || "";
+  process.stdout.write(stdout);
+  process.stderr.write(stderr);
+  const m = /^\s*#\s*pass\s+(\d+)\s*$/m.exec(stdout + stderr);
+  return {
+    status: res.status ?? 1,
+    passCount: m ? Number(m[1]) : 0,
+  };
 }
+
+const groups = groupTestFilesByCategory(testFiles);
+const counts = { unit: 0, integration: 0, acceptance: 0 };
+let overallExit = 0;
+
+for (const type of ["unit", "integration", "acceptance"]) {
+  const files = groups[type];
+  if (files.length === 0) continue;
+  const { status, passCount } = runNodeTests(files);
+  counts[type] = passCount;
+  if (status !== 0 && overallExit === 0) overallExit = status;
+}
+
+if (groups.other.length > 0) {
+  const { status } = runNodeTests(groups.other);
+  if (status !== 0 && overallExit === 0) overallExit = status;
+}
+
+writeSync(1, "\n" + formatLabelSummary(counts) + "\n");
+
+process.exit(overallExit);
