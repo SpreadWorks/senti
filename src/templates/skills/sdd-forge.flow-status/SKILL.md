@@ -11,7 +11,7 @@ Display the current state of the SDD workflow.
 
 1. Load flow state.
    - Run `sdd-forge flow get status`.
-   - If it reports "no active flow", tell the user and stop.
+   - If the envelope's `data.active` is `false`, tell the user there is no active flow and stop.
 
 2. Gather additional context.
    - Run `sdd-forge flow get resolve-context` to get `currentBranch`, `dirty`, `dirtyFiles`, `aheadCount`, `lastCommit`, and path information.

@@ -47,19 +47,27 @@ describe("flow get status", () => {
     assert.ok(Array.isArray(envelope.data.steps));
   });
 
-  it("returns ok: false when no active flow", () => {
+  it("returns ok: true with active: false when no active flow", () => {
     tmp = createTmpDir();
-    try {
-      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status"], {
-        encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
-      });
-      assert.fail("should exit non-zero");
-    } catch (err) {
-      const envelope = JSON.parse(err.stdout);
-      assert.equal(envelope.ok, false);
-      assert.equal(envelope.errors.length, 1);
-      assert.equal(envelope.errors[0].level, "fatal");
-    }
+    const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status"], {
+      encoding: "utf8",
+      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    });
+    const envelope = JSON.parse(result);
+    assert.equal(envelope.ok, true);
+    assert.equal(envelope.type, "get");
+    assert.equal(envelope.key, "status");
+    assert.equal(envelope.data.active, false);
+  });
+
+  it("returns active: true when a flow exists", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "status"], {
+      encoding: "utf8",
+      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    });
+    const envelope = JSON.parse(result);
+    assert.equal(envelope.data.active, true);
   });
 });

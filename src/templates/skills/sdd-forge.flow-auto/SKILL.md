@@ -28,7 +28,7 @@ Toggle autoApprove mode for the current SDD flow.
 
 1. Check flow state.
    - Run `sdd-forge flow get status`.
-   - If the command fails or returns `ok: false`, display: "No active flow. Start a flow first with `/sdd-forge.flow-plan`." and STOP.
+   - If `data.active` is `false` (or the command fails), display: "No active flow. Start a flow first with `/sdd-forge.flow-plan`." and STOP.
 
 2. Verify requirements exist.
    - Check the status response for `request` and `issue` fields.

@@ -109,12 +109,14 @@ export const FLOW_COMMANDS = {
   get: {
     status: {
       helpKey: "flow.get.status",
+      requiresFlow: false,
       command: () => import("./lib/get-status.js"),
       args: { positional: ["runId"] },
       help: [
         "Usage: sdd-forge flow get status [runId]",
         "",
         "Return active flow state for the current execution context.",
+        "If no active flow exists, returns { active: false }.",
         "If runId is provided, resolve by runId instead of context.",
         "Use `sdd-forge flow resume` to discover or recover active flows.",
       ].join("\n"),

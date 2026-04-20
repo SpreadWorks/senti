@@ -19,6 +19,7 @@ function buildStatusOutput(state) {
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
 
   return {
+    active: true,
     spec: state.spec,
     baseBranch: state.baseBranch,
     featureBranch: state.featureBranch,
@@ -56,9 +57,10 @@ export default class GetStatusCommand extends FlowCommand {
       return buildStatusOutput(state);
     }
 
-    // Default: context-based resolution (backward compatible)
+    // Default: context-based resolution. No active flow is a normal state,
+    // not an error — consumers discriminate via the `active` field.
     if (!ctx.flowState) {
-      throw new Error("no active flow (flow.json not found)");
+      return { active: false };
     }
     return buildStatusOutput(ctx.flowState);
   }
