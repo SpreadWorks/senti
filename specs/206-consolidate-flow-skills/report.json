@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/206-consolidate-flow-skills/draft.md         | 158 ++++++++++++++\n specs/206-consolidate-flow-skills/flow.json        | 233 +++++++++++++++++++++\n specs/206-consolidate-flow-skills/issue-log.json   |  52 +++++\n specs/206-consolidate-flow-skills/qa.md            |   9 +\n specs/206-consolidate-flow-skills/review.md        |  33 +++\n specs/206-consolidate-flow-skills/spec.md          |  98 +++++++++\n specs/206-consolidate-flow-skills/tests/README.md  |  40 ++++\n .../tests/package-shape.test.js                    | 130 ++++++++++++\n src/flow/prompts/impl/finalize.md                  |   2 +-\n src/flow/prompts/plan/test.md                      |   4 +-\n src/presets/base/templates/en/AGENTS.sdd.md        |   4 +-\n src/presets/base/templates/ja/AGENTS.sdd.md        |   4 +-\n src/templates/skills/sdd-forge.flow-auto/SKILL.md  |  12 +-\n .../skills/sdd-forge.flow-finalize/SKILL.md        |  71 -------\n src/templates/skills/sdd-forge.flow-impl/SKILL.md  | 165 ---------------\n src/templates/skills/sdd-forge.flow-plan/SKILL.md  | 167 ---------------\n .../skills/sdd-forge.flow-resume/SKILL.md          |  10 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       | 195 +++++++++++++++++\n tests/unit/lib/cleanup-obsolete-skills.test.js     | 103 +++++++++\n 19 files changed, 1065 insertions(+), 425 deletions(-)",
+      "commits": [
+        "feat: feature/206-consolidate-flow-skills"
+      ]
+    },
+    "retro": {
+      "total": 10,
+      "done": 9,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.95,
+      "notes": "P0/P2 要件は diff から概ね充足。特に統合 skill 追加、legacy 削除、dispatcher 化、cleanup/構成テスト追加は明確。R7 は設計・記述上は整合するが、進行中フロー継続性の強い実証はこの diff 単体では限定的。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 286716,
+      "output": 13960,
+      "cacheRead": 183424,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 380000,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 95989
+        },
+        {
+          "phase": "gate",
+          "durationMs": 140126
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 102182
+        },
+        {
+          "phase": "review",
+          "durationMs": 41703
+        }
+      ]
+    },
+    "tests": {
+      "unit": 10,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 10
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/206-consolidate-flow-skills\n    19 files changed, 1065 insertions(+), 425 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 95%  (9 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 16\n    input tokens ................ 286,716\n    output tokens ............... 13,960\n    cache-read tokens ........... 183,424\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 380.0s\n      gate-draft ................ 96.0s\n      gate ...................... 140.1s\n      gate-impl ................. 102.2s\n      review .................... 41.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 10  integration 0  acceptance 0  total 10"
+}

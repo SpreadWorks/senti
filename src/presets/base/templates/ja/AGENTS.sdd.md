@@ -2,8 +2,8 @@
 
 本プロジェクトは sdd-forge による Spec-Driven Development を採用している。
 
-- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、SDD フロー (`/sdd-forge.flow-plan`) を使用するかユーザーに確認すること。確認なしにコードを変更してはならない。**
-- **MUST: 実装完了後は `/sdd-forge.flow-finalize` を実行すること。**
+- **MUST: ユーザーから機能追加・修正のリクエストを受けた場合、SDD フロー (`/sdd-forge.flow`) を使用するかユーザーに確認すること。確認なしにコードを変更してはならない。**
+- **MUST: SDD の主経路（計画・実装・最終化）は `/sdd-forge.flow` 一つで駆動される。docs 同期のみを行う場合は `/sdd-forge.flow-sync` を使用する。**
 - スキルが利用できない環境では `sdd-forge flow --request "<要望>"` を使用すること
 
 ### Worktree の境界を越えない（MUST）

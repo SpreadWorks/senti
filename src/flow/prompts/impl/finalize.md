@@ -1,4 +1,4 @@
-Use this guidance when the impl phase reaches the finalize action. The full procedural sequence (commit → merge → sync → cleanup) is owned by the `/sdd-forge.flow-finalize` skill.
+Use this guidance when the impl phase reaches the finalize action. The full procedural sequence (commit → merge → sync → cleanup) is driven by `sdd-forge flow run finalize`, invoked from the dispatcher.
 
 ## Required Sequence
 

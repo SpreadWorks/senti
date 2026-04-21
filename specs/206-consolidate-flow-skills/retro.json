@@ -1,0 +1,94 @@
+{
+  "spec": "specs/206-consolidate-flow-skills/spec.md",
+  "date": "2026-04-21T06:54:58.078Z",
+  "requirements": [
+    {
+      "desc": "R1 (skill 統合)",
+      "status": "done",
+      "note": "新規 `src/templates/skills/sdd-forge.flow/SKILL.md` を追加し、plan/impl/finalize を 1 skill に統合。旧3 skill は削除されている。"
+    },
+    {
+      "desc": "R2 (legacy テンプレ除去)",
+      "status": "done",
+      "note": "`sdd-forge.flow-plan` / `sdd-forge.flow-impl` / `sdd-forge.flow-finalize` のテンプレートが diff 上で削除されている。"
+    },
+    {
+      "desc": "R3 (既存プロジェクト自動 cleanup)",
+      "status": "done",
+      "note": "既存 cleanup 機構 (`cleanupObsoleteSkills`) を前提に、legacy 3 skill が自動削除される回帰テストを追加しており、追加の専用削除ロジックは入っていない。"
+    },
+    {
+      "desc": "R4 (dispatcher 仕様)",
+      "status": "done",
+      "note": "統合 skill の main loop が `sdd-forge flow get next-action` と `instructions.content` を使う構成になっている。"
+    },
+    {
+      "desc": "R5 (universal guardrails)",
+      "status": "done",
+      "note": "統合 skill に approval/no-auto-promote/worktree/choice format/issue-log/command discipline/autoApprove 例外を明示した guardrails 節がある。"
+    },
+    {
+      "desc": "R6 (補助 skill 無干渉)",
+      "status": "done",
+      "note": "補助 skill は設置場所そのままで、`flow-auto`/`flow-resume` は legacy 名参照のみ統合名へ置換。契約動作は維持する内容。"
+    },
+    {
+      "desc": "R7 (進行中フロー無影響)",
+      "status": "partial",
+      "note": "統合 skill 側で `active: true/false` 分岐と既存 step 利用は確認できるが、進行中フロー継続の実運用/統合レベル検証は diff 上で限定的。"
+    },
+    {
+      "desc": "R8 (ドキュメント参照整合)",
+      "status": "done",
+      "note": "AGENTS テンプレート（ja/en）および関連プロンプトの legacy skill 名参照が統合名ベースに更新されている。"
+    },
+    {
+      "desc": "R9 (パッケージ構成テスト)",
+      "status": "done",
+      "note": "`specs/206-consolidate-flow-skills/tests/package-shape.test.js` で新 skill の存在と legacy 3 skill 不在を検証している。"
+    },
+    {
+      "desc": "R10 (cleanup 回帰防止テスト)",
+      "status": "done",
+      "note": "`tests/unit/lib/cleanup-obsolete-skills.test.js` で legacy 3 のみ削除・無関係 skill 保持・dry-run を検証している。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/206-consolidate-flow-skills/draft.md",
+      "change": "要件実装そのものではなく、SDD 運用用のドラフト文書を新規追加。"
+    },
+    {
+      "file": "specs/206-consolidate-flow-skills/flow.json",
+      "change": "フロー実行状態・メトリクス記録ファイルを新規追加。"
+    },
+    {
+      "file": "specs/206-consolidate-flow-skills/issue-log.json",
+      "change": "ゲート評価ログ/実装メモの記録ファイルを新規追加。"
+    },
+    {
+      "file": "specs/206-consolidate-flow-skills/qa.md",
+      "change": "QA テンプレートを新規追加。"
+    },
+    {
+      "file": "specs/206-consolidate-flow-skills/review.md",
+      "change": "レビュー所見の記録ファイルを新規追加。"
+    },
+    {
+      "file": "specs/206-consolidate-flow-skills/spec.md",
+      "change": "仕様書本体を新規追加。"
+    },
+    {
+      "file": "specs/206-consolidate-flow-skills/tests/README.md",
+      "change": "spec ローカルテスト説明文書を新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "done": 9,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.95,
+    "notes": "P0/P2 要件は diff から概ね充足。特に統合 skill 追加、legacy 削除、dispatcher 化、cleanup/構成テスト追加は明確。R7 は設計・記述上は整合するが、進行中フロー継続性の強い実証はこの diff 単体では限定的。"
+  }
+}

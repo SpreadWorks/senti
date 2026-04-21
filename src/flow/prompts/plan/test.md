@@ -26,5 +26,5 @@
      - `sdd-forge flow set step test done`
    - **After test step is done**:
      - Run `sdd-forge flow get prompt plan.complete` and present the choices.
-     - **autoApprove transition:** If `autoApprove: true`, treat [1] as selected and invoke `/sdd-forge.flow-impl` using the Skill tool.
-     - **Note:** For test-only specs (no production code changes), the impl phase will be automatically skipped in autoApprove mode. See flow-impl SKILL.md for details.
+     - **autoApprove transition:** If `autoApprove: true`, treat [1] as selected and continue the dispatcher loop into the implementation phase (no skill switch required).
+     - **Note:** For test-only specs (no production code changes), the impl phase is automatically skipped in autoApprove mode by the dispatcher.

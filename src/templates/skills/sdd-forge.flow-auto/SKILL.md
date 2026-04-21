@@ -28,7 +28,7 @@ Toggle autoApprove mode for the current SDD flow.
 
 1. Check flow state.
    - Run `sdd-forge flow get status`.
-   - If `data.active` is `false` (or the command fails), display: "No active flow. Start a flow first with `/sdd-forge.flow-plan`." and STOP.
+   - If `data.active` is `false` (or the command fails), display: "No active flow. Start a flow first with `/sdd-forge.flow`." and STOP.
 
 2. Verify requirements exist.
    - Check the status response for `request` and `issue` fields.
@@ -39,13 +39,9 @@ Toggle autoApprove mode for the current SDD flow.
    - If it fails (`ok: false` or command error), display the error message and STOP.
    - All command failures in this procedure should display the error content and STOP (never swallow errors).
 
-4. Resume the appropriate flow skill.
-   - Determine which skill to invoke based on the steps in the status response:
-     - If any plan-phase steps (branch, prepare-spec, draft, spec, gate, approval, test) are not `done` → invoke `/sdd-forge.flow-plan`
-     - If all plan-phase steps are `done` but impl-phase steps (implement, review, finalize) have any not `done` → invoke `/sdd-forge.flow-impl`
-     - If all plan and impl steps are `done` but finalize-phase steps (commit, push, merge, pr-create, branch-cleanup) have any not `done` → invoke `/sdd-forge.flow-finalize`
-     - If all steps are `done` → display "All steps are already complete." and STOP.
-   - Use the Skill tool to invoke the determined skill.
+4. Resume the flow.
+   - If all steps in the status response are `done` → display "All steps are already complete." and STOP.
+   - Otherwise, invoke `/sdd-forge.flow` using the Skill tool. The consolidated flow skill inspects flow state and resumes from the correct step automatically.
 
 ### If argument is anything else
 

@@ -1,0 +1,52 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft is focused on one concern: consolidating flow skills into a single skill.; Unambiguous Requirements — Most requirements are stated as concrete, verifiable changes (files, commands, behaviors).; Complete Context — Several requirement bullets lack explicit trigger-condition plus expected shall-style outcome pairing.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets appear in the draft.; Prioritize Requirements — The draft contains more than three requirements but does not define an explicit priority order.; Impact on Existing Features — It includes a clear impact section describing effects on existing skills, templates, prompts, and user operations.; Present Recommendations with Reasoning — Q&A answers are present, but recommendation basis is not explicitly framed as docs/guardrails/code-pattern evidence for each question.; Explore Before Asking — The draft self-resolves most questions using existing code/design context instead of deferring to user input.; Proactively Raise Related Implications — It proactively covers implications via impact, edge cases, alternatives, and migration-related notes.; Confirm Brainstorm vs. Decision Before Critiquing — It records approvals but does not explicitly confirm brainstorming vs decision mode before critique/evaluation.; Capture Digressions in draft.md — Cannot verify whether off-thread digressions occurred and were captured without runtime conversation evidence.; Draft Stays at Requirements Level — The draft includes implementation-level details (specific file paths, command sequencing, internal behavior decisions).; Backward-Compatible CLI Interface — No existing CLI command/option semantic change is specified; skill trigger migration and upgrade path are documented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T06:29:05.314Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: consolidating three flow skills into one.; Unambiguous Requirements — Requirements are mostly stated as verifiable When/shall conditions with concrete expected outcomes.; Complete Context — Each numbered requirement includes a trigger/context and a shall-behavior expectation.; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are present in the draft.; Prioritize Requirements — Requirements are explicitly prioritized with P0/P1/P2 and ordered items.; Impact on Existing Features — A dedicated Impact section lists affected areas and explicitly notes unchanged CLI interface.; Present Recommendations with Reasoning — Q&A entries provide recommendations/answers and cite basis from docs, guardrails, or code patterns.; Explore Before Asking — The draft shows prior code/docs exploration and uses self-answered questions where evidence was available.; Proactively Raise Related Implications — It proactively covers related implications such as upgrade cleanup, active-flow continuity, and docs trigger sync.; Confirm Brainstorm vs. Decision Before Critiquing — Decision mode is explicitly confirmed, with recorded user approvals before critique/finalization.; Capture Digressions in draft.md — Side discussions are captured in the Q&A/self-Q entries inside the draft.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions and loop behavior), exceeding pure requirements level.; Backward-Compatible CLI Interface — The draft states CLI command interface is unchanged; migration-plan requirement is therefore not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T06:30:50.047Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays focused on one concern: consolidating main SDD flow skills from 3 to 1.; Unambiguous Requirements — Some requirements use non-verifiable wording (e.g., 'functionally unchanged'), which is not fully testable as written.; Complete Context — Requirements consistently pair trigger context (When) with expected behavior (shall).; No Hardcoded Secrets — No secrets (API keys, tokens, passwords) are present in the draft content.; Prioritize Requirements — Requirements exceed three and are explicitly prioritized as P0/P1/P2 in order.; Impact on Existing Features — A dedicated impact section explicitly describes effects on existing features and interfaces.; Present Recommendations with Reasoning — Q&A entries provide recommended answers with explicit basis from docs, guardrails, or existing code patterns.; Explore Before Asking — The draft resolves most points via documented code/doc patterns and uses self-Q&A rather than deferring to user unnecessarily.; Proactively Raise Related Implications — Related implications are proactively covered in Impact, Edge Cases, Constraints, and Test Strategy sections.; Confirm Brainstorm vs. Decision Before Critiquing — It explicitly confirms decision mode and states brainstorming for earlier questions was already agreed.; Capture Digressions in draft.md — No substantive digression is evident; discussion artifacts are captured in the draft via Q&A and decisions.; Draft Stays at Requirements Level — The draft includes implementation-leaning design details (e.g., specific loop/prelude structure) beyond pure requirements level.; Backward-Compatible CLI Interface — CLI interface is explicitly stated as unchanged, so no migration plan is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T06:32:24.170Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: consolidating main SDD flow skills and directly related migration/test updates.; Unambiguous Requirements — Requirements are mostly measurable with concrete conditions (presence/absence, byte-identical, exact removals, specific behaviors).; Complete Context — Each listed requirement includes trigger context (When) and expected outcome (shall).; No Hardcoded Secrets — No secrets or credential-like literals appear in the provided content.; No Silent Error Swallowing — Spec does not define error-handling expectations and does not prohibit silent swallowing of errors.; Prioritize Requirements — Requirements are explicitly prioritized as P0/P1/P2 with more than three items.; Impact on Existing Features — Impact is addressed via scope/out-of-scope and explicit non-impact requirements (e.g., auxiliary skills, active flow continuity).; Bounded Resource Usage — No recursive/retry/bulk-loading design is introduced in this spec; bounded-usage concern is not triggered by described changes.; Changes Require Test Coverage — Spec includes multiple tests for new behavior and regressions, plus manual integration validation.; Spec Includes Test Strategy — Dedicated Test Strategy section specifies what to test and how.; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs direct copying without the original draft source content.; Record Unresolved Points as Open Questions — Open Questions section is present and unresolved points are explicitly stated as none.; Include 'Why This Approach' Rationale — Why This Approach section provides explicit rationale and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying/deleting existing tests; it adds new tests.; Backward-Compatible CLI Interface — CLI interface changes are explicitly out of scope, so migration planning is not required.; Exit Code Contract — No CLI command semantics are changed in this spec, so exit-code contract impact is not introduced.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T06:35:03.085Z"
+    },
+    {
+      "step": "implement",
+      "reason": "R6 as written required auxiliary skill templates to be byte-identical, but flow-auto and flow-resume SKILL.md contain references to the legacy /sdd-forge.flow-plan|impl|finalize which must be updated to /sdd-forge.flow for the consolidation to function end-to-end",
+      "trigger": "grep for legacy skill references during impl phase revealed auxiliary skills referencing the names",
+      "resolution": "update auxiliary skill templates (flow-auto, flow-resume) to reference /sdd-forge.flow; treat R6 as 'functional continuity' rather than 'byte-identical templates'; the behavioral contract (start / resume / status / sync) remains unchanged",
+      "guardrailCandidate": "spec's 'byte-identical' invariants must be checked against actual cross-references during draft — grep for cross-file name references before promising immutability",
+      "timestamp": "2026-04-21T06:41:22.273Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff and tests verify legacy removal/reference updates plus R4/R8/R9/R10, but do not show enough implementation evidence for the full consolidated dispatcher contract and guardrail/resume behavior required by R1/R5/R7.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T06:49:25.410Z"
+    }
+  ]
+}

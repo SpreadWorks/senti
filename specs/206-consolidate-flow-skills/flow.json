@@ -1,0 +1,233 @@
+{
+  "spec": "specs/206-consolidate-flow-skills/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/206-consolidate-flow-skills",
+  "runId": "34e57895-3136-4233-8604-521b3dabc756",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1 (skill 統合)",
+      "status": "pending"
+    },
+    {
+      "desc": "R2 (legacy テンプレ除去)",
+      "status": "done"
+    },
+    {
+      "desc": "R3 (既存プロジェクト自動 cleanup)",
+      "status": "done"
+    },
+    {
+      "desc": "R4 (dispatcher 仕様)",
+      "status": "done"
+    },
+    {
+      "desc": "R5 (universal guardrails)",
+      "status": "done"
+    },
+    {
+      "desc": "R6 (補助 skill 無干渉)",
+      "status": "done"
+    },
+    {
+      "desc": "R7 (進行中フロー無影響)",
+      "status": "done"
+    },
+    {
+      "desc": "R8 (ドキュメント参照整合)",
+      "status": "done"
+    },
+    {
+      "desc": "R9 (パッケージ構成テスト)",
+      "status": "done"
+    },
+    {
+      "desc": "R10 (cleanup 回帰防止テスト)",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 199,
+  "worktree": true,
+  "request": "Consolidate flow-plan/impl/finalize skills into single /sdd-forge.flow dispatcher; remove legacy skill dirs; add upgrade cleanup (issue #199, cac6 T7)",
+  "notes": [
+    "Q1 approved: dispatcher-style /sdd-forge.flow consolidating 3 skills into 1",
+    "Draft written autonomously (autoApprove). Design: /sdd-forge.flow = prelude + dispatcher loop + guardrails; remove 3 legacy templates; update AGENTS.sdd.md + plan/test.md + impl/finalize.md skill name refs.",
+    "impl: consolidated SKILL.md + 3 legacy skill removal + auxiliary ref updates + AGENTS.sdd.md refs + flow prompts refs. All 11 spec tests + 3 regression tests pass; full npm test 265 suites PASS."
+  ],
+  "metrics": {
+    "plan": {
+      "docsRead": 1,
+      "srcRead": 1
+    },
+    "draft": {
+      "srcRead": 1
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 43143,
+        "output": 4135,
+        "cacheRead": 65280,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 8412,
+      "durationMs": 95989
+    },
+    "gate": {
+      "tokens": {
+        "input": 98764,
+        "output": 5309,
+        "cacheRead": 32896,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 12860,
+      "durationMs": 140126
+    },
+    "impl": {
+      "issueLog": 1
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 108916,
+        "output": 2923,
+        "cacheRead": 60416,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 4509,
+      "durationMs": 102182
+    },
+    "task-impl": {
+      "gateRetry": 0
+    },
+    "review": {
+      "tokens": {
+        "input": 35893,
+        "output": 1593,
+        "cacheRead": 24832,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 2898,
+      "durationMs": 41703
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 10
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T06:53:58.282Z"
+  }
+}

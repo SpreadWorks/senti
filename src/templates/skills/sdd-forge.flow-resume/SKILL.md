@@ -19,13 +19,9 @@ Use this skill when context has been lost (e.g. after compaction) and you need t
 
 3. Read the spec file (path shown in the summary) to understand full requirements.
 
-4. Determine which skill to invoke based on the current phase:
-   - `plan` → Tell the user to run `/sdd-forge.flow-plan`
-   - `impl` → Tell the user to run `/sdd-forge.flow-impl`
-   - `finalize` → Tell the user to run `/sdd-forge.flow-finalize`
-   - `sync` → Tell the user to run `/sdd-forge.flow-sync`
-
-5. Tell the user which step to continue from and suggest invoking the appropriate skill.
+4. Tell the user the exact step to resume from, and the skill to invoke:
+   - Mainline phases (`plan` / `impl` / `finalize`) → run `/sdd-forge.flow` (the consolidated skill inspects state and resumes from the correct step automatically).
+   - `sync` → run `/sdd-forge.flow-sync`.
 
 ## Notes
 

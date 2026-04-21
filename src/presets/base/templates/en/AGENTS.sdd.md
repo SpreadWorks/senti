@@ -2,8 +2,8 @@
 
 This project uses Spec-Driven Development powered by sdd-forge.
 
-- **MUST: When the user requests any feature, fix, or code change, confirm with the user whether to use the SDD workflow (`/sdd-forge.flow-plan`). Do NOT modify code without confirmation.**
-- **MUST: After implementation is complete, run `/sdd-forge.flow-finalize`.**
+- **MUST: When the user requests any feature, fix, or code change, confirm with the user whether to use the SDD workflow (`/sdd-forge.flow`). Do NOT modify code without confirmation.**
+- **MUST: The mainline SDD lifecycle (planning, implementation, finalization) is driven by a single `/sdd-forge.flow` skill invocation. Standalone docs-sync runs use `/sdd-forge.flow-sync`.**
 - If skills are unavailable, run `sdd-forge flow --request "<request>"` instead.
 
 ### Never cross the worktree boundary (MUST)
