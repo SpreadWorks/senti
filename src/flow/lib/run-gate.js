@@ -177,6 +177,23 @@ function buildDraftFieldPattern(labels) {
   return new RegExp(`(?:^\\s*##\\s+(?:${labels})|\\*{0,2}(?:${labels})\\*{0,2}\\s*[:：])`, "im");
 }
 
+const DRAFT_DEV_TYPE_ENUM = Object.freeze([
+  "feature",
+  "bugfix",
+  "refactor",
+  "docs",
+  "chore",
+  "test",
+  "other",
+]);
+
+// Case-sensitive: only lowercase letters are accepted. Uppercase / mixed case
+// values are intentionally rejected so the enum remains a single canonical form.
+// Tolerant to `**LABEL:**` (colon inside bold) and `**LABEL**:` (colon outside).
+// Line-anchored so stray inline mentions elsewhere are not parsed as the field.
+const DRAFT_DEV_TYPE_VALUE_RE =
+  /^\s*\*{0,2}(?:開発種別|Development\s*Type)\*{0,2}\s*[:：]\s*\*{0,2}\s*([A-Za-z]+)/m;
+
 function checkDraftText(text) {
   const issues = [];
 
@@ -192,10 +209,26 @@ function checkDraftText(text) {
 
   if (!buildDraftFieldPattern("開発種別|dev(?:elopment)?\\s*type").test(text)) {
     issues.push("missing development type (開発種別)");
+  } else {
+    const match = text.match(DRAFT_DEV_TYPE_VALUE_RE);
+    const value = match ? match[1] : "";
+    if (!DRAFT_DEV_TYPE_ENUM.includes(value)) {
+      issues.push(
+        `invalid development type "${value}" (expected one of: ${DRAFT_DEV_TYPE_ENUM.join(", ")})`,
+      );
+    }
   }
 
   if (!buildDraftFieldPattern("目的|goal").test(text)) {
     issues.push("missing goal (目的)");
+  }
+
+  if (!/^\s*##\s+Scope Verification\b/im.test(text)) {
+    issues.push("missing section: ## Scope Verification");
+  }
+
+  if (!/^\s*##\s+Impact on Existing Features\b/im.test(text)) {
+    issues.push("missing section: ## Impact on Existing Features");
   }
 
   return issues;

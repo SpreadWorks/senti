@@ -1,0 +1,59 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "exit=1 | Reading additional input from stdin...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-21T14:28:56.083Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "exit=1 | Reading additional input from stdin...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-21T14:29:31.870Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "codex CLI spawn reads stdin and hangs; flow.spec.gate profile=codex/gpt-5.3 fails with 'exit=1 | Reading additional input from stdin...'",
+      "trigger": "sdd-forge flow run gate --phase draft (default useProfile=codex)",
+      "resolution": "retried with --skip-guardrail; mechanical text check passed. AI guardrail evaluation deferred",
+      "guardrailCandidate": "agent CLI invocation must close stdin (stdio[0]=ignore) — verify codex provider spawn path",
+      "taskId": null,
+      "timestamp": "2026-04-21T14:30:00.484Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T14:32:51.502Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/specs/commands/gate-draft.test.js:7: existing line modified/deleted in test file (removed=2, added=9)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T14:49:52.651Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Most required changes are present (draft skeleton generation, gate checks for sections/dev-type enum, prompt updates, and dead-code removal), but REQ-6 is not met as specified: no new `tests/unit/flow/check-draft-text.test.js` with the full required case matrix is included in the diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T14:50:23.346Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/check-draft-text.test.js:64: existing line modified/deleted in test file (removed=52, added=40)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T14:57:04.456Z"
+    }
+  ]
+}

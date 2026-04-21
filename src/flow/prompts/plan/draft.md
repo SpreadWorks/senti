@@ -13,11 +13,13 @@
      6. Alternatives considered — What other approaches were evaluated? Why was this one chosen?
      7. Future extensibility — How does this change affect future modifications or extensions?
    - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly (via Read tool or `sdd-forge flow get context <path> --raw`) to build sufficient understanding before answering the checklist questions.
-   - **MUST: draft.md に以下の必須フィールドを含めること（gate-draft で検証される）:**
-     - `**開発種別:** ...` — ラベル+コロンの太字形式。見出し形式（`## 開発種別`）では検出されない。英語の場合は `**Development Type:** ...`
-     - `**目的:** ...` — ラベル+コロンの太字形式。見出し形式（`## 目的`）では検出されない。英語の場合は `**Goal:** ...`
-     - `## Q&A` — `##` レベルの見出し。`###` やインラインテキストでは検出されない。
-     - `- [x] User approved this draft` — チェック済みチェックボックスの正確な構文。
+   - **MUST: draft.md は `flow prepare` 実行時に skeleton が自動生成される。** 生成済みのファイルの placeholder を埋める形で記入する（ファイルを上書き作成しない）。以下の必須フィールド・セクションを含む（gate-draft で検証される）:
+     - `**開発種別:** <value>` — ラベル+コロンの太字形式。値は enum の英語小文字: `feature` / `bugfix` / `refactor` / `docs` / `chore` / `test` / `other`。enum 外は FAIL。英語ラベル `**Development Type:** <value>` も同じ enum で許可
+     - `**目的:** <text>` — ラベル+コロンの太字形式。英語ラベル `**Goal:** <text>` も可
+     - `## Scope Verification` — In scope / Out of scope を bullet で列挙
+     - `## Impact on Existing Features` — 影響ありの既存機能を bullet で列挙。影響がない場合は「影響なし」と明記（reject の主要因なので省略禁止）
+     - `## Q&A` — `##` レベルの見出し
+     - `- [x] User approved this draft` — チェック済みチェックボックスの正確な構文
    - Write the completed draft to `draft.md` and proceed to spec.
    - Mark draft as approved: `- [x] User approved this draft (autoApprove)`
 
@@ -49,9 +51,11 @@
      1. Try to resolve in ONE exchange.
      2. If unresolved, record in Open Questions and move on.
      3. Open Questions are resolved during spec filling or implementation.
-   - **MUST: draft.md に以下の必須フィールドを含めること（gate-draft で検証される）:**
-     - `**開発種別:** ...` or `**Development Type:** ...` — ラベル+コロン太字形式
-     - `**目的:** ...` or `**Goal:** ...` — ラベル+コロン太字形式
+   - **MUST: draft.md は `flow prepare` が skeleton を自動生成する。** 生成済みファイルの placeholder を埋める形で記入。必須フィールド・セクション（gate-draft で検証される）:
+     - `**開発種別:** <value>` / `**Development Type:** <value>` — 値は enum: `feature` / `bugfix` / `refactor` / `docs` / `chore` / `test` / `other`
+     - `**目的:** ...` / `**Goal:** ...` — ラベル+コロン太字形式
+     - `## Scope Verification` — In / Out of scope
+     - `## Impact on Existing Features` — 既存機能への影響（影響なしでも明記）
      - `## Q&A` — `##` レベルの見出し
      - `- [x] User approved this draft` — チェック済みチェックボックス
    - When requirements are sufficiently defined, ask the user for approval.

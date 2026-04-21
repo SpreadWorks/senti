@@ -1,0 +1,57 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/209-improve-draft-template/draft.md        |  61 +++++\n specs/209-improve-draft-template/flow.json       | 323 +++++++++++++++++++++++\n specs/209-improve-draft-template/issue-log.json  |  59 +++++\n specs/209-improve-draft-template/qa.md           |   9 +\n specs/209-improve-draft-template/review.md       |  41 +++\n specs/209-improve-draft-template/spec.json       | 111 ++++++++\n specs/209-improve-draft-template/spec.md         | 101 +++++++\n specs/209-improve-draft-template/tests/README.md |  26 ++\n src/flow/lib/run-gate.js                         |  33 +++\n src/flow/lib/run-prepare-spec.js                 | 132 +++++----\n src/flow/prompts/plan/draft.md                   |  20 +-\n tests/unit/flow/check-draft-text.test.js         | 146 ++++++++++\n tests/unit/specs/commands/gate-draft.test.js     |  11 +-\n 13 files changed, 992 insertions(+), 81 deletions(-)",
+      "commits": [
+        "feat: feature/209-improve-draft-template",
+        "feat(flow): add draft.md skeleton and strengthen gate-draft validation",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 4,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 176876,
+      "output": 3964,
+      "cacheRead": 64128,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 7,
+      "durationMs": 168854,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 47853
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 60320
+        },
+        {
+          "phase": "review",
+          "durationMs": 60681
+        }
+      ]
+    },
+    "tests": {
+      "unit": 18,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 18
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/209-improve-draft-template\n    feat(flow): add draft.md skeleton and strengthen gate-draft validation\n    chore: add retro and report\n    13 files changed, 992 insertions(+), 81 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 4\n    issue-log ................... 1\n    agent calls ................. 7\n    input tokens ................ 176,876\n    output tokens ............... 3,964\n    cache-read tokens ........... 64,128\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 168.9s\n      gate-draft ................ 47.9s\n      gate-impl ................. 60.3s\n      review .................... 60.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 18  integration 0  acceptance 0  total 18"
+}

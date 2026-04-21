@@ -96,62 +96,43 @@ function buildQaTemplate() {
   ].join("\n");
 }
 
-const DEFAULT_SPEC_TEMPLATE = `# Feature Specification: {{SPEC_DIR}}
+function buildDraftTemplate(specDirName) {
+  return [
+    `# Draft: ${specDirName}`,
+    "",
+    "**開発種別:** <feature | bugfix | refactor | docs | chore | test | other>",
+    "**目的:** <この変更で達成したいことを 1-2 文で>",
+    "",
+    "## Scope Verification",
+    "- In scope:",
+    "  -",
+    "- Out of scope:",
+    "  -",
+    "",
+    "## Impact on Existing Features",
+    "- 影響ありの既存機能:",
+    "  -",
+    "- 影響なし: （該当する場合は「影響なし」と明記）",
+    "",
+    "## Q&A",
+    "- Q:",
+    "  - A:",
+    "",
+    "## Open Questions",
+    "-",
+    "",
+    "## User Approval",
+    "- [ ] User approved this draft",
+    "- Confirmed at:",
+    "- Notes:",
+    "",
+  ].join("\n");
+}
 
-**Feature Branch**: \`{{BRANCH_NAME}}\`
-**Created**: {{DATE}}
-**Status**: Draft
-**Input**: User request
-
-## Goal
--
-
-## Scope
--
-
-## Out of Scope
--
-
-## Clarifications (Q&A)
-- Q:
-  - A:
-
-## Alternatives Considered
--
-
-## User Confirmation
-- [ ] User approved this spec
-- Confirmed at:
-- Notes:
-
-## Requirements
--
-
-## Acceptance Criteria
--
-
-## Open Questions
-- [ ]
-`;
-
-function loadLocalTemplate(root, lang, fileName, fallback) {
-  const localPath = path.join(root, ".sdd-forge", "templates", lang, "specs", fileName);
+function loadLocalQaTemplate(root, lang) {
+  const localPath = path.join(root, ".sdd-forge", "templates", lang, "specs", "qa.md");
   if (fs.existsSync(localPath)) return fs.readFileSync(localPath, "utf8");
-  return fallback;
-}
-
-function createQaTemplate(root, lang) {
-  return loadLocalTemplate(root, lang, "qa.md", buildQaTemplate());
-}
-
-function createSpecTemplate({ branchName, specDirName }, root, lang) {
-  const template = loadLocalTemplate(root, lang, "spec.md", DEFAULT_SPEC_TEMPLATE);
-  const today = new Date().toISOString().slice(0, 10);
-  return template
-    .replace(/\{\{BRANCH_NAME\}\}/g, branchName)
-    .replace(/\{\{SPEC_DIR\}\}/g, specDirName)
-    .replace(/\{\{DATE\}\}/g, today)
-    .replace(/\{\{STATUS\}\}/g, "Draft");
+  return buildQaTemplate();
 }
 
 export class RunPrepareSpecCommand extends FlowCommand {
@@ -209,6 +190,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     const specDir = path.join(specRoot, "specs", specDirName);
     const specPath = path.join(specDir, "spec.md");
     const qaPath = path.join(specDir, "qa.md");
+    const draftPath = path.join(specDir, "draft.md");
 
     if (dryRun) {
       const mode = useWorktree ? "worktree" : skipBranch ? "spec-only" : "branch";
@@ -249,7 +231,10 @@ export class RunPrepareSpecCommand extends FlowCommand {
         fs.writeFileSync(specPath, rendered);
       }
       if (!fs.existsSync(qaPath)) {
-        fs.writeFileSync(qaPath, createQaTemplate(root, lang));
+        fs.writeFileSync(qaPath, loadLocalQaTemplate(root, lang));
+      }
+      if (!fs.existsSync(draftPath)) {
+        fs.writeFileSync(draftPath, buildDraftTemplate(specDirName));
       }
     }
 
@@ -291,7 +276,21 @@ export class RunPrepareSpecCommand extends FlowCommand {
       flowManager.deletePreparingFlow(runIdArg);
     }
 
-    const changed = [`specs/${specDirName}/spec.md`, `specs/${specDirName}/qa.md`];
+    const changed = [
+      `specs/${specDirName}/spec.md`,
+      `specs/${specDirName}/qa.md`,
+      `specs/${specDirName}/draft.md`,
+    ];
+    const createdFileLines = [
+      `created spec: specs/${specDirName}/spec.md`,
+      `created qa: specs/${specDirName}/qa.md`,
+      `created draft: specs/${specDirName}/draft.md`,
+    ];
+    const fillAndGateNext = [
+      `fill specs/${specDirName}/spec.md`,
+      `run: sdd-forge spec gate --spec specs/${specDirName}/spec.md`,
+      `start implementation`,
+    ];
     const lines = [];
 
     if (useWorktree) {
@@ -302,27 +301,21 @@ export class RunPrepareSpecCommand extends FlowCommand {
       lines.push(
         `created worktree: ${worktreePath}`,
         `created branch: ${branchName} (from ${resolvedBase})`,
-        `created spec: specs/${specDirName}/spec.md`,
-        `created qa: specs/${specDirName}/qa.md`,
+        ...createdFileLines,
         "",
         "next:",
         `1) cd ${worktreePath}`,
-        `2) fill specs/${specDirName}/spec.md`,
-        `3) run: sdd-forge spec gate --spec specs/${specDirName}/spec.md`,
-        `4) start implementation`,
+        ...fillAndGateNext.map((l, i) => `${i + 2}) ${l}`),
       );
     } else if (skipBranch) {
       writeSpecFiles();
       writeFlowState();
       flowManager.addActiveFlow(specDirName, "local");
       lines.push(
-        `created spec: specs/${specDirName}/spec.md`,
-        `created qa: specs/${specDirName}/qa.md`,
+        ...createdFileLines,
         "",
         "next:",
-        `1) fill specs/${specDirName}/spec.md`,
-        `2) run: sdd-forge spec gate --spec specs/${specDirName}/spec.md`,
-        `3) start implementation`,
+        ...fillAndGateNext.map((l, i) => `${i + 1}) ${l}`),
       );
     } else {
       runGitTrim(root, ["checkout", "-b", branchName, resolvedBase]);
@@ -331,13 +324,10 @@ export class RunPrepareSpecCommand extends FlowCommand {
       flowManager.addActiveFlow(specDirName, "branch");
       lines.push(
         `created branch: ${branchName} (from ${resolvedBase})`,
-        `created spec: specs/${specDirName}/spec.md`,
-        `created qa: specs/${specDirName}/qa.md`,
+        ...createdFileLines,
         "",
         "next:",
-        `1) fill specs/${specDirName}/spec.md`,
-        `2) run: sdd-forge spec gate --spec specs/${specDirName}/spec.md`,
-        `3) start implementation`,
+        ...fillAndGateNext.map((l, i) => `${i + 1}) ${l}`),
       );
     }
 
