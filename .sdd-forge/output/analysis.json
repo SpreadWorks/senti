@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T12:56:04.676Z",
+  "analyzedAt": "2026-04-21T13:22:01.530Z",
   "package": {
     "entries": [
       {
@@ -2425,6 +2425,27 @@
         ]
       },
       {
+        "file": "src/flow/lib/auto-check-static.js",
+        "hash": "bbe60af63223be580b805749ef9d59d0",
+        "lines": 60,
+        "mtime": "2026-04-21T13:22:01.251Z",
+        "className": "auto-check-static",
+        "methods": [
+          "evaluateStaticGates",
+          "anyKeyword",
+          "countInversions"
+        ],
+        "imports": [],
+        "exports": [
+          "evaluateStaticGates"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-auto-check.js"
+        ],
+        "id": "234a900d"
+      },
+      {
         "file": "src/flow/lib/base-command.js",
         "hash": "1fdccc4c35d08a83e72a59a4955f966a",
         "lines": 74,
@@ -2477,7 +2498,8 @@
           "src/flow/lib/set-step.js",
           "src/flow/lib/set-summary.js",
           "src/flow/lib/set-test-summary.js",
-          "src/lib/dispatcher.js"
+          "src/lib/dispatcher.js",
+          "src/flow/lib/run-auto-check.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -3071,6 +3093,40 @@
           "normalization",
           "entry filtering"
         ]
+      },
+      {
+        "file": "src/flow/lib/run-auto-check.js",
+        "hash": "1b1c9b10edc227dba71d24d905ba8304",
+        "lines": 216,
+        "mtime": "2026-04-21T13:22:01.251Z",
+        "className": "run-auto-check",
+        "methods": [
+          "computeScore",
+          "hardGateFailed",
+          "composeAutoCheck",
+          "runAutoCheckCore",
+          "resolveInputText",
+          "parseAiResponse",
+          "emptyBreakdown",
+          "sanitizeBreakdown",
+          "scoreWithAi"
+        ],
+        "imports": [
+          "./base-command.js",
+          "./auto-check-static.js"
+        ],
+        "exports": [
+          "computeScore",
+          "hardGateFailed",
+          "composeAutoCheck",
+          "runAutoCheckCore",
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": [
+          "src/flow/lib/set-auto.js"
+        ],
+        "id": "62c43842"
       },
       {
         "file": "src/flow/lib/run-draft-task.js",
@@ -3720,36 +3776,24 @@
       },
       {
         "file": "src/flow/lib/set-auto.js",
-        "hash": "32213b852ea02ee066d6fd63fb06aadf",
-        "lines": 29,
-        "mtime": "2026-04-17T12:39:55.911Z",
+        "hash": "4e17531daf69c6004e5d11adc206946b",
+        "lines": 59,
+        "mtime": "2026-04-21T13:22:01.251Z",
         "className": "set-auto",
-        "methods": [],
+        "methods": [
+          "buildInputText"
+        ],
         "imports": [
           "./base-command.js",
-          "../../lib/constants.js"
+          "../../lib/constants.js",
+          "./run-auto-check.js"
         ],
         "exports": [
           "default"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "2c71e989",
-        "summary": "SetAutoCommand updates flow auto-approval mode. It validates value input against allowed constants.",
-        "detail": "The command is a narrow setter that enforces usage constraints at the CLI boundary. It rejects invalid tokens with a precise usage message. On success, it returns normalized state patch data. This keeps flow policy toggles explicit and safe.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "auto approve",
-          "setter command",
-          "input validation",
-          "flow state",
-          "cli flag"
-        ]
+        "id": "2c71e989"
       },
       {
         "file": "src/flow/lib/set-init.js",
@@ -4176,9 +4220,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "c60fbf4f8d5acbbde36e59d4e1fe1dfa",
-        "lines": 520,
-        "mtime": "2026-04-21T09:34:26.441Z",
+        "hash": "f772cb78f468c49806780f3f85b3bbfd",
+        "lines": 536,
+        "mtime": "2026-04-21T13:22:01.251Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4197,23 +4241,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "d64f4095",
-        "summary": "Defines the flow command registry and shared lifecycle wrappers for step status and issue-log side effects. It centralizes command wiring and error-tolerant instrumentation hooks.",
-        "detail": "The module derives active phase context from flow state and provides guarded wrappers that attempt status/log updates without crashing primary command execution. It exposes pre/post step hooks so each flow command can consistently mark progress and append structured issue-log records. Failures in auxiliary tracking are surfaced to stderr and selectively rethrown according to command policy. The registry includes help text and integrates gate retry counter updates and finalize post-commit execution points. This file acts as the orchestration map that binds command IDs to runtime behavior.",
-        "chapter": "project_structure",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-04-21T09:35:24.876Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "command registry",
-          "flow orchestration",
-          "step status",
-          "issue log",
-          "lifecycle hooks",
-          "phase derivation"
-        ]
+        "id": "d64f4095"
       },
       {
         "file": "src/help.js",
@@ -8937,8 +8965,8 @@
       }
     ],
     "summary": {
-      "total": 267,
-      "totalMethods": 823
+      "total": 269,
+      "totalMethods": 836
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
