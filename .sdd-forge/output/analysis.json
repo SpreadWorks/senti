@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T13:22:01.530Z",
+  "analyzedAt": "2026-04-21T14:27:49.341Z",
   "package": {
     "entries": [
       {
@@ -2499,7 +2499,8 @@
           "src/flow/lib/set-summary.js",
           "src/flow/lib/set-test-summary.js",
           "src/lib/dispatcher.js",
-          "src/flow/lib/run-auto-check.js"
+          "src/flow/lib/run-auto-check.js",
+          "src/flow/lib/set-gate-retry.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -3242,9 +3243,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "46b674ba5e3a787087cf3913a65560ac",
-        "lines": 1171,
-        "mtime": "2026-04-21T09:34:26.440Z",
+        "hash": "4ae642ef745eb54c4e3afa6824eb0163",
+        "lines": 1183,
+        "mtime": "2026-04-21T14:27:48.935Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3276,6 +3277,7 @@
           "resolveRetryMax",
           "readGateRetryCount",
           "formatRetryHistory",
+          "warnGateRetryBudget",
           "assertRetryBelowMax",
           "buildImplCheckPrompt",
           "extractRequirementIds",
@@ -3324,25 +3326,10 @@
         ],
         "extends": "Error",
         "usedBy": [
-          "src/flow/lib/run-draft-task.js"
+          "src/flow/lib/run-draft-task.js",
+          "src/flow/lib/set-gate-retry.js"
         ],
-        "id": "b4aa4dad",
-        "summary": "Implements gate evaluation logic for flow phases, combining rule-based checks with AI guardrail evaluation. It produces structured pass/fail reports and updates retry metrics.",
-        "detail": "The module validates level-phase compatibility, computes diff scopes, and enforces draft/spec quality checks before expensive AI evaluation. It builds constrained JSON-only prompts for guardrail assessments, parses and validates schema-compliant responses, and normalizes evaluation records. Diff analysis includes test-file change detection, authorized test-modification parsing, and warnings for unused authorizations. Retry limits are tracked per phase using issue-log metrics to prevent unbounded gate loops. The command supports multiple gate modes (draft, spec, diff-based) and emits deterministic gate result objects for downstream flow control.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-04-21T09:35:24.876Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "quality gate",
-          "guardrail evaluation",
-          "phase checks",
-          "diff analysis",
-          "retry counter",
-          "JSON schema validation"
-        ]
+        "id": "b4aa4dad"
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -3796,6 +3783,24 @@
         "id": "2c71e989"
       },
       {
+        "file": "src/flow/lib/set-gate-retry.js",
+        "hash": "2a503f70e3153be86dc842b396b361e0",
+        "lines": 54,
+        "mtime": "2026-04-21T14:27:48.936Z",
+        "className": "set-gate-retry",
+        "methods": [],
+        "imports": [
+          "./base-command.js",
+          "./run-gate.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "52f5b29b"
+      },
+      {
         "file": "src/flow/lib/set-init.js",
         "hash": "05192a459fcffa7399b5470524604632",
         "lines": 44,
@@ -4220,9 +4225,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "f772cb78f468c49806780f3f85b3bbfd",
-        "lines": 536,
-        "mtime": "2026-04-21T13:22:01.251Z",
+        "hash": "64d2b83b7f1a8308f41486d7d7076794",
+        "lines": 548,
+        "mtime": "2026-04-21T14:27:48.936Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -8965,8 +8970,8 @@
       }
     ],
     "summary": {
-      "total": 269,
-      "totalMethods": 836
+      "total": 270,
+      "totalMethods": 837
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
