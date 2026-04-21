@@ -1,0 +1,55 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/207-spec-json-primary/draft.md               | 135 ++++++++++++++++\n specs/207-spec-json-primary/flow.json              | 180 +++++++++++++++++++++\n specs/207-spec-json-primary/issue-log.json         | 178 ++++++++++++++++++++\n specs/207-spec-json-primary/qa.md                  |   9 ++\n specs/207-spec-json-primary/review.md              |  41 +++++\n specs/207-spec-json-primary/spec.json              |  99 ++++++++++++\n specs/207-spec-json-primary/spec.md                | 112 +++++++++++++\n specs/207-spec-json-primary/tests/README.md        |  29 ++++\n src/docs/commands/changelog.js                     | 170 ++++++++++---------\n src/docs/commands/forge.js                         |   6 +-\n src/flow/commands/merge.js                         | 114 ++++++-------\n src/flow/commands/review.js                        |  94 +++++------\n src/flow/lib/run-finalize.js                       |   2 +-\n src/flow/lib/run-gate.js                           |  31 +++-\n src/flow/lib/run-prepare-spec.js                   |  24 ++-\n src/flow/lib/run-retro.js                          |  31 ++--\n src/flow/registry.js                               |   2 +-\n src/flow/schemas/spec.schema.json                  |  12 ++\n src/lib/spec-json.js                               | 179 ++++++++++++++++++++\n src/metrics/commands/token.js                      |  23 ++-\n tests/e2e/docs/commands/changelog.test.js          |  50 +++---\n tests/e2e/flow/gate-impl-integration.test.js       |  18 +++\n tests/e2e/metrics/token.test.js                    |  24 ++-\n tests/unit/flow/commands/merge.test.js             | 119 +++++++-------\n tests/unit/lib/load-spec-json.test.js              |  65 ++++++++\n tests/unit/spec/authorized-test-mods-field.test.js |  66 ++++++++\n tests/unit/spec/schema.test.js                     |   3 +-\n 27 files changed, 1510 insertions(+), 306 deletions(-)",
+      "commits": [
+        "feat: feature/207-spec-json-primary"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 1,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 681215,
+      "output": 24372,
+      "cacheRead": 305024,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 25,
+      "durationMs": 634547,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 108574
+        },
+        {
+          "phase": "gate",
+          "durationMs": 448976
+        },
+        {
+          "phase": "review",
+          "durationMs": 76997
+        }
+      ]
+    },
+    "tests": {
+      "unit": 1794,
+      "integration": 265,
+      "acceptance": 0,
+      "total": 2059
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/207-spec-json-primary\n    27 files changed, 1510 insertions(+), 306 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 1\n    issue-log ................... 2\n    agent calls ................. 25\n    input tokens ................ 681,215\n    output tokens ............... 24,372\n    cache-read tokens ........... 305,024\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 634.5s\n      gate-draft ................ 108.6s\n      gate ...................... 449.0s\n      review .................... 77.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 1794  integration 265  acceptance 0  total 2059"
+}

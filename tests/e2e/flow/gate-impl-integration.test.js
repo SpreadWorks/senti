@@ -25,6 +25,22 @@ const CMD = path.join(process.cwd(), "src/sdd-forge.js");
 const SPEC_ID = "001-test";
 const SPEC_PATH = `specs/${SPEC_ID}/spec.md`;
 
+function minimalSpecJson() {
+  return {
+    goal: "Fixture for integration test.",
+    background: "",
+    scope: { in: [], out: [] },
+    constraints: [],
+    design_principles: [],
+    overview: { modules: [], data_flow: [], decisions: [] },
+    requirements: [{ id: "R1", desc: "anything goes", priority: "must", status: "pending" }],
+    acceptance_criteria: [],
+    clarifications: [],
+    alternatives_considered: [],
+    open_questions: [],
+  };
+}
+
 function setupFixture(tmp, { initialTest, modifiedTest, gateRetry = 0, seedIssueLog = false } = {}) {
   // Stub AI provider
   const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", defaultPassResponse());
@@ -47,6 +63,8 @@ function setupFixture(tmp, { initialTest, modifiedTest, gateRetry = 0, seedIssue
     "Anything goes.",
     "",
   ].join("\n"));
+  // Post-T8: run-gate loads spec.json via the single validated load path.
+  writeJson(tmp, `specs/${SPEC_ID}/spec.json`, minimalSpecJson());
 
   // Initial test file
   writeFile(tmp, "tests/dummy.test.js", initialTest);

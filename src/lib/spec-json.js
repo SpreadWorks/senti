@@ -1,0 +1,179 @@
+/**
+ * sdd-forge/lib/spec-json.js
+ *
+ * Spec JSON I/O — the single load path for spec.json.
+ * Core wiring (gate / review / retro / merge / finalize / changelog / forge /
+ * metrics / prepare-spec) reads spec content through this module. spec.md is
+ * a render-derived artifact and must not be parsed for content.
+ *
+ * Part of cac6/T8 (spec 207).
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { validateSchema } from "./schema-validate.js";
+
+const SCHEMA_PATH = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "flow",
+  "schemas",
+  "spec.schema.json",
+);
+
+let cachedSchema = null;
+
+function loadSchema() {
+  if (!cachedSchema) {
+    cachedSchema = JSON.parse(fs.readFileSync(SCHEMA_PATH, "utf8"));
+  }
+  return cachedSchema;
+}
+
+/**
+ * Resolve a caller-provided path (directory, `.json`, or `.md`) to the
+ * concrete spec.json file path.
+ */
+export function resolveSpecJsonPath(input) {
+  if (!input) throw new Error("resolveSpecJsonPath: path is required");
+  let stat;
+  try {
+    stat = fs.statSync(input);
+  } catch {
+    stat = null;
+  }
+  if (stat?.isDirectory()) {
+    return path.join(input, "spec.json");
+  }
+  if (input.endsWith(".json")) return input;
+  if (input.endsWith(".md")) {
+    return path.join(path.dirname(input), "spec.json");
+  }
+  return path.join(input, "spec.json");
+}
+
+/**
+ * Resolve the spec directory (containing spec.json / spec.md) from any input.
+ */
+export function resolveSpecDir(input) {
+  if (!input) throw new Error("resolveSpecDir: path is required");
+  let stat;
+  try {
+    stat = fs.statSync(input);
+  } catch {
+    stat = null;
+  }
+  if (stat?.isDirectory()) return input;
+  if (input.endsWith(".json") || input.endsWith(".md")) {
+    return path.dirname(input);
+  }
+  return input;
+}
+
+/**
+ * Load and schema-validate spec.json from a path (directory / `.json` / `.md`).
+ * Returns the parsed plain object.
+ *
+ * @param {string} input - spec directory, spec.json path, or spec.md path
+ * @param {{ validate?: boolean }} [options]
+ * @returns {object}
+ */
+export function loadSpecJson(input, { validate = true } = {}) {
+  const jsonPath = resolveSpecJsonPath(input);
+  if (!fs.existsSync(jsonPath)) {
+    throw new Error(`spec.json not found at ${jsonPath}`);
+  }
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+  } catch (err) {
+    throw new Error(`failed to parse spec.json at ${jsonPath}: ${err.message}`);
+  }
+  if (validate) {
+    const errors = validateSchema(data, loadSchema());
+    if (errors.length > 0) {
+      throw new Error(`spec.json failed schema validation: ${errors.join("; ")}`);
+    }
+  }
+  return data;
+}
+
+/**
+ * Try-load variant that returns null when spec.json is missing (for existence
+ * checks) and throws for parse/validation errors.
+ */
+export function tryLoadSpecJson(input, options) {
+  const jsonPath = resolveSpecJsonPath(input);
+  if (!fs.existsSync(jsonPath)) return null;
+  return loadSpecJson(input, options);
+}
+
+/**
+ * Build the minimum valid spec object used when scaffolding a new spec.json.
+ */
+export function emptySpecStub() {
+  return {
+    goal: "",
+    scope: { in: [], out: [] },
+    constraints: [],
+    design_principles: [],
+    overview: { modules: [], data_flow: [], decisions: [] },
+    background: "",
+    requirements: [],
+    acceptance_criteria: [],
+    clarifications: [],
+    alternatives_considered: [],
+    open_questions: [],
+  };
+}
+
+/**
+ * Flatten spec.json into a plain-text blob suitable for AI prompt consumption
+ * (when a legacy consumer previously passed the full spec.md text).
+ */
+export function specJsonToPromptText(spec, meta = {}) {
+  const lines = [];
+  if (meta.title) lines.push(`# ${meta.title}`, "");
+  lines.push("## Goal", spec.goal || "-", "");
+  if (spec.background) lines.push("## Background", spec.background, "");
+  lines.push(
+    "## Scope",
+    ...(spec.scope?.in?.map((s) => `- ${s}`) || ["-"]),
+    "",
+    "## Out of Scope",
+    ...(spec.scope?.out?.map((s) => `- ${s}`) || ["-"]),
+    "",
+  );
+  if (spec.constraints?.length) {
+    lines.push("## Constraints", ...spec.constraints.map((s) => `- ${s}`), "");
+  }
+  if (spec.requirements?.length) {
+    lines.push(
+      "## Requirements",
+      ...spec.requirements.map((r) => `- ${r.id}${r.priority ? ` [${r.priority}]` : ""}: ${r.desc}`),
+      "",
+    );
+  }
+  if (spec.acceptance_criteria?.length) {
+    lines.push("## Acceptance Criteria", ...spec.acceptance_criteria.map((s) => `- ${s}`), "");
+  }
+  if (spec.clarifications?.length) {
+    lines.push(
+      "## Clarifications",
+      ...spec.clarifications.flatMap((c) => [`- Q: ${c.q}`, `  - A: ${c.a}`]),
+      "",
+    );
+  }
+  if (spec.alternatives_considered?.length) {
+    lines.push(
+      "## Alternatives Considered",
+      ...spec.alternatives_considered.map((a) => `- ${a.option} — ${a.reason}`),
+      "",
+    );
+  }
+  if (spec.open_questions?.length) {
+    lines.push("## Open Questions", ...spec.open_questions.map((s) => `- ${s}`), "");
+  }
+  return lines.join("\n");
+}

@@ -2,72 +2,77 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { parseSpec, buildPrTitle, buildPrBody } from "../../../../src/flow/commands/merge.js";
 
-const SAMPLE_SPEC = `# Feature Specification: 042-auto-pr
+const SAMPLE_SPEC_JSON = {
+  goal: "flow-finalize の PR ルートで PR description を自動生成する。",
+  background: "",
+  scope: {
+    in: ["merge.js を拡張する", "spec.json を読む"],
+    out: ["squash merge の変更"],
+  },
+  constraints: [],
+  design_principles: [],
+  overview: { modules: [], data_flow: [], decisions: [] },
+  requirements: [
+    { id: "R1", desc: "パーサーを追加する", priority: "must" },
+    { id: "R2", desc: "buildPrBody を拡張する", priority: "must" },
+  ],
+  acceptance_criteria: ["PR body に Goal が含まれること"],
+  clarifications: [],
+  alternatives_considered: [],
+  open_questions: [],
+};
 
-**Feature Branch**: \`feature/042-auto-pr\`
-**Created**: 2026-03-31
-**Status**: Draft
+const MINIMAL_SPEC_JSON = {
+  goal: "最小限の spec。",
+  background: "",
+  scope: { in: [], out: [] },
+  constraints: [],
+  design_principles: [],
+  overview: { modules: [], data_flow: [], decisions: [] },
+  requirements: [],
+  acceptance_criteria: [],
+  clarifications: [],
+  alternatives_considered: [],
+  open_questions: [],
+};
 
-## Goal
-flow-finalize の PR ルートで PR description を自動生成する。
-
-## Scope
-- merge.js を拡張する
-- spec.md を読む
-
-## Out of Scope
-- squash merge の変更
-
-## Requirements
-1. [P0] パーサーを追加する
-2. [P0] buildPrBody を拡張する
-
-## Acceptance Criteria
-- PR body に Goal が含まれること
-`;
-
-const MINIMAL_SPEC = `# Feature Specification: 099-minimal
-
-## Goal
-最小限の spec。
-
-## Scope
-## Requirements
-## Acceptance Criteria
-`;
-
-describe("parseSpec", () => {
-  it("extracts Goal, Scope, Requirements sections", () => {
-    const result = parseSpec(SAMPLE_SPEC);
+describe("parseSpec (spec.json-based, spec 207 / T8)", () => {
+  it("extracts Goal, Scope, Requirements as structured data", () => {
+    const result = parseSpec(SAMPLE_SPEC_JSON);
     assert.equal(result.goal, "flow-finalize の PR ルートで PR description を自動生成する。");
-    assert.equal(result.scope, "- merge.js を拡張する\n- spec.md を読む");
-    assert.equal(result.requirements, "1. [P0] パーサーを追加する\n2. [P0] buildPrBody を拡張する");
+    assert.deepEqual(result.scopeIn, ["merge.js を拡張する", "spec.json を読む"]);
+    assert.deepEqual(result.scopeOut, ["squash merge の変更"]);
+    assert.equal(result.requirements.length, 2);
+    assert.equal(result.requirements[0].id, "R1");
+    assert.equal(result.requirements[0].desc, "パーサーを追加する");
   });
 
-  it("returns null fields for empty sections", () => {
-    const result = parseSpec(MINIMAL_SPEC);
+  it("returns empty collections when scope/requirements are empty", () => {
+    const result = parseSpec(MINIMAL_SPEC_JSON);
     assert.equal(result.goal, "最小限の spec。");
-    assert.equal(result.scope, null);
-    assert.equal(result.requirements, null);
+    assert.deepEqual(result.scopeIn, []);
+    assert.deepEqual(result.scopeOut, []);
+    assert.deepEqual(result.requirements, []);
   });
 
-  it("returns all-null for empty string", () => {
-    const result = parseSpec("");
+  it("returns null goal and empty collections for null input", () => {
+    const result = parseSpec(null);
     assert.equal(result.goal, null);
-    assert.equal(result.scope, null);
-    assert.equal(result.requirements, null);
+    assert.deepEqual(result.scopeIn, []);
+    assert.deepEqual(result.scopeOut, []);
+    assert.deepEqual(result.requirements, []);
   });
 });
 
 describe("buildPrTitle", () => {
   it("returns Goal first line from spec", () => {
-    const spec = { goal: "PR description を自動生成する。\n複数行の Goal", scope: null, requirements: null };
+    const spec = { goal: "PR description を自動生成する。\n複数行の Goal", scopeIn: [], scopeOut: [], requirements: [] };
     const title = buildPrTitle(spec, "fallback-title");
     assert.equal(title, "PR description を自動生成する。");
   });
 
   it("falls back to specTitle when goal is null", () => {
-    const spec = { goal: null, scope: null, requirements: null };
+    const spec = { goal: null, scopeIn: [], scopeOut: [], requirements: [] };
     const title = buildPrTitle(spec, "fallback-title");
     assert.equal(title, "fallback-title");
   });
@@ -83,22 +88,26 @@ describe("buildPrBody", () => {
     const state = { issue: 37, request: "original request" };
     const spec = {
       goal: "PR description を自動生成する。",
-      requirements: "1. パーサー追加\n2. body 拡張",
-      scope: "- merge.js を拡張",
+      scopeIn: ["merge.js を拡張"],
+      scopeOut: [],
+      requirements: [
+        { id: "R1", desc: "パーサー追加", priority: "must" },
+        { id: "R2", desc: "body 拡張" },
+      ],
     };
     const body = buildPrBody(state, spec);
     assert.ok(body.includes("fixes #37"));
     assert.ok(body.includes("## Goal"));
     assert.ok(body.includes("PR description を自動生成する。"));
     assert.ok(body.includes("## Requirements"));
-    assert.ok(body.includes("1. パーサー追加"));
+    assert.ok(body.includes("- R1 [must]: パーサー追加"));
     assert.ok(body.includes("## Scope"));
     assert.ok(body.includes("- merge.js を拡張"));
   });
 
-  it("omits sections that are null", () => {
+  it("omits sections that are empty", () => {
     const state = { issue: 5 };
-    const spec = { goal: "ゴール", scope: null, requirements: null };
+    const spec = { goal: "ゴール", scopeIn: [], scopeOut: [], requirements: [] };
     const body = buildPrBody(state, spec);
     assert.ok(body.includes("fixes #5"));
     assert.ok(body.includes("## Goal"));
@@ -123,7 +132,7 @@ describe("buildPrBody", () => {
 
   it("handles no issue with spec", () => {
     const state = {};
-    const spec = { goal: "ゴール", scope: null, requirements: null };
+    const spec = { goal: "ゴール", scopeIn: [], scopeOut: [], requirements: [] };
     const body = buildPrBody(state, spec);
     assert.ok(!body.includes("fixes"));
     assert.ok(body.includes("## Goal"));

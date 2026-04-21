@@ -13,6 +13,7 @@ import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
+import { loadSpecJson } from "../../lib/spec-json.js";
 import { container, initContainer } from "../../lib/container.js";
 import { Command } from "../../lib/command.js";
 
@@ -59,29 +60,25 @@ for (const key of Object.keys(REVIEW_PHASES)) {
  * @returns {string} diff text for review
  */
 function resolveReviewTarget(root, flow) {
-  const specPath = path.resolve(root, flow.spec);
-
-  // Try to extract scope from spec.md
-  if (fs.existsSync(specPath)) {
-    const specText = fs.readFileSync(specPath, "utf8");
-    const scopeMatch = specText.match(/^## Scope\n([\s\S]*?)(?=\n## )/m);
-    if (scopeMatch) {
-      const scopeFiles = scopeMatch[1]
-        .split("\n")
-        .map((l) => l.replace(/^[-*]\s*/, "").trim())
+  // spec 207 / T8: read scope.in from spec.json via the single validated load
+  // path. Throws when spec.json is missing or invalid — active flows must
+  // have a valid spec.json by invariant.
+  const specInput = path.resolve(root, flow.spec);
+  const spec = loadSpecJson(specInput);
+  const scopeFiles = Array.isArray(spec.scope?.in)
+    ? spec.scope.in
+        .map((l) => l.replace(/`/g, "").trim())
         .filter((l) => /\.(js|ts|json|md)$/.test(l))
-        .map((l) => l.replace(/`/g, ""));
+    : [];
 
-      if (scopeFiles.length > 0) {
-        const diffs = [];
-        for (const f of scopeFiles) {
-          const abs = path.resolve(root, f);
-          if (!fs.existsSync(abs)) continue;
-          diffs.push(...collectCommittedAndStagedDiff(root, flow.baseBranch, f));
-        }
-        if (diffs.length > 0) return diffs.join("\n");
-      }
+  if (scopeFiles.length > 0) {
+    const diffs = [];
+    for (const f of scopeFiles) {
+      const abs = path.resolve(root, f);
+      if (!fs.existsSync(abs)) continue;
+      diffs.push(...collectCommittedAndStagedDiff(root, flow.baseBranch, f));
     }
+    if (diffs.length > 0) return diffs.join("\n");
   }
 
   // Fallback: committed diff against base branch + staged changes
@@ -411,13 +408,15 @@ async function runReviewLoop({ maxRetries, label, dryRun, detect, fix }) {
 // ---------------------------------------------------------------------------
 
 /**
- * Extract Requirements section from spec.md.
- * @param {string} specText
- * @returns {string}
+ * Render spec.json.requirements as plain-text bullets for AI prompts. Post-T8
+ * there is no regex-based spec.md Requirements extraction.
  */
-function extractRequirements(specText) {
-  const match = specText.match(/^## Requirements\n([\s\S]*?)(?=\n## )/m);
-  return match ? match[1].trim() : "";
+function extractRequirements(spec) {
+  const items = Array.isArray(spec?.requirements) ? spec.requirements : [];
+  if (items.length === 0) return "";
+  return items
+    .map((r) => `- ${r.id}${r.priority ? ` [${r.priority}]` : ""}: ${r.desc}`)
+    .join("\n");
 }
 
 /**
@@ -616,17 +615,14 @@ function formatTestReviewMd(testDesign, gapHistory, finalVerdict, remainingGaps)
  */
 async function runTestReview(root, flow, config, dryRun) {
   const specDir = path.dirname(flow.spec);
-  const specPath = path.resolve(root, flow.spec);
+  const specInput = path.resolve(root, flow.spec);
 
-  if (!fs.existsSync(specPath)) {
-    console.error("Error: spec.md not found");
-    process.exit(EXIT_ERROR);
-  }
-
-  const specText = fs.readFileSync(specPath, "utf8");
-  const requirements = extractRequirements(specText);
+  // spec 207 / T8: require spec.json for the test review pipeline. No fallback
+  // to spec.md; loadSpecJson throws when spec.json is missing or invalid.
+  const spec = loadSpecJson(specInput);
+  const requirements = extractRequirements(spec);
   if (!requirements) {
-    console.error("Error: no Requirements section found in spec.md");
+    console.error("Error: no requirements defined in spec.json");
     process.exit(EXIT_ERROR);
   }
 
@@ -694,15 +690,14 @@ async function runTestReview(root, flow, config, dryRun) {
 // ---------------------------------------------------------------------------
 
 /**
- * Extract Goal and Scope sections from spec.md for context search query.
- * @param {string} specText
- * @returns {string}
+ * Build a context-search query from a spec.json object. Post-T8 this replaces
+ * the regex-based Goal / Scope extraction from spec.md.
  */
-function extractGoalAndScope(specText) {
+function extractGoalAndScope(spec) {
   const parts = [];
-  for (const heading of ["Goal", "Scope"]) {
-    const match = specText.match(new RegExp(`^## ${heading}\\n([\\s\\S]*?)(?=\\n## )`, "m"));
-    if (match) parts.push(match[1].trim());
+  if (spec?.goal) parts.push(spec.goal);
+  if (Array.isArray(spec?.scope?.in) && spec.scope.in.length) {
+    parts.push(spec.scope.in.join("\n"));
   }
   return parts.join("\n");
 }
@@ -796,11 +791,16 @@ function formatSpecReviewMd(history, verdict, finalIssues) {
  * Run the spec review pipeline.
  */
 async function runSpecReview(root, flow, config, dryRun) {
-  const specPath = path.resolve(root, flow.spec);
+  const specInput = path.resolve(root, flow.spec);
   const specDir = path.dirname(flow.spec);
-
+  // Post-T8: the AI spec-review pipeline still operates on rendered spec.md
+  // text (since the AI's natural output format is Markdown), but the md file
+  // is an authoritative render of spec.json — never parsed for structured data
+  // outside of this function. Throws if spec.json is missing or invalid.
+  const spec = loadSpecJson(specInput);
+  const specPath = path.join(path.dirname(specInput), "spec.md");
   if (!fs.existsSync(specPath)) {
-    console.error("Error: spec.md not found");
+    console.error("Error: spec.md not found (run 'sdd-forge spec render' first)");
     process.exit(EXIT_ERROR);
   }
 
@@ -825,7 +825,7 @@ async function runSpecReview(root, flow, config, dryRun) {
       const specText = fs.readFileSync(specPath, "utf8");
       let contextEntries = [];
       if (analysisData) {
-        const searchQuery = extractGoalAndScope(specText);
+        const searchQuery = extractGoalAndScope(spec);
         if (searchQuery) {
           contextEntries = await analysisData.ctxSearch(analysisData.entries, analysisData.analysis, searchQuery, root);
         }

@@ -12,6 +12,7 @@ import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR, EXIT_SUCCESS } from "../../lib/constants.js";
 import { formatDurationSeconds } from "../../lib/formatter.js";
+import { loadSpecJson } from "../../lib/spec-json.js";
 
 const DEFAULT_FORMAT = "text";
 const SUPPORTED_FORMATS = new Set(["text", "json", "csv"]);
@@ -330,14 +331,26 @@ function average(values) {
 }
 
 async function computeSpecDifficulty(flowState, specDir) {
-  const specMdPath = path.join(specDir, "spec.md");
-  let specMdChars = null;
+  // Post-T8: measure spec volume from spec.json via the shared validated load
+  // path. The metric name specMdChars is retained for historical series
+  // continuity. Historic specs without spec.json (pre-T11) are skipped via
+  // returning null — metrics.token iterates many past flows and must tolerate
+  // absent artifacts (spec 207 R2 carve-out for multi-spec iteration).
+  //   Malformed spec.json still throws (loadSpecJson schema-validates).
+  const specJsonPath = path.join(specDir, "spec.json");
+  let stat;
   try {
-    const specText = await fs.readFile(specMdPath, "utf8");
-    specMdChars = specText.length;
-  } catch {
+    stat = await fs.stat(specJsonPath);
+  } catch (err) {
+    if (err.code !== "ENOENT") throw err;
+    // Historical spec without spec.json — skip this entry rather than failing
+    // the whole metrics run. Spec 207 R2 carve-out for multi-spec iteration.
     return null;
   }
+  if (!stat.isFile()) return null;
+  const jsonText = await fs.readFile(specJsonPath, "utf8");
+  loadSpecJson(specDir);
+  const specMdChars = jsonText.length;
 
   const requirementCount = computeRequirementCount(flowState);
   const testCountRaw = await countFilesRecursive(path.join(specDir, "tests"));

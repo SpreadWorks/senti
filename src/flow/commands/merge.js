@@ -5,11 +5,11 @@
  * Called by finalize.js with ctx containing root, flowState, worktreePath, mainRepoPath, mergeStrategy.
  */
 
-import { readFileSync } from "fs";
 import { runCmd, assertOk } from "../../lib/process.js";
 import path from "path";
 import { container } from "../../lib/container.js";
 import { isGhAvailable, runGit } from "../../lib/git-helpers.js";
+import { loadSpecJson } from "../../lib/spec-json.js";
 
 /**
  * Resolve push remote from config.
@@ -21,34 +21,41 @@ function resolveRemote(cfg) {
 }
 
 /**
- * Extract a markdown section body by heading name.
- * @param {string} content - full markdown text
- * @param {string} heading - heading text to find (e.g. "Goal")
- * @returns {string|null}
+ * Extract the Goal / Scope / Requirements fields from a spec.json object as
+ * structured data (spec 207 / T8). Pure data extraction with no formatting —
+ * rendering lives in the formatter helpers below.
+ *
+ * @param {object|null} spec - parsed spec.json (or null)
+ * @returns {{
+ *   goal: string|null,
+ *   scopeIn: string[],
+ *   scopeOut: string[],
+ *   requirements: Array<{id:string,desc:string,priority?:string}>
+ * }}
  */
-function extractSection(content, heading) {
-  const pattern = new RegExp(`^##\\s+${heading}\\s*$`, "m");
-  const match = pattern.exec(content);
-  if (!match) return null;
-  const start = match.index + match[0].length;
-  const rest = content.slice(start);
-  const nextHeading = rest.search(/^##\s+/m);
-  const body = (nextHeading === -1 ? rest : rest.slice(0, nextHeading)).trim();
-  return body || null;
+function parseSpec(spec) {
+  if (!spec) return { goal: null, scopeIn: [], scopeOut: [], requirements: [] };
+  return {
+    goal: spec.goal ? spec.goal.trim() || null : null,
+    scopeIn: Array.isArray(spec.scope?.in) ? spec.scope.in : [],
+    scopeOut: Array.isArray(spec.scope?.out) ? spec.scope.out : [],
+    requirements: Array.isArray(spec.requirements) ? spec.requirements : [],
+  };
 }
 
-/**
- * Parse spec.md content and extract Goal, Scope, Requirements sections.
- * @param {string} content - spec.md file content
- * @returns {{goal: string|null, scope: string|null, requirements: string|null}}
- */
-function parseSpec(content) {
-  if (!content) return { goal: null, scope: null, requirements: null };
-  return {
-    goal: extractSection(content, "Goal"),
-    scope: extractSection(content, "Scope"),
-    requirements: extractSection(content, "Requirements"),
-  };
+function formatRequirementsBlock(reqs) {
+  if (!reqs || reqs.length === 0) return null;
+  return reqs.map((r) => `- ${r.id}${r.priority ? ` [${r.priority}]` : ""}: ${r.desc}`).join("\n");
+}
+
+function formatScopeBlock({ scopeIn, scopeOut }) {
+  const parts = [];
+  for (const item of scopeIn) parts.push(`- ${item}`);
+  if (scopeOut.length) {
+    parts.push("", "### Out of Scope");
+    for (const item of scopeOut) parts.push(`- ${item}`);
+  }
+  return parts.length ? parts.join("\n") : null;
 }
 
 /**
@@ -66,9 +73,9 @@ function buildPrTitle(spec, fallback) {
 }
 
 /**
- * Build PR body from flow state and parsed spec.
+ * Build PR body from flow state and parsed spec structured data.
  * @param {Object} state - flow.json state
- * @param {{goal: string|null, scope: string|null, requirements: string|null}|null} spec - parsed spec sections
+ * @param {ReturnType<typeof parseSpec>|null} spec - structured spec data
  * @returns {string}
  */
 function buildPrBody(state, spec) {
@@ -77,49 +84,34 @@ function buildPrBody(state, spec) {
     lines.push(`fixes #${state.issue}`);
     lines.push("");
   }
+  const reqsBlock = spec ? formatRequirementsBlock(spec.requirements) : null;
+  const scopeBlock = spec ? formatScopeBlock(spec) : null;
   if (spec?.goal) {
-    lines.push("## Goal");
-    lines.push("");
-    lines.push(spec.goal);
-    lines.push("");
+    lines.push("## Goal", "", spec.goal, "");
   }
-  if (spec?.requirements) {
-    lines.push("## Requirements");
-    lines.push("");
-    lines.push(spec.requirements);
-    lines.push("");
+  if (reqsBlock) {
+    lines.push("## Requirements", "", reqsBlock, "");
   }
-  if (spec?.scope) {
-    lines.push("## Scope");
-    lines.push("");
-    lines.push(spec.scope);
-    lines.push("");
+  if (scopeBlock) {
+    lines.push("## Scope", "", scopeBlock, "");
   }
-  if (!spec?.goal && !spec?.requirements && !spec?.scope) {
-    if (state.request) {
-      lines.push("## Summary");
-      lines.push("");
-      lines.push(state.request);
-    }
+  if (!spec?.goal && !reqsBlock && !scopeBlock && state.request) {
+    lines.push("## Summary", "", state.request);
   }
   return lines.join("\n").trim();
 }
 
 /**
- * Try to read and parse spec.md from flow state.
- * @param {Object} state - flow.json state
- * @param {string} root - project root
- * @returns {{goal: string|null, scope: string|null, requirements: string|null}|null}
+ * Load spec.json from flow state and reduce it to the goal/scope/requirements
+ * summary structure used for PR body / squash commit metadata. Throws when
+ * spec.json is missing or invalid — active flows are expected to have a valid
+ * spec.json by invariant (spec 207 / T8).
  */
 function loadSpec(state, root) {
   if (!state.spec) return null;
-  try {
-    const specPath = path.resolve(root, state.spec);
-    const content = readFileSync(specPath, "utf8");
-    return parseSpec(content);
-  } catch (_) {
-    return null;
-  }
+  const specInput = path.resolve(root, state.spec);
+  const spec = loadSpecJson(specInput);
+  return parseSpec(spec);
 }
 
 /**
@@ -160,7 +152,7 @@ function runMerge(ctx) {
     const cfg = container.get("config");
     const remote = resolveRemote(cfg);
     const spec = loadSpec(state, root);
-    const fallbackTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.md$/, "") || featureBranch;
+    const fallbackTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.(md|json)$/, "") || featureBranch;
     const title = buildPrTitle(spec, fallbackTitle);
     const body = buildPrBody(state, spec);
 
@@ -178,7 +170,7 @@ function runMerge(ctx) {
   }
 
   // Squash merge route
-  const specTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.md$/, "") || featureBranch;
+  const specTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.(md|json)$/, "") || featureBranch;
   const commitMsg = state.issue ? `${specTitle}\n\nfixes #${state.issue}` : specTitle;
 
   function runSquashMerge(gitPrefix, hint) {

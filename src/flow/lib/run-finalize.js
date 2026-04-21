@@ -238,7 +238,7 @@ export async function executeCommitPost(ctx) {
  * it produces are included in the finalize commit.
  *
  * @param {string} root - worktree / repo root
- * @param {string} specRelPath - flowState.spec (e.g. "specs/182-.../spec.md")
+ * @param {string} specRelPath - flowState.spec (e.g. "specs/182-.../spec.json")
  */
 function runMigrationHook(root, specRelPath) {
   if (!specRelPath) return;

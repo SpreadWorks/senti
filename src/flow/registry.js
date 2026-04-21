@@ -311,7 +311,7 @@ export const FLOW_COMMANDS = {
         "Run gate check. Resolves target from flow.json if omitted.",
         "",
         "Options:",
-        "  --spec <path>                 Path to spec.md (auto-resolved from flow.json)",
+        "  --spec <path>                 Path to spec (directory / spec.json / legacy spec.md; auto-resolved from flow.json)",
         "  --phase <draft|pre|post|impl> Gate phase (default: pre)",
         "  --skip-guardrail              Skip AI guardrail compliance check",
       ].join("\n"),

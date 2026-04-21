@@ -1,0 +1,178 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays focused on one concern: switching core wiring from spec.md to spec.json.; Unambiguous Requirements — Most requirements are concrete and testable, with specific files, behaviors, and expected handling.; Complete Context — Many requirement statements are not consistently written with explicit trigger condition (When/If) plus expected shall behavior.; No Hardcoded Secrets — No API keys, passwords, tokens, or similar secrets are present.; Prioritize Requirements — There are more than three requirements/items, but no explicit priority ordering is provided.; Impact on Existing Features — A dedicated impact section explicitly lists effects on existing flows, tests, and flow.json spec paths.; Present Recommendations with Reasoning — Q&A entries present recommended answers and include reasoning grounded in policy and existing docs/patterns.; Explore Before Asking — The draft cites prior artifacts (T1 interface.md, existing tasks) and resolves questions with that context before escalation.; Proactively Raise Related Implications — It proactively raises migration order risk, active-flow breakage, and operational implications.; Confirm Brainstorm vs. Decision Before Critiquing — The draft records explicit decisions/approval state and treats options as confirmed decisions, not open brainstorming.; Capture Digressions in draft.md — Whether discussion digressions occurred and were captured cannot be verified from this draft alone.; Draft Stays at Requirements Level — It includes implementation-level details (specific files/functions/modules and data-flow wiring), beyond pure requirements level.; Backward-Compatible CLI Interface — Breaking CLI/path behavior is accompanied by migration/operation guidance (T11 migration, flow recreation, merge-order handling).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T07:24:30.629Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft is centered on one concern: switching core wiring source from spec.md to spec.json.; Unambiguous Requirements — Most requirements are concrete and testable (specific files, fields, behaviors, and error handling).; Complete Context — Several requirements are listed as directives without explicit When/If trigger plus shall-style expected outcome.; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets are present.; Prioritize Requirements — There are many requirements but no explicit priority order across them.; Impact on Existing Features — A dedicated section explicitly lists impacts on existing flows, fixtures, and flow.json behavior.; Present Recommendations with Reasoning — Not every question is led by a concise recommendation with stated basis (docs/guardrails/code pattern).; Explore Before Asking — Draft cites prior artifacts and code touchpoints (e.g., interface.md and 11 file mapping), indicating prior exploration.; Proactively Raise Related Implications — It proactively raises migration/order risks, edge cases, and operational implications.; Confirm Brainstorm vs. Decision Before Critiquing — The Q&A records explicit selections/adoptions, indicating decision mode rather than unresolved brainstorming.; Capture Digressions in draft.md — No clear digression thread is shown; no missing digression capture is evident from the provided content.; Draft Stays at Requirements Level — Draft includes implementation-level details (file-by-file rewiring, helper names/signatures), beyond pure requirements level.; Backward-Compatible CLI Interface — CLI/behavior changes include migration/operation handling via T11, re-prepare guidance, and merge-order constraints.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T07:25:06.101Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "missing Q&A section",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T07:26:30.812Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 仕様全体はspec.jsonを一次ソースに切り替える単一関心に集中している。; Unambiguous Requirements — 「適切なタイミング」「明示的エラー」など検証条件が曖昧な表現が一部要件に残っている。; Complete Context — 要件の大半がWhen/shall形式でトリガー条件と期待動作を対で定義している。; No Hardcoded Secrets — APIキーやトークン等の機密情報の直書きは含まれていない。; Prioritize Requirements — 要件が3件超に対してPriority 1〜4で優先順が明示されている。; Impact on Existing Features — 既存機能への影響を専用セクションで具体的に列挙している。; Present Recommendations with Reasoning — 各Qで推奨案を先に示し、根拠（コード調査・原則）を併記している。; Explore Before Asking — interface.mdや既存成果物調査を前提に判断しており、確認可能事項を先に探索している。; Proactively Raise Related Implications — マージ順序、運用変更、旧形式非対応など関連含意を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 批評前にブレインストーミングか最終判断かを確認した明示的記録がない。; Capture Digressions in draft.md — 会話の脱線有無とdraft.md記録状況は本文だけでは検証できない。; Draft Stays at Requirements Level — 内容はRFP/要件レベル中心で、関数設計や実装詳細には踏み込んでいない。; Backward-Compatible CLI Interface — CLI引数挙動変更に対し非破壊継続と自動正規化の移行方針を明示している。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T07:27:13.178Z"
+    },
+    {
+      "step": "implement",
+      "reason": "pre-existing test failure in tests/unit/flow/prompt-i18n.test.js — references deleted skill src/templates/skills/sdd-forge.flow-plan/SKILL.md (removed in consolidate-flow-skills)",
+      "trigger": "running npm test baseline before T8 changes",
+      "resolution": "leave failing; outside spec 207 scope. Should be removed in a dedicated cleanup spec",
+      "guardrailCandidate": "after deleting a skill, audit tests that reference its path and delete orphan tests in the same commit",
+      "timestamp": "2026-04-21T07:38:58.148Z"
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-21T08:01:31.905Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/commands/merge.test.js:2: existing line modified/deleted in test file (removed=43, added=45); tests/unit/spec/schema.test.js:32: existing line modified/deleted in test file (removed=1, added=1); tests/unit/spec/schema.test.js:48: single-line addition in test file (likely assertion insertion)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:01:50.013Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/commands/merge.test.js:2: existing line modified/deleted in test file (removed=43, added=45); tests/unit/spec/schema.test.js:32: existing line modified/deleted in test file (removed=1, added=1); tests/unit/spec/schema.test.js:48: single-line addition in test file (likely assertion insertion)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:03:06.932Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff shows partial migration to spec.json, but compliance is incomplete: gate still parses raw JSON/Markdown instead of using a single validated load path, legacy spec.md parsing remains in core wiring paths, and evidence only reports unit tests ({\"unit\":9}) rather than full npm test/regression and render-determinism verification required by the spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:04:59.272Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: tests/unit/flow/commands/merge.test.js:2: existing line modified/deleted in test file (removed=43, added=45); tests/unit/spec/schema.test.js:32: existing line modified/deleted in test file (removed=1, added=1); tests/unit/spec/schema.test.js:48: single-line addition in test file (likely assertion insertion)\n  attempt 2: tests/unit/flow/commands/merge.test.js:2: existing line modified/deleted in test file (removed=43, added=45); tests/unit/spec/schema.test.js:32: existing line modified/deleted in test file (removed=1, added=1); tests/unit/spec/schema.test.js:48: single-line addition in test file (likely assertion insertion)\n  attempt 3: REQ-SPEC — Diff shows partial migration to spec.json, but compliance is incomplete: gate still parses raw JSON/Markdown instead of using a single validated load path, legacy spec.md parsing remains in core wiring paths, and evidence only reports unit tests ({\"unit\":9}) rather than full npm test/regression and render-determinism verification required by the spec.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-21T08:09:35.232Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate retry wasted 2 attempts running installed sdd-forge (0.1.0-alpha.775) instead of the worktree's local src/sdd-forge.js, so in-progress code changes weren't being tested",
+      "trigger": "bare 'sdd-forge' command in worktree context — PATH resolves to the globally installed version not the local copy",
+      "resolution": "switched to 'node src/sdd-forge.js' for in-worktree dogfooding; lost 2 of 3 gate-impl retries",
+      "guardrailCandidate": "when dogfooding sdd-forge changes from within a sdd-forge worktree, always invoke the local binary via 'node src/sdd-forge.js' — never rely on PATH-resolved 'sdd-forge'",
+      "timestamp": "2026-04-21T08:34:20.578Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/e2e/docs/commands/changelog.test.js:8: existing line modified/deleted in test file (removed=12, added=25); tests/e2e/docs/commands/changelog.test.js:71: existing line modified/deleted in test file (removed=9, added=4); tests/e2e/metrics/token.test.js:26: existing line modified/deleted in test file (removed=1, added=1); tests/e2e/metrics/token.test.js:107: existing line modified/deleted in test file (removed=1, added=1); tests/e2e/metrics/token.test.js:124: existing line modified/deleted in test file (removed=1, added=1); tests/e2e/metrics/token.test.js:154: existing line modified/deleted in test file (removed=1, added=1)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:50:40.652Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff covers most spec.json wiring, but key MUST behaviors are not fully enforced: some paths still use non-throwing tryLoadSpecJson fallbacks (e.g., merge/changelog) instead of guaranteed non-zero stop on missing/invalid spec.json, and prepare shows spec.json stub creation but not explicit same-step spec render-derived regeneration evidence for spec.md determinism.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:51:30.423Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Most core wiring was migrated to `spec.json` via `loadSpecJson`, but `review` still has a non-failing fallback (`tryLoadSpecJson` in `resolveReviewTarget`) when `spec.json` is missing/invalid, which violates the required non-zero-stop behavior (R2).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:57:22.104Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff does not fully match the spec: `docs/forge` and `docs/changelog` now require `spec.json` and removed the documented pre-T11 fallback behavior (`spec.md` fallback/compat path), so implementation is not fully compliant with the stated requirements and decisions.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T09:01:34.570Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff replaces core spec consumers to load structured data from spec.json via shared load path, updates prepare/flow pointer/schema, removes key spec.md parsing paths, and provided test evidence indicates suite execution after fixture updates (unit/integration counts reported).; No Hardcoded Secrets — No added or modified lines contain hardcoded keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — Added `catch { /* ignore */ }` in `src/docs/commands/changelog.js` silently discards JSON parse errors without logging or rethrowing.; Bounded Resource Usage — No added or modified logic introduces unbounded recursion, retries, or uncontrolled bulk-loading behavior.; No Sensitive Data in Logs — Added logging/error messages do not include passwords, tokens, or personally identifiable data.; No Disabling Existing Tests — Tests were updated for new behavior; no existing tests were skipped, commented out, or deleted to force passing.; Escalate When New Tests Break Existing Tests — Cannot evaluate from diff alone because no runtime test-failure evidence or user-escalation interaction is provided.; Flag Tests That Become Irrelevant — Cannot determine from diff alone whether any prior tests became irrelevant and whether that was communicated to the user.; Exit Code Contract — Added failure paths still use explicit error handling where present; no added change clearly forces exit code 0 on failure.; No Synchronous I/O in Hot Paths — Added synchronous I/O (`fs.statSync`, `fs.readFileSync`) is used in spec-directory iteration/bulk processing paths in `src/docs/commands/changelog.js`.; Validate User Input at Entry Point — Diff does not add new CLI/stdin entry-point handling that bypasses validation; changes are primarily internal data-loading logic.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T09:02:50.026Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Most wiring was migrated to `loadSpecJson`, but R2 is not fully met: `docs changelog` now skips spec dirs without `spec.json` (`continue`) instead of failing with non-zero + stderr on missing spec.json.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T09:03:38.963Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff switches core wiring from spec.md parsing to loadSpecJson-based structured reads, prepares spec.json+rendered spec.md, normalizes flow spec pointer to spec.json, adds authorized_test_modifications to schema, and provided test evidence shows suite passed (unit:1794, integration:265).; No Hardcoded Secrets — No added or modified lines contain hardcoded API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — Added catch usage logs to stderr; existing silent catch patterns are pre-existing and not newly introduced in added lines.; Bounded Resource Usage — Added processing iterates over finite arrays/files and introduces no unbounded recursion or retry loops.; No Sensitive Data in Logs — New logging writes file path and parse error context only; no passwords, tokens, or PII are logged in added lines.; No Disabling Existing Tests — Diff updates and adds test fixtures/assertions; it does not skip, comment out, or delete existing tests to force pass.; Escalate When New Tests Break Existing Tests — Requires runtime/test-failure interaction evidence; not inferable from static diff alone.; Flag Tests That Become Irrelevant — Requires user-facing communication/evidence about relevance decisions beyond what static diff provides.; Exit Code Contract — Added failure paths throw or use existing non-zero exits; no added logic returns success on failure.; No Synchronous I/O in Hot Paths — Added changelog path performs synchronous spec loading/JSON reads in per-spec directory iteration, i.e., synchronous I/O in a bulk-processing loop.; Validate User Input at Entry Point — No added lines introduce new CLI/stdin entry points or pass newly unvalidated user input deeper into internals.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T09:04:54.671Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff replaces core spec consumers with `loadSpecJson`-based structured reads, updates prepare to generate `spec.json` + rendered `spec.md`, normalizes new spec pointer to `spec.json`, extends schema for `authorized_test_modifications`, and includes test execution evidence (`unit`:1794, `integration`:265) consistent with regression coverage.; No Hardcoded Secrets — No added or modified lines contain hardcoded credentials, tokens, or secrets.; No Silent Error Swallowing — New catch handling writes an explicit stderr message; no newly added empty/silent catch blocks were found.; Bounded Resource Usage — Added logic uses bounded iteration over existing arrays/directories and introduces no unbounded recursion/retry loops.; No Sensitive Data in Logs — Added logging does not explicitly include passwords, tokens, or PII; it logs file path and error message only.; No Disabling Existing Tests — Diff updates tests and fixtures but does not skip, comment out, or delete existing tests to force passing.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests causing existing test failures, which is not provided in the diff.; Flag Tests That Become Irrelevant — Determining whether prior tests became irrelevant requires broader test-suite/runtime context not present here.; Exit Code Contract — Added failure paths use throw/process.exit(EXIT_ERROR); no new failure path returning success exit code is evident.; No Synchronous I/O in Hot Paths — Added synchronous I/O is used in bulk traversal flow (e.g., `readFileSync` in `parseSpecDir`, called from loop over spec directories).; Validate User Input at Entry Point — No new CLI/stdin entry-point parsing was introduced that forwards unvalidated user input.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T09:05:58.816Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Most wiring was migrated to `loadSpecJson`, but `src/metrics/commands/token.js` reads `spec.json` directly and silently returns null on missing/invalid data instead of schema-validated load + non-zero failure, so the spec’s single-load-path/non-zero-stop requirements are not fully met.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T09:06:55.552Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff replaces core spec.md parsing with spec.json load path (loadSpecJson), updates prepare to create spec.json + render spec.md, normalizes flow spec pointer to spec.json, adds authorized_test_modifications schema support, and updates related tests; provided test evidence indicates unit/integration suites executed.; No Hardcoded Secrets — No added or modified lines contain hardcoded keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added `catch { return null; }` in `computeSpecDifficulty` swallows read errors without logging or rethrowing.; Bounded Resource Usage — Added loops iterate over finite arrays/directories; no unbounded recursion or retry logic was introduced.; No Sensitive Data in Logs — New logging prints file path and error message for malformed JSON; no passwords/tokens/PII are logged in added lines.; No Disabling Existing Tests — Tests were updated for new spec.json behavior; no added changes skip/comment out/delete existing tests to force pass.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests breaking existing tests and user escalation, which is not present in the provided diff.; Flag Tests That Become Irrelevant — Determining whether older tests became irrelevant requires broader test/runtime context not provided here.; Exit Code Contract — Added failure paths use throw/process exit patterns; no added logic explicitly converts failures into success exit codes.; No Synchronous I/O in Hot Paths — Added synchronous filesystem calls (`statSync`, `readFileSync`) are used in per-spec iteration paths, i.e., bulk-processing loops.; Validate User Input at Entry Point — No added/modified lines introduce new CLI/stdin entry points or pass newly introduced unvalidated user input deeper into internals.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T09:16:14.332Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff replaces core spec.md parsing paths with loadSpecJson-based structured reads across target commands, adds schema field and prepare-time spec.json generation/render, updates flow spec pointer to spec.json, and includes test execution evidence (unit/integration counts) consistent with regression coverage.; No Hardcoded Secrets — No added or modified lines contain hardcoded API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — New code introduces silent error suppression via `.catch(() => null)` / `.catch(() => [])` in multiple places without logging or rethrowing.; Bounded Resource Usage — `Promise.all(dirNames.map(...))` processes all spec directories in parallel with no explicit upper bound, introducing unbounded bulk work.; No Sensitive Data in Logs — Added logging outputs file paths and parse errors only; no passwords, tokens, or PII are logged in diff-added lines.; No Disabling Existing Tests — Tests were updated for spec.json behavior; no existing tests were skipped, commented out, or removed to force passing.; Escalate When New Tests Break Existing Tests — Cannot evaluate from diff alone whether newly added tests caused existing tests to fail and whether escalation was communicated.; Flag Tests That Become Irrelevant — Whether now-irrelevant historical tests were identified and flagged requires reviewer/user communication context not present in diff.; Exit Code Contract — No added failure path in the diff is shown returning success; explicit error paths still use non-zero exits where present.; No Synchronous I/O in Hot Paths — Added changelog bulk iteration calls `loadSpecJson` per spec, and comments state it uses synchronous fs internally, placing sync I/O in a bulk-processing path.; Validate User Input at Entry Point — Diff does not introduce new CLI/stdin entry points bypassing existing argument parsing; article is not newly violated by added lines.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T09:22:00.569Z"
+    }
+  ]
+}

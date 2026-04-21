@@ -13,6 +13,8 @@ import { assertOk } from "../../lib/process.js";
 import { translate } from "../../lib/i18n.js";
 import { buildInitialSteps } from "../../lib/flow-helpers.js";
 import { getWorktreeStatus, runGit } from "../../lib/git-helpers.js";
+import { emptySpecStub } from "../../lib/spec-json.js";
+import { renderSpecMarkdown } from "../../spec/commands/render.js";
 import { FlowCommand } from "./base-command.js";
 
 function runGitTrim(root, args) {
@@ -224,11 +226,27 @@ export class RunPrepareSpecCommand extends FlowCommand {
       };
     }
 
-    // Helper: write spec files
+    // Helper: write spec files. Creates spec.json (primary source of truth)
+    // and generates spec.md in the same step via renderSpecMarkdown, which
+    // satisfies spec 207 R3 — spec.md is always a deterministic render of the
+    // current spec.json.
     function writeSpecFiles() {
       fs.mkdirSync(specDir, { recursive: true });
+      const specJsonPath = path.join(specDir, "spec.json");
+      if (!fs.existsSync(specJsonPath)) {
+        fs.writeFileSync(specJsonPath, JSON.stringify(emptySpecStub(), null, 2) + "\n");
+      }
       if (!fs.existsSync(specPath)) {
-        fs.writeFileSync(specPath, createSpecTemplate({ branchName, specDirName }, root, lang));
+        const stub = JSON.parse(fs.readFileSync(specJsonPath, "utf8"));
+        const today = new Date().toISOString().slice(0, 10);
+        const rendered = renderSpecMarkdown(stub, {
+          title: specDirName,
+          featureBranch: branchName,
+          created: today,
+          status: "Draft",
+          input: issue ? `GitHub Issue #${issue}` : "User request",
+        });
+        fs.writeFileSync(specPath, rendered);
       }
       if (!fs.existsSync(qaPath)) {
         fs.writeFileSync(qaPath, createQaTemplate(root, lang));
@@ -248,7 +266,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         if (step) step.status = "done";
       }
       const state = {
-        spec: `specs/${specDirName}/spec.md`,
+        spec: `specs/${specDirName}/spec.json`,
         baseBranch: resolvedBase,
         featureBranch: branchName,
         runId: flowRunId,

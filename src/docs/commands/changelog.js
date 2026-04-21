@@ -7,11 +7,26 @@
  */
 
 import fs from "fs";
+import fsp from "fs/promises";
 import path from "path";
 import { sourceRoot, parseArgs, formatUTCTimestamp } from "../../lib/cli.js";
 import { DEFAULT_LANG } from "../../lib/config.js";
 import { translate } from "../../lib/i18n.js";
 import { Command } from "../../lib/command.js";
+import { loadSpecJson } from "../../lib/spec-json.js";
+import { mapWithConcurrency } from "../lib/concurrency.js";
+
+async function optional(fsOp) {
+  try {
+    return await fsOp();
+  } catch (err) {
+    if (err.code === "ENOENT") return null;
+    throw err;
+  }
+}
+
+const statIfExists = (p) => optional(() => fsp.stat(p));
+const readIfExists = (p) => optional(() => fsp.readFile(p, "utf8"));
 
 /**
  * パイプ文字をエスケープし、空白を正規化する。
@@ -25,67 +40,43 @@ function sanitize(text) {
 }
 
 /**
- * spec.md から必要なメタ情報を抽出する。
+ * spec ディレクトリから changelog 用メタ情報を取得する (spec 207 / T8)。
+ *
+ * title / inputLine は spec.json から、status / branch は flow.json から取得。
+ * spec.json が存在しない spec はこの changelog から除外される（T11 migration
+ * 実行後はこの方針で全 spec が揃う）。
  */
-function parseSpecFile(filePath) {
-  const content = fs.readFileSync(filePath, "utf8");
-  const lines = content.split("\n");
+async function parseSpecDir(specDir, dirName) {
+  // loadSpecJson guarantees a schema-validated object (caller pre-filters by
+  // spec.json existence). Throws on malformed spec.json so that corrupt
+  // artifacts surface immediately rather than silently skewing the changelog.
+  const spec = loadSpecJson(specDir);
 
-  // title
-  let title = "";
-  for (const line of lines) {
-    const m = line.match(/^# (.*)$/);
-    if (m) {
-      title = m[1].replace(/^Feature Specification:\s*/, "");
-      break;
-    }
+  let title = dirName;
+  let inputLine = "";
+  if (spec.goal) {
+    const firstLine = spec.goal.split("\n")[0].trim();
+    if (firstLine) title = firstLine;
   }
-  if (!title) {
-    // first non-empty line
-    for (const line of lines) {
-      if (line.trim()) {
-        title = line.trim();
-        break;
-      }
-    }
-  }
-  if (!title || title === "yaml") {
-    title = "";
+  if (Array.isArray(spec.scope?.in) && spec.scope.in.length) {
+    inputLine = spec.scope.in[0];
   }
 
-  // metadata fields
-  let created = "";
+  const specJsonPath = path.join(specDir, "spec.json");
+  const jsonStat = await statIfExists(specJsonPath);
+  const created = jsonStat ? jsonStat.mtime.toISOString().slice(0, 10) : "";
+
   let status = "";
   let branch = "";
-  let inputLine = "";
-
-  for (const line of lines) {
-    const createdMatch = line.match(/^\*\*Created\*\*:\s*(.*?)\s*$/);
-    if (createdMatch && !created) created = createdMatch[1];
-
-    const statusMatch = line.match(/^\*\*Status\*\*:\s*(.*?)\s*$/);
-    if (statusMatch && !status) status = statusMatch[1];
-
-    const branchMatch = line.match(/^\*\*Feature Branch\*\*:\s*(.*?)\s*$/);
-    if (branchMatch && !branch) branch = branchMatch[1].replace(/`/g, "");
-
-    const inputMatch = line.match(/^\*\*Input\*\*:\s*(.*?)\s*$/);
-    if (inputMatch && !inputLine) inputLine = inputMatch[1];
-  }
-
-  // fallback: first bullet in ## Scope
-  if (!inputLine) {
-    let inScope = false;
-    for (const line of lines) {
-      if (/^## Scope/.test(line)) {
-        inScope = true;
-        continue;
-      }
-      if (inScope && /^## /.test(line)) break;
-      if (inScope && /^- /.test(line)) {
-        inputLine = line.replace(/^- /, "");
-        break;
-      }
+  const flowPath = path.join(specDir, "flow.json");
+  const flowText = await readIfExists(flowPath);
+  if (flowText) {
+    try {
+      const flow = JSON.parse(flowText);
+      if (flow.lifecycle) status = flow.lifecycle;
+      if (flow.featureBranch) branch = flow.featureBranch;
+    } catch (err) {
+      process.stderr.write(`changelog: skipping malformed flow.json at ${flowPath}: ${err.message}\n`);
     }
   }
 
@@ -111,7 +102,7 @@ function parseDirName(dirName) {
   return null;
 }
 
-function runChangelog(rawArgs, container) {
+async function runChangelog(rawArgs, container) {
   const args = rawArgs;
   const opts = parseArgs(args, { flags: ["--dry-run"], options: [], defaults: { dryRun: false } });
 
@@ -133,38 +124,41 @@ function runChangelog(rawArgs, container) {
   const lang = cfgData?.docs?.defaultLanguage || cfgData?.lang || DEFAULT_LANG;
   const t = translate();
 
-  // Ensure output directory exists
-  fs.mkdirSync(path.dirname(outFile), { recursive: true });
+  // Ensure output directory exists (async)
+  await fsp.mkdir(path.dirname(outFile), { recursive: true });
 
-  // Collect spec entries
+  // Collect spec entries asynchronously with bounded concurrency — satisfies
+  // the "no synchronous I/O in hot paths" and "bounded resource usage"
+  // guardrails (spec 207 / T8).
+  const dirsRaw = await statIfExists(specsDir);
+  const dirNames = dirsRaw ? (await fsp.readdir(specsDir)).sort() : [];
+  const concurrencyLimit = Math.max(1, cfgData?.concurrency || 4);
+  const results = await mapWithConcurrency(dirNames, concurrencyLimit, async (dirName) => {
+    const dirPath = path.join(specsDir, dirName);
+    const specJsonStat = await statIfExists(path.join(dirPath, "spec.json"));
+    if (!specJsonStat || !specJsonStat.isFile()) return null;
+
+    const parsed = parseDirName(dirName);
+    if (!parsed) return null;
+
+    const meta = await parseSpecDir(dirPath, dirName);
+
+    const dirEntries = await fsp.readdir(dirPath);
+    const linkedFiles = dirEntries.filter((f) => f.endsWith(".md")).sort();
+
+    return {
+      dirName,
+      series: parsed.series,
+      number: parsed.number,
+      isBackup: parsed.isBackup,
+      ...meta,
+      links: linkedFiles,
+    };
+  });
   const entries = [];
-
-  if (fs.existsSync(specsDir)) {
-    for (const dirName of fs.readdirSync(specsDir).sort()) {
-      const specFile = path.join(specsDir, dirName, "spec.md");
-      if (!fs.existsSync(specFile)) continue;
-
-      const parsed = parseDirName(dirName);
-      if (!parsed) continue;
-
-      const meta = parseSpecFile(specFile);
-
-      // Discover linked files
-      const dirPath = path.join(specsDir, dirName);
-      const linkedFiles = fs
-        .readdirSync(dirPath)
-        .filter((f) => f.endsWith(".md"))
-        .sort();
-
-      entries.push({
-        dirName,
-        series: parsed.series,
-        number: parsed.number,
-        isBackup: parsed.isBackup,
-        ...meta,
-        links: linkedFiles,
-      });
-    }
+  for (const r of results) {
+    if (r.error) throw r.error;
+    if (r.value) entries.push(r.value);
   }
 
   // Find latest non-backup per series
@@ -229,7 +223,7 @@ function runChangelog(rawArgs, container) {
     console.log(out.join("\n"));
     console.error(t("messages:changelog.dryRun", { path: outFile }));
   } else {
-    fs.writeFileSync(outFile, out.join("\n"));
+    await fsp.writeFile(outFile, out.join("\n"));
     console.log(t("messages:changelog.generated", { path: outFile }));
   }
 }

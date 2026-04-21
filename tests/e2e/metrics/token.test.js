@@ -4,6 +4,22 @@ import { execFileSync } from "node:child_process";
 import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../helpers/tmp-dir.js";
 import { SDD_FORGE, writeBaseConfig } from "../../helpers/metrics-token.js";
 
+function paddedSpecJson(padChar, padLen) {
+  return JSON.stringify({
+    goal: padChar.repeat(padLen),
+    background: "",
+    scope: { in: [], out: [] },
+    constraints: [],
+    design_principles: [],
+    overview: { modules: [], data_flow: [], decisions: [] },
+    requirements: [],
+    acceptance_criteria: [],
+    clarifications: [],
+    alternatives_considered: [],
+    open_questions: [],
+  });
+}
+
 describe("metrics token command", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -26,7 +42,7 @@ describe("metrics token command", () => {
   function setupProjectWithDifficultyData() {
     tmp = createTmpDir("sdd-metrics-token-diff-");
     writeBaseConfig(tmp);
-    writeFile(tmp, "specs/001-alpha/spec.md", "# Spec\n\nA".repeat(200));
+    writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("A", 1600));
     writeFile(tmp, "specs/001-alpha/review.md", [
       "# Code Review Results",
       "",
@@ -107,7 +123,7 @@ describe("metrics token command", () => {
 
   it("returns N/A difficulty when reviewCount/redoCount are missing", () => {
     setupProject();
-    writeFile(tmp, "specs/001-alpha/spec.md", "# Spec");
+    writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("C", 10));
     writeFile(tmp, "specs/001-alpha/review.md", "### [x] 1. one");
     writeJson(tmp, "specs/001-alpha/issue-log.json", { entries: [] });
     const out = execFileSync("node", [SDD_FORGE, "metrics", "token", "--format", "csv"], {
@@ -124,7 +140,7 @@ describe("metrics token command", () => {
   it("treats missing qaCount/testCount/issueLogEntries as zero for calculation", () => {
     tmp = createTmpDir("sdd-metrics-token-zeroable-");
     writeBaseConfig(tmp);
-    writeFile(tmp, "specs/001-alpha/spec.md", "# Spec\n\nB".repeat(150));
+    writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("B", 1200));
     writeJson(tmp, "specs/001-alpha/flow.json", {
       state: { finalizedAt: "2025-06-15T12:00:00.000Z" },
       request: "request for zero-fill fields",
@@ -154,7 +170,7 @@ describe("metrics token command", () => {
   it("returns N/A when requestChars resolves to zero", () => {
     tmp = createTmpDir("sdd-metrics-token-reqzero-");
     writeBaseConfig(tmp);
-    writeFile(tmp, "specs/001-alpha/spec.md", "# Spec");
+    writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("C", 10));
     writeJson(tmp, "specs/001-alpha/flow.json", {
       state: { finalizedAt: "2025-06-15T12:00:00.000Z" },
       request: "",

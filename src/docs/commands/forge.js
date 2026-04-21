@@ -25,6 +25,7 @@ import { createResolver } from "../lib/resolver-factory.js";
 import { container } from "../../lib/container.js";
 import { translate } from "../../lib/i18n.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
+import { loadSpecJson, specJsonToPromptText } from "../../lib/spec-json.js";
 import {
   summaryToText,
   buildForgeSystemPrompt,
@@ -249,7 +250,10 @@ async function runForge(rawArgs, container) {
     if (!fs.existsSync(specPath)) {
       throw new Error(t("messages:forge.specNotFound", { path: specPath }));
     }
-    specText = readText(specPath).trim();
+    // spec 207 / T8: read structured spec.json and flatten into the prompt
+    // text. Throws if spec.json is missing or invalid (no spec.md fallback).
+    const spec = loadSpecJson(specPath);
+    specText = specJsonToPromptText(spec).trim();
   }
 
   const effectiveMaxRuns = cli.dryRun ? 1 : cli.maxRuns;

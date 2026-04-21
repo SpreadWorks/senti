@@ -11,19 +11,18 @@ import { runGit } from "../../lib/git-helpers.js";
 import { container } from "../../lib/container.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
+import { loadSpecJson } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 
 /**
- * Extract requirements text from spec.md.
- * Returns the raw text of the Requirements section.
+ * Build the requirements text block from spec.json.requirements. Replaces the
+ * former regex-based spec.md section extraction (spec 207 / T8).
  */
-function extractRequirements(specText) {
-  const match = specText.match(/^\s*##\s+Requirements\b/im);
-  if (!match) return "";
-  const start = match.index + match[0].length;
-  const tail = specText.slice(start);
-  const nextHeading = tail.match(/\n\s*##\s+/m);
-  return nextHeading ? tail.slice(0, nextHeading.index).trim() : tail.trim();
+function requirementsAsText(reqs) {
+  if (!Array.isArray(reqs) || reqs.length === 0) return "";
+  return reqs
+    .map((r) => `- ${r.id}${r.priority ? ` [${r.priority}]` : ""}: ${r.desc}`)
+    .join("\n");
 }
 
 /**
@@ -137,13 +136,11 @@ export class RunRetroCommand extends FlowCommand {
       throw new Error("retro.json already exists. Use --force to overwrite.");
     }
 
-    // Read spec
-    const absSpecPath = path.resolve(root, specPath);
-    if (!fs.existsSync(absSpecPath)) {
-      throw new Error(`spec not found: ${specPath}`);
-    }
-    const specText = fs.readFileSync(absSpecPath, "utf8");
-    const requirementsText = extractRequirements(specText);
+    // Read spec from spec.json (T8). specPath may point to .md, .json, or dir —
+    // loadSpecJson resolves all three via resolveSpecJsonPath.
+    const absSpecInput = path.resolve(root, specPath);
+    const specJson = loadSpecJson(absSpecInput);
+    const requirementsText = requirementsAsText(specJson.requirements);
 
     // Get requirements from flow.json
     const requirements = state.requirements || [];
@@ -230,4 +227,4 @@ export class RunRetroCommand extends FlowCommand {
 }
 
 export default RunRetroCommand;
-export { extractRequirements, buildRetroPrompt, parseRetroResponse };
+export { requirementsAsText, buildRetroPrompt, parseRetroResponse };

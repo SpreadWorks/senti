@@ -1,0 +1,180 @@
+{
+  "spec": "specs/207-spec-json-primary/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/207-spec-json-primary",
+  "runId": "117e7c31-6425-44c4-8b7f-f2c134185b31",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 201,
+  "worktree": true,
+  "request": "Issue #201: spec.md → spec.json primary switch. Replace spec.md read logic with spec.json in core wiring (init.js, run-prepare-spec.js, run-gate.js, etc). spec.md becomes derived artifact via T1 render command. Depends on T1 (spec.json schema + render) and T2 (flow.json structure).",
+  "metrics": {
+    "draft": {
+      "srcRead": 1,
+      "question": 1
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 61111,
+        "output": 4046,
+        "cacheRead": 48128,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 8474,
+      "durationMs": 108574
+    },
+    "gate": {
+      "tokens": {
+        "input": 441374,
+        "output": 17546,
+        "cacheRead": 248960,
+        "cacheCreation": 0
+      },
+      "callCount": 19,
+      "responseChars": 18405,
+      "durationMs": 448976
+    },
+    "impl": {
+      "issueLog": 1
+    },
+    "task-impl": {
+      "gateRetry": 0
+    },
+    "plan": {
+      "issueLog": 1
+    },
+    "review": {
+      "tokens": {
+        "input": 178730,
+        "output": 2780,
+        "cacheRead": 7936,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3649,
+      "durationMs": 76997
+    }
+  },
+  "notes": [
+    "draft: scope=core-wiring 11 files; schema-extend authorized_test_modifications; flow.json spec→.json; approval via flow state not spec.md checkbox"
+  ],
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 1794,
+      "integration": 265
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T09:34:25.182Z"
+  }
+}

@@ -21,6 +21,7 @@ import { runGit } from "../../lib/git-helpers.js";
 import { container } from "../../lib/container.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
+import { loadSpecJson } from "../../lib/spec-json.js";
 import { loadTestEvidence } from "./get-test-result.js";
 import {
   VALID_GATE_PHASES,
@@ -578,6 +579,26 @@ const AUTH_ENTRY_RE = /^-\s+`([^`]+)`\s+—\s+(.+?)\s*$/;
  * @param {string} specText full spec.md content
  * @returns {{ files: string[], errors: string[] }}
  */
+export function parseAuthorizedTestModificationsFromJson(entries) {
+  const files = [];
+  const errors = [];
+  if (!Array.isArray(entries)) return { files, errors };
+  for (const e of entries) {
+    if (!e || typeof e.path !== "string" || typeof e.reason !== "string") {
+      errors.push(`authorized-test entry missing path/reason`);
+      continue;
+    }
+    if (e.reason.length < AUTH_REASON_MIN_CHARS) {
+      errors.push(
+        `authorized-test entry \`${e.path}\`: reason must be at least ${AUTH_REASON_MIN_CHARS} chars (got ${e.reason.length})`,
+      );
+      continue;
+    }
+    files.push(e.path);
+  }
+  return { files, errors };
+}
+
 export function parseAuthorizedTestModifications(specText) {
   const files = [];
   const errors = [];
@@ -1030,6 +1051,14 @@ export class RunGateCommand extends FlowCommand {
 
     const specText = fs.readFileSync(absSpecPath, "utf8");
 
+    // spec 207 / T8: authorized_test_modifications is sourced from spec.json
+    // via the single validated load path. loadSpecJson throws if spec.json is
+    // missing or invalid — that failure surfaces to the user immediately.
+    const spec = loadSpecJson(path.dirname(absSpecPath));
+    const authEntries = Array.isArray(spec.authorized_test_modifications)
+      ? spec.authorized_test_modifications
+      : [];
+
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
     const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", root);
     const diff = committed + uncommitted;
@@ -1047,7 +1076,7 @@ export class RunGateCommand extends FlowCommand {
     // spec 205: an optional `## Authorized Existing Test Modifications` section
     // in spec.md can exempt named files from the check. Parse errors in that
     // section are themselves a gate FAIL; unused entries surface as warnings.
-    const authResult = parseAuthorizedTestModifications(specText);
+    const authResult = parseAuthorizedTestModificationsFromJson(authEntries);
     if (authResult.errors.length > 0) {
       return gateFail(level, phase, specPath, [], authResult.errors);
     }

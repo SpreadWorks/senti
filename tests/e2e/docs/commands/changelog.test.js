@@ -8,24 +8,37 @@ import { createTmpDir, removeTmpDir, writeFile } from "../../../helpers/tmp-dir.
 const CMD = join(process.cwd(), "src/sdd-forge.js");
 const CMD_ARGS = ["docs", "changelog"];
 
+function fixtureSpecJson({ goal, scopeIn = [] } = {}) {
+  return JSON.stringify({
+    goal: goal || "Test feature goal.",
+    background: "",
+    scope: { in: scopeIn, out: [] },
+    constraints: [],
+    design_principles: [],
+    overview: { modules: [], data_flow: [], decisions: [] },
+    requirements: [],
+    acceptance_criteria: [],
+    clarifications: [],
+    alternatives_considered: [],
+    open_questions: [],
+  });
+}
+
+function fixtureFlowJson({ featureBranch = "feature/001-test-feature", lifecycle = "Draft" } = {}) {
+  return JSON.stringify({ featureBranch, lifecycle, baseBranch: "main", spec: "" });
+}
+
 describe("changelog CLI", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
   it("generates changelog from specs", () => {
     tmp = createTmpDir();
-    const specContent = [
-      "# Feature Specification: 001-test-feature",
-      "",
-      "**Feature Branch**: `feature/001-test-feature`",
-      "**Created**: 2026-01-01",
-      "**Status**: Draft",
-      "**Input**: User request",
-      "",
-      "## Scope",
-      "- Add tests",
-    ].join("\n");
-    writeFile(tmp, "specs/001-test-feature/spec.md", specContent);
+    writeFile(tmp, "specs/001-test-feature/spec.json", fixtureSpecJson({
+      goal: "Test feature goal.",
+      scopeIn: ["Add tests"],
+    }));
+    writeFile(tmp, "specs/001-test-feature/flow.json", fixtureFlowJson({ lifecycle: "Draft" }));
     fs.mkdirSync(join(tmp, "docs"), { recursive: true });
 
     execFileSync("node", [CMD, ...CMD_ARGS], {
@@ -58,15 +71,10 @@ describe("changelog CLI", () => {
 
   it("--dry-run outputs to stdout without writing file", () => {
     tmp = createTmpDir();
-    const specContent = [
-      "# Feature Specification: 001-test-feature",
-      "",
-      "**Feature Branch**: `feature/001-test-feature`",
-      "**Created**: 2026-01-01",
-      "**Status**: Draft",
-      "**Input**: User request",
-    ].join("\n");
-    writeFile(tmp, "specs/001-test-feature/spec.md", specContent);
+    writeFile(tmp, "specs/001-test-feature/spec.json", fixtureSpecJson({
+      goal: "Test feature goal.",
+    }));
+    writeFile(tmp, "specs/001-test-feature/flow.json", fixtureFlowJson({ lifecycle: "Draft" }));
     fs.mkdirSync(join(tmp, "docs"), { recursive: true });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--dry-run"], {
