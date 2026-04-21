@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T01:49:09.756Z",
+  "analyzedAt": "2026-04-21T03:23:08.949Z",
   "package": {
     "entries": [
       {
@@ -868,7 +868,7 @@
         ],
         "id": "7c5e7654",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -2384,7 +2384,7 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -2709,9 +2709,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "cad9be321ee75675b143c1aee196d56d",
-        "lines": 111,
-        "mtime": "2026-04-21T01:49:09.449Z",
+        "hash": "be5b46642080e791ce7e6f3f59ee99ee",
+        "lines": 115,
+        "mtime": "2026-04-21T03:23:08.707Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -2725,7 +2725,8 @@
           "fs",
           "path",
           "url",
-          "./base-command.js"
+          "./base-command.js",
+          "./get-step-instructions.js"
         ],
         "exports": [
           "default"
@@ -2864,7 +2865,35 @@
         "usedBy": null,
         "id": "9aca938f",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
+        }
+      },
+      {
+        "file": "src/flow/lib/get-step-instructions.js",
+        "hash": "f376433850958f4ab78f9ae1e5ccf236",
+        "lines": 60,
+        "mtime": "2026-04-21T03:23:08.707Z",
+        "className": "get-step-instructions",
+        "methods": [
+          "getStepInstructions",
+          "resolvePromptsDir",
+          "resolveKeyPath"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "url"
+        ],
+        "exports": [
+          "getStepInstructions"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-next-action.js"
+        ],
+        "id": "49f740cb",
+        "enrich": {
+          "attempts": 1
         }
       },
       {
@@ -3004,7 +3033,7 @@
         "usedBy": null,
         "id": "c711309b",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -3086,7 +3115,7 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -3954,7 +3983,7 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4070,7 +4099,7 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -4363,7 +4392,7 @@
         ],
         "id": "74b5e1c3",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -5304,7 +5333,7 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -8432,7 +8461,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -8567,10 +8596,10 @@
       }
     ],
     "summary": {
-      "total": 263,
-      "totalMethods": 798
+      "total": 264,
+      "totalMethods": 801
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-21T01:50:01.965Z"
+  "enrichedAt": "2026-04-21T03:24:01.147Z"
 }
