@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T04:40:43.483Z",
+  "analyzedAt": "2026-04-21T06:11:23.841Z",
   "package": {
     "entries": [
       {
@@ -868,8 +868,23 @@
         ],
         "id": "7c5e7654",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 7
+        },
+        "summary": "Implements the `docs text` filling workflow that injects AI-generated content into `{{text}}` directives across documentation files. It supports batch mode, validation, retries, filtering, and selective execution by changed chapters.",
+        "detail": "The module parses directives, builds prompts from analysis context, and sends requests to the configured agent with optional system prompts and preamble stripping. It includes batch-oriented helpers that parse JSON responses, apply replacements safely, and validate output quality with shrinkage heuristics. It tracks filled and skipped counts per file, supports dry-run behavior, and reports per-file errors without stopping the full run. The command also detects changed chapters by hashing source files from analysis and can narrow processing scope using flow context and filter arguments. Utility exports expose core text-fill primitives for testing and reuse.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "keywords": [
+          "text directives",
+          "batch fill",
+          "AI prompt",
+          "documentation generation",
+          "concurrency",
+          "retry logic",
+          "chapter detection",
+          "content injection"
+        ]
       },
       {
         "file": "src/docs/commands/translate.js",
@@ -2384,8 +2399,23 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 8
+        },
+        "summary": "Provides the flow review command set for implementation, tests, and spec quality checks using AI-assisted iterative loops. It creates review artifacts and can apply fixes to code, tests, and spec documents.",
+        "detail": "The file orchestrates multi-phase review workflows, including diff collection, proposal parsing, scope filtering, and verdict merging. It builds specialized prompts for draft/final review, test design and gap analysis, and spec critique and correction. Review loops retry up to a configured limit, optionally auto-fix issues, and persist results into markdown reports such as `review.md`, `test-review.md`, and `spec-review.md`. It enforces agent availability and relies on flow metadata, Git diffs, and spec content extraction to keep review context focused. Output validation helpers like preamble stripping and spec-shape checks reduce malformed AI responses.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "keywords": [
+          "code review",
+          "spec review",
+          "test gap analysis",
+          "AI feedback loop",
+          "diff inspection",
+          "proposal parsing",
+          "review report",
+          "auto-fix"
+        ]
       },
       {
         "file": "src/flow/lib/base-command.js",
@@ -2735,8 +2765,22 @@
         "usedBy": null,
         "id": "c68afd69",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 3
+        },
+        "summary": "Computes the next actionable instruction in an active flow by mapping current step state to rule-based context descriptors. It loads schema-driven rules and step prompts to return structured next-action payloads.",
+        "detail": "The command resolves schema and prompt directories with environment-variable overrides, then reads JSON rules at runtime. It identifies the in-progress step from task state, resolves the active target scope, and builds a context descriptor containing kinds and relevant paths. It validates that a rule exists for the current step and throws explicit errors for missing active flow, missing in-progress step, or missing rule mappings. Step instructions are fetched through a dedicated prompt loader and returned with normalized metadata. This design keeps behavior declarative by externalizing step routing logic into schema files.",
+        "chapter": "internal_design",
+        "role": "controller",
+        "keywords": [
+          "next action",
+          "flow state",
+          "step routing",
+          "context rules",
+          "schema-driven",
+          "task orchestration",
+          "instruction loader"
+        ]
       },
       {
         "file": "src/flow/lib/get-prompt.js",
@@ -2865,8 +2909,21 @@
         "usedBy": null,
         "id": "9aca938f",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 8
+        },
+        "summary": "Implements flow status retrieval and formatting for active or historical runs. It derives phase information and returns normalized status output objects.",
+        "detail": "The module wraps flow-state access in a command class and exposes a compact status projection function. It supports status lookup by explicit run ID and validates existence with a clear error when not found. For active-session queries, it returns `active: false` when no flow state is present rather than failing hard. When state exists, it enriches output with derived phase data from shared flow helpers. The implementation is intentionally thin and delegates core flow semantics to common libraries.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "flow status",
+          "run state",
+          "phase derivation",
+          "status command",
+          "active flow",
+          "state inspection"
+        ]
       },
       {
         "file": "src/flow/lib/get-step-instructions.js",
@@ -2893,8 +2950,21 @@
         ],
         "id": "49f740cb",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 3
+        },
+        "summary": "Loads per-step instruction markdown files for next-action guidance using a strict `<phase>.<step>` key format. It centralizes prompt path resolution and error handling.",
+        "detail": "The library resolves prompt directory roots via environment override with a package default fallback. It validates instruction keys before path construction, ensuring deterministic mapping from key to file location. File reads return raw markdown instruction content consumed by flow commands. Not-found and invalid-key conditions are converted into domain-specific error messages for better CLI diagnostics. Unexpected filesystem errors are rethrown to preserve original failure context.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "prompt loader",
+          "instruction key",
+          "phase step mapping",
+          "markdown prompts",
+          "path resolution",
+          "error normalization"
+        ]
       },
       {
         "file": "src/flow/lib/get-test-result.js",
@@ -3033,14 +3103,29 @@
         "usedBy": null,
         "id": "c711309b",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 6
+        },
+        "summary": "Implements flow finalization lifecycle including preflight checks, commit/post steps, merge strategy handling, docs build hooks, and cleanup. It is the primary execution engine for `flow finalize`.",
+        "detail": "The module defines reusable finalize helpers such as git write-access preflight, step dispatch maps, and cleanup behavior for worktree and spec-only modes. It includes commit orchestration with skip detection, post-commit hooks, issue-log integration, and optional migration script execution in spec-local scripts. Finalization steps are composable (`all` or `select`) and validated against known merge strategies and step IDs. Errors are wrapped into structured results where possible, while critical validation failures throw explicit exceptions. The command class coordinates container dependencies and returns normalized finalize outcomes for upstream flow orchestration.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "finalize workflow",
+          "preflight check",
+          "merge strategy",
+          "cleanup",
+          "commit orchestration",
+          "worktree",
+          "issue log",
+          "post hook"
+        ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "ebceae5252793a576077a7b9bb14b0bf",
-        "lines": 1023,
-        "mtime": "2026-04-20T16:14:41.463Z",
+        "hash": "efecbfcf28f4591347ecc781ad294761",
+        "lines": 1127,
+        "mtime": "2026-04-21T06:11:23.585Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3048,6 +3133,8 @@
           "parseEvaluationResponse",
           "buildGateReport",
           "checkTestChanges",
+          "parseAuthorizedTestModifications",
+          "findUnusedAuthorizations",
           "updateGateRetryCounter",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -3096,6 +3183,8 @@
           "parseEvaluationResponse",
           "buildGateReport",
           "checkTestChanges",
+          "parseAuthorizedTestModifications",
+          "findUnusedAuthorizations",
           "updateGateRetryCounter",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -3114,9 +3203,24 @@
           "src/flow/lib/run-draft-task.js"
         ],
         "id": "b4aa4dad",
+        "summary": "Provides gate evaluation logic for draft/spec/diff phases with guardrail checks, schema validation, retry tracking, and test-change policy enforcement. It drives pass/fail decisions and issue logging for flow quality gates.",
+        "detail": "The module validates level-phase combinations, builds scoped diff inputs, and runs static checks for spec/draft completeness before any AI guardrail call. It defines strict JSON parsing and schema enforcement for AI evaluation responses via custom errors, including guardrail IDs, categories, and allowed verdict values. For implementation/integration phases, it analyzes changed files, enforces authorized test-modification rules, and can include test evidence in prompts. It tracks gate retries in flow metrics and formats retry history from issue logs to improve iterative corrections. The command class exposes phase-specific execution paths and returns normalized gate result payloads with warnings, reasons, and next-action hints.",
+        "chapter": "internal_design",
+        "role": "controller",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "quality gate",
+          "guardrails",
+          "evaluation schema",
+          "diff analysis",
+          "test authorization",
+          "retry counter",
+          "pass fail verdict",
+          "issue logging"
+        ]
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -3983,8 +4087,22 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 4
+        },
+        "summary": "Defines the central flow command registry and lifecycle hooks that update step status, gate retry metrics, and issue logs around command execution. It is the orchestration map for phase-aware flow subcommands.",
+        "detail": "The registry derives active phase from flow state and wraps command handlers with pre/post hook utilities. It performs resilient side effects like step-status transitions and issue-log appends with guarded error reporting to stderr. Hook factories abstract common behavior so each command can attach consistent lifecycle semantics with minimal duplication. It also integrates gate retry updates and finalize post-processing through command-aware callbacks. This file acts as the glue layer that coordinates command execution policy rather than implementing business logic itself.",
+        "chapter": "project_structure",
+        "role": "controller",
+        "keywords": [
+          "command registry",
+          "lifecycle hooks",
+          "step status",
+          "issue log",
+          "phase orchestration",
+          "flow dispatch",
+          "retry metrics"
+        ]
       },
       {
         "file": "src/help.js",
@@ -4099,8 +4217,23 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 7
+        },
+        "summary": "Implements the core AI agent runtime abstraction for provider-based invocation, retries, prompt/system-prompt handling, and usage logging. It normalizes how CLI commands call external agents.",
+        "detail": "The `Agent` class resolves profile/default provider settings, builds invocation arguments, and supports prompt token substitution or stdin fallback for large prompts. It applies retry policy with exponential backoff and configurable limits, then executes child processes in the project root context. Provider-specific parsing is delegated to a registry while logging captures request IDs, timing, token-like stats, and flow metrics accumulation. The module includes helpers for argument sanitation, workdir flag injection, and robust parse fallback behavior. Errors preserve stderr context and are surfaced with minimal transformation for caller-level handling.",
+        "chapter": "configuration",
+        "role": "lib",
+        "keywords": [
+          "agent runtime",
+          "provider abstraction",
+          "retry backoff",
+          "child process",
+          "prompt injection",
+          "usage logging",
+          "AI invocation",
+          "profile resolution"
+        ]
       },
       {
         "file": "src/lib/agents-md.js",
@@ -4392,8 +4525,22 @@
         ],
         "id": "74b5e1c3",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 8
+        },
+        "summary": "Defines shared constant enums and exit codes used across flow, gate, review, and CLI validation paths. It centralizes allowable values for phases, statuses, strategies, and categories.",
+        "detail": "The module exports frozen arrays for many domain constraints, including phase names, gate levels, review phases, merge strategies, and requirement states. These constants are consumed by command parsers and runtime validators to enforce consistent behavior. It also provides process-level exit code constants for success and error termination semantics. By concentrating canonical value sets in one file, it reduces drift and mismatch across modules. The design is static and dependency-free, intended as a single source of truth.",
+        "chapter": "internal_design",
+        "role": "config",
+        "keywords": [
+          "constants",
+          "enum values",
+          "phase definitions",
+          "exit codes",
+          "merge strategies",
+          "validation set",
+          "shared config"
+        ]
       },
       {
         "file": "src/lib/container.js",
@@ -4917,8 +5064,21 @@
         ],
         "id": "d35107ed",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 2
+        },
+        "summary": "Resolves and expands HTML comment-based include directives in template content with safety limits on recursion and count. It enforces path constraints and circular-include detection.",
+        "detail": "The library parses `include(\"...\")` directives line by line and resolves paths relative to base, templates, presets, or package roots depending on prefix. It blocks potentially unsafe path forms like `../` and `./` to prevent traversal ambiguity. Recursive resolution tracks a stack to detect cycles and applies hard caps for include depth and total include operations. Missing include files throw explicit errors with both original and resolved path context. Output preserves non-include lines while replacing include directives with recursively expanded content.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "include resolver",
+          "template expansion",
+          "path safety",
+          "circular include",
+          "recursion limit",
+          "content preprocessing"
+        ]
       },
       {
         "file": "src/lib/json-parse.js",
@@ -5321,8 +5481,22 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 8
+        },
+        "summary": "Defines provider classes and a registry for parsing agent outputs and mapping profile-specific CLI options. It abstracts differences between Claude, Codex, and user passthrough providers.",
+        "detail": "The base `Provider` contract requires parse behavior and allows optional system-prompt/workdir flags plus extra invocation metadata. `ClaudeProvider` and `CodexProvider` implement provider-specific stream parsing strategies to recover final text and usage data from event envelopes. `UserProvider` returns raw stdout, enabling manual or generic command integration with minimal assumptions. `ProviderRegistry` merges built-ins and profile overrides, resolves provider/profile pairs, and lists available profiles. This structure isolates protocol differences and keeps agent execution logic provider-agnostic.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "provider registry",
+          "output parsing",
+          "claude provider",
+          "codex provider",
+          "profile mapping",
+          "agent protocol",
+          "usage extraction"
+        ]
       },
       {
         "file": "src/lib/schema-validate.js",
@@ -8449,8 +8623,23 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-04-21T06:12:29.233Z",
+          "attempts": 8
+        },
+        "summary": "Implements the interactive and flag-based project setup workflow that creates configuration, directories, agent guidance files, and baseline repository settings. It is the entry point for initializing sdd-forge in a project.",
+        "detail": "The module parses setup CLI arguments, loads defaults from existing config, and runs a wizard for project metadata, presets, and agent preferences. It provisions `.sdd-forge` structure, docs/spec folders, gitignore/gitattributes entries, and writes validated `config.json` output. It manages AGENTS/CLAUDE guidance file injection with directive-aware updates and includes symlink repair for CLAUDE.md edge cases. Skill deployment and preset chain resolution are integrated so setup can bootstrap usable workflow assets immediately. The main function coordinates localization, validation, filesystem writes, and proper process exit behavior.",
+        "chapter": "configuration",
+        "role": "cli",
+        "keywords": [
+          "project setup",
+          "init wizard",
+          "config generation",
+          "bootstrap",
+          "agent config",
+          "preset selection",
+          "directory scaffolding",
+          "interactive CLI"
+        ]
       },
       {
         "file": "src/spec.js",
@@ -8585,9 +8774,9 @@
     ],
     "summary": {
       "total": 264,
-      "totalMethods": 801
+      "totalMethods": 803
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-21T04:41:41.603Z"
+  "enrichedAt": "2026-04-21T06:12:29.233Z"
 }

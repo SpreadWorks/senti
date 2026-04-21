@@ -26,8 +26,8 @@ src/docs/commands/    (cli, controller)
 src/docs/data/    (model, lib)
 src/docs/lib/    (model, lib)
 src/docs/lib/lang/    (lib)
-src/flow/    
-src/flow/commands/    (controller)
+src/flow/    (controller)
+src/flow/commands/    (controller, cli)
 src/flow/lib/    (controller, lib, cli)
 src/lib/    (lib, route, model, config, middleware, controller, view)
 src/metrics/commands/    (cli)
@@ -41,7 +41,7 @@ src/spec/commands/    (cli)
 | ディレクトリ | ファイル数 | 役割 |
 | --- | --- | --- |
 | src/docs | 43 | cli, controller, model, lib |
-| src/flow | 43 | controller, lib, cli |
+| src/flow | 43 | controller, cli, lib |
 | src/lib | 32 | lib, route, model, config, middleware, controller, view |
 | src | 10 | cli, controller |
 | src/check | 3 | cli |
