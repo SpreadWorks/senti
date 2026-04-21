@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T14:27:49.341Z",
+  "analyzedAt": "2026-04-21T22:37:02.588Z",
   "package": {
     "entries": [
       {
@@ -2443,7 +2443,23 @@
         "usedBy": [
           "src/flow/lib/run-auto-check.js"
         ],
-        "id": "234a900d"
+        "id": "234a900d",
+        "summary": "This module performs lightweight static screening for SDD auto mode eligibility. It flags requests that contain risky keywords or contradictory inversion patterns before any AI scoring runs.",
+        "detail": "It defines keyword lists for two gate types and a third heuristic based on inversion counting. The `anyKeyword` helper lowercases input and checks substring matches across configured terms. The `countInversions` helper computes how many contradiction-like patterns appear in the text. `evaluateStaticGates` combines these checks into boolean gate outputs (`G`, `H`, `I`) and derives a final `eligible` flag that only passes when all three gates are false. The design favors deterministic, fast pre-filtering with no external dependencies.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-21T22:37:39.358Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "static analysis",
+          "heuristic gate",
+          "keyword matching",
+          "precheck",
+          "eligibility filter",
+          "rule-based screening"
+        ]
       },
       {
         "file": "src/flow/lib/base-command.js",
@@ -3127,7 +3143,24 @@
         "usedBy": [
           "src/flow/lib/set-auto.js"
         ],
-        "id": "62c43842"
+        "id": "62c43842",
+        "summary": "This module computes AI-assisted auto-check decisions for feature requests and merges them with static gate results. It implements scoring, hard-gate validation, model response parsing, and final decision composition.",
+        "detail": "It defines weighted rubric categories, computes a bounded total score, and enforces a threshold with hard-gate keys that must not be zero. Input text is assembled from flow context when explicit input is absent. AI output is normalized through JSON extraction, fallback breakdown generation, and sanitization to prevent malformed or partial responses from crashing the pipeline. The scoring path returns structured status including `ok`, `reason`, and breakdown details for observability. `composeAutoCheck` merges static gates and AI evaluation into a single verdict consumed by the command class.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-21T22:37:39.358Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "auto mode",
+          "AI scoring",
+          "rubric weights",
+          "hard gate",
+          "JSON parsing",
+          "decision engine",
+          "fallback handling"
+        ]
       },
       {
         "file": "src/flow/lib/run-draft-task.js",
@@ -3243,9 +3276,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "4ae642ef745eb54c4e3afa6824eb0163",
-        "lines": 1183,
-        "mtime": "2026-04-21T14:27:48.935Z",
+        "hash": "7d0bc26a9733fd0c00575f5c32d42785",
+        "lines": 1216,
+        "mtime": "2026-04-21T22:37:02.295Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3329,7 +3362,25 @@
           "src/flow/lib/run-draft-task.js",
           "src/flow/lib/set-gate-retry.js"
         ],
-        "id": "b4aa4dad"
+        "id": "b4aa4dad",
+        "summary": "This module is the core gate engine for SDD phases, including spec checks, draft checks, guardrail evaluation, retry tracking, and diff-based test policy enforcement. It also provides the command implementation and issue-log integration helpers.",
+        "detail": "It validates level-phase combinations, reads and inspects spec or draft content, and runs guardrail evaluation through strict JSON schema parsing with explicit error types. For implementation phases, it parses git diffs, detects test-file modifications, and enforces authorization rules with optional warning paths for unused allowances. It tracks retry metrics by phase, emits budget warnings, and can block execution once retry limits are exceeded. Gate results are normalized into pass/fail payloads with requirement-linked reasons and next-step hints. The command class routes execution by phase mode (draft/spec/diff-based) and appends structured outcomes to issue logs.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-21T22:37:39.358Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "quality gate",
+          "guardrail",
+          "spec validation",
+          "diff analysis",
+          "test authorization",
+          "retry budget",
+          "issue log",
+          "gate report"
+        ]
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -3410,9 +3461,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "856690be3fe5c3c691253391ddbb0e36",
-        "lines": 360,
-        "mtime": "2026-04-21T09:34:26.440Z",
+        "hash": "c2517e6633008465c609b3b7c4c3ec8b",
+        "lines": 350,
+        "mtime": "2026-04-21T22:37:02.295Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3423,9 +3474,8 @@
           "ensureBaseBranch",
           "detectBaseBranch",
           "buildQaTemplate",
-          "loadLocalTemplate",
-          "createQaTemplate",
-          "createSpecTemplate"
+          "buildDraftTemplate",
+          "loadLocalQaTemplate"
         ],
         "imports": [
           "fs",
@@ -3447,21 +3497,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "Prepares new spec work by creating spec directories, templates, and flow state metadata. It enforces clean git state and base-branch integrity before setup.",
-        "detail": "The module generates normalized spec identifiers via slug/index helpers and can derive branch context from the current repository state. It verifies worktree cleanliness and base branch existence, then initializes spec files (`spec.md`, `qa.md`, `spec.json`) with localized template loading and fallbacks. Spec markdown is rendered from stub JSON using shared rendering utilities rather than raw static text. Flow state writing captures branch, paths, language, and initial step scaffolding to bootstrap the SDD pipeline. The command class supports worktree-aware paths and strict argument/config validation.",
+        "summary": "This module prepares a new spec workspace for flow execution, including naming, branch/worktree setup, and initial file generation. It creates spec, QA, draft, and flow-state artifacts in a consistent structure.",
+        "detail": "It derives slugged directory names, computes next numeric indices, and validates cleanliness/base-branch readiness before setup. The command can create an isolated worktree path and branch naming scheme tied to the new spec identifier. It writes `spec.json` stubs, renders markdown spec output from the stub, and populates localized QA templates with local override support. Draft templates are initialized with standard sections to guide requirement capture and implementation planning. Flow state is persisted with generated paths and metadata so later flow steps can continue deterministically.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-21T09:35:24.876Z",
+          "processedAt": "2026-04-21T22:37:39.358Z",
           "attempts": 1
         },
         "keywords": [
           "spec bootstrap",
-          "template initialization",
           "worktree setup",
+          "branch preparation",
+          "template generation",
+          "slugify",
           "flow state",
-          "slug generation",
-          "branch precheck"
+          "scaffolding"
         ]
       },
       {
@@ -3780,7 +3831,23 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "2c71e989"
+        "id": "2c71e989",
+        "summary": "This command toggles flow auto-approve mode with optional AI-backed safety checking. It validates accepted values and records auto-check diagnostics when enabling auto mode.",
+        "detail": "It builds input text from current flow state to support contextual auto-check evaluation. The command enforces usage with a fixed value set and has a direct off-path that disables auto mode immediately. On enable, it invokes `runAutoCheckCore` and surfaces failures by throwing when safety checks reject the request. Successful execution persists both `autoApprove: true` and structured `autoCheck` evidence for traceability. The implementation cleanly separates input assembly, mode validation, and decision delegation.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-21T22:37:39.358Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "auto-approve",
+          "mode toggle",
+          "safety check",
+          "flow state",
+          "command validation",
+          "AI gate"
+        ]
       },
       {
         "file": "src/flow/lib/set-gate-retry.js",
@@ -3798,7 +3865,23 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "52f5b29b"
+        "id": "52f5b29b",
+        "summary": "This command manages manual reset of gate retry counters for tracked implementation phases. It is a guarded operational control that requires explicit confirmation.",
+        "detail": "It defines allowed actions and restricts reset behavior to specific phases tied to retry budgeting. The command validates arguments strictly and reports current counter values using shared retry-count logic. It refuses destructive reset unless `--yes` is provided, preventing accidental metric loss. On success it returns a minimal structured confirmation payload describing the reset scope. The design keeps policy constants local while reusing shared counter computation from gate logic.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-21T22:37:39.358Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "retry counter",
+          "reset command",
+          "phase control",
+          "confirmation flag",
+          "gate metrics",
+          "operational safeguard"
+        ]
       },
       {
         "file": "src/flow/lib/set-init.js",
@@ -4246,7 +4329,24 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "d64f4095"
+        "id": "d64f4095",
+        "summary": "This module registers flow commands and wires lifecycle hooks for step status updates, issue-log appends, and retry metric tracking. It centralizes command orchestration around pre/post execution wrappers.",
+        "detail": "It derives active phase from current state and maps gate phases to step IDs for consistent progress updates. Wrapper helpers catch and report non-fatal logging/status errors while preserving command failure semantics for critical paths. Post hooks append gate results or gate errors into issue logs and update retry counters when relevant. The exported registry includes command metadata, help text, and async execution integration points. This makes flow command behavior composable and observable without duplicating control logic across command modules.",
+        "chapter": "project_structure",
+        "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-21T22:37:39.358Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "command registry",
+          "orchestration",
+          "lifecycle hooks",
+          "step status",
+          "issue logging",
+          "flow routing",
+          "post-execution handling"
+        ]
       },
       {
         "file": "src/help.js",
@@ -8971,9 +9071,9 @@
     ],
     "summary": {
       "total": 270,
-      "totalMethods": 837
+      "totalMethods": 836
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-21T09:35:24.876Z"
+  "enrichedAt": "2026-04-21T22:37:39.358Z"
 }

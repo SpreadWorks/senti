@@ -26,7 +26,7 @@ src/docs/commands/    (cli, controller)
 src/docs/data/    (model, lib)
 src/docs/lib/    (model, lib)
 src/docs/lib/lang/    (lib)
-src/flow/    
+src/flow/    (controller)
 src/flow/commands/    (cli)
 src/flow/lib/    (lib, controller, cli)
 src/lib/    (lib, route, model, config, middleware, view)
