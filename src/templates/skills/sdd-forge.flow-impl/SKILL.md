@@ -34,6 +34,8 @@ Note: `sdd-forge flow get context` automatically records these metrics via hooks
 
 <!-- include("@templates/partials/choice-format.md") -->
 
+<!-- include("@templates/partials/ai-question-style.md") -->
+
 ## Prerequisites
 
 Before starting, run `sdd-forge flow get check impl` to verify prerequisites.

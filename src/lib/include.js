@@ -11,6 +11,9 @@ import path from "path";
 
 const INCLUDE_RE = /^<!--\s*include\("([^"]+)"\)\s*-->$/;
 
+const MAX_INCLUDE_DEPTH = 8;
+const MAX_INCLUDE_COUNT = 32;
+
 /**
  * Resolve a single include path to an absolute file path.
  *
@@ -73,6 +76,13 @@ function resolveIncludePath(includePath, opts) {
  */
 export function resolveIncludes(content, opts) {
   const seen = opts._seen || new Set();
+  const counter = opts._counter || { count: 0 };
+  const depth = opts._depth || 0;
+
+  if (depth > MAX_INCLUDE_DEPTH) {
+    throw new Error(`Include recursion depth exceeded ${MAX_INCLUDE_DEPTH} levels`);
+  }
+
   const lines = content.split("\n");
   const result = [];
 
@@ -81,6 +91,11 @@ export function resolveIncludes(content, opts) {
     if (!match) {
       result.push(line);
       continue;
+    }
+
+    counter.count += 1;
+    if (counter.count > MAX_INCLUDE_COUNT) {
+      throw new Error(`Total include count exceeded ${MAX_INCLUDE_COUNT}`);
     }
 
     const includePath = match[1];
@@ -98,13 +113,23 @@ export function resolveIncludes(content, opts) {
     seen.add(resolved);
     const included = fs.readFileSync(resolved, "utf8");
 
-    // Recursively resolve includes in the included content
-    const expanded = resolveIncludes(included, {
-      ...opts,
-      baseDir: path.dirname(resolved),
-      sourceFile: resolved,
-      _seen: seen,
-    });
+    let expanded;
+    try {
+      // Recursively resolve includes in the included content
+      expanded = resolveIncludes(included, {
+        ...opts,
+        baseDir: path.dirname(resolved),
+        sourceFile: resolved,
+        _seen: seen,
+        _counter: counter,
+        _depth: depth + 1,
+      });
+    } finally {
+      // Remove on exit so `_seen` tracks only the current ancestry path.
+      // This detects true circular includes (A → B → A) but permits
+      // diamond-shaped includes (A includes B and C, both include X).
+      seen.delete(resolved);
+    }
 
     result.push(expanded.replace(/\n$/, ""));
   }

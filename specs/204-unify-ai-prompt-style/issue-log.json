@@ -1,0 +1,83 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Spec focuses on one concern (unifying AI prompt style) and explicitly scopes out unrelated work.; Unambiguous Requirements — Some requirements remain non-final/ambiguous (e.g., target files are listed as candidates and finalized later).; Complete Context — Many requirements are stated without explicit When/If trigger plus expected shall behavior pairing.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets appear in the draft.; Prioritize Requirements — There are more than three requirements/criteria but no priority order is defined.; Impact on Existing Features — A dedicated impact section describes affected areas, unaffected scope, and rollout impact.; Present Recommendations with Reasoning — Recommendations are present, but rationale is not consistently tied to docs/, guardrails, or established code patterns for each question.; Explore Before Asking — Cannot verify prior docs/code exploration behavior from draft text alone.; Proactively Raise Related Implications — The draft proactively calls out related implications such as test scope, distribution effects, and out-of-scope boundaries.; Confirm Brainstorm vs. Decision Before Critiquing — Conversation evidence of confirming brainstorming vs decision before critique is not provided.; Capture Digressions in draft.md — No clear digression requiring separate capture is evident in the provided draft.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions and integration approach), beyond pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T03:57:44.214Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Scope is focused on prompt-style standardization and explicitly excludes unrelated areas (e.g., layer C, 4a7d).; Unambiguous Requirements — Requirements and ACs use verifiable conditions (When/shall, explicit targets, counts, and test expectations).; Complete Context — Each listed requirement pairs a trigger/context with expected behavior using When + shall.; No Hardcoded Secrets — No credentials or secret-like values are present in the draft content.; Prioritize Requirements — Priority order is explicitly defined (P1/P2/P3) because requirements exceed three items.; Impact on Existing Features — A dedicated impact section lists affected features and explicitly states out-of-scope items.; Present Recommendations with Reasoning — Each Q&A provides a recommendation and concise rationale grounded in issue text, guardrails, and existing patterns.; Explore Before Asking — Whether code/docs exploration occurred before asking cannot be fully verified from the draft text alone.; Proactively Raise Related Implications — Related implications are proactively surfaced via impact, alternatives, scope exclusions, and open questions.; Confirm Brainstorm vs. Decision Before Critiquing — Confirmation timing/state (brainstorm vs decision) depends on conversation flow not fully available in this content.; Capture Digressions in draft.md — Whether there were actual digressions requiring capture cannot be determined from this standalone draft.; Draft Stays at Requirements Level — Draft includes implementation-leaning details (specific file paths, include-expansion mechanism, library-selection note) beyond pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is specified, so migration planning is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T03:59:11.520Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Spec is focused on one concern: standardizing AI prompt style rules for user-facing question/choice generation.; Unambiguous Requirements — Some requirement triggers are vague (e.g., \"when common rules are needed\" / \"when rules are prepared\"), reducing verifiability.; Complete Context — Each listed requirement uses a trigger condition (When) and expected behavior (shall).; No Hardcoded Secrets — No source code secrets or credential literals are present in this draft content.; Prioritize Requirements — More than three requirements are present and explicit priority order (P1/P2/P3) is provided.; Impact on Existing Features — Impact on existing features is explicitly listed, including affected areas and out-of-scope areas.; Present Recommendations with Reasoning — Each Q&A provides a recommended answer and concise rationale tied to guardrails, project rules, or existing patterns.; Explore Before Asking — Questions are answered within the draft using project/issue context rather than deferred to user without prior analysis.; Proactively Raise Related Implications — Related implications are proactively covered via Impact, Alternatives, and scope exclusions.; Confirm Brainstorm vs. Decision Before Critiquing — The draft indicates decision mode via explicit user approval and finalized recommendation set.; Capture Digressions in draft.md — No clear digression is evident; requirement is inapplicable in this content.; Draft Stays at Requirements Level — Content stays at requirements/spec level and avoids function-level implementation design.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T04:00:30.320Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on unifying AI prompt style and explicitly excludes unrelated scopes.; Unambiguous Requirements — Requirements are mostly stated as verifiable conditions with concrete files, behaviors, and checks.; Complete Context — Each requirement pairs trigger context (When) with expected behavior (shall).; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in the spec content.; No Silent Error Swallowing — No silent error-discard pattern is specified; error cases are expected to surface via tests.; Prioritize Requirements — Requirements are explicitly prioritized with P1/P2/P3 labels.; Impact on Existing Features — Impact boundaries are described via Scope/Out of Scope and compatibility notes for existing behavior.; Bounded Resource Usage — Recursive include handling is mentioned, but no explicit upper bound (depth/count/size) is defined.; Changes Require Test Coverage — Spec includes unit/integration coverage and states why AI behavior testing is out of scope.; Spec Includes Test Strategy — A dedicated Test Strategy section defines what to test and how.; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs direct copying without the original draft source content.; Record Unresolved Points as Open Questions — Unresolved items are explicitly recorded in an Open Questions section.; Include 'Why This Approach' Rationale — Rationale is provided through Alternatives Considered with tradeoff explanations.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying or deleting existing tests; it adds new tests.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is specified.; Exit Code Contract — No command failure-handling contract change is introduced in this spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T04:02:59.160Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on unifying AI question style rules and explicitly excludes unrelated areas.; Unambiguous Requirements — Requirements are mostly stated with verifiable conditions, file paths, and concrete acceptance criteria.; Complete Context — Requirements consistently pair trigger conditions (When) with expected behavior (shall).; No Hardcoded Secrets — No secrets or credential-like literals are specified; article is inapplicable to this content.; No Silent Error Swallowing — Spec does not permit silent failure and explicitly requires throwing errors for bound overages.; Prioritize Requirements — Requirements are prioritized with P1/P2/P3 labels.; Impact on Existing Features — Impact on existing features is not explicitly summarized as a dedicated impact statement (or explicit no-impact statement).; Bounded Resource Usage — Explicit upper bounds are defined for include recursion depth and total include count.; Changes Require Test Coverage — Spec includes unit/integration tests and states rationale for excluded AI behavior testing.; Spec Includes Test Strategy — A clear Test Strategy section describes what to test and how.; Synthesize Draft, Do Not Copy — Cannot determine whether draft content was copied vs synthesized without the source draft.; Record Unresolved Points as Open Questions — Unresolved items are captured in Open Questions rather than asserted as settled facts.; Include 'Why This Approach' Rationale — Alternatives and tradeoffs are documented, providing rationale for the chosen approach.; Do Not Modify Existing Tests Without Approval — No proposal to modify/delete existing tests is present; article is inapplicable at spec text level.; Backward-Compatible CLI Interface — No CLI command/option semantics change is specified, so migration planning is not required.; Exit Code Contract — No command failure-path behavior is changed in this spec; article is inapplicable here.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T04:03:39.924Z"
+    },
+    {
+      "step": "implement",
+      "reason": "spec 204 changes the getStepInstructions loader contract to expand includes; two existing tests asserted the old raw-file contract",
+      "trigger": "npm test failures on get-step-instructions and get-next-action content equality assertions",
+      "resolution": "updated both tests to assert the new contract: content is non-empty, no unexpanded include directives remain, and distinctive non-include body lines are preserved",
+      "guardrailCandidate": "when a spec changes a loader contract, explicitly list which tests encode the old contract and update them as part of the implementation commit",
+      "timestamp": "2026-04-21T04:14:39.220Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/get-next-action.test.js:429: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/get-next-action.test.js:441: existing line modified/deleted in test file (removed=1, added=11); tests/unit/flow/get-step-instructions.test.js:8: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/get-step-instructions.test.js:36: existing line modified/deleted in test file (removed=2, added=14)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T04:17:14.952Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/get-next-action.test.js:441: existing line modified/deleted in test file (removed=1, added=12)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T04:24:53.451Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements include limits and SKILL include wiring, but does not show creation of src/templates/partials/ai-question-style.md, placement-integrity test additions, or R6 content/alignment requirements; therefore full spec compliance is not demonstrated.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T04:30:18.144Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: tests/unit/flow/get-next-action.test.js:429: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/get-next-action.test.js:441: existing line modified/deleted in test file (removed=1, added=11); tests/unit/flow/get-step-instructions.test.js:8: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/get-step-instructions.test.js:36: existing line modified/deleted in test file (removed=2, added=14)\n  attempt 2: tests/unit/flow/get-next-action.test.js:441: existing line modified/deleted in test file (removed=1, added=12)\n  attempt 3: REQ-SPEC — Diff implements include limits and SKILL include wiring, but does not show creation of src/templates/partials/ai-question-style.md, placement-integrity test additions, or R6 content/alignment requirements; therefore full spec compliance is not demonstrated.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-21T04:30:23.240Z"
+    }
+  ]
+}

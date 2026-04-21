@@ -1,0 +1,60 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/204-unify-ai-prompt-style/draft.md           |  95 +++++++++\n specs/204-unify-ai-prompt-style/flow.json          | 223 +++++++++++++++++++++\n specs/204-unify-ai-prompt-style/issue-log.json     |  83 ++++++++\n specs/204-unify-ai-prompt-style/qa.md              |   9 +\n specs/204-unify-ai-prompt-style/review.md          |  41 ++++\n specs/204-unify-ai-prompt-style/spec.md            |  94 +++++++++\n specs/204-unify-ai-prompt-style/tests/README.md    |  43 ++++\n .../tests/placement-integrity.test.js              |  57 ++++++\n src/lib/include.js                                 |  39 +++-\n src/templates/partials/ai-question-style.md        |  71 +++++++\n .../skills/sdd-forge.flow-finalize/SKILL.md        |   2 +\n src/templates/skills/sdd-forge.flow-impl/SKILL.md  |   2 +\n src/templates/skills/sdd-forge.flow-plan/SKILL.md  |   2 +\n tests/unit/lib/include.test.js                     |  51 +++++\n 14 files changed, 805 insertions(+), 7 deletions(-)",
+      "commits": [
+        "feat: feature/204-unify-ai-prompt-style",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 5,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 328520,
+      "output": 10635,
+      "cacheRead": 124288,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 261779,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 103733
+        },
+        {
+          "phase": "gate",
+          "durationMs": 100946
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 13958
+        },
+        {
+          "phase": "review",
+          "durationMs": 43142
+        }
+      ]
+    },
+    "tests": {
+      "unit": 4,
+      "integration": 0,
+      "acceptance": 17,
+      "total": 21
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/204-unify-ai-prompt-style\n    chore: add retro and report\n    14 files changed, 805 insertions(+), 7 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 5\n    issue-log ................... 1\n    agent calls ................. 11\n    input tokens ................ 328,520\n    output tokens ............... 10,635\n    cache-read tokens ........... 124,288\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 261.8s\n      gate-draft ................ 103.7s\n      gate ...................... 100.9s\n      gate-impl ................. 14.0s\n      review .................... 43.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 4  integration 0  acceptance 17  total 21"
+}

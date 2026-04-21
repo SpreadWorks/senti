@@ -36,6 +36,8 @@ Note: `sdd-forge flow get context` automatically records these metrics via hooks
 
 <!-- include("@templates/partials/choice-format.md") -->
 
+<!-- include("@templates/partials/ai-question-style.md") -->
+
 ## Required Sequence
 
 0. Initialize flow state.

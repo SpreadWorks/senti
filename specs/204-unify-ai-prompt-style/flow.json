@@ -1,0 +1,223 @@
+{
+  "spec": "specs/204-unify-ai-prompt-style/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/204-unify-ai-prompt-style",
+  "runId": "ee930fae-4598-466a-859d-f3acbf061611",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: 共通ルールを単一パーシャル ai-question-style.md で維持 (SKILL.md 参照)",
+      "status": "done"
+    },
+    {
+      "desc": "R2: SKILL.md 3 ファイルから ai-question-style.md を include し、deploy 時に展開される",
+      "status": "done"
+    },
+    {
+      "desc": "R3: sdd-forge upgrade で展開済み SKILL.md を配布",
+      "status": "done"
+    },
+    {
+      "desc": "R4: include 深度/件数/diamond テストと SKILL.md 配置整合性テストを通過",
+      "status": "done"
+    },
+    {
+      "desc": "R5: resolveIncludes に最大深度 8 / 最大件数 32 の上限を設け、循環検出を ancestor-only に変更",
+      "status": "done"
+    },
+    {
+      "desc": "R6: 共通パーシャルは 3 カテゴリに good/bad 例を少なくとも 1 組ずつ含み、曖昧語リストは既存 guardrail と整合",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 198,
+  "worktree": true,
+  "request": "src/flow/prompts/ 配下の AI 向けプロンプトテンプレートをブラッシュアップし、AI が生成する全ての質問・選択肢 UI の文体・前提知識・選択肢フォーマットを統一する。",
+  "notes": [
+    "draft Q1: 解釈サマリー承認（src/flow/prompts/ のブラッシュアップ + 全 AI 質問 UI に共通適用）",
+    "Q1 scope: 層A (src/flow/prompts/) + 層B (src/templates/skills/ SKILL.md) の2層。層C (subagent prompt) と 4a7d は別 spec で扱う",
+    "Q2 mechanism: 新規 partial (ai-question-style.md) + 層A の include 対応追加で単一ソース化",
+    "Q3 rules: Issue の 3 カテゴリをそのまま採用 + good/bad 例 1-2 組添付（few-shot）。既存 guardrail unambiguous-requirements と曖昧語リスト整合",
+    "AI feedback during Q3: 選択肢ブロックはラベル＋短注釈のみ。詳細は外に分離。本 spec の partial に反映する",
+    "Q4 test: 構造テストのみ (include 展開 + 配置整合性)。AI 出力の性質テストは非対象",
+    "Q5 coverage: 質問・選択肢を生成する step のみに include を追加（全 23 ファイルではない）",
+    "gate-impl skipped: test-change-check で retry 3/3 枯渇。原因は spec 204 の試行過程で触った test ファイルの diff 残り + 094d (系統的 FP) の問題。最終コードは全テスト PASS (unit 1767 / integration 265 / spec-local 5)。ユーザー判断で skip → review フェーズへ"
+  ],
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "srcRead": 1,
+      "question": 5
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 69342,
+        "output": 4412,
+        "cacheRead": 35328,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 8323,
+      "durationMs": 103733
+    },
+    "gate": {
+      "tokens": {
+        "input": 65709,
+        "output": 4274,
+        "cacheRead": 43520,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 10100,
+      "durationMs": 100946
+    },
+    "impl": {
+      "issueLog": 1
+    },
+    "task-impl": {
+      "gateRetry": 3
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 134374,
+        "output": 338,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 330,
+      "durationMs": 13958
+    },
+    "review": {
+      "tokens": {
+        "input": 59095,
+        "output": 1611,
+        "cacheRead": 41984,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3884,
+      "durationMs": 43142
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 4,
+      "acceptance": 17
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T04:39:56.121Z"
+  }
+}

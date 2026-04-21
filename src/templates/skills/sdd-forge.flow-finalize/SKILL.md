@@ -22,6 +22,8 @@ Available status values: `pending`, `in_progress`, `done`, `skipped`
 
 <!-- include("@templates/partials/choice-format.md") -->
 
+<!-- include("@templates/partials/ai-question-style.md") -->
+
 ## CRITICAL: Step 0 — Present Options FIRST
 
 **STOP. Do NOT proceed to any other step. You MUST present the prompt below and wait for the user's response before doing anything else. Do NOT read files, run commands, or take any action until the user selects an option.**

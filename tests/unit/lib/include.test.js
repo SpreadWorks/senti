@@ -126,4 +126,55 @@ describe("resolveIncludes", () => {
     const result = resolveIncludes(content, { baseDir: tmp });
     assert.equal(result, "AAA\nMiddle\nBBB");
   });
+
+  // Build a linear include chain: root → a0 → a1 → ... → a(n-1) (leaf)
+  // Returns the root content that kicks off the chain.
+  function createLinearIncludes(dir, chainLength) {
+    for (let i = 0; i < chainLength - 1; i++) {
+      fs.writeFileSync(
+        path.join(dir, `a${i}.md`),
+        `<!-- include("a${i + 1}.md") -->`,
+      );
+    }
+    fs.writeFileSync(path.join(dir, `a${chainLength - 1}.md`), "deep");
+    return '<!-- include("a0.md") -->';
+  }
+
+  // Build a flat fan-out: root content with N sibling include lines,
+  // each targeting a distinct leaf partial.
+  function createFlatIncludes(dir, count) {
+    const lines = [];
+    for (let i = 0; i < count; i++) {
+      fs.writeFileSync(path.join(dir, `p${i}.md`), `part${i}`);
+      lines.push(`<!-- include("p${i}.md") -->`);
+    }
+    return lines.join("\n");
+  }
+
+  it("throws when recursion depth exceeds 8 levels", () => {
+    tmp = createTmpDir();
+    // 10-file linear chain exceeds the depth-8 bound.
+    const content = createLinearIncludes(tmp, 10);
+    assert.throws(
+      () => resolveIncludes(content, { baseDir: tmp }),
+      /depth|recursion/i,
+    );
+  });
+
+  it("throws when total include count exceeds 32", () => {
+    tmp = createTmpDir();
+    const content = createFlatIncludes(tmp, 33);
+    assert.throws(
+      () => resolveIncludes(content, { baseDir: tmp }),
+      /include.*count|too many include/i,
+    );
+  });
+
+  it("allows up to 32 includes without throwing", () => {
+    tmp = createTmpDir();
+    const content = createFlatIncludes(tmp, 32);
+    const result = resolveIncludes(content, { baseDir: tmp });
+    assert.ok(result.includes("part0"));
+    assert.ok(result.includes("part31"));
+  });
 });
