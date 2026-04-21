@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T00:25:54.444Z",
+  "analyzedAt": "2026-04-21T00:28:25.401Z",
   "package": {
     "entries": [
       {
@@ -868,7 +868,7 @@
         ],
         "id": "7c5e7654",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -2384,7 +2384,7 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -2833,7 +2833,7 @@
         "usedBy": null,
         "id": "9aca938f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -2928,9 +2928,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "00469d4915f8ca760f4764d8edea0902",
-        "lines": 403,
-        "mtime": "2026-04-19T00:52:50.139Z",
+        "hash": "74844b36ef1ef670ed56614312242500",
+        "lines": 406,
+        "mtime": "2026-04-21T00:28:25.096Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -2973,20 +2973,8 @@
         "usedBy": null,
         "id": "c711309b",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Orchestrates finalize workflow steps including preflight checks, commit/post actions, merge, and cleanup. It supports all/select modes with step-level status reporting.",
-        "detail": "The module verifies git write access up front to fail fast on lock or permission issues. It executes each finalize substep through a shared wrapper that captures success/failure status and messages. Additional behaviors include migration hooks, optional docs build integration, merge strategy handling, and worktree cleanup. The command returns structured results suitable for both human output and automation.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "finalize workflow",
-          "preflight",
-          "merge strategy",
-          "cleanup",
-          "step runner"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -3067,7 +3055,7 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3935,7 +3923,7 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4051,7 +4039,7 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4344,7 +4332,7 @@
         ],
         "id": "74b5e1c3",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5285,7 +5273,7 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8413,7 +8401,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8553,5 +8541,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-21T00:26:44.767Z"
+  "enrichedAt": "2026-04-21T00:29:19.329Z"
 }
