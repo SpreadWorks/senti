@@ -1,0 +1,64 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/202-add-gate-impl-integration-tests/draft.md |  70 +++++++\n .../202-add-gate-impl-integration-tests/flow.json  | 204 ++++++++++++++++++\n .../issue-log.json                                 |  92 +++++++++\n specs/202-add-gate-impl-integration-tests/qa.md    |   9 +\n .../202-add-gate-impl-integration-tests/review.md  |  49 +++++\n specs/202-add-gate-impl-integration-tests/spec.md  | 105 ++++++++++\n .../tests/README.md                                |  38 ++++\n tests/e2e/flow/gate-impl-integration.test.js       | 229 +++++++++++++++++++++\n tests/helpers/git-repo.js                          |  26 +++\n tests/helpers/stub-agent.js                        |  49 +++++\n 10 files changed, 871 insertions(+)",
+      "commits": [
+        "feat: feature/202-add-gate-impl-integration-tests",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 4,
+      "partial": 3,
+      "not_done": 0,
+      "rate": 0.79,
+      "notes": "主要配線要件（R1, R3, R4, R6）は実装済み。R2 はケース網羅と exit 0 明示確認が不足、R5 は実行出力でのシンボル確認が不足、R7 は実測の自動検証が不足している。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 3,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 286848,
+      "output": 15544,
+      "cacheRead": 155776,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14,
+      "durationMs": 374875,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 179325
+        },
+        {
+          "phase": "gate",
+          "durationMs": 149867
+        },
+        {
+          "phase": "review",
+          "durationMs": 45683
+        }
+      ]
+    },
+    "tests": {
+      "unit": 0,
+      "integration": 6,
+      "acceptance": 0,
+      "total": 6
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/202-add-gate-impl-integration-tests\n    chore: add retro and report\n    chore: add retro and report\n    10 files changed, 871 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ██████░░ 79%  (4 done / 3 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 3\n    issue-log ................... 1\n    agent calls ................. 14\n    input tokens ................ 286,848\n    output tokens ............... 15,544\n    cache-read tokens ........... 155,776\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 374.9s\n      gate-draft ................ 179.3s\n      gate ...................... 149.9s\n      review .................... 45.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 0  integration 6  acceptance 0  total 6"
+}

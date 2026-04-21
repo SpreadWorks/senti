@@ -1,0 +1,204 @@
+{
+  "spec": "specs/202-add-gate-impl-integration-tests/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/202-add-gate-impl-integration-tests",
+  "runId": "a7e20da1-7d86-4fa3-b194-f9f277aeadc1",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "skipped"
+    },
+    {
+      "id": "gate-impl",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: PASS wiring 検証",
+      "status": "pending"
+    },
+    {
+      "desc": "R2: FAIL wiring 検証",
+      "status": "pending"
+    },
+    {
+      "desc": "R3: ESCALATE end-to-end 検証",
+      "status": "pending"
+    },
+    {
+      "desc": "R4: post-hook counter 遷移検証",
+      "status": "pending"
+    },
+    {
+      "desc": "R5: ESCALATE エラー識別子の一貫性検証",
+      "status": "pending"
+    },
+    {
+      "desc": "R6: Stub provider helper",
+      "status": "pending"
+    },
+    {
+      "desc": "R7: 実行時間上限",
+      "status": "pending"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 196,
+  "request": "#196 spec 201 gate-impl 改善の integration test 不足 (5 項目の配線検証)",
+  "worktree": true,
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 3
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 136007,
+        "output": 7804,
+        "cacheRead": 44800,
+        "cacheCreation": 0
+      },
+      "callCount": 7,
+      "responseChars": 15988,
+      "durationMs": 179325
+    },
+    "gate": {
+      "tokens": {
+        "input": 51442,
+        "output": 5864,
+        "cacheRead": 83584,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 13060,
+      "durationMs": 149867
+    },
+    "review": {
+      "tokens": {
+        "input": 99399,
+        "output": 1876,
+        "cacheRead": 27392,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3759,
+      "durationMs": 45683
+    },
+    "impl": {
+      "issueLog": 1
+    }
+  },
+  "notes": [
+    "draft: tests to tests/e2e/flow/, stub agent via helpers, CLI subprocess, single file 5 cases, ESCALATE verified by err.code symbol match"
+  ],
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "integration": 6
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T00:30:34.222Z"
+  }
+}

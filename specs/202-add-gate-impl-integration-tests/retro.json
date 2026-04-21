@@ -1,0 +1,83 @@
+{
+  "spec": "specs/202-add-gate-impl-integration-tests/spec.md",
+  "date": "2026-04-21T00:31:19.439Z",
+  "requirements": [
+    {
+      "desc": "R1: PASS wiring 検証",
+      "status": "done",
+      "note": "`tests/e2e/flow/gate-impl-integration.test.js` の R1 ケースで、既存 test への複数行追加 diff を作り、サブプロセス実行で exit 0 と `data.result === \"pass\"` を検証している。"
+    },
+    {
+      "desc": "R2: FAIL wiring 検証",
+      "status": "partial",
+      "note": "`data.result === \"fail\"` と fail 理由の `file:line` は検証しているが、`+` 1 行のみ（`-` 行なし）パターンを独立して検証しておらず、CLI 正常終了（exit 0）も明示アサートしていない。"
+    },
+    {
+      "desc": "R3: ESCALATE end-to-end 検証",
+      "status": "done",
+      "note": "gateRetry 上限到達 fixture で実行し、非 0 exit と retry 履歴テキスト（attempt 表示と過去 FAIL 理由）を stdout/stderr から検証している。"
+    },
+    {
+      "desc": "R4: post-hook counter 遷移検証",
+      "status": "done",
+      "note": "R4a/R4b で flow.json の `metrics[\"task-impl\"].gateRetry` を直接読み、PASS 時 0 リセット・FAIL 時 +1 を検証している。"
+    },
+    {
+      "desc": "R5: ESCALATE エラー識別子の一貫性検証",
+      "status": "partial",
+      "note": "静的検証（`run-gate.js` と `run-draft-task.js` の `ESCALATE_RETRY_EXHAUSTED` 文字列）はあるが、R3 実行出力に同シンボル文字列が含まれることは検証していない。"
+    },
+    {
+      "desc": "R6: Stub provider helper",
+      "status": "done",
+      "note": "`tests/helpers/stub-agent.js` を追加し、Node.js 組み込み (`fs`,`path`) のみで決定論的応答の stub provider helper を実装・使用している。"
+    },
+    {
+      "desc": "R7: 実行時間上限",
+      "status": "partial",
+      "note": "README に実行時間目安は記載されているが、30 秒以内をテストとして計測・アサートする実装は追加されていない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/202-add-gate-impl-integration-tests/draft.md",
+      "change": "仕様ドラフト文書の新規追加（要件実装そのものではないプロセス成果物）。"
+    },
+    {
+      "file": "specs/202-add-gate-impl-integration-tests/flow.json",
+      "change": "フロー状態・メトリクス記録ファイルの新規追加。"
+    },
+    {
+      "file": "specs/202-add-gate-impl-integration-tests/issue-log.json",
+      "change": "gate/review 実行ログの新規追加。"
+    },
+    {
+      "file": "specs/202-add-gate-impl-integration-tests/qa.md",
+      "change": "QA テンプレートの新規追加。"
+    },
+    {
+      "file": "specs/202-add-gate-impl-integration-tests/review.md",
+      "change": "コードレビュー記録の新規追加。"
+    },
+    {
+      "file": "specs/202-add-gate-impl-integration-tests/spec.md",
+      "change": "仕様書本体の新規追加。"
+    },
+    {
+      "file": "specs/202-add-gate-impl-integration-tests/tests/README.md",
+      "change": "spec 配下のテスト説明文書の新規追加。"
+    },
+    {
+      "file": "tests/helpers/git-repo.js",
+      "change": "git fixture 操作用 helper の新規追加（要件に明記された stub helper とは別）。"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 4,
+    "partial": 3,
+    "not_done": 0,
+    "rate": 0.79,
+    "notes": "主要配線要件（R1, R3, R4, R6）は実装済み。R2 はケース網羅と exit 0 明示確認が不足、R5 は実行出力でのシンボル確認が不足、R7 は実測の自動検証が不足している。"
+  }
+}
