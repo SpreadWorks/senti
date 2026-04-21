@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/203-migrate-prompts-to-src-flow/draft.md     | 130 +++++++++++++\n specs/203-migrate-prompts-to-src-flow/flow.json    | 211 +++++++++++++++++++++\n .../203-migrate-prompts-to-src-flow/issue-log.json | 145 ++++++++++++++\n specs/203-migrate-prompts-to-src-flow/qa.md        |   9 +\n specs/203-migrate-prompts-to-src-flow/review.md    |  41 ++++\n specs/203-migrate-prompts-to-src-flow/spec.md      | 123 ++++++++++++\n src/flow/lib/get-next-action.js                    |   6 +-\n src/flow/lib/get-step-instructions.js              |  59 ++++++\n src/flow/prompts/impl/finalize.md                  |  41 ++++\n src/flow/prompts/impl/gate-impl.md                 |   5 +\n src/flow/prompts/impl/implement.md                 |  54 ++++++\n src/flow/prompts/impl/integration-evaluate.md      |  20 ++\n src/flow/prompts/impl/integration-run-all-tests.md |  15 ++\n src/flow/prompts/impl/integration-run-tests.md     |  14 ++\n src/flow/prompts/impl/integration-write-tests.md   |  10 +\n src/flow/prompts/impl/review.md                    |  60 ++++++\n src/flow/prompts/plan/approval.md                  |  12 ++\n src/flow/prompts/plan/draft.md                     |  61 ++++++\n src/flow/prompts/plan/gate-draft.md                |   5 +\n src/flow/prompts/plan/gate.md                      |   4 +\n src/flow/prompts/plan/spec.md                      |  10 +\n src/flow/prompts/plan/test.md                      |  30 +++\n src/flow/prompts/task/approval-2.md                |  16 ++\n src/flow/prompts/task/approval.md                  |  17 ++\n src/flow/prompts/task/draft.md                     |  16 ++\n src/flow/prompts/task/gate.md                      |   7 +\n src/flow/prompts/task/impl.md                      |  14 ++\n src/flow/prompts/task/review.md                    |  12 ++\n src/flow/prompts/task/run-tests.md                 |  14 ++\n src/flow/prompts/task/update-overview.md           |  10 +\n src/flow/prompts/task/write-tests.md               |  13 ++\n .../skills/sdd-forge.flow-finalize/SKILL.md        |  40 +---\n src/templates/skills/sdd-forge.flow-impl/SKILL.md  | 122 +-----------\n src/templates/skills/sdd-forge.flow-plan/SKILL.md  | 138 ++------------\n tests/unit/flow/get-next-action.test.js            | 103 ++++++++--\n tests/unit/flow/get-step-instructions.test.js      |  92 +++++++++\n tests/unit/flow/instructions-coverage.test.js      |  97 ++++++++++\n 37 files changed, 1477 insertions(+), 299 deletions(-)",
+      "commits": [
+        "feat: feature/203-migrate-prompts-to-src-flow",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 3,
+      "partial": 1,
+      "not_done": 1,
+      "rate": 0.7,
+      "notes": "P1, P3, and P4 are implemented. P2 is mostly implemented but does not strictly enforce registry membership. P5 evidence is missing in the provided diff because the required pre/post deployed-skill equivalence proof is not included."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 6,
+      "issueLog": 4
+    },
+    "tokenMetrics": {
+      "input": 286171,
+      "output": 13395,
+      "cacheRead": 155392,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14,
+      "durationMs": 328369,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 181102
+        },
+        {
+          "phase": "gate",
+          "durationMs": 81432
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 14329
+        },
+        {
+          "phase": "review",
+          "durationMs": 51506
+        }
+      ]
+    },
+    "tests": {
+      "unit": 11,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 11
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/203-migrate-prompts-to-src-flow\n    chore: add retro and report\n    37 files changed, 1477 insertions(+), 299 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ██████░░ 70%  (3 done / 1 partial / 1 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 6\n    issue-log ................... 4\n    agent calls ................. 14\n    input tokens ................ 286,171\n    output tokens ............... 13,395\n    cache-read tokens ........... 155,392\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 328.4s\n      gate-draft ................ 181.1s\n      gate ...................... 81.4s\n      gate-impl ................. 14.3s\n      review .................... 51.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 11  integration 0  acceptance 0  total 11"
+}

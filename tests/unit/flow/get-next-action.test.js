@@ -342,25 +342,42 @@ describe("flow get next-action", () => {
         JSON.stringify({ type: "object", required: ["ok"], properties: { ok: { type: "boolean" } } }),
       );
 
-      const state = setupActiveFlow(tmp, {
-        steps: [{ id: "__test-new-step__", status: "in_progress" }],
-      });
-      makeFlowManager(tmp).save(state);
+      // Stage a prompt markdown for the fabricated step under a separate tmp dir.
+      // After spec 203 / cac6/T6, adding a new step requires both context-rules.json
+      // entry AND a markdown file at <prompts-root>/<phase>/<step>.md.
+      const promptsStubDir = fs.mkdtempSync(pathMod.join(os.tmpdir(), "next-action-prompts-stub-"));
+      fs.mkdirSync(pathMod.join(promptsStubDir, "test"));
+      fs.writeFileSync(
+        pathMod.join(promptsStubDir, "test", "key.md"),
+        "stub prompt content for __test-new-step__",
+      );
 
-      const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
-        encoding: "utf8",
-        env: {
-          ...process.env,
-          SDD_FORGE_WORK_ROOT: tmp,
-          SDD_FORGE_NEXT_ACTION_SCHEMA_DIR: stubDir,
-        },
-      });
-      const envelope = JSON.parse(out);
-      assert.equal(envelope.ok, true);
-      assert.equal(envelope.data.step, "__test-new-step__");
-      assert.equal(envelope.data.action, "test-action");
-      assert.equal(envelope.data.output_schema.type, "object");
-      fs.rmSync(stubDir, { recursive: true, force: true });
+      try {
+        const state = setupActiveFlow(tmp, {
+          steps: [{ id: "__test-new-step__", status: "in_progress" }],
+        });
+        makeFlowManager(tmp).save(state);
+
+        const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            SDD_FORGE_WORK_ROOT: tmp,
+            SDD_FORGE_NEXT_ACTION_SCHEMA_DIR: stubDir,
+            // T6 added the prompts-dir override; staging both schema and prompt
+            // dirs is what keeps REQ-11 (data-only extensibility) intact.
+            SDD_FORGE_NEXT_ACTION_PROMPTS_DIR: promptsStubDir,
+          },
+        });
+        const envelope = JSON.parse(out);
+        assert.equal(envelope.ok, true);
+        assert.equal(envelope.data.step, "__test-new-step__");
+        assert.equal(envelope.data.action, "test-action");
+        assert.equal(envelope.data.output_schema.type, "object");
+      } finally {
+        fs.rmSync(stubDir, { recursive: true, force: true });
+        fs.rmSync(promptsStubDir, { recursive: true, force: true });
+      }
     });
   });
 
@@ -375,6 +392,56 @@ describe("flow get next-action", () => {
       assert.equal(typeof ins, "object");
       assert.equal(typeof ins.key, "string");
       assert.ok(ins.key.length > 0);
+    });
+  });
+
+  describe("instructions content (spec 203 / cac6/T6)", () => {
+    it("instructions includes resolved content alongside the key (flow scope)", () => {
+      tmp = createTmpDir();
+      const state = setupActiveFlow(tmp);
+      setFlowStepInProgress(state, "spec");
+      makeFlowManager(tmp).save(state);
+      const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
+      const ins = envelope.data.instructions;
+      assert.equal(typeof ins.key, "string");
+      assert.equal(typeof ins.content, "string");
+      assert.ok(ins.content.length > 0, "content non-empty for flow.spec");
+    });
+
+    it("instructions includes resolved content for task scope", () => {
+      tmp = createTmpDir();
+      const state = setupActiveFlow(tmp, {
+        tasks: [{
+          id: "001",
+          spec: "tasks/001-foo.md",
+          origin: "plan",
+          parent: null,
+          status: "in_progress",
+          steps: buildInitialTaskSteps("plan"),
+          requirements: [],
+        }],
+      });
+      setTaskStepInProgress(state, "001", "impl");
+      makeFlowManager(tmp).save(state);
+      const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
+      const ins = envelope.data.instructions;
+      assert.equal(typeof ins.content, "string");
+      assert.ok(ins.content.length > 0, "content non-empty for task.impl");
+    });
+
+    it("content matches the on-disk prompt file for the resolved key", () => {
+      tmp = createTmpDir();
+      const state = setupActiveFlow(tmp);
+      setFlowStepInProgress(state, "draft");
+      makeFlowManager(tmp).save(state);
+      const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
+      const ins = envelope.data.instructions;
+      // ins.key is "plan.draft" → src/flow/prompts/plan/draft.md
+      const parts = ins.key.split(".");
+      const stepName = parts.pop();
+      const filePath = pathMod.join(process.cwd(), "src", "flow", "prompts", ...parts, `${stepName}.md`);
+      const onDisk = fs.readFileSync(filePath, "utf8");
+      assert.equal(ins.content, onDisk, "CLI returns exact file content");
     });
   });
 });

@@ -1,0 +1,12 @@
+   - **On start**: `sdd-forge flow set step approval in_progress`
+   - **Do NOT re-run gate.** The gate already passed in step 8.
+   - Present the FULL spec text (the gate-PASS version) to the user.
+   - The user reads the gate-passed final spec and approves.
+   - Wait for approval before any implementation.
+   - Run `sdd-forge flow get prompt plan.approval` and present the choices.
+   - Update `## User Confirmation` with:
+     - `- [x] User approved this spec`
+     - Confirmation date and short note.
+   - **On complete**: Save requirements list and mark step done:
+     - Extract Requirements from spec.md and run: `sdd-forge flow set summary '["req 1", "req 2", ...]'`
+     - `sdd-forge flow set step approval done`

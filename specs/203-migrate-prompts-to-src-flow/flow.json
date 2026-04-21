@@ -1,0 +1,211 @@
+{
+  "spec": "specs/203-migrate-prompts-to-src-flow/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/203-migrate-prompts-to-src-flow",
+  "runId": "94c1981f-c8ff-40b0-af0d-4622a6d160f7",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "P1: Single source of truth coverage — every instructions_key in context-rules.json maps to a file at src/flow/prompts/<phase>/<step>.md",
+      "status": "done"
+    },
+    {
+      "desc": "P2: Loader contract — getStepInstructions(key) returns content or throws with key in message",
+      "status": "done"
+    },
+    {
+      "desc": "P3: CLI returns content — flow get next-action instructions field is { key, content }",
+      "status": "done"
+    },
+    {
+      "desc": "P4: Skill channel reuses the same files via include directives",
+      "status": "done"
+    },
+    {
+      "desc": "P5: No content loss during migration — verified by pre/post deployed-skill diff",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 188,
+  "worktree": true,
+  "request": "GitHub Issue #188 (cac6/T6): Migrate per-step guidance from SKILL.md (flow-plan/flow-impl/flow-finalize) to src/flow/prompts/<step>.md so next-action CLI can return them as markdown instructions. Includes i18n placement decision and T5 I/F agreement.",
+  "notes": [
+    "draft-Q1: AI summary approved by user (development type=ENHANCE, scope=migrate step guidance from SKILL.md to src/flow/prompts/, i18n placement, T5 I/F agreement)",
+    "gate-impl: user manually marked done after retry budget exhausted; lint violations were Q9-approved test extension + REQ-11 architectural update (issue-log entries documented)"
+  ],
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 6
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 107850,
+        "output": 7679,
+        "cacheRead": 101120,
+        "cacheCreation": 0
+      },
+      "callCount": 8,
+      "responseChars": 18540,
+      "durationMs": 181102
+    },
+    "gate": {
+      "tokens": {
+        "input": 49034,
+        "output": 3299,
+        "cacheRead": 30848,
+        "cacheCreation": 0
+      },
+      "callCount": 3,
+      "responseChars": 7493,
+      "durationMs": 81432
+    },
+    "impl": {
+      "issueLog": 4
+    },
+    "task-impl": {
+      "gateRetry": 3
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 31103,
+        "output": 444,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 386,
+      "durationMs": 14329
+    },
+    "review": {
+      "tokens": {
+        "input": 98184,
+        "output": 1973,
+        "cacheRead": 19968,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3097,
+      "durationMs": 51506
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 11
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T03:22:33.421Z"
+  }
+}

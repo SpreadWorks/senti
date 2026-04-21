@@ -1,0 +1,69 @@
+{
+  "spec": "specs/203-migrate-prompts-to-src-flow/spec.md",
+  "date": "2026-04-21T03:23:07.502Z",
+  "requirements": [
+    {
+      "desc": "P1: Single source of truth coverage — every instructions_key in context-rules.json maps to a file at src/flow/prompts/<phase>/<step>.md",
+      "status": "done",
+      "note": "Implemented prompt files under src/flow/prompts/, added coverage test for missing/orphan detection, and validated key count (updated to 23 actual keys)."
+    },
+    {
+      "desc": "P2: Loader contract — getStepInstructions(key) returns content or throws with key in message",
+      "status": "partial",
+      "note": "Loader returns UTF-8 content and throws with key for missing/invalid cases, but it does not explicitly validate registration against context-rules.json (it resolves by path)."
+    },
+    {
+      "desc": "P3: CLI returns content — flow get next-action instructions field is { key, content }",
+      "status": "done",
+      "note": "get-next-action now returns instructions { key, content } using getStepInstructions; tests were extended for flow/task scopes and content assertions."
+    },
+    {
+      "desc": "P4: Skill channel reuses the same files via include directives",
+      "status": "done",
+      "note": "The three skill templates now replace inline step procedures with include directives to /flow/prompts/... files."
+    },
+    {
+      "desc": "P5: No content loss during migration — verified by pre/post deployed-skill diff",
+      "status": "not_done",
+      "note": "No concrete pre/post deployed-skill diff artifact proving non-whitespace byte-equality is present in the shown diff."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/203-migrate-prompts-to-src-flow/draft.md",
+      "change": "Spec process artifact added; not part of functional P1–P5 runtime behavior."
+    },
+    {
+      "file": "specs/203-migrate-prompts-to-src-flow/flow.json",
+      "change": "Flow lifecycle/status metadata added; not required by feature requirements."
+    },
+    {
+      "file": "specs/203-migrate-prompts-to-src-flow/issue-log.json",
+      "change": "Implementation/gate audit log added; operational artifact outside P1–P5 behavior."
+    },
+    {
+      "file": "specs/203-migrate-prompts-to-src-flow/qa.md",
+      "change": "Q&A template file added; not tied to feature acceptance requirements."
+    },
+    {
+      "file": "specs/203-migrate-prompts-to-src-flow/review.md",
+      "change": "Review record added; governance artifact outside runtime contract."
+    },
+    {
+      "file": "specs/203-migrate-prompts-to-src-flow/spec.md",
+      "change": "Feature spec document added; planning artifact, not implementation behavior."
+    },
+    {
+      "file": "src/templates/skills/sdd-forge.flow-plan/SKILL.md",
+      "change": "Added extra \"Prompts referenced by the plan phase\" section, which is beyond the include-migration requirement itself."
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 3,
+    "partial": 1,
+    "not_done": 1,
+    "rate": 0.7,
+    "notes": "P1, P3, and P4 are implemented. P2 is mostly implemented but does not strictly enforce registry membership. P5 evidence is missing in the provided diff because the required pre/post deployed-skill equivalence proof is not included."
+  }
+}

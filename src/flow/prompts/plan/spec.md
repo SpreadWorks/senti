@@ -1,0 +1,10 @@
+   - **On start**: `sdd-forge flow set step spec in_progress`
+   - **Before writing spec**:
+     - Read draft (if exists) and linked GitHub issue content. If draft was completed, treat it as the primary input — do NOT re-read context already gathered in the draft phase.
+     - **Context gathering (supplement-first):** Only read additional context when draft + issue are insufficient.
+       - If specific target files are unclear: `sdd-forge flow get context --search "<request text or issue title>" --raw`.
+       - If project structure is still unclear: `sdd-forge flow get context <path> --raw` for specific files; `sdd-forge flow get context --raw` only as a last resort.
+     - If guardrail articles for spec have NOT been loaded in this session: `sdd-forge flow get guardrail spec`. If output is non-empty, follow these principles. Skip if already present in context.
+   - Fill Goal, Scope, Out of Scope, Requirements, Acceptance Criteria, Alternatives Considered (if applicable).
+   - If draft phase was done, reflect draft Q&A and decisions in spec.md.
+   - **On complete**: `sdd-forge flow set step spec done`

@@ -26,6 +26,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { FlowCommand } from "./base-command.js";
+import { getStepInstructions } from "./get-step-instructions.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -101,7 +102,10 @@ export default class GetNextActionCommand extends FlowCommand {
       taskId: target.taskId,
       step: target.stepId,
       action: rule.action,
-      instructions: { key: rule.instructions_key },
+      instructions: {
+        key: rule.instructions_key,
+        content: getStepInstructions(rule.instructions_key),
+      },
       context,
       output_schema,
       requires_approval: rule.requires_approval === true,

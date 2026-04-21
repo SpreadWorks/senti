@@ -1,0 +1,30 @@
+   - **On start**: `sdd-forge flow set step test in_progress`
+   - Run `sdd-forge flow get prompt plan.test-mode` and present the choices.
+   - If guardrail articles for the test phase have NOT been loaded in this session: `sdd-forge flow get guardrail test`. If output is non-empty, follow these principles when writing tests. Skip if already present in context.
+   - If code changes exist, implementation verification test is required in principle.
+   - AI decides the appropriate test type based on the project's test infrastructure (no separate test-type selection).
+   - AI shares briefly which test framework will be used and what will be verified (not a separate approval gate).
+   - **MUST: Decide test placement based on these criteria:**
+     - **`tests/` (formal tests, run by `npm test`):** Public API / function interface contract tests, CLI command behavior specs, preset integrity checks — tests where breakage indicates a bug regardless of which spec introduced them.
+     - **`specs/<spec>/tests/` (spec verification tests, NOT run by `npm test`):** Tests that only verify this spec's requirements are met, bug fix reproduction tests, temporary setup/integration verification. These are kept as history, not maintained long-term.
+     - **Decision rule:** Ask "If a future change breaks this test, is that always a bug?" — YES → `tests/`, NO → `specs/<spec>/tests/`.
+   - **MUST: When running tests, save output to a log file** under the resolved work directory (priority: `SDD_FORGE_WORK_DIR` env > `config.agent.workDir` > `.tmp`): `node tests/run.js ... > <workDir>/logs/test-output.log 2>&1`. This enables `sdd-forge flow get test-result` to retrieve execution evidence for gate-impl.
+   - Write test code (tests should fail initially).
+   - **MUST: If a test reveals a production code bug that is outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step test --reason "..."`) before adjusting the test to match current behavior. Do not silently fix or skip the test.
+   - **MUST: Create `specs/<spec>/tests/README.md`** documenting:
+     - What was tested and why
+     - Where tests are located (formal test path or `specs/<spec>/tests/`)
+     - How to run the tests
+     - Expected results
+   - **If no test environment**:
+     - AI performs spec-implementation alignment check after coding.
+     - Compare spec Requirements against actual code changes.
+   - **If test environment needs to be set up**:
+     - Treat as a separate spec (out of scope for current feature spec).
+   - **On complete**:
+     - Record test counts: `sdd-forge flow set test-summary --unit N --integration N --acceptance N` (use actual counts for each test type written; omit flags for types with zero tests).
+     - `sdd-forge flow set step test done`
+   - **After test step is done**:
+     - Run `sdd-forge flow get prompt plan.complete` and present the choices.
+     - **autoApprove transition:** If `autoApprove: true`, treat [1] as selected and invoke `/sdd-forge.flow-impl` using the Skill tool.
+     - **Note:** For test-only specs (no production code changes), the impl phase will be automatically skipped in autoApprove mode. See flow-impl SKILL.md for details.
