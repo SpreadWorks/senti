@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-20T16:14:41.720Z",
+  "analyzedAt": "2026-04-21T00:25:54.444Z",
   "package": {
     "entries": [
       {
@@ -809,9 +809,9 @@
       },
       {
         "file": "src/docs/commands/text.js",
-        "hash": "faa5ced23b0ffb9c38dae855b0897c8f",
-        "lines": 776,
-        "mtime": "2026-04-19T01:49:14.514Z",
+        "hash": "eb2b9951aba43caaf91a8c84a2832ac2",
+        "lines": 781,
+        "mtime": "2026-04-21T00:25:53.258Z",
         "className": "text",
         "methods": [
           "textFillFromAnalysis",
@@ -867,22 +867,9 @@
           "src/docs/commands/readme.js"
         ],
         "id": "7c5e7654",
-        "summary": "This command fills `{{text}}` directives via AI in batch mode with validation guards against malformed or overly shrunken output. It is the text-generation stage for docs chapters.",
-        "detail": "It parses directives, constructs prompts per batch, and invokes the configured agent with optional preamble stripping. Batch responses are repaired from near-JSON and mapped back into file segments safely. Validation checks enforce minimum structure and prevent destructive output shrinkage. It supports concurrency, retries, changed-chapter detection, and dry-run-compatible flows. Results include per-file filled/skipped counts and accumulated errors for pipeline decisions.",
-        "chapter": "internal_design",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
           "attempts": 1
-        },
-        "keywords": [
-          "text directives",
-          "batch AI generation",
-          "output validation",
-          "JSON repair",
-          "chapter diff detection",
-          "concurrency"
-        ]
+        }
       },
       {
         "file": "src/docs/commands/translate.js",
@@ -2397,7 +2384,7 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -2846,7 +2833,7 @@
         "usedBy": null,
         "id": "9aca938f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3080,7 +3067,7 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3948,7 +3935,7 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4033,9 +4020,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "0dbb6835048930f0e496eddb5f2c6eeb",
-        "lines": 392,
-        "mtime": "2026-04-18T21:58:03.712Z",
+        "hash": "70da626c01f274d64a6facc7af1fa1bf",
+        "lines": 404,
+        "mtime": "2026-04-21T00:25:53.258Z",
         "className": "agent",
         "methods": [
           "matchProfilePrefix",
@@ -4063,21 +4050,9 @@
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "summary": "agent.js implements provider-aware AI invocation with retries, timeout handling, and structured logging. It resolves agent profiles and command arguments from config.",
-        "detail": "The Agent class builds invocations, injects working-directory flags, and supports prompt token substitution patterns. Calls are retried with configurable delay and bounded retry count, then surfaced with explicit errors. Execution is wrapped with request-scoped logging that captures prompt/response metrics and flow phase context. Utility helpers normalize parsing, prompt argument stripping, and text statistics for reliable provider integration.",
-        "chapter": "configuration",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "AI agent",
-          "provider registry",
-          "retry policy",
-          "prompt injection",
-          "structured logging"
-        ]
+        }
       },
       {
         "file": "src/lib/agents-md.js",
@@ -4369,7 +4344,7 @@
         ],
         "id": "74b5e1c3",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5310,7 +5285,7 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -8438,7 +8413,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -8578,5 +8553,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-20T16:15:21.103Z"
+  "enrichedAt": "2026-04-21T00:26:44.767Z"
 }
