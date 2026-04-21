@@ -1,0 +1,36 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: authorized bypass handling for test-change-check false positives.; Unambiguous Requirements — Requirements and ACs are mostly stated as verifiable conditions with concrete outcomes and thresholds.; Complete Context — Each requirement pairs trigger context (When) with expected behavior (shall).; No Hardcoded Secrets — No source code secrets or credential-like literals are present in the draft content.; Prioritize Requirements — More than three requirements are explicitly prioritized (P1/P2/P3).; Impact on Existing Features — Impact on existing features is explicitly listed, including unaffected scope.; Present Recommendations with Reasoning — Each Q includes a clear recommended answer and concise rationale grounded in prior specs/issues and principles.; Explore Before Asking — Draft shows prior exploration via alternatives and references to existing specs/issue logs before finalizing decisions.; Proactively Raise Related Implications — Related implications are proactively called out (phase scope, spec 202 spillover, warnings, guidance scope).; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation is shown that discussion mode was brainstorming vs final decision before critique/rejection of alternatives.; Capture Digressions in draft.md — No clear digression is evidenced in the provided content; nothing appears omitted from draft.md.; Draft Stays at Requirements Level — Content stays at requirements/RFP level without function-level implementation design.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is specified, so migration planning is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T05:47:54.118Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: authorized bypass for existing test edits in gate-impl.; Unambiguous Requirements — Requirements are mostly testable with concrete conditions (e.g., 40-char minimum, pass/fail/warn outcomes).; Complete Context — Each requirement includes a trigger context (When) and expected behavior (shall).; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets are present in the draft.; Prioritize Requirements — More than three requirements are present and explicit priority tiers (P1/P2/P3) are defined.; Impact on Existing Features — A dedicated impact section lists affected paths and explicitly notes out-of-scope items.; Present Recommendations with Reasoning — Each Q&A provides a clear recommendation first and concise rationale tied to specs/issues/design principles.; Explore Before Asking — Cannot verify exploration behavior from draft text alone without process/runtime evidence.; Proactively Raise Related Implications — Related implications are proactively raised (phase coverage, spec 202 spillover, unused-entry warning handling).; Confirm Brainstorm vs. Decision Before Critiquing — Draft explicitly states Decision Mode and clarifies alternatives are recorded as finalized decisions.; Capture Digressions in draft.md — Whether digressions occurred and were captured during discussion cannot be confirmed from provided content alone.; Draft Stays at Requirements Level — Draft includes implementation-level details (function names, call paths, regex-style parsing approach, signature changes).; Backward-Compatible CLI Interface — No CLI command/option semantics are removed or changed, so migration planning is not applicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T05:48:26.720Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/gate-test-change-check.test.js:136: existing line modified/deleted in test file (removed=31, added=24)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T06:08:19.279Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/gate-test-change-check.test.js:136: existing line modified/deleted in test file (removed=31, added=24)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T06:08:30.379Z"
+    }
+  ]
+}

@@ -131,3 +131,74 @@ describe("checkTestChanges — P1 requirements", () => {
     assert.deepEqual(issues, []);
   });
 });
+
+// -----------------------------------------------------------------------------
+// spec 205: authorized test edits bypass (R6.1〜R6.3)
+// -----------------------------------------------------------------------------
+
+// Fixture helpers — build the minimal diffs used by this block.
+function buildReplaceLineDiff(filePath, oldLine = 10) {
+  return [
+    diffHeader(filePath),
+    `@@ -${oldLine},1 +${oldLine},1 @@`,
+    "-expect(x).toBe(5);",
+    "+expect(x).toBe(3);",
+  ].join("\n");
+}
+
+function buildSingleAddDiff(filePath, newLine = 11) {
+  return [
+    diffHeader(filePath),
+    `@@ -${newLine - 1},0 +${newLine},1 @@`,
+    "+expect(z).toBe(9);",
+  ].join("\n");
+}
+
+describe("checkTestChanges — spec 205 authorized bypass", () => {
+  it("R6.1: omitting authorized list preserves legacy behavior (spec 201 baseline)", () => {
+    const diff = buildReplaceLineDiff("tests/foo.test.js");
+    const { issues } = checkTestChanges(diff, TEST_GLOBS);
+    assert.equal(issues.length, 1);
+    assert.match(issues[0], /tests\/foo\.test\.js/);
+  });
+
+  it("R6.1: passing an empty authorized list preserves legacy behavior", () => {
+    const diff = buildReplaceLineDiff("tests/foo.test.js");
+    const { issues } = checkTestChanges(diff, TEST_GLOBS, []);
+    assert.equal(issues.length, 1);
+  });
+
+  it("R6.2: authorized files with a - line hunk are excluded from FAIL", () => {
+    const diff = buildReplaceLineDiff("tests/foo.test.js");
+    const { issues } = checkTestChanges(diff, TEST_GLOBS, ["tests/foo.test.js"]);
+    assert.deepEqual(issues, []);
+  });
+
+  it("R6.2: authorized files with a single-line + hunk are excluded from FAIL", () => {
+    const diff = buildSingleAddDiff("tests/foo.test.js");
+    const { issues } = checkTestChanges(diff, TEST_GLOBS, ["tests/foo.test.js"]);
+    assert.deepEqual(issues, []);
+  });
+
+  it("R6.3: unauthorized files keep FAIL even when another file is authorized", () => {
+    const diff = [
+      buildReplaceLineDiff("tests/foo.test.js", 10),
+      buildReplaceLineDiff("tests/bar.test.js", 5),
+    ].join("\n");
+    const { issues } = checkTestChanges(diff, TEST_GLOBS, ["tests/foo.test.js"]);
+    assert.equal(issues.length, 1);
+    assert.match(issues[0], /tests\/bar\.test\.js/);
+  });
+
+  it("R6.3: authorized list does not relax non-test source file checks (ignored as before)", () => {
+    // Non-test files are ignored entirely regardless of authorized list.
+    const diff = [
+      diffHeader("src/foo.js"),
+      "@@ -10,1 +10,1 @@",
+      "-return 1;",
+      "+return 2;",
+    ].join("\n");
+    const { issues } = checkTestChanges(diff, TEST_GLOBS, ["src/foo.js"]);
+    assert.deepEqual(issues, []);
+  });
+});

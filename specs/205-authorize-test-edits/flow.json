@@ -1,0 +1,213 @@
+{
+  "spec": "specs/205-authorize-test-edits/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/205-authorize-test-edits",
+  "runId": "fa0aadd0-beff-4e19-8d00-522220869dea",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: 承認セクション宣言でテスト変更のバイパス可",
+      "status": "done"
+    },
+    {
+      "desc": "R2: checkTestChanges に承認リスト引数、承認済みファイルは FAIL から除外",
+      "status": "done"
+    },
+    {
+      "desc": "R3: task-impl と integration 両 phase で同仕様適用",
+      "status": "done"
+    },
+    {
+      "desc": "R4: パース違反 (reason<40, 構文違反) は gate FAIL",
+      "status": "done"
+    },
+    {
+      "desc": "R5: 未使用エントリは gate 警告 (gate 全体は PASS)",
+      "status": "done"
+    },
+    {
+      "desc": "R6: 承認リスト空/対象内/対象外/違反/未使用 の 5 ケースでテスト PASS",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 200,
+  "worktree": true,
+  "request": "gate-impl checkTestChanges に『承認された既存テスト変更』のバイパス機構を追加し、契約変更系・リファクタ系・バグ修正系 spec での正当なテスト更新を FAIL 扱いしないようにしつつ、テスト無効化攻撃防御は維持する。",
+  "notes": [
+    "draft Q1: 解釈サマリー承認 (gate-impl test-change-check にバイパス機構追加、spec 201 防御性維持)",
+    "Q1 mechanism: A (spec.md セクション宣言方式)。spec 201 の言語解析なし原則と両立、人間による明示 opt-in で抑止維持",
+    "Q2 granularity: file-level。行番号方式は retry で行ずれ、hunk 数は実害ケースに過剰",
+    "Q3 syntax: フラット箇条書き '- `path` — reason' + reason min 40 chars。spec 201 P1-R6 と整合する 1 行正規表現でパース可能",
+    "Q4 scope: 両 phase (task-impl + integration) + 未使用エントリは WARN。spec 202 の類似 FP ケースも同時解決"
+  ],
+  "metrics": {
+    "draft": {
+      "question": 4
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 69538,
+        "output": 2826,
+        "cacheRead": 10368,
+        "cacheCreation": 0
+      },
+      "callCount": 3,
+      "responseChars": 6722,
+      "durationMs": 71216
+    },
+    "gate": {
+      "tokens": {
+        "input": 4287,
+        "output": 1122,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 2804,
+      "durationMs": 28493
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 406238,
+        "output": 2286,
+        "cacheRead": 42752,
+        "cacheCreation": 0
+      },
+      "callCount": 4,
+      "responseChars": 4223,
+      "durationMs": 78660
+    },
+    "task-impl": {
+      "gateRetry": 0
+    },
+    "review": {
+      "tokens": {
+        "input": 81450,
+        "output": 1956,
+        "cacheRead": 23552,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3614,
+      "durationMs": 49545
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 16,
+      "acceptance": 5
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T06:10:30.486Z"
+  }
+}

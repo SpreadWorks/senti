@@ -524,18 +524,26 @@ function parseDiffHunks(diff) {
  *
  * Language parsing is NOT used (P1-R6).
  *
- * @param {string} diff        raw unified diff text
- * @param {string[]} [testGlobs] optional override; defaults to common test patterns
+ * Spec 205: test files listed in `authorizedFiles` are exempted — all hunks
+ * in those files are skipped regardless of the rules above. The exemption
+ * is opt-in by the spec author via the `## Authorized Existing Test
+ * Modifications` section in spec.md (see {@link parseAuthorizedTestModifications}).
+ *
+ * @param {string} diff               raw unified diff text
+ * @param {string[]} [testGlobs]      optional override; defaults to common test patterns
+ * @param {string[]} [authorizedFiles] optional list of test file paths to exempt
  * @returns {{ issues: string[] }}
  */
-export function checkTestChanges(diff, testGlobs) {
+export function checkTestChanges(diff, testGlobs, authorizedFiles) {
   const globs = Array.isArray(testGlobs) && testGlobs.length > 0
     ? testGlobs
     : DEFAULT_TEST_GLOBS;
+  const authorized = Array.isArray(authorizedFiles) ? new Set(authorizedFiles) : new Set();
 
   const issues = [];
   for (const f of parseDiffHunks(diff)) {
     if (!isTestFile(f.file, globs)) continue;
+    if (authorized.has(f.file)) continue;
     for (const h of f.hunks) {
       if (h.removed >= 1) {
         issues.push(
@@ -549,6 +557,89 @@ export function checkTestChanges(diff, testGlobs) {
     }
   }
   return { issues };
+}
+
+// ---------------------------------------------------------------------------
+// Authorized test modifications (spec 205)
+// ---------------------------------------------------------------------------
+
+const AUTH_SECTION_HEADER = "## Authorized Existing Test Modifications";
+const AUTH_REASON_MIN_CHARS = 40;
+
+// Match a single flat-bullet entry: `- `<path>` — <reason>`.
+// The separator is a literal em dash (U+2014) surrounded by whitespace.
+const AUTH_ENTRY_RE = /^-\s+`([^`]+)`\s+—\s+(.+?)\s*$/;
+
+/**
+ * Parse the `## Authorized Existing Test Modifications` section of a spec.md.
+ *
+ * Entry format: `` - `<path>` — <reason (>=40 chars)> ``
+ *
+ * @param {string} specText full spec.md content
+ * @returns {{ files: string[], errors: string[] }}
+ */
+export function parseAuthorizedTestModifications(specText) {
+  const files = [];
+  const errors = [];
+  if (typeof specText !== "string" || specText.length === 0) {
+    return { files, errors };
+  }
+
+  const lines = specText.split("\n");
+  let inSection = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    if (!inSection) {
+      if (line === AUTH_SECTION_HEADER) inSection = true;
+      continue;
+    }
+    if (line.startsWith("## ")) break;
+    if (line.trim() === "") continue;
+
+    const match = line.match(AUTH_ENTRY_RE);
+    if (!match) {
+      if (/^-\s+[^`]/.test(line)) {
+        errors.push(`authorized-test entry must wrap the path in backticks: ${line.trim()}`);
+      } else {
+        errors.push(`authorized-test entry syntax invalid (expected \`- \`<path>\` — <reason>\`): ${line.trim()}`);
+      }
+      continue;
+    }
+
+    const path = match[1];
+    const reason = match[2];
+    if (reason.length < AUTH_REASON_MIN_CHARS) {
+      errors.push(
+        `authorized-test entry \`${path}\`: reason must be at least ${AUTH_REASON_MIN_CHARS} chars (got ${reason.length})`,
+      );
+      continue;
+    }
+    files.push(path);
+  }
+
+  return { files, errors };
+}
+
+/**
+ * Spec 205 R5: return warning messages for authorized entries whose files do
+ * not appear in the diff. Gate itself still PASSes — the caller surfaces the
+ * warnings alongside the PASS result.
+ *
+ * @param {string} diff
+ * @param {string[]} authorizedFiles
+ * @returns {string[]} human-readable warning messages
+ */
+export function findUnusedAuthorizations(diff, authorizedFiles) {
+  if (!Array.isArray(authorizedFiles) || authorizedFiles.length === 0) return [];
+  const diffFiles = new Set(parseDiffHunks(diff).map((f) => f.file));
+  const warnings = [];
+  for (const p of authorizedFiles) {
+    if (!diffFiles.has(p)) {
+      warnings.push(`authorized-test entry \`${p}\` has no matching change in the diff`);
+    }
+  }
+  return warnings;
 }
 
 function resolveTestGlobs(config) {
@@ -737,17 +828,21 @@ function reasonsFromEvaluations(evaluations) {
   }));
 }
 
-function gatePass(level, phase, targetPath, evaluations) {
+function gatePass(level, phase, targetPath, evaluations, warnings) {
+  const artifacts = {
+    target: targetPath,
+    level,
+    phase,
+    evaluations: evaluations || [],
+    reasons: reasonsFromEvaluations(evaluations),
+  };
+  if (Array.isArray(warnings) && warnings.length > 0) {
+    artifacts.warnings = warnings;
+  }
   return {
     result: "pass",
     changed: [],
-    artifacts: {
-      target: targetPath,
-      level,
-      phase,
-      evaluations: evaluations || [],
-      reasons: reasonsFromEvaluations(evaluations),
-    },
+    artifacts,
     next: PASS_NEXT[phase],
   };
 }
@@ -933,10 +1028,19 @@ export class RunGateCommand extends FlowCommand {
     // spec 201 P1: mechanical check on test-file changes (replaces retired
     // `impl-test-preservation` AI guardrail). Skips the AI path entirely when
     // the mechanical check already found a violation.
-    const testIssues = checkTestChanges(diff, resolveTestGlobs(ctx.config)).issues;
+    //
+    // spec 205: an optional `## Authorized Existing Test Modifications` section
+    // in spec.md can exempt named files from the check. Parse errors in that
+    // section are themselves a gate FAIL; unused entries surface as warnings.
+    const authResult = parseAuthorizedTestModifications(specText);
+    if (authResult.errors.length > 0) {
+      return gateFail(level, phase, specPath, [], authResult.errors);
+    }
+    const testIssues = checkTestChanges(diff, resolveTestGlobs(ctx.config), authResult.files).issues;
     if (testIssues.length > 0) {
       return gateFail(level, phase, specPath, [], testIssues);
     }
+    const unusedWarnings = findUnusedAuthorizations(diff, authResult.files);
 
     const agent = container.get("agent");
     if (!agent.resolve("flow.spec.gate")) {
@@ -964,7 +1068,7 @@ export class RunGateCommand extends FlowCommand {
     }
 
     if (skipGuardrail) {
-      return gatePass(level, phase, specPath, reqEvaluations);
+      return gatePass(level, phase, specPath, reqEvaluations, unusedWarnings);
     }
 
     const grResult = await checkGuardrail(
@@ -975,13 +1079,13 @@ export class RunGateCommand extends FlowCommand {
       "You are an implementation compliance checker. Check the implementation against each guardrail.",
     );
     if (!grResult) {
-      return gatePass(level, phase, specPath, reqEvaluations);
+      return gatePass(level, phase, specPath, reqEvaluations, unusedWarnings);
     }
     const combined = [...reqEvaluations, ...grResult.evaluations];
     if (!grResult.passed) {
       return gateFail(level, phase, specPath, combined, []);
     }
-    return gatePass(level, phase, specPath, combined);
+    return gatePass(level, phase, specPath, combined, unusedWarnings);
   }
 }
 

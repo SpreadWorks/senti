@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/205-authorize-test-edits/draft.md            |  89 +++++++++\n specs/205-authorize-test-edits/flow.json           | 213 +++++++++++++++++++++\n specs/205-authorize-test-edits/issue-log.json      |  36 ++++\n specs/205-authorize-test-edits/qa.md               |   9 +\n specs/205-authorize-test-edits/review.md           |  41 ++++\n specs/205-authorize-test-edits/spec.md             | 110 +++++++++++\n specs/205-authorize-test-edits/tests/README.md     |  44 +++++\n .../tests/end-to-end.test.js                       |  95 +++++++++\n src/flow/lib/run-gate.js                           | 134 +++++++++++--\n tests/unit/flow/gate-test-change-check.test.js     |  71 +++++++\n .../parse-authorized-test-modifications.test.js    | 130 +++++++++++++\n 11 files changed, 957 insertions(+), 15 deletions(-)",
+      "commits": [
+        "feat: feature/205-authorize-test-edits",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 5,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.92,
+      "notes": "コア機能（R1-R3, R5）は実装差分上で満たしており、テスト追加も十分。R4はFAIL化自体は達成しているが、構文違反メッセージの「path明示」の厳密性に軽微なギャップがあるため partial 判定。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 4,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 561513,
+      "output": 8190,
+      "cacheRead": 99584,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 227914,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 71216
+        },
+        {
+          "phase": "gate",
+          "durationMs": 28493
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 78660
+        },
+        {
+          "phase": "review",
+          "durationMs": 49545
+        }
+      ]
+    },
+    "tests": {
+      "unit": 16,
+      "integration": 0,
+      "acceptance": 5,
+      "total": 21
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/205-authorize-test-edits\n    chore: add retro and report\n    11 files changed, 957 insertions(+), 15 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 92%  (5 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 4\n    issue-log ................... 0\n    agent calls ................. 10\n    input tokens ................ 561,513\n    output tokens ............... 8,190\n    cache-read tokens ........... 99,584\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 227.9s\n      gate-draft ................ 71.2s\n      gate ...................... 28.5s\n      gate-impl ................. 78.7s\n      review .................... 49.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 16  integration 0  acceptance 5  total 21"
+}

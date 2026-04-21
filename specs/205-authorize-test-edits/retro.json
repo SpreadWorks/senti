@@ -1,0 +1,74 @@
+{
+  "spec": "specs/205-authorize-test-edits/spec.md",
+  "date": "2026-04-21T06:11:22.533Z",
+  "requirements": [
+    {
+      "desc": "R1: 承認セクション宣言でテスト変更のバイパス可",
+      "status": "done",
+      "note": "`parseAuthorizedTestModifications` で `## Authorized Existing Test Modifications` と `- `<path>` — <reason>` を解析し、reason 40文字未満を拒否。`checkTestChanges` に承認ファイルを渡してバイパス可能になっている。"
+    },
+    {
+      "desc": "R2: checkTestChanges に承認リスト引数、承認済みファイルは FAIL から除外",
+      "status": "done",
+      "note": "`checkTestChanges(diff, testGlobs, authorizedFiles)` が追加され、承認済みファイルを `Set` で除外。未承認ファイルの既存行変更は従来どおり issue 化される。"
+    },
+    {
+      "desc": "R3: task-impl と integration 両 phase で同仕様適用",
+      "status": "done",
+      "note": "RunGateCommand` の共通 diff-based gate 経路で承認パース/除外処理を実施しており、phase 分岐せず同一仕様で適用される実装になっている。"
+    },
+    {
+      "desc": "R4: パース違反 (reason<40, 構文違反) は gate FAIL",
+      "status": "partial",
+      "note": "reason不足・構文違反を `errors` に積み gate FAIL する実装はある。reason不足メッセージは path+理由を含むが、構文違反時は行全文ベースで path を明示抽出しないため要件文言に対しては一部弱い。"
+    },
+    {
+      "desc": "R5: 未使用エントリは gate 警告 (gate 全体は PASS)",
+      "status": "done",
+      "note": "`findUnusedAuthorizations` が diff 未出現の承認パスを警告化し、`gatePass(..., warnings)` で artifacts.warnings に載せる。gate結果自体は pass のまま。"
+    },
+    {
+      "desc": "R6: 承認リスト空/対象内/対象外/違反/未使用 の 5 ケースでテスト PASS",
+      "status": "done",
+      "note": "`tests/unit/flow/gate-test-change-check.test.js` と `tests/unit/flow/parse-authorized-test-modifications.test.js`、加えて spec-local E2E で5ケースを網羅。flow.json でも test/gate-impl 完了と件数が記録されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/205-authorize-test-edits/draft.md",
+      "change": "要件評価対象外のドラフト文書を新規追加。"
+    },
+    {
+      "file": "specs/205-authorize-test-edits/flow.json",
+      "change": "フロー実行メタデータ（steps/metrics/state）を新規追加。"
+    },
+    {
+      "file": "specs/205-authorize-test-edits/issue-log.json",
+      "change": "gate実行ログを新規追加。"
+    },
+    {
+      "file": "specs/205-authorize-test-edits/qa.md",
+      "change": "QAテンプレート文書を新規追加。"
+    },
+    {
+      "file": "specs/205-authorize-test-edits/review.md",
+      "change": "レビュー記録文書を新規追加。"
+    },
+    {
+      "file": "specs/205-authorize-test-edits/tests/README.md",
+      "change": "specローカルテスト運用説明を追加（R6必須要件外の補助文書）。"
+    },
+    {
+      "file": "specs/205-authorize-test-edits/tests/end-to-end.test.js",
+      "change": "spec配下のE2Eテストを追加（R6の必須は主に formal suite だが追加の検証として実装）。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 5,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.92,
+    "notes": "コア機能（R1-R3, R5）は実装差分上で満たしており、テスト追加も十分。R4はFAIL化自体は達成しているが、構文違反メッセージの「path明示」の厳密性に軽微なギャップがあるため partial 判定。"
+  }
+}
