@@ -1,0 +1,167 @@
+{
+  "flow": {
+    "draft": {
+      "action": "write-draft",
+      "instructions_key": "plan.draft",
+      "context_kinds": ["issue", "guardrail", "project_overview"],
+      "output_schema_ref": "next-action/draft.schema.json",
+      "requires_approval": false
+    },
+    "gate-draft": {
+      "action": "run-gate",
+      "instructions_key": "plan.gate-draft",
+      "context_kinds": ["draft", "guardrail"],
+      "output_schema_ref": "next-action/gate.schema.json",
+      "requires_approval": false
+    },
+    "spec": {
+      "action": "write-spec",
+      "instructions_key": "plan.spec",
+      "context_kinds": ["draft", "guardrail"],
+      "output_schema_ref": "next-action/spec.schema.json",
+      "requires_approval": false
+    },
+    "gate": {
+      "action": "run-gate",
+      "instructions_key": "plan.gate",
+      "context_kinds": ["spec", "guardrail"],
+      "output_schema_ref": "next-action/gate.schema.json",
+      "requires_approval": false
+    },
+    "approval": {
+      "action": "await-approval",
+      "instructions_key": "plan.approval",
+      "context_kinds": ["spec"],
+      "output_schema_ref": "next-action/approval.schema.json",
+      "requires_approval": true
+    },
+    "test": {
+      "action": "write-tests",
+      "instructions_key": "plan.test",
+      "context_kinds": ["spec", "guardrail"],
+      "output_schema_ref": "next-action/test.schema.json",
+      "requires_approval": false
+    },
+    "implement": {
+      "action": "run-impl",
+      "instructions_key": "impl.implement",
+      "context_kinds": ["spec", "test", "overview"],
+      "output_schema_ref": "next-action/impl.schema.json",
+      "requires_approval": false
+    },
+    "gate-impl": {
+      "action": "run-gate",
+      "instructions_key": "impl.gate-impl",
+      "context_kinds": ["spec", "diff", "testlog"],
+      "output_schema_ref": "next-action/gate.schema.json",
+      "requires_approval": false
+    },
+    "integration-write-tests": {
+      "action": "integration-write-tests",
+      "instructions_key": "impl.integration-write-tests",
+      "context_kinds": ["all_task_summary", "parent_req"],
+      "output_schema_ref": "next-action/integration-test.schema.json",
+      "requires_approval": false
+    },
+    "integration-run-tests": {
+      "action": "integration-run-tests",
+      "instructions_key": "impl.integration-run-tests",
+      "context_kinds": ["all_task_summary", "testlog"],
+      "output_schema_ref": "next-action/integration-test.schema.json",
+      "requires_approval": false
+    },
+    "integration-run-all-tests": {
+      "action": "integration-run-all-tests",
+      "instructions_key": "impl.integration-run-all-tests",
+      "context_kinds": ["all_task_summary", "testlog", "full_diff"],
+      "output_schema_ref": "next-action/integration-test.schema.json",
+      "requires_approval": false
+    },
+    "integration-evaluate": {
+      "action": "integration-evaluate",
+      "instructions_key": "impl.integration-evaluate",
+      "context_kinds": ["all_task_summary", "parent_req", "full_diff"],
+      "output_schema_ref": "next-action/integration-test.schema.json",
+      "requires_approval": true
+    },
+    "review": {
+      "action": "run-review",
+      "instructions_key": "impl.review",
+      "context_kinds": ["spec", "diff", "testlog"],
+      "output_schema_ref": "next-action/review.schema.json",
+      "requires_approval": false
+    },
+    "finalize": {
+      "action": "run-finalize",
+      "instructions_key": "impl.finalize",
+      "context_kinds": ["spec", "diff"],
+      "output_schema_ref": "next-action/finalize.schema.json",
+      "requires_approval": true
+    }
+  },
+  "task": {
+    "draft": {
+      "action": "write-task-draft",
+      "instructions_key": "task.draft",
+      "context_kinds": ["parent_spec", "related_summary"],
+      "output_schema_ref": "next-action/draft.schema.json",
+      "requires_approval": false
+    },
+    "approval": {
+      "action": "await-approval",
+      "instructions_key": "task.approval",
+      "context_kinds": ["task_spec"],
+      "output_schema_ref": "next-action/approval.schema.json",
+      "requires_approval": false
+    },
+    "approval-2": {
+      "action": "await-approval",
+      "instructions_key": "task.approval-2",
+      "context_kinds": ["task_spec"],
+      "output_schema_ref": "next-action/approval.schema.json",
+      "requires_approval": false
+    },
+    "gate": {
+      "action": "run-gate",
+      "instructions_key": "task.gate",
+      "context_kinds": ["spec", "diff", "testlog"],
+      "output_schema_ref": "next-action/gate.schema.json",
+      "requires_approval": false
+    },
+    "write-tests": {
+      "action": "write-tests",
+      "instructions_key": "task.write-tests",
+      "context_kinds": ["task_spec", "related_summary"],
+      "output_schema_ref": "next-action/test.schema.json",
+      "requires_approval": false
+    },
+    "impl": {
+      "action": "run-impl",
+      "instructions_key": "task.impl",
+      "context_kinds": ["task_spec", "related_summary", "overview"],
+      "output_schema_ref": "next-action/impl.schema.json",
+      "requires_approval": false
+    },
+    "run-tests": {
+      "action": "run-tests",
+      "instructions_key": "task.run-tests",
+      "context_kinds": ["task_spec", "testlog"],
+      "output_schema_ref": "next-action/run-tests.schema.json",
+      "requires_approval": false
+    },
+    "review": {
+      "action": "run-review",
+      "instructions_key": "task.review",
+      "context_kinds": ["task_spec", "diff", "testlog"],
+      "output_schema_ref": "next-action/review.schema.json",
+      "requires_approval": false
+    },
+    "update-overview": {
+      "action": "update-overview",
+      "instructions_key": "task.update-overview",
+      "context_kinds": ["task_summary", "overview"],
+      "output_schema_ref": "next-action/update-overview.schema.json",
+      "requires_approval": false
+    }
+  }
+}

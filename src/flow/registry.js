@@ -163,6 +163,19 @@ export const FLOW_COMMANDS = {
       args: { positional: ["number"] },
       help: "Usage: sdd-forge flow get issue <number>\n\nGet GitHub issue content as JSON.",
     },
+    "next-action": {
+      helpKey: "flow.get.next-action",
+      requiresFlow: false,
+      command: () => import("./lib/get-next-action.js"),
+      help: [
+        "Usage: sdd-forge flow get next-action",
+        "",
+        "Return the next AI/skill action for the current in_progress step.",
+        "Dispatches from static context rules; the response carries an inline",
+        "output_schema usable with validateSchema. The exact response shape",
+        "is defined by the command itself and verified by its unit tests.",
+      ].join("\n"),
+    },
     context: {
       helpKey: "flow.get.context",
       command: () => import("./lib/get-context.js"),

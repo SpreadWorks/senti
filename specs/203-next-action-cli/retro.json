@@ -1,0 +1,87 @@
+{
+  "spec": "specs/203-next-action-cli/spec.md",
+  "date": "2026-04-21T01:49:08.391Z",
+  "requirements": [
+    {
+      "desc": "REQ-1: envelope 7 fields",
+      "status": "done",
+      "note": "Command returns `{ taskId, step, action, instructions, context, output_schema, requires_approval }` and tests verify envelope `{ ok, type, key, data, errors }` shape."
+    },
+    {
+      "desc": "REQ-2: active flow 無しは ok:false",
+      "status": "done",
+      "note": "When no active flow, command throws explicit `NO_ACTIVE_FLOW` error; contract tests confirm `ok:false`, descriptive errors, and non-zero exit."
+    },
+    {
+      "desc": "REQ-3: current task non-null で task step 対象",
+      "status": "done",
+      "note": "`resolveTarget` prioritizes current task and selects the first `in_progress` task step, setting `taskId` to that task id."
+    },
+    {
+      "desc": "REQ-4: current task null で flow step fallback",
+      "status": "done",
+      "note": "If no current task is resolved, logic falls back to first flow-level `in_progress` step and returns `taskId: null`."
+    },
+    {
+      "desc": "REQ-5: approval 3 点のみ requires_approval:true",
+      "status": "done",
+      "note": "`context-rules.json` marks only `flow.approval`, `flow.integration-evaluate`, and `flow.finalize` as `true`; others are `false`."
+    },
+    {
+      "desc": "REQ-6: 静的ルールから全フィールド解決",
+      "status": "done",
+      "note": "Step resolution is data-driven via `context-rules.json` for action/instructions/context kinds/schema ref/requires_approval."
+    },
+    {
+      "desc": "REQ-7: context は記述子のみ",
+      "status": "done",
+      "note": "Returned context is descriptor-form (`kinds`, `paths`) and does not include resolved file contents/diff/log payloads."
+    },
+    {
+      "desc": "REQ-8: output_schema はインライン JSON Schema",
+      "status": "done",
+      "note": "Schema file is loaded and embedded as object in `output_schema`, not returned as path/reference only."
+    },
+    {
+      "desc": "REQ-9: ルール未定義 step はエラー",
+      "status": "done",
+      "note": "Missing rule triggers explicit error `NO_RULE_FOR_STEP: <scope>.<step>`; tests confirm `ok:false` with step name."
+    },
+    {
+      "desc": "REQ-10: validateSchema に単独で渡せる",
+      "status": "done",
+      "note": "Inline schema objects include required JSON Schema fields and tests validate direct `validateSchema(value, output_schema)` usage."
+    },
+    {
+      "desc": "REQ-11: 定義追記のみで拡張可能",
+      "status": "done",
+      "note": "Core command contains no step/action switch branches; behavior is driven by rule + schema files, and dedicated extensibility test verifies data-only extension path."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/registry.js",
+      "change": "Added user-facing help text for `flow get next-action`; help contract text itself is not part of REQ-1..REQ-11."
+    },
+    {
+      "file": "src/flow/lib/get-next-action.js",
+      "change": "Added `NO_IN_PROGRESS_STEP` error path for flows with no `in_progress` step, which is not explicitly specified in REQ-1..REQ-11."
+    },
+    {
+      "file": "src/flow/lib/get-next-action.js",
+      "change": "Added `SDD_FORGE_NEXT_ACTION_SCHEMA_DIR` environment override for schema directory (testability hook), not explicitly required."
+    },
+    {
+      "file": "specs/203-next-action-cli/*",
+      "change": "Added/updated process artifacts (`draft.md`, `spec.md`, `flow.json`, `issue-log.json`, `qa.md`, `review.md`, `tests/README.md`) not directly required by the 11 runtime requirements."
+    }
+  ],
+  "summary": {
+    "total": 11,
+    "done": 11,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "Implementation satisfies all 11 listed requirements. Main extra changes are documentation/process artifacts plus minor operational behavior/testability additions outside the strict REQ set."
+  }
+}

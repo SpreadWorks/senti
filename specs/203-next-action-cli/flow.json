@@ -1,0 +1,234 @@
+{
+  "spec": "specs/203-next-action-cli/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/203-next-action-cli",
+  "runId": "6e70c35f-3e19-42b3-be81-3632c8f0f847",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "REQ-1: envelope 7 fields",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-2: active flow 無しは ok:false",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-3: current task non-null で task step 対象",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-4: current task null で flow step fallback",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-5: approval 3 点のみ requires_approval:true",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-6: 静的ルールから全フィールド解決",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-7: context は記述子のみ",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-8: output_schema はインライン JSON Schema",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-9: ルール未定義 step はエラー",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-10: validateSchema に単独で渡せる",
+      "status": "done"
+    },
+    {
+      "desc": "REQ-11: 定義追記のみで拡張可能",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 187,
+  "worktree": true,
+  "request": "Add flow get next-action CLI command with static approval point wiring (Issue #187, cac6/T5)",
+  "notes": [
+    "work-environment: [1] worktree; base-branch: [1] main; Q1 intent: [1] approved"
+  ],
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 5
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 77854,
+        "output": 6165,
+        "cacheRead": 84224,
+        "cacheCreation": 0
+      },
+      "callCount": 6,
+      "responseChars": 13218,
+      "durationMs": 150136
+    },
+    "gate": {
+      "tokens": {
+        "input": 8684,
+        "output": 905,
+        "cacheRead": 19072,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 2412,
+      "durationMs": 20863
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 80416,
+        "output": 5107,
+        "cacheRead": 63360,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 8700,
+      "durationMs": 130332
+    },
+    "task-impl": {
+      "gateRetry": 3
+    },
+    "review": {
+      "tokens": {
+        "input": 13302,
+        "output": 920,
+        "cacheRead": 34816,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 2255,
+      "durationMs": 27918
+    },
+    "impl": {
+      "issueLog": 1
+    }
+  },
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 17
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T01:48:26.784Z"
+  }
+}

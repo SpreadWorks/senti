@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "required": ["verdict"],
+  "properties": {
+    "verdict": { "type": "string", "enum": ["pass", "fail"] },
+    "issues": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/203-next-action-cli/draft.md                 | 129 +++++++\n specs/203-next-action-cli/flow.json                | 234 +++++++++++++\n specs/203-next-action-cli/issue-log.json           |  83 +++++\n specs/203-next-action-cli/qa.md                    |   9 +\n specs/203-next-action-cli/review.md                |  25 ++\n specs/203-next-action-cli/spec.md                  | 128 +++++++\n specs/203-next-action-cli/tests/README.md          |  52 +++\n src/flow/lib/get-next-action.js                    | 110 ++++++\n src/flow/registry.js                               |  13 +\n src/flow/schemas/context-rules.json                | 167 +++++++++\n src/flow/schemas/next-action/approval.schema.json  |   8 +\n src/flow/schemas/next-action/draft.schema.json     |   8 +\n src/flow/schemas/next-action/finalize.schema.json  |   9 +\n src/flow/schemas/next-action/gate.schema.json      |   8 +\n src/flow/schemas/next-action/impl.schema.json      |   8 +\n .../next-action/integration-test.schema.json       |   9 +\n src/flow/schemas/next-action/review.schema.json    |   8 +\n src/flow/schemas/next-action/run-tests.schema.json |   9 +\n src/flow/schemas/next-action/spec.schema.json      |   8 +\n src/flow/schemas/next-action/test.schema.json      |   8 +\n .../next-action/update-overview.schema.json        |   8 +\n tests/unit/flow/get-next-action.test.js            | 380 +++++++++++++++++++++\n 22 files changed, 1421 insertions(+)",
+      "commits": [
+        "feat: feature/203-next-action-cli"
+      ]
+    },
+    "retro": {
+      "total": 11,
+      "done": 11,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "Implementation satisfies all 11 listed requirements. Main extra changes are documentation/process artifacts plus minor operational behavior/testability additions outside the strict REQ set."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 5,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 180256,
+      "output": 13097,
+      "cacheRead": 201472,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14,
+      "durationMs": 329249,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 150136
+        },
+        {
+          "phase": "gate",
+          "durationMs": 20863
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 130332
+        },
+        {
+          "phase": "review",
+          "durationMs": 27918
+        }
+      ]
+    },
+    "tests": {
+      "unit": 17,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 17
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/203-next-action-cli\n    22 files changed, 1421 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (11 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 5\n    issue-log ................... 1\n    agent calls ................. 14\n    input tokens ................ 180,256\n    output tokens ............... 13,097\n    cache-read tokens ........... 201,472\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 329.2s\n      gate-draft ................ 150.1s\n      gate ...................... 20.9s\n      gate-impl ................. 130.3s\n      review .................... 27.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 17  integration 0  acceptance 0  total 17"
+}
