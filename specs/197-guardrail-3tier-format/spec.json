@@ -1,0 +1,64 @@
+{
+  "goal": "guardrail 評価系を決定論化する。具体的には以下 3 点を満たす:",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`judgment_rules` / `fail_examples` の導入（issue 明示）。",
+      "lint phase の評価方式変更（T4）。",
+      "spec.md → spec.json 化（T1 / T8）。",
+      "親 spec / task の並列実行（9c3c）。",
+      "旧 flow.json のマイグレーションスクリプト（T11）。",
+      "review / finalize / CLI UX の広範な改訂。",
+      "利用者カスタム guardrail.json の自動マイグレーション（ドキュメントで手順提示のみ）。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "Gate CLI が旧 phase 名（pre/post/impl）に対して invalid phase エラー（non-zero exit）を返す。",
+    "Gate CLI が新 phase 名で実行した結果に `level` / `phase` / 構造化 `evaluations` が欠落なく含まれる。",
+    "全 preset の guardrail.json が新 phase / category 語彙を満たす（preset 整合性テストで検証）。",
+    "AI が構造化 schema を返さないケースで gate が PASS せずエラー停止する（ユニットテストで検証）。",
+    "`grep -r \"--phase pre\\|--phase post\\|--phase impl\" src/templates/skills/` が 0 件である。",
+    "`npm test` が全てグリーン。"
+  ],
+  "clarifications": [
+    {
+      "q": "category の語彙は？",
+      "a": "enum `requirements | code-quality | testing | security | process`。将来の追加は前方互換で行う。"
+    },
+    {
+      "q": "AI 評価出力の `result` 値の大文字/小文字は？",
+      "a": "AI 出力は小文字 `pass | fail | skip`。既存の外部報告語彙（大文字 `PASS/FAIL/SKIP`）は normalize 層で維持する。"
+    },
+    {
+      "q": "level × phase の許容組合せは？",
+      "a": "(parent, draft) / (parent, spec) / (task, task-spec) / (task, task-impl) / (integration, integration) の 5 組のみ。"
+    },
+    {
+      "q": "旧 phase 名の扱いは？",
+      "a": "alpha 方針で後方互換なし。`pre / post / impl` は enum から削除し、受理しない。"
+    },
+    {
+      "q": "gate report の保存先は？",
+      "a": "既存経路（spec 配下 issue-log 成果物 + gate 返却結果）の拡張。新規ファイルは作らない。"
+    },
+    {
+      "q": "schema 不適合時の挙動は？",
+      "a": "PASS を返さず、パース/検証エラーとして即停止する（`exit code != 0`）。"
+    },
+    {
+      "q": "Issue #180 由来の diff-scope 指示の適用範囲は？",
+      "a": "task-impl と integration の両 phase で適用する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

@@ -1,0 +1,102 @@
+{
+  "goal": "独立した `approach` フェーズを flow 状態モデルおよび skill から廃止し、意図確認を draft フェーズの1問目として統合する。flow 開始から最初の draft 回答までに AI が提示する質問数を、現状の「意図確認 → work-env → base-branch」の3問から「work-env → base-branch → 意図確認（=draft Q1）」の3問に再編し、最初のユーザーの実質的な対話が「何を作るか」になる UX を実現する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`tests/acceptance/` への新規テスト追加。",
+      "Linear / JIRA 等、外部 issue トラッカー対応の拡張。",
+      "`gate` / `approval` / `test` / `impl` 等、他ステップの再設計。",
+      "旧 `approach` を含む flow.json の自動マイグレーションコードの実装（alpha 版ポリシーに従い後方互換コードを書かない）。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When 新規 flow が `sdd-forge flow prepare` によって作成される、shall 作成された flow.json の `steps` 配列に `approach` ID を持つエントリが含まれない。"
+    },
+    {
+      "id": "R2",
+      "desc": "When `sdd-forge flow get status` が実行される（新モデル下で作成された flow に対し）、shall 出力の `steps` に `approach` が含まれない。"
+    },
+    {
+      "id": "R3",
+      "desc": "When `sdd-forge flow set init` が `--issue N` または `--request \"...\"` 引数とともに実行される、shall それらの値が preparing-flow 状態ファイルに保存される。"
+    },
+    {
+      "id": "R4",
+      "desc": "When `sdd-forge flow prepare` が preparing-flow 状態を消費する、shall CLI 引数で `--issue` / `--request` が未指定の場合に限り、preparing-flow 状態に保存された値を flow.json に転記する。"
+    },
+    {
+      "id": "R5",
+      "desc": "When `PHASE_MAP` が参照される、shall `approach` キーを含まない。"
+    },
+    {
+      "id": "R6",
+      "desc": "When `sdd-forge.flow-plan` skill が起動する、shall 最初にユーザーへ提示する質問は順に (a) work-env 選択、(b) base-branch 選択、(c) draft 1問目（意図確認）である。"
+    },
+    {
+      "id": "R7",
+      "desc": "When draft 1問目が AI により提示される、shall AI は preparing-flow / issue から読んだ情報を要約し Choice Format `[1] はい [2] 修正する [3] その他` で確認を求める。"
+    },
+    {
+      "id": "R8",
+      "desc": "If draft 1問目でユーザーが `[1] はい` を選択する、shall skill は `sdd-forge flow prepare` を内部実行し spec ディレクトリ・ブランチを作成してから draft 本文作成に進む。"
+    },
+    {
+      "id": "R9",
+      "desc": "When `sdd-forge.flow-auto` skill が flow 再開判定を行う、shall `approach` を判定条件に含めない。"
+    },
+    {
+      "id": "R10",
+      "desc": "When `sdd-forge.flow-status` skill の出力例または表示テンプレートが参照される、shall `approach` を含まない。"
+    },
+    {
+      "id": "R11",
+      "desc": "When `npm test` が新 FLOW_STEPS の下で実行される、shall 既存のユニットおよび e2e テストが全てパスする。"
+    },
+    {
+      "id": "R12",
+      "desc": "When `sdd-forge.flow-plan` skill の `description` フィールドが参照される、shall 文字列 `approach` を部分一致で含まない。"
+    },
+    {
+      "id": "R13",
+      "desc": "When `sdd-forge flow set init` が不正な引数（例: `--issue` に非数値）を受け取って失敗する、shall プロセスは非0の終了コードを返し JSON envelope の `ok` を `false` にする。"
+    },
+    {
+      "id": "R14",
+      "desc": "When `sdd-forge flow prepare` が preparing-flow ファイルの読み込みに失敗する、shall プロセスは非0の終了コードを返し JSON envelope の `ok` を `false` にする。"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: 新規 flow を開始するとき、ユーザーが最初の draft 回答を入力するまでに skill が提示する選択質問は3問（work-env、base-branch、意図確認）で、意図確認が draft phase の1問目として扱われる。",
+    "AC2: `sdd-forge flow get status`（新モデル下の flow）を実行したとき、`data.steps` 配列に `approach` ID のエントリが含まれない。",
+    "AC3: `sdd-forge flow set init --issue 123 --request \"test\"` を実行した後、同一 `runId` の preparing ファイルを読んだとき、`issue: 123` と `request: \"test\"` が保存されている。",
+    "AC4: 上記 AC3 の preparing ファイルを `sdd-forge flow prepare --title X --run-id <id>`（`--issue`/`--request` 未指定）で消費したとき、生成された flow.json に `issue: 123` および `request: \"test\"` が転記される。",
+    "AC5: `sdd-forge.flow-auto` skill を `branch`/`prepare-spec` が pending な状態で起動しても、`approach` done 条件判定が存在せずに flow-plan 呼び出しが発生する。",
+    "AC6: `npm test` が exit code 0 でパスする。"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "**独立 approach フェーズの質問文言短縮案**",
+      "reason": "質問数・ターン数が減らないため UX 目的を満たさず却下。"
+    },
+    {
+      "option": "**prepare を draft Q1 より前に配置する案**",
+      "reason": "内部実装としてシンプルだが、spec ディレクトリ名がユーザー意図確認前に確定する。議論の結果、prepare を Q1 承認後の内部実行に変更し、Q1 を「最初の実質対話」と位置づける案を採用した。"
+    },
+    {
+      "option": "**新コマンド `sdd-forge flow preparing set` 追加案**",
+      "reason": "CLI 表層が増える割に責務分離の利得が小さく、「シンプルなインターフェースに十分な実装を隠す」モジュール設計原則に沿わないため却下。"
+    }
+  ],
+  "open_questions": []
+}

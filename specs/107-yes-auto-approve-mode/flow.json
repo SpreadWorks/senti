@@ -130,21 +130,61 @@
   "issue": 41,
   "request": "Issue #41: --yes 自動承認モードの実装。コードベースが変わっている可能性があるため注意深く現状確認が必要",
   "notes": [
-    "approach: Q&A → spec, work-env: worktree, base: development",
-    "draft: Phase1=SKILL.md指示ベースのauto mode。コンソールに見える形。Phase2=コマンド内完結は将来",
-    "draft: autoApprove時のdraftは必ず自問自答で実施。スキップしない。AI判断でブレさせない",
-    "draft: autoApprove Hard Stop=リトライ上限固定値。gate 20回, impl テスト修正 5回, review 3回。上限到達でユーザーに返す",
-    "draft: auto mode デフォルトは全て choice id=1。prompt.js の recommended を全選択肢の id=1 に設定",
-    "draft: auto mode の動作=AIが選択肢をユーザーに提示する代わりに1が選ばれたものとして次へ進む。特別な仕組み不要、SKILL.mdの指示変更のみ",
-    "draft: draft自問自答=Issue+docs+guardrailからチェックリストを埋めてdraft.md作成。ブラッシュアップは別spec",
-    "draft: skill は /sdd-forge.flow-auto-on と /sdd-forge.flow-auto-off を別々に作る",
-    "draft: flow.json未存在時はflow set autoがエラー。前提チェックは既存のflow get checkで十分"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 16
+    {
+      "taskId": null,
+      "text": "approach: Q&A → spec, work-env: worktree, base: development",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Phase1=SKILL.md指示ベースのauto mode。コンソールに見える形。Phase2=コマンド内完結は将来",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: autoApprove時のdraftは必ず自問自答で実施。スキップしない。AI判断でブレさせない",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: autoApprove Hard Stop=リトライ上限固定値。gate 20回, impl テスト修正 5回, review 3回。上限到達でユーザーに返す",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: auto mode デフォルトは全て choice id=1。prompt.js の recommended を全選択肢の id=1 に設定",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: auto mode の動作=AIが選択肢をユーザーに提示する代わりに1が選ばれたものとして次へ進む。特別な仕組み不要、SKILL.mdの指示変更のみ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: draft自問自答=Issue+docs+guardrailからチェックリストを埋めてdraft.md作成。ブラッシュアップは別spec",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: skill は /sdd-forge.flow-auto-on と /sdd-forge.flow-auto-off を別々に作る",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: flow.json未存在時はflow set autoがエラー。前提チェックは既存のflow get checkで十分",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 16,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -154,5 +194,7 @@
   "requestChars": 60,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

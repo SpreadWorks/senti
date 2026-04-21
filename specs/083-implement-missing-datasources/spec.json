@@ -1,0 +1,52 @@
+{
+  "goal": "プリセット整合性テストで検出された全エラーを解消し、再発防止のために `src/AGENTS.md` にプリセット作成ルールを明文化する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "新しいプリセットの追加",
+      "enrich フェーズの設計変更（新規カテゴリ生成の拡張）",
+      "nextjs/hono の webapp テンプレート override（AI フィルタで不要章が除外されるため）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`npm test` でプリセット整合性テスト（preset-scan-integrity.test.js）の fail が 0 件になる",
+    "`src/AGENTS.md` にプリセット作成ルールが明文化されている",
+    "webapp テンプレートが `{{text}}` + block 構造を持ち、子プリセットが override で `{{data}}` を使える",
+    "laravel/symfony の DataSource メソッドが実装され、override テンプレートが存在する"
+  ],
+  "clarifications": [
+    {
+      "q": "フレームワーク固有のパーサーを書くべきか？",
+      "a": "本質的でない。scan で収集不可能な情報は `{{text}}` に任せる。"
+    },
+    {
+      "q": "webapp テンプレートの `{{data}}` を全て `{{text}}` にすると cakephp2 の精度が下がるか？",
+      "a": "block override で cakephp2 は `{{data}}` を維持するので精度は変わらない。"
+    },
+    {
+      "q": "ルート AGENTS.md の `{{data: agents.project}}` を外すと自動更新されなくなるが良いか？",
+      "a": "src/AGENTS.md に手書きで集約する。自動生成は使わない。"
+    },
+    {
+      "q": "テスト2の14件を全て `{{text}}` にするのか？",
+      "a": "webapp/base テンプレートは `{{text}}` にするが、子プリセット（cakephp2, laravel, symfony）は block override で `{{data}}` を使う。"
+    },
+    {
+      "q": "src/README.md 削除と AGENTS.md セクション削除は破壊的操作ではないか？",
+      "a": "両方とも `git rm` / `git commit` で実行するため git 履歴から復元可能。内容は全て src/AGENTS.md に統合される。README.md を参照する外部コードは存在しない。npm パッケージの files フィールドは `[\"src/\"]` なので README.md はパッケージルートのもの（別ファイル）が使われる。ユーザーが draft フェーズで削除方針を明示的に承認済み。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "テスト3 の 11 キー: 全て scan で収集不可のためテンプレートを `{{text}}` に変更する。テスト2の修正（block + text 化）で大部分が解消され、残りのプリセット固有テンプレート（nextjs, hono, workers 等）も `{{text}}` 化。data DataSource は analysis にデータがあれば動作するので削除はしない。"
+  ]
+}

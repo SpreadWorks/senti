@@ -1,0 +1,53 @@
+{
+  "goal": "プリセット固有テストをプリセットディレクトリ内に移動し、全プリセットの scan パーサーに対する I/O テストを整備する。新規プリセット（drizzle, workers, nextjs, hono, graphql）には不足している scan パーサーを作成する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "横断テスト（preset-scan-integrity, preset-datasources, 079-preset-chapter-hierarchy, ci-pipelines, en-templates）の移動",
+      "テストフレームワークの変更（Node.js 組み込み test runner を継続使用）",
+      "既存テンプレート・DataSource の変更（scan パーサーの追加・置換のみ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: `npm test` で全テスト（tests/ + src/presets/*/tests/）が実行され、全て PASS する",
+    "AC2: `npm test -- --preset laravel` で laravel 関連テスト（横断 + 固有）が実行される",
+    "AC3: `npm test -- --preset nonexistent` がエラーメッセージを出して終了する",
+    "AC4: 移動元（tests/unit/presets/laravel/, tests/unit/presets/symfony/, tests/e2e/presets/laravel/, tests/e2e/presets/symfony/）にファイルが残っていない",
+    "AC5: 全プリセット（laravel, symfony, cakephp2, drizzle, workers, nextjs, hono, graphql）の scan パーサーに I/O テストが存在する",
+    "AC6: `npm pack --dry-run` の出力に `src/presets/*/tests/` のファイルが含まれない",
+    "AC7: src/AGENTS.md にプリセット作成手順とテストルールが記載されている"
+  ],
+  "clarifications": [
+    {
+      "q": "テスト再配置の対象範囲は？",
+      "a": "laravel/symfony のプリセット固有テスト（8ファイル）のみ。横断テストは tests/ に残す。"
+    },
+    {
+      "q": "移動先のディレクトリ構造は？",
+      "a": "unit/e2e のサブディレクトリを維持（src/presets/<name>/tests/unit/, tests/e2e/）。"
+    },
+    {
+      "q": "`--preset` 指定時の実行範囲は？",
+      "a": "tests/unit + tests/e2e + src/presets/<name>/tests/ の全テスト。"
+    },
+    {
+      "q": "プリセット名の検証方法は？",
+      "a": "ファイルシステムから動的に取得。ハードコード配列は使わない。"
+    },
+    {
+      "q": "新規プリセットの scan がない場合は？",
+      "a": "テンプレ → DataSource → scan の順で不足分を作成する。親プリセットの汎用実装より固有実装が望ましい場合は置き換える。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

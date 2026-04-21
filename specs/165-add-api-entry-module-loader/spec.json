@@ -1,0 +1,57 @@
+{
+  "goal": "外部プリセット（`~/.sdd-forge/presets/`、`.sdd-forge/data/`）が `import 'sdd-forge/api'` の一行で `DataSource`・`Scannable`・`AnalysisEntry` の基底クラスにアクセスできるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "公開 API エントリポイントの作成（`DataSource`・`Scannable`・`AnalysisEntry` の3クラスを export）",
+      "`package.json` の `exports` マップへの `sdd-forge/api` サブパス追加",
+      "sdd-forge プロセス起動時のモジュールローダーフック登録",
+      "Node.js 動作保証バージョンを `>=18.19.0` に引き上げ",
+      "ローダーフックの自動テスト"
+    ],
+    "out": [
+      "外部プリセット間のクロスimport（`sdd-forge/preset/*` 名前空間）→ ボード b554 に分離",
+      "`WebappDataSource` の公開 API への追加"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "Node.js version 要件はどうするか？モジュールローダーフック機能の安定版は 18.19+ が必要だが、現 engines は `>=18.0.0`。",
+      "a": "`>=18.19.0` に bump する。alpha 期間は後方互換不要なため。"
+    },
+    {
+      "q": "`WebappDataSource` を公開 API に含めるか？",
+      "a": "除外する。`WebappDataSource` は `Scannable(DataSource)` の薄いラッパーに過ぎず、外部プリセットはプリミティブを組み合わせることで同等の継承が可能。API 表面積を最小に保つ。"
+    },
+    {
+      "q": "外部プリセット間のクロスimport（例: `my-webapp` を継承した `my-specific-app`）は今回のスコープか？",
+      "a": "スコープ外。ボード b554 に分離済み。本 spec は `sdd-forge` 基底クラスの公開に絞る。"
+    },
+    {
+      "q": "サブパス名は何にするか？",
+      "a": "`sdd-forge/api` のまま。`sdd-forge` はパッケージ名（固定）、`/api` は `exports` マップで定義するサブパス（任意）。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**相対 import（`../../node_modules/sdd-forge/src/docs/lib/data-source.js`）**",
+      "reason": "パスが fragile で、インストール環境により変わる。採用しない。"
+    },
+    {
+      "option": "`WebappDataSource` の公開",
+      "reason": "外部 webapp 系プリセットが内部と同じパターンで書けるが、プリセット層クラスをコア API に含めることになり API が膨らむ。除外。"
+    }
+  ],
+  "open_questions": [
+    "(なし)"
+  ]
+}

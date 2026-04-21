@@ -1,0 +1,38 @@
+{
+  "goal": "config.json の chapters に `exclude: true` を設定した章が init / data / text フェーズで処理されないようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/lib/template-merger.js` の `resolveChaptersOrder()` で `exclude: true` の章をフィルタする"
+    ],
+    "out": [
+      "`mergeChapters()` の修正（既に exclude を正しく処理している）",
+      "`getChapterFiles()` の修正（`resolveChaptersOrder` を修正すれば自動的に解決）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "config.json に `{chapter: \"development_testing.md\", exclude: true}` を設定した場合、`resolveChaptersOrder()` の戻り値に `development_testing.md` が含まれないこと",
+    "`exclude` フィールドがないエントリや `exclude: false` のエントリは従来通り含まれること",
+    "旧 string 形式の configChapters（`[\"overview.md\", \"stack_and_ops.md\"]`）で動作が変わらないこと"
+  ],
+  "clarifications": [
+    {
+      "q": "修正箇所はどこか？",
+      "a": "`resolveChaptersOrder()` の 1 箇所。configChapters をマップする際に `exclude: true` のエントリを除外するフィルタを追加する。この関数が init / data / text / readme / agents / review すべてで使われているため、1 箇所の修正で全フェーズに反映される。"
+    },
+    {
+      "q": "`mergeChapters` との関係は？",
+      "a": "`mergeChapters` は chapter-resolver.js にあり enrich で使われる。既に exclude を正しく処理している。`resolveChaptersOrder` は template-merger.js にあり init 以降のフェーズで使われる。この 2 つは別の関数。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

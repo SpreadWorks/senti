@@ -1,0 +1,34 @@
+{
+  "goal": "",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "Per-language `mode` configuration (all non-default languages share the same mode)",
+      "MANUAL block handling (MANUAL blocks will be deprecated separately)"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[x] `output.languages`, `output.default`, `output.mode` 設定が config から読み込める",
+    "[x] デフォルト言語ドキュメントが `docs/` に出力される",
+    "[x] 非デフォルト言語ドキュメントが `docs/{lang}/` に出力される",
+    "[x] `translate` モードで `sdd-forge translate` が動作する",
+    "[x] `generate` モードで各言語が独立生成される",
+    "[x] `{{data: lang.links}}` で言語切替リンクが挿入される",
+    "[x] テンプレートフォールバック（他言語テンプレートからAI翻訳）が動作する",
+    "[x] `en/` テンプレートが追加されている",
+    "[x] `build` コマンドが多言語出力に対応している",
+    "[x] 単一言語設定時は既存動作と互換"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [],
+  "open_questions": []
+}

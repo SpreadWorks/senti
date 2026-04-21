@@ -121,53 +121,135 @@
   "request": "一時ファイル運用を /tmp 固定から config.agent.workDir 解決へ統一し、AGENTS/skill運用を整備する",
   "worktree": true,
   "notes": [
-    "approach: [1] Q&A で要件整理",
-    "prepare-spec: title=[1] flow-runid-state-bootstrap",
-    "work-env: [1] worktree, base: [1] main",
-    "draft: Q2=[1] config.agent.workDirベースの一時ファイル運用ルール化を対象",
-    "draft: request-source=notes (set request reflection mismatch logged)",
-    "draft: Q3=skill共有パーツ + CLI agent.workDir解決ヘルパー実装",
-    "draft: Q4=[1+3] workDir解決=env override > config.agent.workDir > .tmp",
-    "draft: approved [1] on 2026-04-13",
-    "spec: start after gate-draft pass",
-    "approval: [1] approved on 2026-04-13",
-    "test-mode: [1] テストコードを作成する",
-    "test: added env-override unit test (fails as expected before implementation)"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 6
+    {
+      "taskId": null,
+      "text": "approach: [1] Q&A で要件整理",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "plan": {
-      "issueLog": 3
+    {
+      "taskId": null,
+      "text": "prepare-spec: title=[1] flow-runid-state-bootstrap",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "spec": {
-      "tokens": {
-        "input": 2,
-        "output": 743,
-        "cacheRead": 11766,
-        "cacheCreation": 10102
-      },
-      "cost": 0.0525633,
-      "callCount": 1,
-      "responseChars": 1260
+    {
+      "taskId": null,
+      "text": "work-env: [1] worktree, base: [1] main",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "implement": {
-      "tokens": {
-        "input": 4,
-        "output": 781,
-        "cacheRead": 23532,
-        "cacheCreation": 24117
-      },
-      "cost": 0.10922535,
-      "callCount": 2,
-      "responseChars": 2010
+    {
+      "taskId": null,
+      "text": "draft: Q2=[1] config.agent.workDirベースの一時ファイル運用ルール化を対象",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "draft: request-source=notes (set request reflection mismatch logged)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q3=skill共有パーツ + CLI agent.workDir解決ヘルパー実装",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q4=[1+3] workDir解決=env override > config.agent.workDir > .tmp",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: approved [1] on 2026-04-13",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "spec: start after gate-draft pass",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "approval: [1] approved on 2026-04-13",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test-mode: [1] テストコードを作成する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test: added env-override unit test (fails as expected before implementation)",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "cost",
+      "value": 0.0525633,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "responseChars",
+      "value": 1260,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "implement",
+      "counter": "cost",
+      "value": 0.10922535,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "implement",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "implement",
+      "counter": "responseChars",
+      "value": 2010,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "state": {
     "finalizedAt": "2026-04-13T06:50:37.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

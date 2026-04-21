@@ -1,0 +1,55 @@
+{
+  "goal": "cac6 分解タスク T4 の **Phase 1 骨格**。test-first 原則を機械化するための step 構造・phase 割当・summary 合算の基盤を導入する。具体的には以下 3 点を満たす:",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": []
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "新規 task 作成時に step 列が「テスト作成 → 実装 → テスト実行 → review → update-overview」（addition origin の場合は前段に draft / approval 系を含む）となる",
+    "親 flow の step 列に review 前の integration 段階 4 step が順序通り存在し、それぞれ `impl` phase に割り当てられる",
+    "task 完了時に、task の test summary が親 state の test summary に加算されている。task summary が null の場合は親は不変",
+    "current task 不在時の `setTestSummary` は親 state に直接書き込まれる",
+    "プロジェクト標準のテストコマンドで追加・既存テスト全てが PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "plan / addition 両 origin で同じ step 分解を適用するか？",
+      "a": "同じ順序で適用。origin 非依存の機械化。"
+    },
+    {
+      "q": "テスト実行を既存の実装確認コマンドに相乗りさせるか？",
+      "a": "新規 CLI コマンドとして分離。責務単一化のため。"
+    },
+    {
+      "q": "テスト作成段階の context フィルタは skill 明文化のみで足りるか？",
+      "a": "不十分。CLI レイヤで構造的に除外し、skill で補強する二層方式。"
+    },
+    {
+      "q": "task→親 summary は動的集計か、永続的合算か？",
+      "a": "永続的合算。task 完了時に親 summary へ加算副作用。"
+    },
+    {
+      "q": "integration 段階は T4 で扱うか、別タスクに切るか？",
+      "a": "Issue 本文に明記されており、cac6 の他タスクにも枠が無いため T4 で扱う。"
+    },
+    {
+      "q": "addition origin は残すか廃止するか？",
+      "a": "残す。auto-draft + gate 厳格で運用。失敗時のみ user escalate。"
+    },
+    {
+      "q": "テストは formal tests か spec-local tests か？",
+      "a": "formal tests（公開 API 契約のため）。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

@@ -130,22 +130,50 @@
   "request": "sdd-forge check freshness: docs と src の鮮度チェックコマンドを実装する",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 1,
-      "question": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "test": {
-      "srcRead": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1,
-      "issueLog": 1
+    {
+      "phase": "test",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "reviewCount": {
     "spec": 4,
     "test": 0,
@@ -155,5 +183,7 @@
   "requestChars": 54,
   "state": {
     "finalizedAt": "2026-04-08T13:27:40.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

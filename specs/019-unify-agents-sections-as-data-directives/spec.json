@@ -1,0 +1,44 @@
+{
+  "goal": "AGENTS.md の SDD / PROJECT セクション管理を `<!-- SDD:START -->` / `<!-- PROJECT:START -->` 独自マーカーから `{{data}}` ディレクティブに統一する。併せて MANUAL ブロック（`<!-- MANUAL:START/END -->`）を廃止する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`{{text}}` ブロックディレクティブ対応（別 spec）",
+      "readme.js のディレクティブ解決重複の解消（別 spec）",
+      "PROJECT セクション生成時の AI 精査の改善",
+      "多言語出力の本格対応（spec 017 で対応）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `agents` データソース（`src/docs/data/agents.js`）が存在し、`sdd()` / `project()` メソッドを持つ",
+    "[ ] AGENTS.md テンプレートが `{{data}}` ディレクティブを使用している",
+    "[ ] `sdd-forge agents` が正常動作する",
+    "[ ] `<!-- SDD:START/END -->` / `<!-- PROJECT:START/END -->` マーカーがコードから除去されている",
+    "[ ] `<!-- MANUAL:START/END -->` の処理がコードから除去されている",
+    "[ ] `src/presets/base/templates/en/AGENTS.sdd.md` が存在する",
+    "[ ] 全テストがパスする"
+  ],
+  "clarifications": [
+    {
+      "q": "PROJECT セクション生成には AI を使うが、`{{data}}` ディレクティブで良いのか？",
+      "a": "テンプレート生成は analysis.json からの機械的処理。AI 精査は agents コマンド固有の後処理として残す。データソースの `project()` はテンプレート生成のみ行い、AI 精査はコマンド側で行う。"
+    },
+    {
+      "q": "MANUAL ブロック廃止後、ユーザーの手動記述はどうなるか？",
+      "a": "`{{data}}` / `{{text}}` ディレクティブの外に書けば上書きされない。ディレクティブ解決はディレクティブ内部のみ更新するため。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`agents` コマンドの `--sdd` / `--project` フラグは廃止で良いか → 廃止（ディレクティブで制御）"
+  ]
+}

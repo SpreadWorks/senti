@@ -1,0 +1,41 @@
+{
+  "goal": "新プリセット群のテンプレートで `{{text}}` のみになっている箇所のうち、ソースコード解析や enriched analysis から構造データとして抽出可能なものを `{{data}}` ディレクティブに置き換え、対応する DataSource を実装する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "既存 DataSource（cakephp2, laravel, symfony, webapp の controllers/models/routes/tables 等）の修正",
+      "新しいプリセットの追加",
+      "scan コマンドの変更（DataSource の match/scan は既存の仕組みに乗る）",
+      "enrich コマンドの変更",
+      "`{{text}}` のまま残すディレクティブ（説明文、概要、Mermaid 図）の改善"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "DataSource の実装方針は？",
+      "a": "scan（静的解析）と enrich（AI 解析結果）を組み合わせる。ケースバイケースで選択"
+    },
+    {
+      "q": "判断基準は？",
+      "a": "一覧表・構造データ → data、説明文・図・フロー → text"
+    },
+    {
+      "q": "スコープは？",
+      "a": "全プリセットを1つの spec で扱う"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "base の structure DataSource: enriched analysis の各エントリーが持つ `relPath`, `summary`, `chapter`, `role` フィールドからツリーを生成する。`relPath` でディレクトリ構造を構築し、`summary` でコメントを付与する。"
+  ]
+}

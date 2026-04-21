@@ -1,0 +1,52 @@
+{
+  "goal": "SDD フローのスキルを3つに分割し、各フェーズの責務を明確にする。\n現在の flow-start（全ステップ一括）を plan / impl / merge の3フェーズに分離することで、\nフローの途中再開やフェーズ単位の再実行を可能にする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "スキルファイルのリネーム・新規作成（.claude/skills/ 配下）",
+      "`src/lib/flow-state.js` の `FLOW_STEPS` 更新",
+      "`src/flow/commands/status.js` は `FLOW_STEPS` を参照しているため自動対応"
+    ],
+    "out": [
+      "flow-status スキルの変更",
+      "`src/flow/commands/start.js`, `src/flow/commands/review.js` の変更（CLI コマンドはスキルとは独立）",
+      "フロー状態の永続化構造（flow.json）の変更（ステップ配列の内容が増えるだけ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow status --step docs-update --status done` 等の新ステップ ID が正常に動作する",
+    "既存テストが通る（`npm test`）",
+    "3つのスキルファイルが正しい名前で配置されている",
+    "各スキルの SKILL.md の Available step IDs が担当範囲のみを記載している"
+  ],
+  "clarifications": [
+    {
+      "q": "FLOW_STEPS はスキルごとに独立した配列にするか、全ステップ1配列か？",
+      "a": "全ステップを1つの配列に維持。各スキルが担当範囲のステップだけを操作する。"
+    },
+    {
+      "q": "flow-impl のステップ構成は？",
+      "a": "現行の `implement`, `review`, `finalize` をそのまま維持（refine は概念であり独立ステップにしない）。"
+    },
+    {
+      "q": "flow-merge のステップ追跡は？",
+      "a": "`docs-update`, `docs-review`, `commit`, `merge`, `branch-cleanup`, `archive` の6ステップを追加。"
+    },
+    {
+      "q": "flow-impl の finalize で何をするか？",
+      "a": "現行と同じパターン。finalize 承認後に `/sdd-forge.flow-merge` を起動する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

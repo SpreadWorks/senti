@@ -100,46 +100,120 @@
   "request": "sdd-forge metrics token の difficulty を計算して表示する",
   "worktree": true,
   "notes": [
-    "approach: [1] Q&A で要件整理してから仕様書を作成",
-    "branch: [1] worktree / base [1] main",
-    "draft: difficulty は board8690 の確定式をフル実装。必要データ欠損時はN/A",
-    "draft: row difficulty は寄与 spec difficulty の平均値を採用",
-    "draft: difficulty 必要指標が1つでも欠損なら spec difficulty は N/A（部分計算しない）",
-    "draft: Q4=[1] reviewCountはflow.jsonのreviewCount.*のみ採用、無ければN/A。redoCountはmetrics.*.redoを採用",
-    "draft: Q5=[1] reviewCountはreview.md項目数、redoCountはissue-log.json entries.length で補完",
-    "draft: user selected [1], commit backfilled flow.json counts before difficulty implementation",
-    "sync: implementation/test were done before draft closure; steps aligned after gate-draft pass",
-    "review decision: keep mass backfill commit fe062f8 as requested by user",
-    "finalize.mode: [1] all (user selected)"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 7,
-      "tokens": {
-        "input": 2,
-        "output": 583,
-        "cacheRead": 11766,
-        "cacheCreation": 9650
-      },
-      "cost": 0.048468300000000006,
-      "callCount": 1,
-      "responseChars": 1005
+    {
+      "taskId": null,
+      "text": "approach: [1] Q&A で要件整理してから仕様書を作成",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 6,
-        "output": 5537,
-        "cacheRead": 35298,
-        "cacheCreation": 156991
-      },
-      "cost": 0.68237865,
-      "callCount": 3,
-      "responseChars": 4390
+    {
+      "taskId": null,
+      "text": "branch: [1] worktree / base [1] main",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "finalize": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "draft: difficulty は board8690 の確定式をフル実装。必要データ欠損時はN/A",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: row difficulty は寄与 spec difficulty の平均値を採用",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: difficulty 必要指標が1つでも欠損なら spec difficulty は N/A（部分計算しない）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q4=[1] reviewCountはflow.jsonのreviewCount.*のみ採用、無ければN/A。redoCountはmetrics.*.redoを採用",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q5=[1] reviewCountはreview.md項目数、redoCountはissue-log.json entries.length で補完",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: user selected [1], commit backfilled flow.json counts before difficulty implementation",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "sync: implementation/test were done before draft closure; steps aligned after gate-draft pass",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review decision: keep mass backfill commit fe062f8 as requested by user",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize.mode: [1] all (user selected)",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 7,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "cost",
+      "value": 0.048468300000000006,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "responseChars",
+      "value": 1005,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "cost",
+      "value": 0.68237865,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 4390,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -149,5 +223,7 @@
   "requestChars": 46,
   "state": {
     "finalizedAt": "2026-04-12T14:50:58.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

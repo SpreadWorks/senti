@@ -1,0 +1,59 @@
+{
+  "goal": "Fix acceptance test fixture configuration errors, add missing source files, and rename shells → commands across webapp preset chain to unify console command handling for all frameworks.",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "Adding new chapters or templates beyond the rename",
+      "Changing scan logic beyond match() overrides for commands",
+      "Symfony fixture missing files (not mentioned in Issue #12)",
+      "Performance optimization of acceptance tests"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`npm test` passes with no regressions",
+    "Acceptance tests for php and node fixtures run without preset resolution errors",
+    "`{{data(\"webapp.commands.list\")}}` resolves correctly for CakePHP2, Laravel, and Symfony fixtures",
+    "No remaining references to `shells` in source code (except git history)",
+    "CakePHP2 fixture has files for all major app directories",
+    "Laravel fixture has middleware and Artisan command stubs"
+  ],
+  "clarifications": [
+    {
+      "q": "Issue has 4 separate concerns — one spec or multiple?",
+      "a": "One spec (all are \"test fixture quality improvements\")"
+    },
+    {
+      "q": "php fixture type → ?",
+      "a": "`php-webapp`"
+    },
+    {
+      "q": "node fixture type → ?",
+      "a": "`js-webapp`"
+    },
+    {
+      "q": "webapp.shells.list is irrelevant for Laravel/Symfony?",
+      "a": "The real issue is that shells.js uses a CakePHP-specific name. Rename to commands.js and implement framework-specific match() for Laravel/Symfony."
+    },
+    {
+      "q": "Template chapter name?",
+      "a": "Rename `batch_and_shell.md` → `commands.md`"
+    },
+    {
+      "q": "webapp parent commands.js match() behavior?",
+      "a": "Keep returning false (no universal pattern for console commands)"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

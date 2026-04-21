@@ -116,15 +116,31 @@
   ],
   "request": "worktree実行時のagentログ保存先をメインリポジトリ側に向ける修正",
   "worktree": true,
-  "metrics": {
-    "draft": {
-      "question": 4
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "Q2: resolveLogDir 内で isInsideWorktree/getMainRepoPath を使って自動解決",
-    "Q3: getMainRepoPath 失敗時は throw して終了（ログ書き込み不可は致命的エラー扱い）",
-    "review: auto-fix"
+    {
+      "taskId": null,
+      "text": "Q2: resolveLogDir 内で isInsideWorktree/getMainRepoPath を使って自動解決",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "Q3: getMainRepoPath 失敗時は throw して終了（ログ書き込み不可は致命的エラー扱い）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: auto-fix",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 3,
@@ -135,5 +151,7 @@
   "requestChars": 38,
   "state": {
     "finalizedAt": "2026-04-06T16:05:27.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

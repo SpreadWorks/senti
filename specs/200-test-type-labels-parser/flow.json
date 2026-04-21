@@ -140,36 +140,64 @@
   "currentTaskId": null,
   "issue": 192,
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 71750,
-        "output": 6521,
-        "cacheRead": 86272,
-        "cacheCreation": 0
-      },
-      "callCount": 6,
-      "responseChars": 11585,
-      "durationMs": 154932
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 442486,
-        "output": 9099,
-        "cacheRead": 123520,
-        "cacheCreation": 0
-      },
-      "callCount": 11,
-      "responseChars": 15835,
-      "durationMs": 255266
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 11585,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 154932,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 11,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 15835,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 255266,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 1707,

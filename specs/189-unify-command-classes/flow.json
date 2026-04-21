@@ -135,50 +135,84 @@
   "issue": 168,
   "request": "#168 issue をflow-planで進める",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 22480,
-        "output": 3697,
-        "cacheRead": 74752,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 5191
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 21217,
-        "output": 1171,
-        "cacheRead": 5504,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1270
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 5191,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1,
-      "issueLog": 2
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 1698991,
-        "output": 20050,
-        "cacheRead": 123008,
-        "cacheCreation": 0
-      },
-      "callCount": 15,
-      "responseChars": 16489
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1270,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 15,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 16489,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "Q1: intent approved - Phase D follow-up: 15 cmd migration + docs build + adapter/runner removal"
+    {
+      "taskId": null,
+      "text": "Q1: intent approved - Phase D follow-up: 15 cmd migration + docs build + adapter/runner removal",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "test": {
     "summary": {
@@ -190,5 +224,7 @@
   "autoApprove": true,
   "state": {
     "finalizedAt": "2026-04-18T20:35:27.827Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

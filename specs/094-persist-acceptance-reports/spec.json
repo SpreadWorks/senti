@@ -1,0 +1,43 @@
+{
+  "goal": "Acceptance テストのレポートをプロジェクトルートの `.sdd-forge/output/` に永続化し、プリセット名をファイル名に含めることで、テスト結果を後から参照可能にする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`tests/acceptance/lib/test-template.js` の `writeReport()` 呼び出し後に、プロジェクトルートへのコピー処理を追加",
+      "ファイル名を `acceptance-report-{preset}.json` 形式にする"
+    ],
+    "out": [
+      "全プリセットのサマリーレポート生成",
+      "レポートの履歴管理（git に委ねる）",
+      "テスト環境のセットアップ変更",
+      "レポートフォーマットの変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "永続化先はどこか？",
+      "a": "プロジェクトルートの `.sdd-forge/output/`"
+    },
+    {
+      "q": "一時ディレクトリの既存レポートはどうするか？",
+      "a": "従来通り書き出す（テスト整合性維持）。プロジェクトルートへの書き出しは追加処理。"
+    },
+    {
+      "q": "再実行時の挙動は？",
+      "a": "既存ファイルを上書きする。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

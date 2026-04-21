@@ -1,0 +1,39 @@
+{
+  "goal": "Fix catastrophic backtracking in `methodBlockRegex` used by the Symfony controller and route scanners, which causes infinite hang when scanning files with many PHP attributes.",
+  "background": "",
+  "scope": {
+    "in": [
+      "Replace nested-quantifier regex with a two-step approach in: - `src/presets/symfony/scan/controllers.js` (L46) - `src/presets/symfony/scan/routes.js` (L172)",
+      "Extract shared helper to avoid code duplication"
+    ],
+    "out": [
+      "Changing scan output format or behavior (pure refactor of matching logic)",
+      "Other presets' regex patterns"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "Pathological input (20+ `#[Route(...)]` without `public function`) completes in <100ms",
+    "Existing Symfony scan tests pass unchanged",
+    "Scan output for valid controller files is identical before and after"
+  ],
+  "clarifications": [
+    {
+      "q": "What causes the backtracking?",
+      "a": "`((?:\\s*#\\[...\\]\\s*)*)*` — nested quantifiers. When `public function` is not found after many `#[...]` attributes, the engine tries exponentially many ways to partition the attribute sequence."
+    },
+    {
+      "q": "Why not just fix the character class?",
+      "a": "The Issue suggested `[^\\[\\]{}]*` but the real problem is the nested `*` quantifiers, not the character class. Splitting into two steps eliminates the structural issue."
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

@@ -1,0 +1,42 @@
+{
+  "goal": "`gate impl` の diff 検出を、コミット済み変更のみから「コミット済み変更 + 未コミット変更（staged + working tree）」を含む全変更に拡張し、sdd-forge の標準フロー（impl でコード変更 → finalize でコミット）において gate impl が正常に動作するようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/lib/run-gate.js` の `executeImpl()` メソッド: diff 取得ロジックの修正",
+      "エラーメッセージの更新（変更なし判定の文言）",
+      "`specs/157-fix-gate-impl-uncommitted/tests/` への動作検証テスト追加"
+    ],
+    "out": [
+      "gate impl でのテスト実行結果の検証（test-result.json の利用等）— 別 issue として対処する",
+      "CLI インターフェースの変更",
+      "フロー全体のステップ順序変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow run gate --phase impl` を、変更をコミットせずに（impl ステップ完了後・finalize 前に）実行した場合、コードが変更されていれば FAIL でなく要件チェックの結果を返すこと。",
+    "変更が一切ない状態（コミット済みも未コミットも空）では `\"no changes found (committed or uncommitted) against base branch\"` で FAIL となること。",
+    "既存の gate impl の振る舞い（コミット済み変更に対する要件チェック）は変更されないこと。"
+  ],
+  "clarifications": [
+    {
+      "q": "uncommitted 変更の取得に使う git コマンドは何か？",
+      "a": "`git diff baseBranch...HEAD`（コミット済み）と `git diff HEAD`（staged + unstaged の未コミット分）を連結する。両者の結合が空でない場合に「変更あり」とみなす。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**Option 1",
+      "reason": "コミット後に gate を実行** — review ステップ後に追加変更が入ると中間コミットが発生し `1 spec = 1 commit` 設計と矛盾するため不採用。"
+    }
+  ],
+  "open_questions": []
+}

@@ -128,34 +128,92 @@
   "request": "#165 issue を進める",
   "worktree": true,
   "notes": [
-    "q1: approved intent — logger → container service, separate metrics, cache resolveLogDir, fix extractCaller",
-    "q2: use existing container.get('logger') pattern",
-    "q3: draft approach approved — user delegated remainder",
-    "gate-impl: user accepted persistent 'No Sensitive Data in Logs' FAIL as pre-existing behavior; deferred to future spec"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+    {
+      "taskId": null,
+      "text": "q1: approved intent — logger → container service, separate metrics, cache resolveLogDir, fix extractCaller",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 2
+    {
+      "taskId": null,
+      "text": "q2: use existing container.get('logger') pattern",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "callCount": 6,
-      "responseChars": 8434
+    {
+      "taskId": null,
+      "text": "q3: draft approach approved — user delegated remainder",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "callCount": 1,
-      "responseChars": 1177
-    },
-    "gate-impl": {
-      "callCount": 8,
-      "responseChars": 9117
-    },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "gate-impl: user accepted persistent 'No Sensitive Data in Logs' FAIL as pre-existing behavior; deferred to future spec",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 8434,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1177,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 8,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 9117,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "test": {
     "summary": {
       "unit": 1411
@@ -163,5 +221,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-17T14:28:13.671Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

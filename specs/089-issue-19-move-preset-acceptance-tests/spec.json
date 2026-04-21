@@ -1,0 +1,59 @@
+{
+  "goal": "`tests/acceptance/` に集約されている preset ごとの acceptance テストと fixture を、各 preset の `src/presets/<name>/tests/acceptance/` 配下へ移動する。各 acceptance テストを preset 単位で完結させ、fixture の共有をなくしつつ、既存の実行入口と公開物制御を保ったまま運用できるようにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "acceptance テストの共通ライブラリ (`tests/acceptance/lib/`) 自体の全面刷新",
+      "Node.js 組み込み test runner 以外への移行",
+      "現在 `tests/acceptance/` に存在しない新規 preset の acceptance テスト追加",
+      "preset テンプレート、DataSource、scan ロジックの仕様変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: 既存の acceptance 対象 preset (`base`, `cakephp2`, `cli`, `laravel`, `library`, `node-cli`, `node`, `php`, `symfony`, `webapp`) それぞれに `src/presets/<name>/tests/acceptance/test.js` が存在する",
+    "AC2: 各 preset の fixture が `src/presets/<name>/tests/acceptance/fixtures/` 配下に配置され、`tests/acceptance/fixtures/` に preset 共有 fixture が残っていない",
+    "AC3: `node tests/acceptance/run.js` で全 acceptance テストが新配置から実行される",
+    "AC4: `node tests/acceptance/run.js symfony` のような preset 指定実行が新配置で成功する",
+    "AC5: `npm test -- --preset nonexistent` または同等の preset 指定で、明確なエラーを出して失敗する",
+    "AC6: `npm test` の実行対象に preset 配下の acceptance テストが含まれる",
+    "AC7: `npm pack --dry-run` 相当の確認で、`tests/` および `src/presets/*/tests/` が公開物に含まれない",
+    "AC8: `src/AGENTS.md` に acceptance テスト実装・実行ルールが追記されている"
+  ],
+  "clarifications": [
+    {
+      "q": "今回の spec のスコープは？",
+      "a": "テスト移設に必要な周辺変更を一式含める。"
+    },
+    {
+      "q": "公開物と運用ルールの更新は含めるか？",
+      "a": "含める。publish 対応と `src/AGENTS.md` 更新も必須成果物にする。"
+    },
+    {
+      "q": "移設対象の preset 範囲は？",
+      "a": "現在 `tests/acceptance/` にある acceptance テスト一式を対象にする。"
+    },
+    {
+      "q": "fixture の配置方針は？",
+      "a": "fixture は原則 preset 配下へ移し、共有しない。各 preset 内で閉じる。"
+    },
+    {
+      "q": "acceptance テストファイルの命名は？",
+      "a": "各 preset 配下へ移したうえで、ファイル名は `test.js` に統一する。"
+    },
+    {
+      "q": "acceptance テストの実行入口は？",
+      "a": "`tests/acceptance/run.js` は残し、探索先だけ preset 配下へ変更する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

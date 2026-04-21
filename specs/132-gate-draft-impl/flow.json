@@ -129,33 +129,91 @@
   "issue": 75,
   "request": "draft/impl フェーズの gate チェック導入",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 3
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 6,
-      "srcRead": 4
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "spec": {
-      "srcRead": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "test": {
-      "srcRead": 1
+    {
+      "phase": "spec",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 2
+    {
+      "phase": "test",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "approach: Q&A → spec. work-env: worktree from main. gate command: A案 --phase draft/impl追加、pre/postは廃止せず維持",
-    "gate draft: テキスト構造チェック + AI チェックの2層。構造チェック対象: Q&Aの有無、ユーザー承認、開発種別、目的(ゴール)",
-    "gate impl: AIチェックのみ。spec.md Requirements + git diff をAIに渡して各要件の実装有無をPASS/FAILで判定",
-    "gate error handling: throw廃止、常に構造化結果を返す。FAIL時はresult:fail+next。spec gate含め全gate統一",
-    "gate step ID: gate-draft, gate, gate-impl の3つ別々に新設。各フェーズの進捗を個別追跡",
-    "gate impl diff: baseBranch との diff (git diff baseBranch...HEAD)。feature ブランチ全体の変更",
-    "review: auto-fix mode selected",
-    "finalize: all mode selected"
+    {
+      "taskId": null,
+      "text": "approach: Q&A → spec. work-env: worktree from main. gate command: A案 --phase draft/impl追加、pre/postは廃止せず維持",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "gate draft: テキスト構造チェック + AI チェックの2層。構造チェック対象: Q&Aの有無、ユーザー承認、開発種別、目的(ゴール)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "gate impl: AIチェックのみ。spec.md Requirements + git diff をAIに渡して各要件の実装有無をPASS/FAILで判定",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "gate error handling: throw廃止、常に構造化結果を返す。FAIL時はresult:fail+next。spec gate含め全gate統一",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "gate step ID: gate-draft, gate, gate-impl の3つ別々に新設。各フェーズの進捗を個別追跡",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "gate impl diff: baseBranch との diff (git diff baseBranch...HEAD)。feature ブランチ全体の変更",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: auto-fix mode selected",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: all mode selected",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 5,
@@ -166,5 +224,7 @@
   "requestChars": 28,
   "state": {
     "finalizedAt": "2026-04-03T06:35:08.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

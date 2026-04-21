@@ -116,56 +116,112 @@
   "issue": 201,
   "worktree": true,
   "request": "Issue #201: spec.md → spec.json primary switch. Replace spec.md read logic with spec.json in core wiring (init.js, run-prepare-spec.js, run-gate.js, etc). spec.md becomes derived artifact via T1 render command. Depends on T1 (spec.json schema + render) and T2 (flow.json structure).",
-  "metrics": {
-    "draft": {
-      "srcRead": 1,
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 61111,
-        "output": 4046,
-        "cacheRead": 48128,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 8474,
-      "durationMs": 108574
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 441374,
-        "output": 17546,
-        "cacheRead": 248960,
-        "cacheCreation": 0
-      },
-      "callCount": 19,
-      "responseChars": 18405,
-      "durationMs": 448976
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 8474,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "task-impl": {
-      "gateRetry": 0
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 108574,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "plan": {
-      "issueLog": 1
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 19,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 178730,
-        "output": 2780,
-        "cacheRead": 7936,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3649,
-      "durationMs": 76997
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 18405,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 448976,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3649,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 76997,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: scope=core-wiring 11 files; schema-extend authorized_test_modifications; flow.json spec→.json; approval via flow state not spec.md checkbox"
+    {
+      "taskId": null,
+      "text": "draft: scope=core-wiring 11 files; schema-extend authorized_test_modifications; flow.json spec→.json; approval via flow state not spec.md checkbox",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "autoApprove": true,
   "test": {

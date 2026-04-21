@@ -1,0 +1,60 @@
+{
+  "goal": "ファイル書き込みを行う全コマンドに `--dry-run` オプションを追加し、実行結果のプレビューのみを行えるようにする。テスト時にファイルを書き換えず安全に検証できるようにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "review.js（読み取り専用のため不要）",
+      "gate.js（読み取り専用のため不要）",
+      "help.js（読み取り専用のため不要）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "全ファイル書き込みコマンドで `--dry-run` 時にファイルシステムへの書き込みが発生しないこと"
+    },
+    {
+      "id": "R2",
+      "desc": "dry-run 時は変更対象・変更内容の概要を stderr または stdout に出力すること"
+    },
+    {
+      "id": "R3",
+      "desc": "既存の `--dry-run` / `--stdout` オプションとの一貫性を保つこと"
+    },
+    {
+      "id": "R4",
+      "desc": "forge.js の dry-run では review ループに入らないこと"
+    },
+    {
+      "id": "R5",
+      "desc": "flow.js の dry-run では全サブコマンドに dry-run が伝搬されること"
+    }
+  ],
+  "acceptance_criteria": [
+    "forge.js に `--dry-run` を渡すとファイル書き込みなし、review スキップ、1 ラウンドで終了",
+    "flow.js に `--dry-run` を渡すと全サブコマンドが dry-run モードで実行",
+    "scan.js の `--dry-run` が `--stdout` と同等に動作",
+    "docs/commands/init.js に `--dry-run` を渡すとテンプレート書き込みなし",
+    "changelog.js に `--dry-run` を渡すとファイル書き込みなし",
+    "setup.js に `--dry-run` を渡すと設定ファイル書き込みなし",
+    "agents.js に `--dry-run` を渡すと AGENTS.md 書き込みなし",
+    "既存テスト（179件）が全て通ること",
+    "新規テストで dry-run 動作を検証"
+  ],
+  "clarifications": [
+    {
+      "q": "forge.js の dry-run ではエージェント呼び出しも行うか？",
+      "a": "いいえ。dry-run 時はエージェント呼び出しをスキップし、@text の解決は行わない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

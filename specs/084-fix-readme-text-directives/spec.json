@@ -1,0 +1,41 @@
+{
+  "goal": "README.md の `{{text}}` ディレクティブが `sdd-forge build` 後も空のまま残るバグを修正する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/commands/readme.js` の `{{text}}` 処理部分を修正"
+    ],
+    "out": [
+      "docs/ 章ファイルの `{{text}}` 処理（正常動作中）",
+      "`{{data}}` ディレクティブの処理（正常動作中）",
+      "AGENTS.md の生成問題（別件）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge docs readme` 実行後、README.md の全 `{{text}}` ディレクティブに AI 生成テキストが挿入されている",
+    "`{{data}}` ディレクティブの内容が変更されていない",
+    "ログに `filled` が 3/3（または 0 より大きい）と表示される"
+  ],
+  "clarifications": [
+    {
+      "q": "なぜ README.md の `{{text}}` だけ空になるのか？",
+      "a": "`readme.js` が `processTemplateFileBatch()`（バッチモード）を使用している。バッチモードはファイル全体を AI に渡してファイル全体を返させる方式。README.md は `{{data}}` 解決済みの大きな章テーブル（20行超）を含むため、AI がファイル全体の `{{text}}` 構造を維持した応答を返せず、`countFilledInBatch()` が 0/3 と判定する。"
+    },
+    {
+      "q": "なぜバッチモードではなく per-directive モードを使うのか？",
+      "a": "per-directive モードは各ディレクティブを個別に処理する。ディレクティブの前後20行をコンテキストとして渡し、生成されたテキストをディレクティブの開始タグと終了タグの間に挿入する。`{{data}}` 部分には一切触れないので、README.md の構造を壊さない。`processTemplate()` として既に実装済み。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "なし"
+  ]
+}

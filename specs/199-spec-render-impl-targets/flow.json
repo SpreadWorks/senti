@@ -137,40 +137,78 @@
   "issue": 190,
   "request": "#190 issueの対応を進めて",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1,
-      "issueLog": 2
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 2
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 53639,
-        "output": 3267,
-        "cacheRead": 23680,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 5120,
-      "durationMs": 72165
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 691929,
-        "output": 9242,
-        "cacheRead": 118656,
-        "cacheCreation": 0
-      },
-      "callCount": 13,
-      "responseChars": 16266,
-      "durationMs": 259530
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 5120,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 72165,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 13,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 16266,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 259530,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "autoApprove": true,
   "test": {
     "summary": {
@@ -178,7 +216,11 @@
     }
   },
   "notes": [
-    "implement: 3 pre-existing test failures (runPipeline, acceptance-report, sdd-forge dispatcher) are unrelated to spec 199. User chose [1] proceed-as-is and requested board record. Board draft 7287 created."
+    {
+      "taskId": null,
+      "text": "implement: 3 pre-existing test failures (runPipeline, acceptance-report, sdd-forge dispatcher) are unrelated to spec 199. User chose [1] proceed-as-is and requested board record. Board draft 7287 created.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "state": {
     "finalizedAt": "2026-04-20T12:45:15.992Z"

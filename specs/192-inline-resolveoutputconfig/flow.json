@@ -128,66 +128,124 @@
   "request": "resolveOutputConfig の削除・インライン化",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "gate-draft": {
-      "tokens": {
-        "input": 26200,
-        "output": 3538,
-        "cacheRead": 75008,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 5433,
-      "durationMs": 82426
+  "metrics": [
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 5909,
-        "output": 967,
-        "cacheRead": 18560,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1249,
-      "durationMs": 21109
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 5433,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 2
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 82426,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 967174,
-        "output": 10467,
-        "cacheRead": 146944,
-        "cacheCreation": 0
-      },
-      "callCount": 12,
-      "responseChars": 13050,
-      "durationMs": 247949
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 125860,
-        "output": 1957,
-        "cacheRead": 23808,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3866,
-      "durationMs": 46027
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1249,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 21109,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 12,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 13050,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 247949,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3866,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 46027,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 1
     }
   },
   "notes": [
-    "npm test result: 1711 tests, 1709 pass, 2 fail. The 2 failures (scanMain is not a function in tests/e2e/acceptance/report.test.js) are pre-existing on main branch, unrelated to this refactor — same failures recorded in issue-log for spec 191 (#172). R5 PASS vs main baseline (equivalent failure count).",
-    "gate-impl manually marked done: one guardrail (No Sync I/O in Hot Paths) flags pre-existing fs.existsSync in review.js unrelated to this refactor. Board draft 83b6 tracks the gate design issue.",
-    "review: proposals 1/2/4 reference hallucinated changes in run-finalize.js, retro tests, and log-masking (files not in this spec's diff). proposal 3 rejected by reviewer itself. no real fixes to apply."
+    {
+      "taskId": null,
+      "text": "npm test result: 1711 tests, 1709 pass, 2 fail. The 2 failures (scanMain is not a function in tests/e2e/acceptance/report.test.js) are pre-existing on main branch, unrelated to this refactor — same failures recorded in issue-log for spec 191 (#172). R5 PASS vs main baseline (equivalent failure count).",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "gate-impl manually marked done: one guardrail (No Sync I/O in Hot Paths) flags pre-existing fs.existsSync in review.js unrelated to this refactor. Board draft 83b6 tracks the gate design issue.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: proposals 1/2/4 reference hallucinated changes in run-finalize.js, retro tests, and log-masking (files not in this spec's diff). proposal 3 rejected by reviewer itself. no real fixes to apply.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "state": {
     "finalizedAt": "2026-04-19T01:08:01.173Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

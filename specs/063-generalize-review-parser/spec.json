@@ -1,0 +1,47 @@
+{
+  "goal": "review-parser.js に CakePHP 固有のファイルパスがハードコードされている問題を解決する。\n調査の結果、ハードコードを含む `patchGeneratedForMisses()` は review.js が `[MISS]` を出力しなくなった時点で死んだコードになっていた。ハードコード問題の解決策はこの死んだコードの削除である。",
+  "background": "",
+  "scope": {
+    "in": [
+      "review-parser.js から以下を削除: - `FALLBACK_PATCH_ORDER` - `parseReviewMisses()` - `ensureSection()` - `patchGeneratedForMisses()` - `summarizeNeedsInput()` (`[MISS]` フィルタを含む)",
+      "forge.js から以下を削除: - misses パース・パッチブロック (444-467行目) - 削除した関数の import",
+      "review-parser.test.js から削除した関数のテストを削除"
+    ],
+    "out": [
+      "review.js に新たな coverage チェック (`[MISS]` 出力) を追加すること",
+      "analysis カテゴリと章のマッピング定義 (spec #032 の領域)",
+      "forge local モードの新たなパッチ戦略の設計"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`npm test` が全て PASS",
+    "review-parser.js に CakePHP 固有のパスが含まれていないこと",
+    "forge.js から `patchGeneratedForMisses` への参照がないこと"
+  ],
+  "clarifications": [
+    {
+      "q": "`[MISS]` は review.js から出力されるのか？",
+      "a": "されない。現在の review.js は `[FAIL]` と `[WARN]` のみ出力する。`parseReviewMisses()` がパースしようとする `[MISS]` 形式は、以前の review 実装の名残。"
+    },
+    {
+      "q": "削除後に forge local モードは動くのか？",
+      "a": "動く。review 失敗時のフィードバックループ (`summarizeReview` + `parseFileResults`) は残る。misses パッチは元々空振りしていたので動作に変化なし。"
+    },
+    {
+      "q": "`summarizeNeedsInput()` は他から使われているか？",
+      "a": "forge.js の 461行目のみ。misses パッチブロック内なので一緒に削除。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

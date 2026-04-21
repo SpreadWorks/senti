@@ -110,8 +110,16 @@
   "worktree": true,
   "request": "Issue #61: retro が finalize の cleanup 後に実行できないバグ。finalize の実行順序を commit→merge→retro→cleanup→record に変更",
   "notes": [
-    "approach: 仕様書を直接作成",
-    "finalize: autoApprove all mode, squash merge"
+    {
+      "taskId": null,
+      "text": "approach: 仕様書を直接作成",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: autoApprove all mode, squash merge",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "autoApprove": true,
   "reviewCount": {
@@ -120,13 +128,19 @@
     "impl": 0
   },
   "redoCount": 0,
-  "metrics": {
-    "draft": {
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "requestChars": 102,
   "state": {
     "finalizedAt": "2026-04-02T15:07:32.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

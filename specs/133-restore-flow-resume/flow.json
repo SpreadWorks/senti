@@ -129,24 +129,60 @@
   "issue": 78,
   "request": "flow resume コマンドを復活させる。registry.js に登録し、3段階フォールバック探索ロジックを実装する",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 2
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 5
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "approach: [1] Q&A で要件を整理してから仕様書を作成",
-    "draft: resume は独立コマンド flow resume として registry に登録（prepare と対称）",
-    "draft: フロー探索ロジックを共通ヘルパーに抽出し resume と get-resolve-context で共有",
-    "draft: scanAllFlows 3段目は共通ヘルパーに含め、resume/get-resolve-context 両方で使えるようにする",
-    "draft: resume の出力は JSON envelope 形式（get-resolve-context と同構造）",
-    "draft: スコープ = コマンド実装 + 共通ヘルパー抽出 + SKILL.md テンプレート更新 + upgrade 実行"
+    {
+      "taskId": null,
+      "text": "approach: [1] Q&A で要件を整理してから仕様書を作成",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: resume は独立コマンド flow resume として registry に登録（prepare と対称）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: フロー探索ロジックを共通ヘルパーに抽出し resume と get-resolve-context で共有",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: scanAllFlows 3段目は共通ヘルパーに含め、resume/get-resolve-context 両方で使えるようにする",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: resume の出力は JSON envelope 形式（get-resolve-context と同構造）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: スコープ = コマンド実装 + 共通ヘルパー抽出 + SKILL.md テンプレート更新 + upgrade 実行",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 5,
@@ -157,5 +193,7 @@
   "requestChars": 61,
   "state": {
     "finalizedAt": "2026-04-04T06:57:23.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

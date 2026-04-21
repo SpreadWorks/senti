@@ -96,15 +96,51 @@
   ],
   "request": "差分スキャン機能の実装。analysis.jsonの各エントリーのhashフィールドを使ってファイルハッシュ比較を行い、変更されたファイルだけをスキャン・enrich・text再生成する。",
   "notes": [
-    "approach: 要件整理してから仕様書作成",
-    "branch: mainからfeatureブランチ作成",
-    "scope: 全レイヤー（scan + enrich + text）の差分化",
-    "起動方法: analysis.json存在時はデフォルト差分、--fullでフル実行",
-    "削除ファイル: analysis.jsonから自動除外",
-    "build: デフォルト差分。--fullフラグは不要（analysis.json削除で代用）",
-    "text差分: 影響章のディレクティブをクリアして再生成",
-    "test: ユニットテスト7観点（scan差分5, text差分2）",
-    "merge: 個別に選択する"
+    {
+      "taskId": null,
+      "text": "approach: 要件整理してから仕様書作成",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "branch: mainからfeatureブランチ作成",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "scope: 全レイヤー（scan + enrich + text）の差分化",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "起動方法: analysis.json存在時はデフォルト差分、--fullでフル実行",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "削除ファイル: analysis.jsonから自動除外",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "build: デフォルト差分。--fullフラグは不要（analysis.json削除で代用）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "text差分: 影響章のディレクティブをクリアして再生成",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test: ユニットテスト7観点（scan差分5, text差分2）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "merge: 個別に選択する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 8,
@@ -112,13 +148,19 @@
     "impl": 0
   },
   "redoCount": 0,
-  "metrics": {
-    "draft": {
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "requestChars": 94,
   "state": {
     "finalizedAt": "2026-03-16T08:35:30.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

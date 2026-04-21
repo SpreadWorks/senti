@@ -1,0 +1,36 @@
+{
+  "goal": "finalize レポート（#64 で実装済み）にテスト情報を追加する。flow.json の `metrics.test.summary` に記録されたテスト種別ごとのカウントをレポートの `data.tests` と `text` の Tests セクションに含める。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/commands/report.js` の `generateReport()` にテスト情報の収集ロジックを追加",
+      "`formatText()` に Tests セクションを追加",
+      "spec 検証テストの追加"
+    ],
+    "out": [
+      "テスト情報を flow.json に記録する仕組み（別途実装済み or 進行中）",
+      "テスト結果の pass/fail 詳細"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "テスト情報はどこに保存されるか？",
+      "a": "flow.json の `metrics.test.summary` に `{ unit: N, integration: N, acceptance: N }` 形式"
+    },
+    {
+      "q": "テスト情報がない場合はどうするか？",
+      "a": "`data.tests` を null にし、テキストに \"(not available)\" と表示する"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

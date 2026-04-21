@@ -159,50 +159,90 @@
   "issue": 150,
   "request": "#150 issueの対応を進めてください",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 2
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 6
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 22068,
-        "output": 1898,
-        "cacheRead": 20224,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3736
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 16115,
-        "output": 2073,
-        "cacheRead": 29312,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2280
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 3736,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 15875,
-        "output": 1608,
-        "cacheRead": 73984,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 2201
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 2280,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 2201,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: scope = core + skills (A)",
-    "draft: order = A (prepare after user answers Q1). Helper command acceptable if it smooths issue/context fetch after Q1.",
-    "draft: plumbing = A (extend set init with --issue --request)",
-    "draft: Q1 form = A (AI summarizes interpretation, user confirms via Choice)",
-    "draft: order = 0 init -> 2 work-env -> 3 base-branch -> 1 draft Q1 (confirm) -> 4 prepare (silent, title from Q1) -> 5 draft rest -> 6 gate-draft"
+    {
+      "taskId": null,
+      "text": "draft: scope = core + skills (A)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: order = A (prepare after user answers Q1). Helper command acceptable if it smooths issue/context fetch after Q1.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: plumbing = A (extend set init with --issue --request)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q1 form = A (AI summarizes interpretation, user confirms via Choice)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: order = 0 init -> 2 work-env -> 3 base-branch -> 1 draft Q1 (confirm) -> 4 prepare (silent, title from Q1) -> 5 draft rest -> 6 gate-draft",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "test": {
     "summary": {
@@ -211,5 +251,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-16T00:24:24.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

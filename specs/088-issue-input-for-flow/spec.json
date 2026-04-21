@@ -1,0 +1,42 @@
+{
+  "goal": "GitHub Issue 番号を SDD フローに紐付け、flow.json に保存できるようにする。スキルが issue 内容を参考情報として活用し、PR 作成時に自動で `fixes #N` を含められるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`flow-state.js` に `setIssue()` 関数を追加",
+      "`status.js` に `--issue <number>` オプションを追加",
+      "`flow-plan` スキル（SKILL.md）に issue 取得・活用の指示を追加"
+    ],
+    "out": [
+      "既存フローのステップ順序・選択肢・ゲート等の変更",
+      "`spec init` への `--issue` オプション追加",
+      "issue 内容の自動フェッチをプロダクトコードで実装すること",
+      "issue のステータス管理（open/closed の追跡）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "`--issue` はどのコマンドに追加する？",
+      "a": "`flow status --issue <number>`。既存の setter パターン（--request, --note）に合わせる。"
+    },
+    {
+      "q": "issue 内容のフェッチはどこで行う？",
+      "a": "スキル側（SKILL.md の指示）で `gh issue view` を使う。プロダクトコードでは番号の保存のみ。"
+    },
+    {
+      "q": "既存フローへの影響は？",
+      "a": "なし。issue は情報ソースの一つとして扱い、フロー構造は変更しない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

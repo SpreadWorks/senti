@@ -128,70 +128,128 @@
   "worktree": true,
   "autoApprove": true,
   "request": "Container 初期化時の config フォールバックが空オブジェクト {} になっている問題 (issue #175)。configLoaded=false の場合は null を register し、必要なコマンドは明示的に失敗させる。dispatcher 側で明示チェックを統一する。",
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 62647,
-        "output": 7824,
-        "cacheRead": 178560,
-        "cacheCreation": 0
-      },
-      "callCount": 9,
-      "responseChars": 13097,
-      "durationMs": 190804
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 9,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 4289,
-        "output": 907,
-        "cacheRead": 22912,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1161,
-      "durationMs": 20484
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 13097,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 190804,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 668153,
-        "output": 8869,
-        "cacheRead": 148992,
-        "cacheCreation": 0
-      },
-      "callCount": 8,
-      "responseChars": 9769,
-      "durationMs": 217803
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 125448,
-        "output": 2182,
-        "cacheRead": 7936,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3572,
-      "durationMs": 49764
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1161,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 20484,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 8,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 9769,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 217803,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3572,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 49764,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 7
     }
   },
   "notes": [
-    "impl: 2 pre-existing e2e test failures (acceptance report tests 35/36: scanMain not-a-function) are unrelated to #175 and out-of-scope. Auto-mode proceeds without user escalation per autoApprove contract; failures recorded in issue-log for later triage."
+    {
+      "taskId": null,
+      "text": "impl: 2 pre-existing e2e test failures (acceptance report tests 35/36: scanMain not-a-function) are unrelated to #175 and out-of-scope. Auto-mode proceeds without user escalation per autoApprove contract; failures recorded in issue-log for later triage.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "state": {
     "finalizedAt": "2026-04-19T01:48:34.153Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

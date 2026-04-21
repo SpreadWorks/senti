@@ -115,49 +115,89 @@
   "issue": 144,
   "request": "レポートのTests欄にテスト結果を自動記録する",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 1,
-      "question": 4
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "callCount": 4,
-      "responseChars": 4923,
-      "tokens": {
-        "input": 25404,
-        "output": 2752,
-        "cacheRead": 34944,
-        "cacheCreation": 0
-      }
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 16065,
-        "output": 947,
-        "cacheRead": 4480,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1897
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 4923,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1897,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 1
     }
   },
   "notes": [
-    "implement: sdd-forge upgrade で flow-plan SKILL.md を同期",
-    "review: auto-fix を選択",
-    "finalize: すべて実行を選択"
+    {
+      "taskId": null,
+      "text": "implement: sdd-forge upgrade で flow-plan SKILL.md を同期",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: auto-fix を選択",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: すべて実行を選択",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "state": {
     "finalizedAt": "2026-04-14T03:19:19.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

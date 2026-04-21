@@ -1,0 +1,39 @@
+{
+  "goal": "`StructureSource.directories()` がトップレベル1ディレクトリしかない場合に、子ディレクトリで再集約するフォールバックを追加する。これにより、`src/` や `app/` 配下に全ファイルが集中するプロジェクトでも、構造テーブルが意味のある粒度で表示される。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/presets/base/data/structure.js` の `directories()` メソッドの修正"
+    ],
+    "out": [
+      "`tree()` メソッドの変更（全ディレクトリをフラット表示するため問題なし）",
+      "展開上限の config.json 設定化",
+      "他の DataSource の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "展開の深さは？",
+      "a": "再帰的に展開する。結果が1エントリなら繰り返し、上限はコード内定数 5。"
+    },
+    {
+      "q": "上限は config.json で設定可能にするか？",
+      "a": "しない。コード内定数で十分。必要になれば後から追加。"
+    },
+    {
+      "q": "`tree()` も変更するか？",
+      "a": "しない。`tree()` は全ディレクトリをフラット表示するため問題がない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

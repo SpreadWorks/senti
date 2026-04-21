@@ -132,38 +132,92 @@
   "request": "#169 CodexProvider JSON parse 失敗の修正",
   "worktree": true,
   "notes": [
-    "Q1: CodexProvider の NDJSON parse 失敗への対応として解釈を確認、ユーザー承認",
-    "Q2: 対応方針は [a] CodexProvider.parse に非JSON行フォールバックを追加",
-    "Q3 (final): --json は builtinProfiles の args に直接含める。injectJsonFlag/jsonFlag/UserProvider.jsonOutputFlag は削除。config 側 profile は literal 使用。",
-    "implement: 方針確認済み（ユーザー指示「後は頼む」）。builtin args literal 記述 + injectJsonFlag/jsonFlag 削除 + CHANGELOG 更新。"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+    {
+      "taskId": null,
+      "text": "Q1: CodexProvider の NDJSON parse 失敗への対応として解釈を確認、ユーザー承認",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 1,
-      "question": 2
+    {
+      "taskId": null,
+      "text": "Q2: 対応方針は [a] CodexProvider.parse に非JSON行フォールバックを追加",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "callCount": 4,
-      "responseChars": 4426
+    {
+      "taskId": null,
+      "text": "Q3 (final): --json は builtinProfiles の args に直接含める。injectJsonFlag/jsonFlag/UserProvider.jsonOutputFlag は削除。config 側 profile は literal 使用。",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "callCount": 1,
-      "responseChars": 1248
-    },
-    "gate-impl": {
-      "callCount": 10,
-      "responseChars": 13456,
-      "tokens": {
-        "input": 362333,
-        "output": 6314,
-        "cacheRead": 70400,
-        "cacheCreation": 0
-      }
+    {
+      "taskId": null,
+      "text": "implement: 方針確認済み（ユーザー指示「後は頼む」）。builtin args literal 記述 + injectJsonFlag/jsonFlag 削除 + CHANGELOG 更新。",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 4426,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1248,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 10,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 13456,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "test": {
     "summary": {
       "unit": 1449
@@ -171,5 +225,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-18T09:19:44.679Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

@@ -148,55 +148,107 @@
   "request": "#155 issueを進めてください。",
   "worktree": true,
   "notes": [
-    "draft: Q1 approved — spec title container-infra, design 方針は issue 本文で決定済み",
-    "Q3: Container は全サービス register()/get() 統一。名前付きフィールドは持たない（テスタビリティ優先）",
-    "Q4: get() 未登録は throw。paths は 1 オブジェクトとして登録（container.get('paths').root）",
-    "Q5: 配布方式は module-level container.js（Issue 原案の引数渡しから変更）。sdd-forge.js で 1 回 init、他 module は import で参照",
-    "Q6: runIfDirect 廃止。resolveCommandContext は廃止し resolveDocsContext(container, cli) 純粋関数に置換。flow も resolveFlowContext(container) に切り出し",
-    "Q7: テスト戦略は Container 契約 unit + helper unit + 既存 acceptance/e2e 全 pass 維持",
-    "impl: approach approved - Container class + module-level init + resolveDocsContext/resolveFlowContext pure functions + remove runIfDirect/resolveCommandContext/resolveCtx"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+    {
+      "taskId": null,
+      "text": "draft: Q1 approved — spec title container-infra, design 方針は issue 本文で決定済み",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 7
+    {
+      "taskId": null,
+      "text": "Q3: Container は全サービス register()/get() 統一。名前付きフィールドは持たない（テスタビリティ優先）",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 59879,
-        "output": 4579,
-        "cacheRead": 71040,
-        "cacheCreation": 0
-      },
-      "callCount": 5,
-      "responseChars": 8461
+    {
+      "taskId": null,
+      "text": "Q4: get() 未登録は throw。paths は 1 オブジェクトとして登録（container.get('paths').root）",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 3322,
-        "output": 1075,
-        "cacheRead": 22912,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1163
+    {
+      "taskId": null,
+      "text": "Q5: 配布方式は module-level container.js（Issue 原案の引数渡しから変更）。sdd-forge.js で 1 回 init、他 module は import で参照",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "Q6: runIfDirect 廃止。resolveCommandContext は廃止し resolveDocsContext(container, cli) 純粋関数に置換。flow も resolveFlowContext(container) に切り出し",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 1091868,
-        "output": 15949,
-        "cacheRead": 73856,
-        "cacheCreation": 0
-      },
-      "callCount": 9,
-      "responseChars": 12143
+    {
+      "taskId": null,
+      "text": "Q7: テスト戦略は Container 契約 unit + helper unit + 既存 acceptance/e2e 全 pass 維持",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl: approach approved - Container class + module-level init + resolveDocsContext/resolveFlowContext pure functions + remove runIfDirect/resolveCommandContext/resolveCtx",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 7,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 8461,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1163,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 9,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 12143,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "test": {
     "summary": {
       "unit": 1373,
@@ -206,5 +258,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-17T09:02:28.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

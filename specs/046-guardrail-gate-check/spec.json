@@ -1,0 +1,49 @@
+{
+  "goal": "guardrail のベーステンプレートに EARS ベースの spec 記述原則を定義し、gate コマンドで AI コンプライアンスチェックを実行できるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "base プリセットの guardrail テンプレート（en/ja）の条項を改訂",
+      "gate コマンドに AI コンプライアンスチェック機能を追加",
+      "評価用 spec（正常/違反）による手動検証"
+    ],
+    "out": [
+      "スタック固有プリセット（webapp, library 等）の guardrail テンプレート",
+      "post-implementation フェーズでの guardrail チェック",
+      "guardrail チェック結果の自動テスト化"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] base テンプレート（en/ja）が R1 の3条項に更新されている",
+    "[ ] guardrail.md 存在 & agent 設定時、gate が AI コンプライアンスチェックを実行する",
+    "[ ] agent 未設定時、警告を出して AI チェックをスキップする",
+    "[ ] `--skip-guardrail` 指定時、AI チェックをスキップする",
+    "[ ] 1つでも fail 条項があれば gate FAIL となる",
+    "[ ] 正常 spec が gate pass する",
+    "[ ] 各違反 spec が該当条項で gate fail する"
+  ],
+  "clarifications": [
+    {
+      "q": "テンプレート条項のレベルは？",
+      "a": "spec の書き方ルール（設計・実装の原則ではない）"
+    },
+    {
+      "q": "EARS 準拠の厳密さは？",
+      "a": "厳密なテンプレート構文の強制はせず「考え方」レベルに留める。可読性重視"
+    },
+    {
+      "q": "評価方法は？",
+      "a": "正常 spec と違反 spec を gate に通す手動評価。テストコードには組み込まない"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

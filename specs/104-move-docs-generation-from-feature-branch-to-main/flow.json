@@ -114,16 +114,36 @@
   "issue": 32,
   "request": "Issue #32: docs生成タイミングの変更 - featureブランチからメインブランチ側へ移行",
   "notes": [
-    "approach: Q&Aで要件整理, work-env: worktree, base: development",
-    "draft: syncをcleanupの前に移動。commit→merge→sync(メインブランチ上)→cleanup→record",
-    "draft: syncのcwdはworktreeモードならmainRepoPath、それ以外はroot。resolveWorktreePaths()を使用",
-    "draft: マージ方法はauto判定をデフォルトにする。すべて実行はauto、個別選択時はマージステップで上書き可能"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 6
+    {
+      "taskId": null,
+      "text": "approach: Q&Aで要件整理, work-env: worktree, base: development",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: syncをcleanupの前に移動。commit→merge→sync(メインブランチ上)→cleanup→record",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: syncのcwdはworktreeモードならmainRepoPath、それ以外はroot。resolveWorktreePaths()を使用",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: マージ方法はauto判定をデフォルトにする。すべて実行はauto、個別選択時はマージステップで上書き可能",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -133,5 +153,7 @@
   "requestChars": 52,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

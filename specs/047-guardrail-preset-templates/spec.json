@@ -1,0 +1,50 @@
+{
+  "goal": "各プリセットに guardrail テンプレートを追加し、gate の AI コンプライアンスチェックで spec 単位の条項免除（Guardrail Exemptions）をサポートする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "base テンプレートに条項追加（No Hardcoded Secrets, No Silent Error Swallowing）",
+      "webapp テンプレート新規作成（5条項）",
+      "cakephp2 / laravel / symfony テンプレート新規作成（各4条項）",
+      "cli テンプレート新規作成（3条項）",
+      "node-cli テンプレート新規作成（2条項）",
+      "library テンプレート新規作成（2条項）",
+      "gate の Guardrail Exemptions 機能",
+      "en/ja 両言語"
+    ],
+    "out": [
+      "guardrail update（AI 提案）の変更",
+      "gate の静的チェックロジックの変更",
+      "性能テスト（評価用 spec による手動テストは前 spec で完了済み）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] base テンプレートが en/ja で5条項を含む",
+    "[ ] webapp テンプレートが en/ja で5条項を含む",
+    "[ ] cakephp2 テンプレートが en/ja で4条項を含む",
+    "[ ] laravel テンプレートが en/ja で4条項を含む",
+    "[ ] symfony テンプレートが en/ja で4条項を含む",
+    "[ ] cli テンプレートが en/ja で3条項を含む",
+    "[ ] node-cli テンプレートが en/ja で2条項を含む",
+    "[ ] library テンプレートが en/ja で2条項を含む",
+    "[ ] テンプレートマージで base + arch + leaf の条項が正しく結合される",
+    "[ ] Guardrail Exemptions に記載された条項が AI チェックで免除される",
+    "[ ] 既存テストが全て PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "条項免除はどのレベルで制御するか？",
+      "a": "spec 単位。spec.md に `## Guardrail Exemptions` セクションを設け、理由付きで条項名を列挙する。AI チェック時にプロンプトで免除を考慮させる。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

@@ -1,0 +1,41 @@
+{
+  "goal": "review コマンドの WARN を廃止して全チェックを FAIL に統一し、不要な機能（snapshot, analysis mtime チェック）を削除する。FAIL メッセージに解決手順を含めることで、forge ループおよび flow-merge での問題解決を容易にする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "エントリ単位のカバレッジ検知（個々のファイル/クラスが docs に記述されているか）",
+      "forge のパッチ機能の復活（旧 patchGeneratedForMisses の汎用化）",
+      "forge.js のフィードバックループ変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`npm test` が全て PASS",
+    "review.js に WARN 出力が存在しないこと",
+    "review.js に snapshot / mtime チェックが存在しないこと",
+    "snapshot.js が削除されていること",
+    "全 FAIL メッセージに解決手順が含まれていること"
+  ],
+  "clarifications": [
+    {
+      "q": "forge で解決できない FAIL が出た場合の対処は？",
+      "a": "forge は例外終了する。flow-merge では AI がエラーメッセージを読み、解決手順をユーザーに提示する。FAIL メッセージに解決手順を含めることでこれを容易にする。"
+    },
+    {
+      "q": "WARN という概念自体を廃止するか？",
+      "a": "はい。review の出力は FAIL か PASS のみにする。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

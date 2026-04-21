@@ -1,0 +1,69 @@
+{
+  "goal": "Make chapter selection in `sdd-forge init` aware of `documentStyle.purpose` so generated docs better match target readers.\n- Reduce mismatched output (e.g., maintainer-centric chapters appearing in user/reference-focused docs).",
+  "background": "",
+  "scope": {
+    "in": [
+      "Add purpose-aware filtering logic to init chapter selection flow.",
+      "Keep existing analysis-based and AI-based selection behavior, but make AI chapter selection explicitly purpose-aware.",
+      "Add or update tests for purpose-aware chapter selection."
+    ],
+    "out": [
+      "Redesigning all existing preset templates.",
+      "Changing setup questionnaire UX.",
+      "Reworking text generation prompts beyond what is required for chapter selection behavior."
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`init` must read `documentStyle.purpose` from config and use it during chapter selection."
+    },
+    {
+      "id": "R2",
+      "desc": "Purpose must be explicitly provided to AI chapter selection prompt, together with analysis summary and available chapter list."
+    },
+    {
+      "id": "R3",
+      "desc": "Existing deterministic `requires`-based filtering remains as-is (no purpose schema changes in `chapters.json`)."
+    },
+    {
+      "id": "R4",
+      "desc": "If no purpose is configured, behavior must remain backward-compatible."
+    },
+    {
+      "id": "R5",
+      "desc": "Tests must cover at least: - purpose configured -> prompt contains purpose context and selection changes are applied from AI response - no purpose configured -> backward-compatible behavior - unknown purpose value -> safe fallback behavior"
+    }
+  ],
+  "acceptance_criteria": [
+    "Running `sdd-forge init` with `documentStyle.purpose: \"user-guide\"` passes purpose context to AI chapter selection and produces purpose-aligned chapter set.",
+    "Running `sdd-forge init` with `documentStyle.purpose: \"developer-guide\"` passes developer-oriented purpose context and can produce different chapter selection.",
+    "Existing deterministic `requires` filtering remains unchanged.",
+    "Relevant tests pass (`npm run test` or targeted init tests validating purpose-aware AI chapter selection)."
+  ],
+  "clarifications": [
+    {
+      "q": "Where should purpose be enforced first?",
+      "a": "In AI chapter selection during `init`, by injecting purpose into the chapter-selection prompt."
+    },
+    {
+      "q": "Should this replace analysis-based filtering?",
+      "a": "No. Purpose-based filtering should complement existing analysis-based filtering."
+    },
+    {
+      "q": "Should `chapters.json` be extended for purpose rules?",
+      "a": "No. This spec avoids static purpose rules and uses AI chapter assembly logic."
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "Should purpose be controlled via static `chapters.json` schema? - Decision: No. Use AI chapter selection with purpose-aware prompt instead."
+  ]
+}

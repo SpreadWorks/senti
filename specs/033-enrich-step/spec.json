@@ -1,0 +1,52 @@
+{
+  "goal": "scan 後に AI が全体像からソースコードを読み、各エントリーに summary/detail/chapter/role を付与する `enrich` コマンドを新設し、build パイプラインに組み込む。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "text コマンドの light/deep モード対応（後続 spec）",
+      "projectContext の廃止（後続 spec）",
+      "既存 DataSource / `{{data}}` ディレクティブの再設計（後続 spec）",
+      "text/forge が enriched analysis を活用する変更（後続 spec）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `sdd-forge enrich` が analysis.json を読み、AI で enriched フィールドを付与して書き戻す",
+    "[ ] `sdd-forge enrich --dry-run` が結果を stdout に出力し、ファイルを変更しない",
+    "[ ] `sdd-forge build` のパイプラインに enrich が含まれ、scan の直後に実行される",
+    "[ ] agent 未設定時に WARN を出して enrich をスキップし、build が続行される",
+    "[ ] `summary.json` の生成が削除され、参照箇所が analysis.json に切り替わっている",
+    "[ ] テストが追加され、既存テストが全てパスする",
+    "[ ] `sdd-forge help` に enrich コマンドが表示される"
+  ],
+  "clarifications": [
+    {
+      "q": "enriched analysis の出力先は？",
+      "a": "`.sdd-forge/output/analysis.json` を上書き。enrich 前の raw analysis は保持しない（scan → enrich は常にセットで実行される想定）。"
+    },
+    {
+      "q": "enrich 単体実行時に analysis.json が存在しない場合は？",
+      "a": "エラーで終了。scan を先に実行するよう促す。"
+    },
+    {
+      "q": "AI エージェントが未設定の場合は？",
+      "a": "WARN を出して enrich をスキップ。analysis.json はそのまま（enriched フィールドなし）。build パイプラインは続行可能。"
+    },
+    {
+      "q": "enriched 済みの analysis.json を再度 enrich した場合は？",
+      "a": "上書き。scan が構造情報を再取得するので、enrich も再実行して問題ない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

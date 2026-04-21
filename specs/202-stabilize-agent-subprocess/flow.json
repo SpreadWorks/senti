@@ -141,46 +141,94 @@
   "issue": 195,
   "worktree": true,
   "request": "agent サブプロセス起動の安定化。正常系での非ゼロ終了（review stdin エラー、acceptance test の agent 由来エラー）を修正し、agent infra 起因の失敗と flow ロジックを切り分ける。",
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 3
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 60807,
-        "output": 5969,
-        "cacheRead": 90624,
-        "cacheCreation": 0
-      },
-      "callCount": 6,
-      "responseChars": 13581,
-      "durationMs": 143742
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 10337,
-        "output": 2173,
-        "cacheRead": 41984,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 5212,
-      "durationMs": 48369
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 13581,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 3
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 143742,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "task-impl": {
-      "gateRetry": 2
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 5212,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 48369,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "Q2 scope: (a) stdin hardening + (b) retryable agent errors + (c) acceptance test agent-failure categorization — all three included",
-    "Q3: retry default enabled (retryCount=2) + exponential backoff; process.exitCode propagation root-caused",
-    "Q4 requirements confirmed: Case1 stdin error handler; Case2 remove process.exitCode from runText, move to CLI entry; retryCount=2 default + exp backoff; fake provider stub for deterministic tests"
+    {
+      "taskId": null,
+      "text": "Q2 scope: (a) stdin hardening + (b) retryable agent errors + (c) acceptance test agent-failure categorization — all three included",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "Q3: retry default enabled (retryCount=2) + exponential backoff; process.exitCode propagation root-caused",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "Q4 requirements confirmed: Case1 stdin error handler; Case2 remove process.exitCode from runText, move to CLI entry; retryCount=2 default + exp backoff; fake provider stub for deterministic tests",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "autoApprove": true,
   "test": {

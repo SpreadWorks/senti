@@ -1,0 +1,88 @@
+{
+  "goal": "config のバリデーション定義が 3 箇所（JSDoc 型定義、手書きバリデーション関数 280 行、config.example.json）に分散している問題を解消する。JSON Schema サブセット形式のスキーマ定義を Single Source of Truth とし、汎用バリデータでバリデーションを行う構成に転換する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`resolveOutputConfig()` の移動・整理（別タスク board 2268）",
+      "config フィールド構造の変更（defaultLanguage の廃止等）",
+      "warn レベルの導入",
+      "JSON Schema フル準拠（サブセットのみ実装）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `validate(validConfig)` が error なく完了すること（既存の有効な config が引き続き通ること）",
+    "[ ] `validate({...validConfig, unknownField: 1})` が「未知フィールド」エラーを throw すること",
+    "[ ] `validate({...validConfig, name: \"old\"})` が deprecated フィールドに対して error を throw すること（`name` は deprecated）",
+    "[ ] `validate()` のエラーメッセージにフィールドパスと理由が含まれること",
+    "[ ] `defaultLanguage` が `languages` に含まれない config で error が throw されること",
+    "[ ] `profiles` で未定義の provider を参照した config で error が throw されること",
+    "[ ] `src/lib/types.js` に `validateConfig` 関数が存在しないこと",
+    "[ ] `src/templates/config.example.json` が存在しないこと",
+    "[ ] `npm test` が全て pass すること",
+    "[ ] `schema-validate.js` が任意のスキーマ定義とオブジェクトの組み合わせで動作すること（config 固有のロジックを含まないこと）"
+  ],
+  "clarifications": [
+    {
+      "q": "スキーマ形式は？",
+      "a": "JSON Schema サブセット。サポート語彙: `type`, `required`, `properties`, `additionalProperties`, `enum`, `oneOf`, `items`, `minimum`, `minLength`, `minItems`, `deprecated`"
+    },
+    {
+      "q": "severity 設計は？",
+      "a": "全て error（throw）で統一。alpha 版ポリシーに従い warn は設けない。未知フィールド、非推奨フィールドも error"
+    },
+    {
+      "q": "config.example.json はどうする？",
+      "a": "削除する。コードから未参照であり、setup は wizard から config を直接生成している"
+    },
+    {
+      "q": "types.js の分割方針は？",
+      "a": "`validateConfig()` を `config.js` に `validate()` として移動。`resolveOutputConfig()` は本 spec スコープ外（types.js に残す）"
+    },
+    {
+      "q": "スキーマ定義の形式は？",
+      "a": "JS オブジェクト（`config.js` 内の private 定数）。JSON ファイルではない。コメント記述可、独自拡張（deprecated）が自然"
+    },
+    {
+      "q": "cross-field validation はどうする？",
+      "a": "スキーマバリデーション後にポストチェックとして実装。対象は 2 箇所: (a) defaultLanguage ∈ languages、(b) profiles の provider 参照が providers に存在するか"
+    },
+    {
+      "q": "command-context.js の catch { config = {} } は silent error swallowing ではないか？",
+      "a": "いいえ。config が未作成またはバリデーション失敗は正常なケース（setup 前、help 表示時、type 未設定時等）。このパスは docs コマンドの共通入口であり、config 不在でも動作するために意図的にフォールバックしている。後続処理はオプショナルチェーンで安全に扱う。本 spec は import パスの更新のみであり、このフォールバックパターンは変更対象外"
+    },
+    {
+      "q": "162-agent-commands-entries.test.js のテストブロック削除は test disabling ではないか？",
+      "a": "config.example.json 自体が削除されるため、そのファイルに依存するテストは削除が妥当。R6 で明示的に承認済み"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**独自軽量記法**",
+      "reason": "学習コストが高く、JSON Schema の基本語彙で現在のパターンをカバーできるため不採用"
+    },
+    {
+      "option": "**JSON ファイル（config.schema.json）**",
+      "reason": "コメント不可、deprecated 等の独自拡張でエディタ lint が警告する可能性があるため不採用"
+    },
+    {
+      "option": "**warn/error 分離（severity 設計案 A）**",
+      "reason": "alpha 版ポリシー「後方互換コードは書かない」と矛盾するため不採用"
+    },
+    {
+      "option": "**config 構造変更（defaultLanguage 廃止）**",
+      "reason": "本 spec のスコープを超えるため不採用"
+    }
+  ],
+  "open_questions": [
+    "(none)"
+  ]
+}

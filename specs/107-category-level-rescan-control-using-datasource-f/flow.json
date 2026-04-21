@@ -106,17 +106,41 @@
   "issue": 39,
   "request": "Issue #39: DataSource ファイル hash によるカテゴリ単位の再スキャン制御",
   "notes": [
-    "approach: Q&Aで要件整理。worktree mode, base=development",
-    "draft Q1: スコープは解決策1（DataSource hash 自動検知）のみ。解決策2（手動リセット）は --reset として既に実装済み",
-    "draft Q2: dataSourceHash はカテゴリレベルに保存。analysis.controllers.dataSourceHash = abc123",
-    "draft Q3: 1 DataSourceファイル = 1 hash。子プリセットが親を上書きするので1カテゴリ=1ファイル",
-    "draft Q4: hash不一致時はエントリのhashのみクリア。enrich結果は保持。既存の仕組み(hash→再パース→summaryなしならre-enrich)に乗る"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 4
+    {
+      "taskId": null,
+      "text": "approach: Q&Aで要件整理。worktree mode, base=development",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q1: スコープは解決策1（DataSource hash 自動検知）のみ。解決策2（手動リセット）は --reset として既に実装済み",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q2: dataSourceHash はカテゴリレベルに保存。analysis.controllers.dataSourceHash = abc123",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q3: 1 DataSourceファイル = 1 hash。子プリセットが親を上書きするので1カテゴリ=1ファイル",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q4: hash不一致時はエントリのhashのみクリア。enrich結果は保持。既存の仕組み(hash→再パース→summaryなしならre-enrich)に乗る",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -126,5 +150,7 @@
   "requestChars": 49,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

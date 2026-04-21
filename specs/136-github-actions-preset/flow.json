@@ -134,27 +134,77 @@
   "request": "github-actions プリセットの完成（datasource, scan, テンプレート）",
   "worktree": true,
   "notes": [
-    "approach: Q&A で要件整理してから仕様書作成",
-    "draft Q1: ci の GitHub Actions 固有コードを github-actions プリセットに移動。ci の datasource/テンプレートは固有内容のみなら削除可",
-    "draft Q2: data/pipelines.js と templates/ci_cd.md を github-actions に移動。ci は chapters/guardrail のみの抽象プリセットにする",
-    "draft Q3: ci の ci_cd.md は {{text}} + block の抽象テンプレートに変更。github-actions が extends で {{data}} にオーバーライド",
-    "draft Q4: テストを github-actions-pipelines.test.js にリネーム、import パスを github-actions/data/pipelines.js に変更",
-    "draft Q5: ci の aliases から github-actions を削除",
-    "review: コードレビューを行い改善を自動で行う",
-    "finalize: すべて実行（all）"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 2
+    {
+      "taskId": null,
+      "text": "approach: Q&A で要件整理してから仕様書作成",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 5,
-      "srcRead": 1
+    {
+      "taskId": null,
+      "text": "draft Q1: ci の GitHub Actions 固有コードを github-actions プリセットに移動。ci の datasource/テンプレートは固有内容のみなら削除可",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "draft Q2: data/pipelines.js と templates/ci_cd.md を github-actions に移動。ci は chapters/guardrail のみの抽象プリセットにする",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q3: ci の ci_cd.md は {{text}} + block の抽象テンプレートに変更。github-actions が extends で {{data}} にオーバーライド",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q4: テストを github-actions-pipelines.test.js にリネーム、import パスを github-actions/data/pipelines.js に変更",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q5: ci の aliases から github-actions を削除",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: コードレビューを行い改善を自動で行う",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: すべて実行（all）",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 7,
     "test": 0,
@@ -164,5 +214,7 @@
   "requestChars": 49,
   "state": {
     "finalizedAt": "2026-04-04T08:34:56.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

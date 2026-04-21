@@ -1,0 +1,48 @@
+{
+  "goal": "Move all hardcoded Japanese strings in src/ JS files to locale files (i18n).\nAfter this change, all user-facing text is loaded via `createI18n()` / `t()`.",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "JSDoc comments (not user-facing)",
+      "Code comments",
+      "Template files (handled in 017-multilang-output)",
+      "`src/help.js` (already i18n-ized via ui.json)",
+      "locale file content changes beyond adding new keys"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] No hardcoded Japanese strings remain in src/*.js (excluding comments)",
+    "[ ] `uiLang: \"en\"` produces English help text for all commands",
+    "[ ] `uiLang: \"ja\"` produces Japanese help text for all commands",
+    "[ ] gate.js approval check works for both ja and en spec templates",
+    "[ ] changelog.js section headers respect output language",
+    "[ ] All existing tests pass"
+  ],
+  "clarifications": [
+    {
+      "q": "Where should help text keys go?",
+      "a": "`src/locale/{ja,en}/ui.json` under a `help.<command>` namespace"
+    },
+    {
+      "q": "Where should changelog markdown content keys go?",
+      "a": "`src/locale/{ja,en}/messages.json` under `changelog.*`"
+    },
+    {
+      "q": "How to handle the gate.js approval regex?",
+      "a": "Load the approval pattern from locale file so it works for both languages"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "None"
+  ]
+}

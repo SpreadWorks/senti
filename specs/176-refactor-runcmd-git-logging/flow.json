@@ -123,56 +123,86 @@
   "issue": 131,
   "request": "issue #131 の対応を進める",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 3
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 26110,
-        "output": 3068,
-        "cacheRead": 34432,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 3147
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 6477,
-        "output": 1121,
-        "cacheRead": 14464,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1161
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 3147,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 718588,
-        "output": 10335,
-        "cacheRead": 118784,
-        "cacheCreation": 0
-      },
-      "callCount": 12,
-      "responseChars": 11910
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1161,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 12,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 11910,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 4
     }
   },
   "notes": [
-    "gate-impl: ユーザー判断で FAIL を許容して review へ進行。残存 FAIL は board 7e83/08cd で別途扱う"
+    {
+      "taskId": null,
+      "text": "gate-impl: ユーザー判断で FAIL を許容して review へ進行。残存 FAIL は board 7e83/08cd で別途扱う",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "state": {
     "finalizedAt": "2026-04-14T11:37:06.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

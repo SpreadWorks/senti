@@ -1,0 +1,63 @@
+{
+  "goal": "Remove clear duplicate helper logic in command code paths while preserving current behavior.\n- Reduce maintenance overhead by consolidating identical utility implementations.",
+  "background": "",
+  "scope": {
+    "in": [
+      "Replace local `loadSddTemplate()` in `src/docs/commands/upgrade.js` with import from `src/lib/agents-md.js`.",
+      "Replace local `resolveAgent()` in `src/docs/commands/forge.js` with `resolveAgent()` from `src/lib/agent.js`.",
+      "Replace hardcoded `.sdd-forge` path composition in `src/lib/flow-state.js` with `sddDir()` from `src/lib/config.js`.",
+      "Keep command behavior and CLI interface unchanged."
+    ],
+    "out": [
+      "Chapter file discovery utility extraction (`B5`).",
+      "summary/analysis fallback utility extraction (`B6`).",
+      "slug/title normalization policy changes (`B3`) and other architectural refactors."
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`upgrade` command must load SDD template via shared helper (`src/lib/agents-md.js`) without duplicate local implementation."
+    },
+    {
+      "id": "R2",
+      "desc": "`forge` command must use shared `resolveAgent(cfg, agentName)` from `src/lib/agent.js`."
+    },
+    {
+      "id": "R3",
+      "desc": "`flow-state` must build state path using shared `sddDir(workRoot)` helper."
+    },
+    {
+      "id": "R4",
+      "desc": "Existing tests must pass; if coverage is missing for modified paths, add focused tests."
+    }
+  ],
+  "acceptance_criteria": [
+    "There is no duplicated `loadSddTemplate()` implementation in `upgrade.js`.",
+    "There is no local `resolveAgent()` implementation in `forge.js`; shared helper is used.",
+    "`flow-state` no longer hardcodes `.sdd-forge` path segments.",
+    "`npm run test` passes on the feature branch.",
+    "Manual sanity check confirms `sdd-forge gate`, `sdd-forge forge --help`, and `sdd-forge upgrade --dry-run` still execute without regression."
+  ],
+  "clarifications": [
+    {
+      "q": "Which refactors are included in this spec?",
+      "a": "Only low-risk, behavior-preserving deduplication items B1/B2/B4 are included."
+    },
+    {
+      "q": "Should behavior changes be accepted as part of this work?",
+      "a": "No. Any behavioral drift is out of scope; this is a structural cleanup only."
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "Should B5/B6 be handled in a follow-up spec after this low-risk cleanup lands? - Decision: Yes. Handle B5/B6 in a separate follow-up spec."
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "goal": "各プリセットの DataSource ファイルで `parse()` と `analyze*()`/`parse*Scan()` 間に存在するパースロジックの重複を、プリセットごとのプライベートヘルパー関数に抽出して解消する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "webapp 親の `parse()` メソッド（子が override するため重複ではない）",
+      "cakephp2/data/controllers.js の `analyzePermissionComponent()`, `analyzeAcl()` — parse() と無関係の解析",
+      "cakephp2/data/commands.js の `analyzeCommandDetails()` — parse() との重複は class match のみで軽微",
+      "クロスプリセットの汎用ヘルパー抽出（各プリセットの parse ロジックは FW 固有）",
+      "新しいファイル追加（既存ファイル内にヘルパーを配置する）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[x] laravel/controllers: parse() と analyzeControllers() が共通ヘルパーを使用",
+    "[x] laravel/models: parse() と analyzeModels() が共通ヘルパーを使用",
+    "[x] symfony/controllers: parse() と analyzeControllers() が共通ヘルパーを使用",
+    "[x] symfony/entities: parse() と analyzeEntities() が共通ヘルパーを使用",
+    "[x] cakephp2/models: parse() と analyzeModels() が共通ヘルパーを使用",
+    "[x] `npm test` が全パス (1439/1439 passed, 0 failed)",
+    "[x] 各ヘルパーが content 文字列を受け取り、ファイルI/Oを含まない"
+  ],
+  "clarifications": [
+    {
+      "q": "ヘルパーの配置場所は？",
+      "a": "各 DataSource ファイル内のモジュールスコープ関数として配置する。`analyze*()` と同じファイルに既にあるため、新ファイルは不要。"
+    },
+    {
+      "q": "ヘルパーの命名規約は？",
+      "a": "`parseOneFile(content)` または `parseContent(content)` 形式。content (文字列) を受け取り、パース結果オブジェクトを返す。ファイル読み込みはヘルパーの外で行う。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

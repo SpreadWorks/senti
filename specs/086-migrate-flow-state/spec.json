@@ -1,0 +1,65 @@
+{
+  "goal": "flow.json の保存先を `.sdd-forge/flow.json` から `specs/NNN/flow.json` に移行し、`.sdd-forge/.active-flow` ポインタで管理する。これにより worktree 削除時の状態消失を防ぎ、複数フローの並行実行を可能にする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`.active-flow` のロック機構（競合書き込み防止）",
+      "flow.json のスキーマバージョニング",
+      "旧形式（`.sdd-forge/flow.json`）からの移行ツール（alpha 版ポリシーにより不要）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `.active-flow` の作成・読み取り・エントリ追加・エントリ削除が正常動作する",
+    "[ ] worktree / branch / local 全モードで `spec init` → flow 実行 → cleanup が正常完了する",
+    "[ ] stale エントリが自動検出・削除される",
+    "[ ] 複数フローの並行実行が可能（2 つの worktree で別々のフローを同時進行）",
+    "[ ] `flow status --all` が全モードのフローを表示する",
+    "[ ] worktree 削除時に cwd エラーが発生しない",
+    "[ ] archive 関連コード・オプションが完全に削除されている",
+    "[ ] 既存テストが新方式に対応し、全パスする",
+    "[ ] スキルテンプレート更新後、`sdd-forge upgrade` でプロジェクトに反映される"
+  ],
+  "clarifications": [
+    {
+      "q": "`.active-flow` のフォーマットは？",
+      "a": "JSON 配列。各エントリに `spec`（spec ID）と `mode`（worktree / branch / local）"
+    },
+    {
+      "q": "`.active-flow` はどこに置くか？",
+      "a": "main repo の `.sdd-forge/.active-flow` のみ。worktree からは `getMainRepoPath()` 経由でアクセス"
+    },
+    {
+      "q": "worktree モードで flow.json はどこに書くか？",
+      "a": "worktree 内の `specs/NNN/flow.json`。main repo は変更しない"
+    },
+    {
+      "q": "stale 検出はモード不明でも確実か？",
+      "a": "`.active-flow` にモード情報を持つため、モード別の確実な判定が可能"
+    },
+    {
+      "q": "`spec init` 時に既存フローがあったら reject するか？",
+      "a": "しない。複数フロー対応のため追加するだけ。stale は自動削除"
+    },
+    {
+      "q": "archive は不要か？",
+      "a": "不要。flow.json が最初から `specs/NNN/` にあり、merge で main に入る"
+    },
+    {
+      "q": "完了済みフローの判定方法は？",
+      "a": "flow.json 内のステップで判定。`derivePhase()` で判定可能"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

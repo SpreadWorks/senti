@@ -128,15 +128,29 @@
   ],
   "request": "check scan の出力を改善: (1) Level1 uncoveredリスト（scan.include外ファイル列挙）を削除、(2) scan対象なのにanalysis.jsonに入っていないファイルを表示（Level2維持）、(3) DataSourceが存在しないファイルの表示を追加、(4) カバレッジ率を先頭に表示",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "docsRead": 1,
-      "question": 3
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "reviewCount": {
     "spec": 3,
     "test": 0,
@@ -146,5 +160,7 @@
   "requestChars": 165,
   "state": {
     "finalizedAt": "2026-04-08T09:17:53.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

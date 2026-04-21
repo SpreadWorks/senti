@@ -162,66 +162,126 @@
   "worktree": true,
   "request": "Add flow get next-action CLI command with static approval point wiring (Issue #187, cac6/T5)",
   "notes": [
-    "work-environment: [1] worktree; base-branch: [1] main; Q1 intent: [1] approved"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1
-    },
-    "draft": {
-      "question": 5
-    },
-    "gate-draft": {
-      "tokens": {
-        "input": 77854,
-        "output": 6165,
-        "cacheRead": 84224,
-        "cacheCreation": 0
-      },
-      "callCount": 6,
-      "responseChars": 13218,
-      "durationMs": 150136
-    },
-    "gate": {
-      "tokens": {
-        "input": 8684,
-        "output": 905,
-        "cacheRead": 19072,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 2412,
-      "durationMs": 20863
-    },
-    "gate-impl": {
-      "tokens": {
-        "input": 80416,
-        "output": 5107,
-        "cacheRead": 63360,
-        "cacheCreation": 0
-      },
-      "callCount": 5,
-      "responseChars": 8700,
-      "durationMs": 130332
-    },
-    "task-impl": {
-      "gateRetry": 3
-    },
-    "review": {
-      "tokens": {
-        "input": 13302,
-        "output": 920,
-        "cacheRead": 34816,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2255,
-      "durationMs": 27918
-    },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "work-environment: [1] worktree; base-branch: [1] main; Q1 intent: [1] approved",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 13218,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 150136,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 2412,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 20863,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 8700,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 130332,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 2255,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 27918,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {

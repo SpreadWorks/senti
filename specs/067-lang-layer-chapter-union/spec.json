@@ -1,0 +1,33 @@
+{
+  "goal": "preset の lang 層（php, node）が提供する章を、parent チェーンの chapters と自動的に union マージする。\nこれにより、lang 層に `stack_and_ops.md` 等の章を定義するだけで、全ての子 preset に自動的に反映される。\n各 preset の `chapters` 配列に手動で追加する必要がなくなる。",
+  "background": "spec #065 で preset 階層を parent チェーン + lang 層に再設計した。DataSource のロードは合成されているが、テンプレート（chapters）の合成は未実装。node-cli の chapters に `stack_and_ops.md` を手動で追加して動作確認したが、本来は lang 層が提供する章は自動的に union されるべき。",
+  "scope": {
+    "in": [],
+    "out": [
+      "lang 層固有のテンプレートファイル作成（現時点では base の stack_and_ops.md を継承）",
+      "モノレポの章合成",
+      "platform / database 軸の章合成"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "lang 層の chapters が parent チェーンの chapters と衝突した場合は？",
+      "a": "既に存在する章は追加しない（重複排除）。parent チェーン側の位置を維持。"
+    },
+    {
+      "q": "複数の lang 層が存在する場合は？",
+      "a": "現時点では 1 preset に 1 lang 層のみ。将来的に複数対応が必要になれば別 spec。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

@@ -1,0 +1,57 @@
+{
+  "goal": "preset をフラットなプラグイン構造に移行する。各 preset が `preset.json` マニフェスト・スキャンロジック・リゾルバ・テンプレートを1フォルダに自己完結させ、フォルダの追加だけで新しい preset が使えるようにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "scan interface（クラスベース、メソッド呼び出し）の導入（Phase 2）",
+      "ディレクティブ構文の変更（Phase 2）",
+      "resolver の廃止（Phase 2）",
+      "scan ファイルのディレクティブ名一致リネーム（Phase 2）",
+      "新しい preset の追加",
+      "`preset-install` コマンド"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `src/presets/` に cakephp2, laravel, symfony, node-cli の4フォルダが存在する",
+    "[ ] 各フォルダに `preset.json` がある",
+    "[ ] `src/docs/presets/` が削除されている",
+    "[ ] `src/lib/presets.js` がハードコード配列ではなくファイルシステム検出で動作する",
+    "[ ] `scanner.js` に `SCAN_DEFAULTS` 定数がない",
+    "[ ] `genericScan` が `type` 引数なしで動作する",
+    "[ ] FW 固有テンプレートが `src/presets/{key}/templates/{lang}/` にある",
+    "[ ] `src/templates/locale/{lang}/{arch}/{fw}/` が削除されている",
+    "[ ] scan, init, readme が変更前と同じ出力を生成する",
+    "[ ] 全テスト通過"
+  ],
+  "clarifications": [
+    {
+      "q": "preset.json に scan 設定がない preset（node-cli のようにスキャンロジックが不要な場合）は？",
+      "a": "`scan` フィールドだけで完結する。`scan/` フォルダや `resolve.js` はオプション"
+    },
+    {
+      "q": "共有テンプレート（base, webapp, cli, library）は移動するか？",
+      "a": "しない。`src/templates/locale/{lang}/` に残る。移動するのは FW 固有テンプレートのみ"
+    },
+    {
+      "q": "`src/docs/presets/` ディレクトリはどうなるか？",
+      "a": "完全に削除する。全内容が `src/presets/` に移動する"
+    },
+    {
+      "q": "analyze-extras.js（cakephp2 の巨大アグリゲータ）はどうなるか？",
+      "a": "`scan/extras.js` に移動し、同フォルダ内の各モジュールを呼び出す形は維持"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

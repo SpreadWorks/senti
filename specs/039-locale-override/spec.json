@@ -1,0 +1,58 @@
+{
+  "goal": "locale ファイル（messages.json, prompts.json, ui.json）を 3 層でオーバーライドできるようにする\n- 呼び出し側 API を `translate()` に統一し、namespace 付きキーで domain を明示する",
+  "background": "",
+  "scope": {
+    "in": [
+      "`translate()` 関数を新設し、プロジェクトコンテキストの解決と多層マージを一手に引き受ける",
+      "`createI18n()` を低レベルプリミティブとしてリファクタ（`localeDirs` 配列対応、deep merge）",
+      "全呼び出し元を `translate()` に移行",
+      "プリセットに `locale/` ディレクトリを配置可能にする"
+    ],
+    "out": [
+      "新しい locale ファイルの中身（messages/prompts/ui の具体的なキー追加）",
+      "locale ファイルの自動生成やバリデーション CLI",
+      "`output.languages` / `output.default` の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `t(\"ui:help.title\")` でベースの ui.json からキーを取得できる",
+    "[ ] `.sdd-forge/locale/ja/ui.json` に `{ \"test\": { \"key\": \"override\" } }` を置いた場合、`t(\"ui:test.key\")` が `\"override\"` を返す",
+    "[ ] プリセットの locale がベースを部分的に上書きできる",
+    "[ ] `.sdd-forge/locale/` がプリセット locale よりも優先される",
+    "[ ] オーバーライドファイルが存在しない場合、ベースのみで動作する",
+    "[ ] コロンなしのキー `t(\"help.title\")` がエラーになる",
+    "[ ] config が存在しないコンテキストで `createI18n()` 直接呼び出しが従来通り動作する",
+    "[ ] 既存テスト（修正後）が通る",
+    "[ ] i18n.test.js に translate() と多層マージのテストを追加"
+  ],
+  "clarifications": [
+    {
+      "q": "マージはキー単位の shallow merge か deep merge か？",
+      "a": "ネストされたキー構造のため deep merge"
+    },
+    {
+      "q": "domain のデフォルトは？",
+      "a": "デフォルトなし。`\"{domain}:{key}\"` 形式を必須とし、コロンがなければエラー"
+    },
+    {
+      "q": "root はどう取得するか？",
+      "a": "`translate()` 内部で `repoRoot()` を呼ぶ。呼び出し側は意識しない"
+    },
+    {
+      "q": "presetKey はどう解決するか？",
+      "a": "config.json の `type` フィールドから取得（`\"cli/node-cli\"` → `\"node-cli\"`）"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

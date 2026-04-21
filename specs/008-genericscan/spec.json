@@ -1,0 +1,47 @@
+{
+  "goal": "`genericScan` がハードコードしている4カテゴリ（controllers/models/shells/routes）を動的ディスパッチに変更し、`scanCfg` のキーを自動的にスキャンできるようにする。これにより `SCAN_DEFAULTS` の `node-cli`/`cli` に定義された `modules` カテゴリが実際に機能するようになる。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "resolver / data.js / init.js の `modules` カテゴリ対応（別 spec）",
+      "preset スキャナの変更（既存の `SCAN_DEFAULTS` は変更しない）",
+      "新しいプリセットの追加",
+      "analysis.json のスキーマ定義"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[x] `genericScan` にカテゴリハンドラレジストリがあり、動的ディスパッチしている",
+    "[x] `analyzeGenericCategory` が存在し、汎用カテゴリを解析できる",
+    "[x] type=cli で scan を実行すると `modules` カテゴリが analysis.json に含まれる",
+    "[x] `buildSummary` が `modules` 等の未知カテゴリも summary.json に含める",
+    "[x] type=php-mvc (webapp/cakephp2) の出力が変わらない",
+    "[x] 既存テスト + 新規テストが全て通る (290 tests)"
+  ],
+  "clarifications": [
+    {
+      "q": "既存の analyzeControllers 等の関数シグネチャは変わるか？",
+      "a": "変わらない。`(sourceRoot, scanCfg)` のまま。CATEGORY_HANDLERS から呼び出される形に変わるだけ"
+    },
+    {
+      "q": "extras キーが scanCfg に入っていた場合はどうなるか？",
+      "a": "`extras` はカテゴリとして扱わない。`genericScan` のループ対象から除外し、従来通り最後に `analyzeExtras` を呼ぶ"
+    },
+    {
+      "q": "analyzeGenericCategory の出力が既存カテゴリの出力と互換でない場合は？",
+      "a": "汎用カテゴリの出力形式は独自（上記 Scope 2 参照）。resolver 側での対応は別 spec"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

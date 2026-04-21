@@ -1,0 +1,36 @@
+{
+  "goal": "setup wizard の2つのバグを修正する:\n1. projectName が config.json に保存・復元されない\n2. 既存 config から復元したプリセットデフォルトで、ツリーの祖先ノードが選択されない",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/setup.js`: config.json への `name` フィールドの書き込みと `loadExistingDefaults()` での読み込み",
+      "`src/lib/multi-select.js`: デフォルト適用時の `autoSelectAncestors` 対応",
+      "`src/lib/types.js`: `SddConfig` 型定義に `name` フィールド追加（省略可）",
+      "既存テストの修正（必要な場合）"
+    ],
+    "out": [
+      "`name` を docs 生成パイプラインで使用する機能追加（現在は `project.js` が `package.json` から取得）",
+      "multi-select の UI/UX 改善",
+      "setup wizard のその他の改善"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "`name` は config スキーマの必須フィールドか？",
+      "a": "省略可（optional）。既存の config.json との互換性を維持するため。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

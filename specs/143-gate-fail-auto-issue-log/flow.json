@@ -114,15 +114,29 @@
   "request": "gate FAIL 時に issue-log を自動記録する post/onError フック",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "draft": {
-      "srcRead": 1,
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -132,5 +146,7 @@
   "requestChars": 47,
   "state": {
     "finalizedAt": "2026-04-04T14:12:31.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

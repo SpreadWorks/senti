@@ -116,68 +116,138 @@
   "issue": 202,
   "worktree": true,
   "request": "Issue #202 (bea4): cac6 decomposition task 9/11. Determinization of update-overview step. Structure spec.json overview into modules/data_flow/decisions. AI outputs only diffs; CLI performs mechanical merge. Record added_by_task on each entry for reverse application on task deletion. Constrain update-overview output_schema via T5.",
-  "metrics": {
-    "plan": {
-      "docsRead": 3
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 6,
-      "question": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 34980,
-        "output": 2972,
-        "cacheRead": 42624,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 7045,
-      "durationMs": 78488
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 7488,
-        "output": 1102,
-        "cacheRead": 19072,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 2661,
-      "durationMs": 26920
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 2
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 7045,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "task-impl": {
-      "gateRetry": 0
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 78488,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 184270,
-        "output": 5603,
-        "cacheRead": 115584,
-        "cacheCreation": 0
-      },
-      "callCount": 7,
-      "responseChars": 7384,
-      "durationMs": 151891
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 92545,
-        "output": 1948,
-        "cacheRead": 22528,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3460,
-      "durationMs": 52629
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 2661,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 26920,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 7,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 7384,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 151891,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3460,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 52629,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "Q1: A案 (flat {text, added_by_task}) を採用",
-    "Q2-Q6: all A-option (add-only / optional added_by_task + 196 migrate / helper only / flow run update-overview orchestration / unit tests only)"
+    {
+      "taskId": null,
+      "text": "Q1: A案 (flat {text, added_by_task}) を採用",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "Q2-Q6: all A-option (add-only / optional added_by_task + 196 migrate / helper only / flow run update-overview orchestration / unit tests only)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "autoApprove": true,
   "test": {

@@ -1,0 +1,62 @@
+{
+  "goal": "flow-merge を flow-finalize にリネームし、既存の squash merge に加えて PR 経由のマージルートを選択肢として追加する。\nまた、docs 生成を独立した flow-sync スキルに分離し、マージ後の正確なプロジェクト状態で docs を生成できるようにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "flow-issue（flow 開始時に Issue を紐付けるルート）",
+      "`gh pr merge` による自動マージ",
+      "commit hook による docs 自動同期（差分更新の実装後）",
+      "flow-plan / flow-impl の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`commands.gh: \"disable\"` の場合、finalize で PR 選択肢が表示されないこと",
+    "`commands.gh: \"enable\"` かつ `gh` がインストール済みの場合、PR 選択肢が表示されること",
+    "`commands.gh: \"enable\"` かつ `gh` が未インストールの場合、警告が表示されること",
+    "PR 作成時に flow.json の issue フィールドから `fixes #N` が body に含まれること（issue が空の場合は含めない）",
+    "push 先が `flow.push.remote` の値（未設定時は `origin`）であること",
+    "finalize の PR ルートでブランチ削除がスキップされること",
+    "flow-sync が specs/ 配下の archived flow.json を正しく探索できること",
+    "既存の squash merge ルートが引き続き動作すること",
+    "`sdd-forge upgrade` 実行後に旧 flow-merge スキルが削除され、flow-finalize / flow-sync スキルが配置されること"
+  ],
+  "clarifications": [
+    {
+      "q": "squash merge を置き換えるか？",
+      "a": "いいえ。選択肢として PR ルートを追加する。"
+    },
+    {
+      "q": "gh コマンドの存在を前提にしてよいか？",
+      "a": "いいえ。config で enable/disable を制御。enable 時に gh がなければ警告。"
+    },
+    {
+      "q": "Issue 番号はどこから取得するか？",
+      "a": "flow.json の issue フィールド。今回は空欄。将来 flow-issue で設定。"
+    },
+    {
+      "q": "PR 作成後のマージは？",
+      "a": "gh pr create のみ。マージは GitHub 上で手動（将来自動対応）。"
+    },
+    {
+      "q": "docs 生成はどうするか？",
+      "a": "flow-sync に分離。base branch でマージ後に実行。"
+    },
+    {
+      "q": "push 先リモートの設定場所は？",
+      "a": "flow.push.remote（デフォルト \"origin\"）。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "flow-sync の sync ステップ ID の最終的な命名 → `pr-merge`, `sync-cleanup`, `docs-update`, `docs-review`, `docs-commit` で確定"
+  ]
+}

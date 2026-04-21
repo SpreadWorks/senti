@@ -121,33 +121,49 @@
   "worktree": true,
   "autoApprove": true,
   "notes": [
-    "draft: auto Q&A 完了、scope=ja/en conflictsExist の ERROR→WARN 置換"
-  ],
-  "metrics": {
-    "gate-draft": {
-      "tokens": {
-        "input": 26381,
-        "output": 2519,
-        "cacheRead": 35584,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 4733
-    },
-    "gate": {
-      "tokens": {
-        "input": 16720,
-        "output": 960,
-        "cacheRead": 3456,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1196
-    },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "draft: auto Q&A 完了、scope=ja/en conflictsExist の ERROR→WARN 置換",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 4733,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1196,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "test": {
     "summary": {
       "unit": 5
@@ -155,5 +171,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-15T06:47:49.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

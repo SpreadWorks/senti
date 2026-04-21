@@ -128,9 +128,21 @@
   ],
   "request": "review.jsにanalysis.jsonベースの汎用カバレッジ検知を追加し、enriched chapterフィールドで追記先を解決するパッチ関数を実装し、forge.jsのフィードバックループに統合する",
   "notes": [
-    "draft: カバレッジ検知はエントリ単位（個々のファイル/クラスが docs に記述されているか）",
-    "draft: 10(analysis鮮度),13(スナップショット差分)は削除。snapshot機能自体も削除。残りのWARNはすべてFAILに昇格。forgeで解決できないケースの対処方法を検討する",
-    "draft: forgeが解決できず例外終了した場合、AIがエラー内容を読んでユーザーに解決方法を提示する（現状の暗黙の動作を明文化）"
+    {
+      "taskId": null,
+      "text": "draft: カバレッジ検知はエントリ単位（個々のファイル/クラスが docs に記述されているか）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 10(analysis鮮度),13(スナップショット差分)は削除。snapshot機能自体も削除。残りのWARNはすべてFAILに昇格。forgeで解決できないケースの対処方法を検討する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: forgeが解決できず例外終了した場合、AIがエラー内容を読んでユーザーに解決方法を提示する（現状の暗黙の動作を明文化）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 6,
@@ -138,13 +150,19 @@
     "impl": 0
   },
   "redoCount": 0,
-  "metrics": {
-    "draft": {
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "requestChars": 105,
   "state": {
     "finalizedAt": "2026-03-16T14:29:59.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

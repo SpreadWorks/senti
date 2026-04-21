@@ -1,0 +1,35 @@
+{
+  "goal": "init コマンドの言語フォールバック動作と章選別ロジックのテストカバレッジを確保する。\nspec #069 acceptance テストで発見されたテスト不足（`.tmp/next-test-improvements.md` #1）を解消する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "en テンプレートの作成（#4 で別途対応）",
+      "lang 層合成テスト（#2 で別途対応）",
+      "symfony regex バグ修正（#3 で別途対応）",
+      "既存テストの変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `npm test` で全テスト PASS",
+    "[ ] 新規テスト4件（e2e 3件 + unit 1件）が追加されている",
+    "[ ] 既存テストが変更されていない",
+    "[ ] `aiFilterChapters` が init.js から export されている"
+  ],
+  "clarifications": [
+    {
+      "q": "aiFilterChapters の export 追加は破壊的変更か？",
+      "a": "いいえ。named export の追加のみで既存動作に影響なし。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

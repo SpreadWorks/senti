@@ -122,19 +122,43 @@
   "request": "環境変数プレフィックスを SDD_ から SDD_FORGE_ に統一する",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1,
-      "issueLog": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 1,
-      "question": 1
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "reviewCount": {
     "spec": 4,
     "test": 0,
@@ -144,5 +168,7 @@
   "requestChars": 37,
   "state": {
     "finalizedAt": "2026-04-08T12:40:33.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

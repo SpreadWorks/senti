@@ -158,69 +158,143 @@
   "worktree": true,
   "request": "Consolidate flow-plan/impl/finalize skills into single /sdd-forge.flow dispatcher; remove legacy skill dirs; add upgrade cleanup (issue #199, cac6 T7)",
   "notes": [
-    "Q1 approved: dispatcher-style /sdd-forge.flow consolidating 3 skills into 1",
-    "Draft written autonomously (autoApprove). Design: /sdd-forge.flow = prelude + dispatcher loop + guardrails; remove 3 legacy templates; update AGENTS.sdd.md + plan/test.md + impl/finalize.md skill name refs.",
-    "impl: consolidated SKILL.md + 3 legacy skill removal + auxiliary ref updates + AGENTS.sdd.md refs + flow prompts refs. All 11 spec tests + 3 regression tests pass; full npm test 265 suites PASS."
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1,
-      "srcRead": 1
+    {
+      "taskId": null,
+      "text": "Q1 approved: dispatcher-style /sdd-forge.flow consolidating 3 skills into 1",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 1
+    {
+      "taskId": null,
+      "text": "Draft written autonomously (autoApprove). Design: /sdd-forge.flow = prelude + dispatcher loop + guardrails; remove 3 legacy templates; update AGENTS.sdd.md + plan/test.md + impl/finalize.md skill name refs.",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 43143,
-        "output": 4135,
-        "cacheRead": 65280,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 8412,
-      "durationMs": 95989
-    },
-    "gate": {
-      "tokens": {
-        "input": 98764,
-        "output": 5309,
-        "cacheRead": 32896,
-        "cacheCreation": 0
-      },
-      "callCount": 5,
-      "responseChars": 12860,
-      "durationMs": 140126
-    },
-    "impl": {
-      "issueLog": 1
-    },
-    "gate-impl": {
-      "tokens": {
-        "input": 108916,
-        "output": 2923,
-        "cacheRead": 60416,
-        "cacheCreation": 0
-      },
-      "callCount": 5,
-      "responseChars": 4509,
-      "durationMs": 102182
-    },
-    "task-impl": {
-      "gateRetry": 0
-    },
-    "review": {
-      "tokens": {
-        "input": 35893,
-        "output": 1593,
-        "cacheRead": 24832,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2898,
-      "durationMs": 41703
+    {
+      "taskId": null,
+      "text": "impl: consolidated SKILL.md + 3 legacy skill removal + auxiliary ref updates + AGENTS.sdd.md refs + flow prompts refs. All 11 spec tests + 3 regression tests pass; full npm test 265 suites PASS.",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 8412,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 95989,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 12860,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 140126,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 4509,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 102182,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 2898,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 41703,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {

@@ -1,0 +1,43 @@
+{
+  "goal": "Fix the `methodBlockRegex` in Symfony preset scanners that causes catastrophic backtracking (infinite hang) when PHP 8 Route attributes contain `{paramName}` path parameters.",
+  "background": "",
+  "scope": {
+    "in": [
+      "Fix regex in `src/presets/symfony/scan/controllers.js` (L46)",
+      "Fix identical regex in `src/presets/symfony/scan/routes.js` (L172)",
+      "Add unit test to prevent regression",
+      "Restore the symfony acceptance test fixture (`PostController.php`) to use the original `{threadId}` pattern"
+    ],
+    "out": [
+      "Other regex in the symfony scanners (e.g. `routeAttrRegex` — not affected)",
+      "Changes to other preset scanners",
+      "Changes to the acceptance test infrastructure"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `sdd-forge scan` completes on symfony fixture with `#[Route('/threads/{threadId}/posts')]` without hanging",
+    "[ ] Unit test covers: simple Route, Route with `{}`, Route with nested `[]`, multiple attributes, no attributes",
+    "[ ] Existing symfony acceptance test still passes",
+    "[ ] No changes to scan output (functional equivalence)"
+  ],
+  "clarifications": [
+    {
+      "q": "Why does the old regex backtrack?",
+      "a": "The pattern `(?:[^\\[\\]]*(?:\\[[^\\[\\]]*\\])?)*` has nested quantifiers where `[^\\[\\]]*` can match empty. When the regex engine fails to find a match through `]`, it tries exponential combinations of splitting the input across iterations of the outer `*`."
+    },
+    {
+      "q": "Does the new regex still handle nested brackets like `methods: ['GET']`?",
+      "a": "Yes. The alternation `(?:[^\\[\\]]|\\[[^\\]]*\\])` handles: (1) single non-bracket chars, (2) complete `[...]` groups. Verified with test cases."
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

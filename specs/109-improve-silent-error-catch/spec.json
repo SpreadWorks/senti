@@ -1,0 +1,49 @@
+{
+  "goal": "Issue #42 に記載された8箇所の `catch (_) {}` パターンを改善し、ENOENT 以外のエラーを `console.error` で出力するようにする。デバッグ困難な状況を解消する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/setup.js:225`",
+      "`src/flow/run/impl-confirm.js:108`",
+      "`src/lib/agent.js:369`",
+      "`src/lib/flow-state.js:152`",
+      "`src/lib/flow-state.js:225`",
+      "`src/lib/skills.js:28`",
+      "`src/lib/skills.js:77`",
+      "`src/docs/commands/changelog.js:136`"
+    ],
+    "out": [
+      "上記8箇所以外の `catch (_) {}` パターン（66箇所中の残り58箇所）",
+      "`logger.debug` メソッドの新規追加",
+      "共通ユーティリティ（`safeUnlink` 等）の作成"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "8箇所すべてで `catch (_) {}` が `catch (err) { if (err.code !== \"ENOENT\") console.error(err); }` に置換されている",
+    "ENOENT 発生時は従来通り黙って続行する（出力なし）",
+    "非 ENOENT エラー発生時は stderr にエラーが出力される",
+    "既存テストがパスする"
+  ],
+  "clarifications": [
+    {
+      "q": "ENOENT 以外のエラーは rethrow するか？",
+      "a": "rethrow しない。対象箇所は「ファイルがなければデフォルトで続行」のパターンが多く、rethrow するとプロセスが停止する。`console.error` で出力してデバッグを可能にしつつ、既存動作は維持する。"
+    },
+    {
+      "q": "logger を import するか？",
+      "a": "しない。対象ファイルの多くは logger を使っていない。`console.error` で統一する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "なし"
+  ]
+}

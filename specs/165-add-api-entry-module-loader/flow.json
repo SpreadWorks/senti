@@ -121,51 +121,127 @@
   "issue": 129,
   "request": "make a resume command",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 9
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 9,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 10,
-        "output": 17663,
-        "cacheRead": 43892,
-        "cacheCreation": 64314
-      },
-      "cost": 0.5193201,
-      "callCount": 5,
-      "responseChars": 6942
+    {
+      "phase": "gate-draft",
+      "counter": "cost",
+      "value": 0.5193201,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 2,
-        "output": 3523,
-        "cacheRead": 10973,
-        "cacheCreation": 108860
-      },
-      "cost": 0.4643679,
-      "callCount": 1,
-      "responseChars": 848
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 6942,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "cost",
+      "value": 0.4643679,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 848,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "Node.js version: bump engines to >=18.19.0 for module.register()",
-    "WebappDataSource: 除外。api.js は DataSource/Scannable/AnalysisEntry の3クラスのみ",
-    "implement: approach approved - src/api.js, src/loader.js, package.json exports+engines, sdd-forge.js register()",
-    "approach: draft first",
-    "first note",
-    "second note",
-    "new note",
-    "approach: draft first",
-    "first note",
-    "second note",
-    "new note"
+    {
+      "taskId": null,
+      "text": "Node.js version: bump engines to >=18.19.0 for module.register()",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "WebappDataSource: 除外。api.js は DataSource/Scannable/AnalysisEntry の3クラスのみ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "implement: approach approved - src/api.js, src/loader.js, package.json exports+engines, sdd-forge.js register()",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "approach: draft first",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "first note",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "second note",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "new note",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "approach: draft first",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "first note",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "second note",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "new note",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 5,
@@ -176,5 +252,7 @@
   "requestChars": 21,
   "state": {
     "finalizedAt": "2026-04-10T08:28:12.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

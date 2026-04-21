@@ -152,35 +152,107 @@
   "worktree": true,
   "request": "Issue #167: flow/docs/check/metrics の3種類のアーキテクチャパターン(flow型/docs型/bare型)を統一。(1)docs系を共通ライフサイクルに統一、(2)check/metrics をContainer経由に移行、(3)最終的に1パターンへ統合。",
   "notes": [
-    "Q1: Issue #167 意図承認 ([1])",
-    "Q2: scope=3タスクまとめて実施 ([1])",
-    "Q3: 統合方針=共通基底+registry+dispatcher、出力はEnvelope/rawの2種 ([1])",
-    "Q4: container=共有singleton / input=CLI引数+override ([1])",
-    "Q5-registry: 単一 registry + tree 構造で部分 import 可能 ([1])",
-    "Q6-test: 共通 unit test を tests/unit/ に + spec 固有は specs/188/tests/ ([1])",
-    "impl: 段階実行方針 Phase A(基盤)→B(flow)→C(docs/check/metrics)→D(旧削除+テスト更新)"
-  ],
-  "metrics": {
-    "draft": {
-      "srcRead": 1,
-      "question": 5
+    {
+      "taskId": null,
+      "text": "Q1: Issue #167 意図承認 ([1])",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "callCount": 6,
-      "responseChars": 9512
+    {
+      "taskId": null,
+      "text": "Q2: scope=3タスクまとめて実施 ([1])",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "callCount": 5,
-      "responseChars": 7528
+    {
+      "taskId": null,
+      "text": "Q3: 統合方針=共通基底+registry+dispatcher、出力はEnvelope/rawの2種 ([1])",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 2
+    {
+      "taskId": null,
+      "text": "Q4: container=共有singleton / input=CLI引数+override ([1])",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "callCount": 2,
-      "responseChars": 10928
+    {
+      "taskId": null,
+      "text": "Q5-registry: 単一 registry + tree 構造で部分 import 可能 ([1])",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "Q6-test: 共通 unit test を tests/unit/ に + spec 固有は specs/188/tests/ ([1])",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl: 段階実行方針 Phase A(基盤)→B(flow)→C(docs/check/metrics)→D(旧削除+テスト更新)",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 9512,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 7528,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 10928,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "test": {
     "summary": {
       "unit": 3,
@@ -189,5 +261,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-18T07:51:10.413Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

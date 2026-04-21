@@ -144,76 +144,224 @@
   "request": "#161 issueを進めてください",
   "worktree": true,
   "notes": [
-    "draft Q1: intent confirmed — DI via Container for external presets; prerequisite #155 is done",
-    "draft Q2: scope = 内部・外部プリセット両方を DI 化。今後の外部化を見据えた統一設計",
-    "draft Q3: preset entry = factory function register(container)",
-    "draft Q4: container API = flat string-key namespace via container.get()",
-    "draft Q5: scope = 基盤 + 全 preset 移行を 1 PR で一括（alpha ポリシー）",
-    "draft Q6: no API versioning, alpha policy, single version only",
-    "draft Q7: test = existing tests + preset register() contract tests + pre/post docs build diff",
-    "draft Q8: src/api.js 削除、preset 契約を Container 一本化",
-    "impl phase A+B: container extended (registerPreset/getPreset, base classes + scanner/path/lang registered); loader dual-mode (class | factory); pilot preset=base (2/47 files migrated). All unit tests pass (1439/1439). Contract test 2/45 pass.",
-    "migrated-preset: base (2 files: package.js, structure.js)",
-    "next-step: convert presets one-at-a-time via /clear + /sdd-forge.flow-resume. Remaining presets with data/: api, architecture, cakephp2, ci, cli, coding-rule, database, document, drizzle, edge, github-actions, graphql, greenfield, hono, infrastructure, js-webapp, laravel, lib, library, maintenance, monorepo, mysql, nextjs, node-cli, oss-contribute, php-webapp, postgres, principle, r2, rest, storage, symfony, ui-ux, web-design, webapp, workers. Recommend order: webapp -> js-webapp/php-webapp -> leaf presets, since child presets use container.getPreset(parent).",
-    "impl: scope for this turn = webapp chain (webapp 6 + cakephp2 10 + laravel 6 + symfony 6 + hono 1 = 29 files). Helper pattern: webapp-data-source.js exports create*(container) named helper (WeakMap-cached) for siblings; default register(container) returns the class. Children use container.getPreset('webapp').dataSources.X and .Entry static.",
-    "impl revised strategy: migrate LEAF presets first (children), parents LAST. Converting webapp first breaks children's 'extends' against factory. Corrected order: cakephp2/laravel/symfony/hono -> nextjs -> js-webapp/php-webapp (no data/) -> webapp -> then other independent presets (api, architecture, ci, cli, coding-rule, database, document, drizzle, edge, github-actions, graphql, greenfield, infrastructure, lib, library, maintenance, monorepo, mysql, node-cli, oss-contribute, postgres, principle, r2, rest, storage, ui-ux, web-design, workers). Child factories use container.getPreset('webapp').dataSources.<name> while webapp remains class form during their migration. Container extensions committed: scanner.parseFile/parsePHPFile/parseJSFile/camelToSnake/pluralize + pathMatch.hasAnyPathPrefix registered. Also: analyze* functions in data/*.js currently use sdd-forge internal imports; need relocation to preset tests/ (they're only consumed by tests).",
-    "impl progress: migrated hono (1 file) + nextjs (2 files). Total 5/47 data files done. analyze* relocated to tests/analyzers.js. preset-scan-integrity.test.js updated to pass presetKey. monorepo-match-regression.test.js updated createSource to support factory form. All 1439 unit tests pass.",
-    "continuing with cakephp2 in same session",
-    "impl progress: migrated hono (1) + nextjs (2) + cakephp2 partial (docker, tables, tests, libs, commands, controllers, email = 7/10). Remaining cakephp2: config.js, models.js, views.js (all have many analyze* functions). Remaining presets: webapp chain (webapp 6, laravel 6, symfony 6) + independent (~29). Container extended with phpParser.* + scanner.getFileStats registrations. tests/analyzers.js helper files created in hono/nextjs/cakephp2 tests/. All 1439 unit tests pass.",
-    "impl progress: cakephp2 fully migrated (10/10). data files done: 15/47. Remaining: webapp chain (webapp 6, laravel 6, symfony 6) + ~29 independent presets. All 1439 unit tests pass.",
-    "impl progress: cakephp2 (10) + laravel (6) + symfony (6) migrated via subagents. data files done: 27/47. Remaining: webapp (6), ~29 independent presets. 1439/1439 pass.",
-    "impl complete: all presets migrated (base 2 + cakephp2 10 + hono 1 + nextjs 2 + laravel 6 + symfony 6 + webapp 6 + cli 2 + database/drizzle/edge/github-actions/graphql/monorepo/postgres/r2/storage/workers 1 each = 44 data files). R5 cleanup: deleted src/api.js, src/loader.js, removed ./api and ./presets/* from package.json exports, removed module loader hook from sdd-forge.js, deleted legacy class-compat branch in data-source-loader.js. R10: register-contract.test.js (45 tests) passes for every data file. Unit tests 1416/1416 pass. R9: acceptance tests blocked by pre-existing scanMain bug (tests/acceptance/lib/pipeline.js imports non-existent 'main' export — exists on main baseline, unrelated to spec 191). Preset-scan-integrity and preset-datasources tests continue to pass, covering the behavioral equivalence assurance.",
-    "R9 evidence captured: sdd-forge docs scan run on src/presets/cakephp2/tests/acceptance/fixtures/ against both main baseline (detached worktree /tmp/sdd-baseline) and this feature branch. Diff output has 156 lines but all differences are timestamp/hash artifacts (analyzedAt, mtime, id). Content bytes identical. Evidence saved to specs/191-preset-di-container/tests/r9-diff-evidence.md.",
-    "user-decision: R9 accepted as satisfied despite gate AI FAIL. Manual pre/post scan diff verification showed byte-identical content with only timestamp/hash differences. Gate retry limit (5) reached. Proceeding to review/finalize per user instruction.",
-    "finalize.mode: [1] all"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 8
+    {
+      "taskId": null,
+      "text": "draft Q1: intent confirmed — DI via Container for external presets; prerequisite #155 is done",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 69142,
-        "output": 5712,
-        "cacheRead": 86272,
-        "cacheCreation": 0
-      },
-      "callCount": 6,
-      "responseChars": 7658,
-      "durationMs": 134362
+    {
+      "taskId": null,
+      "text": "draft Q2: scope = 内部・外部プリセット両方を DI 化。今後の外部化を見据えた統一設計",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 25404,
-        "output": 1900,
-        "cacheRead": 27392,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3021,
-      "durationMs": 44078
+    {
+      "taskId": null,
+      "text": "draft Q3: preset entry = factory function register(container)",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "docsRead": 2,
-      "issueLog": 3
+    {
+      "taskId": null,
+      "text": "draft Q4: container API = flat string-key namespace via container.get()",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 959607,
-        "output": 7559,
-        "cacheRead": 23424,
-        "cacheCreation": 0
-      },
-      "callCount": 5,
-      "responseChars": 8042,
-      "durationMs": 171312
+    {
+      "taskId": null,
+      "text": "draft Q5: scope = 基盤 + 全 preset 移行を 1 PR で一括（alpha ポリシー）",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "callCount": 6,
-      "responseChars": 0,
-      "durationMs": 27678
+    {
+      "taskId": null,
+      "text": "draft Q6: no API versioning, alpha policy, single version only",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q7: test = existing tests + preset register() contract tests + pre/post docs build diff",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q8: src/api.js 削除、preset 契約を Container 一本化",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl phase A+B: container extended (registerPreset/getPreset, base classes + scanner/path/lang registered); loader dual-mode (class | factory); pilot preset=base (2/47 files migrated). All unit tests pass (1439/1439). Contract test 2/45 pass.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "migrated-preset: base (2 files: package.js, structure.js)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "next-step: convert presets one-at-a-time via /clear + /sdd-forge.flow-resume. Remaining presets with data/: api, architecture, cakephp2, ci, cli, coding-rule, database, document, drizzle, edge, github-actions, graphql, greenfield, hono, infrastructure, js-webapp, laravel, lib, library, maintenance, monorepo, mysql, nextjs, node-cli, oss-contribute, php-webapp, postgres, principle, r2, rest, storage, symfony, ui-ux, web-design, webapp, workers. Recommend order: webapp -> js-webapp/php-webapp -> leaf presets, since child presets use container.getPreset(parent).",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl: scope for this turn = webapp chain (webapp 6 + cakephp2 10 + laravel 6 + symfony 6 + hono 1 = 29 files). Helper pattern: webapp-data-source.js exports create*(container) named helper (WeakMap-cached) for siblings; default register(container) returns the class. Children use container.getPreset('webapp').dataSources.X and .Entry static.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl revised strategy: migrate LEAF presets first (children), parents LAST. Converting webapp first breaks children's 'extends' against factory. Corrected order: cakephp2/laravel/symfony/hono -> nextjs -> js-webapp/php-webapp (no data/) -> webapp -> then other independent presets (api, architecture, ci, cli, coding-rule, database, document, drizzle, edge, github-actions, graphql, greenfield, infrastructure, lib, library, maintenance, monorepo, mysql, node-cli, oss-contribute, postgres, principle, r2, rest, storage, ui-ux, web-design, workers). Child factories use container.getPreset('webapp').dataSources.<name> while webapp remains class form during their migration. Container extensions committed: scanner.parseFile/parsePHPFile/parseJSFile/camelToSnake/pluralize + pathMatch.hasAnyPathPrefix registered. Also: analyze* functions in data/*.js currently use sdd-forge internal imports; need relocation to preset tests/ (they're only consumed by tests).",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl progress: migrated hono (1 file) + nextjs (2 files). Total 5/47 data files done. analyze* relocated to tests/analyzers.js. preset-scan-integrity.test.js updated to pass presetKey. monorepo-match-regression.test.js updated createSource to support factory form. All 1439 unit tests pass.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "continuing with cakephp2 in same session",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl progress: migrated hono (1) + nextjs (2) + cakephp2 partial (docker, tables, tests, libs, commands, controllers, email = 7/10). Remaining cakephp2: config.js, models.js, views.js (all have many analyze* functions). Remaining presets: webapp chain (webapp 6, laravel 6, symfony 6) + independent (~29). Container extended with phpParser.* + scanner.getFileStats registrations. tests/analyzers.js helper files created in hono/nextjs/cakephp2 tests/. All 1439 unit tests pass.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl progress: cakephp2 fully migrated (10/10). data files done: 15/47. Remaining: webapp chain (webapp 6, laravel 6, symfony 6) + ~29 independent presets. All 1439 unit tests pass.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl progress: cakephp2 (10) + laravel (6) + symfony (6) migrated via subagents. data files done: 27/47. Remaining: webapp (6), ~29 independent presets. 1439/1439 pass.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl complete: all presets migrated (base 2 + cakephp2 10 + hono 1 + nextjs 2 + laravel 6 + symfony 6 + webapp 6 + cli 2 + database/drizzle/edge/github-actions/graphql/monorepo/postgres/r2/storage/workers 1 each = 44 data files). R5 cleanup: deleted src/api.js, src/loader.js, removed ./api and ./presets/* from package.json exports, removed module loader hook from sdd-forge.js, deleted legacy class-compat branch in data-source-loader.js. R10: register-contract.test.js (45 tests) passes for every data file. Unit tests 1416/1416 pass. R9: acceptance tests blocked by pre-existing scanMain bug (tests/acceptance/lib/pipeline.js imports non-existent 'main' export — exists on main baseline, unrelated to spec 191). Preset-scan-integrity and preset-datasources tests continue to pass, covering the behavioral equivalence assurance.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "R9 evidence captured: sdd-forge docs scan run on src/presets/cakephp2/tests/acceptance/fixtures/ against both main baseline (detached worktree /tmp/sdd-baseline) and this feature branch. Diff output has 156 lines but all differences are timestamp/hash artifacts (analyzedAt, mtime, id). Content bytes identical. Evidence saved to specs/191-preset-di-container/tests/r9-diff-evidence.md.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "user-decision: R9 accepted as satisfied despite gate AI FAIL. Manual pre/post scan diff verification showed byte-identical content with only timestamp/hash differences. Gate retry limit (5) reached. Proceeding to review/finalize per user instruction.",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize.mode: [1] all",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 8,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 7658,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 134362,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 3021,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 44078,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "docsRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 8042,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 171312,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 27678,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {
@@ -222,5 +370,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-19T12:11:49.244Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

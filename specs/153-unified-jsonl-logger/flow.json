@@ -149,25 +149,67 @@
   "issue": 105,
   "request": "#105 統合JSONLログ設計（Logger API リデザイン + プロンプト分離）",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 1,
-      "question": 6
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "scope: Logger基盤刷新 + agent ログ移行のみ。git/event は API 提供のみ",
-    "Logger init で flow-state から spec/sddPhase を自動解決。logCtx 引数は廃止",
-    "init は常に呼ぶ。disabled は Logger 内部で no-op",
-    "cfg.logs.dir は維持。cfg.logs.prompts → cfg.logs.enabled に rename",
-    "command フィールドと extractCommandFromStack 廃止。entryCommand + callerFile/callerLine のみ",
-    "test: Logger 単体 + callAgent* 回帰 + e2e (flow run gate で JSONL/プロンプトファイル生成確認)"
+    {
+      "taskId": null,
+      "text": "scope: Logger基盤刷新 + agent ログ移行のみ。git/event は API 提供のみ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "Logger init で flow-state から spec/sddPhase を自動解決。logCtx 引数は廃止",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "init は常に呼ぶ。disabled は Logger 内部で no-op",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "cfg.logs.dir は維持。cfg.logs.prompts → cfg.logs.enabled に rename",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "command フィールドと extractCommandFromStack 廃止。entryCommand + callerFile/callerLine のみ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test: Logger 単体 + callAgent* 回帰 + e2e (flow run gate で JSONL/プロンプトファイル生成確認)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 5,
@@ -178,5 +220,7 @@
   "requestChars": 44,
   "state": {
     "finalizedAt": "2026-04-07T13:31:31.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

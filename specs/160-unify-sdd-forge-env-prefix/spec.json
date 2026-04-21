@@ -1,0 +1,56 @@
+{
+  "goal": "`SDD_SOURCE_ROOT` / `SDD_WORK_ROOT` 環境変数を `SDD_FORGE_SOURCE_ROOT` / `SDD_FORGE_WORK_ROOT` にリネームし、`SDD_FORGE_*` プレフィックスで全環境変数を統一する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/cli.js` — `process.env.SDD_WORK_ROOT` → `process.env.SDD_FORGE_WORK_ROOT`（コメント含む）",
+      "`src/lib/cli.js` — `process.env.SDD_SOURCE_ROOT` → `process.env.SDD_FORGE_SOURCE_ROOT`（コメント含む）",
+      "`src/docs/lib/command-context.js` — JSDoc コメント内の変数名参照を更新",
+      "`src/presets/laravel/tests/e2e/integration.test.js` — `spawn` の `env` オプションを更新（2箇所）",
+      "`src/presets/symfony/tests/e2e/integration.test.js` — `spawn` の `env` オプションを更新（2箇所）"
+    ],
+    "out": [
+      "`SDD_FORGE_PROFILE`（既に正しいプレフィックスを持つため変更不要）",
+      "JavaScript 定数名（`SDD_DIRECTIVE_RE`, `SDD_DIR_NAME` 等）— 環境変数ではないため変更しない",
+      "`specs/` 以下の過去ドキュメント — 歴史的記録のため変更しない",
+      "`src/AGENTS.md` の手動更新 — `sdd-forge build` による自動再生成に委ねる",
+      "旧変数名の検出・警告処理 — alpha ポリシーにより後方互換コード禁止"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `SDD_FORGE_WORK_ROOT` を設定した場合、`repoRoot()` がその値を返すこと",
+    "[ ] `SDD_FORGE_SOURCE_ROOT` を設定した場合、`sourceRoot()` がその値を返すこと",
+    "[ ] `SDD_WORK_ROOT`（旧名）を設定しても `repoRoot()` に影響しないこと（フォールバックなし）",
+    "[ ] `src/` 内に `process.env.SDD_WORK_ROOT` / `process.env.SDD_SOURCE_ROOT` の参照が残っていないこと",
+    "[ ] laravel / symfony e2e テストが新しい変数名で正常に動作すること"
+  ],
+  "clarifications": [
+    {
+      "q": "CLI コマンド・オプションへの影響はあるか？",
+      "a": "なし。環境変数名のみの変更。"
+    },
+    {
+      "q": "旧変数名を使用し続けた場合の挙動は？",
+      "a": "サイレント無視（フォールバックなし）。CHANGELOG に Breaking Change として記載する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "旧変数名を残してフォールバック",
+      "reason": "alpha ポリシーにより不採用。後方互換コードは書かない。"
+    },
+    {
+      "option": "警告出力を追加",
+      "reason": "フォールバック処理と等価のため alpha ポリシーにより不採用。"
+    }
+  ],
+  "open_questions": []
+}

@@ -110,22 +110,66 @@
   "issue": 30,
   "request": "Issue #30: Spec Retrospective - 実装完了後にspecの精度を自動評価し、要件の達成率・追加変更・見積もりとの乖離を記録してspecs/NNN-xxx/retro.mdに保存する",
   "notes": [
-    "approach: Q&A draft, work-env: worktree, base: development",
-    "draft Q1: retro実行タイミング → finalize最初(commit前)に自動実行",
-    "draft Q2: 出力形式 → JSON (retro.json)",
-    "draft Q3: 記録項目 → requirements(達成状況), unplanned(追加変更), summary(達成率・所見). metricsはflow.jsonに既存のため含めない",
-    "draft Q4: 評価方法 → AIがspec.mdとgit diffを比較して自動評価。ユーザー承認なし",
-    "draft Q5: 実装構成 → flow registry に run retro コマンド追加。src/flow/run/retro.js 新規作成。finalize から呼び出し + 手動実行可",
-    "draft Q6: 影響範囲確認 → 承認。既存CLI変更なし、後方互換問題なし",
-    "review: auto-fix mode selected",
-    "finalize: select mode",
-    "finalize: steps 3,4,5,7 / merge strategy: merge"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 6
+    {
+      "taskId": null,
+      "text": "approach: Q&A draft, work-env: worktree, base: development",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q1: retro実行タイミング → finalize最初(commit前)に自動実行",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q2: 出力形式 → JSON (retro.json)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q3: 記録項目 → requirements(達成状況), unplanned(追加変更), summary(達成率・所見). metricsはflow.jsonに既存のため含めない",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q4: 評価方法 → AIがspec.mdとgit diffを比較して自動評価。ユーザー承認なし",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q5: 実装構成 → flow registry に run retro コマンド追加。src/flow/run/retro.js 新規作成。finalize から呼び出し + 手動実行可",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q6: 影響範囲確認 → 承認。既存CLI変更なし、後方互換問題なし",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: auto-fix mode selected",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: select mode",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: steps 3,4,5,7 / merge strategy: merge",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -135,5 +179,7 @@
   "requestChars": 104,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

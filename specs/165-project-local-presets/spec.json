@@ -1,0 +1,56 @@
+{
+  "goal": "プロジェクト固有プリセットを `.sdd-forge/presets/<name>/` に配置することで built-in と同一の探索機構で解決できるようにし、DataSource のみを上書きする中途半端な仕組みである `.sdd-forge/data/` を廃止する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "プリセット探索機構に `.sdd-forge/presets/<name>/` を追加（built-in より優先）",
+      "`preset.json` 省略時の fallback 処理（built-in 同名があれば設定を継承）",
+      "DataSource のロードパスを `.sdd-forge/presets/<name>/data/` に統一（scan フェーズ・data 解決フェーズ両方）",
+      "`.sdd-forge/data/` からのロードを廃止し、実行時に deprecation 警告を出力",
+      "`sdd-forge check config` で `.sdd-forge/presets/` のプリセットも有効として認識"
+    ],
+    "out": [
+      "`.sdd-forge/presets/` 内 DataSource による `sdd-forge` パッケージの import（4ea8 で対応）",
+      "`~/.sdd-forge/presets/<name>/` ユーザー固有探索（add3 で対応）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`.sdd-forge/presets/eccube/` に `preset.json`（parent: \"symfony\"）と `data/` を置き、`config.type: [\"eccube\"]` で動作する。",
+    "`.sdd-forge/presets/symfony/data/` のみを置き（preset.json なし）、`config.type: [\"symfony\"]` で動作する。DataSource は `.sdd-forge/presets/symfony/data/` が優先される。",
+    "`.sdd-forge/data/` ディレクトリが存在する場合に deprecation 警告が標準エラーに出力される。",
+    "`.sdd-forge/data/` が存在していても DataSource としてロードされない。",
+    "`sdd-forge check config` が `.sdd-forge/presets/` のプリセット名を有効な type として受け入れる。",
+    "既存の built-in プリセットのみを使うプロジェクトで動作が変わらない（regression なし）。"
+  ],
+  "clarifications": [
+    {
+      "q": "前提条件 4ea8 との関係は？",
+      "a": "4ea8（sdd-forge/api 公開エントリポイント）と並列開発中。DataSource の `import 'sdd-forge'` は 4ea8 に委ねる。今回は探索・ロード経路の変更のみ。"
+    },
+    {
+      "q": "`preset.json` 省略時の挙動は？",
+      "a": "built-in に同名があれば設定（parent, scan, chapters）を引き継ぎつつ、DataSource のみを上書きする。同名がなければ bare プリセットとして機能。"
+    },
+    {
+      "q": "`.sdd-forge/data/` 廃止時の通知は？",
+      "a": "コマンド実行時に標準エラーへ deprecation 警告を出力する。既存の deprecated 警告と同一形式・チャネル。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "`.sdd-forge/data/` をそのまま維持する",
+      "reason": "中途半端な専用機構が残り、将来の `~/.sdd-forge/presets/` 対応と二重化する。alpha 版ポリシー（後方互換コード不要）に照らして廃止が適切。"
+    }
+  ],
+  "open_questions": [
+    "`.sdd-forge/presets/` のプリセット探索を `discoverPresets()` に組み込むか、`resolveChain()` 時に動的に解決するか（実装時判断 → `resolveChain(key, root?)` シグネチャ拡張で解決済み）"
+  ]
+}

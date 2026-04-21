@@ -1,0 +1,57 @@
+{
+  "goal": "sdd-forge に Symfony 5/6/7 向けのプリセット（解析器・リゾルバ・テンプレート）を追加し、Symfony プロジェクトのドキュメント自動生成を可能にする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "Symfony 4 以前の対応",
+      "Twig テンプレートの解析",
+      "API Platform 固有の解析",
+      "英語テンプレート（ja のみ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Laravel プリセットと同等のパターン・データ形状に従うこと"
+    },
+    {
+      "id": "R2",
+      "desc": "Symfony の Route attribute（#[Route(...)]) と YAML ルート定義の両方を解析すること"
+    },
+    {
+      "id": "R3",
+      "desc": "Doctrine ORM のエンティティ定義（ORM attribute）を解析すること"
+    },
+    {
+      "id": "R4",
+      "desc": "既存テストが全て通ること"
+    }
+  ],
+  "acceptance_criteria": [
+    "`sdd-forge scan` が type=webapp/symfony で Symfony プロジェクトを解析できる",
+    "`sdd-forge data` が Symfony 固有カテゴリ（controllers, entities, routes, migrations 等）を解決できる",
+    "`sdd-forge init --type webapp/symfony` がテンプレートを docs/ に展開できる",
+    "新規テストで解析器・リゾルバの動作を検証",
+    "既存テスト全件 pass"
+  ],
+  "clarifications": [
+    {
+      "q": "Symfony 5/6/7 で1つのプリセットで対応可能か？",
+      "a": "ディレクトリ構造は同一（src/Controller/, src/Entity/, config/, migrations/）。1プリセットで対応可能。"
+    },
+    {
+      "q": "Laravel の analyze-models.js に相当するものは？",
+      "a": "Symfony では Doctrine ORM のエンティティ（src/Entity/）。analyze-entities.js として実装。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

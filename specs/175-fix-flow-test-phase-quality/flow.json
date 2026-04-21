@@ -147,52 +147,106 @@
   "issue": 146,
   "request": "flow テストフェーズの品質改善（test-mode設問変更、CRITICAL STOP追加、gate-impl改善）",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 1,
-      "question": 6,
-      "callCount": 8,
-      "responseChars": 7695,
-      "tokens": {
-        "input": 43100,
-        "output": 6959,
-        "cacheRead": 96128,
-        "cacheCreation": 0
-      }
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "spec": {
-      "tokens": {
-        "input": 21461,
-        "output": 1842,
-        "cacheRead": 19968,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2998
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1,
-      "issueLog": 1
+    {
+      "phase": "draft",
+      "counter": "callCount",
+      "value": 8,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 286352,
-        "output": 11579,
-        "cacheRead": 98560,
-        "cacheCreation": 0
-      },
-      "callCount": 10,
-      "responseChars": 13353
+    {
+      "phase": "draft",
+      "counter": "responseChars",
+      "value": 7695,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "responseChars",
+      "value": 2998,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 10,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 13353,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: 3点の修正確認済み。test-mode設問変更、CRITICAL STOP追加、buildImplCheckPrompt改善",
-    "impl: 方針承認。5ファイル変更: get-prompt.js, SKILL.md, get-test-result.js(新規), registry.js, run-gate.js",
-    "review: [1] コードレビューを行い改善を自動で行う",
-    "finalize: [1] すべて実行"
+    {
+      "taskId": null,
+      "text": "draft: 3点の修正確認済み。test-mode設問変更、CRITICAL STOP追加、buildImplCheckPrompt改善",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl: 方針承認。5ファイル変更: get-prompt.js, SKILL.md, get-test-result.js(新規), registry.js, run-gate.js",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: [1] コードレビューを行い改善を自動で行う",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: [1] すべて実行",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "test": {
     "summary": {
@@ -203,5 +257,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-14T08:21:38.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

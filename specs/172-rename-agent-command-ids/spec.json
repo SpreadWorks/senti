@@ -1,0 +1,58 @@
+{
+  "goal": "エージェントプロファイルのコマンドID命名をフェーズ軸（`flow.spec`, `flow.impl`, `flow.test`, `flow.finalize`, `flow.context`）で体系化し、プレフィックスマッチ階層を一貫させる。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/lib/get-context.js` — `context.search` → `flow.context.search`",
+      "`src/flow/lib/run-gate.js` — `spec.gate` → `flow.spec.gate`（エラーメッセージ含む）",
+      "`src/flow/commands/review.js` — `flow.review.*` → 各新ID",
+      "`src/flow/lib/run-retro.js` — `flow.retro` → `flow.finalize.retro`（エラーメッセージ含む）",
+      "`src/templates/config.example.json` — プロファイル例のキーを新IDに更新"
+    ],
+    "out": [
+      "`docs.*` コマンドID（init, enrich, text, forge, readme, agents, translate）の変更",
+      "`flow.commands.context.search.mode`（config 機能設定パス）の変更 — エージェントコマンドIDとは別レイヤー",
+      "旧コマンドIDの自動検出・警告・自動変換（alpha 版ポリシーにより後方互換コードは書かない）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "変更後のソースコードに旧コマンドID（`context.search`, `spec.gate`, `flow.review.spec`, `flow.review.draft`, `flow.review.final`, `flow.review.test`, `flow.retro`）が `loadAgentConfig` / `resolveAgent` の引数として残っていないこと",
+    "新コマンドID（`flow.context.search`, `flow.spec.gate`, `flow.spec.review`, `flow.impl.review.draft`, `flow.impl.review.final`, `flow.test.review`, `flow.finalize.retro`）が正しいファイルに配置されていること",
+    "`config.example.json` のプロファイル例が新IDを使用していること",
+    "既存テスト（`npm test`）が全て通ること",
+    "`sdd-forge upgrade` が正常終了すること（`.claude/skills/` は gitignore 対象のため diff には現れない）"
+  ],
+  "clarifications": [
+    {
+      "q": "`flow.commands.context.search.mode` は変更するか？",
+      "a": "スコープ外。config の機能設定パスであり、エージェントコマンドIDとは別レイヤー。"
+    },
+    {
+      "q": "旧コマンドIDへのマイグレーション対応は？",
+      "a": "alpha 版ポリシーに従い即時廃止。旧IDが `agent.profiles` に残った場合は `defaultAgent` にフォールバックし、未設定ならエラー。CHANGELOG で告知のみ。"
+    },
+    {
+      "q": "`flow.review` プレフィックスでの一括指定が壊れるが問題ないか？",
+      "a": "意図的な設計。フェーズ軸の体系化を優先。`flow` プレフィックスで全体一括指定は引き続き可能。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**旧IDとの互換レイヤー追加**",
+      "reason": "`resolveProviderKeyFromProfile` にエイリアスマッピングを追加する案。alpha 版ポリシー（後方互換コードは書かない）に反するため不採用。"
+    },
+    {
+      "option": "**config パスも同時変更**",
+      "reason": "`flow.commands.context.search.mode` も合わせて変更する案。別レイヤーであり、破壊的変更を1 spec に bundleすることは Single Responsibility に反するため不採用。"
+    }
+  ],
+  "open_questions": []
+}

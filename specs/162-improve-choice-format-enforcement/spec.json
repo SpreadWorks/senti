@@ -1,0 +1,54 @@
+{
+  "goal": "Clarify the flow-plan draft-phase instruction so every user-facing question, including confirmation after applying user-requested changes, must use the Choice Format with no exceptions.",
+  "background": "",
+  "scope": {
+    "in": [
+      "Update wording in `src/templates/skills/sdd-forge.flow-plan/SKILL.md` to remove exception-prone phrasing.",
+      "Ensure the wording explicitly covers reactive confirmation questions.",
+      "Update/add tests that validate the strict wording requirement."
+    ],
+    "out": [
+      "Extending the same wording change to `flow-impl` and `flow-finalize`.",
+      "Running `sdd-forge build` and regenerating project docs in this spec.",
+      "Any runtime behavior changes outside the flow-plan skill template content and its tests."
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`src/templates/skills/sdd-forge.flow-plan/SKILL.md` contains strict wording equivalent to: every user question (including post-change confirmations) must use Choice Format; no free-form questions; no exceptions.",
+    "Relevant unit tests in the repository assert this strict wording behavior and pass after updates.",
+    "No unrelated skill template is modified by this spec."
+  ],
+  "clarifications": [
+    {
+      "q": "Should this spec include docs regeneration work because source is newer than docs?",
+      "a": "No. Keep this spec focused on wording and tests; docs refresh is a separate task."
+    },
+    {
+      "q": "Should the strict rule be expanded to other skills now?",
+      "a": "No. Keep this issue scoped to flow-plan only."
+    },
+    {
+      "q": "What is the acceptance level?",
+      "a": "Strict MUST wording with explicit confirmation coverage, plus tests to prevent regression."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Keep current wording (`as default`) and add examples only.",
+      "reason": "Rejected: still allows interpretation drift and exception behavior."
+    },
+    {
+      "option": "Apply strict wording to all flow skills in one change.",
+      "reason": "Rejected: violates single-responsibility scope for this issue."
+    }
+  ],
+  "open_questions": []
+}

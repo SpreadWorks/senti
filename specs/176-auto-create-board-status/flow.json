@@ -119,34 +119,50 @@
   "issue": 147,
   "request": "#147 issue対応: ボードに必要なステータスが事前に存在しない場合の自動作成",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 3
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 4
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 31415,
-        "output": 2540,
-        "cacheRead": 29824,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 5516
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 18076,
-        "output": 1496,
-        "cacheRead": 26368,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 1967
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 5516,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 1967,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 2
@@ -154,5 +170,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-14T14:41:22.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

@@ -133,26 +133,74 @@
   "issue": 83,
   "request": "Symfonyプリセットにフレームワーク固有のguardrailを追加する（Issue #83）。3つの外部ソース（awesome-copilot, symfony-ux-skills, EasyAdminBundle AGENTS.md）からインスピレーションを得て、spec/impl/reviewの3フェーズに48件のguardrailルールを独自の文章で作成する。NOTICEファイルも追加する。",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 2
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "docsRead": 2,
-      "question": 6,
-      "srcRead": 1
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: coding-ruleプリセットへの2件追加（厳密比較、早期リターン）もスコープに含める",
-    "draft: UX系guardrailは全10件入れる。bodyに条件前置（Stimulus/Turbo/LiveComponent/UX Icons/UX Mapを使用する場合）で誤誘導を回避する方式A",
-    "draft: VALID_PHASESにreviewを追加する。guardrail.jsonのphaseにreviewを指定可能にする",
-    "draft: ユーザー承認。Symfony 34件新規 + coding-rule 2件新規 + phases.js review追加 + NOTICE",
-    "review: コードレビュー+自動修正を選択",
-    "finalize: mode=all を選択"
+    {
+      "taskId": null,
+      "text": "draft: coding-ruleプリセットへの2件追加（厳密比較、早期リターン）もスコープに含める",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: UX系guardrailは全10件入れる。bodyに条件前置（Stimulus/Turbo/LiveComponent/UX Icons/UX Mapを使用する場合）で誤誘導を回避する方式A",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: VALID_PHASESにreviewを追加する。guardrail.jsonのphaseにreviewを指定可能にする",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: ユーザー承認。Symfony 34件新規 + coding-rule 2件新規 + phases.js review追加 + NOTICE",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: コードレビュー+自動修正を選択",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: mode=all を選択",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 4,
@@ -163,5 +211,7 @@
   "requestChars": 202,
   "state": {
     "finalizedAt": "2026-04-04T13:57:06.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

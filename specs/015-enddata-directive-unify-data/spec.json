@@ -1,0 +1,47 @@
+{
+  "goal": "`@enddata` 閉じディレクティブを導入し、`@data` の境界を明示的にする\n- `{{PLACEHOLDER}}` 変数を全廃し、全てを `@data` ディレクティブに統一する\n- インライン形式（同一行に `@data` と `@enddata`）で改行なしの値置換に対応する",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`MANUAL_CONTENT` の移行（別途対応予定）",
+      "`fix` コマンドの実装（ディレクティブ除去は別 spec）",
+      "`@text` ディレクティブへの `@endtext` 導入（将来検討）",
+      "specs テンプレートの `{{}}` 移行（spec.md/qa.md のプレースホルダーは spec 生成時の1回限りなので対象外）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`<!-- @data: project.name(\"\") -->sdd-forge<!-- @enddata -->` がインラインで正しく置換される",
+    "`<!-- @data: docs.chapters(\"章|概要\") -->` がブロックで正しく置換される",
+    "全テンプレートから `{{}}` が除去されている",
+    "`sdd-forge readme` が @data ベースで README.md を生成できる",
+    "`sdd-forge data` が @enddata を認識して既存コンテンツを正しく置換する",
+    "`npm run test` が通る"
+  ],
+  "clarifications": [
+    {
+      "q": "analysis.json に project 情報を入れるか、DataSource が動的に読むか？",
+      "a": "DataSource の `init(ctx)` で root を受け取り、メソッド呼び出し時に動的に読む。analysis.json への追加は任意（scan 時に入れても良い）"
+    },
+    {
+      "q": "インライン形式の検出方法は？",
+      "a": "`<!-- @data: ... -->` と `<!-- @enddata -->` が同一行にある場合をインラインと判定。間のテキストを置換する"
+    },
+    {
+      "q": "既存 docs/ ファイルの `@data` に `@enddata` がない場合はどうするか？",
+      "a": "`sdd-forge init` 再実行でテンプレートから再生成されるため、テンプレート側の対応で十分。既存ファイルへのマイグレーションは init で対応"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

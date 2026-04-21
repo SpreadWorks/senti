@@ -1,0 +1,66 @@
+{
+  "goal": "sdd-forge の動作追跡デバッグログを、軽量な JSONL（メタデータのみ）と独立した JSON プロンプトファイル（重い本体）の 2 段構造に再設計する。これにより AI ツールが JSONL を読み込んでも context を圧迫せず、jq でメタデータを絞り込んでから必要なプロンプトファイルだけを開く調査フローを実用化する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "新 `Logger` クラス（singleton）の再設計と `agent` / `git` / `event` の 3 ドメインメソッド公開",
+      "`agent` ドメインの完全実装（start / end の 2 イベント、`requestId` 紐付け、プロンプトファイル分離、`spec` / `sddPhase` の自動解決）",
+      "`git` / `event` ドメインメソッドの API 提供のみ（呼び出し側の置き換えはしない）",
+      "統合ログファイル `.tmp/logs/sdd-forge-YYYY-MM-DD.jsonl`（日次ローテート）の生成",
+      "プロンプトファイル `.tmp/logs/prompts/YYYY-MM-DD/<requestId>.json`（自己完結 JSON）の生成",
+      "既存 `Log` 基底クラス / `AgentLog` クラス / `writeLogEntry()`（公開 API としての）廃止",
+      "既存ヘルパー `callAgentWithLog` / `callAgentAwaitLog` / `callAgentAsyncWithLog` の内部書き換え（外部 API シグネチャは維持）",
+      "設定キー `cfg.logs.prompts` → `cfg.logs.enabled` のリネーム",
+      "`src/sdd-forge.js` エントリポイントでの Logger 初期化",
+      "Logger 単体テスト + `callAgent*` 回帰テスト + e2e テスト"
+    ],
+    "out": [
+      "`git-helpers` などからの `Logger.git()` 呼び出し置換（別 spec）",
+      "パイプライン進捗・エラー等での `Logger.event()` 呼び出し（別 spec）",
+      "閲覧コマンド `sdd-forge logs`（別 spec）",
+      "集計レポート機能（別 spec）",
+      "ログの自動ローテート削除（不要）",
+      "スタック解析による `command` フィールド抽出（不採用、Q5 参照）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: `cfg.logs.enabled = true` で `sdd-forge flow run gate` を実行すると、`.tmp/logs/sdd-forge-YYYY-MM-DD.jsonl`（YYYY-MM-DD は実行日）が生成され、`type: \"agent\"` の `phase: \"start\"` と `phase: \"end\"` がそれぞれ 1 行以上 append される。",
+    "AC2: 同実行で `.tmp/logs/prompts/YYYY-MM-DD/<requestId>.json` が生成され、JSONL の end レコードの `promptFile` フィールドのパスと一致する。",
+    "AC3: 生成された end レコードの `spec` フィールドが `153-unified-jsonl-logger`、`sddPhase` フィールドが現在のフェーズ（例: `gate-impl`）になっている。call site で渡していないにも関わらず自動付与されている。",
+    "AC4: `cfg.logs.enabled = false` で同コマンドを実行すると、`.tmp/logs/` 配下にファイルが生成されない（既存ファイルへの追記もない）。",
+    "AC5: `cfg.logs.prompts = true` のみを設定し `cfg.logs.enabled` を未設定にすると、ログは生成されない（旧キーは無視される）。",
+    "AC6: `src/lib/agent-log.js` が削除され、`src/lib/log.js` から `Log` クラスと `writeLogEntry` の export が削除されている。`grep -r \"AgentLog\\|writeLogEntry\" src/` でヒットがない。",
+    "AC7: 既存テスト一式（`npm test`）がパスする（`callAgent*` ヘルパーの外部 API 維持により呼び出し側の改修は不要）。",
+    "AC8: Logger 単体テストで以下が検証されている: init 必須 / disabled 時 no-op / start・end のフィールド構造 / プロンプトファイルの自己完結性 / 同一 requestId での紐付け / 日付ローカルタイム整形 / spec・sddPhase 自動解決。",
+    "AC9: e2e テストで `sdd-forge flow run gate` 実行後、JSONL の end イベント数とプロンプトファイル数が一致し、各 `promptFile` パスが実在することを検証。",
+    "AC10: `sdd-forge flow run gate` 実行時、Logger が原因のエラーで非ゼロ終了することがない（Logger の I/O 失敗はプロセスを落とさず stderr に警告して継続する）。"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "**Issue 本文どおり `extractCommandFromStack()` を実装する案**",
+      "reason": "スタックのパスパターン解析はリファクタで壊れやすく、`callerFile` / `callerLine` があれば実用上の特定は可能なため、本 spec では不採用。"
+    },
+    {
+      "option": "**call site で `logCtx={spec, phase}` を渡し続ける案**",
+      "reason": "現状の API。call site の重複が多く、新規呼び出し追加時に渡し忘れが起きる。Logger 内部での自動解決に統一する。"
+    },
+    {
+      "option": "**disabled 時に init をスキップする案**",
+      "reason": "call site で初期化済みかチェックする防御コードが必要になるため不採用。常に init し、内部 no-op で吸収する。"
+    },
+    {
+      "option": "**`cfg.logs.dir` も廃止する案**",
+      "reason": "出力先カスタマイズの将来的な需要を残すため不採用。"
+    }
+  ],
+  "open_questions": []
+}

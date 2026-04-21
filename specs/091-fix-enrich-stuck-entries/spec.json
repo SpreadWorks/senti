@@ -1,0 +1,62 @@
+{
+  "goal": "`docs enrich` の resume 判定を `summary` の有無から切り離し、AI 応答の欠落や空レスポンスがあっても同じ entry が不適切に再送され続ける挙動を解消する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/commands/enrich.js` の entry 完了判定の見直し",
+      "各 analysis entry に `enrich.processedAt` と `enrich.attempts` を保存する仕様追加",
+      "空レスポンスおよび一時的な AI 呼び出し失敗に対する再試行処理の追加",
+      "`agent.retryCount` 設定の追加と `docs enrich` での利用",
+      "設定例と設定ドキュメントの更新"
+    ],
+    "out": [
+      "`docs text`、`docs translate`、`docs forge` など他の agent 利用コマンドへの `agent.retryCount` 適用",
+      "agent 共通のリトライ基盤化",
+      "AI 応答に entry 自体が含まれない不具合の根本原因調査",
+      "`summary`、`detail`、`chapter`、`role` の生成品質改善"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "空レスポンス時のリトライはどこまでを対象にするか",
+      "a": "空レスポンスに加えて、一時的な AI 呼び出し失敗も対象にする。待機時間は 3 秒固定で、回数は `agent.retryCount` で設定する。"
+    },
+    {
+      "q": "`agent.retryCount` はどこで使うか",
+      "a": "今回は `docs enrich` のみで参照する。他の agent 利用コマンドには適用しない。"
+    },
+    {
+      "q": "entry ごとの完了状態はどの形で保存するか",
+      "a": "`enrich.processedAt` と `enrich.attempts` を持つ。`status` は導入しない。"
+    },
+    {
+      "q": "`enrich.attempts` は何を表すか",
+      "a": "その entry を AI 処理対象にした回数を表す。初回呼び出しを含む。"
+    },
+    {
+      "q": "`summary` が空だった場合はどう扱うか",
+      "a": "entry 自体が AI 応答に含まれていれば `enrich` メタデータを保存し、再送しない。entry 単位で `file`、`category`、`index` を含む `WARN` を出す。"
+    },
+    {
+      "q": "AI 応答に entry 自体が含まれなかった場合はどう扱うか",
+      "a": "未処理のまま残し、次回も再実行する。"
+    },
+    {
+      "q": "リトライ上限後も失敗したバッチはどうするか",
+      "a": "それまでの進捗を保存してエラー終了する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "なし"
+  ]
+}

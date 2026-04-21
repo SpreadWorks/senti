@@ -121,24 +121,96 @@
   "worktree": true,
   "issue": 21,
   "notes": [
-    "approach: Q&A で要件整理してから仕様書を作成する",
-    "branch: Git worktree を選択",
-    "branch-base: development から分岐",
-    "docs: build は実行せず現状の docs を参照して進める",
-    "draft: リトライ対象は空レスポンスに加えて一時的な AI 呼び出し失敗も含める",
-    "draft: enrich の空レスポンスと一時的 AI 呼び出し失敗は3秒固定で再試行し、回数はconfigで設定可能・デフォルト1",
-    "draft: リトライ回数の設定名は agent.retryCount を採用",
-    "draft: 各エントリは enrich.status・enrich.processedAt・enrich.attempts を持つ実用構成を採用",
-    "draft: enrich.attempts は各エントリへのAI呼び出し総回数（初回含む）",
-    "draft: 各エントリの enrich メタデータは processedAt と attempts のみを持つ",
-    "draft: summary が空でも enrich メタデータを保存し、再送しない",
-    "draft: summary 欠落時は entry 単位で file/category/index を含む WARN を出す",
-    "draft: リトライ上限到達後も失敗したバッチは進捗保存後にエラー終了する",
-    "draft: enrich.attempts は各エントリをAI処理対象にした回数を表す",
-    "draft: AI応答に含まれなかった entry は未処理のまま残し、次回も再実行する",
-    "test: 仕様ベースで enrich の再開判定・retry・config 変更をユニットテスト化",
-    "review: flow review は agent 設定失敗のため未使用、ローカルレビューで1件修正し関連テスト再実行",
-    "finalize: 個別選択で commit, merge, branch-cleanup, record を実行。merge 方式は merge"
+    {
+      "taskId": null,
+      "text": "approach: Q&A で要件整理してから仕様書を作成する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "branch: Git worktree を選択",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "branch-base: development から分岐",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "docs: build は実行せず現状の docs を参照して進める",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: リトライ対象は空レスポンスに加えて一時的な AI 呼び出し失敗も含める",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: enrich の空レスポンスと一時的 AI 呼び出し失敗は3秒固定で再試行し、回数はconfigで設定可能・デフォルト1",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: リトライ回数の設定名は agent.retryCount を採用",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 各エントリは enrich.status・enrich.processedAt・enrich.attempts を持つ実用構成を採用",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: enrich.attempts は各エントリへのAI呼び出し総回数（初回含む）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 各エントリの enrich メタデータは processedAt と attempts のみを持つ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: summary が空でも enrich メタデータを保存し、再送しない",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: summary 欠落時は entry 単位で file/category/index を含む WARN を出す",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: リトライ上限到達後も失敗したバッチは進捗保存後にエラー終了する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: enrich.attempts は各エントリをAI処理対象にした回数を表す",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: AI応答に含まれなかった entry は未処理のまま残し、次回も再実行する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test: 仕様ベースで enrich の再開判定・retry・config 変更をユニットテスト化",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: flow review は agent 設定失敗のため未使用、ローカルレビューで1件修正し関連テスト再実行",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: 個別選択で commit, merge, branch-cleanup, record を実行。merge 方式は merge",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "request": "issue #21の対応を進めてください。AIがスキップしたエントリが永遠にunenrichedのまま残るバグと空レスポンス時のリトライを計画する。",
   "reviewCount": {
@@ -147,13 +219,19 @@
     "impl": 0
   },
   "redoCount": 0,
-  "metrics": {
-    "draft": {
-      "question": 6
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "requestChars": 74,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

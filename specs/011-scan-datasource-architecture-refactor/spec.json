@@ -1,0 +1,55 @@
+{
+  "goal": "scan パイプラインと DataSource アーキテクチャを統合し、親子 preset 継承を導入する。\nscanner.js のハードコード CATEGORY_HANDLERS と extras.js を廃止し、\nDataSource（resolve 専用）+ ScanSource（scan 専用）の 2 基底クラスで統一する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "テンプレート階層の変更（既に base/webapp/cli で階層化済み）",
+      "新しい preset の追加",
+      "scan 出力 (analysis.json) のスキーマ変更（既存互換を維持）",
+      "EN ロケール対応"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`DataSource` クラスに `scan()` メソッドがない",
+    "`ScanSource` 基底クラスが存在する",
+    "`Scannable` ミックスインで scan + resolve を合成できる",
+    "全 DataSource が `export default class` でクラスを export している",
+    "`src/presets/webapp/data/` に controllers, models, shells, routes, tables の共通モジュールがある",
+    "`src/presets/cli/data/` に modules の共通モジュールがある",
+    "子 preset が親を extends している",
+    "`scanner.js` に CATEGORY_HANDLERS がない",
+    "`extras.js` が全 preset から削除されている",
+    "不要な scan/ ファイルが削除されている",
+    "`toMarkdownTable()` がパイプ文字をエスケープする",
+    "`sdd-forge scan` が既存と同じ analysis.json を出力する",
+    "`sdd-forge data` が既存と同じ Markdown を出力する",
+    "全テスト PASS"
+  ],
+  "clarifications": [
+    {
+      "q": "scanner.js の汎用パーサ (parsePHPFile, parseJSFile, findFiles) はどこに置くか？",
+      "a": "`src/docs/lib/scanner.js` に汎用ユーティリティとして残す。CATEGORY_HANDLERS と analyze* 関数のみ削除。"
+    },
+    {
+      "q": "analysis.json の出力形式は変わるか？",
+      "a": "変わらない。DataSource.scan() が同じ形式を返す。"
+    },
+    {
+      "q": "node-cli preset には scan/ がないが対応するか？",
+      "a": "cli/data/modules.js を作成し、scanner.js の analyzeGenericCategory を移動。node-cli は必要に応じて extends。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "webapp/data/ に tables.js を共通で置き、各 preset も必要に応じて override する"
+  ]
+}

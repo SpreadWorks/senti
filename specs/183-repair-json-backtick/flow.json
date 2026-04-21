@@ -120,28 +120,36 @@
   "worktree": true,
   "request": "repairJson に value 開始バッククォート修復を追加（retro JSON パース失敗の恒久対策）。Issue #159",
   "autoApprove": true,
-  "metrics": {
-    "gate-draft": {
-      "tokens": {
-        "input": 54635,
-        "output": 3458,
-        "cacheRead": 45312,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 4852
+  "metrics": [
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 26133,
-        "output": 765,
-        "cacheRead": 6528,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1097
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 4852,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 1097,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 5
@@ -149,5 +157,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-17T09:38:06.882Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

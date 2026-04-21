@@ -154,64 +154,126 @@
   "request": "#189 Issue 対応: draft-task production AI provider 配線と full gate 統合 (spec 198 REQ-P3 残作業)",
   "worktree": true,
   "notes": [
-    "Q1 approved: 4 scope items — agent profile registration, simpleGate → run gate replacement, FAIL reasons into retry prompt, skill template consolidation"
-  ],
-  "metrics": {
-    "plan": {
-      "srcRead": 1,
-      "docsRead": 1
-    },
-    "draft": {
-      "question": 5
-    },
-    "gate-draft": {
-      "tokens": {
-        "input": 37989,
-        "output": 3930,
-        "cacheRead": 67072,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 8703,
-      "durationMs": 98202
-    },
-    "gate": {
-      "tokens": {
-        "input": 16168,
-        "output": 1904,
-        "cacheRead": 38656,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 4931,
-      "durationMs": 46718
-    },
-    "impl": {
-      "issueLog": 1
-    },
-    "gate-impl": {
-      "tokens": {
-        "input": 243891,
-        "output": 7435,
-        "cacheRead": 127488,
-        "cacheCreation": 0
-      },
-      "callCount": 8,
-      "responseChars": 9270,
-      "durationMs": 191579
-    },
-    "review": {
-      "tokens": {
-        "input": 95338,
-        "output": 2296,
-        "cacheRead": 7936,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3584,
-      "durationMs": 54053
+    {
+      "taskId": null,
+      "text": "Q1 approved: 4 scope items — agent profile registration, simpleGate → run gate replacement, FAIL reasons into retry prompt, skill template consolidation",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 8703,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 98202,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 4931,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 46718,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 8,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 9270,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 191579,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3584,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 54053,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {

@@ -121,15 +121,29 @@
   "issue": 95,
   "request": "サブプロセスのクラッシュ詳細（signal、exit code、killed フラグ）をエラーメッセージに含める。runCmd/runCmdAsync の返り値に signal/killed フィールドを追加し、formatError ヘルパーを作成する。PR #97 の実装内容を参考にして進める。",
   "worktree": true,
-  "metrics": {
-    "draft": {
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1,
-      "issueLog": 2
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "autoApprove": true,
   "reviewCount": {
     "spec": 5,
@@ -140,5 +154,7 @@
   "requestChars": 150,
   "state": {
     "finalizedAt": "2026-04-08T09:17:53.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

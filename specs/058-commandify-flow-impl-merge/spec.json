@@ -1,0 +1,43 @@
+{
+  "goal": "flow-impl / flow-merge スキルで AI が手動で組み立てている操作を CLI コマンド化し、実行の確実性を上げる。\n合わせて flow-merge スキルの Step 0 を簡素化する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`sdd-forge flow test-env`（flow-plan のテスト環境検出コマンド化）は別 spec",
+      "docs-update / docs-review は既存コマンド（`sdd-forge forge`, `sdd-forge review`）を使用",
+      "commit は標準 git コマンドを使用（コマンド化不要）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `sdd-forge flow status --check impl` で gate/test が done なら PASS (exit 0)",
+    "[ ] `sdd-forge flow status --check impl` で gate/test が未完了なら FAIL (exit 1)",
+    "[ ] `sdd-forge flow merge --dry-run` が実行予定コマンドを表示する",
+    "[ ] `sdd-forge flow merge` が worktree/branch/spec-only を正しく判定・実行する",
+    "[ ] `sdd-forge flow cleanup --dry-run` が削除予定を表示する",
+    "[ ] `sdd-forge flow cleanup` が worktree/branch/spec-only を正しく判定・実行する",
+    "[ ] flow-merge SKILL.md の Step 0 が 2択になっている",
+    "[ ] flow-impl SKILL.md の Prerequisites が `--check impl` を使用している",
+    "[ ] 既存テストが壊れない"
+  ],
+  "clarifications": [
+    {
+      "q": "merge/cleanup コマンドで --dry-run 以外のオプションは必要か？",
+      "a": "不要。flow.json から全て判定する。"
+    },
+    {
+      "q": "flow-merge スキルの「すべて実行」で docs-update が失敗した場合の動作は？",
+      "a": "スキル側で判断する（コマンドの責務外）。各コマンドは独立して動作する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

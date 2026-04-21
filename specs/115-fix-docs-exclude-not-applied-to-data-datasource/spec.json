@@ -1,0 +1,37 @@
+{
+  "goal": "`docs.exclude` パターンが data DataSource の出力にも適用されるようにし、除外対象のファイル・ディレクトリが `{{data}}` ディレクティブの出力に含まれないようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/commands/data.js` — analysis オブジェクトを DataSource に渡す前に `docs.exclude` でエントリをフィルタする",
+      "`src/docs/commands/enrich.js` — `filterByDocsExclude` 関数を共有ユーティリティに移動",
+      "`src/docs/lib/` — 共有フィルタ関数の配置先（新規または既存ファイル）"
+    ],
+    "out": [
+      "個別 DataSource の修正（data.js での一括フィルタで対応）",
+      "`scan` フェーズの除外処理（scan は全エントリを収集するのが正しい動作）",
+      "`docs.exclude` パターンの検証・UI 改善"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "なぜ DataSource 個別ではなく data コマンドで一括フィルタするのか？",
+      "a": "39 個以上の DataSource が存在し、個別修正は非効率。analysis を渡す前にフィルタすれば全 DataSource が恩恵を受ける。"
+    },
+    {
+      "q": "enrich.js は除外エントリを analysis.json から削除しないのか？",
+      "a": "enrich は AI enrichment のフィルタとして使い、analysis.json 自体は完全なスキャン結果を保持する設計。data フェーズで出力時にフィルタするのが正しいレイヤー。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

@@ -1,0 +1,64 @@
+{
+  "goal": "Define immutable project principles in `.sdd-forge/guardrail.md` and validate spec compliance via AI in the gate command",
+  "background": "",
+  "scope": {
+    "in": [
+      "`sdd-forge guardrail init` command to generate guardrail.md from preset templates",
+      "`sdd-forge guardrail update` command to AI-propose project-specific principles from analysis.json",
+      "Gate integration: AI-based spec vs guardrail compliance check (per-article pass/fail)",
+      "Gate warning when guardrail.md is absent",
+      "Preset templates: base (universal) + stack-specific (node-cli, laravel, etc.)",
+      "Command routing via `spec.js` dispatcher"
+    ],
+    "out": [
+      "Guardrail enforcement during docs generation (build/data/text)",
+      "Automatic guardrail creation during setup (separate future work)",
+      "Post-implementation guardrail checks (gate --phase post)"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `sdd-forge guardrail init` creates `.sdd-forge/guardrail.md` from preset templates",
+    "[ ] `sdd-forge guardrail init` fails without `--force` when guardrail.md exists",
+    "[ ] `sdd-forge guardrail update` appends AI-proposed articles to existing guardrail.md",
+    "[ ] `sdd-forge gate --spec ...` warns when guardrail.md is absent",
+    "[ ] `sdd-forge gate --spec ...` performs AI compliance check when guardrail.md exists",
+    "[ ] Gate fails when spec violates a guardrail article",
+    "[ ] Gate passes when spec complies with all guardrail articles",
+    "[ ] `sdd-forge guardrail init --dry-run` outputs without writing",
+    "[ ] `sdd-forge help` lists guardrail command"
+  ],
+  "clarifications": [
+    {
+      "q": "Where is guardrail.md stored?",
+      "a": "`.sdd-forge/guardrail.md`"
+    },
+    {
+      "q": "What format do articles use?",
+      "a": "`###` headings + description paragraphs, no ID numbering"
+    },
+    {
+      "q": "How does gate check guardrail compliance?",
+      "a": "AI receives spec full text + guardrail articles, judges each article pass/fail autonomously"
+    },
+    {
+      "q": "What if guardrail.md doesn't exist?",
+      "a": "Gate outputs WARN with suggestion to run `sdd-forge guardrail init`"
+    },
+    {
+      "q": "How are preset templates merged?",
+      "a": "base template + stack-specific template merged at init time (same as existing template-merger pattern)"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

@@ -117,12 +117,22 @@
   "request": "review コマンドの3つのバグ修正: (1) spec review がAI応答テキストをファイルに書き込む (2) test review が gaps=0 で FAIL を返す (3) test review のAI生成コードが Object.freeze 非対応",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "draft": {
-      "srcRead": 2,
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -132,5 +142,7 @@
   "requestChars": 136,
   "state": {
     "finalizedAt": "2026-04-04T08:24:35.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

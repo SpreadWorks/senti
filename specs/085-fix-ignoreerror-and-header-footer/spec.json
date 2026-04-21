@@ -1,0 +1,53 @@
+{
+  "goal": "Fix the `ignoreError: true` behavior in data directives and implement `header`/`footer` parameters to handle empty sections cleanly in generated documentation.",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/lib/directive-parser.js` — `resolveDataDirectives()`, `removeDirective()`, `parseOptions()`",
+      "All preset templates under `src/presets/*/templates/`"
+    ],
+    "out": [
+      "Changes to `{{text}}` directive handling",
+      "Changes to template inheritance (`{%block%}`, `{%extends%}`)",
+      "New DataSource implementations"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "ignoreError: true で null 返却時、出力テキストにディレクティブの開始行・終了行が残っている",
+    "ignoreError: true で null 返却時、ディレクティブ間のコンテンツが空である",
+    "header/footer 指定時にデータが存在すれば、header + data + footer が出力される",
+    "header/footer 指定時にデータが null なら、コンテンツが空である",
+    "`\\n` を含む header が改行として出力される",
+    "全プリセットのテンプレートが修正され、テストが通る"
+  ],
+  "clarifications": [
+    {
+      "q": "ignoreError: true で null 時、ディレクティブ間のコンテンツは？",
+      "a": "ディレクティブ行は残し、コンテンツはクリアする"
+    },
+    {
+      "q": "header/footer + ignoreError で null 時の動作は？",
+      "a": "ディレクティブを残し、コンテンツ（header/footer含む）をクリアする"
+    },
+    {
+      "q": "header/footer の出力形式は？",
+      "a": "header の値 → データ → footer の値をそのまま出力。余分な改行挿入はしない"
+    },
+    {
+      "q": "header/footer で複数行を指定できるか？",
+      "a": "quoted string 内の `\\n` を改行文字として解釈する"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

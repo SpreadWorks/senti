@@ -1,0 +1,48 @@
+{
+  "goal": "deep モードでプロンプトに含めるソースコードを minify し、同じ 8000 文字枠内により多くの実質コードを含められるようにする。コメント・空行・インデントの正規化により、コメントが多いファイルで約 30% の削減を見込む。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/lib/minify.js` の新規作成（共通ユーティリティ関数 + 拡張子→minify 関数マッピング）",
+      "`src/docs/lib/text-prompts.js` の `getEnrichedContext()` に minify 呼び出しを追加",
+      "JS/TS, PHP, Python, YAML の言語別 minify ルール"
+    ],
+    "out": [
+      "スケルトン化（関数ボディ除去）— ボード 5513 の一環として別途対応",
+      "JSDoc/PHPDoc 保持オプション — 将来追加可能",
+      "minify の on/off 設定 — deep モードでは常に適用",
+      "light モードへの影響"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "minify ルールはプリセットに持たせるか？",
+      "a": "いいえ。拡張子→minify 関数のマッピングで管理する。プリセットではなく `minify.js` に集約。"
+    },
+    {
+      "q": "JS と TS は同じ処理で良いか？",
+      "a": "はい。コメント構文・インデント規則が同一のため、同じ minify 関数を適用。"
+    },
+    {
+      "q": "スケルトン化（関数の IO だけ残す）も含めるか？",
+      "a": "今回はスコープ外。ボード 5513（enrich 廃止の代替案）の一環として別途対応。"
+    },
+    {
+      "q": "minify の on/off 制御は必要か？",
+      "a": "不要。deep モードでは常に適用。YAGNI、alpha 版ポリシー。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`#` コメント除去で shebang 行（`#!/...`）を誤除去しないか → `#!` で始まる行は除去対象から除外する（R2 に反映済み）"
+  ]
+}

@@ -124,34 +124,50 @@
   "request": "DataSource ロード失敗がサイレントに無視される問題を修正",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "draft": {
-      "srcRead": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 12260,
-        "output": 1921,
-        "cacheRead": 29952,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2777
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 35700,
-        "output": 2999,
-        "cacheRead": 49664,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 3301
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 2777,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 3301,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 3
@@ -159,5 +175,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-15T07:02:08.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

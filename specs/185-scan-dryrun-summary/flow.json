@@ -132,23 +132,57 @@
   "worktree": true,
   "autoApprove": true,
   "request": "Issue #164: scan --dry-run の出力を summary 化する破壊的変更",
-  "metrics": {
-    "gate-draft": {
-      "callCount": 4,
-      "responseChars": 5812
+  "metrics": [
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "callCount": 3,
-      "responseChars": 4405
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 5812,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "plan": {
-      "issueLog": 1
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "callCount": 2,
-      "responseChars": 2211
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 4405,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 2211,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "acceptance": 5
@@ -156,5 +190,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-17T12:25:12.224Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

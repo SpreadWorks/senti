@@ -184,57 +184,123 @@
   "request": "#183 issueの対応を進めてください",
   "worktree": true,
   "notes": [
-    "Q1: issue #183 summary approved as-is",
-    "Q2: T2 scope - full scope per issue (FlowStore/FlowManager/flow-helpers + existing methods scope-aware). CLI wiring is in scope for methods but broader gate/run rewrite is T5/T7.",
-    "Q2 answer: [2] strict - load throws if tasks missing. Our own flow.json normalized manually as first impl step.",
-    "Q3 answer: [1] flow.json currentTaskId: string|null. Single active task (cac6 sequential policy). Future parallel renames/broadens, alpha allows break.",
-    "Q4 answer: [1] buildInitialTaskSteps(origin) with 2 patterns (plan 6-step, addition 8-step). T4 will refine test-first split.",
-    "Q5 answer: [1] tests/unit/ formal tests."
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 2
+    {
+      "taskId": null,
+      "text": "Q1: issue #183 summary approved as-is",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 4
+    {
+      "taskId": null,
+      "text": "Q2: T2 scope - full scope per issue (FlowStore/FlowManager/flow-helpers + existing methods scope-aware). CLI wiring is in scope for methods but broader gate/run rewrite is T5/T7.",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 100795,
-        "output": 8609,
-        "cacheRead": 137088,
-        "cacheCreation": 0
-      },
-      "callCount": 9,
-      "responseChars": 12461,
-      "durationMs": 202786
+    {
+      "taskId": null,
+      "text": "Q2 answer: [2] strict - load throws if tasks missing. Our own flow.json normalized manually as first impl step.",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 15503,
-        "output": 1804,
-        "cacheRead": 40448,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 4164,
-      "durationMs": 40956
+    {
+      "taskId": null,
+      "text": "Q3 answer: [1] flow.json currentTaskId: string|null. Single active task (cac6 sequential policy). Future parallel renames/broadens, alpha allows break.",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "Q4 answer: [1] buildInitialTaskSteps(origin) with 2 patterns (plan 6-step, addition 8-step). T4 will refine test-first split.",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "implement": {
-      "tokens": {
-        "input": 52315,
-        "output": 8553,
-        "cacheRead": 37120,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 28160,
-      "durationMs": 163757
+    {
+      "taskId": null,
+      "text": "Q5 answer: [1] tests/unit/ formal tests.",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 9,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 12461,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 202786,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 4164,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 40956,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "implement",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "implement",
+      "counter": "responseChars",
+      "value": 28160,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "implement",
+      "counter": "durationMs",
+      "value": 163757,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {

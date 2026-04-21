@@ -1,0 +1,53 @@
+{
+  "goal": "docs 章ファイルの `NN_` 番号プレフィックスを廃止し、`preset.json` の `chapters` 配列で順序を管理する",
+  "background": "",
+  "scope": {
+    "in": [
+      "`init.js` のプレフィックス付与ロジックを削除（`overview.md` として出力）",
+      "`getChapterFiles()` を `chapters` 配列ベースの探索に変更",
+      "`review.js` の章ファイル探索を更新",
+      "`review-parser.js` のプレフィックス除去ロジックを簡素化",
+      "`forge.js` の章名抽出ロジックを更新",
+      "sdd-forge 自身の `docs/` ファイルをリネーム（`01_overview.md` → `overview.md` 等）"
+    ],
+    "out": [
+      "`preset.json` の `chapters` 定義変更",
+      "テンプレートファイル名の変更（既にプレフィックスなし）",
+      "`.sdd-forge/templates` からの章追加機能（将来の機能）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `sdd-forge init` がプレフィックスなしのファイルを生成する",
+    "[ ] `getChapterFiles()` が preset の chapters 順でファイルを返す",
+    "[ ] `sdd-forge review` がプレフィックスなしの章ファイルで動作する",
+    "[ ] `sdd-forge data` / `text` / `forge` がプレフィックスなしで動作する",
+    "[ ] 既存テストが通る（テスト内の `NN_` パターンも更新）",
+    "[ ] sdd-forge 自身の docs がリネーム済み"
+  ],
+  "clarifications": [
+    {
+      "q": "chapters を持たないプリセット（cakephp2, laravel, symfony）はどうするか？",
+      "a": "親アーキ層（webapp）の chapters を継承するので問題ない。getChapterFiles は preset の chapters を参照する"
+    },
+    {
+      "q": "chapters 配列に存在しない .md ファイルが docs/ にある場合は？",
+      "a": "無視する（chapters に定義されたファイルのみを対象とする）"
+    },
+    {
+      "q": "getChapterFiles が preset 情報を必要とするが、review 等では config なしで動く場合がある",
+      "a": "config がない場合は docs/ 内の全 .md ファイルをアルファベット順でフォールバック"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

@@ -149,52 +149,126 @@
   "issue": 138,
   "request": "flow 引数バリデーションの厳密化（issue正数・summary要素型・phase enum）",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "docsRead": 1,
-      "srcRead": 2,
-      "question": 6
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 2,
-        "output": 735,
-        "cacheRead": 11924,
-        "cacheCreation": 10153
-      },
-      "cost": 0.052681950000000005,
-      "callCount": 1,
-      "responseChars": 1148
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 33919,
-        "output": 7073,
-        "cacheRead": 212328,
-        "cacheCreation": 163605
-      },
-      "cost": 0.75733035,
-      "callCount": 9,
-      "responseChars": 16824
+    {
+      "phase": "gate-draft",
+      "counter": "cost",
+      "value": 0.052681950000000005,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 1148,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "cost",
+      "value": 0.75733035,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 9,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 16824,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "approach: Q&A で要件整理してから仕様書作成",
-    "draft: scope=全箇所（issue記載3+追加発見6、LOW含む計9箇所）",
-    "draft: error-format=現行踏襲（throw Error、メッセージ内に許容値を含める）",
-    "draft: enum定数=共通モジュールに集約",
-    "draft: 定数配置=src/lib/constants.js に全定数集約。既存phases.jsは廃止しre-exportかimport先変更",
-    "impl: review=auto-fix",
-    "finalize: mode=all"
+    {
+      "taskId": null,
+      "text": "approach: Q&A で要件整理してから仕様書作成",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: scope=全箇所（issue記載3+追加発見6、LOW含む計9箇所）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: error-format=現行踏襲（throw Error、メッセージ内に許容値を含める）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: enum定数=共通モジュールに集約",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 定数配置=src/lib/constants.js に全定数集約。既存phases.jsは廃止しre-exportかimport先変更",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "impl: review=auto-fix",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: mode=all",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "runId": "0e1d184f-0a12-4538-bfc4-8278235cbe2e",
   "state": {
     "finalizedAt": "2026-04-13T12:57:49.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

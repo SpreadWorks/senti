@@ -1,0 +1,59 @@
+{
+  "goal": "`flow run review --phase spec` を追加し、gate では検出できない spec の考慮漏れをコードベースコンテキストを使った AI レビューで検出・自動修正する。既存の test review ループを共通化し、spec review と共有する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "review.js の test review ループ（レビュー → 修正 → 再レビュー）を共通関数に抽出",
+      "review.js に `--phase spec` 分岐を追加",
+      "get-context.js から `loadAnalysisEntries` / `contextSearch` を export",
+      "run-review.js に phase=spec のパース処理を追加",
+      "registry.js の review エントリの help テキストを更新",
+      "flow-plan スキル（SKILL.md）に gate → spec review → gate のステップを追加"
+    ],
+    "out": [
+      "code review（デフォルトの review）のループ化",
+      "gate コマンド自体の変更",
+      "impl review との共通化（将来検討）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: `flow run review --phase spec` が実行でき、spec.md の考慮漏れを proposal 形式で review.md に出力する",
+    "AC2: APPROVED な指摘があれば spec.md が自動修正され、再レビューが実行される",
+    "AC3: 指摘なし（NO_PROPOSALS）で正常終了する",
+    "AC4: 上限（3回）到達時に上限到達ステータスで終了する",
+    "AC5: test review が既存通り動作する（リファクタで壊れていない）",
+    "AC6: get-context.js の `loadAnalysisEntries` / `contextSearch` が export されている",
+    "AC7: registry.js の review help テキストに `--phase spec` が記載されている",
+    "AC8: When: 全変更完了後に `npm test` を実行した場合、既存テスト全通過（1406 tests, 0 failures）"
+  ],
+  "clarifications": [
+    {
+      "q": "spec review に渡すコンテキストの取得方法は？",
+      "a": "review.js 内から get-context.js の `loadAnalysisEntries` + `contextSearch` を関数呼び出しする"
+    },
+    {
+      "q": "出力形式は？",
+      "a": "code review と同じ proposal 形式（review.md に指摘・修正案・APPROVED/REJECTED を出力）"
+    },
+    {
+      "q": "test review との共通化の範囲は？",
+      "a": "「指摘検出 → 修正適用 → 再検出」のループ制御を共通関数に抽出。プロンプト構築・パース・修正適用は各 phase 固有"
+    },
+    {
+      "q": "spec review の反復上限は？",
+      "a": "3回。test review の MAX_TEST_REVIEW_RETRIES と同じ"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`searchEntries` は export 済みか → 済み。`loadAnalysisEntries` / `contextSearch` の export が必要"
+  ]
+}

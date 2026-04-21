@@ -1,0 +1,60 @@
+{
+  "goal": "`callAgent` / `callAgentAsync` 実行時のプロンプトを JSON Lines 形式でファイルに保存し、後からプロンプト内容・実行時間・コンテキスト（spec / phase）を確認・再利用できるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/agent-log.js`: `AgentLog` クラスの新設",
+      "`src/lib/agent.js`: `callAgent` / `callAgentAsync` への `AgentLog` オプション引数追加とログ書き込み処理",
+      "`src/lib/types.js`: `logs` 設定スキーマの追加",
+      "ログ出力先: `{agent.workDir}/logs/prompts.jsonl`（デフォルト `.tmp/logs/prompts.jsonl`）",
+      "設定: `config.json` の `logs.prompts` / `logs.dir` フィールド"
+    ],
+    "out": [
+      "ログファイルのローテーション・サイズ上限（v1 では設けない。`logs.prompts` はデフォルト `false` であり、有効化は開発者が意図的に行う操作のため、ファイル増大はユーザーの責任範囲とする。将来的にファイルサイズが問題になる場合は別 spec で対応する）",
+      "ログの閲覧・検索 CLI コマンド",
+      "各呼び出し元（`flow/commands/review.js` 等）への `AgentLog` 渡しの実装（各機能 spec で対応）",
+      "`.gitignore` への追加（`.tmp/` は既存の `.gitignore` で除外済み）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`logs.prompts: true` の設定で agent を呼び出すと `.tmp/logs/prompts.jsonl` にエントリが追記される",
+    "`logs.prompts: false`（または未設定）の場合、ログファイルが作成されない",
+    "`AgentLog` を渡さない既存の呼び出しはログを記録せず、動作に変化がない",
+    "エラーで agent が失敗した場合もログエントリが追記される",
+    "`logs.dir` でカスタムパスを指定すると、そこに書き込まれる",
+    "ログエントリは有効な JSON Lines 形式（1行1オブジェクト）"
+  ],
+  "clarifications": [
+    {
+      "q": "ログファイルの追記形式は？",
+      "a": "JSON Lines (`.jsonl`) — 1行1オブジェクト。追記が高速でファイルが壊れにくい。"
+    },
+    {
+      "q": "spec / phase のコンテキスト取得方法は？",
+      "a": "`callAgent`/`callAgentAsync` に `AgentLog` クラスのインスタンスを渡す方式。渡さない場合はログ処理をスキップ。"
+    },
+    {
+      "q": "デフォルトのログ保存先は？",
+      "a": "`{agent.workDir}/logs/prompts.jsonl`（`agent.workDir` に従う。デフォルト `.tmp/logs/prompts.jsonl`）。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**環境変数（`SDD_FLOW_SPEC` / `SDD_FLOW_PHASE`）経由**",
+      "reason": "呼び出し側の変更が不要だが暗黙的で型安全でない。`AgentLog` クラス渡しの方が明示的で将来の拡張にも対応しやすい。"
+    },
+    {
+      "option": "**JSON 配列形式（`.json`）**",
+      "reason": "人間が読みやすいが、読み込み→パース→push→書き込みの処理が必要で並行書き込みに弱い。JSON Lines の方が追記操作のみで完結し安全。"
+    }
+  ],
+  "open_questions": []
+}

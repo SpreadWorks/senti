@@ -116,52 +116,92 @@
   "worktree": true,
   "autoApprove": true,
   "request": "issue #176: flow set issue のテストデータが実 issue-log に混入する問題を修正。テスト時の sink 分離 or バリデーション強化。",
-  "metrics": {
-    "gate-draft": {
-      "tokens": {
-        "input": 31839,
-        "output": 4393,
-        "cacheRead": 96640,
-        "cacheCreation": 0
-      },
-      "callCount": 5,
-      "responseChars": 7310,
-      "durationMs": 107178
+  "metrics": [
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 3675,
-        "output": 958,
-        "cacheRead": 21888,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1191,
-      "durationMs": 22355
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 7310,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 36562,
-        "output": 2665,
-        "cacheRead": 81920,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 3448,
-      "durationMs": 72557
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 107178,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 16687,
-        "output": 1663,
-        "cacheRead": 38656,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3605,
-      "durationMs": 42080
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1191,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 22355,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 3448,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 72557,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3605,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 42080,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 13
@@ -169,5 +209,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-19T01:39:29.848Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

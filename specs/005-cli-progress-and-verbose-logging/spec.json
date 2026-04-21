@@ -1,0 +1,51 @@
+{
+  "goal": "CLI 実行時のログ出力を改善する\n  - デフォルト: プログレスバー（固定ヘッダー）＋ 簡潔なログ表示\n  - `--verbose`: 従来どおりの詳細ログ出力\n- ログのプレフィックス（`[populate]`, `[tfill]` 等）をコマンド名（`[data]`, `[text]` 等）に統一する",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/progress.js` — 新規。プログレスバーとロガーの共通モジュール",
+      "`src/docs/commands/scan.js` — ログプレフィックスを `[scan]` に統一、progress 連携",
+      "`src/docs/commands/init.js` — ログプレフィックスを `[init]` に統一、progress 連携",
+      "`src/docs/commands/data.js` — `[populate]` → `[data]` に変更、progress 連携",
+      "`src/docs/commands/text.js` — `[tfill]` → `[text]` に変更、progress 連携",
+      "`src/docs/commands/readme.js` — progress 連携",
+      "`src/docs/commands/forge.js` — progress 連携",
+      "`src/docs.js` — `build` パイプラインで progress 制御（ステップ進行の管理）",
+      "各コマンドの `parseArgs` に `--verbose` フラグを追加"
+    ],
+    "out": [
+      "`setup`, `gate`, `flow` など build パイプライン外のコマンド",
+      "CI/パイプ出力時の自動検出（将来対応）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge build` 実行時にプログレスバーが1行目に固定表示され、下にログが流れる",
+    "`sdd-forge build --verbose` 実行時に従来相当の詳細ログが出力される",
+    "`sdd-forge build 2>/dev/null` でプログレスバーもログも表示されない（stderr のみ使用）",
+    "ログプレフィックスが全コマンドで `[コマンド名]` に統一されている",
+    "既存テスト（224件）がすべて通過する",
+    "パイプ出力時（non-TTY）にエスケープシーケンスが出力されない"
+  ],
+  "clarifications": [
+    {
+      "q": "プログレスバーのデザインは？",
+      "a": "`[n/N] ████░░░░░░ nn%  step-name` を1行目に固定表示。その下にログが流れる。"
+    },
+    {
+      "q": "TTY でない場合（パイプやリダイレクト時）はどうする？",
+      "a": "`process.stderr.isTTY` が false の場合はプログレスバーを無効にし、`--verbose` 相当のプレーンログにフォールバックする。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

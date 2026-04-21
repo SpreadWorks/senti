@@ -1,0 +1,58 @@
+{
+  "goal": "`.sdd-forge/config.json` に `chapters` 配列を追加し、プロジェクト固有の章構成（追加・削除・順序変更）を実現する。プリセットの `chapters` を完全に上書きする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`.sdd-forge/config.json` に `chapters` フィールドを追加",
+      "`resolveChaptersOrder()` が config の `chapters` を最優先で使用",
+      "`.sdd-forge/templates/{lang}/docs/` に配置したカスタム章ファイルが `init` で認識・生成される",
+      "カスタム章でも `{{data}}` / `{{text}}` ディレクティブが使用可能",
+      "AI 章フィルタリングとの統合ルール: - `config.json` の `chapters` が定義されている場合、それが唯一の真実（AI フィルタ結果は無視） - `config.json` の `chapters` が未定義の場合、従来通りプリセット + AI フィルタリング"
+    ],
+    "out": [
+      "`.sdd-forge/data/` カスタムデータソース",
+      "`.sdd-forge/scan/` カスタムスキャナー",
+      "`preset.json` の `chapters` フォーマット変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `config.json` に `chapters` を設定すると、その順序で `docs/` に章ファイルが生成される",
+    "[ ] プリセットにない新しい章ファイルを `.sdd-forge/templates/` に追加し、`init` で `docs/` に反映される",
+    "[ ] カスタム章の `{{data}}` / `{{text}}` ディレクティブが `data` / `text` コマンドで処理される",
+    "[ ] `config.json` に `chapters` がない場合は従来通りの動作（後方互換）",
+    "[ ] AI フィルタリングルールが正しく適用される（コメント付き）",
+    "[ ] 既存テストが壊れない"
+  ],
+  "clarifications": [
+    {
+      "q": "章の順序はどう指定する？",
+      "a": "`.sdd-forge/config.json` の `chapters` 配列で定義する"
+    },
+    {
+      "q": "プリセットの `chapters` との関係は？",
+      "a": "完全上書き。config に `chapters` があればプリセットの `chapters` は無視される"
+    },
+    {
+      "q": "config の `chapters` にプリセット章を含めなかった場合は？",
+      "a": "その章は生成されない（ユーザーが取捨選択可能）"
+    },
+    {
+      "q": "`init` 以外のコマンド（data, text, forge, review 等）への影響は？",
+      "a": "カスタム章もプリセット章と同等に扱う（ディレクティブ利用可能）"
+    },
+    {
+      "q": "AI フィルタリングと config.chapters の優先関係は？",
+      "a": "以下のルール:"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

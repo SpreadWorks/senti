@@ -1,0 +1,34 @@
+{
+  "goal": "1. `sdd-forge gate` にフェーズ概念を導入し、実装前チェックと実装後チェックを分離する\n2. sdd-flow-close スキル用に終了処理の選択肢を提供する",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "flow.js の自動化フロー変更",
+      "worktree のクリーンアップ自動化"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[x] `sdd-forge gate --phase pre` で Acceptance Criteria の未チェックがエラーにならない",
+    "[x] `sdd-forge gate --phase post` で全未チェックがエラーになる（現行動作）",
+    "[x] `sdd-forge gate` (phase 省略) がデフォルトで `pre` として動作する",
+    "[x] flow.js の gate 呼び出しが正しく動作する",
+    "[x] 既存テストが全て PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "flow.js 内の gate 呼び出しも `--phase pre` にするか？",
+      "a": "はい。flow.js は実装前に gate を呼ぶので `--phase pre` がデフォルトで適切"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

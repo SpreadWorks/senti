@@ -133,49 +133,113 @@
   "issue": 136,
   "request": "flow-plan: 曖昧入力時の解釈ロジック修正と明確化フェーズの必須化",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 6,
-      "question": 7
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 2,
-        "output": 651,
-        "cacheRead": 11924,
-        "cacheCreation": 10839
-      },
-      "cost": 0.05399445,
-      "callCount": 1,
-      "responseChars": 1157
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 7,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "test": {
-      "srcRead": 1
+    {
+      "phase": "gate",
+      "counter": "cost",
+      "value": 0.05399445,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 12,
-        "output": 3495,
-        "cacheRead": 71544,
-        "cacheCreation": 86273
-      },
-      "cost": 0.39744795,
-      "callCount": 6,
-      "responseChars": 6042
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1157,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "test",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "cost",
+      "value": 0.39744795,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 6042,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "approach: Q&A で要件整理してから仕様書を作成する",
-    "draft: スコープ=すべて1つのspecでまとめる（SKILL.md変更+exclude CLI拡張+promptの変更）",
-    "draft: Step1=approach廃止→リクエスト解釈確認に置換。#number=Issue優先、spec NNN=ローカル、数字のみ=曖昧確認必須。plan.approachプロンプト削除or変更",
-    "draft: autoApprove時はStep1(解釈確認)をスキップ。autoが有効=request/issueが確定済みなので確認不要",
-    "draft: --exclude CLI拡張は不要。SKILL.mdのルール変更（解釈確認→Issue優先→確認前にcontext searchしない）で対処",
-    "review: #4のみ適用（test assertion強化）。#1-#3はスコープ外"
+    {
+      "taskId": null,
+      "text": "approach: Q&A で要件整理してから仕様書を作成する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: スコープ=すべて1つのspecでまとめる（SKILL.md変更+exclude CLI拡張+promptの変更）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Step1=approach廃止→リクエスト解釈確認に置換。#number=Issue優先、spec NNN=ローカル、数字のみ=曖昧確認必須。plan.approachプロンプト削除or変更",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: autoApprove時はStep1(解釈確認)をスキップ。autoが有効=request/issueが確定済みなので確認不要",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: --exclude CLI拡張は不要。SKILL.mdのルール変更（解釈確認→Issue優先→確認前にcontext searchしない）で対処",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: #4のみ適用（test assertion強化）。#1-#3はスコープ外",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "state": {
     "finalizedAt": "2026-04-13T09:59:29.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

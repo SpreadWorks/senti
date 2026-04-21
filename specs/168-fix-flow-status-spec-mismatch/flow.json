@@ -122,63 +122,173 @@
   "request": "$sdd-forge.flow-plan #132 issueの対応を進めてください。",
   "worktree": true,
   "notes": [
-    "approach: [1] Q&A で要件整理",
-    "work-env: [1] worktree, base: [1] main",
-    "draft: Q1=[2] 拡張修正（バグ修正 + リトライ上限/不一致バリデーション層）",
-    "draft: 調査実施。flow get 系で --spec が未定義のため無視される箇所を確認",
-    "draft: 論点整理。原因はエージェントの未定義オプション利用とCLI側の黙認の複合",
-    "draft: 方針候補。まずエージェント側で許可コマンド/許可オプションを厳密化し、勝手な --spec 付与を禁止",
-    "draft: 未定義オプション時にhelpを返す運用案を検討",
-    "draft: 方針確定。未定義オプションはERROR扱い、エラーメッセージにhelp案内を含める。exit code=1",
-    "draft: 質問。flow get status の利用箇所とresumeでの使用有無を確認",
-    "draft: Q flow get statusの責務を自身状態専用に限定し、resumeとの役割分離を明文化",
-    "test-mode: [1] テストコードを作成する",
-    "test: formal unit tests added at tests/unit/flow/get-unknown-options.test.js; expected-fail confirmed",
-    "review-mode: [1] auto-fix",
-    "review: auto-fix applied (#1,#2,#4) and gate-impl revalidated pass"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 12,
-      "srcRead": 2
+    {
+      "taskId": null,
+      "text": "approach: [1] Q&A で要件整理",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "callCount": 3,
-      "responseChars": 0
+    {
+      "taskId": null,
+      "text": "work-env: [1] worktree, base: [1] main",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "plan": {
-      "issueLog": 4
+    {
+      "taskId": null,
+      "text": "draft: Q1=[2] 拡張修正（バグ修正 + リトライ上限/不一致バリデーション層）",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "spec": {
-      "callCount": 1,
-      "responseChars": 0
+    {
+      "taskId": null,
+      "text": "draft: 調査実施。flow get 系で --spec が未定義のため無視される箇所を確認",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "callCount": 4,
-      "responseChars": 2357,
-      "tokens": {
-        "input": 4,
-        "output": 919,
-        "cacheRead": 23532,
-        "cacheCreation": 24263
-      },
-      "cost": 0.11184285
+    {
+      "taskId": null,
+      "text": "draft: 論点整理。原因はエージェントの未定義オプション利用とCLI側の黙認の複合",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 2
+    {
+      "taskId": null,
+      "text": "draft: 方針候補。まずエージェント側で許可コマンド/許可オプションを厳密化し、勝手な --spec 付与を禁止",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "finalize": {
-      "tokens": {
-        "input": 27259,
-        "output": 1994,
-        "cacheRead": 15232,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 2604
+    {
+      "taskId": null,
+      "text": "draft: 未定義オプション時にhelpを返す運用案を検討",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 方針確定。未定義オプションはERROR扱い、エラーメッセージにhelp案内を含める。exit code=1",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 質問。flow get status の利用箇所とresumeでの使用有無を確認",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q flow get statusの責務を自身状態専用に限定し、resumeとの役割分離を明文化",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test-mode: [1] テストコードを作成する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test: formal unit tests added at tests/unit/flow/get-unknown-options.test.js; expected-fail confirmed",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review-mode: [1] auto-fix",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: auto-fix applied (#1,#2,#4) and gate-impl revalidated pass",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 12,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "responseChars",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 2357,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "cost",
+      "value": 0.11184285,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "finalize",
+      "counter": "responseChars",
+      "value": 2604,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "state": {
     "finalizedAt": "2026-04-13T01:48:41.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

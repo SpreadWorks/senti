@@ -128,52 +128,92 @@
   "request": "#157 issue を進めてください",
   "worktree": true,
   "notes": [
-    "draft: Q1 intent approved — prefix comments (WHY/TODO/HACK/NOTE/SECURITY) for guardrail + minify",
-    "draft Q2: prefix set = WHY/HACK/SECURITY (3 種、ドキュメント価値優先、YAGNI)",
-    "draft Q3: 推奨 (厳格書式/単一行/行頭/JS+PHP+Py+YAML) + コメント本文は docs.defaultLanguage に従う",
-    "draft Q4: guardrail comment-intent-not-logic を拡張 / MUST 強制表現で書く"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+    {
+      "taskId": null,
+      "text": "draft: Q1 intent approved — prefix comments (WHY/TODO/HACK/NOTE/SECURITY) for guardrail + minify",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 4
+    {
+      "taskId": null,
+      "text": "draft Q2: prefix set = WHY/HACK/SECURITY (3 種、ドキュメント価値優先、YAGNI)",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 33728,
-        "output": 3404,
-        "cacheRead": 42368,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 3328
+    {
+      "taskId": null,
+      "text": "draft Q3: 推奨 (厳格書式/単一行/行頭/JS+PHP+Py+YAML) + コメント本文は docs.defaultLanguage に従う",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 6244,
-        "output": 869,
-        "cacheRead": 19072,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1899
-    },
-    "gate-impl": {
-      "tokens": {
-        "input": 133104,
-        "output": 1257,
-        "cacheRead": 7936,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2547
-    },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "draft Q4: guardrail comment-intent-not-logic を拡張 / MUST 強制表現で書く",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 3328,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1899,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 2547,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {
@@ -182,5 +222,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-17T09:47:45.442Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

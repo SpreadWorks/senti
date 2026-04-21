@@ -1,0 +1,44 @@
+{
+  "goal": "`src/lib/json-parse.js` をバックトラック付き再帰下降パーサーとして再構築し、AI レスポンスの壊れた JSON を安定して修復できるようにする。josdejong/jsonrepair（ISC ライセンス）のアーキテクチャを参考にし、NOTICE に謝辞を記載する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/json-parse.js` を再帰下降パーサーベースの `repairJson(text)` 関数として再構築する",
+      "呼び出し元（`enrich.js`, `text.js`）の `parseEnrichResponse` / テキストパース処理を新 API に移行する",
+      "NOTICE ファイルに jsonrepair への謝辞を追加する",
+      "既存の `fixUnescapedQuotes` と `extractBalancedJson` を削除する"
+    ],
+    "out": [
+      "jsonrepair のソースコードの直接コピー（参考にして再構築する）",
+      "シングルクォート → ダブルクォート変換",
+      "コメント除去（`//`, `/* */`）",
+      "JSONP / MongoDB / Python キーワード対応",
+      "ストリーミングパーサー"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "以下のパターンを `repairJson` → `JSON.parse` で正しくパースできること: - 正常な JSON（そのまま返す） - 文字列値内の未エスケープ `\"`（`type=\"\"` パターン含む） - markdown fence で囲まれた JSON - 切断された JSON（閉じ括弧なし） - JSON の前後に余分なテキストがある場合",
+    "`npm test` が全件 PASS すること",
+    "NOTICE ファイルが存在し jsonrepair への謝辞が記載されていること"
+  ],
+  "clarifications": [
+    {
+      "q": "jsonrepair のコードをコピーするのか？",
+      "a": "コピーではなく、アーキテクチャ（再帰下降 + バックトラック）を参考にして自前で再構築する。NOTICE に謝辞を記載する。"
+    },
+    {
+      "q": "公開インターフェースはどう変わるか？",
+      "a": "`repairJson(text): string` を新設。`fixUnescapedQuotes` と `extractBalancedJson` は削除。呼び出し元は `repairJson` → `JSON.parse` の 2 ステップに簡素化される。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

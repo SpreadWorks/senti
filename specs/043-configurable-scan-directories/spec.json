@@ -1,0 +1,27 @@
+{
+  "goal": "preset.json のカテゴリ別スキャン構造（dir/pattern/lang/subDirs）を廃止し、include/exclude glob パターン形式に統一する。scan.js がファイルを一括収集し、DataSource の match() メソッドで振り分ける方式に変更する。config.json での scan 設定上書きも可能にする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "テンプレート（`{{text}}` / `{{data}}`）の構造変更",
+      "enrich のロジック変更（対象カテゴリの拡大のみ）",
+      "モノレポ対応（将来的に include/exclude で自然に対応可能）",
+      "新しい DataSource の追加（PackageSource を除く）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし — draft フェーズで全て解決済み)"
+  ]
+}

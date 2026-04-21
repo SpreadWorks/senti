@@ -113,19 +113,51 @@
   "worktree": true,
   "request": "Essential 抽出が JS 専用だったため PHP プロジェクトで enrich が 0 件になるバグの修正。lang ハンドラとの設計整合性を考慮して正しく対応する",
   "notes": [
-    "approach: Q&A で要件整理",
-    "work-env: worktree, base: development",
-    "draft: lang ハンドラに extractEssential メソッドを追加する方式を採用",
-    "draft: extractEssential がないハンドラは通常 minify にフォールバック",
-    "draft: extractEssential を全て lang ハンドラに移動。minify.js には残さない。JS も js.js へ",
-    "review: auto-fix",
-    "finalize: select 1,2,4,5, squash merge, skip docs sync"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 5
+    {
+      "taskId": null,
+      "text": "approach: Q&A で要件整理",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "work-env: worktree, base: development",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: lang ハンドラに extractEssential メソッドを追加する方式を採用",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: extractEssential がないハンドラは通常 minify にフォールバック",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: extractEssential を全て lang ハンドラに移動。minify.js には残さない。JS も js.js へ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: auto-fix",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: select 1,2,4,5, squash merge, skip docs sync",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -135,5 +167,7 @@
   "requestChars": 86,
   "state": {
     "finalizedAt": "2026-04-02T01:11:08.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

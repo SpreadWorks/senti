@@ -1,0 +1,52 @@
+{
+  "goal": "`uiLang` を廃止し `lang` に統合する\n- `lang` と `output` を必須設定項目にする\n- 言語設定の責務を明確に分離する",
+  "background": "",
+  "scope": {
+    "in": [
+      "`uiLang` の全参照箇所を `lang` に置き換える",
+      "`loadUiLang()` を削除する",
+      "`resolveDocLang()` を削除する（`lang` と `output` が必須のためフォールバック不要）",
+      "`setup.js` の対話フローから `uiLang` プロンプトを削除し、`lang` と `output` を必須入力にする",
+      "`types.js` のバリデーションを更新（`uiLang` 削除、`lang`/`output` 必須化）",
+      "config 読み込み時に `lang` と `output` が未設定の場合はエラーを出す"
+    ],
+    "out": [
+      "config.json のマイグレーションツール（alpha 版のため不要）",
+      "`output` の詳細構造変更（既存の `output.default` / `output.languages` はそのまま）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`uiLang` がコードベースに残っていないこと（config 型定義・バリデーション・参照すべて）",
+    "`loadUiLang()` と `resolveDocLang()` が削除されていること",
+    "`lang` 未設定の config で適切なエラーメッセージが出ること",
+    "`output` 未設定の config で適切なエラーメッセージが出ること",
+    "`npm run test` が全件パスすること",
+    "各コマンドが `config.lang` を正しく使用していること"
+  ],
+  "clarifications": [
+    {
+      "q": "`lang` と `output` の責務分離は？",
+      "a": "`lang` = 操作言語（CLI メッセージ、AGENTS.md、skills、spec テンプレート）。`output.default` = docs 生成のデフォルト言語。`output` から `lang` へのフォールバックはしない。"
+    },
+    {
+      "q": "`uiLang` の既存設定はどうなる？",
+      "a": "alpha 版のため後方互換は不要。`uiLang` が残っていても無視される。"
+    },
+    {
+      "q": "`lang` 未設定時の挙動は？",
+      "a": "`loadConfig()` 時点でエラーを出す。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`lang` と `output` 両方必須で良いか → ユーザー承認済み"
+  ]
+}

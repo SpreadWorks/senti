@@ -1,0 +1,53 @@
+{
+  "goal": "@data ディレクティブの解決を OOP ベースの DataSource アーキテクチャに移行する\n- scan + resolve を自己完結した class ベースのモジュールに統合する\n- ディレクティブ構文を関数呼び出し形式に変更し、任意のメソッドを呼べるようにする",
+  "background": "",
+  "scope": {
+    "in": [
+      "DataSource 基底クラスの設計・実装",
+      "ディレクティブ構文の変更: `@data: category.method(\"labels\")`（メソッド名は常に必須）",
+      "directive-parser.js の新構文対応",
+      "cakephp2 preset の DataSource 移行（controllers を先行実装）",
+      "resolver-factory.js の DataSource 対応",
+      "data.js の呼び出し側変更",
+      "旧構文の廃止（後方互換不要）"
+    ],
+    "out": [
+      "全カテゴリの一括移行（段階的に実施）",
+      "@text ディレクティブの変更",
+      "renderer の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] DataSource 基底クラスが存在し、scan() の未実装で throw する",
+    "[ ] 新構文のディレクティブがパースされ、正しいメソッドが呼ばれる",
+    "[ ] cakephp2 の controllers が DataSource として動作する",
+    "[ ] super でユーティリティメソッドが呼べる",
+    "[ ] 全既存テスト（289件）が通る（旧テンプレートのテスト更新含む）"
+  ],
+  "clarifications": [
+    {
+      "q": "旧構文 `@data: renderer(category, labels=...)` との後方互換は必要か？",
+      "a": "不要。旧構文は廃止する。"
+    },
+    {
+      "q": "メソッド名省略時のデフォルト（main）は必要か？",
+      "a": "不要。常にメソッド名を明示する。自己文書化と一貫性を優先。"
+    },
+    {
+      "q": "クラス名は？",
+      "a": "DataSource。scan（データ取得）+ resolve（データ整形）の両方を表現。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(resolved)"
+  ]
+}

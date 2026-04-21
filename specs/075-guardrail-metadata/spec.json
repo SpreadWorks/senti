@@ -1,0 +1,63 @@
+{
+  "goal": "guardrail 記事に構造化メタデータを導入し、適用フェーズの制御（spec / impl / lint）、対象ファイルの scope フィルタリング、正規表現による機械的 lint チェックを実現する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "impl フェーズの消費先実装（AI system prompt への注入は I1）",
+      "severity 分類（不要と判断。PASS/FAIL の2値のみ）",
+      "バッチ分割（I4）",
+      "デザイン系 guardrail 記事の追加（別 spec）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `parseGuardrailArticles()` がメタデータ行をパースし `meta` フィールドを返す",
+    "[ ] メタデータなしの記事にデフォルト値 `{phase: [\"spec\"]}` が設定される",
+    "[ ] `checkGuardrail()` が `phase: [spec]` の記事のみ AI に渡す",
+    "[ ] `filterByPhase(articles, \"impl\")` が impl 記事を抽出する",
+    "[ ] scope glob マッチングが正しくファイルを絞り込む",
+    "[ ] `sdd-forge spec lint --base <branch>` が動作する",
+    "[ ] lint パターンにマッチするファイルがあれば FAIL を報告する",
+    "[ ] scope フィルタが lint 対象ファイルを正しく絞る",
+    "[ ] lint パターンあり + phase に lint なしの記事で警告が出る",
+    "[ ] `sdd-forge spec lint` のルーティングが動作する",
+    "[ ] 既存テストが壊れない（メタデータなし記事のデフォルト動作）",
+    "[ ] 新規テストがすべて pass する"
+  ],
+  "clarifications": [
+    {
+      "q": "severity は必要か？",
+      "a": "不要。チェックは PASS/FAIL の2値。WARN のみの動作はフロー中に対処する導線がない。対象外にしたければ phase から外すか Exemption を使う。"
+    },
+    {
+      "q": "lint は差分行だけか、ファイル全体か？",
+      "a": "変更ファイルの全内容。差分行だけだと既存コードの違反を見逃す。"
+    },
+    {
+      "q": "lint パターンがあるが phase に lint がない場合？",
+      "a": "lint コマンドではスキップするが、警告を出す。"
+    },
+    {
+      "q": "scope は spec フェーズで意味があるか？",
+      "a": "spec フェーズでは scope は無視される（spec テキストにはファイルパスがない）。impl/lint でのみ有効。"
+    },
+    {
+      "q": "ディレクティブ構文をなぜ `{%...%}` にしたか？",
+      "a": "Twig/Jinja2 の慣例に倣い、`{{ }}` = 処理・出力、`{% %}` = 宣言・設定という区分を導入。"
+    },
+    {
+      "q": "impl の消費先は？",
+      "a": "guardrail の impl 記事を抽出して AI の system prompt に渡す。実装は I1 scope。今回はパース + 抽出関数のみ。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

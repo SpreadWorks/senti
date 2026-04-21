@@ -122,20 +122,52 @@
   "request": "flow run review --phase spec: 仕様レビューによる考慮漏れ検出",
   "worktree": true,
   "notes": [
-    "approach: Q&A draft, work-env: worktree, base: main",
-    "impl: approved by user, proceeding to finalize",
-    "finalize: mode=all"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+    {
+      "taskId": null,
+      "text": "approach: Q&A draft, work-env: worktree, base: main",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "docsRead": 1,
-      "srcRead": 4,
-      "question": 5
+    {
+      "taskId": null,
+      "text": "impl: approved by user, proceeding to finalize",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: mode=all",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 6,
     "test": 0,
@@ -145,5 +177,7 @@
   "requestChars": 45,
   "state": {
     "finalizedAt": "2026-04-03T12:00:36.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

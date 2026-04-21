@@ -1,0 +1,73 @@
+{
+  "goal": "`sdd-forge docs init` が既存ファイルと conflict を検出した際に出力する通知メッセージを、sdd-forge 内の「既に存在する」系通知の既存慣習と整合させ、CI 等の汎用的なログスキャンで「エラー」として誤検知されないようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "conflict 検出時通知メッセージのプレフィックス文字列を、全サポートロケールで警告レベル表記（`WARN:`）に揃える。",
+      "プレフィックスが期待通りであることを保証する spec ローカル検証テストの追加。"
+    ],
+    "out": [
+      "プロセスを停止する真のエラーメッセージ（`noType`, `noTemplates` 等）のプレフィックス見直し。",
+      "ログ出力ヘルパーの再設計、構造化ログレベル API の導入。",
+      "conflict 検出・スキップ・終了コード等、通知出力以外のロジック変更。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "**R1 (P1 / Must):** When `sdd-forge docs init` が既存ファイルとの conflict を検出し通知メッセージを出力するとき, the system shall 当該メッセージのプレフィックスとして「エラー」を示す語（`ERROR:`）を使用しない。"
+    },
+    {
+      "id": "R2",
+      "desc": "**R2 (P1 / Must):** If conflict 検出時の通知メッセージを出力する, the system shall プロジェクト内の他の「既に存在する」系通知と同じ警告プレフィックス（`WARN:`）を使用する。"
+    },
+    {
+      "id": "R3",
+      "desc": "**R3 (P1 / Must):** If 通知メッセージが複数ロケールで提供される, the system shall 全ロケールで同一のプレフィックス表記を使用する。"
+    },
+    {
+      "id": "R4",
+      "desc": "**R4 (P1 / Must):** When conflict を検出してもプロセスが正常終了する, the system shall 既存の検出・スキップ・書き込み・終了コードの振る舞いを変更しない。"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: conflict 検出時通知の ja ロケール文字列が `ERROR:` で始まらず、`WARN:` で始まる。",
+    "AC2: conflict 検出時通知の en ロケール文字列が `ERROR:` で始まらず、`WARN:` で始まる。",
+    "AC3: ja / en の conflict 検出時通知が同一のプレフィックス表記を持つ。",
+    "AC4: conflict 検出シナリオでプロセスの終了コード・スキップ動作・書き込み対象が変更前と同一である。"
+  ],
+  "clarifications": [
+    {
+      "q": "`INFO:` / `NOTE:` 等のレビュアー提案プレフィックスではなく `WARN:` を選ぶ理由は？",
+      "a": "sdd-forge 内には既に「既に存在する」系通知を `WARN:` で出す慣習が存在し、既存慣習との整合性を優先するため。"
+    },
+    {
+      "q": "全ロケールを同時に変更する必要があるか？",
+      "a": "ある。ロケール間でプレフィックス表記が割れることは、ログスキャンの一貫性を損なう。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "`INFO",
+      "reason": "` / `NOTE:` プレフィックス（レビュアー提案）— 最終決定: 却下。既存慣習との不整合。"
+    },
+    {
+      "option": "プレフィックスなし",
+      "reason": "最終決定: 却下。他 notification 系との混在を生む。"
+    },
+    {
+      "option": "構造化ログレベル API 導入",
+      "reason": "最終決定: 却下。スコープ外の大規模変更で、issue のゴール（誤検知解消）を超える。"
+    }
+  ],
+  "open_questions": [
+    "なし"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "goal": "Add 11 new presets for modern web/cloud stacks and implement cross-chain template additive merge to support multi-preset document generation with same-name chapter files.",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "AWS / GCP presets (s3, lambda, cloud-functions, etc.) — future work",
+      "CDN presets (pages, cloudfront) — future work",
+      "Monorepo-specific preset — handled by base overview/project_structure + config scan.include",
+      "App-level type mapping for monorepo — future work",
+      "Non-HTTP API presets (gRPC, WebSocket) — future work",
+      "SOAP/XML API preset — future work"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "Should API presets be language-dependent?",
+      "a": "No. API method (REST, GraphQL) is independent from language/framework axis. Language-specific scan comes from the language preset (e.g., `php-webapp`). Combine via multi-preset: `{ \"type\": [\"symfony\", \"rest\"] }`."
+    },
+    {
+      "q": "How to handle Next.js Route Handlers + separate API server?",
+      "a": "Route Handlers are part of the `nextjs` preset. The separate API server uses `rest`/`hono` preset. Both combined via type array. Same-name chapter additive merge enables this."
+    },
+    {
+      "q": "Should Cloudflare be a single preset?",
+      "a": "No. Split by service category (storage, edge, etc.) for better composability and future AWS/GCP extensibility."
+    },
+    {
+      "q": "Where does Drizzle belong in the hierarchy?",
+      "a": "Under `database`. Inherits common database chapters (table list, relations). DB engine (`postgres`, `mysql`) is combined via multi-preset."
+    },
+    {
+      "q": "What about Symfony API Platform?",
+      "a": "Future: `{ \"type\": [\"symfony-api-platform\", \"rest\"] }`. API Platform-specific scan under `symfony-api-platform` preset, REST chapters from `rest`."
+    },
+    {
+      "q": "Next.js Pages Router support?",
+      "a": "Yes. Scan detects both `app/` and `pages/` directories."
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

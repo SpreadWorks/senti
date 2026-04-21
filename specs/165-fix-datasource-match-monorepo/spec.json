@@ -1,0 +1,59 @@
+{
+  "goal": "Fix false negatives in preset `match(relPath)` evaluation for nested monorepo paths, while preserving existing root-level behavior and CLI compatibility.",
+  "background": "",
+  "scope": {
+    "in": [
+      "All presets that define `match(relPath)`.",
+      "Matching behavior for nested paths such as `aaa/bbb/src/Controller/UserController.php`.",
+      "Boundary-safe segment matching to avoid look-alike false positives.",
+      "Preservation of preset-specific constraints (extensions and additional matching conditions).",
+      "Documenting presets that required no code changes."
+    ],
+    "out": [
+      "Changes to `parse()` behavior.",
+      "Changes to CLI command names/options/semantics.",
+      "Handling framework-specific non-standard directory conventions beyond current preset definitions.",
+      "New external dependencies."
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "仕様書の進め方は？",
+      "a": "Q&A を先に整理してから spec 化する。"
+    },
+    {
+      "q": "対象範囲は issue 記載分のみか？",
+      "a": "いいえ。全プリセット対象で漏れなく対応する。"
+    },
+    {
+      "q": "一括置換で修正するか？",
+      "a": "いいえ。機械的一括置換は採用しない。"
+    },
+    {
+      "q": "`match()` の引数は変更するか？",
+      "a": "変更しない。`match(relPath)` を維持する。"
+    },
+    {
+      "q": "共通化と個別差分の扱いは？",
+      "a": "共通ルールは統一し、プリセット固有条件は維持する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Ad-hoc per-file fixes without shared rule alignment",
+      "reason": "rejected due to consistency and maintenance risk across many presets."
+    }
+  ],
+  "open_questions": [
+    "None"
+  ]
+}

@@ -134,71 +134,197 @@
   "request": "#125 issueの対応をすすめてください。",
   "worktree": true,
   "notes": [
-    "approach: [1] Q&A で要件整理してから仕様書を作成",
-    "branch: [1] worktree / base [1] main",
-    "draft: [2] #125 は CLI 組み込みまで含める。参照=board 8690",
-    "draft: metrics は check 配下ではなく独立トップレベルコマンドとして実装",
-    "draft: metrics入力はflow.jsonのみ。tmpにのみあるデータはflow.jsonへbackfillすべき旨を指摘/警告する",
-    "draft: tmp-onlyデータ検知の警告は出さない。flow.jsonのみで静かに集計",
-    "draft: 出力はtext主、csv/jsonも同リリースで対応",
-    "draft: metricsキャッシュ再生成は specs/*/flow.json と output/metrics.json のmtime比較のみ",
-    "draft: ACは text/csv/json 同一集計結果 + キャッシュ再利用/再生成動作を必須",
-    "draft: ユーザー指摘により metrics サブコマンド設計を追加確認",
-    "draft: metrics は token サブコマンドのみ実装。--format text(default)/json/csv",
-    "draft: tokenサブコマンドの出力項目を追加で確定する",
-    "draft: token text出力は phase別ブロック、縦軸=日付、横軸=input/output/cache read/create/call count/cost の表形式",
-    "draft: token text表に difficulty列を含める（値なし時はN/A）",
-    "approval: [1] 仕様承認",
-    "test: formal e2e test を tests/e2e/metrics/token.test.js に追加（実装前のため失敗確認済み）",
-    "implement: [1] 実装方針を承認して実装を実施",
-    "finalize: [1] すべて実行"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1,
-      "issueLog": 3
+    {
+      "taskId": null,
+      "text": "approach: [1] Q&A で要件整理してから仕様書を作成",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 13
+    {
+      "taskId": null,
+      "text": "branch: [1] worktree / base [1] main",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 2,
-        "output": 493,
-        "cacheRead": 10815,
-        "cacheCreation": 9627
-      },
-      "cost": 0.046746750000000004,
-      "callCount": 1,
-      "responseChars": 1868
+    {
+      "taskId": null,
+      "text": "draft: [2] #125 は CLI 組み込みまで含める。参照=board 8690",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 2,
-        "output": 887,
-        "cacheRead": 10815,
-        "cacheCreation": 10244
-      },
-      "cost": 0.0549705,
-      "callCount": 1,
-      "responseChars": 1529
+    {
+      "taskId": null,
+      "text": "draft: metrics は check 配下ではなく独立トップレベルコマンドとして実装",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 2,
-      "issueLog": 3
+    {
+      "taskId": null,
+      "text": "draft: metrics入力はflow.jsonのみ。tmpにのみあるデータはflow.jsonへbackfillすべき旨を指摘/警告する",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 7,
-        "output": 4049,
-        "cacheRead": 108958,
-        "cacheCreation": 24555
-      },
-      "cost": 0.18552465,
-      "callCount": 2,
-      "responseChars": 2984
+    {
+      "taskId": null,
+      "text": "draft: tmp-onlyデータ検知の警告は出さない。flow.jsonのみで静かに集計",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 出力はtext主、csv/jsonも同リリースで対応",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: metricsキャッシュ再生成は specs/*/flow.json と output/metrics.json のmtime比較のみ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: ACは text/csv/json 同一集計結果 + キャッシュ再利用/再生成動作を必須",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: ユーザー指摘により metrics サブコマンド設計を追加確認",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: metrics は token サブコマンドのみ実装。--format text(default)/json/csv",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: tokenサブコマンドの出力項目を追加で確定する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: token text出力は phase別ブロック、縦軸=日付、横軸=input/output/cache read/create/call count/cost の表形式",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: token text表に difficulty列を含める（値なし時はN/A）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "approval: [1] 仕様承認",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test: formal e2e test を tests/e2e/metrics/token.test.js に追加（実装前のため失敗確認済み）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "implement: [1] 実装方針を承認して実装を実施",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: [1] すべて実行",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 13,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "cost",
+      "value": 0.046746750000000004,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 1868,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "cost",
+      "value": 0.0549705,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1529,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "cost",
+      "value": 0.18552465,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 2984,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 3,
     "test": 0,
@@ -208,5 +334,7 @@
   "requestChars": 23,
   "state": {
     "finalizedAt": "2026-04-10T14:32:52.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

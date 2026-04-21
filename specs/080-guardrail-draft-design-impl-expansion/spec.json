@@ -1,0 +1,44 @@
+{
+  "goal": "Expand the guardrail system across three areas:\n1. Inject guardrail into the draft phase via a new `guardrail show` command that merges preset chain + project guardrail and filters by phase\n2. Add design-oriented guardrail article templates in a new `web-design` preset under a `principle` grouping\n3. Extend guardrail to the implementation phase via the same `guardrail show` command + SKILL.md integration",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "scope/severity metadata (deprecated)",
+      "Guardrail auto-update via AI (existing `guardrail update` command unchanged)",
+      "`--yes` auto-approve mode for flow",
+      "New lint patterns for design articles"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "Where to place design articles?",
+      "a": "New `web-design` preset (parent: webapp), under `principle` grouping"
+    },
+    {
+      "q": "How to inject guardrail into draft/impl phases?",
+      "a": "Via `guardrail show` command — each SKILL.md calls the command, not hardcoded logic"
+    },
+    {
+      "q": "What about AI attention dilution (Issue #3, direction 4)?",
+      "a": "Phase filtering itself is the mitigation — only relevant articles are shown per phase"
+    },
+    {
+      "q": "scope/severity metadata (Issue #3, direction 3)?",
+      "a": "Deprecated, skipped"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

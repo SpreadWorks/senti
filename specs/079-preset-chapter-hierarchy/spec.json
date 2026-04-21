@@ -1,0 +1,41 @@
+{
+  "goal": "Parent-child preset templates (api → rest, api → graphql) should use `@extends` + `@block` for shared chapters (`api_overview.md`, `authentication.md`) so that child presets can override specific blocks with framework-specific content, maintaining a unified chapter structure.",
+  "background": "",
+  "scope": {
+    "in": [
+      "`rest` preset: add `api_overview.md` and `authentication.md` templates that `@extends` the parent `api` templates",
+      "`graphql` preset: add `api_overview.md` and `authentication.md` templates that `@extends` the parent `api` templates",
+      "Add `@block` markers to `api` parent templates where child customization is needed",
+      "Both `en` and `ja` language templates"
+    ],
+    "out": [
+      "Other parent-child preset pairs (webapp→cakephp2 etc. already use `@extends`)",
+      "Changes to template-merger.js or directive-parser.js",
+      "Changes to preset.json chapter lists (already correct)"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`rest` and `graphql` presets inherit `api_overview.md` and `authentication.md` structure from `api` parent",
+    "Child presets can override specific blocks with framework-specific content",
+    "Existing `@block` markers in `api` templates (`versioning`, `errors`, `auth-flow`, `authorization`) remain functional",
+    "`en` and `ja` templates are consistent"
+  ],
+  "clarifications": [
+    {
+      "q": "Should `api_overview.md` title change in children?",
+      "a": "No. The title stays `# API Overview` (inherited from parent). Children override content blocks within it, not the title. REST-specific and GraphQL-specific content goes into their own chapters (`endpoints.md`, `schema.md`)."
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

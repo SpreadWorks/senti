@@ -1,0 +1,51 @@
+{
+  "goal": "projectContext を廃止し、forge コマンドを enriched analysis 対応にする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`textFill.preamblePatterns` の変更（そのまま維持）",
+      "`textFill` フィールド自体の廃止（preamblePatterns が残るため）",
+      "DataSource / `{{data}}` ディレクティブの再設計"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `resolveProjectContext()`, `loadContext()`, `saveContext()` が削除されている",
+    "[ ] `sdd-forge setup` で projectContext の入力を求めない",
+    "[ ] `sdd-forge forge --auto-update-context` がエラーになる（オプション削除）",
+    "[ ] text コマンドが projectContext なしで正常動作する",
+    "[ ] enriched analysis がある場合、forge プロンプトに enriched summary が含まれる",
+    "[ ] enriched analysis がない場合、従来のサマリーにフォールバックする",
+    "[ ] テストが全てパスする"
+  ],
+  "clarifications": [
+    {
+      "q": "context.json ファイル自体はどうする？",
+      "a": "読み込みコードを削除する。既存のファイルは放置（ユーザーが手動で削除可能）。"
+    },
+    {
+      "q": "setup の --project-context はどうする？",
+      "a": "オプションを削除。setup では projectContext の入力を求めない。"
+    },
+    {
+      "q": "forge --auto-update-context はどうする？",
+      "a": "オプションと maybeUpdateContext() を削除。"
+    },
+    {
+      "q": "enriched analysis がない場合の forge の動作は？",
+      "a": "従来通り summaryToText() のフォールバック（controllers/models/shells/routes のサマリー）を使用。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

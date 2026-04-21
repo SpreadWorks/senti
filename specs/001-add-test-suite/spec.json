@@ -1,0 +1,45 @@
+{
+  "goal": "sdd-forge の全コマンド・ライブラリに対するテストスイートを構築し、安全なリファクタリングと機能追加を可能にする",
+  "background": "",
+  "scope": {
+    "in": [
+      "テストフレームワーク: `node:test` + `node:assert` (外部依存ゼロ維持)",
+      "テスト対象: - **lib/**: cli.js, config.js, types.js, i18n.js, process.js, agent.js, projects.js - **docs/commands/**: scan, init, data, text, readme, forge, review, changelog, agents, setup, default-project - **specs/commands/**: init (spec), gate - **トップレベル**: flow.js, help.js, sdd-forge.js (dispatcher), docs.js, spec.js",
+      "テストファイル配置: `tests/` ディレクトリ (src/ と同階層)",
+      "package.json に `test` スクリプト追加",
+      "コマンドファイルのテスタビリティ改善 (isDirectRun ガード + main export)"
+    ],
+    "out": [
+      "外部 AI エージェント呼び出しの実際の結合テスト (mock で対応)",
+      "CakePHP2 プリセットのテスト (presets/ 配下)",
+      "CI/CD パイプラインの構築",
+      "カバレッジレポートツール導入"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`npm test` で全テストが実行・パスする",
+    "各コマンドに最低 1 つの正常系テストと 1 つの異常系テストがある",
+    "lib/ の各関数に境界値・エラーケースのテストがある",
+    "テスト実行が外部サービス (AI agent) に依存しない",
+    "テスト実行後にファイルシステムにゴミが残らない",
+    "既存の CLI 動作が変わらない"
+  ],
+  "clarifications": [
+    {
+      "q": "テスト実行時に実ファイルシステムを操作してよいか？",
+      "a": "テスト用の一時ディレクトリ (os.tmpdir) を使用し、テスト後にクリーンアップする"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

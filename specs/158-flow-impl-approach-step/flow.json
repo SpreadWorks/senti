@@ -125,21 +125,49 @@
   "issue": 114,
   "request": "flow-impl の冒頭で実装方針を提示して承認を得るステップを追加する",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 3,
-      "question": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 2,
-      "issueLog": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "review: [1] auto-fix"
+    {
+      "taskId": null,
+      "text": "review: [1] auto-fix",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 4,
@@ -150,5 +178,7 @@
   "requestChars": 37,
   "state": {
     "finalizedAt": "2026-04-08T09:17:53.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

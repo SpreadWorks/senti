@@ -1,0 +1,52 @@
+{
+  "goal": "`sdd-forge.flow-auto-on` と `sdd-forge.flow-auto-off` の2スキルを `sdd-forge.flow-auto` に統合し、引数 `on`/`off` で切り替えられるようにする。合わせて `sdd-forge upgrade` で旧スキルを自動クリーンアップする仕組みを導入する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/templates/skills/sdd-forge.flow-auto/SKILL.md` を新規作成",
+      "`src/templates/skills/sdd-forge.flow-auto-on/` と `sdd-forge.flow-auto-off/` を削除",
+      "`src/templates/partials/core-principle.md` の `/sdd-forge.flow-auto-on` 参照を `/sdd-forge.flow-auto` に更新",
+      "`src/lib/skills.js` の `deploySkillsFromDir` に旧スキル自動削除ロジックを追加",
+      "`src/upgrade.js` の出力ログに削除されたスキル名を表示"
+    ],
+    "out": [
+      "`sdd-forge flow set auto on/off` CLI コマンド自体の変更",
+      "experimental スキル（`experimental/workflow/templates/skills/`）の扱い変更",
+      "移行期の grace period・後方互換コード（alpha ポリシーにより不要）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`/sdd-forge.flow-auto` が引数なし・`on`・`off` で正しく動作する",
+    "不正引数時にエラーメッセージを表示して停止する",
+    "`sdd-forge upgrade` 実行後、`.claude/skills/sdd-forge.flow-auto-on/` と `.claude/skills/sdd-forge.flow-auto-off/` が削除される",
+    "`.claude/skills/sdd-forge.flow-auto/` が作成される",
+    "experimental スキル（`sdd-forge.exp.workflow` 等）が削除されない",
+    "`core-principle.md` のリンクが `/sdd-forge.flow-auto` に更新される"
+  ],
+  "clarifications": [
+    {
+      "q": "旧スキルのクリーンアップ方法は？",
+      "a": "`upgrade.js` に deprecated リストを持つのではなく、`deploySkillsFromDir` 内で「配置元テンプレートに存在しない `sdd-forge.*` スキル」を自動削除する。メインテンプレートと experimental テンプレート両方のスキル名セットを正として、それ以外を削除対象とする。"
+    },
+    {
+      "q": "引数なしの挙動は？",
+      "a": "`on` として扱い、フロー継続（resume）まで行う。現行 `sdd-forge.flow-auto-on` と同じ挙動。"
+    },
+    {
+      "q": "引数が `on`/`off` 以外の場合は？",
+      "a": "エラーメッセージ（`Usage: /sdd-forge.flow-auto [on|off]`）を表示して STOP する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

@@ -122,24 +122,56 @@
   "request": "spec review が 0 issues remaining なのに FAIL（exit code 1）を返す問題を修正",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 3,
-      "issueLog": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 3,
-      "question": 1
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "test": {
-      "srcRead": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "test",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "gate-draft: PASS on 3rd attempt (format issues)"
+    {
+      "taskId": null,
+      "text": "gate-draft: PASS on 3rd attempt (format issues)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 3,
@@ -150,5 +182,7 @@
   "requestChars": 62,
   "state": {
     "finalizedAt": "2026-04-04T09:10:17.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

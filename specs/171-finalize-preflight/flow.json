@@ -121,48 +121,92 @@
   "request": "flow run finalize 実行前に .git 書き込み可否の preflight を実装し、read-only時は即時に明確なエラーとヘルプを返す",
   "worktree": true,
   "notes": [
-    "draft: skipped (single clear request from user)",
-    "test: added run-finalize preflight unit tests and spec test README"
-  ],
-  "metrics": {
-    "spec": {
-      "tokens": {
-        "input": 2,
-        "output": 698,
-        "cacheRead": 11766,
-        "cacheCreation": 9872
-      },
-      "cost": 0.0510258,
-      "callCount": 1,
-      "responseChars": 1217
+    {
+      "taskId": null,
+      "text": "draft: skipped (single clear request from user)",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "implement": {
-      "tokens": {
-        "input": 11,
-        "output": 3930,
-        "cacheRead": 113214,
-        "cacheCreation": 58691
-      },
-      "cost": 0.31303844999999997,
-      "callCount": 4,
-      "responseChars": 3942
-    },
-    "gate-impl": {
-      "tokens": {
-        "input": 2,
-        "output": 2396,
-        "cacheRead": 21821,
-        "cacheCreation": 0
-      },
-      "cost": 0.0424923,
-      "callCount": 1,
-      "responseChars": 746
-    },
-    "impl": {
-      "issueLog": 2
+    {
+      "taskId": null,
+      "text": "test: added run-finalize preflight unit tests and spec test README",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "spec",
+      "counter": "cost",
+      "value": 0.0510258,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "responseChars",
+      "value": 1217,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "implement",
+      "counter": "cost",
+      "value": 0.31303844999999997,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "implement",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "implement",
+      "counter": "responseChars",
+      "value": 3942,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "cost",
+      "value": 0.0424923,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 746,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "state": {
     "finalizedAt": "2026-04-13T12:50:22.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

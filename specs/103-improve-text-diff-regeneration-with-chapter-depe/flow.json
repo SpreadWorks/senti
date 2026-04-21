@@ -114,16 +114,36 @@
   "issue": 31,
   "request": "Issue #31: text差分再生成の仕組み改善（章依存とentry単位の判定）",
   "notes": [
-    "approach: Q&Aで要件整理してから仕様書作成, work-env: worktree, base: development",
-    "draft: entry_idはanalysis.jsonの各entryにidフィールドとして保存。永続ID方式で、scan時にcategory+file+subkeyで前回entryと照合しIDを引き継ぐ",
-    "draft: 章依存データは保存せず、text実行時にanalysis.jsonのentryのchapterフィールドから都度算出する",
-    "draft: 変更検知はtext実行時にanalysis.json内のentryのhashと現在のソースファイルのhashを比較。差分制御用stateファイルは不要"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 6
+    {
+      "taskId": null,
+      "text": "approach: Q&Aで要件整理してから仕様書作成, work-env: worktree, base: development",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: entry_idはanalysis.jsonの各entryにidフィールドとして保存。永続ID方式で、scan時にcategory+file+subkeyで前回entryと照合しIDを引き継ぐ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 章依存データは保存せず、text実行時にanalysis.jsonのentryのchapterフィールドから都度算出する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 変更検知はtext実行時にanalysis.json内のentryのhashと現在のソースファイルのhashを比較。差分制御用stateファイルは不要",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -133,5 +153,7 @@
   "requestChars": 42,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

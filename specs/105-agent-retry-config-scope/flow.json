@@ -114,16 +114,36 @@
   "issue": 36,
   "request": "Issue #36: agent.retryCount の適用範囲を docs enrich に限定する実装",
   "notes": [
-    "approach: Q&A → spec, work-env: worktree, base: development",
-    "draft: retryCount を enrich と text で共通化。enrich の enrichBatchWithRetry を lib に移すか、共通ヘルパーを作る方針",
-    "draft: callAgentAsync に options.retryCount/retryDelayMs を追加。デフォルト retryCount:0 で後方互換維持。enrich の enrichBatchWithRetry と text のハードコードリトライを置き換え",
-    "draft: getRetryCount ヘルパー不要。各コマンドが config.agent?.retryCount || 0 を直接渡す"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 5
+    {
+      "taskId": null,
+      "text": "approach: Q&A → spec, work-env: worktree, base: development",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: retryCount を enrich と text で共通化。enrich の enrichBatchWithRetry を lib に移すか、共通ヘルパーを作る方針",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: callAgentAsync に options.retryCount/retryDelayMs を追加。デフォルト retryCount:0 で後方互換維持。enrich の enrichBatchWithRetry と text のハードコードリトライを置き換え",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: getRetryCount ヘルパー不要。各コマンドが config.agent?.retryCount || 0 を直接渡す",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -133,5 +153,7 @@
   "requestChars": 54,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

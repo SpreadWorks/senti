@@ -136,47 +136,89 @@
   "worktree": true,
   "autoApprove": true,
   "notes": [
-    "Q1 approved: update ja/en creating_presets.md to factory DI contract. Key requirement: make the doc concrete enough that an AI can implement a new preset without errors by reading it alone. User requested auto mode.",
-    "finalize.mode: [1] all (auto, per user skip instruction)"
-  ],
-  "metrics": {
-    "gate-draft": {
-      "tokens": {
-        "input": 57784,
-        "output": 5646,
-        "cacheRead": 93056,
-        "cacheCreation": 0
-      },
-      "callCount": 6,
-      "responseChars": 8746,
-      "durationMs": 142977
+    {
+      "taskId": null,
+      "text": "Q1 approved: update ja/en creating_presets.md to factory DI contract. Key requirement: make the doc concrete enough that an AI can implement a new preset without errors by reading it alone. User requested auto mode.",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 22164,
-        "output": 1946,
-        "cacheRead": 28416,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2239,
-      "durationMs": 43201
-    },
-    "gate-impl": {
-      "tokens": {
-        "input": 430921,
-        "output": 5787,
-        "cacheRead": 105984,
-        "cacheCreation": 0
-      },
-      "callCount": 10,
-      "responseChars": 14669,
-      "durationMs": 170955
-    },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "finalize.mode: [1] all (auto, per user skip instruction)",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 8746,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 142977,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 2239,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 43201,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 10,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 14669,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 170955,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "test": {
     "summary": {
       "unit": 83
@@ -184,5 +226,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-19T14:10:58.032Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

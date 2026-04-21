@@ -1,0 +1,50 @@
+{
+  "goal": "auto mode（autoApprove）で flow-auto-on skill をゲートキーパー化し、各 skill 完了時に次の skill へ自動遷移するようにする。これにより `/sdd-forge.flow-auto-on` 一発で plan → impl → finalize まで自走できるようになる。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/templates/skills/sdd-forge.flow-auto-on/SKILL.md` — ゲートキーパー化（flow.json 確認 + request/issue 確認 → auto ON → 適切な skill 誘導）",
+      "`src/templates/skills/sdd-forge.flow-plan/SKILL.md` — 最終ステップで autoApprove なら `/sdd-forge.flow-impl` を Skill tool で呼ぶ指示を追加",
+      "`src/templates/skills/sdd-forge.flow-impl/SKILL.md` — 最終ステップで autoApprove なら `/sdd-forge.flow-finalize` を Skill tool で呼ぶ指示を追加"
+    ],
+    "out": [
+      "コード変更（`src/lib/`, `src/flow/` 等のプロダクトコード）",
+      "flow-auto-on から直接 prepare-spec を実行する機能（最初から auto は flow-plan 経由で対応）",
+      "flow-auto-off skill の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "flow-auto-on skill が flow.json 未存在時にガイドメッセージを表示して停止する",
+    "flow-auto-on skill が request も issue もない場合にガイドメッセージを表示して停止する",
+    "flow-auto-on skill が条件を満たした場合に auto ON + 適切な skill を呼ぶ",
+    "flow-plan の SKILL.md に autoApprove 時の flow-impl 自動呼び出し指示が記述されている",
+    "flow-impl の SKILL.md に autoApprove 時の flow-finalize 自動呼び出し指示が記述されている",
+    "既存テストがパスする"
+  ],
+  "clarifications": [
+    {
+      "q": "flow.json 未存在時に flow-auto-on はどうするか？",
+      "a": "「フローが開始されていません。`/sdd-forge.flow-plan` でフローを開始してください」とガイドして STOP する。"
+    },
+    {
+      "q": "request も issue もない状態で auto ON しようとした場合は？",
+      "a": "「要件が設定されていません。Issue リンクまたは request を設定してください」とガイドして STOP する。flow-auto-on がゲートキーパーとして機能する。"
+    },
+    {
+      "q": "最初から auto で始めたい場合は？",
+      "a": "ユーザーが flow-plan を呼ぶ際に「auto で」と言えば、AI が prepare-spec 後に `flow set auto on` を実行する。flow-auto-on skill を経由しない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "なし"
+  ]
+}

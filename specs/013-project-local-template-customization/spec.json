@@ -1,0 +1,67 @@
+{
+  "goal": "プロジェクトローカルのテンプレート・スキャン・データソースカスタマイズ機構を導入する\n- プリセットでは対応しきれないプロジェクト固有の要件に対応可能にする\n- 既存の `.sdd-forge/custom/` を新構造に吸収・廃止する",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "skills テンプレートのカスタマイズ（頻度低、将来対応）",
+      "AGENTS.md テンプレートのカスタマイズ（同上）",
+      "gate チェックのカスタマイズ（ロジック変更が必要、別 spec）",
+      "テンプレート層内の階層化（フラットで十分）",
+      "setup コマンドでのテンプレートスキャフォールド（将来対応）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`resolveChain()` がプロジェクトローカル層を第4層として追加する"
+    },
+    {
+      "id": "R2",
+      "desc": "プロジェクトローカル層は存在する場合のみチェーンに追加（オプショナル）"
+    },
+    {
+      "id": "R3",
+      "desc": "spec テンプレートはプレースホルダー置換をサポートする"
+    },
+    {
+      "id": "R4",
+      "desc": "カスタム scan/data モジュールは dynamic import で読み込む"
+    },
+    {
+      "id": "R5",
+      "desc": "`.sdd-forge/custom/` が残っている場合、マイグレーション案内を出力する"
+    }
+  ],
+  "acceptance_criteria": [
+    "`.sdd-forge/templates/{lang}/docs/` に置いた章テンプレートが init/readme に反映される",
+    "`.sdd-forge/templates/{lang}/specs/spec.md` に置いたテンプレートで spec が生成される",
+    "`.sdd-forge/templates/{lang}/review/checklist.md` で review チェックリストが上書きされる",
+    "`.sdd-forge/scan/` のカスタムスキャナが scan 実行時に呼ばれる",
+    "`.sdd-forge/data/` のカスタムデータソースが data 解決時に呼ばれる",
+    "`.sdd-forge/custom/` の手書きマージが削除されている",
+    "テンプレート/モジュールが存在しない場合は既存動作にフォールバックする",
+    "既存テストが全て pass する"
+  ],
+  "clarifications": [
+    {
+      "q": "scan/data のカスタムモジュールのインターフェースは？",
+      "a": "既存プリセットの scan/*.js / data/*.js と同じ export 規約に従う"
+    },
+    {
+      "q": "locale が config と異なるテンプレートが置かれた場合は？",
+      "a": "config.json の lang に一致するディレクトリのみ読み込む。不一致は無視"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "setup コマンドでテンプレートディレクトリのスキャフォールドを行うか → 将来 spec で対応"
+  ]
+}

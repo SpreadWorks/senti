@@ -1,0 +1,37 @@
+{
+  "goal": "終了コードの意味を定義し定数として集約する。現在 `forge.js` は `exitCode=2`、`text.js` は `exitCode=1` を使用しているが意味の区別が未定義。`0`（成功）と `1`（エラー）の2値に統一し、定数ファイルから参照する形に変更する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/exit-codes.js` を新規作成し `EXIT_SUCCESS` (0) と `EXIT_ERROR` (1) を定義",
+      "`process.exitCode` / `process.exit()` の呼び出し箇所を定数参照に置換",
+      "`forge.js` の `exitCode=2` を `EXIT_ERROR` (1) に統一"
+    ],
+    "out": [
+      "`flow-envelope.js` の `output()` — ok フィールドで 0/1 を自動決定する独自ロジック。定数化の対象外",
+      "`process.exit(0)` の成功パス — 可読性改善として `EXIT_SUCCESS` に置換できるが、本 spec では必須としない",
+      "終了コードの意味を3値以上に拡張すること"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "forge.js の exitCode=2 はなぜ 1 に統一するのか？",
+      "a": "呼び出し元（シェル、CI）は 0 か非0 かしか見ない。2 の意味が定義されておらず 1 との区別が有用でない。alpha 版ポリシーでシンプルさを優先。"
+    },
+    {
+      "q": "flow-envelope.js はなぜ対象外か？",
+      "a": "`output()` が JSON envelope の `ok` フィールドから自動的に exit code を決定する独自ロジック。定数を導入しても利点がない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

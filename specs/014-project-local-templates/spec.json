@@ -1,0 +1,64 @@
+{
+  "goal": "sdd-forge 自身のプロジェクトローカルテンプレート（`.sdd-forge/templates/`, `data/`）を作成する\n- README を、ユーザーがツールの機能・できることを直感的に理解できるレベルに改善する\n- 有名 CLI ツールの README パターンを参考に、クイックスタート・機能紹介・ワークフロー説明を充実させる\n- 作成後、汎用的な部分を node-cli テンプレートに移植する（別 spec）",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "node-cli テンプレートへの汎用化移植（別 spec）",
+      "docs 章の内容自体の書き直し（`@text` で生成済みの内容）",
+      "data/ カスタムモジュールの作成（sdd-forge 自身は node-cli preset で十分）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`.sdd-forge/templates/ja/docs/README.md` が `@extends` で cli テンプレートを継承する"
+    },
+    {
+      "id": "R2",
+      "desc": "`sdd-forge readme` で生成した README が有名 CLI ツール並みの情報密度を持つ"
+    },
+    {
+      "id": "R3",
+      "desc": "インストール方法が npm/yarn/pnpm の3種示される"
+    },
+    {
+      "id": "R4",
+      "desc": "主要コマンドの一覧が簡潔に示される"
+    },
+    {
+      "id": "R5",
+      "desc": "SDD ワークフローが図または手順で説明される"
+    },
+    {
+      "id": "R6",
+      "desc": "Claude Code との連携方法が示される"
+    }
+  ],
+  "acceptance_criteria": [
+    "`sdd-forge readme` で README.md が正常に生成される",
+    "README に Features, Quick Start, Commands, Workflow, Configuration のセクションがある",
+    "テストが全て pass する"
+  ],
+  "clarifications": [
+    {
+      "q": "README にバッジを入れるか？",
+      "a": "npm version バッジは入れる。CI バッジは CI 未設定なので不要"
+    },
+    {
+      "q": "重複章はどう整理するか？",
+      "a": "README テンプレートで表示する章リストで解決（章ファイル自体は変更しない）"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "バッジの種類 → npm version のみ"
+  ]
+}

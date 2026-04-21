@@ -1,0 +1,39 @@
+{
+  "goal": "flow skill テンプレートから git/gh の直接呼び出しを排除し、すべての外部コマンド操作を `sdd-forge flow get/set/run` コマンドに集約する。skill は設問の提示と結果の解釈に専念し、git/gh 操作は CLI 内部に閉じる。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "flow-resume テンプレートの変更（git/gh 依存なし）",
+      "`git rebase` の CLI 統合（worktree の注意事項として skill に残す）",
+      "flow run merge / cleanup の内部ロジック変更（finalize に移動するだけ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "resolve-context に副作用はあるか？",
+      "a": "ない。get は読み取り専用。git status 等の読み取りコマンドのみ。"
+    },
+    {
+      "q": "flow run finalize の commit メッセージはどう決めるか？",
+      "a": "flow state の request と spec タイトルから自動生成。AI の介入なし。"
+    },
+    {
+      "q": "flow run merge / cleanup の内部ロジックは消えるか？",
+      "a": "消えない。finalize.js が内部で同じロジックを呼ぶ。ファイルとして merge.js / cleanup.js は残し、registry と run.js のルーティングから外す。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

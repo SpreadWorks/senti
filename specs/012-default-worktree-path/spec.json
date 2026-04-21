@@ -1,0 +1,39 @@
+{
+  "goal": "worktree 作成時のデフォルトパスを `.sdd-forge/worktree/<branch-name>/` にする\n- `setup` 時にプロジェクトルートの `.gitignore` へ `.sdd-forge/` を追加する",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "worktree の削除・クリーンアップ機能",
+      "既存の明示的パス指定の動作変更（従来通り動作する）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge spec --title \"test\" --worktree` (パスなし) で `.sdd-forge/worktree/<branch>/` に worktree が作成される",
+    "`sdd-forge spec --title \"test\" --worktree /custom/path` で従来通り `/custom/path` に作成される",
+    "`sdd-forge setup` 後にプロジェクトルートの `.gitignore` に `.sdd-forge/worktree` が含まれる",
+    "既に `.sdd-forge/worktree` が `.gitignore` にある場合、重複追加されない"
+  ],
+  "clarifications": [
+    {
+      "q": "`--worktree` にパスが指定された場合の動作は？",
+      "a": "従来通り指定パスを使用する。デフォルトパスは引数なしの場合のみ。"
+    },
+    {
+      "q": "`.sdd-forge/worktree` が既に `.gitignore` にある場合は？",
+      "a": "重複追加しない（`.tmp` と同じロジック）。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

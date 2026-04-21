@@ -1,0 +1,71 @@
+{
+  "goal": "preset システムを拡張し、異なる軸（framework, platform, database 等）の preset を\n1つのプロジェクトで組み合わせられるようにする。\n例: `type: [\"symfony\", \"postgres\"]`",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "実用 preset の充実（vercel, redis, supabase 等）",
+      "`config.lang` フィールドのリネーム",
+      "モノレポの scan パス分離・ディレクティブスコーピング（別 spec、ただしこの基盤で対応可能）",
+      "`php` / `node` 中間層の挿入（将来、php-cli / node-webapp が必要になったとき）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `type: \"symfony\"` が従来通り動作する（単一文字列の後方互換）",
+    "[ ] `type: [\"node-cli\", \"postgres\"]` が両チェーンを解決しマージされた docs を生成する",
+    "[ ] 親子重複除去が動作する: `type: [\"webapp\", \"symfony\"]` が `type: \"symfony\"` と同じ結果になる",
+    "[ ] 全 preset.json に `lang`, `axis` フィールドが存在しない",
+    "[ ] `resolveLangPreset()`, `resolveType()` がコードベースに存在しない",
+    "[ ] ディレクティブパーサーが `preset.source.method` 3部構成を処理できる",
+    "[ ] 全 preset テンプレートが新ディレクティブ構文を使用している",
+    "[ ] 合成テンプレートが `.sdd-forge/templates/` に書き込まれる",
+    "[ ] 既存テストが通る（リネームされた preset に合わせて更新）",
+    "[ ] 複数 preset 組み合わせの E2E テストが通る"
+  ],
+  "clarifications": [
+    {
+      "q": "`axis` フィールドをロード順の決定に使うべきか？",
+      "a": "いいえ。`axis` は廃止。ロード順は type 配列の順序、チェーン内は parent チェーン順。"
+    },
+    {
+      "q": "`requires` フィールドで依存を自動解決すべきか？",
+      "a": "いいえ。依存は parent チェーンで表現する。ユーザーは使う技術を指定し、システムがチェーンを解決する。"
+    },
+    {
+      "q": "組み合わせ preset 間のコード重複（例: php-webapp と将来の php-cli で PHP ロジック重複）はどうするか？",
+      "a": "必要になったら層を追加する（`base → php → php-webapp → symfony`）。今は `php-webapp` で十分。"
+    },
+    {
+      "q": "モノレポはどう対応するか？",
+      "a": "type 配列のエントリが増えるだけ。解決の仕組みは同一。"
+    },
+    {
+      "q": "複数チェーンで同名段落がある場合は？",
+      "a": "後のチェーンの内容を同じ段落に追記する。"
+    },
+    {
+      "q": "片方のチェーンにしかない段落は？",
+      "a": "AI が適切な挿入位置を決定する。"
+    },
+    {
+      "q": "`{{text}}` ディレクティブも構文変更するか？",
+      "a": "しない。`{{text}}` は AI へのプロンプト指示であり、特定 preset にスコープする必要がない。"
+    },
+    {
+      "q": "既存プロジェクトの移行は？",
+      "a": "alpha 版ポリシーにより後方互換不要。`type: \"webapp/cakephp2\"` → `type: \"cakephp2\"` に書き換え。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "（なし — ドラフトフェーズで全て解決済み）"
+  ]
+}

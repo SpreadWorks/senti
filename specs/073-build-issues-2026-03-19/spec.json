@@ -1,0 +1,46 @@
+{
+  "goal": "build パイプラインの出力品質を改善する。テンプレート構造の破壊（B1）、README 章順序の誤り（B3）、概要文の装飾残り（B4）を修正し、data が null の場合にセクションごと非表示にする header/footer 機能（I1）を追加する。加えてテンプレートタイトルの汎用化（I5/I6）を行う。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "I2: モノレポでの対象アプリケーション表示",
+      "I3: 章間ナビゲーションリンク",
+      "I4: CI/CD プリセット新設",
+      "I8: テンプレートの text 過多（DataSource 順次追加）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`npm test` が全件パスする",
+    "`sdd-forge review` で B1 由来の residualBlock / exposedDirective が検出されない",
+    "I1: header/footer 付き data ディレクティブで data=null → header/footer がコメント化",
+    "I1: header/footer 付き data ディレクティブで data=value → header, data, footer が正しく表示",
+    "I1: header/footer なしの data ディレクティブ → 従来通りの動作",
+    "B3: README の章テーブルが preset chapters 順",
+    "B4: README の章テーブル概要文に `**` 等が含まれない"
+  ],
+  "clarifications": [
+    {
+      "q": "B1 はアルゴリズム修正（stripBlockDirectives を賢くする）とテンプレート修正どちらか？",
+      "a": "テンプレート修正（方針 A）。テンプレートは全て我々が管理しており、見出しを @block 内に含める方がシンプルで正しい。"
+    },
+    {
+      "q": "I1 の header/footer は両方必須か？",
+      "a": "いずれも任意。必要なときだけ設定する。"
+    },
+    {
+      "q": "I5/I6 の対象テンプレートはドラフト時に列挙するか？",
+      "a": "実装時に洗い出して修正する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

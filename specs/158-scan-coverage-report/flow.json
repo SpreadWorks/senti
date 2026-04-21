@@ -129,25 +129,71 @@
   "issue": 113,
   "request": "scan がプロジェクト全体の何%のファイルをカバーしているかを可視化する機能",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "docsRead": 1,
-      "srcRead": 1,
-      "question": 4
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1,
-      "issueLog": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "カバレッジ定義: 両方（src全ファイルvsincludeマッチ、includeマッチvsDataSource解析）",
-    "出力: sdd-forge check scan + checkディスパッチャ骨格。freshness/configは別spec",
-    "出力: --format text|json|md (default text)。未カバーファイルはデフォルト10件、超過時は--listを案内。textレイアウトはflow report(pushSection/formatText)と共通化。共通モジュール src/lib/formatter.js 等に抽出",
-    "全ファイル除外: scan.exclude + デフォルト除外(node_modules/.git/dist/*.lock)"
+    {
+      "taskId": null,
+      "text": "カバレッジ定義: 両方（src全ファイルvsincludeマッチ、includeマッチvsDataSource解析）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "出力: sdd-forge check scan + checkディスパッチャ骨格。freshness/configは別spec",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "出力: --format text|json|md (default text)。未カバーファイルはデフォルト10件、超過時は--listを案内。textレイアウトはflow report(pushSection/formatText)と共通化。共通モジュール src/lib/formatter.js 等に抽出",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "全ファイル除外: scan.exclude + デフォルト除外(node_modules/.git/dist/*.lock)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 0,
@@ -158,5 +204,7 @@
   "requestChars": 39,
   "state": {
     "finalizedAt": "2026-04-08T09:17:53.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

@@ -1,0 +1,35 @@
+{
+  "goal": "プリセットテンプレートの汎用的な改善をまとめて実施する。英語テンプレートの追加、`docs.chapters()` DataSource の修正、テンプレートへの `{{data}}` ディレクティブ導入。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "プロジェクトローカルテンプレート（`.sdd-forge/templates/en/`）の追加（固有対応）",
+      "`configuration.md` への config スキーマ `{{data}}` 導入（DataSource が複雑になるため別 spec）",
+      "`project.dependencies()` / `project.testEnv()` DataSource の追加（別 spec）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `sdd-forge init --type node-cli` で英語の章ファイルが正しく生成される",
+    "[ ] `sdd-forge readme` で README の章テーブルにタイトルと説明文が正しく表示される",
+    "[ ] `{{data: project.scripts}}` が package.json の scripts をテーブルで出力する",
+    "[ ] `{{data: project.description}}` が package.json の description を出力する",
+    "[ ] 既存テストが壊れない"
+  ],
+  "clarifications": [
+    {
+      "q": "英語テンプレートは日本語テンプレートの翻訳か、base テンプレートの拡張か？",
+      "a": "base テンプレートの `@extends` を使い、node-cli 固有のセクション/プロンプトを英語で追加する。日本語テンプレートと同じ構造。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

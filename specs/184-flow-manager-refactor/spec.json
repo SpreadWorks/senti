@@ -1,0 +1,65 @@
+{
+  "goal": "`src/lib/flow-state.js` の状態管理機能を Container 配下のサービス (`container.flowManager`) に統合し、現状バイパスされている Container キャッシュを実態として有効化する。CLI 出力・flow.json スキーマ・.active-flow フォーマットなど外部から観測できる振る舞いは一切変更しない。",
+  "background": "",
+  "scope": {
+    "in": [
+      "状態管理機能の Container サービス化 (`container.flowManager`)",
+      "全呼び出し側 (production code 22 ファイル) を新 API に書換",
+      "全テスト (~20 ファイル) を新 API に書換",
+      "pure helper (`derivePhase`, `FLOW_STEPS`, `PHASE_MAP`, `getSpecName`, `buildInitialSteps`, `specIdFromPath` 等の純粋関数) はモジュール export として残置",
+      "`workRoot` 引数の全廃 (Container.paths から内部解決)"
+    ],
+    "out": [
+      "CLI コマンド出力フォーマットの変更",
+      "flow.json / .active-flow / preparing flow ファイルのスキーマ変更",
+      "並行 flow の新機能追加 (既存挙動は維持)",
+      "別 storage backend (SQLite 等) への移行",
+      "サブクラス個別のユニットテスト追加 (内部分割は実装詳細扱い)",
+      "追加のキャッシュ層導入 (Container 既存解決結果で十分)"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "**AC1 (R1, R3)**: `grep -r \"from .*lib/flow-state\" src/` の結果が pure helper 用モジュール (`derivePhase`, `FLOW_STEPS` 等を提供する単一モジュール) のみを参照する状態になっている。状態管理関数を直接 import する箇所はゼロ。",
+    "**AC2 (R2)**: 新 API のメソッドシグネチャに `workRoot` 引数が一切現れない。",
+    "**AC3 (R3)**: 旧 `flow-state.js` の全 public export (`loadFlowState`, `saveFlowState`, `mutateFlowState`, `clearFlowState`, `loadActiveFlows`, `addActiveFlow`, `removeActiveFlow`, `cleanStaleFlows`, `scanAllFlows`, `resolveActiveFlow`, `createPreparingFlow`, `loadPreparingFlow`, `deletePreparingFlow`, `listPreparingFlows`, `cleanStalePreparingFlows`, `resolvePreparingInputs`, `generateRunId`, `resolveByRunId`, `updateStepStatus`, `setRequirements`, `setTestSummary`, `updateRequirement`, `setRequest`, `setIssue`, `addNote`, `saveFinalizedAt`, `accumulateAgentMetrics`, `incrementMetric`, `flowStatePath`, `resolveWorktreePaths`) が新 API 上で同等に呼び出せる。",
+    "**AC4 (R4)**: `node tests/run.js` が全 pass する。テスト本体の期待値変更はない (API 呼び出し形式のみ書換)。",
+    "**AC5 (R5)**: ファサード (`flowManager`) はモジュール構造上、責務別の複数クラスに内部分割されている。外部からは単一の `container.get(\"flowManager\")` のみが観測可能。",
+    "**AC6 (R6)**: pure helper はサービス本体とは別モジュールに分離され、`container` を介さずに import 可能。",
+    "**AC7 (R7)**: `sdd-forge flow set step` などの mutation を 1 コマンド内で複数回呼ぶシナリオで、`isInsideWorktree` / `getMainRepoPath` が複数回 spawn されない (Container 解決済み値を参照する)。"
+  ],
+  "clarifications": [
+    {
+      "q": "範囲は段階分割か一括か?",
+      "a": "一括。alpha 期間で後方互換不要、Container 化は途中状態に意味がない、22 ファイルの書換は機械的で一括が安全。"
+    },
+    {
+      "q": "Container での公開形式はファサードか個別公開か?",
+      "a": "ファサード。`container.get(\"flowManager\")` のみ公開、内部分割の自由度を将来も保持する。"
+    },
+    {
+      "q": "「git 呼び出しキャッシュ」とは何を指すか?",
+      "a": "新規キャッシュ層を足すことではなく、Container にすでに寄せられている `inWorktree` / `mainRoot` 解決結果を実際に使うこと。`workRoot` 引数削除によって `paths.root` 経由になり、git 再解決が自然に消える。"
+    },
+    {
+      "q": "既存テストはどう扱うか?",
+      "a": "全テストを同 PR 内で新 API に書き換え。互換シムは alpha ポリシー違反。"
+    },
+    {
+      "q": "サブクラス個別のユニットテストを追加するか?",
+      "a": "追加しない。既存テストが振る舞いをカバーしており、内部分割の単体テストは実装詳細に結合し将来の再分割を阻害する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "内部サブクラスの正確な命名: `FlowStore` (flow.json I/O), `ActiveFlowRegistry` (.active-flow), `PreparingFlowStore` (preparing flow) を採用。`FlowManager` がファサード。",
+    "テストファイル名のリネーム: 該当する場合のみ `flow-state-*.test.js` → `flow-manager-*.test.js` にリネームする。"
+  ]
+}

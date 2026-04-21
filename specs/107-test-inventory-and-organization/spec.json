@@ -1,0 +1,44 @@
+{
+  "goal": "テストの配置ルールを flow-plan スキルに明文化し、spec 検証テスト 9 件を `specs/<spec>/tests/` に移動することで、`tests/` を正式テストのみにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/templates/skills/sdd-forge.flow-plan/SKILL.md` のテストフェーズにテスト配置の分類基準を追記する",
+      "精査済み 9 件のテストファイルを `tests/` から `specs/<spec>/tests/` に移動する"
+    ],
+    "out": [
+      "`tests/` 内の spec 番号プレフィックス付きファイル名のリネーム（正式テストとして残すものの名前変更はしない）",
+      "`npm test:spec` のような新規コマンド追加",
+      "テストの内容修正（移動のみ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "flow-plan スキルのテストフェーズに「テストを `tests/` に置くか `specs/<spec>/tests/` に置くか」の判断基準が記載されていること",
+    "9 件のテストが `specs/<spec>/tests/` に移動されていること",
+    "`npm test` が PASS すること（移動したテストは含まれない）"
+  ],
+  "clarifications": [
+    {
+      "q": "テスト配置の分類基準はどこに書くか？",
+      "a": "flow-plan スキル (SKILL.md) のテストフェーズ。sdd-forge 全プロジェクト共通ルールなので CLAUDE.md ではなくスキルに記載する。"
+    },
+    {
+      "q": "`npm test:spec` は必要か？",
+      "a": "不要。spec テストは実装中に `node --test specs/<spec>/tests/*.test.js` で直接実行すれば十分。"
+    },
+    {
+      "q": "`tests/` に残る spec 番号付きテスト（043-, 090- 等）はどうするか？",
+      "a": "精査の結果、公開 API の契約テストとして価値があるため `tests/` に残す。プレフィックス除去もリスクが高いため行わない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

@@ -137,68 +137,146 @@
   "issue": 197,
   "worktree": true,
   "request": "flow finalize の自動 commit が 'chore: add retro and report' で固定化されている問題を修正する",
-  "metrics": {
-    "plan": {
-      "docsRead": 1,
-      "srcRead": 2
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 4
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 31277,
-        "output": 5054,
-        "cacheRead": 96896,
-        "cacheCreation": 0
-      },
-      "callCount": 5,
-      "responseChars": 9736,
-      "durationMs": 121024
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 6452,
-        "output": 953,
-        "cacheRead": 19072,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 2439,
-      "durationMs": 22145
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 12955,
-        "output": 950,
-        "cacheRead": 38144,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2019,
-      "durationMs": 30675
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 9736,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "task-impl": {
-      "gateRetry": 0
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 121024,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 52682,
-        "output": 1841,
-        "cacheRead": 27392,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3500,
-      "durationMs": 49314
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 2439,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 22145,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 2019,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 30675,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3500,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 49314,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft Q1: retro/report commit のスコープ汚染として修正する方針（[1]採用）",
-    "draft Q2: stage 範囲は specs/<specId>/ 配下のみ",
-    "draft Q3: 残余の未コミット変更は放置。警告出さない",
-    "draft Q4: テストはソース正規表現検査",
-    "finalize: auto-select mode=all, PR route expected (gh available)"
+    {
+      "taskId": null,
+      "text": "draft Q1: retro/report commit のスコープ汚染として修正する方針（[1]採用）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q2: stage 範囲は specs/<specId>/ 配下のみ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q3: 残余の未コミット変更は放置。警告出さない",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q4: テストはソース正規表現検査",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: auto-select mode=all, PR route expected (gh available)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "autoApprove": true,
   "test": {

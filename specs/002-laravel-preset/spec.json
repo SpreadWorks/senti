@@ -1,0 +1,43 @@
+{
+  "goal": "Laravel 8+ プロジェクトに対して `sdd-forge scan` → `init` → `data` → `text` のパイプラインを動作させる\n- CakePHP2 プリセットと同等の解析精度・ドキュメント品質を実現する",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "Laravel バージョン別の分岐（8/9/10/11 を単一プリセットで対応）",
+      "Livewire / Inertia.js 固有の解析",
+      "英語テンプレート（`locale/en/`）— 後続タスクとする",
+      "Blade テンプレートの詳細解析（コンポーネント・ディレクティブ等）",
+      "フロントエンド（Vite / Mix）の詳細解析"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge scan` が Laravel プロジェクトの analysis.json を正常に生成する",
+    "`sdd-forge init` が Laravel テンプレートで docs/ を初期化する",
+    "`sdd-forge data` が @data ディレクティブを resolver で正常に解決する",
+    "既存の CakePHP2 プリセット・テストに regression がない",
+    "`npm test` で新規テストが全て PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "Laravel のバージョン差異（8〜11）はどう扱うか？",
+      "a": "単一プリセットで対応。Models ディレクトリは `app/Models/`（8+）を前提とし、`app/` 直下のモデルも fallback で検出する。"
+    },
+    {
+      "q": "routes ファイルは web.php と api.php の両方を対象とするか？",
+      "a": "はい。両方を解析し、routeType (web/api) でタグ付けする。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

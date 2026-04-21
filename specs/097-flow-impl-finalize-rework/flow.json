@@ -141,12 +141,36 @@
   "worktree": true,
   "request": "Task 03: flow-impl/finalize rework - review方針3択、指摘1件ずつ、impl-confirm、finalize context解決強化、merge/cleanup分岐安定化",
   "notes": [
-    "draft: impl最終確認を承認/概要確認/詳細確認/その他に変更。flow run impl-confirm使用",
-    "draft: review方針3択(自動改善/レビューのみ/しない)。レビューのみ選択時のみ1件ずつ提示。自動改善は現行通り一括",
-    "draft: finalize開始時にflow get resolve-contextでパス確定。mainRepoPath/worktreePathを以後の全操作で使用",
-    "draft: finalize.mode のchoiceにdescription追加。prompt.jsを更新",
-    "draft: merge/cleanupの分岐判断をCLI側(flow run merge/cleanup)に寄せる。skillは結果を使って次の行動を決めるだけ",
-    "draft: prompt更新 impl.review-mode(自動改善/レビューのみ/しない), impl.confirmation(承認/概要/詳細/その他), finalize.mode(description追加)"
+    {
+      "taskId": null,
+      "text": "draft: impl最終確認を承認/概要確認/詳細確認/その他に変更。flow run impl-confirm使用",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: review方針3択(自動改善/レビューのみ/しない)。レビューのみ選択時のみ1件ずつ提示。自動改善は現行通り一括",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: finalize開始時にflow get resolve-contextでパス確定。mainRepoPath/worktreePathを以後の全操作で使用",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: finalize.mode のchoiceにdescription追加。prompt.jsを更新",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: merge/cleanupの分岐判断をCLI側(flow run merge/cleanup)に寄せる。skillは結果を使って次の行動を決めるだけ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: prompt更新 impl.review-mode(自動改善/レビューのみ/しない), impl.confirmation(承認/概要/詳細/その他), finalize.mode(description追加)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 3,
@@ -154,13 +178,19 @@
     "impl": 0
   },
   "redoCount": 0,
-  "metrics": {
-    "draft": {
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "requestChars": 107,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

@@ -127,40 +127,74 @@
   "issue": 143,
   "request": "mysqlプリセットのguardrailを強化する。MySQL/InnoDB固有のguardrailをmysqlプリセットに、RDBMS共通のguardrailをwebappプリセットに追加する",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "docsRead": 1,
-      "question": 4
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "callCount": 5,
-      "responseChars": 5690,
-      "tokens": {
-        "input": 66692,
-        "output": 3624,
-        "cacheRead": 14848,
-        "cacheCreation": 0
-      }
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1,
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 118023,
-        "output": 2285,
-        "cacheRead": 44928,
-        "cacheCreation": 0
-      },
-      "callCount": 5,
-      "responseChars": 4619
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 5690,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 4619,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "state": {
     "finalizedAt": "2026-04-14T02:52:29.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

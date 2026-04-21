@@ -111,57 +111,115 @@
   "issue": 142,
   "request": "sdd-forge upgrade で sdd-forge.exp.workflow スキルがインストールされないバグを修正。upgrade.js の experimental スキルテンプレートパスを PKG_DIR 基準に変更する。",
   "worktree": true,
-  "metrics": {
-    "draft": {
-      "srcRead": 2,
-      "question": 2
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 2,
-        "output": 589,
-        "cacheRead": 11924,
-        "cacheCreation": 9539
-      },
-      "cost": 0.04818945000000001,
-      "callCount": 1,
-      "responseChars": 1069
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 2,
-        "output": 569,
-        "cacheRead": 11924,
-        "cacheCreation": 9867
-      },
-      "cost": 0.049119449999999995,
-      "callCount": 1,
-      "responseChars": 1098
+    {
+      "phase": "gate-draft",
+      "counter": "cost",
+      "value": 0.04818945000000001,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "callCount": 1,
-      "responseChars": 0
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 1069,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 34177,
-        "output": 1072,
-        "cacheRead": 6912,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 1290
+    {
+      "phase": "gate",
+      "counter": "cost",
+      "value": 0.049119449999999995,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1098,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 1290,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: 影響範囲は upgrade.js:91 の1箇所のみ。PKG_DIR を import し expDir を PKG_DIR 基準に修正する方針で合意",
-    "draft: テストは specs/<spec>/tests/ に配置。expDir が PKG_DIR 基準で解決されることを検証"
+    {
+      "taskId": null,
+      "text": "draft: 影響範囲は upgrade.js:91 の1箇所のみ。PKG_DIR を import し expDir を PKG_DIR 基準に修正する方針で合意",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: テストは specs/<spec>/tests/ に配置。expDir が PKG_DIR 基準で解決されることを検証",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "autoApprove": true,
   "state": {
     "finalizedAt": "2026-04-13T15:15:34.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

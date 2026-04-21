@@ -1,0 +1,108 @@
+{
+  "goal": "gate-impl のテスト変更機械判定（spec 201 導入の `checkTestChanges`）に、spec 作者が明示的に承認した既存テスト変更を FAIL 判定から除外する opt-in 機構を追加する。契約変更系 / リファクタ系 / バグ修正系 spec で正当に発生するテスト更新を通しつつ、spec 201 の防御性（テスト無効化攻撃の検出）は維持する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/lib/run-gate.js` の `checkTestChanges` に「承認済みファイル」を伝える経路を追加する。",
+      "`executeDiffBasedGate` の呼び出し側で spec.md から承認エントリを抽出し、`checkTestChanges` に渡す。",
+      "spec.md の `## Authorized Existing Test Modifications` セクションから承認エントリをパースする関数を新設する。エントリ構文は 1 行フラット箇条書き `` - `<path>` — <reason (40+ chars)>``。",
+      "task-impl と integration の両 phase で同じ仕様のバイパスを適用する。",
+      "パースエラー（reason 文字数不足、構文違反）は gate FAIL として明示する。",
+      "承認エントリが diff に該当変更を持たない場合は gate 結果に警告を付与する（gate 全体は PASS）。"
+    ],
+    "out": [
+      "AI ベースの guardrail 評価（`buildGuardrailPrompt` 等）への承認機構適用。",
+      "gate-draft / gate-spec phase での承認機構（対象は task-impl と integration のみ）。",
+      "lint / review phase の挙動変更。",
+      "retry 上限値の変更（別 issue 0280 で docs 整合は済ませた）。",
+      "新しい CLI サブコマンド追加。",
+      "spec.md テンプレートの skeleton 更新（承認セクションの雛形挿入）および skill 指示への書き方ガイダンス追加。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "**R1（P1）**: When spec 作者が既存テストファイルの変更を必要とする時、system shall `specs/<spec>/spec.md` の `## Authorized Existing Test Modifications` セクションに `- \\`<path>\\` — <reason>` 形式で「ファイルパス」と「理由テキスト（40 文字以上）」を記述することで、当該ファイルの既存行変更を gate-impl の FAIL 判定から除外できる。"
+    },
+    {
+      "id": "R2",
+      "desc": "**R2（P1）**: When gate-impl の `checkTestChanges` が実行される時、system shall spec.md から承認リストを抽出し、承認済みファイルのテスト hunk（`removed >= 1` や `added === 1 && removed === 0` 相当）を FAIL 判定から除外する。未承認ファイルの既存行変更は従来通り FAIL とする。"
+    },
+    {
+      "id": "R3",
+      "desc": "**R3（P2）**: When task-impl phase または integration phase の gate が実行される時、system shall R2 の承認機構を両 phase で同じ仕様で適用する。"
+    },
+    {
+      "id": "R4",
+      "desc": "**R4（P2）**: When 承認セクションのパースが実行される時、system shall エントリ構文違反や reason 40 文字未満のエントリを検出し gate FAIL として明示する。エラーメッセージは違反したエントリのパスと違反理由を含む。"
+    },
+    {
+      "id": "R5",
+      "desc": "**R5（P3）**: When spec.md の承認エントリが diff に該当変更を持たない時、system shall gate 結果に警告メッセージを含める（gate 全体は PASS）。警告メッセージは該当する未使用エントリのパスを含む。"
+    },
+    {
+      "id": "R6",
+      "desc": "**R6（P2）**: When `npm test` が実行される時、system shall 次のテストを通過する: - R6.1: 承認リスト空時は従来挙動と完全一致する（spec 201 既存テストが全 PASS）。 - R6.2: 承認リストに含まれるファイルの hunk は FAIL から除外される。 - R6.3: 承認リストに含まれないファイルの hunk は従来通り FAIL となる。 - R6.4: パース違反（reason 文字数不足、構文違反）を検出しエラーを返す。 - R6.5: 未使用エントリを検出し警告メッセージを返す。"
+    }
+  ],
+  "acceptance_criteria": [
+    "**AC-1 (R1, R2)**: `## Authorized Existing Test Modifications` セクションを持たない spec は gate-impl の挙動が従来と同一（spec 201 系の既存テストが全 PASS）。",
+    "**AC-2 (R1, R2)**: セクションを持ち、該当ファイルで既存行変更が発生する spec は gate-impl が PASS する。",
+    "**AC-3 (R2)**: 承認対象外のテストファイルで既存行変更が発生した場合は gate-impl が FAIL する。",
+    "**AC-4 (R3)**: AC-2 / AC-3 のシナリオが task-impl と integration の両 phase で同じ結果になる。",
+    "**AC-5 (R4)**: reason が 40 文字未満のエントリや構文違反のエントリが含まれる spec.md では gate-impl が FAIL し、失敗理由が違反内容を明示する。",
+    "**AC-6 (R5)**: 承認エントリが diff に該当変更を持たない場合、gate 結果に警告が含まれ、gate 全体は PASS する。",
+    "**AC-7 (R6)**: R6.1 〜 R6.5 の新規ユニットテストが `tests/unit/flow/` 配下に追加され、`npm test` で PASS する。"
+  ],
+  "clarifications": [
+    {
+      "q": "バイパス機構は issue 200 の 3 案 (A/B/C) のどれを採用するか。",
+      "a": "A（spec.md セクション宣言）。B は spec 201 の「構文解析に依存しない」原則と衝突、C は別 issue 0280 で対処済みかつ FP 自体は解消しない。"
+    },
+    {
+      "q": "承認粒度はファイル / 行範囲 / hunk 数のどれか。",
+      "a": "ファイル単位。gate retry で diff 行番号がずれるため行範囲方式は書き直し負担が大きい。"
+    },
+    {
+      "q": "エントリ構文と reason 下限。",
+      "a": "1 行フラット箇条書き `` - `<path>` — <reason>``、reason min 40 文字。"
+    },
+    {
+      "q": "適用 phase と未使用エントリの扱い。",
+      "a": "task-impl + integration 両 phase に適用。未使用エントリは gate 結果に警告のみ付与（gate 全体は PASS）。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**B",
+      "reason": "coverage 非減少判定**: テスト関数数や assertion 数の自動計測で「減っていなければ PASS」とする案。ユーザー申告なしに機械判定できる利点があるが、構文解析を要し spec 201 の設計原則と衝突する。「assertion を置換したが内容が無意味化する」攻撃を検出できない。"
+    },
+    {
+      "option": "**C",
+      "reason": "retry 上限引き上げ**: 上限を上げれば通るが、FP 自体は解消せず抑止も崩れる。別 issue 0280 でドキュメント整合は済ませたが、本件の解決策としては機能しない。"
+    },
+    {
+      "option": "**ファイル+行範囲 / hunk 数粒度**",
+      "reason": "gate retry で diff 行番号がずれるため、spec.md の書き直し負担が発生する。粒度の細かさに見合う価値がない。"
+    },
+    {
+      "option": "**構造化ブロック (JSON/YAML)**",
+      "reason": "spec.md 内に JSON/YAML を埋め込む表現は自然な markdown 文書から外れる。フラット箇条書きで十分な表現力が得られる。"
+    },
+    {
+      "option": "**AI に reason 妥当性を判定させる**",
+      "reason": "reason が文字数は満たすが内容が空虚な場合に AI 検証で救う案。本 spec では範囲外（機械判定のみでシンプルに保つ）。将来の拡張余地として残す。"
+    }
+  ],
+  "open_questions": [
+    "承認セクションのヘッダ文言は `## Authorized Existing Test Modifications` を採用する。別案が出た場合は実装時に判断する。",
+    "パース違反時のエラーメッセージ文言は実装時に確定する。"
+  ]
+}

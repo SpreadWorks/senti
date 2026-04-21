@@ -1,0 +1,75 @@
+{
+  "goal": "metrics / notes / issue-log / prompt logs の各エントリに `taskId` フィールドを統一的に持たせ、タスク横断分析を可能にする。現在 per-task に分岐保存されている metrics / notes を単一フラット構造（append-only エントリ配列）に統一する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`state.metrics` / `state.notes`（flow.json）を append-only エントリ配列へ刷新する",
+      "`state.tasks[].metrics` / `state.tasks[].notes`（per-task 分岐保存）を廃止する",
+      "issue-log（`specs/<spec>/issue-log.json`）の各エントリに `taskId` フィールドを追加する",
+      "prompt log（daily JSONL + per-request JSON）の各エントリに `taskId` フィールドを追加する",
+      "CLI `flow set metric` / `flow set note` / `flow set issue-log` に `--task-id <id>` オプションを追加する",
+      "active task 有無による taskId 自動推論を CLI 側で行う",
+      "`flow get status` は raw エントリ配列 + 集計済みビュー (`metricsSummary`) を返す",
+      "既存 consumers（QA 回数カウント、report 集計、gate/resume の notes 表示）を新構造に対応させる"
+    ],
+    "out": [
+      "既存ログファイル（過去の issue-log.json / JSONL）からのマイグレーション（alpha 版ポリシーにより後方互換なし、明示エラーで拒絶）",
+      "`flow get metrics --task-id X --phase impl` 等の新クエリサブコマンド（後続タスク）",
+      "docs の更新（`/sdd-forge.flow-sync` で別途同期）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`flow-store` の metrics/notes 書き込みが append-only 配列へのエントリ追加となり、per-task 保存が行われないことが unit テストで確認される。",
+    "`flow set metric`, `flow set note`, `flow set issue-log` の各 CLI が `--task-id` オプションを受け付け、active task 推論 / 明示指定 / 不明タスクエラーの 3 分岐が unit テストで網羅される。",
+    "Logger の agent / git / event が書き出す JSONL エントリに `taskId` が含まれることが unit テストで確認される。",
+    "`flow get status` が raw 配列 + `metricsSummary` を返すことが unit テストで確認される。",
+    "integration シナリオ: task 作成 → set metric (task scope) → completeTask → set metric (flow scope) → get status で、taskId の付与と集計が期待通りであることが確認される。",
+    "旧形式 flow.json 読み込み時にエラーで拒絶されることが unit テストで確認される。",
+    "全既存テストが新構造下で PASS する（テストコードは新構造対応のため刷新される。承認済み: draft Q5）。"
+  ],
+  "clarifications": [
+    {
+      "q": "metrics のデータモデルは？",
+      "a": "append-only イベント配列 `[{taskId, phase, counter, delta, ts}]`。根拠: issue #203 が「append-only」「flat 追記」明記。"
+    },
+    {
+      "q": "notes のデータモデルは？",
+      "a": "append-only 配列 `[{taskId, text, ts}]`。metrics と一貫。"
+    },
+    {
+      "q": "CLI の明示スコープ指定は？",
+      "a": "`--task-id <id>` のみ提供。省略時は active task 推論。"
+    },
+    {
+      "q": "read 側 API の形は？",
+      "a": "raw 配列 + 集計済みビュー `metricsSummary: { flow, tasks, total }` を併記。"
+    },
+    {
+      "q": "テスト戦略は？",
+      "a": "unit + integration（task 境界越えの invariant 検証のため）。"
+    },
+    {
+      "q": "旧形式 flow.json はどう扱う？",
+      "a": "明示エラーで拒絶（マイグレーションしない、alpha 版ポリシー）。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**metrics をスコープ別 counter map (`metrics[taskKey][phase][counter]`) に保つ案**",
+      "reason": "issue 本文の「append-only」「flat 追記」要件と乖離するため却下。"
+    },
+    {
+      "option": "**エントリ配列 + 集計キャッシュ併用案**",
+      "reason": "書き込み毎の整合維持コストが増え、読み取り時集計のコストは小さいため却下。"
+    }
+  ],
+  "open_questions": []
+}

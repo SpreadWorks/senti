@@ -1,0 +1,42 @@
+{
+  "goal": "flow-finalize の PR ルートで、spec.md の Goal / Requirements / Scope セクションから PR の title と body を構造的に自動生成する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/commands/merge.js` の `buildPrBody()` を拡張し、spec.md を読んで PR body を生成する",
+      "PR title を spec.md の Goal から生成する（現在は spec ディレクトリ名をそのまま使用）",
+      "spec.md が存在しない場合は現在の動作（request ベース）にフォールバック"
+    ],
+    "out": [
+      "squash merge ルートのコミットメッセージ変更（別途対応済み）",
+      "spec.md のフォーマット変更",
+      "finalize スキル（SKILL.md）の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "PR ルートで finalize した際、PR body に Goal / Requirements / Scope が含まれること",
+    "PR title が spec.md の Goal の1行目であること",
+    "issue が設定されていれば `fixes #N` が PR body の先頭に含まれること",
+    "spec.md が存在しない場合、現行動作（request ベース）で動作すること"
+  ],
+  "clarifications": [
+    {
+      "q": "PR body にどのセクションを含めるか？",
+      "a": "fixes #N（issue あれば）、Goal、Requirements、Scope の順。Out of Scope は含めない。"
+    },
+    {
+      "q": "PR title のフォーマットは？",
+      "a": "spec.md の Goal セクションの最初の行をそのまま使う。複数行の場合は1行目のみ。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

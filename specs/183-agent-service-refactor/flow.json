@@ -135,47 +135,71 @@
   "issue": 158,
   "request": "#158 issueを進める",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 6
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 78981,
-        "output": 6095,
-        "cacheRead": 103040,
-        "cacheCreation": 0
-      },
-      "callCount": 7,
-      "responseChars": 10095
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 7,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 26977,
-        "output": 1916,
-        "cacheRead": 26368,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3790
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 10095,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 764242,
-        "output": 9114,
-        "cacheRead": 95744,
-        "cacheCreation": 0
-      },
-      "callCount": 8,
-      "responseChars": 11190
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 2
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 3790,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 8,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 11190,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "autoApprove": true,
   "test": {
     "summary": {
@@ -183,9 +207,15 @@
     }
   },
   "notes": [
-    "implement: Provider/Registry/Agent クラス導入 + 19 src + 10 tests 移行"
+    {
+      "taskId": null,
+      "text": "implement: Provider/Registry/Agent クラス導入 + 19 src + 10 tests 移行",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "state": {
     "finalizedAt": "2026-04-17T10:26:47.421Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

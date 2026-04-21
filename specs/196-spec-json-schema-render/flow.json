@@ -131,58 +131,106 @@
   "issue": 181,
   "request": "#181 spec.json スキーマ + spec render コマンド導入 (cac6/T1)",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 6
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 23468,
-        "output": 3006,
-        "cacheRead": 52864,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 3225,
-      "durationMs": 67968
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 10967,
-        "output": 933,
-        "cacheRead": 14720,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1118,
-      "durationMs": 23980
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 3225,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 754929,
-        "output": 10206,
-        "cacheRead": 141312,
-        "cacheCreation": 0
-      },
-      "callCount": 10,
-      "responseChars": 14644,
-      "durationMs": 235614
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 67968,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 77100,
-        "output": 2030,
-        "cacheRead": 8960,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 4022,
-      "durationMs": 49080
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1118,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 23980,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 10,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 14644,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 235614,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 4022,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 49080,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "autoApprove": true,
   "test": {
     "summary": {
@@ -191,5 +239,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-19T22:25:33.241Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

@@ -109,35 +109,87 @@
   "issue": 133,
   "request": "flow set test-summary の保存パス(state.test.summary)と report 参照パス(state.metrics?.test?.summary)の不一致を修正する",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 2,
-      "question": 5,
-      "docsRead": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 2,
-        "output": 80,
-        "cacheRead": 11924,
-        "cacheCreation": 9360
-      },
-      "cost": 0.0398832,
-      "callCount": 1,
-      "responseChars": 314
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "cost",
+      "value": 0.0398832,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 314,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: Q1 - state.test.summary に統一。report 側の参照パスを修正する方針",
-    "draft: Q2 - docs は自動生成なので手動修正不要。コード修正のみ。他に修正箇所がないか調査する",
-    "draft: Q3 - 修正スコープ確定: report.js:126 の1箇所のみ。docs は自動再生成",
-    "draft: Q4 - テストは specs/169-fix-test-summary-path/tests/ に配置。スペック検証テスト",
-    "draft: Q5 - draft 承認"
+    {
+      "taskId": null,
+      "text": "draft: Q1 - state.test.summary に統一。report 側の参照パスを修正する方針",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q2 - docs は自動生成なので手動修正不要。コード修正のみ。他に修正箇所がないか調査する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q3 - 修正スコープ確定: report.js:126 の1箇所のみ。docs は自動再生成",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q4 - テストは specs/169-fix-test-summary-path/tests/ に配置。スペック検証テスト",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q5 - draft 承認",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "state": {
     "finalizedAt": "2026-04-13T05:25:38.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

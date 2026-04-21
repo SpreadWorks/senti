@@ -146,22 +146,42 @@
   "request": "git/gh コマンド実行の整理・共通化: execFileSync の直接呼び出しを共通ヘルパーに統合し、git/gh 状態取得関数を集約する",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 2
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "spec": {
-      "srcRead": 1
+    {
+      "phase": "spec",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 2
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: Issue #80 の提案をそのまま採用。runCmd/runCmdAsync/runCmdStreaming の3ヘルパー + git-helpers.js への集約"
+    {
+      "taskId": null,
+      "text": "draft: Issue #80 の提案をそのまま採用。runCmd/runCmdAsync/runCmdStreaming の3ヘルパー + git-helpers.js への集約",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 6,
@@ -172,5 +192,7 @@
   "requestChars": 72,
   "state": {
     "finalizedAt": "2026-04-04T08:09:59.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

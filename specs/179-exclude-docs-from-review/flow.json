@@ -123,49 +123,87 @@
   "issue": 152,
   "request": "#152 flow run review の diff 対象から docs/ と README.md を除外する",
   "worktree": true,
-  "metrics": {
-    "draft": {
-      "srcRead": 1,
-      "question": 4
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 50526,
-        "output": 2589,
-        "cacheRead": 22656,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 4427
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 4692,
-        "output": 723,
-        "cacheRead": 19072,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1513
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 414166,
-        "output": 4147,
-        "cacheRead": 67584,
-        "cacheCreation": 0
-      },
-      "callCount": 6,
-      "responseChars": 5556
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 4427,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1513,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 5556,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: Q1 = A (git diff args direct), diff整理は別issue",
-    "draft: Q2 = docs/, README.md, AGENTS.md, .sdd-forge/output/",
-    "draft: Q3 = A (fallback only)"
+    {
+      "taskId": null,
+      "text": "draft: Q1 = A (git diff args direct), diff整理は別issue",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q2 = docs/, README.md, AGENTS.md, .sdd-forge/output/",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q3 = A (fallback only)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "test": {
     "summary": {
@@ -174,5 +212,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-17T01:46:53.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

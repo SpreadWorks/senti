@@ -141,15 +141,31 @@
   "worktree": true,
   "issue": 26,
   "request": "Issue #26: flow skill から git/gh の直接実行を排除し、sdd-forge コマンドに集約する",
-  "metrics": {
-    "draft": {
-      "question": 4
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: 細切れにせず、設問結果をまとめてコマンドに渡し内部で一括処理。AIの判断回数を減らす",
-    "draft: merge現状維持。resolve-contextは読み取りのみ(get)。状態変更を伴うものはrunに",
-    "draft: flow run merge/cleanup削除、flow run finalizeに統合。alpha版ポリシー"
+    {
+      "taskId": null,
+      "text": "draft: 細切れにせず、設問結果をまとめてコマンドに渡し内部で一括処理。AIの判断回数を減らす",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: merge現状維持。resolve-contextは読み取りのみ(get)。状態変更を伴うものはrunに",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: flow run merge/cleanup削除、flow run finalizeに統合。alpha版ポリシー",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 6,
@@ -160,5 +176,7 @@
   "requestChars": 61,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

@@ -138,67 +138,131 @@
   "worktree": true,
   "request": "GitHub Issue #188 (cac6/T6): Migrate per-step guidance from SKILL.md (flow-plan/flow-impl/flow-finalize) to src/flow/prompts/<step>.md so next-action CLI can return them as markdown instructions. Includes i18n placement decision and T5 I/F agreement.",
   "notes": [
-    "draft-Q1: AI summary approved by user (development type=ENHANCE, scope=migrate step guidance from SKILL.md to src/flow/prompts/, i18n placement, T5 I/F agreement)",
-    "gate-impl: user manually marked done after retry budget exhausted; lint violations were Q9-approved test extension + REQ-11 architectural update (issue-log entries documented)"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+    {
+      "taskId": null,
+      "text": "draft-Q1: AI summary approved by user (development type=ENHANCE, scope=migrate step guidance from SKILL.md to src/flow/prompts/, i18n placement, T5 I/F agreement)",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 6
-    },
-    "gate-draft": {
-      "tokens": {
-        "input": 107850,
-        "output": 7679,
-        "cacheRead": 101120,
-        "cacheCreation": 0
-      },
-      "callCount": 8,
-      "responseChars": 18540,
-      "durationMs": 181102
-    },
-    "gate": {
-      "tokens": {
-        "input": 49034,
-        "output": 3299,
-        "cacheRead": 30848,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 7493,
-      "durationMs": 81432
-    },
-    "impl": {
-      "issueLog": 4
-    },
-    "task-impl": {
-      "gateRetry": 3
-    },
-    "gate-impl": {
-      "tokens": {
-        "input": 31103,
-        "output": 444,
-        "cacheRead": 3456,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 386,
-      "durationMs": 14329
-    },
-    "review": {
-      "tokens": {
-        "input": 98184,
-        "output": 1973,
-        "cacheRead": 19968,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3097,
-      "durationMs": 51506
+    {
+      "taskId": null,
+      "text": "gate-impl: user manually marked done after retry budget exhausted; lint violations were Q9-approved test extension + REQ-11 architectural update (issue-log entries documented)",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 6,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 8,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 18540,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 181102,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 7493,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 81432,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 386,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 14329,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3097,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 51506,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {

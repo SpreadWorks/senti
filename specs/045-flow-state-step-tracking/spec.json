@@ -1,0 +1,64 @@
+{
+  "goal": "SDD フローの進捗状態を永続化し、会話が途切れても現在のステップと実装項目の状況を復帰できるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`flow-state.js`: `current-spec` → `flow.json` にリネーム、steps / requirements フィールド追加",
+      "`flow.js`: DIRECT_COMMAND → サブコマンドディスパッチャー化（`start` / `status`）",
+      "`status` サブコマンド: 表示・ステップ更新・requirements 管理",
+      "スキル（SKILL.md）3ファイルの更新",
+      "`specs/commands/init.js`: `flow.json` への書き込み形式変更（steps 初期化含む）"
+    ],
+    "out": [
+      "フロー状態の自動復元（AI が自動的に途中から再開する仕組み）",
+      "Web UI やダッシュボード",
+      "複数フローの並行管理"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`sdd-forge flow status` でステップ一覧と各 status が表示される",
+    "`sdd-forge flow status --step gate --status done` でステップが更新される",
+    "`sdd-forge flow status --req 0 --status done` で requirement 項目が更新される",
+    "`sdd-forge flow start \"...\"` で従来の flow 機能が動作する",
+    "close 後に `specs/NNN-xxx/flow.json` に履歴が残る",
+    "既存テストが壊れない"
+  ],
+  "clarifications": [
+    {
+      "q": "ステップ粒度は？",
+      "a": "sdd-flow-start の全10ステップ（approach, branch, spec, draft, fill-spec, approval, gate, test, implement, finalize）"
+    },
+    {
+      "q": "サマリーの形式は？",
+      "a": "spec.md の Requirements から抽出した項目リスト。各項目に status を持たせる"
+    },
+    {
+      "q": "ステータスの値は？",
+      "a": "steps: pending / in_progress / done / skipped。requirements: pending / in_progress / done"
+    },
+    {
+      "q": "ステータス更新の責務は？",
+      "a": "スキル（SKILL.md）に指示を追加し、AI が CLI を呼び出して更新"
+    },
+    {
+      "q": "ファイル名は？",
+      "a": "`current-spec` → `flow.json`。close 時に spec フォルダに移動して履歴保存"
+    },
+    {
+      "q": "コマンド体系は？",
+      "a": "`sdd-forge flow start \"<要望>\"` / `sdd-forge flow status [options]`"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "requirements の `--summary` で渡す JSON 形式 → strings の配列。CLI 側で `{ desc, status: \"pending\" }` に変換する"
+  ]
+}

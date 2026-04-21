@@ -1,0 +1,58 @@
+{
+  "goal": "各章の末尾に前後の章へのナビゲーションリンクを自動生成する\n- layout テンプレートを導入し、全章共通の要素（langSwitcher, nav）を一箇所で管理する\n- `@extends: <name>` 構文で別名ファイルの継承をサポートする",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "README.md のナビゲーション（README は章ではない）",
+      "翻訳言語ディレクトリ（docs/{lang}/）内のナビゲーション（translate で自動生成）",
+      "layout.md に nav/langSwitcher 以外の共通要素を追加すること"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `sdd-forge init` で生成された章ファイルの末尾にナビゲーションリンクが含まれる",
+    "[ ] ナビゲーションリンクが chaptersOrder の順序に従っている",
+    "[ ] 最初の章は「次の章 →」のみ、最後の章は「← 前の章」のみ表示される",
+    "[ ] `sdd-forge data` で `docs.nav` ディレクティブが正しく解決される",
+    "[ ] langSwitcher が layout.md 経由で各章の先頭に表示される（従来と同じ出力）",
+    "[ ] 既存の `@extends`（引数なし）が引き続き動作する",
+    "[ ] `sdd-forge review` がエラーなく通る",
+    "[ ] 既存テストが全て通る"
+  ],
+  "clarifications": [
+    {
+      "q": "出力形式は？",
+      "a": "シンプルなテキストリンク `← 前の章 | 次の章 →`"
+    },
+    {
+      "q": "配置位置は？",
+      "a": "章の末尾のみ"
+    },
+    {
+      "q": "目次リンクは必要か？",
+      "a": "不要。前後リンクのみ"
+    },
+    {
+      "q": "テンプレートへの配置方法は？",
+      "a": "layout.md を導入し、全章テンプレートを `@extends: layout` で包む"
+    },
+    {
+      "q": "layout の preset チェーンは？",
+      "a": "通常のテンプレートと同じ継承チェーン（base → arch → leaf）で解決"
+    },
+    {
+      "q": "最初/最後の章の扱いは？",
+      "a": "リンクなしの部分は省略（最初の章は `次の章 →` のみ、最後は `← 前の章` のみ）"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

@@ -145,52 +145,98 @@
   "issue": 196,
   "request": "#196 spec 201 gate-impl 改善の integration test 不足 (5 項目の配線検証)",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 3
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 136007,
-        "output": 7804,
-        "cacheRead": 44800,
-        "cacheCreation": 0
-      },
-      "callCount": 7,
-      "responseChars": 15988,
-      "durationMs": 179325
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 7,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 51442,
-        "output": 5864,
-        "cacheRead": 83584,
-        "cacheCreation": 0
-      },
-      "callCount": 5,
-      "responseChars": 13060,
-      "durationMs": 149867
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 15988,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 99399,
-        "output": 1876,
-        "cacheRead": 27392,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3759,
-      "durationMs": 45683
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 179325,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 13060,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 149867,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3759,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 45683,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "draft: tests to tests/e2e/flow/, stub agent via helpers, CLI subprocess, single file 5 cases, ESCALATE verified by err.code symbol match"
+    {
+      "taskId": null,
+      "text": "draft: tests to tests/e2e/flow/, stub agent via helpers, CLI subprocess, single file 5 cases, ESCALATE verified by err.code symbol match",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "autoApprove": true,
   "test": {

@@ -1,0 +1,70 @@
+{
+  "goal": "addition origin の自律 draft 生成経路を scaffold 品質から production 品質へ引き上げる。具体的には次の 3 点を確立する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/lib/run-draft-task.js`: - `simpleGate()` の削除。 - retry ループ内で `RunGateCommand` を同プロセス内で呼び出し、`phase: \"task-spec\"` で draft を評価する。 - `buildDraftPrompt(task, context, reasons)` に `reasons` 第 3 引数を追加し、非空時のみ `## Previous attempt failed — reasons` セクションを prompt 末尾（Rules セクション直前）に挿入する。 - 本関数を module から export し、unit test から直接検証可能にする。 - retry 時、直前の attempt の gate `reasons` を次回 prompt に渡す。",
+      "`src/templates/skills/sdd-forge.flow-impl/SKILL.md`: - Required Sequence の先頭付近（既存の step 1 の前）に「Step 0: Addition task detection」を追加し、`tasks[]` 中に origin=addition かつ draft step 未完了のタスクがある場合に `sdd-forge flow run draft-task --task-id <id>` を呼ぶ手続きを明記する。 - 既存の \"Addition task draft (tool-driven)\" セクションの説明を新手順への参照に差し替える。",
+      "tests: - unit test `tests/unit/flow/run-draft-task.test.js`（新規または既存ファイルへ追加）で、`buildDraftPrompt` の reasons 有無分岐、retry ループの FAIL→PASS 遷移、`agent.resolve(\"flow.draft-task\")` の default fallback 動作を検証する。"
+    ],
+    "out": [
+      "`agent.resolve()` の未登録 commandId 警告ロジック追加。",
+      "`task-spec` phase gate 本体（`run-gate.js`）のロジック変更。",
+      "`src/presets/*/config.json` 等の default `agent.providers` テンプレート更新。",
+      "既存 `SDD_FORGE_AGENT_STUB` 経路の削除。",
+      "`flow.draft-task` 以外の commandId 経路への同様の配線適用。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`SDD_FORGE_AGENT_STUB` 無しで `flow run draft-task` が実 provider 経由で draft を生成し、task-spec gate PASS で承認される経路が存在する。",
+    "stub 経路で FAIL→PASS シーケンスを与えたとき、2 回目の `buildDraftPrompt` 呼び出しに 1 回目の reasons が含まれ、`attempts === 2` で PASS する。",
+    "`flow-impl` SKILL.md の Required Sequence を読むだけで addition task 処理手順が追える。",
+    "`buildDraftPrompt(task, context, null)` と `buildDraftPrompt(task, context, [{verdict:\"FAIL\",detail:\"...\"}])` のプロンプト差分が、末尾の `## Previous attempt failed — reasons` セクションの有無のみである。",
+    "`simpleGate` のソース上の参照が消え、既存テストが全て PASS する。"
+  ],
+  "clarifications": [
+    {
+      "q": "gate 呼び出しは同プロセス内か別プロセス (spawn) か?",
+      "a": "同プロセス内（`RunGateCommand.execute(ctx)` を直接呼ぶ）。既存 FlowCommand 全体が `container.get` で依存解決する統一パターンに従う。"
+    },
+    {
+      "q": "FAIL reasons をどう prompt に組み込むか?",
+      "a": "retry 時のみ `## Previous attempt failed — reasons` 専用セクションを追加。初回 prompt は現状維持。恒常 Rules との混在を避ける。"
+    },
+    {
+      "q": "agent profile に `flow.draft-task` を明示登録するか?",
+      "a": "登録しない。`matchProfilePrefix` が最長一致ヒットなしで `agent.default` にフォールバックする既存実装に委ねる。unit test で非 null 解決を検証するのみ。"
+    },
+    {
+      "q": "skill テンプレートの更新範囲は?",
+      "a": "Required Sequence に手続き的ステップを追加する。既存の方針テキストは新ステップへの参照に置き換える。"
+    },
+    {
+      "q": "FAIL reasons 伝播のテスト方式は?",
+      "a": "`buildDraftPrompt` を export し unit test で直接検証する。stub 経路の入出力契約は変更しない。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**別プロセス経由での gate 呼び出し (`spawnSync(\"sdd-forge\", [\"flow\", \"run\", \"gate\", ...])`)** 却下理由",
+      "reason": "既存 FlowCommand は全て同プロセス内で container 経由に統一されており、例外扱いは一貫性を損なう。CLI 起動コストと stdout パースの複雑さも不要に増える。"
+    },
+    {
+      "option": "**FAIL reasons を恒常 Rules セクション末尾に追記する方式** 却下理由",
+      "reason": "恒常ルールと試行依存フィードバックが混在し、AI が「常に守るべきルール」か「前回の指摘」かを区別しにくくなる。専用セクションで構造的に分離する。"
+    },
+    {
+      "option": "**default `agent.providers` に `\"flow.draft-task\"` プレフィックスを明示追加** 却下理由",
+      "reason": "既存の default fallback で解決済み。冗長追加は alpha 版ポリシー「後方互換コードを書かない」と逆行し、挙動変化ゼロの保守負債を増やす。"
+    }
+  ],
+  "open_questions": []
+}

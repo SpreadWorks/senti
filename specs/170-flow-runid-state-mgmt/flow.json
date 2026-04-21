@@ -145,72 +145,174 @@
   "issue": 137,
   "request": "flow-state: runIdベースのpreparing状態管理とresume復元",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 7
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 7,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 2,
-        "output": 731,
-        "cacheRead": 11924,
-        "cacheCreation": 10578
-      },
-      "cost": 0.054215700000000006,
-      "callCount": 1,
-      "responseChars": 1243
+    {
+      "phase": "gate-draft",
+      "counter": "cost",
+      "value": 0.054215700000000006,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "spec": {
-      "srcRead": 1
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 2,
-        "output": 638,
-        "cacheRead": 11924,
-        "cacheCreation": 12302
-      },
-      "cost": 0.0592857,
-      "callCount": 1,
-      "responseChars": 1203
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 1243,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "test": {
-      "srcRead": 1
+    {
+      "phase": "spec",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1,
-      "issueLog": 3
+    {
+      "phase": "gate",
+      "counter": "cost",
+      "value": 0.0592857,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 18,
-        "output": 12623,
-        "cacheRead": 107316,
-        "cacheCreation": 323805
-      },
-      "cost": 1.4358625500000002,
-      "callCount": 9,
-      "responseChars": 24406
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1203,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "test",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "cost",
+      "value": 1.4358625500000002,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 9,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 24406,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "notes": [
-    "approach: Q&A draft chosen",
-    "scope: Issue全体を1つのspecで実装する",
-    "active-flow.<runId>: flow.jsonと完全同一スキーマ、未定フィールドはnull",
-    "active-flow.<runId>: .sdd-forge/に配置、prepare昇格後は削除",
-    "get status: 引数なしは後方互換維持、runId指定時のみrunId解決",
-    "stale cleanup: flow prepare時にmtimeベースTTL超過で自動削除、明示コマンドは追加しない",
-    "migration: loadFlowState読み込み時にrunId無しなら自動採番して保存（透過的移行）",
-    "test: テストコードを作成する",
-    "implement: 実装方針承認済み",
-    "review: コードレビュー+自動改善",
-    "finalize: all mode selected"
+    {
+      "taskId": null,
+      "text": "approach: Q&A draft chosen",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "scope: Issue全体を1つのspecで実装する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "active-flow.<runId>: flow.jsonと完全同一スキーマ、未定フィールドはnull",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "active-flow.<runId>: .sdd-forge/に配置、prepare昇格後は削除",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "get status: 引数なしは後方互換維持、runId指定時のみrunId解決",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "stale cleanup: flow prepare時にmtimeベースTTL超過で自動削除、明示コマンドは追加しない",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "migration: loadFlowState読み込み時にrunId無しなら自動採番して保存（透過的移行）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test: テストコードを作成する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "implement: 実装方針承認済み",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: コードレビュー+自動改善",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: all mode selected",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "runId": "b817c90f-d598-4dae-9b31-1e3e9d50d7ee",
   "state": {
     "finalizedAt": "2026-04-13T12:56:41.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

@@ -1,0 +1,42 @@
+{
+  "goal": "既存挙動を維持しながら、setup 以外の高優先リファクタリングを実施し、保守性と不具合耐性を改善する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow.js` の i18n 参照不整合修正",
+      "`src/lib/agent.js` の同期/非同期呼び出し前処理の重複排除",
+      "`src/docs/commands/text.js` の並列実行キュー重複排除",
+      "`src/docs/commands/text.js` のセクション境界判定ロジック共通化",
+      "`src/docs.js` の `process.argv` 書き換え依存低減",
+      "コマンドエントリの direct-run 判定ボイラープレート共通化"
+    ],
+    "out": [
+      "`src/docs/commands/setup.js` の分割・再設計（今回除外）",
+      "新機能追加や CLI 仕様変更",
+      "preset/template 文言の変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "`docs/commands/setup.js` も同時に触るか？",
+      "a": "触らない（ユーザー指定で除外）。"
+    },
+    {
+      "q": "挙動変更を許容するか？",
+      "a": "原則非許容。内部実装のみ改善し、既存テストを維持する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "2以外を対象として進める（ユーザー指定）"
+  ]
+}

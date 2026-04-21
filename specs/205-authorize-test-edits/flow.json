@@ -142,64 +142,132 @@
   "worktree": true,
   "request": "gate-impl checkTestChanges に『承認された既存テスト変更』のバイパス機構を追加し、契約変更系・リファクタ系・バグ修正系 spec での正当なテスト更新を FAIL 扱いしないようにしつつ、テスト無効化攻撃防御は維持する。",
   "notes": [
-    "draft Q1: 解釈サマリー承認 (gate-impl test-change-check にバイパス機構追加、spec 201 防御性維持)",
-    "Q1 mechanism: A (spec.md セクション宣言方式)。spec 201 の言語解析なし原則と両立、人間による明示 opt-in で抑止維持",
-    "Q2 granularity: file-level。行番号方式は retry で行ずれ、hunk 数は実害ケースに過剰",
-    "Q3 syntax: フラット箇条書き '- `path` — reason' + reason min 40 chars。spec 201 P1-R6 と整合する 1 行正規表現でパース可能",
-    "Q4 scope: 両 phase (task-impl + integration) + 未使用エントリは WARN。spec 202 の類似 FP ケースも同時解決"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 4
+    {
+      "taskId": null,
+      "text": "draft Q1: 解釈サマリー承認 (gate-impl test-change-check にバイパス機構追加、spec 201 防御性維持)",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 69538,
-        "output": 2826,
-        "cacheRead": 10368,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 6722,
-      "durationMs": 71216
+    {
+      "taskId": null,
+      "text": "Q1 mechanism: A (spec.md セクション宣言方式)。spec 201 の言語解析なし原則と両立、人間による明示 opt-in で抑止維持",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 4287,
-        "output": 1122,
-        "cacheRead": 22912,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 2804,
-      "durationMs": 28493
+    {
+      "taskId": null,
+      "text": "Q2 granularity: file-level。行番号方式は retry で行ずれ、hunk 数は実害ケースに過剰",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 406238,
-        "output": 2286,
-        "cacheRead": 42752,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 4223,
-      "durationMs": 78660
+    {
+      "taskId": null,
+      "text": "Q3 syntax: フラット箇条書き '- `path` — reason' + reason min 40 chars。spec 201 P1-R6 と整合する 1 行正規表現でパース可能",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "task-impl": {
-      "gateRetry": 0
-    },
-    "review": {
-      "tokens": {
-        "input": 81450,
-        "output": 1956,
-        "cacheRead": 23552,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3614,
-      "durationMs": 49545
+    {
+      "taskId": null,
+      "text": "Q4 scope: 両 phase (task-impl + integration) + 未使用エントリは WARN。spec 202 の類似 FP ケースも同時解決",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 6722,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 71216,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 2804,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 28493,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 4223,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 78660,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 3614,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 49545,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {

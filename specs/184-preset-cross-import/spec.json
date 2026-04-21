@@ -1,0 +1,81 @@
+{
+  "goal": "外部プリセット（`.sdd-forge/presets/` 配下および `~/.sdd-forge/presets/` 配下）が、他のプリセット（ビルトインを含む）のクラスを `import 'sdd-forge/presets/<name>/<subpath>'` の形式で参照できるよう、sdd-forge の ESM module 解決を 3 層探索に拡張する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`sdd-forge/presets/<name>/<subpath>` 形式の specifier を、プロジェクト層・ユーザー層・ビルトイン層の 3 層でルックアップする解決ロジックの追加。",
+      "解決結果のプロセス内キャッシュ。",
+      "プロジェクト層として参照するディレクトリの sdd-forge プロセスへの引き渡し。"
+    ],
+    "out": [
+      "プリセット継承（`preset.json` の `parent` チェーン）の動作変更。",
+      "ディレクトリ index 解決（`<subpath>/index.js` の暗黙参照）。",
+      "`.js` 以外の拡張子のサポート。",
+      "fs ベースの永続キャッシュ。",
+      "`sdd-forge/api` 等、既に解決可能な specifier の挙動変更。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "**REQ-1:** `sdd-forge/presets/<name>/<subpath>` 形式の import specifier を受けた場合、システムは以下の順序で該当 `.js` ファイルの存在を確認し、最初に見つかった層のファイル URL を解決結果として返さなければならない（shall）: 1. プロジェクト層: `<projectRoot>/.sdd-forge/presets/<name>/<subpath>.js` 2. ユーザー層: `<userHome>/.sdd-forge/presets/<name>/<subpath>.js` 3. ビルトイン層: `<pkgRoot>/src/presets/<name>/<subpath>.js`"
+    },
+    {
+      "id": "R2",
+      "desc": "**REQ-2:** 3 層いずれにも対象ファイルが存在しない場合、システムは解決を行わず Node 標準の module 解決処理に委ねなければならない（shall）。loader 側でエラーを throw してはならない。"
+    },
+    {
+      "id": "R3",
+      "desc": "**REQ-3:** `sdd-forge/presets/<name>/<subpath>` 形式に一致しない既存の `sdd-forge/<subpath>` specifier（例: `sdd-forge/api`）を受けた場合、システムは本改修前と同じ解決結果を返さなければならない（shall）。"
+    },
+    {
+      "id": "R4",
+      "desc": "**REQ-4:** 同一 specifier の 2 回目以降の解決時、システムはファイルシステムへの探索アクセスを行わず、初回の解決結果を再利用しなければならない（shall）。キャッシュの有効範囲はプロセス寿命とする。"
+    },
+    {
+      "id": "R5",
+      "desc": "**REQ-5:** sdd-forge CLI 起動時、loader にプロジェクト層のルートディレクトリ（`SDD_WORK_ROOT` 相当）が引き渡されなければならない（shall）。プロジェクト層のルートが特定できない実行コンテキスト（グローバルヘルプ等）では、REQ-1 のステップ 1（プロジェクト層探索）はスキップされなければならない（shall）。"
+    }
+  ],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "ネームスペースは単数形 `sdd-forge/preset/...` と複数形 `sdd-forge/presets/...` のどちらにするか？",
+      "a": "複数形 `sdd-forge/presets/...` を採用。既存 `sdd-forge/presets/...`（ビルトイン解決）との対称性を保つため。"
+    },
+    {
+      "q": "3 層探索の優先順位は？",
+      "a": "プロジェクト（`.sdd-forge/presets/`）→ ユーザー（`~/.sdd-forge/presets/`）→ ビルトイン（`src/presets/`）。近い層が優先。"
+    },
+    {
+      "q": "キャッシュ方式は？",
+      "a": "プロセス内 in-memory のみ。CLI プロセスは短命のため fs 永続キャッシュは過剰。"
+    },
+    {
+      "q": "未検出時の挙動は？",
+      "a": "Node 標準の module 解決エラーに委ねる（loader でエラーを throw しない）。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**単数形ネームスペース `sdd-forge/preset/<name>/...`**（Issue 本文の原案）",
+      "reason": "既存 `sdd-forge/presets/` との対称性が崩れ、利用側が単複で使い分ける必要が生じる。**不採用**。"
+    },
+    {
+      "option": "**fs 永続キャッシュ**",
+      "reason": "ファイル追加・削除時の無効化ロジックが必要でコード複雑度が増す。CLI プロセスは短命で in-memory Map の再構築コストは無視できる。**不採用**。"
+    },
+    {
+      "option": "**preset.json の継承チェーンを解決経路として使う**",
+      "reason": "loader はファイルパス解決のみを担うべきで、preset 継承とは関心が異なる。継承チェーン走査は既存の `resolveChain` に任せ、loader は純粋な 3 層ディレクトリ探索に留める。**不採用**。"
+    }
+  ],
+  "open_questions": []
+}

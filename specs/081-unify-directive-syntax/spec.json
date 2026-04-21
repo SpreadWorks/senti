@@ -1,0 +1,50 @@
+{
+  "goal": "sdd-forge のディレクティブ構文を2つの体系に統一する:\n- **出力ディレクティブ `{{ }}`**: コンテンツ生成・挿入（関数呼び出しスタイル）\n- **制御ディレクティブ `{% %}`**: テンプレート構造・メタデータ（宣言スタイル）",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "制御フロー（ループ、条件分岐）— ビジネスロジックは DataSource に属する",
+      "`meta` ディレクティブ（テンプレートレベルメタデータ）— 別 spec で検討",
+      "text.js コマンドの内部ロジック変更（バッチ処理、インクリメンタル更新等）— TextDataSource はエントリポイントとして機能し、既存ロジックを呼び出す"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: `<!-- {{data(\"base.project.summary\")}} -->` が正しくパースされ、DataSource が解決される",
+    "AC2: `<!-- {{text({prompt: \"Write overview.\", mode: \"deep\"})}} -->` が正しくパースされ、LLM テキスト生成が実行される",
+    "AC3: マルチラインディレクティブ（`<!-- ... -->` 内改行）が正しくパースされる",
+    "AC4: `<!-- {%extends \"layout\"%} -->` / `<!-- {%block \"name\"%} -->` によるテンプレート継承が動作する",
+    "AC5: `<!-- {%guardrail {phase: [draft, spec]}%} -->` ... `<!-- {%/guardrail%} -->` によるガードレール判定が動作する",
+    "AC6: 閉じタグがない場合にエラーが発生する",
+    "AC7: 全プリセットテンプレートが新構文に変換されている",
+    "AC8: 旧構文（`{{data: ...}}`、`@block`、`{%meta%}`）がパーサーに残っていない",
+    "AC9: 既存テストが新構文で通過する",
+    "AC10: `sdd-forge docs build` がエンドツーエンドで正常に動作する"
+  ],
+  "clarifications": [
+    {
+      "q": "TextDataSource は text.js の処理をすべて吸収するのか？",
+      "a": "TextDataSource は DataSource インターフェースとして data パイプラインから呼び出されるエントリポイント。内部では既存の text.js のロジック（LLM 呼び出し、バッチ処理等）を再利用する。"
+    },
+    {
+      "q": "マルチラインディレクティブのパース方法は？",
+      "a": "`<!--` から `-->` までを1ブロックとして扱う。現行の行ベースパーサーからブロックベースパーサーに書き換える。"
+    },
+    {
+      "q": "header/footer はどうなるか？",
+      "a": "廃止。テンプレートでの使用がなく、必要なら `ignoreError` オプションで代替可能。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "TextDataSource と text.js コマンドの責務分界点 — TextDataSource は DataSource インターフェースのアダプタとして機能し、data パイプラインから呼ばれた際に text.js の `processTemplate()` を内部で呼び出す。LLM 呼び出し・バッチ処理・インクリメンタル更新のロジックは text.js に残す。"
+  ]
+}

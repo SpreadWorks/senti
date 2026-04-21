@@ -157,20 +157,76 @@
   "worktree": true,
   "request": "flow コマンドを get/set/run に再編する基盤を作る (.tmp/flow/01-flow-command-foundation.md)",
   "notes": [
-    "draft: routing=2段階ディスパッチ (get/*.js, set/*.js, run/*.js)",
-    "draft: envelope={ok,type,key,data,errors[]}, error={level:warn|fatal, code:string, messages:string[]}",
-    "draft: 既存コマンド名(status,merge等)は即座に廃止。alpha版ポリシー",
-    "draft: 01の全スコープを1つのspecで実装。コミットで段階的に分ける。中間状態を避ける",
-    "draft: flow get guardrail=完全実装(既存guardrail.jsのラッパー+JSON), flow get prompt=完全実装",
-    "draft: 01の全keyにハンドラを作る。既存移行は完全動作、新規keyは現時点で決まっている範囲で実装。残りはTask02-05で埋める",
-    "draft: flow start はレガシー（skill flow-plan に置き換え済み）。flow run prepare-spec は spec init のラッパー+JSON envelope",
-    "draft: flow start を削除。flow run prepare-spec に置き換え",
-    "draft: flow resume → flow get resolve-context にリネーム。skill flow-resume は内部で flow get resolve-context を呼ぶ",
-    "draft: flow get qa-count は回答済み質問数のみ返す。質問総数はAIが決める（01スコープ外）",
-    "draft: metric schema={draft,spec,gate,test}×{question,redo,docsRead,srcRead}。flow set metric --phase X --key Y でインクリメント",
-    "draft: envelope は warnings なし。errors[{level:warn|fatal,code,messages}] で統一。元資料の warnings は level:warn に吸収",
-    "draft: spec init/gate/guardrail show のロジックを flow/ に移動。spec コマンドは廃止",
-    "draft: spec guardrail show のみ flow get guardrail に移動。spec guardrail init/update は残す。spec コマンド全体の整理は別途"
+    {
+      "taskId": null,
+      "text": "draft: routing=2段階ディスパッチ (get/*.js, set/*.js, run/*.js)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: envelope={ok,type,key,data,errors[]}, error={level:warn|fatal, code:string, messages:string[]}",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 既存コマンド名(status,merge等)は即座に廃止。alpha版ポリシー",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 01の全スコープを1つのspecで実装。コミットで段階的に分ける。中間状態を避ける",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: flow get guardrail=完全実装(既存guardrail.jsのラッパー+JSON), flow get prompt=完全実装",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 01の全keyにハンドラを作る。既存移行は完全動作、新規keyは現時点で決まっている範囲で実装。残りはTask02-05で埋める",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: flow start はレガシー（skill flow-plan に置き換え済み）。flow run prepare-spec は spec init のラッパー+JSON envelope",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: flow start を削除。flow run prepare-spec に置き換え",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: flow resume → flow get resolve-context にリネーム。skill flow-resume は内部で flow get resolve-context を呼ぶ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: flow get qa-count は回答済み質問数のみ返す。質問総数はAIが決める（01スコープ外）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: metric schema={draft,spec,gate,test}×{question,redo,docsRead,srcRead}。flow set metric --phase X --key Y でインクリメント",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: envelope は warnings なし。errors[{level:warn|fatal,code,messages}] で統一。元資料の warnings は level:warn に吸収",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: spec init/gate/guardrail show のロジックを flow/ に移動。spec コマンドは廃止",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: spec guardrail show のみ flow get guardrail に移動。spec guardrail init/update は残す。spec コマンド全体の整理は別途",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 4,
@@ -178,13 +234,19 @@
     "impl": 0
   },
   "redoCount": 0,
-  "metrics": {
-    "draft": {
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "requestChars": 75,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

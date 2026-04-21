@@ -1,0 +1,42 @@
+{
+  "goal": "forge コマンドの `{{text}}` 処理を選択的にし、不要な AI 呼び出しを削減する。\n変更に関連するディレクティブだけを処理し、review で PASS 済みのファイル/ディレクティブは再処理しない。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "review-parser の CakePHP ハードコード問題の修正（別 spec）",
+      "ディレクティブ単位の review 結果マッピング（将来の拡張）",
+      "`{{data}}` ディレクティブの選択的処理",
+      "text コマンドのスタンドアロン実行時の変更（forge 経由の `textFillFromAnalysis` のみ）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: 全 `{{text}}` が埋まっている docs に対して `textFillFromAnalysis()` を実行すると、AI 呼び出しが 0 回になる",
+    "AC2: forge の 1 ラウンド目で review PASS したファイルは 2 ラウンド目の AI 呼び出し対象に含まれない",
+    "AC3: `--spec` で spec を指定した場合、無関係な章ファイルへの AI 呼び出しが発生しない",
+    "AC4: 既存テストが全て PASS する",
+    "AC5: `--force` フラグで textFillFromAnalysis が全ディレクティブを再処理する"
+  ],
+  "clarifications": [
+    {
+      "q": "text の「更新時に使えない」問題の対応は？",
+      "a": "text コマンドは空ディレクティブのみ埋める（初回生成用途）。更新は forge の AI が docs ファイルを直接編集する形で対応する。text の `--force` フラグで再生成も可能。"
+    },
+    {
+      "q": "forge の対象選定はどの粒度で行うか？",
+      "a": "ファイル（章）単位。ディレクティブ単位の選定は将来の拡張とする。forge は AI が章ファイル全体を編集するため、ファイル単位が自然な粒度。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "review 出力のフォーマットが十分にパース可能か → review.js はファイル単位でチェックし、FAIL 時にファイル名をログに含める。i18n テンプレート経由だが、ファイル名を抽出可能。"
+  ]
+}

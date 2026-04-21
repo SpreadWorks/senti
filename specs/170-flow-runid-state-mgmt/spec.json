@@ -1,0 +1,57 @@
+{
+  "goal": "flow-plan の prepare 実行前（ステップ1〜2）に存在する状態追跡の空白期間を解消する。runId ベースの一時状態ファイル（`.active-flow.<runId>`）を導入し、フロー開始直後から状態を永続化する。加えて、runId を flow.json に保存し、status 解決・resume・stale cleanup を runId ベースで行えるようにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "runId 必須化（将来検討）",
+      "`flow get status` 引数なし動作の変更",
+      "`.active-flow` 配列フォーマットの変更",
+      "並列フロー切り替え UI（複数 active 時の選択コマンド等）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "`.active-flow.<runId>` のフォーマットは？",
+      "a": "flow.json と完全同一スキーマ。未定フィールド（spec, baseBranch, featureBranch 等）は null。lifecycle フィールドで状態を区別する。"
+    },
+    {
+      "q": "昇格後の `.active-flow.<runId>` はどうなる？",
+      "a": "`flow prepare` で flow.json + `.active-flow` エントリに昇格した時点で削除する。"
+    },
+    {
+      "q": "既存 flow.json（runId なし）の移行は？",
+      "a": "`loadFlowState` で読み込み時に runId が無ければ自動採番して保存する（透過的移行）。"
+    },
+    {
+      "q": "stale クリーンアップの方針は？",
+      "a": "`flow prepare` 実行時に mtime ベースで TTL 超過（24時間）の `.active-flow.*` を自動削除。明示コマンドは追加しない。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**runId なしで `.active-flow` エントリのみ拡張する案**",
+      "reason": "prepare 前の空白期間を解消できないため却下。"
+    },
+    {
+      "option": "**`.active-flow.<runId>` を昇格後も残す案（lifecycle を promoted に更新）**",
+      "reason": "ファイルが蓄積する。削除の方がシンプル。"
+    },
+    {
+      "option": "**`loadFlowState` 以外（resume のみ）で移行する案**",
+      "reason": "全コマンドで runId を利用可能にするには透過的移行が適切。"
+    }
+  ],
+  "open_questions": [
+    "TTL の24時間は適切か？ → 24時間で開始し、運用フィードバックで調整する。定数化して変更を容易にする"
+  ]
+}

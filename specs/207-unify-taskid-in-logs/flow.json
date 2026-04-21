@@ -116,67 +116,127 @@
   "issue": 203,
   "worktree": true,
   "request": "Issue #203: cac6 分解タスク 10/11。metrics / issue-log / prompt logs の各エントリに taskId フィールドを追加し、CLI 側で scope 推論（active task あり → task scope、なし → 親 scope）を行う。",
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 5
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 49890,
-        "output": 3258,
-        "cacheRead": 28032,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 6783,
-      "durationMs": 79195
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 46680,
-        "output": 2241,
-        "cacheRead": 6912,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 5142,
-      "durationMs": 50344
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 6783,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 79195,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "task-impl": {
-      "gateRetry": 0
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 636085,
-        "output": 19533,
-        "cacheRead": 404608,
-        "cacheCreation": 0
-      },
-      "callCount": 22,
-      "responseChars": 25287,
-      "durationMs": 528581
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 5142,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "review": {
-      "tokens": {
-        "input": 559816,
-        "output": 22861,
-        "cacheRead": 301824,
-        "cacheCreation": 0
-      },
-      "callCount": 18,
-      "responseChars": 33845,
-      "durationMs": 559184
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 50344,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "value": 0,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 22,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 25287,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 528581,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 18,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 33845,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 559184,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "autoApprove": true,
   "notes": [
-    "draft Q1-Q6 confirmed: metrics/notes → flat append-only event arrays; --task-id opt; raw+summary read API; unit+integration tests; autoApprove enabled"
+    {
+      "taskId": null,
+      "text": "draft Q1-Q6 confirmed: metrics/notes → flat append-only event arrays; --task-id opt; raw+summary read API; unit+integration tests; autoApprove enabled",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "test": {
     "summary": {

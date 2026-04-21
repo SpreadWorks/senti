@@ -1,0 +1,59 @@
+{
+  "goal": "`flow set issue-log` コマンドに入力バリデーションを追加し、placeholder 的な短文 reason（\"first\", \"second\", \"test\", \"wrong scope\" 等）が実 spec の `issue-log.json` に混入するのを防ぐ。",
+  "background": "",
+  "scope": {
+    "in": [
+      "P1: `flow set issue-log` の `reason` 引数に最小長バリデーションを追加する。",
+      "P2: `flow set issue-log` の任意引数 `trigger` / `resolution` / `guardrail-candidate` に最小長バリデーションを追加する。",
+      "P3: 既存呼び出し箇所（テストコード・SDD スキルの例示）を新バリデーション仕様に整合させる。",
+      "P4: 新バリデーションのユニットテストを追加する。"
+    ],
+    "out": [
+      "`SDD_FORGE_ISSUE_LOG_SINK=devnull` 等のテスト用 sink 分離機構の導入。",
+      "既に混入済みの placeholder エントリ（`specs/164-*/issue-log.json` 等）のクリーンアップ。",
+      "`flow set issue-log` 以外のコマンド（`note`, `summary`, `request` 等）への同種バリデーション波及。",
+      "placeholder キーワード辞書によるブロック機構。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`node src/sdd-forge.js flow set issue-log --step draft --reason \"first\"` を隔離環境で実行すると非ゼロ終了コードを返し、envelope の `errors[0].code` が `INVALID_REASON` となる。",
+    "`node src/sdd-forge.js flow set issue-log --step draft --reason \"20 文字以上の具体的な理由を記載する\"` は成功し、`issue-log.json` にエントリが追加される。",
+    "任意フィールド `--trigger \"短い\"` のように 10 文字未満を指定すると `INVALID_FIELD` エラーになる。",
+    "`npm test -- --test tests/unit/flow/set-issue-log.test.js` が全ケース PASS する。",
+    "リポジトリ内の grep で、新閾値に反する reason/trigger/resolution/guardrail-candidate リテラルが残っていない。"
+  ],
+  "clarifications": [
+    {
+      "q": "最小長の閾値は？",
+      "a": "`reason` は trim 後 20 文字以上、任意フィールド（`trigger` / `resolution` / `guardrail-candidate`）は trim 後 10 文字以上。"
+    },
+    {
+      "q": "sink 機構を併設するか？",
+      "a": "しない。バリデーションだけで目的を達する。"
+    },
+    {
+      "q": "既存の placeholder 混入エントリをクリーンアップするか？",
+      "a": "しない。issue #176 本文で別途判断と明示されているため、本 spec では扱わない。"
+    },
+    {
+      "q": "任意フィールドにも閾値を設けるか？",
+      "a": "設ける。reason だけ守っても任意フィールドが placeholder だらけになれば同じ問題が再発する。"
+    },
+    {
+      "q": "エラーコード体系は？",
+      "a": "`INVALID_REASON`（`reason` 長さ違反）、`INVALID_FIELD`（任意フィールド長さ違反）の 2 種を envelope の `errors[].code` に設定する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "なし"
+  ]
+}

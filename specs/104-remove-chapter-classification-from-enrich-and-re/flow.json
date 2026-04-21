@@ -126,18 +126,46 @@
   "issue": 33,
   "request": "Issue #33: enrich の chapter 割り当てを廃止し、テンプレート起点で静的に解決する",
   "notes": [
-    "approach: Q&Aで要件整理。worktree mode, base=development",
-    "draft Q1: スコープ=textコンテキスト簡素化+detectChangedChaptersのchapter非依存化。テンプレートからdata依存カテゴリを抽出するロジックは共通化する",
-    "draft Q2-3: chapter割り当てを2段階方式に。(1)テンプレートの{{data}}参照から静的にカテゴリ→章マッピング (2)残りのエントリだけAIで割り当て（章の説明付きプロンプト）。静的が先、AIは残りのみ",
-    "draft Q4: 実装箇所はenrich.js内で完結。静的マッピング構築→静的割り当て→残りをAIに渡す。text.js/text-prompts.jsは変更不要",
-    "draft Q5: 章の説明はpreset.jsonにデフォルトを設定し、.sdd-forge/config.jsonで上書き可能にする2層構造。プロジェクト固有の境界定義はconfig側で行う",
-    "draft Q6-7: chapters形式をオブジェクト配列に変更。{chapter,desc,exclude}。順番はpresetが定義、configはdesc/excludeの上書きのみ。configにあってpresetにない章は末尾追加。"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 8
+    {
+      "taskId": null,
+      "text": "approach: Q&Aで要件整理。worktree mode, base=development",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q1: スコープ=textコンテキスト簡素化+detectChangedChaptersのchapter非依存化。テンプレートからdata依存カテゴリを抽出するロジックは共通化する",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q2-3: chapter割り当てを2段階方式に。(1)テンプレートの{{data}}参照から静的にカテゴリ→章マッピング (2)残りのエントリだけAIで割り当て（章の説明付きプロンプト）。静的が先、AIは残りのみ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q4: 実装箇所はenrich.js内で完結。静的マッピング構築→静的割り当て→残りをAIに渡す。text.js/text-prompts.jsは変更不要",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q5: 章の説明はpreset.jsonにデフォルトを設定し、.sdd-forge/config.jsonで上書き可能にする2層構造。プロジェクト固有の境界定義はconfig側で行う",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft Q6-7: chapters形式をオブジェクト配列に変更。{chapter,desc,exclude}。順番はpresetが定義、configはdesc/excludeの上書きのみ。configにあってpresetにない章は末尾追加。",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 8,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -147,5 +175,7 @@
   "requestChars": 53,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

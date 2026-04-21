@@ -1,0 +1,61 @@
+{
+  "goal": "ディレクティブ構文を `@data` / `@text` から `{{data}}` / `{{text}}` に移行する\n- GitHub のコミットメッセージ等で `@data` が mention として解釈される問題を解消する",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/lib/directive-parser.js`: パース正規表現を `{{data ...}}` / `{{text ...}}` に変更",
+      "`src/docs/commands/text.js`: stripFillContent / countFilledInBatch 等の正規表現を更新",
+      "`src/presets/*/templates/**/*.md`: 全テンプレートファイルのディレクティブ構文を置換",
+      "`src/templates/**/*.md`: バンドルテンプレートのディレクティブ構文を置換",
+      "`docs/*.md`: 本プロジェクト自身のドキュメントのディレクティブを置換",
+      "`tests/`: テスト内のディレクティブリテラルとフィクスチャを更新",
+      "AGENTS.md / CLAUDE.md 内のディレクティブ記述を更新"
+    ],
+    "out": [
+      "ディレクティブのパラメータ構文（`[maxLines=5]` 等）の変更",
+      "新しいディレクティブタイプの追加",
+      "後方互換性の維持（alpha 版のため breaking change 許容）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`<!-- {{data <category>}} -->` 形式でデータディレクティブを記述する"
+    },
+    {
+      "id": "R2",
+      "desc": "`<!-- {{text [params]: prompt}} -->` 形式でテキストディレクティブを記述する"
+    },
+    {
+      "id": "R3",
+      "desc": "既存の全テンプレート・ドキュメント・テストを新構文に一括移行する"
+    },
+    {
+      "id": "R4",
+      "desc": "パーサーは旧構文（`@data` / `@text`）を認識しない（後方互換なし）"
+    }
+  ],
+  "acceptance_criteria": [
+    "`npm run test` が全て PASS する",
+    "`sdd-forge build --dry-run` がエラーなく完了する",
+    "`grep -r \"@data\\|@text\" src/ docs/ tests/` でディレクティブ関連のヒットがない（コメント・文書内の言及は除く）",
+    "directive-parser のテストが新構文で動作する"
+  ],
+  "clarifications": [
+    {
+      "q": "後方互換性は必要か？",
+      "a": "不要。alpha 版のため breaking change として扱う。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

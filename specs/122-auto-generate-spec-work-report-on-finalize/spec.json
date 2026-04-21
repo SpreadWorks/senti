@@ -1,0 +1,53 @@
+{
+  "goal": "finalize パイプラインの Step 6 `record`（プレースホルダー）を `report` に置き換え、作業レポートを自動生成する。レポートはコマンド側で整形済みテキストと構造化 JSON の両方を出力し、AI スキルに表示を委ねない。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/run/finalize.js` の Step 6 を `record` → `report` に変更",
+      "レポート生成ロジックの実装（データ収集 + テキスト整形 + JSON 構造化）",
+      "Step 4 (sync) の git diff 情報をレポート用に保持する変更",
+      "`specs/NNN/report.json` へのファイル保存",
+      "SKILL.md の retro 表示ステップを report 表示に置き換え"
+    ],
+    "out": [
+      "テスト情報（テスト数・種類: unit/e2e/acceptance）の収集 → 別 spec（ボード adb3）",
+      "レポートの統計・集計ダッシュボード",
+      "レポートフォーマットのカスタマイズ機能"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "レポート生成はパイプラインのどこに配置するか？",
+      "a": "Step 6 の既存 `record` プレースホルダーを `report` に置き換える"
+    },
+    {
+      "q": "sync（docs 再生成）の結果はどこまで含めるか？",
+      "a": "変更ファイル一覧 + 章変更概要（git diff --stat + diff の概要）"
+    },
+    {
+      "q": "出力形式は？",
+      "a": "構造化 JSON（`steps.report.data`）+ コマンド側整形テキスト（`steps.report.text`）。AI に表示を任せない"
+    },
+    {
+      "q": "レポートの保存先は？",
+      "a": "finalize JSON レスポンスに含める + `specs/NNN/report.json` にファイル保存"
+    },
+    {
+      "q": "テスト情報は含めるか？",
+      "a": "今回スコープ外。別 spec で対応（ボード adb3）"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "整形テキストの具体的なフォーマットは実装時に決定する（見出し・罫線・インデント等）"
+  ]
+}

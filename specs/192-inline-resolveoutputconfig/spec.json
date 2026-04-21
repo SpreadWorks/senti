@@ -1,0 +1,62 @@
+{
+  "goal": "`src/lib/types.js` の `resolveOutputConfig()` は `cfg.docs` を薄くラップするだけの内部関数である。docs コマンド 4 箇所の呼び出しを `cfg.docs` への直参照にインライン化したうえで関数自体を削除し、抽象段数を下げて設定値の参照経路を単一化する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/types.js` から `resolveOutputConfig` の定義・関連コメントを削除する。",
+      "呼び出し元 4 ファイル（`src/docs/commands/build.js` / `translate.js` / `review.js` / `forge.js`）を修正し、`cfg.docs` への直参照に置換する。",
+      "既存ヘルパーが持っていた既定値 fallback（mode 未指定時は translate 扱い）は呼び出し元で引き継ぐ。",
+      "spec 検証テストで識別子 `resolveOutputConfig` が `src/` 配下から完全に消えていることを静的検証する。"
+    ],
+    "out": [
+      "`cfg.docs.mode` の既定値をスキーマ側で保証する変更（別 spec）。",
+      "多言語判定の再抽出（将来の利用箇所増加時に判断）。",
+      "`specs/180-*` など履歴目的の spec ドキュメント修正。",
+      "`cfg.docs` の参照パターン全般のリファクタ。",
+      "`src/docs/commands/review.js` 内の pre-existing な `fs.existsSync` 同期 I/O 使用（本 spec 以前から存在する記述であり、非同期化は別 spec の対象）。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: R1, R2 を検証する spec 検証テストが `specs/192-inline-resolveoutputconfig/tests/` 配下に配置され、PASS する。",
+    "AC2: `npm test`（既存回帰スイート）の合格状況がリファクタ前と同等（既存 PASS 項目の劣化なし）。",
+    "AC3: 変更差分が `src/lib/types.js` と 4 呼び出し元ファイル、および spec ディレクトリのみで、他ファイルへの波及がない。",
+    "AC4: `src/api.js` に `resolveOutputConfig` が含まれない（R6）。"
+  ],
+  "clarifications": [
+    {
+      "q": "公開 API 影響はあるか？",
+      "a": "なし。`src/api.js` の export に `resolveOutputConfig` は含まれない（2026-04-18 grep 確認済み）。"
+    },
+    {
+      "q": "多言語判定ヘルパーを別名で残すか？",
+      "a": "残さない。Issue の主旨に反する。将来 DRY が必要な局面が明確化した段階で再抽出する。"
+    },
+    {
+      "q": "モード未指定時の既定値は？",
+      "a": "呼び出し元で既存と同じ fallback を引き継ぐ（既定値 translate）。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "案A",
+      "reason": "関数を保持したまま直参照パスを追加（二系統併存）。却下：抽象削除の主旨に反する。"
+    },
+    {
+      "option": "案B",
+      "reason": "`OutputConfig` クラスへ昇格。却下：呼び出し元 4 箇所で十分な共通ロジックが存在しない。"
+    },
+    {
+      "option": "採用案",
+      "reason": "削除 + インライン化（Issue #174 の提案どおり）。"
+    }
+  ],
+  "open_questions": []
+}

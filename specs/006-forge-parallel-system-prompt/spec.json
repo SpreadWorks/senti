@@ -1,0 +1,78 @@
+{
+  "goal": "forge の agent モードを1ファイルずつ非同期処理に変更し、system prompt 分離によるキャッシュ活用で効率化する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "forge の agent 呼び出しを全ファイル一括 → 1ファイルずつに変更",
+      "非同期実行（同時実行数制御付き）",
+      "system prompt 分離: 共通部分を system prompt に、ファイル固有部分を user prompt に",
+      "provider 設定に `systemPromptFlag` を追加（オプショナル）",
+      "codex の `--system-prompt-file` 対応（一時ファイル経由）",
+      "処理済みファイルのスキップ（レジューム対応）",
+      "NEEDS_INPUT ルールをプロンプトから削除"
+    ],
+    "out": [
+      "review ループの変更（既存のまま）",
+      "local / assist モードの変更",
+      "provider 設定の大幅な再設計"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`buildForgePrompt` を system prompt + user prompt に分離する"
+    },
+    {
+      "id": "R2",
+      "desc": "`runAgent` が system prompt を受け取れるようにする（systemPromptFlag ベース）"
+    },
+    {
+      "id": "R3",
+      "desc": "codex の `--system-prompt-file` は一時ファイルに書き出して渡す"
+    },
+    {
+      "id": "R4",
+      "desc": "ファイル単位の処理結果を即座に保存する"
+    },
+    {
+      "id": "R5",
+      "desc": "処理済みファイルをスキップするレジューム機構"
+    },
+    {
+      "id": "R6",
+      "desc": "非同期実行の同時実行数制御（Promise ベースのセマフォ）"
+    }
+  ],
+  "acceptance_criteria": [
+    "forge --mode=agent で1ファイルずつ非同期に処理される",
+    "systemPromptFlag 設定時、system prompt が分離して渡される",
+    "systemPromptFlag 未設定時、従来通り動作する（後方互換）",
+    "途中で中断しても処理済みファイルは保存されている",
+    "npm run test が全 pass"
+  ],
+  "clarifications": [
+    {
+      "q": "タイムアウトはファイル単位で何秒？",
+      "a": "デフォルト 300 秒（5分）。config.json の limits.designTimeoutMs で上書き可能。"
+    },
+    {
+      "q": "非同期の同時実行数は？",
+      "a": "デフォルト 3。config.json の limits.concurrency で設定可能。"
+    },
+    {
+      "q": "systemPromptFlag がない provider はどうなる？",
+      "a": "従来通り PROMPT に全部まとめる（後方互換）。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(none)"
+  ]
+}

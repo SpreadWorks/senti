@@ -124,59 +124,121 @@
   "request": "config バリデーションのスキーマ駆動化と定義集約 (Issue #153)",
   "worktree": true,
   "notes": [
-    "Q1: Issue #153 の内容をそのまま採用。config バリデーションのスキーマ駆動化と定義集約",
-    "Q2: スキーマ形式は JSON Schema サブセット採用",
-    "Q2-2: severity設計 → 全て error(throw)で統一。warn不要。alpha版ポリシーに従う",
-    "Q3: config.example.json は削除する。コードから未参照、setup は wizard から直接生成",
-    "Q4: types.js は型定義と定数のみに。validateConfig/resolveOutputConfig は移動する",
-    "Q4-2: resolveOutputConfig は本specスコープ外。types.jsに残す。削除/インライン化は別タスク",
-    "Q5: スキーマはJS オブジェクト(config.js内private)。config構造は変更しない。ポストチェック2箇所(defaultLanguage∈languages, provider参照)は手書き"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+    {
+      "taskId": null,
+      "text": "Q1: Issue #153 の内容をそのまま採用。config バリデーションのスキーマ駆動化と定義集約",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 4,
-      "question": 15
+    {
+      "taskId": null,
+      "text": "Q2: スキーマ形式は JSON Schema サブセット採用",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 182107,
-        "output": 13854,
-        "cacheRead": 167424,
-        "cacheCreation": 0
-      },
-      "callCount": 14,
-      "responseChars": 20252
+    {
+      "taskId": null,
+      "text": "Q2-2: severity設計 → 全て error(throw)で統一。warn不要。alpha版ポリシーに従う",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "spec": {
-      "srcRead": 1
+    {
+      "taskId": null,
+      "text": "Q3: config.example.json は削除する。コードから未参照、setup は wizard から直接生成",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 23014,
-        "output": 1819,
-        "cacheRead": 28416,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2746
+    {
+      "taskId": null,
+      "text": "Q4: types.js は型定義と定数のみに。validateConfig/resolveOutputConfig は移動する",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 2
+    {
+      "taskId": null,
+      "text": "Q4-2: resolveOutputConfig は本specスコープ外。types.jsに残す。削除/インライン化は別タスク",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 767633,
-        "output": 10764,
-        "cacheRead": 106880,
-        "cacheCreation": 0
-      },
-      "callCount": 11,
-      "responseChars": 13539
+    {
+      "taskId": null,
+      "text": "Q5: スキーマはJS オブジェクト(config.js内private)。config構造は変更しない。ポストチェック2箇所(defaultLanguage∈languages, provider参照)は手書き",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 15,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 14,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 20252,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 2746,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 11,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 13539,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {
@@ -186,5 +248,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-17T03:48:03.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

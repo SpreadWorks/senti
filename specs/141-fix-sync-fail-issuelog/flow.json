@@ -110,12 +110,22 @@
   "request": "finalize の sync ステップ失敗時に issue-log に自動記録する",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "draft": {
-      "srcRead": 1,
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "reviewCount": {
     "spec": 0,
     "test": 0,
@@ -125,5 +135,7 @@
   "requestChars": 42,
   "state": {
     "finalizedAt": "2026-04-04T10:16:10.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

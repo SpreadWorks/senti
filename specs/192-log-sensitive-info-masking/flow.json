@@ -136,65 +136,139 @@
   "worktree": true,
   "request": "Logger 層に共通マスキングフックを追加し、全ログ（git cmd/stderr、agent prompt、event log 等）の機微情報（HTTPS 認証情報入り URL、GitHub PAT、API キー等）を一貫してマスクする",
   "notes": [
-    "draft-Q1: issue #178 の解釈（Logger 共通マスキング + git/prompt/event log 全対象）でユーザー承認",
-    "Q2: 既知パターン辞書方式（GH PAT, HTTPS creds, bearer, AWS key 等）+ プロジェクトフォルダ外の絶対パスもマスク対象",
-    "Q3: マスク後形式は *** 単純マスク（パターン名なし）",
-    "Q4: Logger 全出力を再帰走査してマスク適用",
-    "Q5: マスキング常時 ON、raw 保存なし"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+    {
+      "taskId": null,
+      "text": "draft-Q1: issue #178 の解釈（Logger 共通マスキング + git/prompt/event log 全対象）でユーザー承認",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 1,
-      "question": 4
+    {
+      "taskId": null,
+      "text": "Q2: 既知パターン辞書方式（GH PAT, HTTPS creds, bearer, AWS key 等）+ プロジェクトフォルダ外の絶対パスもマスク対象",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 18121,
-        "output": 2907,
-        "cacheRead": 57984,
-        "cacheCreation": 0
-      },
-      "callCount": 3,
-      "responseChars": 3711,
-      "durationMs": 67849
+    {
+      "taskId": null,
+      "text": "Q3: マスク後形式は *** 単純マスク（パターン名なし）",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 35623,
-        "output": 3955,
-        "cacheRead": 67072,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 4429,
-      "durationMs": 88077
+    {
+      "taskId": null,
+      "text": "Q4: Logger 全出力を再帰走査してマスク適用",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 446486,
-        "output": 5737,
-        "cacheRead": 115840,
-        "cacheCreation": 0
-      },
-      "callCount": 7,
-      "responseChars": 8163,
-      "durationMs": 154552
-    },
-    "review": {
-      "tokens": {
-        "input": 33724,
-        "output": 1838,
-        "cacheRead": 42240,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2837,
-      "durationMs": 42849
+    {
+      "taskId": null,
+      "text": "Q5: マスキング常時 ON、raw 保存なし",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 3711,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 67849,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 4429,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 88077,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 7,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 8163,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "durationMs",
+      "value": 154552,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "responseChars",
+      "value": 2837,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "review",
+      "counter": "durationMs",
+      "value": 42849,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {
@@ -203,5 +277,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-19T01:02:33.955Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

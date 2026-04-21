@@ -1,0 +1,30 @@
+{
+  "goal": "`flow run review` が worktree モードで \"no active flow (flow.json not found)\" エラーになるバグを修正する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/flow/run/review.js` — worktree 時の `SDD_WORK_ROOT` override 処理を削除"
+    ],
+    "out": [
+      "`flow/commands/review.js` の変更",
+      "他の `run/*.js` コマンドの変更（worktree override は `run/review.js` のみに存在）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [],
+  "clarifications": [
+    {
+      "q": "なぜ `SDD_WORK_ROOT` をメインリポに設定していたのか？",
+      "a": "コメントに \"review needs to find .active-flow in the main repo\" とあるが、`.active-flow` は worktree 内に存在するため、この前提が誤り。他の `run/*.js` コマンド（gate, finalize, lint, retro）は同様の override をしていない。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}

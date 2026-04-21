@@ -1,0 +1,51 @@
+{
+  "goal": "text コマンドに light/deep モードを追加し、enriched analysis を活用した効率的なドキュメント生成を実現する。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "projectContext の廃止（後続 spec）",
+      "既存 DataSource / `{{data}}` ディレクティブの再設計",
+      "forge コマンドのモード対応（forge は別途対応）",
+      "CATEGORY_TO_SECTIONS マッピングの刷新（既存マッピングは維持しつつ enriched データを追加）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `<!-- {{text[mode=light]: prompt}} -->` で enriched analysis のコンテキスト付きで text 生成される",
+    "[ ] `<!-- {{text[mode=deep]: prompt}} -->` で enriched analysis + ソースコード付きで text 生成される",
+    "[ ] `<!-- {{text: prompt}} -->`（mode 省略）で light モードがデフォルト適用される",
+    "[ ] 同一ファイル内に light と deep のディレクティブが混在しても正しく処理される",
+    "[ ] enriched analysis がない場合に従来通りの動作にフォールバックする",
+    "[ ] テストが追加され、既存テストが全てパスする"
+  ],
+  "clarifications": [
+    {
+      "q": "デフォルトモードは？",
+      "a": "light。`mode` パラメータ省略時は light として動作する。"
+    },
+    {
+      "q": "モードの指定方法は？",
+      "a": "ディレクティブのパラメータとして指定する。`<!-- {{text[mode=deep]: prompt}} -->`。CLI の `--mode` フラグは設けない。"
+    },
+    {
+      "q": "enriched analysis がない場合（enrich 未実行）の挙動は？",
+      "a": "従来通りの動作にフォールバック。analysis.json に `enrichedAt` がなければ enriched データなしとして扱う。"
+    },
+    {
+      "q": "light と deep でプロンプトサイズはどう変わる？",
+      "a": "light は summary/detail テキストのみ追加（数百〜数千文字）。deep はソースコードも追加（ファイルあたり最大 8000 文字、enrich.js と同じ制限）。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

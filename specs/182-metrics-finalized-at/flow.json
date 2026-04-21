@@ -131,44 +131,64 @@
   "issue": 156,
   "worktree": true,
   "request": "metrics 日付軸を merge 日時（state.finalizedAt）ベースに変更し、flow.json へ保存する。backfill スクリプトも同梱。Issue #156",
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 4
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 25097,
-        "output": 1927,
-        "cacheRead": 25600,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 1989
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 6507,
-        "output": 915,
-        "cacheRead": 19072,
-        "cacheCreation": 0
-      },
-      "callCount": 1,
-      "responseChars": 1840
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 1989,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 774971,
-        "output": 8713,
-        "cacheRead": 46336,
-        "cacheCreation": 0
-      },
-      "callCount": 8,
-      "responseChars": 10328
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1840,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 8,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 10328,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "test": {
     "summary": {
       "unit": 2,
@@ -177,5 +197,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-17T09:09:51.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

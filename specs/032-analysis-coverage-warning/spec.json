@@ -1,0 +1,42 @@
+{
+  "goal": "analysis.json に含まれるデータのうち、docs のディレクティブで参照されていないものを検出し、review で警告する。forge はその警告を活用して docs の更新を提案できるようにする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "新しいディレクティブの自動挿入（テンプレート編集は人手で行う）",
+      "analysis.json のスキーマ変更",
+      "review の FAIL 判定基準の変更（カバレッジ不足は WARN のみ）",
+      "forge が自動でテンプレートにディレクティブを追加する機能"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] AC1: 単一言語・未カバーカテゴリがある場合、review が `[WARN] uncovered analysis category:` を出力する",
+    "[ ] AC2: 全カテゴリがカバーされている場合、警告は出力されない",
+    "[ ] AC3: analysis.json が存在しない場合、カバレッジチェックをスキップする",
+    "[ ] AC4: review の合否判定に影響しない（WARN のみ）",
+    "[ ] AC5: forge 実行時に review の WARN 出力が AI プロンプトに含まれる"
+  ],
+  "clarifications": [
+    {
+      "q": "カバレッジの判定基準は？",
+      "a": "analysis.json のトップレベルカテゴリ（modules, controllers, models, shells, routes 等）ごとに、docs 内のいずれかの `{{data}}` ディレクティブがそのカテゴリのデータを参照しているかをチェック。個別エントリ単位ではなくカテゴリ単位で判定する。"
+    },
+    {
+      "q": "review の警告をどう forge に渡すか？",
+      "a": "既存の `summarizeReview()` が `[WARN]` 行も含めて抽出するため、追加実装は最小限で済む。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "カテゴリ単位でなく、エントリ単位（個別モジュール名等）までチェックすべきか？ → まずカテゴリ単位で実装し、必要に応じて拡張"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "goal": "コードベース全体の重複コード削減・パターン統一により保守性を向上させる",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "新機能の追加",
+      "preset 固有ロジックの変更（CakePHP2/Laravel/Symfony アナライザー）",
+      "テストカバレッジの拡充（別 spec で対応）",
+      "外部 API・CLI インターフェースの変更"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "全ての変更は振る舞いを変えないリファクタリングであること"
+    },
+    {
+      "id": "R2",
+      "desc": "既存テストが全て PASS すること"
+    },
+    {
+      "id": "R3",
+      "desc": "ES modules のインポートパスが正しく解決されること"
+    }
+  ],
+  "acceptance_criteria": [
+    "[x] R1: uiLang ロードが `loadUiLang()` に統一されている",
+    "[x] R2: `.sdd-forge` パス文字列がヘルパー関数経由になっている",
+    "[x] R3: `loadAgentConfig()` が `lib/agent.js` に一元化されている",
+    "[x] R4: 全コマンドの `main()` 呼び出しパターンが統一されている",
+    "[x] R5: SUMMARY_BUILDERS が preset.json から動的に構築されている",
+    "[x] R6: DataSource ロードが共通ユーティリティに統合されている",
+    "[x] R7: タイムアウト定数が `lib/agent.js` に集約されている",
+    "[x] R8: `text.js` と `setup.js` の巨大関数が分割されている",
+    "[x] R9: PKG_DIR 解決が共有ユーティリティに統一されている",
+    "[x] 全既存テストが PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "既存テストが通ることをどう担保するか？",
+      "a": "各リファクタリングステップごとに `npm run test` を実行し、全テスト PASS を確認する"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "R8 の text.js 分割時、新規ファイルの配置先は `src/docs/lib/` でよいか？ → Yes。`forge-prompts.js` 等と同階層に配置する。"
+  ]
+}

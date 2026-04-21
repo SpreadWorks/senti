@@ -1,0 +1,59 @@
+{
+  "goal": "agent 呼び出しの結果から usage（token 数・cache hit 数・cost）を計測してログに記録できるようにする。\nprompt caching の効果観測のためのベースライン計測機構（Phase 0）。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/lib/agent.js` の内部実装のみ変更する",
+      "agent config に `jsonOutputFlag` フィールドを追加して JSON 出力モードを有効化できるようにする",
+      "provider（claude / codex）に応じた JSON パースと usage の正規化を agent.js 内部に実装する",
+      "解析した usage を Logger.agent end-event payload に追加し、`.tmp/logs/prompts.jsonl` に記録する",
+      "呼び出し側の戻り値（trimmed string）は変更しない"
+    ],
+    "out": [
+      "呼び出し側 12 箇所（`run-gate.js`, `review.js` 等）の変更",
+      "prompt caching の改善・最適化（Phase 1 以降）",
+      "usage データの可視化・レポート機能",
+      "unknown provider への JSON パース対応"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`jsonOutputFlag` が設定された agent config で claude/codex を呼び出すと、`.tmp/logs/prompts.jsonl` の end-event に `usage` フィールドが記録される",
+    "`jsonOutputFlag` が未設定の場合、ログの `usage` フィールドは `null` で、呼び出し動作は変化しない",
+    "unknown provider で `jsonOutputFlag` が設定されていても、plain text として処理され `usage: null` が記録される",
+    "JSON パースが失敗した場合（不正な stdout 等）、stderr に警告を出力したうえで plain text fallback で動作する（エラーは呼び出し元に伝播しない）",
+    "12 箇所の既存呼び出し側のコードは変更不要"
+  ],
+  "clarifications": [
+    {
+      "q": "provider 判定は完全一致か部分一致か？",
+      "a": "部分一致。`agent.command` に `\"claude\"` を含む → claude、`\"codex\"` を含む → codex、どちらも含まない → unknown。将来コマンド名が変わっても動作するよう部分一致を採用。"
+    },
+    {
+      "q": "JSON 出力フラグはどう有効化するか？",
+      "a": "agent config の `jsonOutputFlag` フィールドで制御（`systemPromptFlag` と同パターン）。設定あり → JSON モード、未設定 → plain text モード（現状維持）。"
+    },
+    {
+      "q": "unknown provider の場合は？",
+      "a": "`jsonOutputFlag` が設定されていても plain text として扱い、usage は記録しない。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**自動付与（provider 判定のみで決定）**",
+      "reason": "provider 判定ができれば自動でフラグを追加する案。既存ユーザーの挙動が変わるリスクがあるため不採用。"
+    },
+    {
+      "option": "**config フラグでオプトイン（boolean）**",
+      "reason": "`agent.jsonOutput: true/false` の形。フラグ値そのものをコマンドに渡す必要があるため `jsonOutputFlag` の方が柔軟で採用。"
+    }
+  ],
+  "open_questions": []
+}

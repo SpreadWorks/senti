@@ -1,0 +1,53 @@
+{
+  "goal": "forge.js / text.js / agent.js / review.js / template-merger.js の構造を整理し、保守性と信頼性を向上させる。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "agent.js の API 直接呼び出し対応（インターフェースの拡張点は用意するが、実装は別 spec）",
+      "scan.js の汎用スキャナ強化",
+      "analysis.json のスキーマ定義",
+      "新しいプリセットの追加"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[x] forge.js から prompt 構築・レビュー解析が別モジュールに分離されている",
+    "[x] forge.js が lib/agent.js の callAgentAsync を使用している",
+    "[x] callAgentAsync に onStdout/onStderr コールバックオプションが追加されている",
+    "[x] プロンプトの静的テキストが prompts.json に外出しされている（ja + en）",
+    "[x] text.js に batch → per-directive の fallback コードがない",
+    "[x] template-merger.js に @parent 処理コードがない",
+    "[x] review.js が @data 未埋め・analysis.json 鮮度・MANUAL 対応をチェックする",
+    "[x] 全テストが通る（259 tests）"
+  ],
+  "clarifications": [
+    {
+      "q": "forge.js の runPerFile 内の concurrency 制御はどうなるか？",
+      "a": "lib/agent.js の callAgentAsync を使う形に変わるが、concurrency 制御自体は forge.js の runPerFile に残す（ファイルレベルの並列制御は呼び出し元の責務）"
+    },
+    {
+      "q": "streaming 対応を agent.js に入れると同期版 callAgent にも影響するか？",
+      "a": "しない。streaming は非同期版 callAgentAsync のオプションのみ。同期版は変更なし"
+    },
+    {
+      "q": "batch fallback を廃止して品質は下がらないか？",
+      "a": "batch が 0 filled を返す原因は LLM の出力品質問題であり、per-directive で再試行しても根本解決にならない。エラー報告して再実行を促す方が適切"
+    },
+    {
+      "q": "プロンプトのテンプレート化の範囲は？",
+      "a": "静的テキスト（ロール説明、ルール一覧、出力規約）を prompts.json に外出しする。変数埋め込み (`{{variable}}`) や条件分岐による動的組み立てはコード側に残す。user prompt の小さなテンプレート（forge file prompt, text user prompt）は動的部分が大半なのでコード内で可"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "(なし)"
+  ]
+}

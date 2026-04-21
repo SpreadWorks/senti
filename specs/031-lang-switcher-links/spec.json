@@ -1,0 +1,43 @@
+{
+  "goal": "README および docs の各章ドキュメント上部に、別言語ページへの切替リンクを `{{data}}` ディレクティブで追加する。複数言語出力が設定されていない場合は何も表示しない。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "既存の `lang.links` の修正・廃止（並存する）",
+      "3言語以上のテスト（2言語で動作すれば十分）",
+      "config.json スキーマの変更（`languageLabels` の追加は見送り、i18n ファイルで対応）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[x] 複数言語設定時、docs 章ファイルの先頭に言語切替リンクが表示される",
+    "[x] 複数言語設定時、README の先頭に言語切替リンクが表示される（絶対 URL）",
+    "[x] 単一言語設定時、リンクは表示されない",
+    "[x] 現在の言語は太字、他言語はリンク",
+    "[x] 相対パスが正しく解決される（デフォルト言語 ↔ 非デフォルト言語）",
+    "[x] 絶対 URL が `package.json` の `repository` から正しく生成される",
+    "[x] 既存テスト（363 件）がパスする"
+  ],
+  "clarifications": [
+    {
+      "q": "`lang.links` との棲み分けは？",
+      "a": "`lang.links` は既存コードが参照している可能性があるため残す。`docs.langSwitcher` を推奨として新規追加。"
+    },
+    {
+      "q": "DataSource から i18n を使えるか？",
+      "a": "`init(ctx)` に i18n インスタンスは渡されない。locale JSON ファイルを直接読み込む。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "`lang.links` を将来的に `docs.langSwitcher` に統合・置き換えるか"
+  ]
+}

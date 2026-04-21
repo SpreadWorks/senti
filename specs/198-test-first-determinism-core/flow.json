@@ -194,47 +194,109 @@
   "request": "#186 issueを進めてください",
   "worktree": true,
   "notes": [
-    "Q1: 解釈承認 (REQ-2/3/7 + integration skip 初期化)",
-    "Q2: commands.test top-level、{task,parent} 構造。省略時 scripts 推論",
-    "Q3: write-tests context filter の実装対象 path は spec.json.implementationTargets フィールドのみ（config 配置は不要）",
-    "Q4: addition auto-draft は新規 CLI sdd-forge flow run draft-task で実装。ツール側が agent呼び出し+gate+retry制御",
-    "Q5: integration skip 初期化は新規 flow のみ適用（buildInitialSteps 変更、migration なし）",
-    "Q6: テスト配置は混在（CLI契約/helpers恒久→tests/unit、E2Eシナリオ→specs/198/tests）"
-  ],
-  "metrics": {
-    "plan": {
-      "docsRead": 1,
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "Q1: 解釈承認 (REQ-2/3/7 + integration skip 初期化)",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 5
+    {
+      "taskId": null,
+      "text": "Q2: commands.test top-level、{task,parent} 構造。省略時 scripts 推論",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 72610,
-        "output": 4539,
-        "cacheRead": 33024,
-        "cacheCreation": 0
-      },
-      "callCount": 4,
-      "responseChars": 8871,
-      "durationMs": 104287
+    {
+      "taskId": null,
+      "text": "Q3: write-tests context filter の実装対象 path は spec.json.implementationTargets フィールドのみ（config 配置は不要）",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 507769,
-        "output": 20421,
-        "cacheRead": 242432,
-        "cacheCreation": 0
-      },
-      "callCount": 16,
-      "responseChars": 44459,
-      "durationMs": 468305
+    {
+      "taskId": null,
+      "text": "Q4: addition auto-draft は新規 CLI sdd-forge flow run draft-task で実装。ツール側が agent呼び出し+gate+retry制御",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "taskId": null,
+      "text": "Q5: integration skip 初期化は新規 flow のみ適用（buildInitialSteps 変更、migration なし）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "Q6: テスト配置は混在（CLI契約/helpers恒久→tests/unit、E2Eシナリオ→specs/198/tests）",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 5,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 4,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 8871,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "durationMs",
+      "value": 104287,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 16,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 44459,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "durationMs",
+      "value": 468305,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "autoApprove": true,
   "test": {
     "summary": {

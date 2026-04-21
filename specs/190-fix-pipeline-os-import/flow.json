@@ -112,49 +112,85 @@
   "request": "#170 tests/acceptance/lib/pipeline.js の os import 漏れ修正",
   "worktree": true,
   "notes": [
-    "draft Q1: Issue #170 意図確認 [1]承認",
-    "draft Q2: 検証方法=[1]該当2テストのみ",
-    "test: 既存受け入れテスト2件を検証に使用、新規テストなし",
-    "finalize.mode: [1] all"
-  ],
-  "metrics": {
-    "draft": {
-      "question": 1
+    {
+      "taskId": null,
+      "text": "draft Q1: Issue #170 意図確認 [1]承認",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 11340,
-        "output": 1646,
-        "cacheRead": 37120,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 3458
+    {
+      "taskId": null,
+      "text": "draft Q2: 検証方法=[1]該当2テストのみ",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 28215,
-        "output": 1941,
-        "cacheRead": 20224,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 2360
+    {
+      "taskId": null,
+      "text": "test: 既存受け入れテスト2件を検証に使用、新規テストなし",
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
-    },
-    "gate-impl": {
-      "tokens": {
-        "input": 146899,
-        "output": 919,
-        "cacheRead": 18176,
-        "cacheCreation": 0
-      },
-      "callCount": 2,
-      "responseChars": 1341
+    {
+      "taskId": null,
+      "text": "finalize.mode: [1] all",
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 3458,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 2360,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 1341,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
+  ],
   "test": {
     "summary": {
       "acceptance": 2
@@ -162,5 +198,7 @@
   },
   "state": {
     "finalizedAt": "2026-04-18T16:48:49.872Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

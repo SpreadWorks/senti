@@ -133,66 +133,160 @@
   "issue": 140,
   "request": "flow 未使用サブコマンド/オプションの棚卸しと運用方針（廃止 or 活用）を決定",
   "worktree": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 1
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "question": 12
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 12,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-draft": {
-      "tokens": {
-        "input": 2,
-        "output": 659,
-        "cacheRead": 11924,
-        "cacheCreation": 10534
-      },
-      "cost": 0.0529707,
-      "callCount": 1,
-      "responseChars": 1175
+    {
+      "phase": "gate-draft",
+      "counter": "cost",
+      "value": 0.0529707,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate": {
-      "tokens": {
-        "input": 2,
-        "output": 622,
-        "cacheRead": 11924,
-        "cacheCreation": 10843
-      },
-      "cost": 0.05357445000000001,
-      "callCount": 1,
-      "responseChars": 1208
+    {
+      "phase": "gate-draft",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "srcRead": 1,
-      "issueLog": 1
+    {
+      "phase": "gate-draft",
+      "counter": "responseChars",
+      "value": 1175,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "gate-impl": {
-      "tokens": {
-        "input": 6,
-        "output": 1436,
-        "cacheRead": 66864,
-        "cacheCreation": 15546
-      },
-      "cost": 0.0999147,
-      "callCount": 3,
-      "responseChars": 3077
+    {
+      "phase": "gate",
+      "counter": "cost",
+      "value": 0.05357445000000001,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "callCount",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "counter": "responseChars",
+      "value": 1208,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "cost",
+      "value": 0.0999147,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "callCount",
+      "value": 3,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "gate-impl",
+      "counter": "responseChars",
+      "value": 3077,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "runId": "ee960be5-6268-4c5e-b0dc-50bb24f64a14",
   "notes": [
-    "draft: Q1 - 未使用コマンド/オプションはすべて remove（alpha ポリシーに従い一括削除）",
-    "draft: Q2 - flow resume はスコープ外（スキル自体は有用、今回は触れない）",
-    "draft: Q3 - redo 関連を一式削除。redo ログ登録ロジックの issue をボードに追加",
-    "draft: Q4 - alpha ポリシーに従い migration plan なしで削除",
-    "draft: Q5 - オプション: --confirm-skip-guardrail のみ削除。--skip-guardrail, --message, --dry-run は残す",
-    "draft: Q6 - 方針修正: 全コマンド/オプションの棚卸し分類表を作成する。削除だけでなく keep/integrate も含めて判断",
-    "draft: Q7 - 分類確定: keep(--skip-guardrail, --message, --dry-run sync), integrate(test-summary, lint, retro), remove(--confirm-skip-guardrail, redo関連)",
-    "draft: Q8 - スコープ確定: remove(confirm-skip-guardrail, redo関連), integrate(test-summary→plan, lint→impl, retro→finalize), keep(skip-guardrail, message, dry-run), 分類表を成果物に含める",
-    "implement: approach confirmed - proceed with all 8 requirements",
-    "review: auto-fix review selected",
-    "finalize: mode=all selected"
+    {
+      "taskId": null,
+      "text": "draft: Q1 - 未使用コマンド/オプションはすべて remove（alpha ポリシーに従い一括削除）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q2 - flow resume はスコープ外（スキル自体は有用、今回は触れない）",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q3 - redo 関連を一式削除。redo ログ登録ロジックの issue をボードに追加",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q4 - alpha ポリシーに従い migration plan なしで削除",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q5 - オプション: --confirm-skip-guardrail のみ削除。--skip-guardrail, --message, --dry-run は残す",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q6 - 方針修正: 全コマンド/オプションの棚卸し分類表を作成する。削除だけでなく keep/integrate も含めて判断",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q7 - 分類確定: keep(--skip-guardrail, --message, --dry-run sync), integrate(test-summary, lint, retro), remove(--confirm-skip-guardrail, redo関連)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: Q8 - スコープ確定: remove(confirm-skip-guardrail, redo関連), integrate(test-summary→plan, lint→impl, retro→finalize), keep(skip-guardrail, message, dry-run), 分類表を成果物に含める",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "implement: approach confirmed - proceed with all 8 requirements",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: auto-fix review selected",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: mode=all selected",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "state": {
     "finalizedAt": "2026-04-13T14:16:19.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

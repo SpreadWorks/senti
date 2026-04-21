@@ -113,22 +113,86 @@
   "worktree": true,
   "issue": 19,
   "notes": [
-    "approach: Q&A で要件を整理してから仕様書を作成する / branch: Git worktree from development",
-    "draft: docs are older than source; user chose to skip sdd-forge build",
-    "draft: scope includes the test migration and all related supporting changes",
-    "draft: include publish-related changes and src/AGENTS.md updates in required outcomes",
-    "draft: scope covers all current acceptance tests under tests/acceptance",
-    "draft: fixtures must be moved into each preset and not shared across presets",
-    "draft: move each existing acceptance test into its matching preset directory and rename files to test.js",
-    "draft: keep tests/acceptance/run.js and change its discovery targets to preset-local acceptance tests",
-    "approval: user approved the spec without further changes",
-    "gate: clarified intra-P1 priority as relocation -> runner compatibility -> test discovery",
-    "gate: added explicit When conditions to AGENTS.md requirements R16 and R17",
-    "gate: rewrote requirements R1-R19 into explicit When/If-shall format",
-    "test: verified acceptance runner help, nonexistent preset error, npm pack exclusions, parent-chain e2e, acceptance report e2e, and preset-local node acceptance execution",
-    "implement: relocated acceptance tests and fixtures into preset-local directories, updated runners/helpers, fixed dependent e2e tests, and updated src/AGENTS.md",
-    "review: applied approved proposals 1,2,4 and re-ran follow-up tests (report.test, parent-chain.test, acceptance run node, preset nonexistent)",
-    "finalize: run all steps"
+    {
+      "taskId": null,
+      "text": "approach: Q&A で要件を整理してから仕様書を作成する / branch: Git worktree from development",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: docs are older than source; user chose to skip sdd-forge build",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: scope includes the test migration and all related supporting changes",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: include publish-related changes and src/AGENTS.md updates in required outcomes",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: scope covers all current acceptance tests under tests/acceptance",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: fixtures must be moved into each preset and not shared across presets",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: move each existing acceptance test into its matching preset directory and rename files to test.js",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: keep tests/acceptance/run.js and change its discovery targets to preset-local acceptance tests",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "approval: user approved the spec without further changes",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "gate: clarified intra-P1 priority as relocation -> runner compatibility -> test discovery",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "gate: added explicit When conditions to AGENTS.md requirements R16 and R17",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "gate: rewrote requirements R1-R19 into explicit When/If-shall format",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "test: verified acceptance runner help, nonexistent preset error, npm pack exclusions, parent-chain e2e, acceptance report e2e, and preset-local node acceptance execution",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "implement: relocated acceptance tests and fixtures into preset-local directories, updated runners/helpers, fixed dependent e2e tests, and updated src/AGENTS.md",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: applied approved proposals 1,2,4 and re-ran follow-up tests (report.test, parent-chain.test, acceptance run node, preset nonexistent)",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "finalize: run all steps",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "request": "$sdd-forge.flow-plan issue #19 の対応を進めてください。",
   "reviewCount": {
@@ -137,13 +201,19 @@
     "impl": 0
   },
   "redoCount": 0,
-  "metrics": {
-    "draft": {
-      "question": 9
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 9,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "requestChars": 43,
   "state": {
     "finalizedAt": "2026-03-26T03:13:47.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

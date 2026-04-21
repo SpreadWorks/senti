@@ -126,18 +126,36 @@
   "request": "VALID_PHASES を get-guardrail.js, set-metric.js, review.js から共有定数に統合し、ドリフトを解消する",
   "worktree": true,
   "autoApprove": true,
-  "metrics": {
-    "plan": {
-      "docsRead": 2
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "draft": {
-      "srcRead": 2,
-      "question": 1
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "value": 2,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     },
-    "impl": {
-      "issueLog": 1
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "reviewCount": {
     "spec": 4,
     "test": 0,
@@ -147,5 +165,7 @@
   "requestChars": 78,
   "state": {
     "finalizedAt": "2026-04-04T07:37:04.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

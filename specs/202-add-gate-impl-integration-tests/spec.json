@@ -1,0 +1,98 @@
+{
+  "goal": "spec 201 (gate-impl-eval-accuracy) の acceptance criteria で「integration test で確認できる」と明記されながら実際には unit test 相当で済ませた 5 項目を、真の end-to-end integration test として補完する。gate-impl の配線（test 変更機械判定・post-hook による retry counter 更新・retry 上限到達時のエスカレーション）が将来 refactor で切れた際に regression を検知できる状態にする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`tests/e2e/flow/gate-impl-integration.test.js`（単一ファイル）に 5 ケースを配置",
+      "テスト fixture 構築に必要な再利用可能 helper の追加（既存 `tests/helpers/` を拡張）",
+      "config.agent.providers に固定応答を返す stub provider を構成する helper の追加"
+    ],
+    "out": [
+      "production コード（`src/`）の変更。既存の gate-impl 実装は spec 201 で合格しており、この spec では変更しない。",
+      "既存 unit test の削除・改変。unit と integration の 2 層体制とする。",
+      "spec 201 の Out of Scope（軸 B baseline 差分、軸 C 残存リスク E/F 等）への対応。",
+      "新 phase（`integration` 等）の挙動検証。既存の `task-impl` phase のみを対象とする。"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "`tests/e2e/flow/gate-impl-integration.test.js` が存在し、5 ケース（R1〜R5 対応）を含む。",
+    "`npm test -- tests/e2e/flow/gate-impl-integration.test.js` が全て PASS する。",
+    "5 ケース合計の実行時間が 30 秒以内である（手動計測または test runner のタイミング出力で確認）。",
+    "Stub provider 構成 helper が `tests/helpers/` に追加され、Node.js 組み込みモジュールのみで実装されている。",
+    "既存 unit test（`tests/unit/flow/gate-test-change-check.test.js`, `tests/unit/flow/gate-retry-counter.test.js`）は変更されていない。",
+    "新規テストの故意の FAIL（gate-impl 配線を意図的に壊す実験）で確かに FAIL を検知できることを手元で確認済みであることを report.json に記録する。"
+  ],
+  "clarifications": [
+    {
+      "q": "テスト配置先は `tests/e2e/flow/` と `specs/202-*/tests/` のどちらか？",
+      "a": "`tests/e2e/flow/`。配線検証は「将来 refactor で切れたら常にバグ」に該当し、project decision rule（\"always a bug? → YES → tests/\"）に従う。"
+    },
+    {
+      "q": "AI 呼び出しをどう扱うか？",
+      "a": "実 AI を呼ばず、既存 e2e テストの `config.agent.providers` パターンに準拠した固定応答 provider を使用する。"
+    },
+    {
+      "q": "5 項目を 1 ファイルに集約するか？",
+      "a": "集約する。全て `sdd-forge flow run gate --phase task-impl` の配線検証という近接関心のため、setup/fixture 共通化の効果が大きい。"
+    },
+    {
+      "q": "ESCALATE 戻り値一致の判定基準は？",
+      "a": "送出エラーの識別子 `err.code === \"ESCALATE_RETRY_EXHAUSTED\"` を run-draft-task と gate-impl の両方で使用していること（symbol 一致）。加えて非 0 exit と retry 履歴文字列の出現を確認する。"
+    },
+    {
+      "q": "PASS ケースの diff 内容は？",
+      "a": "spec 201 P1-R4（複数行追加のみで構成される hunk）を満たす diff を使う。具体例: test ファイルに `+` のみ 2 行以上の新規 test block を追加する diff（`-` 行無し）。"
+    },
+    {
+      "q": "FAIL ケースの核心攻撃ベクトルは？",
+      "a": "spec 201 P1-R2（`-` 行を含む hunk）と P1-R3（`+` 1 行のみの hunk）を 1 ケースずつ検証する。assert 書換・削除・skip 化は全て `-` 行を伴うため P1-R2 に集約。「1 行追加」は P1-R3。test 1 本で両方を混在させた diff とし、FAIL 発生で十分（FAIL 理由文字列でファイル名/行番号を確認）。"
+    },
+    {
+      "q": "ESCALATE ケースで retry 回数上限をどう再現するか？",
+      "a": "fixture の flow.json 初期状態で `metrics[\"task-impl\"].gateRetry` を上限値 (3) に設定して gate-impl を起動する。issue-log にも過去 FAIL エントリを載せ、retry 履歴文字列の出力を確認する。"
+    },
+    {
+      "q": "post-hook counter 遷移の検証手順は？",
+      "a": "1 ケース内で 2 回 gate-impl を実行する（a: FAIL 発生 → counter +1 / b: 別 fixture で PASS 発生 → counter 0 リセット）。前後で flow.json を直接読み、`metrics[\"task-impl\"].gateRetry` の値を assert する。"
+    },
+    {
+      "q": "実行時間許容値は？",
+      "a": "5 ケース合計で 30 秒以内を目標（subprocess 起動 × 5〜7 回を想定）。`npm test` 全体の regression にならない範囲とする。"
+    },
+    {
+      "q": "stub provider の具体的な実装形式は？",
+      "a": "Node.js 組み込みのみで実現。既存 `echo-agent` パターン（`command: \"node\"`, `args: [..., \"{{PROMPT}}\"]`）に倣い、固定 JSON を stdout に書き出す小さな JS スクリプトを helper 側で temp ファイルとして生成し、config.agent.providers から参照する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**unit test の拡充に留める**",
+      "reason": "内部関数を直接呼ぶ unit test では `executeDiffBasedGate` ディスパッチや post-hook 配線の変更を検知できない。spec 201 acceptance criteria に反する。却下。"
+    },
+    {
+      "option": "**実 AI 呼び出し**",
+      "reason": "コスト増・flakiness・外部サービス依存のため却下。"
+    },
+    {
+      "option": "**複数ファイル分割（5 テスト → 5 ファイル）**",
+      "reason": "全て同じ CLI 配線検証で fixture 共通化効果が大きく、1 ファイル集約が保守上優位。"
+    },
+    {
+      "option": "**in-process テスト（subprocess なし）**",
+      "reason": "`executeDiffBasedGate` を直接 import して呼ぶ案。しかし CLI dispatcher（`src/flow.js`）・registry・context 解決・hook 実行の配線まで検証できず、integration test の価値が半減する。却下。"
+    },
+    {
+      "option": "**ESCALATE 一致を「戻り値型（exception vs flag）の一致」で判定**",
+      "reason": "既に spec 201 で「例外形式」に統一済みで、両者とも throw Error 形式。さらに識別子 symbol の一致まで担保することで、将来 refactor で片方のみ別 code に変更された場合を検知できる。"
+    }
+  ],
+  "open_questions": []
+}

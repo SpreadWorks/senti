@@ -1,0 +1,56 @@
+{
+  "goal": "`review` コマンドが説明用の `{{data}}` サンプル文字列を未埋めディレクティブとして誤検知しないようにする。\n- analysis coverage 警告でメタ情報をカテゴリ扱いしないようにし、警告ノイズを減らす。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`src/docs/commands/review.js` の未埋め `{{data}}` 判定ロジックの修正",
+      "`src/docs/commands/review.js` の analysis coverage 用メタキー定義の修正",
+      "上記に対応するテストの追加または更新"
+    ],
+    "out": [
+      "`review` の全体設計変更",
+      "`docs/` 本文の内容修正",
+      "`build` パイプラインへの `review` 組み込み"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`review` は本文中の説明用 `{{data}}` サンプル文字列を未埋めディレクティブとして FAIL 扱いしてはならない。"
+    },
+    {
+      "id": "R2",
+      "desc": "未埋め `{{data}}` 判定は、コメントベースの `{{data}}` ブロック構造に対して行う。"
+    },
+    {
+      "id": "R3",
+      "desc": "analysis coverage 警告では `enrichedAt` をカテゴリ扱いしてはならない。"
+    },
+    {
+      "id": "R4",
+      "desc": "既存の `review` の基本検査機能は維持する。"
+    }
+  ],
+  "acceptance_criteria": [
+    "`docs/04_internal_design.md` に含まれる `{{data}}` サンプル文字列だけを理由に `review` が FAIL しない。",
+    "`.sdd-forge/output/analysis.json` に `enrichedAt` が存在しても `uncovered analysis category: enrichedAt` 警告が出ない。",
+    "関連テストが追加または更新され、修正内容を検証できる。"
+  ],
+  "clarifications": [
+    {
+      "q": "今回の修正対象は docs 本文ではなく `review` ロジック側でよいか。",
+      "a": "はい。`review` 側の誤検知を修正する。"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": [
+    "なし"
+  ]
+}

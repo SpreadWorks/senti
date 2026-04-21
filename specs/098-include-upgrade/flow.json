@@ -133,12 +133,36 @@
   "worktree": true,
   "request": "Task 04: include ディレクティブと upgrade 時の展開を実装。skill テンプレートの重複削減",
   "notes": [
-    "draft: include関数はsrc/lib/include.jsに配置。resolveIncludes(content, opts)のシグネチャ",
-    "draft: 共有パーツはsrc/templates/partials/に配置。include参照は@templates/partials/xxx.md",
-    "draft: include展開はdeploySkills()内。展開済み完成品を.agents/.claudeにデプロイ",
-    "draft: resolveIncludes()はthrowのみ。process.exitは呼ばない。親側(upgrade.js)でキャッチ・制御",
-    "draft: include仕組み+実際のskillテンプレート切り出しを両方やる",
-    "review: SKILL.en.md/ja.mdをSKILL.md 1本に統一。config.lang翻訳指示方式に変更"
+    {
+      "taskId": null,
+      "text": "draft: include関数はsrc/lib/include.jsに配置。resolveIncludes(content, opts)のシグネチャ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: 共有パーツはsrc/templates/partials/に配置。include参照は@templates/partials/xxx.md",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: include展開はdeploySkills()内。展開済み完成品を.agents/.claudeにデプロイ",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: resolveIncludes()はthrowのみ。process.exitは呼ばない。親側(upgrade.js)でキャッチ・制御",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "draft: include仕組み+実際のskillテンプレート切り出しを両方やる",
+      "ts": "1970-01-01T00:00:00.000Z"
+    },
+    {
+      "taskId": null,
+      "text": "review: SKILL.en.md/ja.mdをSKILL.md 1本に統一。config.lang翻訳指示方式に変更",
+      "ts": "1970-01-01T00:00:00.000Z"
+    }
   ],
   "reviewCount": {
     "spec": 4,
@@ -146,13 +170,19 @@
     "impl": 0
   },
   "redoCount": 0,
-  "metrics": {
-    "draft": {
-      "question": 1
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "question",
+      "value": 1,
+      "taskId": null,
+      "ts": "1970-01-01T00:00:00.000Z"
     }
-  },
+  ],
   "requestChars": 59,
   "state": {
     "finalizedAt": "2026-03-31T12:57:20.000Z"
-  }
+  },
+  "tasks": [],
+  "currentTaskId": null
 }

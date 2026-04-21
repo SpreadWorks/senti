@@ -1,0 +1,74 @@
+{
+  "goal": "`agent.profiles` ベースの設定フォーマットに刷新し、`useProfile` / `SDD_FORGE_PROFILE` によるエージェントプロファイル切り替えを実現する。agent 使用制限が発生した場合などに設定ファイルまたは環境変数で手軽にエージェントを切り替えられるようにする。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`agent.profiles` / `agent.useProfile` の新設",
+      "`SDD_FORGE_PROFILE` 環境変数によるプロファイルオーバーライド",
+      "プロファイルのコマンドマッチング（プレフィックスマッチ方式）",
+      "src/ へのビルトインプロバイダー定義（4種）とユーザー定義との統合",
+      "`agent.commands` および provider-level `profiles` の廃止",
+      "`sdd-forge setup` が生成する初期 config.json の新フォーマット対応",
+      "`README.md` の `agent` 設定セクション更新",
+      "`CHANGELOG.md` への breaking change 記載",
+      "typo 修正: `experimental.workflow.borad.to-issue` → `experimental.workflow.board.to-issue`"
+    ],
+    "out": [
+      "config.json バリデーション警告機能（別 spec: dcad）",
+      "`SDD_SOURCE_ROOT` / `SDD_WORK_ROOT` 等の既存環境変数の `SDD_FORGE_` プレフィックスへの統一（別 spec: ffbc）",
+      "環境変数以外のプロファイル動的切り替え手段"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "[ ] `agent.useProfile: \"fast\"` が設定されている場合、`docs build` 実行時に `profiles.fast.docs` で指定されたプロバイダーが使用される",
+    "[ ] `SDD_FORGE_PROFILE=claude-only` が設定されている場合、`agent.useProfile` の値に関わらず `profiles.claude-only` のプロバイダーが使用される",
+    "[ ] `SDD_FORGE_PROFILE=nonexistent` を設定してコマンドを実行すると、エラーメッセージとともに非ゼロ終了する",
+    "[ ] `agent.useProfile` も `SDD_FORGE_PROFILE` も未設定の場合、`agent.default` のプロバイダーが使用される（従来通り）",
+    "[ ] `useProfile: \"fast\"` で `profiles.fast` に `docs` エントリはあるが `docs.review` エントリがない場合、`docs.review` 実行時は `docs` エントリのプロバイダーが使用される（プレフィックスマッチ）",
+    "[ ] `useProfile: \"fast\"` で `profiles.fast` にいずれのエントリもマッチしない場合、`agent.default` にフォールバックする",
+    "[ ] config.json に `agent.providers` の定義がない場合、ビルトインプロバイダーが使用可能である",
+    "[ ] ユーザーが `agent.providers.claude/opus` を定義した場合、ビルトイン定義より優先される",
+    "[ ] `experimental.workflow.board.to-issue` キーが正しく参照される（typo 修正確認）"
+  ],
+  "clarifications": [
+    {
+      "q": "typo 修正（`borad` → `board`）はこの spec に含めるか？",
+      "a": "含める（同一変更セットとして扱う）"
+    },
+    {
+      "q": "`SDD_FORGE_PROFILE` と `agent.useProfile` が両方設定されている場合の優先順位は？",
+      "a": "環境変数（`SDD_FORGE_PROFILE`）が優先される"
+    },
+    {
+      "q": "存在しないプロファイル名が指定された場合の挙動は？",
+      "a": "エラーを投げて停止する（サイレント失敗禁止）"
+    },
+    {
+      "q": "ビルトインプロバイダーのリストは？",
+      "a": "`claude/opus`、`claude/sonnet`、`codex/gpt-5.4`、`codex/gpt-5.3` の4つ"
+    },
+    {
+      "q": "旧フィールド（`agent.commands`、provider-level `profiles`）が残っていた場合の挙動は？",
+      "a": "黙って無視する（alpha ポリシー）"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "**`agent.commands` を拡張してグループ化対応**",
+      "reason": "既存のキーを拡張する案。ただし命名が分かりにくくなるため不採用。`profiles` という明示的な名前で新設する方が意図が明確。"
+    },
+    {
+      "option": "**ワイルドカード（`docs.*`）構文**",
+      "reason": "グロブ形式の検討。プレフィックスマッチで同等の表現力を得られるため不要と判断。設定がシンプルになる。"
+    }
+  ],
+  "open_questions": []
+}

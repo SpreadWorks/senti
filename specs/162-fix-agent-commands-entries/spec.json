@@ -1,0 +1,81 @@
+{
+  "goal": "`config.example.json` が機能しない `agent.commands` フォーマットを記載しており、ユーザーが per-command agent を設定できない問題を修正する。あわせて `types.js` の型定義・バリデーションを実装の実態（`agent.profiles`）に整合させ、コード上で使われているすべての commandId を設定可能にする。",
+  "background": "",
+  "scope": {
+    "in": [],
+    "out": [
+      "`agent.commands` フォーマットの実装（resolveAgent での読み込み）",
+      "各プリセット tests/acceptance/fixtures の config.json 更新"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`src/lib/types.js` の `AgentConfig` typedef から `[commands]` プロパティを削除する"
+    },
+    {
+      "id": "R2",
+      "desc": "代わりに `[profiles]` プロパティ（`Object<string, Object<string, string>>`）を追加する"
+    },
+    {
+      "id": "R3",
+      "desc": "`src/lib/types.js` が `src/lib/agent.js` から `BUILTIN_PROVIDERS` をインポートする"
+    },
+    {
+      "id": "R4",
+      "desc": "`validateConfig` で `raw.agent.profiles` が存在する場合、以下を検証する： - profiles がオブジェクトであること - 各プロファイル値がオブジェクトであること - 各プロファイルエントリの値が文字列であること - 各値が `BUILTIN_PROVIDERS` と `raw.agent.providers` のマージに存在するか（参照整合性チェック）"
+    },
+    {
+      "id": "R5",
+      "desc": "`agent.commands` ブロックを削除し `agent.profiles.default` ブロックを追加する"
+    },
+    {
+      "id": "R6",
+      "desc": "既存の commandId（`docs.enrich`, `docs.text`, `docs.forge`, `docs.readme`, `docs.agents`, `spec.gate`, `flow.review.draft`, `flow.review.final`, `docs.translate`）を profiles 形式で記載する"
+    },
+    {
+      "id": "R7",
+      "desc": "以下の commandId を新規追加する：`docs.init`, `flow.review.test`, `flow.review.spec`, `flow.retro`, `context.search`"
+    },
+    {
+      "id": "R8",
+      "desc": "`agent.providers` 内の `profiles` フィールド（旧フォーマット）を削除する"
+    },
+    {
+      "id": "R9",
+      "desc": "`src/docs/commands/init.js`: `resolveCommandContext(cli)` → `resolveCommandContext(cli, { commandId: \"docs.init\" })`"
+    },
+    {
+      "id": "R10",
+      "desc": "`src/flow/lib/run-retro.js:188`: エラーメッセージ内の `agent.commands.flow.retro` を `agent.profiles` への言及に修正する"
+    }
+  ],
+  "acceptance_criteria": [
+    "[ ] `validateConfig` に `agent.profiles` の値として存在しない provider key を渡した場合、エラーが throw される",
+    "[ ] `validateConfig` に `agent.profiles` の値として `BUILTIN_PROVIDERS` のキー（例: `\"claude/sonnet\"`）を渡した場合、バリデーションが通る",
+    "[ ] `config.example.json` を `JSON.parse` して `validateConfig` に渡した場合、エラーが出ない（ただし `docs` / `lang` / `type` 等の必須フィールドは補完して検証）",
+    "[ ] `config.example.json` に `agent.commands` キーが存在しない",
+    "[ ] `config.example.json` に `agent.profiles.default` が存在し、`context.search`, `flow.retro`, `flow.review.test`, `flow.review.spec`, `docs.init` が含まれる",
+    "[ ] `init.js` が `resolveCommandContext` に `commandId: \"docs.init\"` を渡している",
+    "[ ] `run-retro.js` のエラーメッセージが `agent.commands` を参照していない"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "**`agent.commands` を新規実装する**",
+      "reason": "scope が大きく、別 spec で扱う。"
+    },
+    {
+      "option": "**`validateConfig` に providers 引数を追加する**",
+      "reason": "シグネチャ変更により全呼び出し元を更新する必要がある。インポートで解決できるため採用しない。"
+    }
+  ],
+  "open_questions": []
+}

@@ -1,0 +1,52 @@
+{
+  "goal": "Acceptance テストの結果を、品質改善のアクションに繋がるレポートとして出力する。\n現在は pass/fail のみで情報が不足しているため、ディレクティブ検出の詳細、パイプラインの計測、AI による文章品質評価を構造化して提供する。",
+  "background": "",
+  "scope": {
+    "in": [
+      "`tests/acceptance/lib/` の 4 ファイルを改修",
+      "未埋めディレクティブ検出ロジックの改修 + ユニットテスト追加",
+      "レポート JSON の出力（`.sdd-forge/output/acceptance-report.json`）",
+      "コンソールへの詳細出力追加"
+    ],
+    "out": [
+      "既存テストファイル（`*.test.js`）の変更",
+      "CLI コマンドの追加・変更",
+      "`src/` 配下の変更（テストコードのみ対象）"
+    ]
+  },
+  "constraints": [],
+  "design_principles": [],
+  "overview": {
+    "modules": [],
+    "data_flow": [],
+    "decisions": []
+  },
+  "requirements": [],
+  "acceptance_criteria": [
+    "AC1: 未埋めディレクティブが存在するドキュメントに対し、ファイル名と行番号を含む検出結果が返される",
+    "AC2: パイプライン完了後、各ステップの名前・成否・所要時間がレポート JSON に記録される",
+    "AC3: AI 品質チェック後、5軸それぞれに pass/fail とコメントがレポート JSON に記録される",
+    "AC4: レポート JSON が `.sdd-forge/output/acceptance-report.json` に出力される",
+    "AC5: 既存の acceptance テストが変更なしで引き続き pass する"
+  ],
+  "clarifications": [
+    {
+      "q": "レポートの出力形式は？",
+      "a": "コンソール出力 + JSON ファイル（`.sdd-forge/output/acceptance-report.json`）"
+    },
+    {
+      "q": "AI 評価の観点は？",
+      "a": "Naturalness, Cultural Fit, Informativeness, Coherence, Actionability の5軸。静的に検出できない文章品質を評価する"
+    },
+    {
+      "q": "未埋めディレクティブの検出ロジック改修はどこで検証する？",
+      "a": "ユニットテストで検証。acceptance テストではレポートへの統合を検証"
+    },
+    {
+      "q": "実装の進め方は？",
+      "a": "P1 → P2 → P3 の順に一つずつ実装・確認してから次に進む"
+    }
+  ],
+  "alternatives_considered": [],
+  "open_questions": []
+}
