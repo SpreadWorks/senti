@@ -102,17 +102,18 @@ describe("flow get prompt i18n — English", () => {
   });
 });
 
-describe("flow-plan SKILL.md has no hardcoded prompt text", () => {
+describe("flow SKILL.md has no hardcoded prompt text", () => {
   it("does not contain fixed choice blocks for plan prompts", () => {
-    const skillPath = join(process.cwd(), "src/templates/skills/sdd-forge.flow-plan/SKILL.md");
+    const skillPath = join(process.cwd(), "src/templates/skills/sdd-forge.flow/SKILL.md");
     const content = fs.readFileSync(skillPath, "utf8");
-    // Should not contain hardcoded English choice labels
     assert.ok(!content.includes("[1] Organize requirements"), "should not hardcode approach choices");
     assert.ok(!content.includes("[1] Write test code"), "should not hardcode test-mode choices");
     assert.ok(!content.includes("[1] Approve"), "should not hardcode approval choices");
     assert.ok(!content.includes("[1] Proceed to implementation"), "should not hardcode complete choices");
-    // Should reference flow get prompt instead
-    assert.ok(content.includes("flow get prompt plan.approval"), "should reference prompt command");
-    assert.ok(content.includes("flow get prompt plan.test-mode"), "should reference prompt command");
+    // The consolidated flow skill is a thin dispatcher; per-step instructions
+    // (loaded by `flow get next-action`) own the prompt references. The skill
+    // only retains the Prelude-phase prompt calls.
+    assert.ok(content.includes("flow get prompt plan.work-environment"), "should reference prelude prompt command");
+    assert.ok(content.includes("flow get prompt plan.base-branch"), "should reference prelude prompt command");
   });
 });

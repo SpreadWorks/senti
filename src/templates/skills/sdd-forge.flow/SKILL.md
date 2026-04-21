@@ -60,6 +60,19 @@ B.0. **Initialize flow state**
    - Run `sdd-forge flow set init [--issue N] [--request "<user raw text>"]` to create a preparing state file (`.active-flow.<runId>`).
    - Save the returned `runId` from `data.runId` for use in B.4.
 
+B.0.5. **Auto-mode eligibility check** (spec 208)
+   - Build the input text: combine `--request` and, if an Issue is linked, the fetched Issue body (`sdd-forge flow get issue <n>`).
+   - Run `sdd-forge flow run auto-check --input "<text>"` and read `data.eligible`.
+   - **If `eligible: true`**: present the auto-mode prompt using the Choice Format.
+     - Description (inside lines): show Goal + Scope (derived from the input) + a 1–3 line restatement. This is the same unified Goal+Scope+説明 format used by Draft Q1.
+     - Choices: `[1] はい` `[2] いいえ`. Note below choices: "概要が間違っていたら「いいえ」を選択してください / 後で Auto モードに切替可能".
+     - If user picks `[1]`:
+       - Run `sdd-forge flow set auto on` (the CLI re-verifies auto-check; rejection here means STOP).
+       - **Skip B.1 and B.2.** Use work-environment = worktree and base-branch = current branch by default.
+       - Proceed to B.3 (Draft Q1 is also auto-approved under autoApprove).
+     - If user picks `[2]`: continue with the normal B.1 → B.2 → B.3 flow.
+   - **If `eligible: false`**: do NOT display the auto-mode prompt. Continue with the normal B.1 → B.2 → B.3 flow. The result is still stored in flow.json `autoCheck` for audit.
+
 B.1. **Choose work environment**
    - **Auto-detect:** if `.git` is a file (not directory) in the project root, you are already inside a worktree — skip the choice and use `--no-branch` automatically.
    - Otherwise: run `sdd-forge flow get prompt plan.work-environment` and present the choices.
@@ -72,7 +85,7 @@ B.2. **Choose base branch**
 B.3. **Draft Q1 — intent confirmation**
    - **autoApprove skip:** if `autoApprove: true`, skip this interactive step and use the Issue / request text directly as the draft source.
    - If an Issue number was captured, run `sdd-forge flow get issue <number>` to fetch the title and body.
-   - Present a concise summary of the AI's interpretation (from Issue content and/or request text).
+   - Present a concise summary using the unified Goal + Scope + 1–3 line description format (same shape the auto-check prompt uses in B.0.5).
    - Ask with the Choice Format: `[1] はい [2] 修正する [3] その他`. **Retry limit: 1 round.** If `[3]` is selected twice, STOP.
    - Derive the spec `--title`: short, max 30 characters, lowercase English, hyphen-separated.
 

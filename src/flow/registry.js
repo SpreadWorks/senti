@@ -358,6 +358,22 @@ export const FLOW_COMMANDS = {
       ].join("\n"),
       post: stepPost("review"),
     },
+    "auto-check": {
+      helpKey: "flow.run.auto-check",
+      command: () => import("./lib/run-auto-check.js"),
+      requiresFlow: false,
+      args: { options: ["--input"] },
+      help: [
+        "Usage: sdd-forge flow run auto-check [options]",
+        "",
+        "Evaluate whether the current request qualifies for auto mode.",
+        "Runs static keyword gates first; if clear, calls the AI once for scoring.",
+        "Result is persisted to flow.json autoCheck (when a flow is active).",
+        "",
+        "Options:",
+        "  --input <text>   Raw input to evaluate (defaults to flow.json request + issue)",
+      ].join("\n"),
+    },
     // impl-confirm is a read-only check, not the finalize action itself.
     // Step status is managed by the skill, not hooks.
     "impl-confirm": {

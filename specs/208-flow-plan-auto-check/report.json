@@ -1,0 +1,63 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/208-flow-plan-auto-check/draft.md        | 123 +++++++\n specs/208-flow-plan-auto-check/flow.json       | 440 +++++++++++++++++++++++++\n specs/208-flow-plan-auto-check/issue-log.json  |  77 +++++\n specs/208-flow-plan-auto-check/qa.md           |   9 +\n specs/208-flow-plan-auto-check/spec.json       | 117 +++++++\n specs/208-flow-plan-auto-check/spec.md         | 134 ++++++++\n specs/208-flow-plan-auto-check/tests/README.md |  35 ++\n src/flow/lib/auto-check-static.js              |  59 ++++\n src/flow/lib/run-auto-check.js                 | 215 ++++++++++++\n src/flow/lib/set-auto.js                       |  40 ++-\n src/flow/registry.js                           |  16 +\n src/templates/skills/sdd-forge.flow/SKILL.md   |  15 +-\n tests/unit/flow/auto-check-static.test.js      | 102 ++++++\n tests/unit/flow/prompt-i18n.test.js            |  13 +-\n tests/unit/flow/run-auto-check.test.js         | 153 +++++++++\n tests/unit/flow/set-auto.test.js               | 125 +++++--\n 16 files changed, 1631 insertions(+), 42 deletions(-)",
+      "commits": [
+        "feat: feature/208-flow-plan-auto-check"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 5,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 214974,
+      "output": 8055,
+      "cacheRead": 83328,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 12,
+      "durationMs": 243342,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 90530
+        },
+        {
+          "phase": "gate",
+          "durationMs": 52214
+        },
+        {
+          "phase": "implement",
+          "durationMs": 9251
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 56060
+        },
+        {
+          "phase": "review",
+          "durationMs": 35287
+        }
+      ]
+    },
+    "tests": {
+      "unit": 22,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 22
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/208-flow-plan-auto-check\n    16 files changed, 1631 insertions(+), 42 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 5\n    issue-log ................... 3\n    agent calls ................. 12\n    input tokens ................ 214,974\n    output tokens ............... 8,055\n    cache-read tokens ........... 83,328\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 243.3s\n      gate-draft ................ 90.5s\n      gate ...................... 52.2s\n      implement ................. 9.3s\n      gate-impl ................. 56.1s\n      review .................... 35.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 22  integration 0  acceptance 0  total 22"
+}
