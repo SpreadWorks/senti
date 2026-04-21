@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T08:55:58.648Z",
+  "analyzedAt": "2026-04-21T09:07:02.347Z",
   "package": {
     "entries": [
       {
@@ -2275,22 +2275,20 @@
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "82ba4744fe53577132ccd910f60d0e81",
-        "lines": 253,
-        "mtime": "2026-04-18T21:58:03.712Z",
+        "hash": "2e1880aa4f1a67618d9bdc392d9a4b16",
+        "lines": 199,
+        "mtime": "2026-04-21T09:07:02.051Z",
         "className": "report",
         "methods": [
           "generateReport",
           "saveReport",
-          "forEachPhase",
-          "aggregateActivityMetrics",
-          "aggregateTokenMetrics",
           "formatText"
         ],
         "imports": [
           "fs",
           "path",
           "../lib/set-issue-log.js",
+          "../lib/get-status.js",
           "../../lib/formatter.js"
         ],
         "exports": [
@@ -2300,19 +2298,21 @@
         "extends": null,
         "usedBy": null,
         "id": "5f80ffd2",
+        "summary": "This module generates and persists flow report artifacts from issue-log and metrics data. It builds both machine-readable JSON data and a formatted text report for terminal output.",
+        "detail": "The file composes report content by reading issue-log entries and deriving aggregated metrics via shared status helpers. It centralizes presentation logic, including aligned label/value formatting and duration rendering for readable output. `generateReport` returns both structured data and preformatted text so downstream commands can reuse one computation path. `saveReport` resolves the spec directory from the provided root/spec path and writes a stable `report.json` artifact. The implementation follows a thin command-support pattern where data assembly is delegated to reusable library functions.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
+          "processedAt": "2026-04-21T09:07:51.961Z",
+          "attempts": 1
         },
-        "summary": "Generates and persists flow activity reports from metrics and issue logs. It aggregates timing and token usage into machine-readable and text outputs.",
-        "detail": "The module walks phase metrics to compute totals and per-phase summaries for activity and token consumption. It formats a readable report text block with aligned labels and durations. saveReport writes report.json next to the spec directory for auditability and later analysis. This supports post-run visibility into workflow efficiency.",
-        "chapter": "development",
-        "role": "controller",
         "keywords": [
-          "flow report",
-          "metrics aggregation",
-          "token usage",
-          "report.json"
+          "report generation",
+          "metrics summary",
+          "issue log",
+          "json output",
+          "text formatting",
+          "flow report"
         ]
       },
       {
@@ -2419,19 +2419,21 @@
       },
       {
         "file": "src/flow/lib/base-command.js",
-        "hash": "3cf5c0f9028fece30da879e6fc81f06f",
-        "lines": 59,
-        "mtime": "2026-04-18T07:51:11.766Z",
+        "hash": "1fdccc4c35d08a83e72a59a4955f966a",
+        "lines": 74,
+        "mtime": "2026-04-21T09:07:02.051Z",
         "className": "base-command",
         "methods": [
-          "FlowCommand"
+          "FlowCommand",
+          "resolveExplicitTaskOption"
         ],
         "imports": [
           "../../lib/command.js",
           "./flow-context.js"
         ],
         "exports": [
-          "FlowCommand"
+          "FlowCommand",
+          "resolveExplicitTaskOption"
         ],
         "extends": "Command",
         "usedBy": [
@@ -2439,11 +2441,13 @@
           "src/flow/lib/get-context.js",
           "src/flow/lib/get-guardrail.js",
           "src/flow/lib/get-issue.js",
+          "src/flow/lib/get-next-action.js",
           "src/flow/lib/get-prompt.js",
           "src/flow/lib/get-qa-count.js",
           "src/flow/lib/get-resolve-context.js",
           "src/flow/lib/get-status.js",
           "src/flow/lib/get-test-result.js",
+          "src/flow/lib/run-draft-task.js",
           "src/flow/lib/run-finalize.js",
           "src/flow/lib/run-gate.js",
           "src/flow/lib/run-impl-confirm.js",
@@ -2454,6 +2458,7 @@
           "src/flow/lib/run-retro.js",
           "src/flow/lib/run-review.js",
           "src/flow/lib/run-sync.js",
+          "src/flow/lib/run-tests.js",
           "src/flow/lib/set-auto.js",
           "src/flow/lib/set-init.js",
           "src/flow/lib/set-issue-log.js",
@@ -2465,25 +2470,24 @@
           "src/flow/lib/set-step.js",
           "src/flow/lib/set-summary.js",
           "src/flow/lib/set-test-summary.js",
-          "src/lib/dispatcher.js",
-          "src/flow/lib/run-draft-task.js",
-          "src/flow/lib/run-tests.js",
-          "src/flow/lib/get-next-action.js"
+          "src/lib/dispatcher.js"
         ],
         "id": "83f60bd3",
+        "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
+        "detail": "The `FlowCommand` class extends the generic command layer and standardizes how flow commands resolve context before running. It throws explicit errors when `flow.json` is missing, preventing ambiguous execution outside an active flow. Subclasses are required to implement `execute`, with a hard failure if they do not. The module also provides `resolveExplicitTaskOption`, normalizing task-id CLI input into a consistent nullable shape. This creates a common boundary for mutation-scoped commands.",
+        "chapter": "internal_design",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
+          "processedAt": "2026-04-21T09:07:51.961Z",
+          "attempts": 1
         },
-        "summary": "Defines the abstract base class for flow commands. It resolves flow context and enforces subclass execute implementation.",
-        "detail": "FlowCommand extends the generic Command type and guarantees active flow state before running command-specific logic. The run method centralizes context loading so individual commands only implement execute. Missing flow state or unimplemented execute paths throw explicit errors. This provides a consistent command lifecycle across the flow subsystem.",
-        "chapter": "project_structure",
-        "role": "controller",
         "keywords": [
           "base command",
-          "flow command",
-          "context enforcement",
-          "abstract execute"
+          "command pattern",
+          "flow context",
+          "precondition check",
+          "task option parsing",
+          "abstraction"
         ]
       },
       {
@@ -2817,13 +2821,14 @@
       },
       {
         "file": "src/flow/lib/get-qa-count.js",
-        "hash": "da58bfb6ac183caceb3eff77ae195141",
-        "lines": 17,
-        "mtime": "2026-04-05T09:45:33.801Z",
+        "hash": "60145b378cab1d0bb2b29a80458be7b7",
+        "lines": 18,
+        "mtime": "2026-04-21T09:07:02.051Z",
         "className": "get-qa-count",
         "methods": [],
         "imports": [
-          "./base-command.js"
+          "./base-command.js",
+          "./get-status.js"
         ],
         "exports": [
           "default"
@@ -2831,19 +2836,20 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "28b15622",
-        "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Exposes a simple command to return QA count from current flow state. It acts as a lightweight status accessor.",
-        "detail": "The class extends FlowCommand and reads a numeric QA-related field from context state. It returns a minimal JSON object suitable for scripting and automation. The implementation deliberately avoids side effects and complex formatting. This command supports quick workflow checks in CI or shell scripts.",
+        "summary": "This command returns the QA-related count derived from flow metrics. It is a focused flow command built on top of shared status aggregation.",
+        "detail": "The class inherits from `FlowCommand`, so it automatically benefits from active-flow validation and context wiring. It calls `buildMetricsSummary` rather than reimplementing counting logic, keeping aggregation behavior consistent with other status/report features. The command emits a minimal payload shape (`{ count }`) for easy machine consumption. Its narrow scope makes it suitable for scripting and lightweight progress checks. The design favors reuse over bespoke parsing.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-21T09:07:51.961Z",
+          "attempts": 1
+        },
         "keywords": [
           "qa count",
-          "status accessor",
-          "flow state",
-          "automation helper"
+          "metrics aggregation",
+          "flow command",
+          "status metric",
+          "lightweight output"
         ]
       },
       {
@@ -2891,11 +2897,15 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "3f03ba76bbaa579cb2a614f655a70d1e",
-        "lines": 68,
-        "mtime": "2026-04-20T14:03:26.634Z",
+        "hash": "da380af070dcbae46dcbc9bd4da29c9c",
+        "lines": 146,
+        "mtime": "2026-04-21T09:07:02.051Z",
         "className": "get-status",
         "methods": [
+          "buildMetricsSummary",
+          "buildReportTotals",
+          "zeroTokens",
+          "applyEntry",
           "buildStatusOutput"
         ],
         "imports": [
@@ -2903,26 +2913,32 @@
           "./base-command.js"
         ],
         "exports": [
-          "default"
+          "buildMetricsSummary",
+          "buildReportTotals",
+          "default",
+          "TOKEN_KEYS",
+          "ACTIVITY_COUNTERS"
         ],
         "extends": "FlowCommand",
-        "usedBy": null,
+        "usedBy": [
+          "src/flow/lib/get-qa-count.js"
+        ],
         "id": "9aca938f",
+        "summary": "This module implements core status and metrics aggregation utilities and exposes the flow status command. It defines canonical token/activity counters and transforms raw entries into summarized output.",
+        "detail": "It declares shared counter key sets, zero-value initializers, and accumulation helpers that normalize metric buckets across entries. `buildMetricsSummary` and `buildReportTotals` provide reusable rollups consumed by reporting and status commands. The status output builder shapes a stable response object, while command execution supports run-id targeted lookup and active-flow fallback. Error handling is explicit for missing run IDs and inactive states, reducing silent failures. Overall, this file acts as the metrics/status backbone for flow observability.",
+        "chapter": "internal_design",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-21T06:12:29.233Z",
-          "attempts": 8
+          "processedAt": "2026-04-21T09:07:51.961Z",
+          "attempts": 1
         },
-        "summary": "Implements flow status retrieval and formatting for active or historical runs. It derives phase information and returns normalized status output objects.",
-        "detail": "The module wraps flow-state access in a command class and exposes a compact status projection function. It supports status lookup by explicit run ID and validates existence with a clear error when not found. For active-session queries, it returns `active: false` when no flow state is present rather than failing hard. When state exists, it enriches output with derived phase data from shared flow helpers. The implementation is intentionally thin and delegates core flow semantics to common libraries.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "keywords": [
-          "flow status",
-          "run state",
-          "phase derivation",
-          "status command",
-          "active flow",
-          "state inspection"
+          "status builder",
+          "metrics summary",
+          "token counters",
+          "activity counters",
+          "run id lookup",
+          "aggregation"
         ]
       },
       {
@@ -3165,9 +3181,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "efecbfcf28f4591347ecc781ad294761",
-        "lines": 1127,
-        "mtime": "2026-04-21T06:11:23.585Z",
+        "hash": "f9fa87ff5d38a1b20e5ce55621683221",
+        "lines": 1142,
+        "mtime": "2026-04-21T09:07:02.052Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3177,6 +3193,7 @@
           "checkTestChanges",
           "parseAuthorizedTestModifications",
           "findUnusedAuthorizations",
+          "countGateRetry",
           "updateGateRetryCounter",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -3227,6 +3244,7 @@
           "checkTestChanges",
           "parseAuthorizedTestModifications",
           "findUnusedAuthorizations",
+          "countGateRetry",
           "updateGateRetryCounter",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
@@ -3245,23 +3263,22 @@
           "src/flow/lib/run-draft-task.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Provides gate evaluation logic for draft/spec/diff phases with guardrail checks, schema validation, retry tracking, and test-change policy enforcement. It drives pass/fail decisions and issue logging for flow quality gates.",
-        "detail": "The module validates level-phase combinations, builds scoped diff inputs, and runs static checks for spec/draft completeness before any AI guardrail call. It defines strict JSON parsing and schema enforcement for AI evaluation responses via custom errors, including guardrail IDs, categories, and allowed verdict values. For implementation/integration phases, it analyzes changed files, enforces authorized test-modification rules, and can include test evidence in prompts. It tracks gate retries in flow metrics and formats retry history from issue logs to improve iterative corrections. The command class exposes phase-specific execution paths and returns normalized gate result payloads with warnings, reasons, and next-action hints.",
+        "summary": "This is the gate engine for flow validation, covering spec checks, diff-aware checks, guardrails, retry policy, and issue-log integration. It orchestrates pass/fail decisions for multiple phases and levels.",
+        "detail": "The module combines static validations (spec structure, draft fields, test-change authorization) with AI-evaluated guardrails and requirement checks. It provides robust parsing and schema validation for AI JSON responses, including explicit error classes and field-level constraints. Diff parsing, test glob matching, and authorization parsing are used to enforce controlled test modifications during implementation phases. Retry counting and max-attempt enforcement are integrated via metrics history, and gate outcomes are normalized into structured pass/fail payloads with next-step hints. `RunGateCommand` selects execution mode (draft/spec/diff-based) from flow context and CLI options, then appends issue-log evidence for both results and errors.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-21T06:12:29.233Z",
+          "processedAt": "2026-04-21T09:07:51.961Z",
           "attempts": 1
         },
         "keywords": [
           "quality gate",
           "guardrails",
-          "evaluation schema",
+          "spec validation",
           "diff analysis",
-          "test authorization",
-          "retry counter",
-          "pass fail verdict",
-          "issue logging"
+          "retry control",
+          "evaluation schema",
+          "test authorization"
         ]
       },
       {
@@ -3759,9 +3776,9 @@
       },
       {
         "file": "src/flow/lib/set-issue-log.js",
-        "hash": "fbaf72b9c5a7c69924eabaf26d6ab1ed",
-        "lines": 103,
-        "mtime": "2026-04-19T01:40:03.070Z",
+        "hash": "13834f18e4ee9201cbe1724a1d22a4cc",
+        "lines": 107,
+        "mtime": "2026-04-21T09:07:02.052Z",
         "className": "set-issue-log",
         "methods": [
           "loadIssueLog",
@@ -3772,7 +3789,8 @@
         "imports": [
           "fs",
           "path",
-          "./base-command.js"
+          "./base-command.js",
+          "../../lib/flow-store.js"
         ],
         "exports": [
           "loadIssueLog",
@@ -3788,20 +3806,21 @@
           "src/lib/container.js"
         ],
         "id": "65ac9e4f",
-        "summary": "SetIssueLogCommand appends validated issue-log entries and persists `issue-log.json`. It also exports reusable load/save helpers for issue-log lifecycle.",
-        "detail": "The loader enforces schema expectations, including `entries` as an array, and returns defaults when absent. Validation functions enforce minimum lengths for reason and optional note fields to improve evidence quality. The saver guarantees directory creation and canonical JSON formatting. Command execution requires both step and reason, then appends an entry and returns updated totals.",
+        "summary": "This module manages `issue-log.json` lifecycle and provides a command to append validated issue-log entries. It enforces input quality rules and task-scoped association.",
+        "detail": "It resolves log paths relative to a spec directory, returning an empty default structure when no log file exists. On load, it validates that persisted data has an `entries` array, failing fast on malformed files. Validation helpers enforce minimum lengths for required reasons and optional contextual fields to preserve evidence quality. The command integrates task resolution logic so entries are attached to the correct task scope in flow state. Saving is deterministic with pretty-printed JSON and ensured directory creation.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
+          "processedAt": "2026-04-21T09:07:51.961Z",
           "attempts": 1
         },
         "keywords": [
           "issue log",
           "json persistence",
-          "entry validation",
-          "evidence tracking",
-          "flow audit"
+          "input validation",
+          "task scoping",
+          "audit trail",
+          "flow evidence"
         ]
       },
       {
@@ -3838,9 +3857,9 @@
       },
       {
         "file": "src/flow/lib/set-metric.js",
-        "hash": "da11a033379cafbb2745e423f0ac83a7",
-        "lines": 41,
-        "mtime": "2026-04-17T12:39:55.911Z",
+        "hash": "a34a3e50d092a708189dc580e3d6f5c3",
+        "lines": 35,
+        "mtime": "2026-04-21T09:07:02.052Z",
         "className": "set-metric",
         "methods": [],
         "imports": [
@@ -3853,27 +3872,28 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40d93087",
-        "summary": "SetMetricCommand increments phase-specific flow counters. It validates both phase and counter names against shared constants.",
-        "detail": "The command enforces required positional arguments and rejects invalid combinations early. It computes a new counter value from existing state and returns a patch payload. Shared constant sets prevent drift between command validation and core flow semantics. This provides a reliable primitive for telemetry-like flow metrics.",
+        "summary": "This command increments flow metrics for a given phase and counter with optional task scoping. It validates CLI arguments against canonical constant sets.",
+        "detail": "The module reuses `FlowCommand` and explicit task option normalization, so behavior stays aligned with other mutating commands. It requires positional arguments and emits usage guidance when arguments are missing. Phase and counter values are strictly checked against `VALID_PHASES` and `VALID_METRIC_COUNTERS`, preventing ad-hoc metric keys. Successful execution returns a compact acknowledgment payload for scripting. The implementation is intentionally narrow and delegates storage mechanics to flow context/store layers.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
+          "processedAt": "2026-04-21T09:07:51.961Z",
           "attempts": 1
         },
         "keywords": [
-          "metrics increment",
-          "phase counter",
-          "validation constants",
-          "flow telemetry",
-          "state update"
+          "set metric",
+          "phase validation",
+          "counter validation",
+          "command input",
+          "flow metrics",
+          "telemetry"
         ]
       },
       {
         "file": "src/flow/lib/set-note.js",
-        "hash": "b853dbfb38b38d089da41f8a9584dd1c",
-        "lines": 24,
-        "mtime": "2026-04-17T12:39:55.912Z",
+        "hash": "25626b280c332b9703e3400b64dcc00c",
+        "lines": 25,
+        "mtime": "2026-04-21T09:07:02.052Z",
         "className": "set-note",
         "methods": [],
         "imports": [
@@ -3885,20 +3905,20 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "7c2ef03f",
-        "summary": "SetNoteCommand stores a free-text note in flow state. It enforces required text input with a simple usage contract.",
-        "detail": "The command is intentionally lightweight and focused on CLI boundary checks. It rejects missing text and returns normalized note payload on success. This command follows the same setter interface as other `flow set` operations. Consistency reduces branching in registry integration.",
+        "summary": "This command stores a note entry into flow metrics/history with optional task targeting. It provides a simple validated interface for textual progress notes.",
+        "detail": "The class extends the shared flow command base, inheriting active-flow checks and context wiring. It validates required note text from CLI arguments and emits explicit usage errors on invalid input. Task selection uses the same normalized option path as other setters, ensuring consistent mutation scope semantics. The command returns a minimal response containing the accepted note text. This module acts as a thin CLI adapter over shared flow-state mutation behavior.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
+          "processedAt": "2026-04-21T09:07:51.961Z",
           "attempts": 1
         },
         "keywords": [
-          "note field",
-          "text setter",
-          "cli usage",
-          "flow annotations",
-          "state patch"
+          "set note",
+          "progress note",
+          "flow command",
+          "task scoped entry",
+          "cli validation"
         ]
       },
       {
@@ -4145,9 +4165,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "ded4ade24035b18218872dd8a183bc87",
+        "hash": "fc5ebeeefe212cce904dfe670b32d448",
         "lines": 520,
-        "mtime": "2026-04-21T01:49:09.450Z",
+        "mtime": "2026-04-21T09:07:02.052Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4167,22 +4187,21 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "enrich": {
-          "processedAt": "2026-04-21T06:12:29.233Z",
-          "attempts": 4
-        },
-        "summary": "Defines the central flow command registry and lifecycle hooks that update step status, gate retry metrics, and issue logs around command execution. It is the orchestration map for phase-aware flow subcommands.",
-        "detail": "The registry derives active phase from flow state and wraps command handlers with pre/post hook utilities. It performs resilient side effects like step-status transitions and issue-log appends with guarded error reporting to stderr. Hook factories abstract common behavior so each command can attach consistent lifecycle semantics with minimal duplication. It also integrates gate retry updates and finalize post-processing through command-aware callbacks. This file acts as the glue layer that coordinates command execution policy rather than implementing business logic itself.",
+        "summary": "This registry maps flow subcommands to implementations and wraps them with lifecycle hooks. It coordinates step status transitions, issue-log append behavior, and post-gate retry accounting.",
+        "detail": "The file centralizes command descriptors, help text, and execution wrappers so flow CLI dispatch remains declarative. Pre/post hook factories update step status with controlled error handling, and they intentionally downgrade certain failures to stderr warnings when safe. Gate-related wrappers append issue-log entries and update retry counters after command execution, keeping side effects standardized. It derives active phase from context to align command behavior with the current flow state. The registry is effectively the integration layer that binds many smaller command modules into one coherent CLI surface.",
         "chapter": "project_structure",
         "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-21T09:07:51.961Z",
+          "attempts": 1
+        },
         "keywords": [
           "command registry",
-          "lifecycle hooks",
-          "step status",
-          "issue log",
-          "phase orchestration",
-          "flow dispatch",
-          "retry metrics"
+          "dispatch table",
+          "step lifecycle",
+          "post hooks",
+          "issue log integration",
+          "retry counter"
         ]
       },
       {
@@ -4835,9 +4854,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "526aedfd521cf6704977da933c999e24",
-        "lines": 313,
-        "mtime": "2026-04-19T23:25:00.557Z",
+        "hash": "a9fe1ebc111daafaeba10c507a13c983",
+        "lines": 315,
+        "mtime": "2026-04-21T09:07:02.052Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -4859,29 +4878,31 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 4
-        },
-        "summary": "This manager coordinates active flow resolution across main repository and worktrees. It scans, locates, and retrieves flow states with consistency checks.",
-        "detail": "It composes multiple stores and registries to abstract read/write operations and preparing-flow inputs. The scanner traverses local specs, worktree specs, and branch snapshots with truncation limits for safety. It records malformed state files as warnings instead of crashing bulk scans. The module is the orchestration layer that unifies flow discovery and context retrieval.",
+        "summary": "This module implements high-level flow lifecycle management across main repo and worktrees. It discovers, resolves, and tracks active/preparing flows with repository-aware logic.",
+        "detail": "The `FlowManager` coordinates `FlowStore`, active-flow registry, and preparing-flow store to provide a single management interface. It scans local specs, worktree specs, and branch snapshots to enumerate flows while handling malformed JSON defensively. It exposes helpers for current task/step resolution, metric accumulation delegation, and run input resolution for preparation stages. Worktree ownership checks prevent unsafe operations when paths are missing or inconsistent. The design encapsulates cross-repository state discovery and keeps command modules from embedding git/path traversal details.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-21T09:07:51.961Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow manager",
-          "worktree scan",
-          "active registry",
+          "worktree",
           "state discovery",
-          "flow lookup"
+          "active flow",
+          "preparing store",
+          "repository scan"
         ]
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "2df3550355ab356f5030c0f51f3dc1eb",
-        "lines": 472,
-        "mtime": "2026-04-20T08:34:24.759Z",
+        "hash": "850cb62c86885a76f8d4640aa1515f07",
+        "lines": 506,
+        "mtime": "2026-04-21T09:07:02.052Z",
         "className": "flow-store",
         "methods": [
+          "resolveTaskIdForEntry",
           "resolveMutationScope",
           "FlowStore",
           "specFlowPath",
@@ -4899,6 +4920,7 @@
           "./flow-helpers.js"
         ],
         "exports": [
+          "resolveTaskIdForEntry",
           "resolveMutationScope",
           "FlowStore"
         ],
@@ -4907,20 +4929,21 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 2
-        },
-        "summary": "This module implements persistent flow-state storage and mutation utilities. It enforces schema constraints for tasks, steps, and requirement summaries.",
-        "detail": "It reads and writes `flow.json`, validates shape invariants, and supports scoped mutations for main flow or current task. The store handles path derivation for worktree-aware contexts and finalized metadata updates. Task operations include add/update helpers with strict status and field validation. This is the authoritative persistence layer for flow runtime state.",
+        "summary": "This module is the primary persistence and mutation layer for flow state (`flow.json`). It enforces schema validity, mutation scoping, and task/step invariants.",
+        "detail": "It defines path-resolution helpers and branch/spec identification utilities for locating per-spec state files. Strong schema assertions validate task shapes, step statuses, requirement statuses, and key state fields before writes. The store exposes read, read-only, write, and targeted mutation helpers that preserve deterministic JSON formatting and directory creation. It includes task-level operations such as adding tasks, updating current steps, resolving mutation scope, and finalization timestamp checks. This file is the core domain model boundary for flow-state consistency.",
         "chapter": "internal_design",
         "role": "model",
+        "enrich": {
+          "processedAt": "2026-04-21T09:07:51.961Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow store",
-          "state persistence",
-          "task validation",
-          "mutation scope",
-          "flow.json"
+          "state machine",
+          "schema validation",
+          "task model",
+          "json persistence",
+          "invariants"
         ]
       },
       {
@@ -5280,9 +5303,9 @@
       },
       {
         "file": "src/lib/log.js",
-        "hash": "b5f94f0642601b8c1dba29046ac9e522",
-        "lines": 371,
-        "mtime": "2026-04-19T01:03:14.062Z",
+        "hash": "84a6ead3243da0ed06028e5cf39d988d",
+        "lines": 392,
+        "mtime": "2026-04-21T09:07:02.053Z",
         "className": "log",
         "methods": [
           "generateRequestId",
@@ -5309,20 +5332,22 @@
           "src/lib/container.js"
         ],
         "id": "3d7bb5e6",
-        "summary": "log.js provides structured JSONL logging for agent, git, and event telemetry. It includes request IDs, caller extraction, prompt snapshots, and masking integration.",
-        "detail": "The logger writes date-partitioned log files and optional prompt payload files under managed directories. It masks sensitive content before persistence and tracks asynchronous write promises for flush-on-demand behavior. Helper methods attach runtime context such as flow phase, PID, and text statistics. This module is the observability backbone for command execution and agent interactions.",
-        "chapter": "stack_and_ops",
+        "summary": "This module provides structured logging utilities with masking, prompt snapshot support, and contextual enrichment. It writes daily JSONL logs and optional prompt payload files safely.",
+        "detail": "It generates request IDs, computes text statistics, and derives caller metadata for richer diagnostic records. Sensitive-field masking is applied before persistence, constrained by trusted root paths to avoid leaking unrelated filesystem content. The `Logger` class tracks async write operations, emits agent/git/event records, and attaches flow context (`spec`, `sddPhase`, `taskId`) when available. It separates append-only JSONL entries from per-request prompt files and tolerates write failures with stderr diagnostics. The implementation balances observability with privacy-aware logging behavior.",
+        "chapter": "development",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
+          "processedAt": "2026-04-21T09:07:51.961Z",
           "attempts": 1
         },
         "keywords": [
           "structured logging",
           "jsonl",
+          "masking",
+          "prompt snapshot",
+          "telemetry",
           "request id",
-          "prompt capture",
-          "telemetry"
+          "observability"
         ]
       },
       {
@@ -8853,9 +8878,9 @@
     ],
     "summary": {
       "total": 266,
-      "totalMethods": 809
+      "totalMethods": 813
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-21T08:56:18.643Z"
+  "enrichedAt": "2026-04-21T09:07:51.961Z"
 }
