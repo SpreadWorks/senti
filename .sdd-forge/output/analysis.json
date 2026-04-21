@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T09:07:02.347Z",
+  "analyzedAt": "2026-04-21T09:34:26.690Z",
   "package": {
     "entries": [
       {
@@ -371,23 +371,27 @@
       },
       {
         "file": "src/docs/commands/changelog.js",
-        "hash": "e95887fcdb4739baefb99a1d623a802c",
-        "lines": 244,
-        "mtime": "2026-04-19T01:49:14.513Z",
+        "hash": "4dec5ed71bb78024c7f162b59a46bb39",
+        "lines": 238,
+        "mtime": "2026-04-21T09:34:26.439Z",
         "className": "changelog",
         "methods": [
+          "optional",
           "sanitize",
-          "parseSpecFile",
+          "parseSpecDir",
           "parseDirName",
           "runChangelog"
         ],
         "imports": [
           "fs",
+          "fs/promises",
           "path",
           "../../lib/cli.js",
           "../../lib/config.js",
           "../../lib/i18n.js",
-          "../../lib/command.js"
+          "../../lib/command.js",
+          "../../lib/spec-json.js",
+          "../lib/concurrency.js"
         ],
         "exports": [
           "default"
@@ -398,21 +402,21 @@
           "src/lib/container.js"
         ],
         "id": "d83c89fb",
-        "summary": "This command builds a docs changelog from spec directories and metadata encoded in folder names. It writes a markdown timeline to the docs output path.",
-        "detail": "It sanitizes text fields, parses spec markdown headers, and extracts timestamps or identifiers from directory naming conventions. The command iterates sorted spec folders and skips entries without required files. Output location is configurable with a default under `docs/change_log.md`. It creates parent directories as needed and writes a generated markdown document in one pass. i18n hooks are used for localized labels and messages.",
-        "chapter": "development",
+        "summary": "Builds a changelog document from spec directories and flow metadata. It scans specs, parses structured files, and writes a consolidated Markdown output.",
+        "detail": "The module defines helpers for optional filesystem operations, text sanitization, and directory-name parsing to keep malformed inputs from breaking execution. It reads `spec.json` and `flow.json` per spec directory and safely skips invalid or incomplete entries with stderr diagnostics. Processing is parallelized with a concurrency mapper to handle many specs efficiently. CLI arguments are parsed to resolve output location and runtime options, then the result is rendered and written as `docs/change_log.md` by default. A command class wraps the runner so it can be dispatched through the shared command framework.",
+        "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
+          "processedAt": "2026-04-21T09:35:24.876Z",
           "attempts": 1
         },
         "keywords": [
-          "changelog generation",
+          "changelog",
           "spec parsing",
-          "markdown output",
-          "timeline",
-          "docs history",
-          "folder convention"
+          "flow metadata",
+          "markdown generation",
+          "concurrency map",
+          "command handler"
         ]
       },
       {
@@ -542,9 +546,9 @@
       },
       {
         "file": "src/docs/commands/forge.js",
-        "hash": "90f54c538af8a82c857465360346bf26",
-        "lines": 444,
-        "mtime": "2026-04-19T01:49:14.513Z",
+        "hash": "5f37f1129e7233fe0e595d7baeed3481",
+        "lines": 448,
+        "mtime": "2026-04-21T09:34:26.439Z",
         "className": "forge",
         "methods": [
           "getTargetFiles",
@@ -571,6 +575,7 @@
           "../../lib/container.js",
           "../../lib/i18n.js",
           "../../lib/constants.js",
+          "../../lib/spec-json.js",
           "../lib/forge-prompts.js",
           "../lib/review-parser.js"
         ],
@@ -581,21 +586,21 @@
         "extends": "Command",
         "usedBy": null,
         "id": "ef4fa5d9",
-        "summary": "This command runs an iterative docs-forging loop that combines agent generation, review feedback, and targeted retries. It supports local, assist, and agent execution modes.",
-        "detail": "It parses advanced CLI options such as max runs, review command, concurrency, and spec/prompt inputs. Target files are selected by chapter type or relevance estimation against spec text. Each round invokes generation, executes review checks, and applies remediation until success or run limit exhaustion. The module integrates readme regeneration and optional translation steps as post-processing. Failures set process exit status and propagate actionable errors for CI or manual loops.",
-        "chapter": "development",
-        "role": "controller",
+        "summary": "Implements the docs forge orchestration command that drives AI-assisted documentation updates. It coordinates prompt loading, file targeting, iterative review loops, and post-processing commands.",
+        "detail": "The module parses CLI options such as mode, max runs, prompt/spec inputs, and validates bounds before execution. It estimates relevant chapter files from spec text, then runs per-file generation with bounded concurrency and structured agent invocation hooks. Execution supports retry rounds with review feedback and can run local or agent-oriented flows while preserving verbose output controls. After generation, it triggers downstream readme/translation steps and propagates failures through explicit error and exit handling. The command class exposes the workflow as a top-level docs subcommand.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
+          "processedAt": "2026-04-21T09:35:24.876Z",
           "attempts": 1
         },
         "keywords": [
-          "iterative generation",
-          "review loop",
-          "agent mode",
-          "spec-driven docs",
+          "documentation forge",
+          "agent orchestration",
+          "prompt pipeline",
+          "iterative review",
           "target file selection",
-          "retry strategy"
+          "docs automation"
         ]
       },
       {
@@ -2229,25 +2234,26 @@
       },
       {
         "file": "src/flow/commands/merge.js",
-        "hash": "85875af9748f892c81ea178a655b58eb",
-        "lines": 209,
-        "mtime": "2026-04-19T01:49:14.514Z",
+        "hash": "ddc0d5a2acc16fbe655abfb3d0d9e877",
+        "lines": 201,
+        "mtime": "2026-04-21T09:34:26.439Z",
         "className": "merge",
         "methods": [
           "resolveRemote",
-          "extractSection",
           "parseSpec",
+          "formatRequirementsBlock",
+          "formatScopeBlock",
           "buildPrTitle",
           "buildPrBody",
           "loadSpec",
           "runMerge"
         ],
         "imports": [
-          "fs",
           "../../lib/process.js",
           "path",
           "../../lib/container.js",
-          "../../lib/git-helpers.js"
+          "../../lib/git-helpers.js",
+          "../../lib/spec-json.js"
         ],
         "exports": [
           "runMerge",
@@ -2258,19 +2264,21 @@
         "extends": null,
         "usedBy": null,
         "id": "3a0db928",
-        "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Provides merge command logic for flow finalization with PR and squash strategies. It derives PR metadata from spec content when available.",
-        "detail": "The command parses spec sections to generate meaningful pull request titles and bodies with fallback values. It resolves remote settings, validates GitHub CLI availability for PR mode, and executes merge steps via git helpers. Squash mode includes conflict detection and actionable error messages. The module returns structured strategy results for downstream finalize reporting.",
+        "summary": "Handles flow merge behavior, including PR-based and squash merge strategies. It derives PR title/body content from spec and flow state metadata.",
+        "detail": "The module resolves remote and strategy inputs from configuration and parses spec requirements into reusable text blocks. It builds structured PR content by composing scope, requirements, and fallback context when complete spec metadata is unavailable. The merge runner branches between skip, PR, and squash paths and enforces tool availability for GitHub CLI dependent routes. Squash merge logic centralizes conflict detection and emits actionable errors on merge failure states. Exported helpers make title/body generation and spec parsing reusable by finalize workflows.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-21T09:35:24.876Z",
+          "attempts": 1
+        },
         "keywords": [
-          "merge command",
+          "merge strategy",
           "pull request body",
           "squash merge",
-          "flow finalize"
+          "flow state",
+          "release integration",
+          "git automation"
         ]
       },
       {
@@ -2317,9 +2325,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "dc8ea1f46ed1cc0c06cd4a325642c1e6",
+        "hash": "29bb2ebaa9e658dcb522c65bf03f9fd1",
         "lines": 1094,
-        "mtime": "2026-04-20T14:29:18.524Z",
+        "mtime": "2026-04-21T09:34:26.440Z",
         "className": "review",
         "methods": [
           "ensureAgent",
@@ -2363,6 +2371,7 @@
           "path",
           "../../lib/cli.js",
           "../../lib/flow-helpers.js",
+          "../../lib/spec-json.js",
           "../../lib/container.js",
           "../../lib/command.js",
           "../../lib/git-helpers.js",
@@ -2398,23 +2407,21 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "enrich": {
-          "processedAt": "2026-04-21T06:12:29.233Z",
-          "attempts": 8
-        },
-        "summary": "Provides the flow review command set for implementation, tests, and spec quality checks using AI-assisted iterative loops. It creates review artifacts and can apply fixes to code, tests, and spec documents.",
-        "detail": "The file orchestrates multi-phase review workflows, including diff collection, proposal parsing, scope filtering, and verdict merging. It builds specialized prompts for draft/final review, test design and gap analysis, and spec critique and correction. Review loops retry up to a configured limit, optionally auto-fix issues, and persist results into markdown reports such as `review.md`, `test-review.md`, and `spec-review.md`. It enforces agent availability and relies on flow metadata, Git diffs, and spec content extraction to keep review context focused. Output validation helpers like preamble stripping and spec-shape checks reduce malformed AI responses.",
+        "summary": "Provides the flow review command suite for draft, spec, implementation, and test review stages. It runs AI-assisted detection and optional auto-fix loops with bounded retries.",
+        "detail": "The file contains phase-aware review prompts, diff collection utilities, proposal parsing, and scope filtering against touched files. It writes review artifacts such as `review.md`, `spec-review.md`, `test-review.md`, and generated test design notes under the spec directory. Review loops merge verdicts across retries and can apply accepted fixes, then re-evaluate until pass/fail or retry exhaustion. It includes specialized logic for test gap analysis, proposal extraction, and spec preamble cleanup while enforcing output-shape checks. The command routes by phase, uses configured agents, and sets failure exit codes for CI-safe behavior.",
         "chapter": "cli_commands",
         "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-21T09:35:24.876Z",
+          "attempts": 1
+        },
         "keywords": [
-          "code review",
+          "code review loop",
           "spec review",
           "test gap analysis",
-          "AI feedback loop",
-          "diff inspection",
-          "proposal parsing",
-          "review report",
-          "auto-fix"
+          "AI proposals",
+          "phase validation",
+          "review artifacts"
         ]
       },
       {
@@ -3116,9 +3123,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "74844b36ef1ef670ed56614312242500",
+        "hash": "dd479d710e4106a9224df3d6c445dfa4",
         "lines": 406,
-        "mtime": "2026-04-21T00:28:25.096Z",
+        "mtime": "2026-04-21T09:34:26.440Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3160,30 +3167,28 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "enrich": {
-          "processedAt": "2026-04-21T06:12:29.233Z",
-          "attempts": 6
-        },
-        "summary": "Implements flow finalization lifecycle including preflight checks, commit/post steps, merge strategy handling, docs build hooks, and cleanup. It is the primary execution engine for `flow finalize`.",
-        "detail": "The module defines reusable finalize helpers such as git write-access preflight, step dispatch maps, and cleanup behavior for worktree and spec-only modes. It includes commit orchestration with skip detection, post-commit hooks, issue-log integration, and optional migration script execution in spec-local scripts. Finalization steps are composable (`all` or `select`) and validated against known merge strategies and step IDs. Errors are wrapped into structured results where possible, while critical validation failures throw explicit exceptions. The command class coordinates container dependencies and returns normalized finalize outcomes for upstream flow orchestration.",
+        "summary": "Implements finalize flow execution, including preflight checks, step orchestration, commit handling, merge integration, and cleanup. It is the central post-implementation closure pipeline.",
+        "detail": "The module performs git write-access preflight by probing repository lockability and converts filesystem/git failures into structured preflight errors. Finalize behavior is organized by a step map and reusable sub-step executor that captures status and failure messages consistently. It supports commit-or-skip behavior, merge strategy resolution, optional issue-log updates, docs build hooks, and migration hook execution from spec-local scripts. Cleanup handles worktree and main-repo transitions with guarded logic for spec-only and standard modes. The exported command class validates mode/step/strategy inputs and executes selected or full finalize sequences.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-21T09:35:24.876Z",
+          "attempts": 1
+        },
         "keywords": [
-          "finalize workflow",
-          "preflight check",
-          "merge strategy",
-          "cleanup",
-          "commit orchestration",
-          "worktree",
-          "issue log",
-          "post hook"
+          "finalize pipeline",
+          "preflight checks",
+          "step orchestration",
+          "worktree cleanup",
+          "post-commit hooks",
+          "merge finalize"
         ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "f9fa87ff5d38a1b20e5ce55621683221",
-        "lines": 1142,
-        "mtime": "2026-04-21T09:07:02.052Z",
+        "hash": "46b674ba5e3a787087cf3913a65560ac",
+        "lines": 1171,
+        "mtime": "2026-04-21T09:34:26.440Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3191,6 +3196,7 @@
           "parseEvaluationResponse",
           "buildGateReport",
           "checkTestChanges",
+          "parseAuthorizedTestModificationsFromJson",
           "parseAuthorizedTestModifications",
           "findUnusedAuthorizations",
           "countGateRetry",
@@ -3230,6 +3236,7 @@
           "../../lib/container.js",
           "../../lib/guardrail.js",
           "../../lib/flow-helpers.js",
+          "../../lib/spec-json.js",
           "./get-test-result.js",
           "../../lib/constants.js",
           "./base-command.js",
@@ -3242,6 +3249,7 @@
           "parseEvaluationResponse",
           "buildGateReport",
           "checkTestChanges",
+          "parseAuthorizedTestModificationsFromJson",
           "parseAuthorizedTestModifications",
           "findUnusedAuthorizations",
           "countGateRetry",
@@ -3263,22 +3271,21 @@
           "src/flow/lib/run-draft-task.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This is the gate engine for flow validation, covering spec checks, diff-aware checks, guardrails, retry policy, and issue-log integration. It orchestrates pass/fail decisions for multiple phases and levels.",
-        "detail": "The module combines static validations (spec structure, draft fields, test-change authorization) with AI-evaluated guardrails and requirement checks. It provides robust parsing and schema validation for AI JSON responses, including explicit error classes and field-level constraints. Diff parsing, test glob matching, and authorization parsing are used to enforce controlled test modifications during implementation phases. Retry counting and max-attempt enforcement are integrated via metrics history, and gate outcomes are normalized into structured pass/fail payloads with next-step hints. `RunGateCommand` selects execution mode (draft/spec/diff-based) from flow context and CLI options, then appends issue-log evidence for both results and errors.",
+        "summary": "Implements gate evaluation logic for flow phases, combining rule-based checks with AI guardrail evaluation. It produces structured pass/fail reports and updates retry metrics.",
+        "detail": "The module validates level-phase compatibility, computes diff scopes, and enforces draft/spec quality checks before expensive AI evaluation. It builds constrained JSON-only prompts for guardrail assessments, parses and validates schema-compliant responses, and normalizes evaluation records. Diff analysis includes test-file change detection, authorized test-modification parsing, and warnings for unused authorizations. Retry limits are tracked per phase using issue-log metrics to prevent unbounded gate loops. The command supports multiple gate modes (draft, spec, diff-based) and emits deterministic gate result objects for downstream flow control.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-21T09:07:51.961Z",
+          "processedAt": "2026-04-21T09:35:24.876Z",
           "attempts": 1
         },
         "keywords": [
           "quality gate",
-          "guardrails",
-          "spec validation",
+          "guardrail evaluation",
+          "phase checks",
           "diff analysis",
-          "retry control",
-          "evaluation schema",
-          "test authorization"
+          "retry counter",
+          "JSON schema validation"
         ]
       },
       {
@@ -3360,9 +3367,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "7c5186d24c0be1e26bc294a114f1f3af",
-        "lines": 342,
-        "mtime": "2026-04-20T12:13:22.616Z",
+        "hash": "856690be3fe5c3c691253391ddbb0e36",
+        "lines": 360,
+        "mtime": "2026-04-21T09:34:26.440Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3386,6 +3393,8 @@
           "../../lib/i18n.js",
           "../../lib/flow-helpers.js",
           "../../lib/git-helpers.js",
+          "../../lib/spec-json.js",
+          "../../spec/commands/render.js",
           "./base-command.js"
         ],
         "exports": [
@@ -3395,21 +3404,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "This command prepares a new spec workspace, flow state, and template files for a feature request. It can initialize either in-place or inside a managed worktree.",
-        "detail": "It enforces clean working state checks, base branch availability, and title requirements before creating spec artifacts. The module generates slugged spec directories, writes `spec.md` and `qa.md`, and initializes flow steps with metadata. Template resolution supports local project overrides with language fallback to built-in defaults. It persists flow state consistently so later flow commands can continue from a known starting point.",
+        "summary": "Prepares new spec work by creating spec directories, templates, and flow state metadata. It enforces clean git state and base-branch integrity before setup.",
+        "detail": "The module generates normalized spec identifiers via slug/index helpers and can derive branch context from the current repository state. It verifies worktree cleanliness and base branch existence, then initializes spec files (`spec.md`, `qa.md`, `spec.json`) with localized template loading and fallbacks. Spec markdown is rendered from stub JSON using shared rendering utilities rather than raw static text. Flow state writing captures branch, paths, language, and initial step scaffolding to bootstrap the SDD pipeline. The command class supports worktree-aware paths and strict argument/config validation.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
+          "processedAt": "2026-04-21T09:35:24.876Z",
           "attempts": 1
         },
         "keywords": [
-          "prepare spec",
-          "worktree",
-          "flow initialization",
-          "template loading",
-          "slugify",
-          "base branch"
+          "spec bootstrap",
+          "template initialization",
+          "worktree setup",
+          "flow state",
+          "slug generation",
+          "branch precheck"
         ]
       },
       {
@@ -3491,13 +3500,13 @@
       },
       {
         "file": "src/flow/lib/run-retro.js",
-        "hash": "73bc7411f359d218880585eaab542e23",
-        "lines": 234,
-        "mtime": "2026-04-17T12:39:55.911Z",
+        "hash": "3dc224b6142b35eb1375f08e643612fc",
+        "lines": 231,
+        "mtime": "2026-04-21T09:34:26.440Z",
         "className": "run-retro",
         "methods": [
           "RunRetroCommand",
-          "extractRequirements",
+          "requirementsAsText",
           "getDiff",
           "getDetailedDiff",
           "buildRetroPrompt",
@@ -3510,32 +3519,34 @@
           "../../lib/container.js",
           "../../lib/json-parse.js",
           "../../lib/flow-helpers.js",
+          "../../lib/spec-json.js",
           "./base-command.js"
         ],
         "exports": [
           "RunRetroCommand",
           "default",
-          "extractRequirements",
+          "requirementsAsText",
           "buildRetroPrompt",
           "parseRetroResponse"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "862e7d08",
-        "summary": "RunRetroCommand creates a retrospective JSON artifact using spec requirements and git diffs. It builds an AI prompt, invokes an agent, parses output, and saves `retro.json`.",
-        "detail": "It extracts requirement text from spec markdown and uses flow metadata for requirement lists and base branch. The command prevents accidental overwrite unless `--force` is provided and validates prerequisite files. AI responses are parsed with JSON repair fallback to tolerate imperfect model output. The module exports prompt/parsing helpers for reuse and testability.",
+        "summary": "Runs retrospective generation for a completed flow by combining requirement context and code diff evidence. It stores structured retro output as JSON in the spec directory.",
+        "detail": "The module extracts requirement text from spec metadata, gathers both summary and detailed diffs against the base branch, and builds a structured AI prompt. AI responses are parsed with JSON-first logic and fallback repair to tolerate minor formatting corruption. It validates prerequisites such as spec existence, requirements presence, base branch metadata, and non-empty diffs before requesting generation. Retro output is written to `retro.json` with overwrite protection unless forced. The command resolves agent profile settings from config and reports parsing or call failures with explicit errors.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
+          "processedAt": "2026-04-21T09:35:24.876Z",
           "attempts": 1
         },
         "keywords": [
           "retrospective",
-          "AI prompt",
-          "retro.json",
-          "requirements extraction",
-          "json repair"
+          "requirement traceability",
+          "diff evidence",
+          "AI JSON parsing",
+          "postmortem",
+          "flow finalize insight"
         ]
       },
       {
@@ -4165,9 +4176,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "fc5ebeeefe212cce904dfe670b32d448",
+        "hash": "c60fbf4f8d5acbbde36e59d4e1fe1dfa",
         "lines": 520,
-        "mtime": "2026-04-21T09:07:02.052Z",
+        "mtime": "2026-04-21T09:34:26.441Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4187,21 +4198,21 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "This registry maps flow subcommands to implementations and wraps them with lifecycle hooks. It coordinates step status transitions, issue-log append behavior, and post-gate retry accounting.",
-        "detail": "The file centralizes command descriptors, help text, and execution wrappers so flow CLI dispatch remains declarative. Pre/post hook factories update step status with controlled error handling, and they intentionally downgrade certain failures to stderr warnings when safe. Gate-related wrappers append issue-log entries and update retry counters after command execution, keeping side effects standardized. It derives active phase from context to align command behavior with the current flow state. The registry is effectively the integration layer that binds many smaller command modules into one coherent CLI surface.",
+        "summary": "Defines the flow command registry and shared lifecycle wrappers for step status and issue-log side effects. It centralizes command wiring and error-tolerant instrumentation hooks.",
+        "detail": "The module derives active phase context from flow state and provides guarded wrappers that attempt status/log updates without crashing primary command execution. It exposes pre/post step hooks so each flow command can consistently mark progress and append structured issue-log records. Failures in auxiliary tracking are surfaced to stderr and selectively rethrown according to command policy. The registry includes help text and integrates gate retry counter updates and finalize post-commit execution points. This file acts as the orchestration map that binds command IDs to runtime behavior.",
         "chapter": "project_structure",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-21T09:07:51.961Z",
+          "processedAt": "2026-04-21T09:35:24.876Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "dispatch table",
-          "step lifecycle",
-          "post hooks",
-          "issue log integration",
-          "retry counter"
+          "flow orchestration",
+          "step status",
+          "issue log",
+          "lifecycle hooks",
+          "phase derivation"
         ]
       },
       {
@@ -5621,7 +5632,8 @@
         ],
         "extends": null,
         "usedBy": [
-          "src/lib/config.js"
+          "src/lib/config.js",
+          "src/lib/spec-json.js"
         ],
         "id": "8bb94bbb",
         "enrich": {
@@ -5689,6 +5701,55 @@
         ]
       },
       {
+        "file": "src/lib/spec-json.js",
+        "hash": "86fb7edb9e57527927998c3665d30813",
+        "lines": 180,
+        "mtime": "2026-04-21T09:34:26.441Z",
+        "className": "spec-json",
+        "methods": [
+          "resolveSpecJsonPath",
+          "resolveSpecDir",
+          "loadSpecJson",
+          "tryLoadSpecJson",
+          "emptySpecStub",
+          "specJsonToPromptText",
+          "loadSchema"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path",
+          "node:url",
+          "./schema-validate.js"
+        ],
+        "exports": [
+          "resolveSpecJsonPath",
+          "resolveSpecDir",
+          "loadSpecJson",
+          "tryLoadSpecJson",
+          "emptySpecStub",
+          "specJsonToPromptText"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "e288cfbd",
+        "summary": "Provides canonical loading, path resolution, validation, and prompt conversion for `spec.json`. It is the core utility layer for spec metadata handling.",
+        "detail": "The module resolves whether input points to a directory, markdown file, or direct JSON file and derives both spec file path and spec directory robustly. It loads and caches the schema, parses JSON with explicit error wrapping, and runs schema validation unless disabled. Convenience helpers return nullable loads for optional flows and expose an empty stub for spec bootstrapping. A formatter converts spec JSON and optional metadata into prompt-friendly plain text blocks for agent consumption. Centralizing these responsibilities keeps command modules thin and consistent in spec handling.",
+        "chapter": "configuration",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-21T09:35:24.876Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "spec.json",
+          "schema validation",
+          "path resolution",
+          "metadata loader",
+          "prompt serialization",
+          "spec stub"
+        ]
+      },
+      {
         "file": "src/lib/types.js",
         "hash": "fd89672eb068ea3d73ac8e3b53637e59",
         "lines": 87,
@@ -5751,9 +5812,9 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "a4d7531cfe1389eafe16a25aaf542867",
-        "lines": 491,
-        "mtime": "2026-04-18T21:58:03.712Z",
+        "hash": "e094e5d1a916c80c5c6c20d622cd45df",
+        "lines": 504,
+        "mtime": "2026-04-21T09:34:26.441Z",
         "className": "token",
         "methods": [
           "formatText",
@@ -5796,7 +5857,8 @@
           "../../lib/cli.js",
           "../../lib/command.js",
           "../../lib/constants.js",
-          "../../lib/formatter.js"
+          "../../lib/formatter.js",
+          "../../lib/spec-json.js"
         ],
         "exports": [
           "formatText",
@@ -5807,23 +5869,21 @@
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "enrich": {
-          "processedAt": "2026-04-20T12:13:54.794Z",
-          "attempts": 8
-        },
-        "summary": "Implements the `metrics token` CLI command that aggregates per-flow metrics from `specs/**/flow.json` and prints them in text, JSON, or CSV. It also maintains a cache to avoid recomputing unchanged results.",
-        "detail": "The module defines argument parsing, usage rendering, and strict format validation for `text`, `json`, and `csv` output modes. It recursively scans the specs tree with a safety cap, loads flow files, and skips invalid or unfinished entries while emitting diagnostic messages to stderr. Metrics are accumulated into phase/date rows, finalized with computed fields, and sorted for deterministic output. It computes derived values such as requirement count, request character count, review counts, and a normalized spec difficulty score using bounded precision and baseline normalization. A cache file stores rows and max finalized timestamp, and freshness checks guard against stale or malformed cache data before rendering.",
+        "summary": "Implements a token metrics command that aggregates flow metrics across specs and renders text, JSON, or CSV reports. It includes cache reuse keyed by finalize timestamps.",
+        "detail": "The module parses format/help arguments, scans `specs` for `flow.json` files with a hard cap, and computes row-level aggregates by date and phase. It enriches rows with derived metrics such as review counts, duration summaries, and a computed spec difficulty score using heuristics and clamped normalization. Cache freshness is determined from max finalized timestamps, with resilient fallbacks when cache read/parse fails. Rendering logic supports tabular text, structured JSON, and CSV output while preserving sort order and display formatting. The command exits with explicit success/error codes and writes cache artifacts under `.sdd-forge/output`.",
         "chapter": "cli_commands",
         "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-21T09:35:24.876Z",
+          "attempts": 1
+        },
         "keywords": [
-          "token metrics",
-          "command line interface",
+          "metrics aggregation",
+          "token report",
+          "CSV export",
           "cache invalidation",
-          "flow.json scan",
-          "csv export",
-          "json output",
-          "aggregation",
-          "spec difficulty"
+          "flow analytics",
+          "difficulty scoring"
         ]
       },
       {
@@ -8877,10 +8937,10 @@
       }
     ],
     "summary": {
-      "total": 266,
-      "totalMethods": 813
+      "total": 267,
+      "totalMethods": 823
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-21T09:07:51.961Z"
+  "enrichedAt": "2026-04-21T09:35:24.876Z"
 }

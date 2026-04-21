@@ -27,7 +27,7 @@ src/docs/data/    (model, lib)
 src/docs/lib/    (model, lib)
 src/docs/lib/lang/    (lib)
 src/flow/    (controller)
-src/flow/commands/    (controller, cli)
+src/flow/commands/    (cli)
 src/flow/lib/    (lib, controller, cli)
 src/lib/    (lib, route, model, config, middleware, view)
 src/metrics/commands/    (cli)
@@ -40,9 +40,9 @@ src/spec/commands/    (cli)
 
 | Directory | Files | Role |
 | --- | --- | --- |
-| src/flow | 45 | controller, cli, lib |
+| src/flow | 45 | cli, lib, controller |
 | src/docs | 43 | cli, controller, model, lib |
-| src/lib | 32 | lib, route, model, config, middleware, view |
+| src/lib | 33 | lib, route, model, config, middleware, view |
 | src | 10 | cli, controller |
 | src/check | 3 | cli |
 | src/metrics | 1 | cli |
