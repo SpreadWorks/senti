@@ -1,5 +1,5 @@
    - `sdd-forge flow run gate --phase task-impl` (step status is automatically managed by hooks: pre sets gate-impl to in_progress, post sets done on PASS)
    - Checks spec requirements against `git diff baseBranch...HEAD` + guardrail compliance via AI.
    - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.reasons`. Fix using only the failure reasons and `git diff baseBranch...HEAD` — do NOT re-read the full spec, context, or guardrail. Re-run gate.
-   - **Retry limit: 5 attempts.** If gate does not PASS after 5 fix-and-rerun cycles, STOP and return control to the user.
+   - **Retry limit: `config.flow.retry.max` (default 3).** If gate does not PASS within that limit, the CLI returns `ESCALATE_RETRY_EXHAUSTED` and the skill STOPs and returns control to the user.
    - Do not proceed until PASS (`data.result === "pass"`).

@@ -97,7 +97,7 @@ When a task enters its `write-tests` step, the AI is writing tests against the s
 3b. Re-run gate impl (after review, BEFORE finalize).
    - Run `sdd-forge flow run gate --phase task-impl` to re-validate that review's auto-corrections have not broken spec requirements or guardrail compliance.
    - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.reasons`. Fix using only the failure reasons and `git diff baseBranch...HEAD` — do NOT re-read the full spec, context, or guardrail. Re-run gate.
-   - **Retry limit: 5 attempts.** If gate does not PASS after 5 fix-and-rerun cycles, STOP and return control to the user.
+   - **Retry limit: `config.flow.retry.max` (default 3).** If gate does not PASS within that limit, the CLI returns `ESCALATE_RETRY_EXHAUSTED` and the skill STOPs and returns control to the user.
    - If review was skipped (step 3 chose option 3), skip this step as well.
 
 4. Final confirmation before finalize.
