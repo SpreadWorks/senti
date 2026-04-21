@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T00:31:21.068Z",
+  "analyzedAt": "2026-04-21T01:49:09.756Z",
   "package": {
     "entries": [
       {
@@ -868,7 +868,7 @@
         ],
         "id": "7c5e7654",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -2384,7 +2384,7 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -2437,7 +2437,8 @@
           "src/flow/lib/set-test-summary.js",
           "src/lib/dispatcher.js",
           "src/flow/lib/run-draft-task.js",
-          "src/flow/lib/run-tests.js"
+          "src/flow/lib/run-tests.js",
+          "src/flow/lib/get-next-action.js"
         ],
         "id": "83f60bd3",
         "enrich": {
@@ -2707,6 +2708,36 @@
         ]
       },
       {
+        "file": "src/flow/lib/get-next-action.js",
+        "hash": "cad9be321ee75675b143c1aee196d56d",
+        "lines": 111,
+        "mtime": "2026-04-21T01:49:09.449Z",
+        "className": "get-next-action",
+        "methods": [
+          "resolveSchemaDir",
+          "loadJson",
+          "findInProgress",
+          "findCurrentTask",
+          "resolveTarget",
+          "buildContextDescriptor"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "url",
+          "./base-command.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "c68afd69",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/lib/get-prompt.js",
         "hash": "8f98a5811142808f139e953541ddb386",
         "lines": 344,
@@ -2833,7 +2864,7 @@
         "usedBy": null,
         "id": "9aca938f",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -2973,7 +3004,7 @@
         "usedBy": null,
         "id": "c711309b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3055,7 +3086,7 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -3900,9 +3931,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "2096fa3e2acceaa490d9e1ee3d82ad64",
-        "lines": 507,
-        "mtime": "2026-04-20T16:14:41.463Z",
+        "hash": "ded4ade24035b18218872dd8a183bc87",
+        "lines": 520,
+        "mtime": "2026-04-21T01:49:09.450Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -3923,7 +3954,7 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "attempts": 4
+          "attempts": 1
         }
       },
       {
@@ -4039,7 +4070,7 @@
         ],
         "id": "13ddf392",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4332,7 +4363,7 @@
         ],
         "id": "74b5e1c3",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -5273,7 +5304,7 @@
         ],
         "id": "0e966da6",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -8401,7 +8432,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -8536,10 +8567,10 @@
       }
     ],
     "summary": {
-      "total": 262,
-      "totalMethods": 792
+      "total": 263,
+      "totalMethods": 798
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-21T00:32:15.148Z"
+  "enrichedAt": "2026-04-21T01:50:01.965Z"
 }
