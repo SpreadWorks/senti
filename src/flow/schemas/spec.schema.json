@@ -39,9 +39,45 @@
       "required": ["modules", "data_flow", "decisions"],
       "additionalProperties": false,
       "properties": {
-        "modules": { "type": "array", "items": { "type": "string" } },
-        "data_flow": { "type": "array", "items": { "type": "string" } },
-        "decisions": { "type": "array", "items": { "type": "string" } }
+        "modules": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "required": ["text"],
+            "additionalProperties": false,
+            "properties": {
+              "text": { "type": "string", "maxLength": 500 },
+              "added_by_task": { "type": "string", "maxLength": 100 }
+            }
+          }
+        },
+        "data_flow": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "required": ["text"],
+            "additionalProperties": false,
+            "properties": {
+              "text": { "type": "string", "maxLength": 500 },
+              "added_by_task": { "type": "string", "maxLength": 100 }
+            }
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "required": ["text"],
+            "additionalProperties": false,
+            "properties": {
+              "text": { "type": "string", "maxLength": 500 },
+              "added_by_task": { "type": "string", "maxLength": 100 }
+            }
+          }
+        }
       }
     },
     "requirements": {

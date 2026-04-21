@@ -79,8 +79,10 @@ const formatRequirement = (req) => {
 const formatClarification = (entry) => `- Q: ${entry.q}\n  - A: ${entry.a}`;
 const formatAlternative = (entry) => `- ${entry.option} — ${entry.reason}`;
 
+const overviewEntry = (entry) => `- ${entry.text}`;
+
 function renderOverviewSub(label, items) {
-  return `### ${label}\n${renderList(items, bullet)}`;
+  return `### ${label}\n${renderList(items, overviewEntry)}`;
 }
 
 /**

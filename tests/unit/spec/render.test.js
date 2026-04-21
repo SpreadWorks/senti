@@ -21,9 +21,9 @@ function sampleSpec() {
     constraints: ["No new external dependencies."],
     design_principles: ["Deterministic output."],
     overview: {
-      modules: ["src/spec/commands/render.js"],
-      data_flow: ["spec.json -> render -> spec.md"],
-      decisions: ["Section order matches existing skeleton."],
+      modules: [{ text: "src/spec/commands/render.js" }],
+      data_flow: [{ text: "spec.json -> render -> spec.md" }],
+      decisions: [{ text: "Section order matches existing skeleton." }],
     },
     clarifications: [
       { q: "How many fields?", a: "Eleven." },
@@ -159,6 +159,23 @@ describe("renderSpecMarkdown", () => {
       assert.match(section, /## Implementation Targets\n-\n/);
     });
   }
+
+  it("renders overview entries as bullets using the text field (spec 207)", () => {
+    const md = renderSpecMarkdown(sampleSpec(), sampleMeta());
+    const overviewSection = md.slice(md.indexOf("## Overview"), md.indexOf("## Clarifications"));
+    assert.ok(overviewSection.includes("- src/spec/commands/render.js"));
+    assert.ok(overviewSection.includes("- spec.json -> render -> spec.md"));
+    assert.ok(overviewSection.includes("- Section order matches existing skeleton."));
+    assert.ok(!overviewSection.includes("[object Object]"), "rendered bullet should not stringify the raw object");
+  });
+
+  it("does not expose added_by_task in rendered markdown (spec 207)", () => {
+    const spec = sampleSpec();
+    spec.overview.modules = [{ text: "src/x.js", added_by_task: "T7" }];
+    const md = renderSpecMarkdown(spec, sampleMeta());
+    assert.ok(!md.includes("added_by_task"), "added_by_task is metadata, not rendered");
+    assert.ok(!md.includes("T7"), "task id should not leak into rendered markdown");
+  });
 
   it("places Implementation Targets after Acceptance Criteria and before Open Questions", () => {
     const md = renderSpecMarkdown(sampleSpec(), sampleMeta());

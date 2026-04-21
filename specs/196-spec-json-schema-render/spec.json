@@ -30,20 +30,20 @@
   ],
   "overview": {
     "modules": [
-      "src/flow/schemas/spec.schema.json — spec の JSON Schema 定義",
-      "src/spec/commands/render.js — renderSpecMarkdown 関数と spec render CLI",
-      "src/spec.js — spec サブコマンドのディスパッチャ",
-      "src/lib/command-registry.js — specCommands レジストリ追加",
-      "src/sdd-forge.js — spec 名前空間をトップレベルに登録"
+      { "text": "src/flow/schemas/spec.schema.json — spec の JSON Schema 定義" },
+      { "text": "src/spec/commands/render.js — renderSpecMarkdown 関数と spec render CLI" },
+      { "text": "src/spec.js — spec サブコマンドのディスパッチャ" },
+      { "text": "src/lib/command-registry.js — specCommands レジストリ追加" },
+      { "text": "src/sdd-forge.js — spec 名前空間をトップレベルに登録" }
     ],
     "data_flow": [
-      "spec.json → validateSchema → renderSpecMarkdown → spec.md",
-      "active flow 解決 → spec.json パス特定 → 読込 → 検証 → レンダリング → spec.md 書込"
+      { "text": "spec.json → validateSchema → renderSpecMarkdown → spec.md" },
+      { "text": "active flow 解決 → spec.json パス特定 → 読込 → 検証 → レンダリング → spec.md 書込" }
     ],
     "decisions": [
-      "11 フィールドは全て必須（cac6 合意 6 + 既存 spec.md 互換 5）",
-      "meta（タイトル／ブランチ／作成日／状態／入力）は spec.json ではなく flow.json から取得",
-      "User Confirmation セクションは spec.json に含めず render 側が既定テンプレートで出力"
+      { "text": "11 フィールドは全て必須（cac6 合意 6 + 既存 spec.md 互換 5）" },
+      { "text": "meta（タイトル／ブランチ／作成日／状態／入力）は spec.json ではなく flow.json から取得" },
+      { "text": "User Confirmation セクションは spec.json に含めず render 側が既定テンプレートで出力" }
     ]
   },
   "clarifications": [

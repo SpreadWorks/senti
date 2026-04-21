@@ -1,8 +1,18 @@
 {
   "type": "object",
-  "required": ["updated"],
+  "required": ["updated", "additions"],
+  "additionalProperties": false,
   "properties": {
     "updated": { "type": "boolean" },
-    "overview_path": { "type": "string" }
+    "additions": {
+      "type": "object",
+      "required": ["modules", "data_flow", "decisions"],
+      "additionalProperties": false,
+      "properties": {
+        "modules": { "type": "array", "maxItems": 50, "items": { "type": "string", "maxLength": 500 } },
+        "data_flow": { "type": "array", "maxItems": 50, "items": { "type": "string", "maxLength": 500 } },
+        "decisions": { "type": "array", "maxItems": 50, "items": { "type": "string", "maxLength": 500 } }
+      }
+    }
   }
 }

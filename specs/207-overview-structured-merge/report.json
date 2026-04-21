@@ -1,0 +1,59 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/196-spec-json-schema-render/spec.json        |  20 +--\n specs/207-overview-structured-merge/draft.md       |  86 ++++++++++\n specs/207-overview-structured-merge/flow.json      | 191 +++++++++++++++++++++\n specs/207-overview-structured-merge/issue-log.json |  89 ++++++++++\n specs/207-overview-structured-merge/qa.md          |   9 +\n specs/207-overview-structured-merge/review.md      |  41 +++++\n specs/207-overview-structured-merge/spec.md        | 116 +++++++++++++\n .../207-overview-structured-merge/tests/README.md  |  32 ++++\n src/flow/lib/overview-merge.js                     | 101 +++++++++++\n src/flow/lib/run-update-overview.js                |  47 +++++\n src/flow/prompts/task/update-overview.md           |  15 +-\n .../next-action/update-overview.schema.json        |  14 +-\n src/flow/schemas/spec.schema.json                  |  42 ++++-\n src/spec/commands/render.js                        |   4 +-\n tests/unit/flow/overview-merge.test.js             | 185 ++++++++++++++++++++\n tests/unit/flow/run-update-overview.test.js        |  97 +++++++++++\n tests/unit/flow/update-overview-schema.test.js     |  91 ++++++++++\n tests/unit/spec/render.test.js                     |  23 ++-\n tests/unit/spec/schema.test.js                     |  47 ++++-\n 19 files changed, 1224 insertions(+), 26 deletions(-)",
+      "commits": [
+        "feat: feature/207-overview-structured-merge"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 3,
+      "srcRead": 6,
+      "question": 1,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 319283,
+      "output": 11625,
+      "cacheRead": 199808,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 309928,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 78488
+        },
+        {
+          "phase": "gate",
+          "durationMs": 26920
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 151891
+        },
+        {
+          "phase": "review",
+          "durationMs": 52629
+        }
+      ]
+    },
+    "tests": {
+      "unit": 32,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 32
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/207-overview-structured-merge\n    19 files changed, 1224 insertions(+), 26 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 3\n    src read .................... 6\n    Q&A ......................... 1\n    issue-log ................... 2\n    agent calls ................. 13\n    input tokens ................ 319,283\n    output tokens ............... 11,625\n    cache-read tokens ........... 199,808\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 309.9s\n      gate-draft ................ 78.5s\n      gate ...................... 26.9s\n      gate-impl ................. 151.9s\n      review .................... 52.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 32  integration 0  acceptance 0  total 32"
+}

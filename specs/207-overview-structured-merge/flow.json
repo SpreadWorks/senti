@@ -1,0 +1,191 @@
+{
+  "spec": "specs/207-overview-structured-merge/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/207-overview-structured-merge",
+  "runId": "88f415e0-2cbb-470a-a4d6-391c1c483bff",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 202,
+  "worktree": true,
+  "request": "Issue #202 (bea4): cac6 decomposition task 9/11. Determinization of update-overview step. Structure spec.json overview into modules/data_flow/decisions. AI outputs only diffs; CLI performs mechanical merge. Record added_by_task on each entry for reverse application on task deletion. Constrain update-overview output_schema via T5.",
+  "metrics": {
+    "plan": {
+      "docsRead": 3
+    },
+    "draft": {
+      "srcRead": 6,
+      "question": 1
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 34980,
+        "output": 2972,
+        "cacheRead": 42624,
+        "cacheCreation": 0
+      },
+      "callCount": 3,
+      "responseChars": 7045,
+      "durationMs": 78488
+    },
+    "gate": {
+      "tokens": {
+        "input": 7488,
+        "output": 1102,
+        "cacheRead": 19072,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 2661,
+      "durationMs": 26920
+    },
+    "impl": {
+      "issueLog": 2
+    },
+    "task-impl": {
+      "gateRetry": 0
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 184270,
+        "output": 5603,
+        "cacheRead": 115584,
+        "cacheCreation": 0
+      },
+      "callCount": 7,
+      "responseChars": 7384,
+      "durationMs": 151891
+    },
+    "review": {
+      "tokens": {
+        "input": 92545,
+        "output": 1948,
+        "cacheRead": 22528,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3460,
+      "durationMs": 52629
+    }
+  },
+  "notes": [
+    "Q1: A案 (flat {text, added_by_task}) を採用",
+    "Q2-Q6: all A-option (add-only / optional added_by_task + 196 migrate / helper only / flow run update-overview orchestration / unit tests only)"
+  ],
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 32
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T08:55:56.958Z"
+  }
+}

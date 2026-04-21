@@ -17,7 +17,11 @@ function minimalValidSpec() {
     scope: { in: ["a"], out: [] },
     constraints: [],
     design_principles: [],
-    overview: { modules: [], data_flow: [], decisions: [] },
+    overview: {
+      modules: [{ text: "src/foo.js" }],
+      data_flow: [{ text: "a -> b", added_by_task: "T1" }],
+      decisions: [],
+    },
     background: "",
     requirements: [{ id: "R1", desc: "d", priority: "must", status: "pending" }],
     acceptance_criteria: ["ok"],
@@ -95,5 +99,46 @@ describe("spec.schema.json", () => {
     spec.goal = 123;
     const errors = validateSchema(spec, schema);
     assert.ok(errors.some((e) => e.includes("goal") && e.includes("string")));
+  });
+
+  describe("overview entry shape (spec 207)", () => {
+    it("accepts structured overview entries with text and optional added_by_task", () => {
+      const schema = loadSchema();
+      const spec = minimalValidSpec();
+      spec.overview = {
+        modules: [
+          { text: "src/a.js" },
+          { text: "src/b.js", added_by_task: "T3" },
+        ],
+        data_flow: [{ text: "x -> y", added_by_task: "T1" }],
+        decisions: [{ text: "decision one" }],
+      };
+      const errors = validateSchema(spec, schema);
+      assert.deepEqual(errors, []);
+    });
+
+    it("rejects bare string entries (pre-207 shape)", () => {
+      const schema = loadSchema();
+      const spec = minimalValidSpec();
+      spec.overview = {
+        modules: ["bare string"],
+        data_flow: [],
+        decisions: [],
+      };
+      const errors = validateSchema(spec, schema);
+      assert.ok(errors.length > 0, "expected at least one validation error for bare string entry");
+    });
+
+    it("rejects entry missing required `text` field", () => {
+      const schema = loadSchema();
+      const spec = minimalValidSpec();
+      spec.overview = {
+        modules: [{ added_by_task: "T1" }],
+        data_flow: [],
+        decisions: [],
+      };
+      const errors = validateSchema(spec, schema);
+      assert.ok(errors.some((e) => e.includes("text")), `expected text error, got: ${errors.join(" / ")}`);
+    });
   });
 });
