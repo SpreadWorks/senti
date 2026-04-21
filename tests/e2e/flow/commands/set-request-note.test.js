@@ -31,7 +31,7 @@ describe("flow set note", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("appends note to flow.json notes array", () => {
+  it("appends {taskId, text, ts} entry to state.notes", () => {
     tmp = createTmpDir();
     setupFlow(tmp);
     execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "note", "draft: first note"], {
@@ -39,7 +39,10 @@ describe("flow set note", () => {
       env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
     });
     const updated = makeFlowManager(tmp).load();
-    assert.deepEqual(updated.notes, ["draft: first note"]);
+    assert.equal(updated.notes.length, 1);
+    assert.equal(updated.notes[0].text, "draft: first note");
+    assert.equal(updated.notes[0].taskId, null);
+    assert.ok(updated.notes[0].ts);
   });
 
   it("appends multiple notes in order", () => {
@@ -54,7 +57,9 @@ describe("flow set note", () => {
       env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
     });
     const updated = makeFlowManager(tmp).load();
-    assert.deepEqual(updated.notes, ["first note", "second note"]);
+    assert.equal(updated.notes.length, 2);
+    assert.equal(updated.notes[0].text, "first note");
+    assert.equal(updated.notes[1].text, "second note");
   });
 
   it("initializes notes array when absent", () => {
@@ -69,6 +74,7 @@ describe("flow set note", () => {
     });
     const updated = makeFlowManager(tmp).load();
     assert.ok(Array.isArray(updated.notes));
-    assert.deepEqual(updated.notes, ["new note"]);
+    assert.equal(updated.notes.length, 1);
+    assert.equal(updated.notes[0].text, "new note");
   });
 });

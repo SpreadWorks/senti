@@ -1,0 +1,59 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/207-unify-taskid-in-logs/draft.md            |  99 ++++++++\n specs/207-unify-taskid-in-logs/flow.json           | 190 ++++++++++++++++\n specs/207-unify-taskid-in-logs/issue-log.json      |  91 ++++++++\n specs/207-unify-taskid-in-logs/qa.md               |   9 +\n specs/207-unify-taskid-in-logs/review.md           |  41 ++++\n specs/207-unify-taskid-in-logs/spec.md             | 136 +++++++++++\n specs/207-unify-taskid-in-logs/tests/README.md     |  41 ++++\n .../tests/flat-taskid.test.js                      | 252 +++++++++++++++++++++\n .../tests/integration-task-lifecycle.test.js       |  77 +++++++\n .../tests/logger-taskid.test.js                    | 102 +++++++++\n src/flow/commands/report.js                        |  62 +----\n src/flow/lib/base-command.js                       |  15 ++\n src/flow/lib/get-qa-count.js                       |   5 +-\n src/flow/lib/get-status.js                         |  80 ++++++-\n src/flow/lib/run-gate.js                           |  37 ++-\n src/flow/lib/set-issue-log.js                      |   8 +-\n src/flow/lib/set-metric.js                         |  18 +-\n src/flow/lib/set-note.js                           |  11 +-\n src/flow/registry.js                               |  12 +-\n src/lib/flow-manager.js                            |   6 +-\n src/lib/flow-store.js                              | 166 ++++++++------\n src/lib/log.js                                     |  29 ++-\n tests/e2e/flow/commands/set-request-note.test.js   |  14 +-\n tests/e2e/flow/gate-impl-integration.test.js       |  16 +-\n tests/unit/flow/commands/report-metrics.test.js    |  53 ++++-\n tests/unit/flow/gate-retry-counter.test.js         |  12 +-\n tests/unit/flow/set-metric.test.js                 |  30 +--\n tests/unit/lib/flow-manager-tasks.test.js          |  34 +--\n tests/unit/lib/flow-state-agent-metrics.test.js    | 230 +++++++++----------\n 29 files changed, 1533 insertions(+), 343 deletions(-)",
+      "commits": [
+        "feat: feature/207-unify-taskid-in-logs"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 5,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 1292471,
+      "output": 47893,
+      "cacheRead": 741376,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 45,
+      "durationMs": 1217304,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 79195
+        },
+        {
+          "phase": "gate",
+          "durationMs": 50344
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 528581
+        },
+        {
+          "phase": "review",
+          "durationMs": 559184
+        }
+      ]
+    },
+    "tests": {
+      "unit": 17,
+      "integration": 3,
+      "acceptance": 0,
+      "total": 20
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/207-unify-taskid-in-logs\n    29 files changed, 1533 insertions(+), 343 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 5\n    issue-log ................... 1\n    agent calls ................. 45\n    input tokens ................ 1,292,471\n    output tokens ............... 47,893\n    cache-read tokens ........... 741,376\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 1217.3s\n      gate-draft ................ 79.2s\n      gate ...................... 50.3s\n      gate-impl ................. 528.6s\n      review .................... 559.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 17  integration 3  acceptance 0  total 20"
+}

@@ -5,11 +5,12 @@
  */
 
 import { FlowCommand } from "./base-command.js";
+import { buildMetricsSummary } from "./get-status.js";
 
 export default class GetQaCountCommand extends FlowCommand {
   execute(ctx) {
-    const state = ctx.flowState;
-    const count = state.metrics?.draft?.question || 0;
+    const summary = buildMetricsSummary(ctx.flowState.metrics || []);
+    const count = summary.total?.draft?.question ?? 0;
 
     return { count };
   }

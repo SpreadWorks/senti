@@ -53,16 +53,67 @@ function assertTaskSchema(state, sourcePath) {
       `Path: ${sourcePath || "<unknown>"}.`,
     );
   }
+  if (state.metrics != null && !Array.isArray(state.metrics)) {
+    throw new Error(
+      `flow-store: legacy flow.json with non-array 'metrics' rejected. ` +
+      `Path: ${sourcePath || "<unknown>"}. ` +
+      `cac6/T10 requires 'metrics' to be an append-only entry array.`,
+    );
+  }
+  if (state.notes != null) {
+    if (!Array.isArray(state.notes)) {
+      throw new Error(
+        `flow-store: legacy flow.json with non-array 'notes' rejected. ` +
+        `Path: ${sourcePath || "<unknown>"}.`,
+      );
+    }
+    const firstNonObj = state.notes.find((n) => n != null && typeof n !== "object");
+    if (firstNonObj !== undefined) {
+      throw new Error(
+        `flow-store: legacy flow.json with string-array 'notes' rejected. ` +
+        `Path: ${sourcePath || "<unknown>"}. ` +
+        `cac6/T10 requires note entries to be objects {taskId, text, ts}.`,
+      );
+    }
+  }
+  for (const task of state.tasks) {
+    if (task && ("metrics" in task || "notes" in task)) {
+      throw new Error(
+        `flow-store: legacy flow.json with per-task metrics/notes rejected. ` +
+        `Task: ${task.id}. Path: ${sourcePath || "<unknown>"}. ` +
+        `cac6/T10 moved metrics/notes to flat top-level arrays with taskId.`,
+      );
+    }
+  }
+}
+
+/**
+ * Resolve the taskId for an append-only log entry (metrics / notes / issue-log).
+ * Rules: explicit `opts.taskId` always wins (null → flow scope, unknown id →
+ * throw); when omitted, infer from `state.currentTaskId` (null if none).
+ *
+ * @returns {string|null} resolved taskId (null = flow scope)
+ */
+export function resolveTaskIdForEntry(state, opts) {
+  const explicit = opts && Object.prototype.hasOwnProperty.call(opts, "taskId");
+  if (explicit) {
+    const { taskId } = opts;
+    if (taskId == null) return null;
+    const task = (state.tasks || []).find((t) => t.id === taskId);
+    if (!task) throw new Error(`unknown task id: ${taskId}`);
+    return taskId;
+  }
+  return state.currentTaskId ?? null;
 }
 
 /**
  * Resolve which scope (parent/flow-level vs a specific task) a mutation should
- * target. The explicit argument always wins:
- *   - opts.taskId === undefined → infer from state.currentTaskId.
- *   - opts.taskId === null      → parent scope (ignore currentTaskId).
- *   - opts.taskId === "<id>"    → target task with that id; throw if unknown.
+ * target. Used by step / requirement / test-summary setters (still per-task).
  *
- * @returns {object} The scope object on which to mutate (state or a task).
+ * Explicit argument wins: undefined → infer from currentTaskId, null → parent,
+ * "<id>" → target task (throw if unknown).
+ *
+ * @returns {object} scope object on which to mutate (state or a task)
  */
 export function resolveMutationScope(state, opts = {}) {
   const explicit = Object.prototype.hasOwnProperty.call(opts, "taskId");
@@ -258,82 +309,65 @@ export class FlowStore {
   setRequest(text) { this.mutate((state) => { state.request = text; }); }
   setIssue(issue) { this.mutate((state) => { state.issue = issue; }); }
 
-  addNote(text, opts) {
+  /**
+   * Append an entry to a flat top-level array on `state[arrayKey]` with
+   * store-owned `taskId` / `ts` fields. Shared by `addNote` and `appendMetric`.
+   *
+   * @param {string} arrayKey — e.g. "notes" or "metrics"
+   * @param {object} payload — entry body (taskId/ts are overwritten by store)
+   * @param {{taskId?: string|null}} [opts] — explicit taskId override
+   */
+  _appendFlowEntry(arrayKey, payload, opts) {
     this.mutate((state) => {
-      const scope = resolveMutationScope(state, opts);
-      if (!scope.notes) scope.notes = [];
-      scope.notes.push(text);
+      const taskId = resolveTaskIdForEntry(state, opts);
+      if (!Array.isArray(state[arrayKey])) state[arrayKey] = [];
+      state[arrayKey].push({ ...payload, taskId, ts: new Date().toISOString() });
     });
   }
 
+  addNote(text, opts) {
+    this._appendFlowEntry("notes", { text }, opts);
+  }
+
   /**
-   * Shared entry point for metric mutations. Handles the ambient-vs-explicit
-   * scope semantics: ambient calls (no taskId) are silently skipped when no
-   * active flow exists; explicit calls propagate any failure (including the
-   * strict task-schema check).
+   * Append a metric entry. Ambient calls (no explicit taskId and no active
+   * flow) are skipped silently; otherwise invariants match `_appendFlowEntry`.
    *
-   * @param {object} opts
-   * @param {boolean} opts.explicitTask - caller passed an explicit taskId
-   * @param {string|null|undefined} [opts.taskId]
-   * @param {(state: object, scope: object) => void} opts.apply - mutation body
+   * @param {object|null} payload — entry body without taskId/ts (null → skip)
+   * @param {{taskId?: string|null}} [opts]
    */
-  _withMetricScope({ explicitTask, taskId, apply }) {
-    if (!explicitTask && !this.pathForCurrent()) return;
-    this.mutate((state) => {
-      const scopeOpts = explicitTask ? { taskId } : {};
-      const scope = resolveMutationScope(state, scopeOpts);
-      if (!scope.metrics) scope.metrics = {};
-      apply(state, scope);
-    });
+  appendMetric(payload, opts) {
+    if (!payload) return;
+    const hasExplicit = opts && Object.prototype.hasOwnProperty.call(opts, "taskId");
+    if (!hasExplicit && !this.pathForCurrent()) return;
+    this._appendFlowEntry("metrics", payload, opts);
   }
 
   incrementMetric(phase, counter, opts) {
     if (!phase) return;
-    const explicitTask = opts && Object.prototype.hasOwnProperty.call(opts, "taskId");
-    this._withMetricScope({
-      explicitTask,
-      taskId: explicitTask ? opts.taskId : undefined,
-      apply: (_state, scope) => {
-        if (!scope.metrics[phase]) scope.metrics[phase] = {};
-        scope.metrics[phase][counter] = (scope.metrics[phase][counter] || 0) + 1;
-      },
-    });
+    this.appendMetric({ phase, counter, delta: 1 }, opts);
   }
 
   accumulateAgentMetrics(phase, { usage, responseChars, model, durationMs, taskId } = {}) {
     if (!phase) return;
-    const explicitTask = taskId !== undefined;
-    this._withMetricScope({
-      explicitTask,
-      taskId,
-      apply: (_state, scope) => {
-        if (!scope.metrics[phase]) scope.metrics[phase] = {};
-        const m = scope.metrics[phase];
-
-        if (usage) {
-          if (!m.tokens) m.tokens = { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 };
-          m.tokens.input = (m.tokens.input || 0) + (usage.input_tokens || 0);
-          m.tokens.output = (m.tokens.output || 0) + (usage.output_tokens || 0);
-          m.tokens.cacheRead = (m.tokens.cacheRead || 0) + (usage.cache_read_tokens || 0);
-          m.tokens.cacheCreation = (m.tokens.cacheCreation || 0) + (usage.cache_creation_tokens || 0);
-          if (usage.cost_usd != null) {
-            m.cost = (m.cost || 0) + usage.cost_usd;
-          }
-        }
-
-        m.callCount = (m.callCount || 0) + 1;
-        m.responseChars = (m.responseChars || 0) + (responseChars || 0);
-
-        if (durationMs != null) {
-          m.durationMs = (m.durationMs || 0) + durationMs;
-        }
-
-        if (model) {
-          if (!m.models) m.models = {};
-          m.models[model] = (m.models[model] || 0) + 1;
-        }
-      },
-    });
+    const payload = {
+      phase,
+      kind: "agent",
+      callCount: 1,
+      responseChars: responseChars || 0,
+      ...(durationMs != null && { durationMs }),
+      ...(model && { model }),
+      ...(usage && {
+        tokens: {
+          input: usage.input_tokens || 0,
+          output: usage.output_tokens || 0,
+          cacheRead: usage.cache_read_tokens || 0,
+          cacheCreation: usage.cache_creation_tokens || 0,
+        },
+        ...(usage.cost_usd != null && { cost: usage.cost_usd }),
+      }),
+    };
+    this.appendMetric(payload, taskId !== undefined ? { taskId } : undefined);
   }
 
   // ── task primitives (cac6/T2) ───────────────────────────────────────────────

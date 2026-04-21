@@ -661,8 +661,29 @@ function resolveRetryMax(config) {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_GATE_RETRY_MAX;
 }
 
+/**
+ * Replay a reset-aware `gateRetry` counter for the given phase against the
+ * flat append-only metrics entries. PASS writes a `reset: true` entry which
+ * zeros the running count; FAIL writes a `delta: 1` entry which increments.
+ * Exported for reuse by tests and any other counter consumers.
+ *
+ * @param {Array<Object>} entries — `state.metrics`
+ * @param {string} phase — phase to scope the scan to
+ * @returns {number} current post-reset count
+ */
+export function countGateRetry(entries, phase) {
+  if (!Array.isArray(entries)) return 0;
+  let count = 0;
+  for (const e of entries) {
+    if (e.phase !== phase || e.counter !== "gateRetry") continue;
+    if (e.reset) count = 0;
+    else count += e.delta ?? 1;
+  }
+  return count;
+}
+
 function readGateRetryCount(state, phase) {
-  return Number(state?.metrics?.[phase]?.gateRetry || 0);
+  return countGateRetry(state?.metrics, phase);
 }
 
 function formatRetryHistory(root, specPath, limit) {
@@ -713,16 +734,10 @@ export function updateGateRetryCounter(ctx, result) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) return;
   const mgr = ctx.flowManager;
   if (!mgr) return;
-  mgr.mutate((state) => {
-    if (!state.metrics) state.metrics = {};
-    if (!state.metrics[phase]) state.metrics[phase] = {};
-    if (result?.result === "pass") {
-      state.metrics[phase].gateRetry = 0;
-    } else {
-      state.metrics[phase].gateRetry =
-        Number(state.metrics[phase].gateRetry || 0) + 1;
-    }
-  });
+  const payload = result?.result === "pass"
+    ? { phase, counter: "gateRetry", delta: 0, reset: true }
+    : { phase, counter: "gateRetry", delta: 1 };
+  mgr.appendMetric(payload);
 }
 
 // ---------------------------------------------------------------------------

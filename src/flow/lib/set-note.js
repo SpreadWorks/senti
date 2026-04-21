@@ -1,22 +1,23 @@
 /**
  * src/flow/lib/set-note.js
  *
- * Append a note to the notes array in flow.json.
+ * Append a note entry to state.notes in flow.json.
  *
- * ctx.text — note text
+ * ctx.text    — note text (required)
+ * ctx.taskId  — optional explicit taskId (overrides active-task inference)
  */
 
-import { FlowCommand } from "./base-command.js";
+import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
 
 export default class SetNoteCommand extends FlowCommand {
   execute(ctx) {
     const { text } = ctx;
 
     if (!text) {
-      throw new Error('usage: flow set note "<text>"');
+      throw new Error('usage: flow set note "<text>" [--task-id <id>]');
     }
 
-    ctx.flowManager.addNote(text);
+    ctx.flowManager.addNote(text, resolveExplicitTaskOption(ctx));
 
     return { note: text };
   }

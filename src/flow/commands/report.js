@@ -8,62 +8,8 @@
 import fs from "fs";
 import path from "path";
 import { loadIssueLog } from "../lib/set-issue-log.js";
+import { buildMetricsSummary, buildReportTotals } from "../lib/get-status.js";
 import { pushSection, DIVIDER, formatDurationSeconds } from "../../lib/formatter.js";
-
-/**
- * Iterate over each phase object in metrics, skipping null/non-object entries.
- * @param {Object|null} metrics
- * @param {(phase: Object) => void} fn
- */
-function forEachPhase(metrics, fn) {
-  if (!metrics) return;
-  for (const [phaseId, phase] of Object.entries(metrics)) {
-    if (!phase || typeof phase !== "object") continue;
-    fn(phase, phaseId);
-  }
-}
-
-/**
- * Aggregate activity metrics (docs/src reads, Q&A, issue-log) across all phases.
- * @param {Object|null} metrics - flow.json metrics object keyed by phase
- * @returns {{ docsRead: number, srcRead: number, question: number, issueLog: number }}
- */
-function aggregateActivityMetrics(metrics) {
-  const totals = { docsRead: 0, srcRead: 0, question: 0, issueLog: 0 };
-  forEachPhase(metrics, (phase) => {
-    for (const key of Object.keys(totals)) {
-      totals[key] += phase[key] || 0;
-    }
-  });
-  return totals;
-}
-
-/**
- * Aggregate token/cost metrics across all phases (R3-1, R3-2).
- * @param {Object|null} metrics - flow.json metrics object keyed by phase
- * @returns {{ input: number, output: number, cacheRead: number, cacheCreation: number, cost: number|null, callCount: number }}
- */
-function aggregateTokenMetrics(metrics) {
-  const totals = { input: 0, output: 0, cacheRead: 0, cacheCreation: 0, cost: null, callCount: 0, durationMs: 0, phaseDurations: [] };
-  forEachPhase(metrics, (phase, phaseId) => {
-    if (phase.tokens) {
-      totals.input += phase.tokens.input || 0;
-      totals.output += phase.tokens.output || 0;
-      totals.cacheRead += phase.tokens.cacheRead || 0;
-      totals.cacheCreation += phase.tokens.cacheCreation || 0;
-    }
-    // R3-2: only accumulate cost when it has been recorded (never treat null as 0)
-    if (phase.cost != null) {
-      totals.cost = (totals.cost || 0) + phase.cost;
-    }
-    totals.callCount += phase.callCount || 0;
-    totals.durationMs += phase.durationMs || 0;
-    if (phase.durationMs > 0) {
-      totals.phaseDurations.push({ phase: phaseId, durationMs: phase.durationMs });
-    }
-  });
-  return totals;
-}
 
 /**
  * Build the structured report data object.
@@ -101,9 +47,9 @@ export function generateReport(input) {
     })),
   };
 
-  // Metrics
-  const metrics = aggregateActivityMetrics(state.metrics);
-  const tokenMetrics = aggregateTokenMetrics(state.metrics);
+  // Metrics (derive from the single source of truth: buildMetricsSummary)
+  const summary = buildMetricsSummary(state.metrics || []);
+  const { activity: metrics, tokens: tokenMetrics } = buildReportTotals(summary.total);
 
   // Sync
   let sync;

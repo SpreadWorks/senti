@@ -1,0 +1,190 @@
+{
+  "spec": "specs/207-unify-taskid-in-logs/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/207-unify-taskid-in-logs",
+  "runId": "8db350d4-f06d-4783-98df-b1cf96313adf",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 203,
+  "worktree": true,
+  "request": "Issue #203: cac6 分解タスク 10/11。metrics / issue-log / prompt logs の各エントリに taskId フィールドを追加し、CLI 側で scope 推論（active task あり → task scope、なし → 親 scope）を行う。",
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 5
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 49890,
+        "output": 3258,
+        "cacheRead": 28032,
+        "cacheCreation": 0
+      },
+      "callCount": 3,
+      "responseChars": 6783,
+      "durationMs": 79195
+    },
+    "gate": {
+      "tokens": {
+        "input": 46680,
+        "output": 2241,
+        "cacheRead": 6912,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 5142,
+      "durationMs": 50344
+    },
+    "impl": {
+      "issueLog": 1
+    },
+    "task-impl": {
+      "gateRetry": 0
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 636085,
+        "output": 19533,
+        "cacheRead": 404608,
+        "cacheCreation": 0
+      },
+      "callCount": 22,
+      "responseChars": 25287,
+      "durationMs": 528581
+    },
+    "review": {
+      "tokens": {
+        "input": 559816,
+        "output": 22861,
+        "cacheRead": 301824,
+        "cacheCreation": 0
+      },
+      "callCount": 18,
+      "responseChars": 33845,
+      "durationMs": 559184
+    }
+  },
+  "autoApprove": true,
+  "notes": [
+    "draft Q1-Q6 confirmed: metrics/notes → flat append-only event arrays; --task-id opt; raw+summary read API; unit+integration tests; autoApprove enabled"
+  ],
+  "test": {
+    "summary": {
+      "unit": 17,
+      "integration": 3
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T09:07:00.745Z"
+  }
+}

@@ -155,41 +155,44 @@ describe("FlowManager task API", () => {
     });
   });
 
-  describe("scope inference on existing mutators", () => {
-    it("addNote writes to task when current task exists", () => {
+  describe("flat append: addNote with taskId (cac6/T10)", () => {
+    it("addNote appends {taskId, text, ts} with taskId from current task", () => {
       tmp = createTmpDir();
       const fm = setupFlow(tmp);
       fm.addTask(makeTask({ id: "001" }));
       fm.addNote("task-note");
       const loaded = fm.load("001-test");
-      assert.equal(loaded.tasks[0].notes?.length, 1);
-      assert.equal(loaded.tasks[0].notes[0], "task-note");
-      assert.ok(!loaded.notes || loaded.notes.length === 0);
+      assert.ok(Array.isArray(loaded.notes));
+      assert.equal(loaded.notes.length, 1);
+      assert.equal(loaded.notes[0].text, "task-note");
+      assert.equal(loaded.notes[0].taskId, "001");
+      assert.ok(!loaded.tasks[0].notes, "task.notes must not exist (flat format)");
     });
 
-    it("addNote writes to parent when no current task", () => {
+    it("addNote writes taskId=null when no current task", () => {
       tmp = createTmpDir();
       const fm = setupFlow(tmp);
       fm.addNote("parent-note");
       const loaded = fm.load("001-test");
-      assert.equal(loaded.notes?.length, 1);
-      assert.equal(loaded.notes[0], "parent-note");
+      assert.equal(loaded.notes.length, 1);
+      assert.equal(loaded.notes[0].text, "parent-note");
+      assert.equal(loaded.notes[0].taskId, null);
     });
   });
 
   describe("explicit scope argument", () => {
-    it("addNote({ taskId: null }) writes to parent even when current task exists", () => {
+    it("addNote({ taskId: null }) writes taskId=null even when current task exists", () => {
       tmp = createTmpDir();
       const fm = setupFlow(tmp);
       fm.addTask(makeTask({ id: "001" }));
       fm.addNote("parent-explicit", { taskId: null });
       const loaded = fm.load("001-test");
-      assert.equal(loaded.notes?.length, 1);
-      assert.equal(loaded.notes[0], "parent-explicit");
-      assert.ok(!loaded.tasks[0].notes || loaded.tasks[0].notes.length === 0);
+      assert.equal(loaded.notes.length, 1);
+      assert.equal(loaded.notes[0].taskId, null);
+      assert.ok(!loaded.tasks[0].notes);
     });
 
-    it("addNote({ taskId: '001' }) writes to specified task", () => {
+    it("addNote({ taskId: '001' }) overrides active task", () => {
       tmp = createTmpDir();
       const fm = setupFlow(tmp);
       fm.addTask(makeTask({ id: "001" }));
@@ -197,10 +200,7 @@ describe("FlowManager task API", () => {
       // currentTaskId is now "002"
       fm.addNote("for-001", { taskId: "001" });
       const loaded = fm.load("001-test");
-      const t1 = loaded.tasks.find((t) => t.id === "001");
-      const t2 = loaded.tasks.find((t) => t.id === "002");
-      assert.equal(t1.notes[0], "for-001");
-      assert.ok(!t2.notes || t2.notes.length === 0);
+      assert.equal(loaded.notes[0].taskId, "001");
     });
 
     it("addNote({ taskId: 'unknown' }) throws", () => {

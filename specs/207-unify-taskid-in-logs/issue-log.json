@@ -1,0 +1,91 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft is centered on a single concern: unifying `taskId` handling across append-only logs and related read/write paths.; Unambiguous Requirements — Most requirements are stated as concrete structural/API changes and explicit edge-case behaviors that are testable.; Complete Context — Several requirement bullets specify outcomes but lack explicit trigger context (When/If), so not all are complete condition-behavior pairs.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets appear in the draft content.; Prioritize Requirements — The draft lists more than three requirements but does not define an explicit priority order.; Impact on Existing Features — It includes a dedicated impact section describing affected write/read paths and tests.; Present Recommendations with Reasoning — Q&A includes recommendations, but the basis is not consistently tied to project docs, guardrail principles, or existing code patterns as required.; Explore Before Asking — Whether docs/code were explored before asking cannot be verified from the draft text alone.; Proactively Raise Related Implications — The draft proactively raises related implications via impact, edge cases, alternatives, and future extensibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation of brainstorming vs decision mode is shown before evaluative recommendations are presented.; Capture Digressions in draft.md — No discussion transcript is provided to determine whether digressions occurred and were captured in `draft.md`.; Draft Stays at Requirements Level — The draft includes implementation-level details (specific files/functions and internal behavior changes), exceeding requirements-level scope.; Backward-Compatible CLI Interface — CLI changes described are additive (`--task-id` option); no command/option meaning removal requiring migration is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T07:33:25.116Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: unifying taskId across append-only logs and related read/write paths.; Unambiguous Requirements — Most requirements are concrete and testable (fields, options, APIs, edge-case behaviors).; Complete Context — Several requirements are listed as outcomes only without explicit trigger-condition pairing (When/If + shall).; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present.; Prioritize Requirements — There are more than three requirements but no explicit overall priority order.; Impact on Existing Features — Impact on existing write/read paths and tests is explicitly documented.; Present Recommendations with Reasoning — Each Q&A item presents a recommended choice first with concise rationale.; Explore Before Asking — Cannot verify from this draft alone whether code/docs were explored before any user questioning.; Proactively Raise Related Implications — Related implications are proactively covered via edge cases, impacts, and future extensibility.; Confirm Brainstorm vs. Decision Before Critiquing — No critique flow is present; the draft is already in decision/approval mode.; Capture Digressions in draft.md — No digression evidence appears; requirement is inapplicable in this content.; Draft Stays at Requirements Level — Includes implementation-level details (specific files/functions and internal method changes), beyond pure requirements scope.; Backward-Compatible CLI Interface — No removal or semantic break of existing CLI commands/options is explicitly introduced; changes are additive.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T07:34:01.754Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 122: unchecked task/question (- [ ] なし（draft Q1-Q6 で全解決済み）)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T07:37:08.192Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: unifying taskId/log data model and related CLI/read-path updates.; Unambiguous Requirements — Requirements are mostly stated as verifiable conditions with explicit fields/behaviors.; Complete Context — Requirements consistently pair When/If triggers with shall outcomes.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals appear in the provided content.; No Silent Error Swallowing — No empty catch/silent discard pattern is specified; error behavior is explicitly stated where relevant.; Prioritize Requirements — Requirements are prioritized explicitly as P1 through P4.; Impact on Existing Features — A dedicated impact section lists affected existing features and expected changes.; Bounded Resource Usage — It references bounded principles but does not provide explicit numeric upper bounds (depth/count/size) for retries or bulk processing.; Changes Require Test Coverage — Spec includes unit/integration coverage for new behavior and legacy-format rejection paths.; Spec Includes Test Strategy — A concrete Test Strategy section specifies what to test and how (unit/integration scenarios).; Synthesize Draft, Do Not Copy — Cannot verify synthesis-vs-copying without the original draft source text for comparison.; Record Unresolved Points as Open Questions — Unresolved points are handled explicitly; Open Questions states none after recorded Q1-Q6 resolution.; Include 'Why This Approach' Rationale — Includes a clear 'Why This Approach' rationale section.; Do Not Modify Existing Tests Without Approval — Test refresh is explicitly marked as user-approved in the spec notes.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is specified; option addition is additive.; Exit Code Contract — R2.4 explicitly requires non-zero exit on invalid task-id error.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T07:37:51.431Z"
+    },
+    {
+      "step": "test",
+      "reason": "flow-plan SKILL.md existence test is stale (file removed in prior refactor). Not in spec 207 scope.",
+      "trigger": "npm test run showed pre-existing failure in prompt-i18n.test.js flow-plan SKILL.md has no hardcoded prompt text",
+      "resolution": "Left as-is. Test should be deleted in separate cleanup.",
+      "guardrailCandidate": "Stale fixture detection before spec scoping decisions.",
+      "timestamp": "2026-04-21T08:33:57.743Z"
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-21T08:34:16.409Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/e2e/flow/commands/set-request-note.test.js:31: existing line modified/deleted in test file (removed=1, added=1); tests/e2e/flow/commands/set-request-note.test.js:39: existing line modified/deleted in test file (removed=1, added=4); tests/e2e/flow/commands/set-request-note.test.js:57: existing line modified/deleted in test file (removed=1, added=3); tests/e2e/flow/commands/set-request-note.test.js:74: existing line modified/deleted in test file (removed=1, added=2); tests/e2e/flow/gate-impl-integration.test.js:64: existing line modified/deleted in test file (removed=2, added=5); tests/e2e/flow/gate-impl-integration.test.js:111: existing line modified/deleted in test file (removed=1, added=8); tests/unit/flow/commands/report-metrics.test.js:3: existing line modified/deleted in test file (removed=3, added=42); tests/unit/flow/commands/report-metrics.test.js:83: existing line modified/deleted in test file (removed=1, added=0); tests/unit/flow/commands/report-metrics.test.js:93: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/commands/report-metrics.test.js:105: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/commands/report-metrics.test.js:115: existing line modified/deleted in test file (removed=2, added=0); tests/unit/flow/commands/report-metrics.test.js:159: existing line modified/deleted in test file (removed=1, added=0); tests/unit/flow/gate-retry-counter.test.js:26: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/gate-retry-counter.test.js:39: existing line modified/deleted in test file (removed=3, added=4); tests/unit/flow/gate-retry-counter.test.js:63: existing line modified/deleted in test file (removed=1, added=2); tests/unit/flow/set-metric.test.js:1: existing line modified/deleted in test file (removed=3, added=4); tests/unit/flow/set-metric.test.js:20: existing line modified/deleted in test file (removed=8, added=2); tests/unit/flow/set-metric.test.js:38: existing line modified/deleted in test file (removed=2, added=6); tests/unit/flow/set-metric.test.js:57: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/set-metric.test.js:68: existing line modified/deleted in test file (removed=1, added=2); tests/unit/lib/flow-manager-tasks.test.js:155: existing line modified/deleted in test file (removed=13, added=16); tests/unit/lib/flow-manager-tasks.test.js:200: existing line modified/deleted in test file (removed=4, added=1); tests/unit/lib/flow-state-agent-metrics.test.js:1: existing line modified/deleted in test file (removed=5, added=6); tests/unit/lib/flow-state-agent-metrics.test.js:22: existing line modified/deleted in test file (removed=116, added=103)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:34:52.134Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "authorized-test entry syntax invalid (expected `- `<path>` — <reason>`): 旧形式の nested `metrics[phase][counter]` と string-array `notes[]` を前提とした既存 unit/e2e テストを、flat append-only entry array に適合させるための不可避な変更。draft Q5 でユーザー承認済み。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:35:25.383Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff shows flat append-only metrics/notes with taskId, explicit/inferred --task-id handling (including unknown-task error), issue-log and logger entries with taskId, get-status raw arrays plus metricsSummary, legacy flow schema rejection, and related consumer/test updates; provided test evidence indicates unit and integration coverage executed.; No Hardcoded Secrets — Added/modified lines contain no API keys, tokens, passwords, or other hardcoded secrets.; No Silent Error Swallowing — New catch handling logs to stderr; no empty catch blocks or silently discarded errors were introduced in added lines.; Bounded Resource Usage — Added aggregation paths iterate over full metrics arrays/maps without explicit upper bounds, allowing unbounded growth-driven processing cost.; No Sensitive Data in Logs — Added log fields include taskId/context only; no newly introduced logging of passwords, tokens, or clear PII.; No Disabling Existing Tests — Diff updates test assertions and fixtures but does not skip, comment out, or delete existing tests to force passing.; Escalate When New Tests Break Existing Tests — Requires runtime/test-failure communication evidence, which is not present in the provided diff content.; Flag Tests That Become Irrelevant — Whether obsolete tests were flagged to the user is process evidence not derivable from code diff alone.; Exit Code Contract — Added command validation paths throw errors on invalid input; no added logic forces success exit on failure conditions.; No Synchronous I/O in Hot Paths — No added synchronous I/O appears in production hot-path loops; added sync reads are in tests only.; Validate User Input at Entry Point — Added CLI task-id handling validates/normalizes at command/store boundary and rejects unknown task IDs.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:48:22.561Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements flat append-only metrics/notes with taskId, removes per-task metrics/notes, adds --task-id with inference/override/unknown-id error path, adds taskId to issue-log and logger JSONL paths, returns raw arrays + metricsSummary in get status, and rejects legacy flow.json shapes; test evidence reports unit and integration execution.; No Hardcoded Secrets — No added/modified lines contain API keys, passwords, tokens, or similar hardcoded secrets.; No Silent Error Swallowing — Added error handling logs the error to stderr; no empty catch blocks or silent discard were introduced.; Bounded Resource Usage — Added aggregation/counting paths iterate entire metrics arrays without explicit upper bounds, allowing unbounded processing as data grows.; No Sensitive Data in Logs — New log fields add taskId/context only; no passwords, tokens, or PII are logged in added lines.; No Disabling Existing Tests — Tests were rewritten for new data shape but not skipped, commented out, or deleted to force passing.; Escalate When New Tests Break Existing Tests — Requires runtime/test-run evidence and user-notification behavior, which is not provided in this diff-only content.; Flag Tests That Become Irrelevant — Determining whether obsolete tests were flagged to the user requires communication/process evidence not present here.; Exit Code Contract — Added failure paths use thrown errors (e.g., invalid/unknown task ID), with no added logic forcing success exit codes on failure.; No Synchronous I/O in Hot Paths — No new synchronous I/O was added inside production hot-path loops; sync file reads added are in tests only.; Validate User Input at Entry Point — For `flow set metric`/`flow set note`, `--task-id` is normalized then passed inward, but existence validation occurs later in flow-store rather than at command entry point.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T08:52:43.659Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements the spec end-to-end: metrics/notes moved to flat append-only entries with taskId, per-task legacy formats are rejected, CLI --task-id with inference/override/unknown-id error is wired, issue-log and logger entries now include taskId, flow get status returns raw arrays plus metricsSummary, and provided test evidence shows unit/integration execution (17/3).; No Hardcoded Secrets — No added or modified lines include API keys, passwords, tokens, or other secret literals.; No Silent Error Swallowing — Added error handling does not silently swallow errors; the new catch path logs to stderr.; Bounded Resource Usage — New aggregation/retry-count logic iterates over full metrics arrays without explicit size/depth/count bounds, introducing unbounded processing over input size.; No Sensitive Data in Logs — Added log fields include taskId and flow context only; no passwords, tokens, or PII are introduced in added lines.; No Disabling Existing Tests — Tests were updated for new data shape; no existing tests were skipped, commented out, or deleted in the added/modified lines.; Escalate When New Tests Break Existing Tests — Requires runtime/test-failure communication evidence, which is not present in the provided diff/spec content.; Flag Tests That Become Irrelevant — Whether obsolete tests were flagged to the user is a process/communication artifact not inferable from code diff alone.; Exit Code Contract — Added failure paths use thrown errors (e.g., unknown task id), with no new logic forcing success exit codes on failure.; No Synchronous I/O in Hot Paths — No new synchronous I/O was introduced in production hot-path loops; added loop logic is in-memory aggregation.; Validate User Input at Entry Point — New --task-id input is forwarded from CLI commands to internals, with existence validation occurring in flow-store rather than consistently at CLI entry points.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T09:01:01.025Z"
+    }
+  ]
+}

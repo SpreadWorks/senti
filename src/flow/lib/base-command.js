@@ -56,3 +56,18 @@ export class FlowCommand extends Command {
     throw new Error("execute() must be implemented by subclass");
   }
 }
+
+/**
+ * Normalize the optional `--task-id` CLI flag into a flow-store mutator opts
+ * object. Returns `{ taskId }` when the flag was supplied (empty string → null
+ * for flow scope) and `undefined` otherwise, letting the mutator fall back to
+ * `currentTaskId` inference.
+ *
+ * @param {Object} ctx parsed command context
+ * @returns {{taskId: string|null}|undefined}
+ */
+export function resolveExplicitTaskOption(ctx) {
+  if (!ctx || !Object.prototype.hasOwnProperty.call(ctx, "taskId")) return undefined;
+  const raw = ctx.taskId;
+  return { taskId: raw === "" || raw == null ? null : raw };
+}

@@ -12,7 +12,8 @@
 
 import fs from "fs";
 import path from "path";
-import { FlowCommand } from "./base-command.js";
+import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
+import { resolveTaskIdForEntry } from "../../lib/flow-store.js";
 
 /**
  * Load issue-log.json from specs/<spec>/ directory.
@@ -83,16 +84,19 @@ export default class SetIssueLogCommand extends FlowCommand {
     validateOptionalIssueLogField("resolution", ctx.resolution);
     validateOptionalIssueLogField("guardrail-candidate", ctx.guardrailCandidate);
 
+    const state = ctx.flowState;
+    const taskId = resolveTaskIdForEntry(state, resolveExplicitTaskOption(ctx));
+
     const entry = {
       step: ctx.step,
       reason: ctx.reason,
       ...(ctx.trigger && { trigger: ctx.trigger }),
       ...(ctx.resolution && { resolution: ctx.resolution }),
       ...(ctx.guardrailCandidate && { guardrailCandidate: ctx.guardrailCandidate }),
+      taskId,
       timestamp: new Date().toISOString(),
     };
 
-    const state = ctx.flowState;
     const issueLog = loadIssueLog(root, state.spec);
     issueLog.entries.push(entry);
     saveIssueLog(root, state.spec, issueLog);

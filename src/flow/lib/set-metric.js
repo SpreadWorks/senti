@@ -1,13 +1,14 @@
 /**
  * src/flow/lib/set-metric.js
  *
- * Increment a metric counter in flow.json.
+ * Append a metric entry to state.metrics (append-only array).
  *
  * ctx.phase   — one of VALID_PHASES (see constants.js)
  * ctx.counter — one of VALID_METRIC_COUNTERS (see constants.js)
+ * ctx.taskId  — optional explicit taskId (overrides active-task inference)
  */
 
-import { FlowCommand } from "./base-command.js";
+import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
 import { VALID_PHASES, VALID_METRIC_COUNTERS } from "../../lib/constants.js";
 
 export default class SetMetricCommand extends FlowCommand {
@@ -15,7 +16,7 @@ export default class SetMetricCommand extends FlowCommand {
     const { phase, counter } = ctx;
 
     if (!phase || !counter) {
-      throw new Error("usage: flow set metric <phase> <counter>");
+      throw new Error("usage: flow set metric <phase> <counter> [--task-id <id>]");
     }
 
     if (!VALID_PHASES.includes(phase)) {
@@ -26,15 +27,8 @@ export default class SetMetricCommand extends FlowCommand {
       throw new Error(`invalid counter: ${counter} (valid: ${VALID_METRIC_COUNTERS.join(", ")})`);
     }
 
-    let newValue;
-    ctx.flowManager.mutate((state) => {
-      if (!state.metrics) state.metrics = {};
-      if (!state.metrics[phase]) state.metrics[phase] = {};
-      const current = state.metrics[phase][counter] || 0;
-      state.metrics[phase][counter] = current + 1;
-      newValue = state.metrics[phase][counter];
-    });
+    ctx.flowManager.incrementMetric(phase, counter, resolveExplicitTaskOption(ctx));
 
-    return { phase, counter, value: newValue };
+    return { phase, counter };
   }
 }

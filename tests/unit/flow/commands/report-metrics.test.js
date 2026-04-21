@@ -3,19 +3,58 @@
  *
  * Tests for token/cost metrics display in generateReport().
  * Verifies R3-1 and R3-2: token counts and cost are included in report output,
- * and N/A is shown (not 0) when cost is not recorded.
+ * and N/A is shown (not 0) when cost is not recorded. Metrics are expressed
+ * as the flat append-only entry array (cac6/T10).
  */
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { generateReport } from "../../../../src/flow/commands/report.js";
 
-function makeInput(metricsOverride = {}) {
+/**
+ * Build a metrics array from a simple {phase: {...}} shorthand where each
+ * phase block supplies agent-kind aggregate fields (tokens/cost/callCount
+ * /responseChars/durationMs/model) and/or counter fields (question/srcRead
+ * /docsRead/issueLog). One agent entry and/or one counter entry per
+ * non-null field is emitted.
+ */
+function asMetrics(phaseMap) {
+  if (!phaseMap) return [];
+  const out = [];
+  for (const [phase, fields] of Object.entries(phaseMap)) {
+    if (!fields) continue;
+    // counter fields
+    for (const counter of ["question", "srcRead", "docsRead", "issueLog"]) {
+      const n = fields[counter];
+      if (typeof n === "number") {
+        for (let i = 0; i < n; i++) {
+          out.push({ phase, counter, delta: 1, taskId: null });
+        }
+      }
+    }
+    const hasAgentFields =
+      fields.tokens != null || fields.cost != null || fields.callCount != null ||
+      fields.responseChars != null || fields.durationMs != null || fields.model != null;
+    if (hasAgentFields) {
+      const entry = { phase, kind: "agent", taskId: null };
+      if (fields.tokens) entry.tokens = { ...fields.tokens };
+      if (fields.cost != null) entry.cost = fields.cost;
+      if (fields.callCount != null) entry.callCount = fields.callCount;
+      if (fields.responseChars != null) entry.responseChars = fields.responseChars;
+      if (fields.durationMs != null) entry.durationMs = fields.durationMs;
+      if (fields.model) entry.model = fields.model;
+      out.push(entry);
+    }
+  }
+  return out;
+}
+
+function makeInput(metricsOverride) {
   return {
     state: {
       spec: "specs/001-test/spec.md",
       steps: [],
-      metrics: metricsOverride,
+      metrics: asMetrics(metricsOverride),
     },
     results: {},
     issueLog: { entries: [] },
@@ -44,7 +83,6 @@ describe("generateReport: token/cost metrics (R3-1, R3-2)", () => {
     const input = makeInput({
       draft: {
         tokens: { input: 500, output: 100, cacheRead: 0, cacheCreation: 0 },
-        cost: null,
         callCount: 2,
         responseChars: 2000,
       },
@@ -55,7 +93,7 @@ describe("generateReport: token/cost metrics (R3-1, R3-2)", () => {
     assert.ok(!text.match(/cost.*\b0\b/i), "0 should not be shown as cost when cost is null");
   });
 
-  it("does not break when metrics has no token data (backward compat)", () => {
+  it("does not break when metrics has no token data (counter-only)", () => {
     const input = makeInput({
       draft: { question: 5, srcRead: 2 },
     });
@@ -67,7 +105,7 @@ describe("generateReport: token/cost metrics (R3-1, R3-2)", () => {
     assert.ok(result.text, "report text should be generated");
   });
 
-  it("does not break when metrics is null", () => {
+  it("does not break when metrics is empty", () => {
     const input = makeInput(null);
 
     let result;
@@ -76,8 +114,6 @@ describe("generateReport: token/cost metrics (R3-1, R3-2)", () => {
     });
     assert.ok(result.text, "report text should be generated");
   });
-
-  // ─── Spec 191: duration display (R3) ────────────────────────────────────────
 
   it("includes per-phase duration in seconds with one decimal (spec 191 R3)", () => {
     const input = makeInput({
@@ -123,7 +159,6 @@ describe("generateReport: token/cost metrics (R3-1, R3-2)", () => {
     });
 
     const { text } = generateReport(input);
-    // Should not produce a bogus "0.0s" line when duration is absent
     assert.ok(!/duration[^\n]*0\.0s/i.test(text), "should not show 0.0s when duration is missing");
   });
 

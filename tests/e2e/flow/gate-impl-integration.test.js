@@ -64,8 +64,11 @@ function setupFixture(tmp, { initialTest, modifiedTest, gateRetry = 0, seedIssue
     commitAll(tmp, "empty feature commit");
   }
 
-  // Flow state
-  const metrics = gateRetry > 0 ? { "task-impl": { gateRetry } } : {};
+  // Flow state (cac6/T10: metrics is a flat append-only entry array)
+  const metrics = [];
+  for (let i = 0; i < (gateRetry || 0); i++) {
+    metrics.push({ phase: "task-impl", counter: "gateRetry", delta: 1, taskId: null, ts: new Date().toISOString() });
+  }
   writeJson(tmp, `specs/${SPEC_ID}/flow.json`, {
     spec: SPEC_PATH,
     baseBranch: "main",
@@ -108,7 +111,14 @@ function runGate(tmp, extraArgs = []) {
 
 function readCounter(tmp) {
   const fj = JSON.parse(fs.readFileSync(path.join(tmp, `specs/${SPEC_ID}/flow.json`), "utf8"));
-  return Number(fj?.metrics?.["task-impl"]?.gateRetry || 0);
+  const entries = Array.isArray(fj?.metrics) ? fj.metrics : [];
+  let count = 0;
+  for (const e of entries) {
+    if (e.phase !== "task-impl" || e.counter !== "gateRetry") continue;
+    if (e.reset) count = 0;
+    else count += e.delta ?? 1;
+  }
+  return count;
 }
 
 function parseEnvelope(stdout) {

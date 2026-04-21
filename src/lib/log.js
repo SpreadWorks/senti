@@ -189,14 +189,27 @@ export class Logger {
     return writePromptFileMasked(promptDir, requestId, payload, this.#trustedRoots());
   }
 
-  /** Resolve flow context via the injected FlowManager. */
+  /**
+   * Resolve flow context via the injected FlowManager. Guards against
+   * re-entry: FlowManager.resolveCurrentContext() may trigger git calls that
+   * loop back through Logger.git(), so we skip context resolution while
+   * already resolving.
+   */
+  #resolvingContext = false;
+
   #flowContext() {
-    if (!this.#flowManager) return { spec: null, sddPhase: null };
+    if (!this.#flowManager || this.#resolvingContext) {
+      return { spec: null, sddPhase: null, taskId: null };
+    }
+    this.#resolvingContext = true;
     try {
-      return this.#flowManager.resolveCurrentContext();
+      const ctx = this.#flowManager.resolveCurrentContext();
+      return { spec: ctx.spec ?? null, sddPhase: ctx.sddPhase ?? null, taskId: ctx.taskId ?? null };
     } catch (err) {
       process.stderr.write(`[sdd-forge] Logger: flow state read failed: ${err.message}\n`);
-      return { spec: null, sddPhase: null };
+      return { spec: null, sddPhase: null, taskId: null };
+    } finally {
+      this.#resolvingContext = false;
     }
   }
 
@@ -225,11 +238,13 @@ export class Logger {
     const caller = extractCaller();
 
     if (entry.phase === "start") {
+      const startCtx = this.#flowContext();
       await this.#appendJsonl(jsonl, {
         ...this.#commonFields(),
         type: "agent",
         phase: "start",
         requestId: entry.requestId,
+        taskId: startCtx.taskId,
         callerFile: caller.callerFile,
         callerLine: caller.callerLine,
       });
@@ -252,6 +267,7 @@ export class Logger {
         entryCommand: this.#entryCommand,
         spec: ctx.spec,
         sddPhase: ctx.sddPhase,
+        taskId: ctx.taskId,
         callerFile: caller.callerFile,
         callerLine: caller.callerLine,
       },
@@ -296,6 +312,7 @@ export class Logger {
       requestId: entry.requestId,
       spec: ctx.spec,
       sddPhase: ctx.sddPhase,
+      taskId: ctx.taskId,
       callerFile: caller.callerFile,
       callerLine: caller.callerLine,
       agentKey: entry.agentKey ?? null,
@@ -334,12 +351,14 @@ export class Logger {
     if (!this.#enabled) return;
     const { jsonl } = this.#logFiles();
     const caller = extractCaller();
+    const ctx = this.#flowContext();
     await this.#appendJsonl(jsonl, {
       ...this.#commonFields(),
       type: "git",
       cmd: entry?.cmd ?? null,
       exitCode: entry?.exitCode ?? null,
       stderr: entry?.stderr ?? "",
+      taskId: ctx.taskId,
       callerFile: caller.callerFile,
       callerLine: caller.callerLine,
     });
@@ -358,11 +377,13 @@ export class Logger {
     if (!this.#enabled) return;
     const { jsonl } = this.#logFiles();
     const caller = extractCaller();
+    const ctx = this.#flowContext();
     await this.#appendJsonl(jsonl, {
       ...this.#commonFields(),
       type: "event",
       name,
       ...fields,
+      taskId: ctx.taskId,
       callerFile: caller.callerFile,
       callerLine: caller.callerLine,
     });

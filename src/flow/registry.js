@@ -227,8 +227,8 @@ export const FLOW_COMMANDS = {
     note: {
       helpKey: "flow.set.note",
       command: () => import("./lib/set-note.js"),
-      args: { positional: ["text"] },
-      help: "Usage: sdd-forge flow set note \"<text>\"\n\nAppend a note to the notes array in flow.json.",
+      args: { positional: ["text"], options: ["--task-id"] },
+      help: "Usage: sdd-forge flow set note \"<text>\" [--task-id <id>]\n\nAppend a note entry to state.notes. Infers taskId from active task unless --task-id is given.",
     },
     summary: {
       helpKey: "flow.set.summary",
@@ -245,14 +245,14 @@ export const FLOW_COMMANDS = {
     metric: {
       helpKey: "flow.set.metric",
       command: () => import("./lib/set-metric.js"),
-      args: { positional: ["phase", "counter"] },
-      help: `Usage: sdd-forge flow set metric <phase> <counter>\n\nIncrement a metric counter in flow.json. Phases: ${VALID_PHASES.join(", ")}. Counters: ${VALID_METRIC_COUNTERS.join(", ")}.`,
+      args: { positional: ["phase", "counter"], options: ["--task-id"] },
+      help: `Usage: sdd-forge flow set metric <phase> <counter> [--task-id <id>]\n\nAppend a metric entry. Phases: ${VALID_PHASES.join(", ")}. Counters: ${VALID_METRIC_COUNTERS.join(", ")}.`,
     },
     "issue-log": {
       helpKey: "flow.set.issue-log",
       command: () => import("./lib/set-issue-log.js"),
-      args: { options: ["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate"] },
-      help: "Usage: sdd-forge flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>]\n\nRecord an issue-log entry in issue-log.json.",
+      args: { options: ["--step", "--reason", "--trigger", "--resolution", "--guardrail-candidate", "--task-id"] },
+      help: "Usage: sdd-forge flow set issue-log --step <id> --reason <text> [--trigger <text>] [--resolution <text>] [--guardrail-candidate <text>] [--task-id <id>]\n\nRecord an issue-log entry in issue-log.json. Infers taskId from active task unless --task-id is given.",
       post(ctx) {
         const phase = deriveActivePhase(ctx);
         if (phase) ctx.flowManager.incrementMetric(phase, "issueLog");

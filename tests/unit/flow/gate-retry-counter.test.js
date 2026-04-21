@@ -26,7 +26,7 @@ describe("flow set metric <phase> gateRetry (P2-R1)", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("accepts gateRetry counter and persists to flow.json metrics", () => {
+  it("accepts gateRetry counter and appends an entry to flow.json metrics", () => {
     tmp = createTmpDir();
     setupFlowConfig(tmp, "ja");
     setupFlow(tmp, { featureBranch: "feature/001-test", baseBranch: "main" });
@@ -39,15 +39,16 @@ describe("flow set metric <phase> gateRetry (P2-R1)", () => {
     const res = JSON.parse(out);
     assert.equal(res.ok, true);
     assert.equal(res.data.counter, "gateRetry");
-    assert.equal(res.data.value, 1);
 
     const flow = JSON.parse(
       fs.readFileSync(path.join(tmp, "specs/001-test/flow.json"), "utf8"),
     );
-    assert.equal(flow.metrics["task-impl"].gateRetry, 1);
+    assert.ok(Array.isArray(flow.metrics));
+    const hits = flow.metrics.filter((e) => e.phase === "task-impl" && e.counter === "gateRetry");
+    assert.equal(hits.length, 1);
   });
 
-  it("increments counter across multiple invocations", () => {
+  it("appends an entry per invocation", () => {
     tmp = createTmpDir();
     setupFlowConfig(tmp, "ja");
     setupFlow(tmp, { featureBranch: "feature/001-test", baseBranch: "main" });
@@ -62,6 +63,7 @@ describe("flow set metric <phase> gateRetry (P2-R1)", () => {
     const flow = JSON.parse(
       fs.readFileSync(path.join(tmp, "specs/001-test/flow.json"), "utf8"),
     );
-    assert.equal(flow.metrics["task-impl"].gateRetry, 3);
+    const hits = flow.metrics.filter((e) => e.phase === "task-impl" && e.counter === "gateRetry");
+    assert.equal(hits.length, 3);
   });
 });

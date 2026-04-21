@@ -69,6 +69,7 @@ export class FlowManager {
   setIssue(issue) { return this._store.setIssue(issue); }
   addNote(text, opts) { return this._store.addNote(text, opts); }
   incrementMetric(phase, counter, opts) { return this._store.incrementMetric(phase, counter, opts); }
+  appendMetric(payload, opts) { return this._store.appendMetric(payload, opts); }
   accumulateAgentMetrics(phase, options) {
     return this._store.accumulateAgentMetrics(phase, options);
   }
@@ -107,11 +108,12 @@ export class FlowManager {
    */
   resolveCurrentContext() {
     const state = this._store.load();
-    if (!state) return { spec: null, sddPhase: null };
+    if (!state) return { spec: null, sddPhase: null, taskId: null };
     const spec = specIdFromPath(state.spec) ?? null;
     const inProgress = state.steps?.find?.((s) => s.status === "in_progress");
     const sddPhase = inProgress?.id ?? null;
-    return { spec, sddPhase };
+    const taskId = state.currentTaskId ?? null;
+    return { spec, sddPhase, taskId };
   }
 
   // ── .active-flow (ActiveFlowRegistry) ───────────────────────────────────────

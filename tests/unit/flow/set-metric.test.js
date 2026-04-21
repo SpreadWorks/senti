@@ -1,16 +1,17 @@
 /**
  * tests/unit/flow/set-metric.test.js
  *
- * Tests for `flow set metric` — increments metrics counter in flow.json.
+ * Tests for `flow set metric` — appends an entry to the state.metrics
+ * append-only array (cac6/T10).
  */
 
 import { describe, it, afterEach } from "node:test";
-import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { makeFlowManager, makeFlowState } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
-import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow set metric", () => {
@@ -19,18 +20,12 @@ describe("flow set metric", () => {
 
   function setupFlowState(dir) {
     const specId = "001-test";
-    const state = {
-      spec: `specs/${specId}/spec.md`,
-      baseBranch: "main",
-      featureBranch: "feature/001-test",
-      steps: buildInitialSteps(),
-      requirements: [],
-    };
+    const state = makeFlowState({ spec: `specs/${specId}/spec.md` });
     makeFlowManager(dir).save(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
   }
 
-  it("increments metrics counter and returns JSON envelope", () => {
+  it("appends a metric entry and returns JSON envelope", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
     const result = execFileSync(
@@ -43,10 +38,14 @@ describe("flow set metric", () => {
     assert.equal(envelope.key, "metric");
 
     const loaded = makeFlowManager(tmp).load();
-    assert.equal(loaded.metrics.draft.question, 1);
+    assert.ok(Array.isArray(loaded.metrics));
+    assert.equal(loaded.metrics.length, 1);
+    assert.equal(loaded.metrics[0].phase, "draft");
+    assert.equal(loaded.metrics[0].counter, "question");
+    assert.equal(loaded.metrics[0].taskId, null);
   });
 
-  it("increments from existing value", () => {
+  it("appends multiple entries on repeated invocations", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
     execFileSync(
@@ -58,7 +57,7 @@ describe("flow set metric", () => {
       { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
     );
     const loaded = makeFlowManager(tmp).load();
-    assert.equal(loaded.metrics.draft.question, 2);
+    assert.equal(loaded.metrics.length, 2);
   });
 
   it("supports all phase and counter combinations", () => {
@@ -69,6 +68,7 @@ describe("flow set metric", () => {
       { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
     );
     const loaded = makeFlowManager(tmp).load();
-    assert.equal(loaded.metrics.spec.docsRead, 1);
+    assert.equal(loaded.metrics[0].phase, "spec");
+    assert.equal(loaded.metrics[0].counter, "docsRead");
   });
 });
