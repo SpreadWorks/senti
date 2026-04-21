@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T06:54:59.432Z",
+  "analyzedAt": "2026-04-21T08:55:58.648Z",
   "package": {
     "entries": [
       {
@@ -3008,6 +3008,48 @@
         ]
       },
       {
+        "file": "src/flow/lib/overview-merge.js",
+        "hash": "901f5ee38ff125931b652a14ea3d0276",
+        "lines": 102,
+        "mtime": "2026-04-21T08:55:58.302Z",
+        "className": "overview-merge",
+        "methods": [
+          "validateAdditions",
+          "applyOverviewAdditions",
+          "filterOverviewByTask",
+          "requireTaskId",
+          "normalizeOverview"
+        ],
+        "imports": [],
+        "exports": [
+          "validateAdditions",
+          "applyOverviewAdditions",
+          "filterOverviewByTask"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-update-overview.js"
+        ],
+        "id": "bcc002f5",
+        "summary": "This module validates and merges task-scoped overview additions into a spec document. It also supports filtering overview entries by task ID for selective views.",
+        "detail": "It defines strict category, entry-count, and text-length constraints to keep overview data bounded and consistent. Validation inspects incoming additions and accumulates errors before any write path proceeds. Task IDs are required and normalized through a dedicated guard to enforce non-empty identifiers. The merge path normalizes existing overview content and appends new entries in a controlled structure. A complementary filter function derives a spec copy containing only entries associated with a given task.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-21T08:56:18.643Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "overview merge",
+          "validation",
+          "task id",
+          "spec mutation",
+          "category limits",
+          "normalization",
+          "entry filtering"
+        ]
+      },
+      {
         "file": "src/flow/lib/run-draft-task.js",
         "hash": "f0ebfb4ab6b91e0ac362d9cfc57745a1",
         "lines": 268,
@@ -3607,6 +3649,45 @@
           "command orchestration",
           "workdir handling",
           "result parsing"
+        ]
+      },
+      {
+        "file": "src/flow/lib/run-update-overview.js",
+        "hash": "f70eb042582c412f392166b71f3956fd",
+        "lines": 48,
+        "mtime": "2026-04-21T08:55:58.302Z",
+        "className": "run-update-overview",
+        "methods": [
+          "persistOverviewUpdate"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path",
+          "./overview-merge.js",
+          "../../spec/commands/render.js"
+        ],
+        "exports": [
+          "persistOverviewUpdate"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "d001ca9b",
+        "summary": "This module persists overview updates by applying additions to `spec.json` and regenerating `spec.md`. It acts as the file-system boundary for overview update operations.",
+        "detail": "It computes canonical spec paths under a target spec directory and enforces a maximum JSON file size before parsing. The function reads and parses `spec.json`, delegates structural updates to `applyOverviewAdditions`, and then writes the formatted JSON back to disk. It regenerates markdown via `renderSpecMarkdown`, ensuring the human-readable spec stays synchronized with structured data. The API returns updated file paths so callers can report or chain follow-up actions.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-21T08:56:18.643Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "persistence",
+          "filesystem I/O",
+          "spec.json",
+          "spec.md",
+          "markdown rendering",
+          "size guard",
+          "update pipeline"
         ]
       },
       {
@@ -8677,9 +8758,9 @@
       },
       {
         "file": "src/spec/commands/render.js",
-        "hash": "f4f9f72beb67265bfb69d5b089369204",
-        "lines": 251,
-        "mtime": "2026-04-20T12:45:48.297Z",
+        "hash": "573ee3ec233a8d700487d91ee59a1628",
+        "lines": 253,
+        "mtime": "2026-04-21T08:55:58.303Z",
         "className": "render",
         "methods": [
           "renderSpecMarkdown",
@@ -8708,24 +8789,22 @@
         "extends": "Command",
         "usedBy": null,
         "id": "d63c4335",
-        "summary": "This module implements the `sdd-forge spec render` command that converts a validated `spec.json` into Markdown output. It handles CLI argument parsing, path resolution, schema validation, and file writing in one command flow.",
-        "detail": "The command loads a JSON schema from the flow schema directory and validates the loaded `spec.json` before rendering, exiting with explicit error messages when validation fails. It normalizes and validates path-like options (`--spec-dir`, `--out`) with strict string, emptiness, and NUL-byte checks to avoid unsafe filesystem inputs. If a spec directory is not provided, it resolves the active flow directory from runtime container context and errors when no active flow is configured. Rendering is composed through helper functions that format section lists, requirement bullets, and subsection blocks into a final Markdown document with metadata such as creation date and source directory name. The command defaults output to `spec.md` inside the spec directory, writes synchronously, and prints a relative success path to stdout.",
+        "summary": "This file implements the `sdd-forge spec render` command and the markdown rendering logic for spec documents. It validates inputs and schema, then writes a rendered `spec.md` output.",
+        "detail": "The command layer parses CLI arguments, validates path options, resolves the active spec directory, and handles error exits with explicit messages. It loads the spec schema, validates `spec.json`, and aborts with detailed validation errors when the document is invalid. Rendering is composed through helper formatters for lists and overview subsections, producing sectioned markdown from structured fields. Output path handling supports absolute and relative targets while defaulting to `spec.md` inside the spec directory. The module exports both the command class and reusable render function for internal reuse by other flow components.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-20T12:46:00.655Z",
+          "processedAt": "2026-04-21T08:56:18.643Z",
           "attempts": 1
         },
         "keywords": [
           "CLI command",
           "spec render",
-          "markdown generation",
           "schema validation",
+          "markdown generation",
           "argument parsing",
           "path resolution",
-          "filesystem I/O",
-          "exit codes",
-          "flow context"
+          "exit codes"
         ]
       },
       {
@@ -8773,10 +8852,10 @@
       }
     ],
     "summary": {
-      "total": 264,
-      "totalMethods": 803
+      "total": 266,
+      "totalMethods": 809
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-21T06:12:29.233Z"
+  "enrichedAt": "2026-04-21T08:56:18.643Z"
 }

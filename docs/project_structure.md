@@ -40,8 +40,8 @@ src/spec/commands/    (cli)
 
 | Directory | Files | Role |
 | --- | --- | --- |
+| src/flow | 45 | controller, cli, lib |
 | src/docs | 43 | cli, controller, model, lib |
-| src/flow | 43 | controller, cli, lib |
 | src/lib | 32 | lib, route, model, config, middleware, controller, view |
 | src | 10 | cli, controller |
 | src/check | 3 | cli |
