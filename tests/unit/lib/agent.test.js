@@ -85,9 +85,9 @@ describe("Agent.call() — retry behavior", () => {
     try { fs.unlinkSync(tmp); } catch {}
   });
 
-  it("does not retry when retryCount is 0 (default)", async () => {
+  it("does not retry when retryCount is explicitly 0 (opt-out)", async () => {
     const agent = makeAgent({ command: "node", args: ["-e", ""] });
-    const result = await agent.call("", { commandId: "test" });
+    const result = await agent.call("", { commandId: "test", retryCount: 0 });
     assert.equal(result, "");
   });
 

@@ -144,10 +144,10 @@ describe("Agent — retry bounds (R9)", () => {
     assert.equal(clamped.retryCount, 5);
   });
 
-  it("uses default retryCount = 0 when omitted", () => {
+  it("uses default retryCount = 2 when omitted (spec 202)", () => {
     const agent = makeAgent();
     const normalized = agent._normalizeRetryOptionsForTest({});
-    assert.equal(normalized.retryCount, 0);
+    assert.equal(normalized.retryCount, 2);
   });
 
   it("uses default retryDelayMs = 3000 when omitted", () => {

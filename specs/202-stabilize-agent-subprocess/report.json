@@ -1,0 +1,64 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/config.json                             |   1 +\n specs/202-stabilize-agent-subprocess/draft.md      |  75 ++++++++\n specs/202-stabilize-agent-subprocess/flow.json     | 194 +++++++++++++++++++++\n .../202-stabilize-agent-subprocess/issue-log.json  | 108 ++++++++++++\n specs/202-stabilize-agent-subprocess/qa.md         |   9 +\n specs/202-stabilize-agent-subprocess/spec.md       |  99 +++++++++++\n .../202-stabilize-agent-subprocess/tests/README.md |  36 ++++\n .../tests/agent-stabilization.test.js              | 174 ++++++++++++++++++\n src/docs/commands/text.js                          |  13 +-\n src/lib/agent.js                                   |  22 ++-\n tests/acceptance/lib/pipeline.js                   |  76 ++++----\n tests/e2e/acceptance/report.test.js                |   4 +-\n tests/unit/lib/agent-service.test.js               |   4 +-\n tests/unit/lib/agent.test.js                       |   4 +-\n 14 files changed, 773 insertions(+), 46 deletions(-)",
+      "commits": [
+        "feat: feature/202-stabilize-agent-subprocess",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 5,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.92,
+      "notes": "R1-R5 are implemented in code changes and align with the spec intent. R6 is only partially evidenced in this diff because a distinct deterministic stub mechanism is not clearly introduced."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 3,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 71144,
+      "output": 8142,
+      "cacheRead": 132608,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 8,
+      "durationMs": 192111,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 143742
+        },
+        {
+          "phase": "gate",
+          "durationMs": 48369
+        }
+      ]
+    },
+    "tests": {
+      "unit": 4,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 4
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/202-stabilize-agent-subprocess\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    chore: add retro and report\n    14 files changed, 773 insertions(+), 46 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 92%  (5 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 3\n    issue-log ................... 3\n    agent calls ................. 8\n    input tokens ................ 71,144\n    output tokens ............... 8,142\n    cache-read tokens ........... 132,608\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 192.1s\n      gate-draft ................ 143.7s\n      gate ...................... 48.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 4  integration 0  acceptance 0  total 4"
+}

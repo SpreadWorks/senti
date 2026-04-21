@@ -1,0 +1,194 @@
+{
+  "spec": "specs/202-stabilize-agent-subprocess/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/202-stabilize-agent-subprocess",
+  "runId": "871ec944-8edf-4347-b131-82d7ee5488c0",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "skipped"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: stdin-fallback EPIPE/ENOTCONN captured as retryable",
+      "status": "done"
+    },
+    {
+      "desc": "R2: runText returns errors, CLI dispatcher sets exit code",
+      "status": "done"
+    },
+    {
+      "desc": "R3: retryCount default 2 + exponential backoff 3000/6000ms",
+      "status": "done"
+    },
+    {
+      "desc": "R4: empty/stdin/non-zero-exit retryable; timeout terminal",
+      "status": "done"
+    },
+    {
+      "desc": "R5: acceptance harness classifies agent-error distinctly; remove prevExitCode workaround",
+      "status": "done"
+    },
+    {
+      "desc": "R6: deterministic agent stub for empty/stdin-fail/timeout/non-zero-exit",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 195,
+  "worktree": true,
+  "request": "agent サブプロセス起動の安定化。正常系での非ゼロ終了（review stdin エラー、acceptance test の agent 由来エラー）を修正し、agent infra 起因の失敗と flow ロジックを切り分ける。",
+  "metrics": {
+    "plan": {
+      "docsRead": 1
+    },
+    "draft": {
+      "question": 3
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 60807,
+        "output": 5969,
+        "cacheRead": 90624,
+        "cacheCreation": 0
+      },
+      "callCount": 6,
+      "responseChars": 13581,
+      "durationMs": 143742
+    },
+    "gate": {
+      "tokens": {
+        "input": 10337,
+        "output": 2173,
+        "cacheRead": 41984,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 5212,
+      "durationMs": 48369
+    },
+    "impl": {
+      "issueLog": 3
+    },
+    "task-impl": {
+      "gateRetry": 2
+    }
+  },
+  "notes": [
+    "Q2 scope: (a) stdin hardening + (b) retryable agent errors + (c) acceptance test agent-failure categorization — all three included",
+    "Q3: retry default enabled (retryCount=2) + exponential backoff; process.exitCode propagation root-caused",
+    "Q4 requirements confirmed: Case1 stdin error handler; Case2 remove process.exitCode from runText, move to CLI entry; retryCount=2 default + exp backoff; fake provider stub for deterministic tests"
+  ],
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 4
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T00:25:17.989Z"
+  }
+}

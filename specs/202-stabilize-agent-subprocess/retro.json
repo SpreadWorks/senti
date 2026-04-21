@@ -1,0 +1,54 @@
+{
+  "spec": "specs/202-stabilize-agent-subprocess/spec.md",
+  "date": "2026-04-21T00:25:51.671Z",
+  "requirements": [
+    {
+      "desc": "R1: stdin-fallback EPIPE/ENOTCONN captured as retryable",
+      "status": "done",
+      "note": "In `src/lib/agent.js`, stdin fallback now attaches `child.stdin` error handling, captures write errors (`stdinError`), avoids process crash, and surfaces them as call errors eligible for retry."
+    },
+    {
+      "desc": "R2: runText returns errors, CLI dispatcher sets exit code",
+      "status": "done",
+      "note": "`runText` no longer sets `process.exitCode`; `DocsTextCommand.execute` now throws an Error with `exitCode = 1`, `agentError = true`, and failure data when per-file errors exist."
+    },
+    {
+      "desc": "R3: retryCount default 2 + exponential backoff 3000/6000ms",
+      "status": "done",
+      "note": "`src/lib/agent.js` adds `DEFAULT_RETRY_COUNT = 2`, preserves override precedence (`options` > `config` > default), and implements exponential delay (`retryDelayMs * 2^attempt`) with existing max clamp."
+    },
+    {
+      "desc": "R4: empty/stdin/non-zero-exit retryable; timeout terminal",
+      "status": "done",
+      "note": "Empty responses and non-zero exits continue to be surfaced as retryable failures; stdin-write failures are now surfaced similarly; timeout remains terminal via `killed`/`SIGTERM` path and no-retry behavior."
+    },
+    {
+      "desc": "R5: acceptance harness classifies agent-error distinctly; remove prevExitCode workaround",
+      "status": "done",
+      "note": "`tests/acceptance/lib/pipeline.js` adds `agent-error` classification (including `agentError` marker), continues pipeline for text on agent infra failures, and removes `prevExitCode` save/restore logic."
+    },
+    {
+      "desc": "R6: deterministic agent stub for empty/stdin-fail/timeout/non-zero-exit",
+      "status": "partial",
+      "note": "Failure-path tests were added/updated, but this diff does not show a new dedicated configurable stub infrastructure; tests mainly simulate behavior via spawned `node -e` processes and existing seams."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": ".sdd-forge/config.json",
+      "change": "Project config now sets `agent.retryCount` to 2; this is a project-level default change beyond the stated library-level default requirement."
+    },
+    {
+      "file": "specs/202-stabilize-agent-subprocess/*",
+      "change": "Large addition of spec/process artifacts (`draft.md`, `flow.json`, `issue-log.json`, `qa.md`, `spec.md`, spec-local tests) not directly part of runtime requirement implementation."
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 5,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.92,
+    "notes": "R1-R5 are implemented in code changes and align with the spec intent. R6 is only partially evidenced in this diff because a distinct deterministic stub mechanism is not clearly introduced."
+  }
+}

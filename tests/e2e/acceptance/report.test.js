@@ -34,8 +34,8 @@ describe("acceptance report: pipeline traceability", { timeout: 300000 }, () => 
     for (const step of result.steps) {
       assert.ok(typeof step.name === "string", "step.name should be a string");
       assert.ok(
-        step.status === "ok" || step.status === "skipped" || step.status === "error",
-        `step.status should be "ok", "skipped", or "error", got "${step.status}"`,
+        ["ok", "skipped", "error", "agent-error"].includes(step.status),
+        `step.status should be one of ok/skipped/error/agent-error, got "${step.status}"`,
       );
       assert.ok(typeof step.durationMs === "number", "step.durationMs should be a number");
       assert.ok(step.durationMs >= 0, "step.durationMs should be non-negative");

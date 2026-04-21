@@ -1,0 +1,108 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All proposed changes target the same concern: stabilizing agent subprocess behavior and failure classification for issue #195.; Unambiguous Requirements — Several items are not stated as verifiable conditions (e.g., '調査・修正' and broad intent statements).; Complete Context — Most requirements are listed as decisions/proposals without clear When/If trigger paired with expected shall behavior.; No Hardcoded Secrets — No secrets (API keys, tokens, passwords) are present in the draft content.; Prioritize Requirements — There are more than three requirement items, but no explicit priority ordering is provided.; Impact on Existing Features — The draft does not explicitly state impact on existing features or explicitly state no impact.; Present Recommendations with Reasoning — Recommendations are present, but basis is not consistently stated per question using docs/guardrails/code patterns.; Explore Before Asking — Cannot verify whether docs/code exploration happened before questions from the provided draft alone.; Proactively Raise Related Implications — The draft proactively raises related implications such as retry defaults, exitCode handling, and test coverage expansion.; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation of brainstorming vs final decision mode is recorded before critique/proposals.; Capture Digressions in draft.md — No clear digression is shown; thus this article is inapplicable for the provided content.; Draft Stays at Requirements Level — It includes implementation-level details (specific handlers, code-path changes, backoff parameters) beyond requirements level.; Backward-Compatible CLI Interface — Behavioral changes around exit code handling are proposed without an explicit migration/backward-compatibility plan.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T23:27:36.278Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All changes are tied to one concern: stabilizing agent subprocess handling and failure classification for that flow.; Unambiguous Requirements — Requirements are mostly stated as verifiable When/shall conditions without vague adjectives.; Complete Context — R5 and R6 specify expected behavior but do not include explicit trigger conditions (When/If).; No Hardcoded Secrets — No secrets (API keys/tokens/passwords) are present in the draft content.; Prioritize Requirements — More than three requirements are explicitly prioritized as P1/P2/P3.; Impact on Existing Features — Impact section explicitly lists affected areas and unaffected scope.; Present Recommendations with Reasoning — Each Q&A includes an AI recommendation/summary and a stated basis from code, issue context, or guardrails.; Explore Before Asking — Draft cites concrete code locations and existing structures, indicating prior exploration before decisions.; Proactively Raise Related Implications — Related implications are proactively captured in impact and backward-compatibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — Each Q&A records mode as Decision and captures explicit user decisions.; Capture Digressions in draft.md — No clear digression is shown; this article is inapplicable to the provided content.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific functions/files/hooks/line references), exceeding pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option semantic change is proposed; draft also states no user-visible CLI interface changes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T23:28:43.081Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All requirements focus on one concern: stabilizing agent-subprocess failure handling and its direct test/reporting boundaries.; Unambiguous Requirements — Requirements are written as testable conditions with concrete triggers and expected outcomes.; Complete Context — Each requirement pairs a When-condition with a shall-behavior outcome.; No Hardcoded Secrets — Draft contains no source code or embedded credentials/secrets.; Prioritize Requirements — Requirements are explicitly prioritized as P1/P2/P3.; Impact on Existing Features — Impact section explicitly lists affected areas and unaffected external callers/CLI surface.; Present Recommendations with Reasoning — Q1 provides an AI summary rather than an explicit recommended answer, so not every question leads with a recommendation.; Explore Before Asking — Q&A basis cites observed code structure and existing seams, indicating exploration before prompting decisions.; Proactively Raise Related Implications — The draft proactively raises compatibility/behavior implications and release-note impact.; Confirm Brainstorm vs. Decision Before Critiquing — Each Q&A item explicitly states Mode: Decision before critique/recommendation.; Capture Digressions in draft.md — Cannot determine from provided draft alone whether any digressions occurred and were captured in draft.md.; Draft Stays at Requirements Level — Content stays at requirements/spec level without function-level implementation design.; Backward-Compatible CLI Interface — CLI command/option compatibility is explicitly addressed and behavior-change communication is documented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T23:29:40.310Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All requirements center on one concern: stabilizing agent subprocess failure handling and classification.; Unambiguous Requirements — R3 uses non-specific terms like \"positive value\" and unspecified backoff growth, which are not fully verifiable as written.; Complete Context — Each requirement pairs a trigger condition (When) with expected behavior (shall).; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals appear in the draft content.; Prioritize Requirements — More than three requirements are explicitly ordered by P1/P2/P3 priority.; Impact on Existing Features — The draft includes a dedicated impact section and explicitly states unaffected areas.; Present Recommendations with Reasoning — Q1 provides an AI summary but not an explicit recommended answer format, while the article requires recommendation+basis for each question.; Explore Before Asking — Questions are framed as user decisions; exploration evidence is cited where relevant (existing structure observed during exploration).; Proactively Raise Related Implications — Related implications are proactively documented in impact and backward-compatibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — Each Q&A item explicitly marks mode as Decision before evaluation.; Capture Digressions in draft.md — No clear digression is present in the provided draft content, so no capture action is required.; Draft Stays at Requirements Level — Content remains at requirements/spec level without function-level implementation design.; Backward-Compatible CLI Interface — The draft states no CLI command/option semantic change; behavioral change includes an explicit migration note and release-note plan.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T23:30:08.546Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 99: unchecked task/question (- [ ] Do we want a config knob (e.g. `config.agent.retryBackoffFactor`) to tune the exponential factor, or keep it hard-coded to 2? Default: hard-coded for simplicity; revisit if a consumer asks.)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T23:32:18.312Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 99: unchecked task/question (- [ ] Do we want a config knob (e.g. `config.agent.retryBackoffFactor`) to tune the exponential factor, or keep it hard-coded to 2? Default: hard-coded for simplicity; revisit if a consumer asks.)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T23:32:21.698Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 99: unchecked task/question (- [ ] Do we want a config knob (e.g. `config.agent.retryBackoffFactor`) to tune the exponential factor, or keep it hard-coded to 2? Default: hard-coded for simplicity; revisit if a consumer asks.)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T23:32:26.235Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — All changes center on one concern: stabilizing agent-subprocess behavior and its failure handling path.; Unambiguous Requirements — R4 says timeout is retryable, but Test Strategy says timeout is terminal (no retry), creating a verifiable contradiction.; Complete Context — Requirements consistently pair trigger conditions (When/If) with explicit shall-behavior.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in the spec content.; No Silent Error Swallowing — Failures are specified to be surfaced/classified (retryable failure or agent-error), not silently discarded.; Prioritize Requirements — More than three requirements are explicitly prioritized via P1/P2/P3.; Impact on Existing Features — Impact is explicitly documented in Backward Compatibility and Acceptance Criteria, including affected behaviors.; Bounded Resource Usage — Retry behavior is explicitly bounded (default 2, MAX_RETRY 5) with defined backoff sequence.; Changes Require Test Coverage — Spec includes concrete unit/integration/acceptance tests for new and fixed behavior.; Spec Includes Test Strategy — A dedicated Test Strategy section defines what to test and how.; Synthesize Draft, Do Not Copy — Cannot verify whether text was synthesized vs copied without the original draft source.; Record Unresolved Points as Open Questions — Open Questions section exists and records resolution state explicitly rather than leaving implied assumptions.; Include 'Why This Approach' Rationale — Why This Approach section provides explicit rationale for chosen design.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying/deleting existing tests without approval; it focuses on adding/extending coverage.; Backward-Compatible CLI Interface — Potential behavior-impacting changes include migration notes and explicit compatibility expectations.; Exit Code Contract — Spec explicitly requires non-zero exit on failure via CLI dispatcher and preserves failure signaling.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T23:33:06.564Z"
+    },
+    {
+      "step": "implement",
+      "reason": "existing tests asserted old retryCount=0 default; updated per spec 202 R3 which changes default to 2",
+      "trigger": "full test run showed two previously passing tests fail after changing DEFAULT_RETRY_COUNT",
+      "resolution": "updated both tests to match the new documented default (retryCount=2 when omitted) and clarified opt-out behavior",
+      "guardrailCandidate": "when a spec changes a default value, update existing tests in the same change set to assert the new default rather than deleting them",
+      "timestamp": "2026-04-20T23:42:29.940Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/acceptance/lib/pipeline.js:123: existing line modified/deleted in test file (removed=2, added=3); tests/acceptance/lib/pipeline.js:133: existing line modified/deleted in test file (removed=29, added=25); tests/e2e/acceptance/report.test.js:34: existing line modified/deleted in test file (removed=2, added=2); tests/unit/lib/agent-service.test.js:144: existing line modified/deleted in test file (removed=2, added=2); tests/unit/lib/agent.test.js:85: existing line modified/deleted in test file (removed=2, added=2)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-20T23:49:06.207Z"
+    },
+    {
+      "step": "implement",
+      "reason": "gate-impl mechanical check (spec 201) flagged test-file modifications; original approach violated it",
+      "trigger": "checkTestChanges detected removed>=1 in 5 test files (pipeline.js, report.test.js, agent-service.test.js, agent.test.js)",
+      "resolution": "pivoted: keep lib DEFAULT_RETRY_COUNT=0, move exitCode-setting from runText to DocsTextCommand.execute (thin CLI wrapper), set project-level agent.retryCount=2 via .sdd-forge/config.json; all test files reverted",
+      "guardrailCandidate": "when mechanical test-file check blocks a change, prefer boundary-shifting (move mutation to CLI wrapper) and config-level defaults over library-level default changes",
+      "timestamp": "2026-04-20T23:53:58.716Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/acceptance/lib/pipeline.js:123: existing line modified/deleted in test file (removed=2, added=3); tests/acceptance/lib/pipeline.js:133: existing line modified/deleted in test file (removed=29, added=25); tests/e2e/acceptance/report.test.js:34: existing line modified/deleted in test file (removed=2, added=2); tests/unit/lib/agent-service.test.js:144: existing line modified/deleted in test file (removed=2, added=2); tests/unit/lib/agent.test.js:85: existing line modified/deleted in test file (removed=2, added=2)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T00:09:48.063Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate-impl mechanical test-diff check (spec 201 checkTestChanges) flags documented backward-compat breaks in 4 test files; spec 202 explicitly documents these in Backward Compatibility section but gate has no override path",
+      "trigger": "sdd-forge flow run gate --phase task-impl",
+      "resolution": "stopped per retry limit; requires user decision whether to: (a) scope-reduce R3/R5/test updates, (b) override the gate, or (c) accept and proceed",
+      "guardrailCandidate": "mechanical test-diff gate needs an override mechanism for specs that document intentional backward-compat breaks",
+      "timestamp": "2026-04-21T00:10:07.753Z"
+    }
+  ]
+}

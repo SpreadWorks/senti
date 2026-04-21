@@ -24,7 +24,9 @@ import { ProviderRegistry } from "./provider.js";
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const DEFAULT_STDIN_FALLBACK_THRESHOLD = 100_000;
 const MAX_RETRY = 5;
+const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;
+const RETRY_BACKOFF_FACTOR = 2;
 
 class Agent {
   /**
@@ -126,7 +128,9 @@ class Agent {
   }
 
   _normalizeRetryOptionsForTest(options = {}) {
-    const rawCount = Number(options.retryCount ?? 0);
+    const configuredCount = this._config.agent?.retryCount;
+    const baseCount = options.retryCount ?? configuredCount ?? DEFAULT_RETRY_COUNT;
+    const rawCount = Number(baseCount);
     const rawDelay = Number(options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS);
     const retryCount = Number.isFinite(rawCount) && rawCount > 0
       ? Math.min(Math.floor(rawCount), MAX_RETRY)
@@ -193,7 +197,8 @@ class Agent {
         lastError = err;
       }
       if (attempt < retry.retryCount) {
-        await sleep(retry.retryDelayMs);
+        const delayMs = retry.retryDelayMs * Math.pow(RETRY_BACKOFF_FACTOR, attempt);
+        await sleep(delayMs);
       }
     }
     throw lastError;
@@ -211,9 +216,14 @@ class Agent {
         env,
       });
 
+      let stdinError = null;
       if (stdinContent != null) {
-        child.stdin.write(stdinContent);
-        child.stdin.end();
+        child.stdin.on("error", (err) => {
+          stdinError = err;
+        });
+        child.stdin.write(stdinContent, () => {
+          child.stdin.end();
+        });
       }
 
       let stdout = "";
@@ -231,7 +241,7 @@ class Agent {
 
       child.on("close", (code, signal) => {
         clearTimeout(timer);
-        if (code === 0 && !signal) {
+        if (code === 0 && !signal && !stdinError) {
           const trimmed = String(stdout).trim();
           const parsed = tryParseProvider(provider, trimmed);
           resolve(parsed ?? { text: trimmed, usage: null });
@@ -240,12 +250,14 @@ class Agent {
         const parts = [];
         if (signal) parts.push(signal === "SIGTERM" ? "timeout" : `signal=${signal}`);
         if (code != null && code !== 0) parts.push(`exit=${code}`);
+        if (stdinError) parts.push(`stdin=${stdinError.code || stdinError.message}`);
         if (stderr) parts.push(String(stderr).trim());
         if (!stderr && stdout) parts.push(String(stdout).trim());
         const error = new Error(parts.join(" | ") || "unknown error");
         error.code = code;
         error.signal = signal;
         error.killed = signal === "SIGTERM";
+        error.stdinError = stdinError || null;
         reject(error);
       });
 

@@ -96,6 +96,23 @@ export function buildCtx(tmp) {
   return { ctx, container };
 }
 
+// Agent infrastructure error patterns. Errors matching these are classified
+// as `agent-error` status (distinct from `error`, which is test-logic failure).
+const AGENT_ERROR_PATTERNS = [
+  /empty (batch )?response/i,
+  /agent output parse failed/i,
+  /Reading prompt from stdin/i,
+  /stdin=(EPIPE|ENOTCONN)/,
+  /exit=\d+.*agent/i,
+  /docs quality check/i,
+];
+
+function classifyStepError(err) {
+  if (err?.agentError) return "agent-error";
+  const msg = String(err?.message || err);
+  return AGENT_ERROR_PATTERNS.some((re) => re.test(msg)) ? "agent-error" : "error";
+}
+
 async function runStep(name, CommandClass, container, docsCtx) {
   const start = performance.now();
   try {
@@ -106,8 +123,9 @@ async function runStep(name, CommandClass, container, docsCtx) {
     return { name, status: "ok", durationMs };
   } catch (e) {
     const durationMs = Math.round(performance.now() - start);
-    console.error(`  [pipeline] ${name}: error (${durationMs}ms) — ${e.message}`);
-    throw Object.assign(e, { stepResult: { name, status: "error", durationMs } });
+    const status = classifyStepError(e);
+    console.error(`  [pipeline] ${name}: ${status} (${durationMs}ms) — ${e.message}`);
+    throw Object.assign(e, { stepResult: { name, status, durationMs } });
   }
 }
 
@@ -115,46 +133,42 @@ export async function runPipeline(tmp) {
   const { ctx, container } = buildCtx(tmp);
   const steps = [];
 
-  // Preserve then reset process.exitCode around the pipeline. Some steps
-  // (e.g. text) set process.exitCode=1 on soft failures (AI empty response,
-  // batch parse error) without throwing. In test context this would cause
-  // node --test to report the file as failed even though all subtests pass.
-  const prevExitCode = process.exitCode;
+  steps.push(await runStep("scan", DocsScanCommand, container, { ...ctx }));
 
-  try {
-    steps.push(await runStep("scan", DocsScanCommand, container, { ...ctx }));
-
-    if (ctx.agent) {
-      try {
-        steps.push(await runStep("enrich", DocsEnrichCommand, container, {
-          ...ctx,
-          commandId: "docs.enrich",
-        }));
-      } catch (e) {
-        steps.push(e.stepResult);
-        console.error(`[acceptance] enrich warning: continuing without enrichment`);
-      }
-    } else {
-      steps.push({ name: "enrich", status: "skipped", durationMs: 0 });
+  if (ctx.agent) {
+    try {
+      steps.push(await runStep("enrich", DocsEnrichCommand, container, {
+        ...ctx,
+        commandId: "docs.enrich",
+      }));
+    } catch (e) {
+      steps.push(e.stepResult);
+      console.error(`[acceptance] enrich warning: continuing without enrichment`);
     }
+  } else {
+    steps.push({ name: "enrich", status: "skipped", durationMs: 0 });
+  }
 
-    steps.push(await runStep("init", DocsInitCommand, container, { ...ctx, force: true }));
+  steps.push(await runStep("init", DocsInitCommand, container, { ...ctx, force: true }));
 
-    steps.push(await runStep("data", DocsDataCommand, container, { ...ctx }));
+  steps.push(await runStep("data", DocsDataCommand, container, { ...ctx }));
 
-    if (ctx.agent) {
+  if (ctx.agent) {
+    try {
       steps.push(await runStep("text", DocsTextCommand, container, {
         ...ctx,
         commandId: "docs.text",
       }));
-    } else {
-      steps.push({ name: "text", status: "skipped", durationMs: 0 });
+    } catch (e) {
+      steps.push(e.stepResult);
+      if (e.stepResult.status !== "agent-error") throw e;
+      console.error(`[acceptance] text warning: agent-infra error, continuing`);
     }
-
-    steps.push(await runStep("readme", DocsReadmeCommand, container, { ...ctx }));
-  } finally {
-    process.exitCode = prevExitCode;
+  } else {
+    steps.push({ name: "text", status: "skipped", durationMs: 0 });
   }
+
+  steps.push(await runStep("readme", DocsReadmeCommand, container, { ...ctx }));
 
   return { ctx, steps };
 }

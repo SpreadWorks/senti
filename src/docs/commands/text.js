@@ -758,9 +758,6 @@ async function runText(ctx, rawArgs) {
     logger.log(`${errors.length} file(s) failed: ${errors.join(", ")}`);
   }
   logger.log(`Done. ${changedFiles.size} file(s) updated. filled: ${totalFilled}, skipped: ${totalSkipped}.`);
-  if (errors.length > 0) {
-    process.exitCode = EXIT_ERROR;
-  }
   return { errors };
 }
 
@@ -769,7 +766,15 @@ export { stripFillContent, countFilledInBatch, processTemplateFileBatch, process
 export default class DocsTextCommand extends Command {
   static outputMode = "raw";
   async execute(ctx) {
-    return runText(ctx.docsCtx, ctx._rawArgs || []);
+    const result = await runText(ctx.docsCtx, ctx._rawArgs || []);
+    if (result?.errors?.length > 0) {
+      const err = new Error(`${result.errors.length} file(s) failed: ${result.errors.join(", ")}`);
+      err.exitCode = EXIT_ERROR;
+      err.data = result;
+      err.agentError = true;
+      throw err;
+    }
+    return result;
   }
 }
 
