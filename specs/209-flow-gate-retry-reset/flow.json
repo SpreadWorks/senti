@@ -1,0 +1,251 @@
+{
+  "spec": "specs/209-flow-gate-retry-reset/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/209-flow-gate-retry-reset",
+  "runId": "90a2b311-bf3a-480a-b1a8-bf0716483bfa",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "REQ-1: append single reset metric entry",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-2: reject non-tracked phase",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-3: reject missing --yes, print current count",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-4: reject unknown action",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-5: countGateRetry returns 0 after reset",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-6: executeDiffBasedGate prints stderr warning",
+      "status": "pending"
+    },
+    {
+      "desc": "REQ-7: registry.js exposes set.gate-retry",
+      "status": "pending"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 208,
+  "worktree": true,
+  "request": "CLI reset flow when gate retry is exhausted — Issue #208: gate retry 上限到達時の CLI リセット導線と残 retry 枠の警告表示",
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-21T13:59:25.612Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-21T14:01:03.024Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 25807,
+      "taskId": null,
+      "ts": "2026-04-21T14:02:15.968Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 22296,
+      "taskId": null,
+      "ts": "2026-04-21T14:02:42.182Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 23315,
+      "taskId": null,
+      "ts": "2026-04-21T14:03:09.718Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-21T14:03:27.720Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-21T14:05:53.398Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 25980,
+      "taskId": null,
+      "ts": "2026-04-21T14:22:42.361Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 23497,
+      "taskId": null,
+      "ts": "2026-04-21T14:23:21.565Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 26254,
+      "taskId": null,
+      "ts": "2026-04-21T14:23:57.897Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 22474,
+      "taskId": null,
+      "ts": "2026-04-21T14:24:38.006Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-21T14:24:57.090Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-21T14:27:20.192Z"
+  }
+}

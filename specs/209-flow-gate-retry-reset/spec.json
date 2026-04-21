@@ -1,0 +1,75 @@
+{
+  "goal": "Provide a CLI reset path for metrics.<phase>.gateRetry and surface remaining retry budget before gate runs, so users can recover from ESCALATE_RETRY_EXHAUSTED without editing flow.json by hand.",
+  "background": "run-gate.js tracks gateRetry for task-impl/integration via countGateRetry and raises ESCALATE_RETRY_EXHAUSTED at config.flow.retry.max (default 3). Today the only recovery is manually appending a reset metric to flow.json — encountered during spec 207.",
+  "scope": {
+    "in": [
+      "New subcommand `sdd-forge flow set gate-retry reset <phase> --yes`",
+      "Warning line printed at the start of executeDiffBasedGate in run-gate.js",
+      "Registry entry for set.gate-retry",
+      "Unit tests for the new command"
+    ],
+    "out": [
+      "Generalization to other counters",
+      "Interactive (readline) confirmation",
+      "UI or dashboard integration",
+      "Changes to countGateRetry semantics"
+    ]
+  },
+  "constraints": [
+    "Node.js built-ins only; no new npm deps",
+    "alpha policy: no backward-compatibility shims",
+    "Reuse flowManager.appendMetric; do not touch flow.json directly",
+    "src/ must remain project-agnostic"
+  ],
+  "design_principles": [
+    "Command has a single append side effect",
+    "--yes is a hard requirement; no env-var override",
+    "Warning is stderr-only; does not alter JSON envelope"
+  ],
+  "overview": {
+    "modules": [
+      { "text": "src/flow/lib/set-gate-retry.js (new) — SetGateRetryCommand extending FlowCommand" },
+      { "text": "src/flow/lib/run-gate.js — warnGateRetryBudget helper and call site in executeDiffBasedGate" },
+      { "text": "src/flow/registry.js — new set.gate-retry entry" }
+    ],
+    "data_flow": [
+      { "text": "User invokes `flow set gate-retry reset <phase> --yes`" },
+      { "text": "Dispatcher validates action, phase, and --yes" },
+      { "text": "Command calls flowManager.appendMetric({phase, counter: 'gateRetry', delta: 0, reset: true})" },
+      { "text": "Subsequent countGateRetry(state.metrics, phase) returns 0" }
+    ],
+    "decisions": [
+      { "text": "Shape is `set gate-retry <action> <phase>` to leave room for future actions" },
+      { "text": "--yes is required; no interactive prompt" },
+      { "text": "Warning written to stderr, consistent with existing diagnostic output" }
+    ]
+  },
+  "requirements": [
+    { "id": "REQ-1", "desc": "`sdd-forge flow set gate-retry reset <phase> --yes` appends exactly one metric entry {phase, counter: 'gateRetry', delta: 0, reset: true} via flowManager.appendMetric.", "priority": "must" },
+    { "id": "REQ-2", "desc": "Reject phase values not in RETRY_TRACKED_PHASES (task-impl, integration) with a clear error.", "priority": "must" },
+    { "id": "REQ-3", "desc": "Reject invocations without --yes, print current gateRetry count for the requested phase to stderr, and exit non-zero.", "priority": "must" },
+    { "id": "REQ-4", "desc": "Reject unknown action values (anything other than 'reset') with a clear error.", "priority": "must" },
+    { "id": "REQ-5", "desc": "After successful reset, countGateRetry(state.metrics, phase) returns 0 until a subsequent FAIL increments it.", "priority": "must" },
+    { "id": "REQ-6", "desc": "executeDiffBasedGate writes a one-line warning to stderr: `[sdd-forge] gate retry: <used>/<max> used (<remaining> remaining) for phase \"<phase>\"` before assertRetryBelowMax runs. Must not affect JSON envelope or gate result.", "priority": "must" },
+    { "id": "REQ-7", "desc": "registry.js exposes set.gate-retry with args.positional: ['action','phase'], args.flags: ['--yes'], a help string, and requiresFlow: true.", "priority": "must" }
+  ],
+  "acceptance_criteria": [
+    "Unit test: successful reset appends the expected metric entry",
+    "Unit test: missing --yes throws and current count is reported",
+    "Unit test: non-tracked phase throws",
+    "Unit test: unknown action throws",
+    "Unit test: countGateRetry returns 0 after reset",
+    "Registry lookup for set.gate-retry returns expected shape",
+    "Manual: flow run gate prints the warning line to stderr"
+  ],
+  "clarifications": [
+    { "q": "Warning for every gate phase or diff-based only?", "a": "Only task-impl/integration (RETRY_TRACKED_PHASES)." },
+    { "q": "Can --yes be replaced by interactive confirmation?", "a": "No. CLI is invoked from AI/skill chains without interactive stdin." }
+  ],
+  "alternatives_considered": [
+    { "option": "Auto-reset on next manual invocation", "reason": "Rejected — loses the audit trail of reset intent" },
+    { "option": "Direct flow.json edit (status quo)", "reason": "Rejected — undocumented procedure, no audit entry" },
+    { "option": "Lazy reset on PASS only", "reason": "Already in place; does not solve exhaustion case" }
+  ],
+  "open_questions": []
+}

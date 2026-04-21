@@ -1,0 +1,46 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/209-flow-gate-retry-reset/draft.md       |  81 ++++++++\n specs/209-flow-gate-retry-reset/flow.json      | 251 +++++++++++++++++++++++++\n specs/209-flow-gate-retry-reset/issue-log.json |  99 ++++++++++\n specs/209-flow-gate-retry-reset/qa.md          |   9 +\n specs/209-flow-gate-retry-reset/spec.json      |  75 ++++++++\n specs/209-flow-gate-retry-reset/spec.md        |  96 ++++++++++\n src/flow/lib/run-gate.js                       |  12 ++\n src/flow/lib/set-gate-retry.js                 |  53 ++++++\n src/flow/registry.js                           |  12 ++\n tests/unit/flow/set-gate-retry.test.js         | 124 ++++++++++++\n 10 files changed, 812 insertions(+)",
+      "commits": [
+        "feat: feature/209-flow-gate-retry-reset"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 1,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 7,
+      "durationMs": 169623,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 71418
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 98205
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/209-flow-gate-retry-reset\n    10 files changed, 812 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 1\n    issue-log ................... 3\n    agent calls ................. 7\n    input tokens ................ 0\n    output tokens ............... 0\n    cache-read tokens ........... 0\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 169.6s\n      gate-draft ................ 71.4s\n      gate-impl ................. 98.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    -"
+}

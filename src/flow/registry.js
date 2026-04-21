@@ -274,6 +274,18 @@ export const FLOW_COMMANDS = {
         "  --request <text>   User request text to seed into preparing state",
       ].join("\n"),
     },
+    "gate-retry": {
+      helpKey: "flow.set.gate-retry",
+      command: () => import("./lib/set-gate-retry.js"),
+      args: { positional: ["action", "phase"], flags: ["--yes"] },
+      help: [
+        "Usage: sdd-forge flow set gate-retry reset <phase> --yes",
+        "",
+        "Reset the gateRetry counter for <phase> (task-impl | integration).",
+        "Appends a reset metric entry so countGateRetry returns 0 on the",
+        "next evaluation. --yes is required to avoid accidental resets.",
+      ].join("\n"),
+    },
     auto: {
       helpKey: "flow.set.auto",
       command: () => import("./lib/set-auto.js"),

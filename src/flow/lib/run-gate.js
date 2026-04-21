@@ -724,6 +724,16 @@ function formatRetryHistory(root, specPath, limit) {
     .join("\n");
 }
 
+function warnGateRetryBudget(ctx, phase) {
+  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+  const used = readGateRetryCount(ctx.flowState, phase);
+  const max = resolveRetryMax(ctx.config);
+  const remaining = Math.max(0, max - used);
+  process.stderr.write(
+    `[sdd-forge] gate retry: ${used}/${max} used (${remaining} remaining) for phase "${phase}"\n`,
+  );
+}
+
 function assertRetryBelowMax(ctx, phase) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) return;
   const count = readGateRetryCount(ctx.flowState, phase);
@@ -1040,6 +1050,8 @@ export class RunGateCommand extends FlowCommand {
     if (!state?.spec) throw new Error("no active flow found");
     if (!state.baseBranch) throw new Error("baseBranch not set in flow.json");
 
+    // spec 209 REQ-6: surface remaining retry budget before running the gate.
+    warnGateRetryBudget(ctx, phase);
     // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
     assertRetryBelowMax(ctx, phase);
 
