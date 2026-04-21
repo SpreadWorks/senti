@@ -63,9 +63,10 @@ B.0. **Initialize flow state**
 B.0.5. **Auto-mode eligibility check** (spec 208)
    - Build the input text: combine `--request` and, if an Issue is linked, the fetched Issue body (`sdd-forge flow get issue <n>`).
    - Run `sdd-forge flow run auto-check --input "<text>"` and read `data.eligible`.
-   - **If `eligible: true`**: present the auto-mode prompt using the Choice Format.
-     - Description (inside lines): show Goal + Scope (derived from the input) + a 1–3 line restatement. This is the same unified Goal+Scope+説明 format used by Draft Q1.
-     - Choices: `[1] はい` `[2] いいえ`. Note below choices: "概要が間違っていたら「いいえ」を選択してください / 後で Auto モードに切替可能".
+   - **If `eligible: true`**: present the auto-mode prompt using the Choice Format. The prompt asks ONLY whether to enable auto mode — do not bundle a "is this summary correct?" question into the same choice (the summary is confirmed in B.3).
+     - Question (above choices): `Auto モードを有効にしますか？` (single line).
+     - Choices: `[1] はい — AI が確認なしで進めます` `[2] いいえ — 通常通り各ステップで確認します`.
+     - Note below choices: "後から `/sdd-forge.flow-auto on` で切り替え可能".
      - If user picks `[1]`:
        - Run `sdd-forge flow set auto on` (the CLI re-verifies auto-check; rejection here means STOP).
        - **Skip B.1 and B.2.** Use work-environment = worktree and base-branch = current branch by default.
