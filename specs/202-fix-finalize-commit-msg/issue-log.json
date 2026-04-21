@@ -1,0 +1,52 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: preventing unrelated changes from being swept into the finalize post-commit.; Unambiguous Requirements — Key expectations are specific (stage only specs/<specId>/, leave other changes untouched, add regression test) and are verifiable.; Complete Context — Requirements are not consistently written with explicit trigger context (When/If) plus expected shall-behavior statements.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present.; Prioritize Requirements — There are more than three requirement-like items across scope/in-out, but no explicit priority ordering is provided.; Impact on Existing Features — Impact is explicitly described, and unaffected areas are clearly listed in Out-of-scope.; Present Recommendations with Reasoning — Not every question is led by an explicit recommendation with a stated basis from docs, guardrails, or code patterns.; Explore Before Asking — The draft cites concrete code locations and repository history evidence before presenting decisions.; Proactively Raise Related Implications — Related implications are proactively covered via Impact, Alternatives, and Future Extensibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — Decision mode is explicitly captured (Q5 approval and final user confirmation).; Capture Digressions in draft.md — No unresolved digression is evident; side discussions are captured under Alternatives/Future Extensibility.; Draft Stays at Requirements Level — The draft includes implementation-level detail (specific file/function, code snippet, regex-based test method).; Backward-Compatible CLI Interface — No CLI command/option semantic change is proposed, so migration planning is not applicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T00:17:14.140Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "missing Q&A section",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T00:17:54.064Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: preventing finalize post-commit from capturing unrelated changes.; Unambiguous Requirements — Requirements are mostly stated as verifiable When/Shall conditions with concrete expected behavior.; Complete Context — Each listed requirement includes both a trigger condition and a required outcome.; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values appear in the draft content.; Prioritize Requirements — There are more than three requirements and they are explicitly ordered by priority.; Impact on Existing Features — Impact is explicitly described, including that CLI interface/options/config structure are unchanged.; Present Recommendations with Reasoning — Each Q&A presents a recommendation first and includes concise reasoning based on code/patterns/guardrails.; Explore Before Asking — The draft states code investigation was done (e.g., post-commit add behavior) before conclusions.; Proactively Raise Related Implications — Related implications are proactively covered via Impact, Alternatives, and Future Extensibility sections.; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation is shown that the mode was brainstorming vs decision before evaluative critiques/recommendations.; Capture Digressions in draft.md — Cannot determine from provided text whether any digression occurred that required capture in draft.md.; Draft Stays at Requirements Level — Content stays at requirements/RFP level without function-level implementation design.; Backward-Compatible CLI Interface — No CLI behavior change is proposed; draft explicitly states interface/options remain unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T00:18:19.685Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Issue #197 の finalize post-commit 問題に焦点が絞られており、無関係な変更を束ねていない。; Unambiguous Requirements — 要件は When/Shall 形式で具体的かつ検証可能に記述され、曖昧語への依存が少ない。; Complete Context — 要件1〜5はいずれもトリガー条件（When）と期待動作（Shall）の組で記述されている。; No Hardcoded Secrets — 本内容は仕様ドラフトであり、APIキー等の秘密情報のハードコードは含まれていない。; Prioritize Requirements — 要件が5項目あり、明示的に優先度順（上から高）で提示されている。; Impact on Existing Features — Impact で既存機能への影響を記載し、CLIインターフェース等は変更なしと明示している。; Present Recommendations with Reasoning — Q1〜Q4は推奨と根拠があるが、Q5は推奨および根拠提示がなく要件を満たしきれていない。; Explore Before Asking — Q&Aでソースコード調査結果や既存テスト構造に基づく判断が示され、事前探索の痕跡がある。; Proactively Raise Related Implications — Impact と Future Extensibility で関連する影響・将来拡張含意を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — Mode で decision mode を明示し、brainstorming ではないことを事前確認している。; Capture Digressions in draft.md — 議論中の脱線有無と draft.md 反映状況は、提示本文だけでは実行時履歴を確認できない。; Draft Stays at Requirements Level — 内容は要件・方針・テスト方針レベルに留まり、関数設計など実装詳細には踏み込んでいない。; Backward-Compatible CLI Interface — 既存コマンド/オプション変更なしと明記されており、移行計画が必要な変更に該当しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T00:18:54.685Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Issue #197 の finalize post-commit 挙動修正という単一関心に集中している。; Unambiguous Requirements — 要件4の『後続ハンドリングできる状態』が検証条件としてやや曖昧。; Complete Context — 要件1〜5がすべて When/When-like 条件と Shall を対で記述している。; No Hardcoded Secrets — ドラフト内に秘密情報やハードコードされた資格情報は含まれていない。; Prioritize Requirements — 要件が5件あり、優先度順で明示されている。; Impact on Existing Features — Impact セクションで既存機能への影響と CLI 互換維持を明示している。; Present Recommendations with Reasoning — Q1〜Q5で各推奨を先頭に示し、コード調査・原則・既存パターンに基づく根拠を添えている。; Explore Before Asking — Q1/Q4でソースコード調査と既存テスト参照に基づいて判断している。; Proactively Raise Related Implications — Impact と Future Extensibility で関連影響を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — Mode セクションで Decision mode を明示し、brainstorming ではないことを確認している。; Capture Digressions in draft.md — 大きな脱線は見当たらず、代替案は Alternatives Considered に整理されている。; Draft Stays at Requirements Level — 全体は要件・方針レベルで、関数設計や実装手順の詳細には踏み込んでいない。; Backward-Compatible CLI Interface — 既存コマンド/オプションに変更なしと明記しており、移行計画が不要なケースを満たす。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T00:19:30.698Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 68: unchecked task/question (- [ ] なし)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T00:20:37.147Z"
+    }
+  ]
+}

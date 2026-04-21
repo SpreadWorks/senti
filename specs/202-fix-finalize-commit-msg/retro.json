@@ -1,0 +1,61 @@
+{
+  "spec": "specs/202-fix-finalize-commit-msg/spec.md",
+  "date": "2026-04-21T00:28:23.743Z",
+  "requirements": [
+    {
+      "desc": "finalize retro/report post-commit は spec ディレクトリ配下のみをステージする",
+      "status": "done",
+      "note": "src/flow/lib/run-finalize.js の executeCommitPost で `git add -A` を廃止し、`git add -- specs/<specId>` に変更されている。"
+    },
+    {
+      "desc": "finalize の主たるコミットは既存挙動を維持する",
+      "status": "done",
+      "note": "差分は post-commit 側（executeCommitPost）に限定され、主たるコミット処理のステージ範囲・メッセージ生成ロジック変更は見当たらない。"
+    },
+    {
+      "desc": "retro/report/issue-log など spec ディレクトリ配下の metadata ファイルを全て含める",
+      "status": "done",
+      "note": "ディレクトリ単位で `specDir` を add する実装になっており、配下 metadata を個別列挙なしで包含できる。"
+    },
+    {
+      "desc": "spec ディレクトリ外の未コミット変更はワーキングツリーに残す（警告なし）",
+      "status": "done",
+      "note": "post-commit の add 対象が specDir のみに限定されたため、spec 外変更はステージされず未コミットのまま残る。警告追加もない。"
+    },
+    {
+      "desc": "回帰テストを追加する",
+      "status": "done",
+      "note": "tests/unit/flow/run-finalize-retro-commit-scope.test.js が新規追加され、`git add -A` 非使用と spec ディレクトリ由来 add を検証している。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/202-fix-finalize-commit-msg/draft.md",
+      "change": "仕様ドラフト文書の新規追加（要件実装そのものではない運用ドキュメント）。"
+    },
+    {
+      "file": "specs/202-fix-finalize-commit-msg/flow.json",
+      "change": "フロー実行状態・メトリクス・要件ステータスの記録ファイル追加。"
+    },
+    {
+      "file": "specs/202-fix-finalize-commit-msg/issue-log.json",
+      "change": "gate 判定ログの追加。"
+    },
+    {
+      "file": "specs/202-fix-finalize-commit-msg/qa.md",
+      "change": "Clarification Q&A テンプレートの追加。"
+    },
+    {
+      "file": "specs/202-fix-finalize-commit-msg/review.md",
+      "change": "別件レビュー結果ドキュメントの追加（本要件と直接無関係）。"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "実装差分の中核（run-finalize.js）と回帰テスト追加は要件1〜5に整合している。未計画変更は主に spec 運用・記録系ドキュメント追加。"
+  }
+}

@@ -210,8 +210,11 @@ export async function executeCommitPost(ctx) {
     }
   }
 
-  // commit retro + report files
-  runGit(["add", "-A"], { cwd: root });
+  // commit retro + report files — scope stage to the current spec directory
+  // so that uncommitted changes outside the spec dir are not swept into this
+  // post-commit (issue #197).
+  const specDir = path.posix.join("specs", specIdFromPath(state.spec));
+  runGit(["add", "--", specDir], { cwd: root });
   try {
     commitOrSkip(["-m", "chore: add retro and report"], { cwd: root });
   } catch (e) {

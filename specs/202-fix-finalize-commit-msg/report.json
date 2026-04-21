@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/202-fix-finalize-commit-msg/draft.md         |  96 ++++++++++\n specs/202-fix-finalize-commit-msg/flow.json        | 212 +++++++++++++++++++++\n specs/202-fix-finalize-commit-msg/issue-log.json   |  52 +++++\n specs/202-fix-finalize-commit-msg/qa.md            |   9 +\n specs/202-fix-finalize-commit-msg/review.md        |  41 ++++\n specs/202-fix-finalize-commit-msg/spec.md          |  68 +++++++\n specs/202-fix-finalize-commit-msg/tests/README.md  |  31 +++\n src/flow/lib/run-finalize.js                       |   7 +-\n .../flow/run-finalize-retro-commit-scope.test.js   |  49 +++++\n 9 files changed, 563 insertions(+), 2 deletions(-)",
+      "commits": [
+        "feat: feature/202-fix-finalize-commit-msg"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "実装差分の中核（run-finalize.js）と回帰テスト追加は要件1〜5に整合している。未計画変更は主に spec 運用・記録系ドキュメント追加。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 4,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 103366,
+      "output": 8798,
+      "cacheRead": 181504,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 223158,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 121024
+        },
+        {
+          "phase": "gate",
+          "durationMs": 22145
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 30675
+        },
+        {
+          "phase": "review",
+          "durationMs": 49314
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 2
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/202-fix-finalize-commit-msg\n    9 files changed, 563 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 4\n    issue-log ................... 0\n    agent calls ................. 10\n    input tokens ................ 103,366\n    output tokens ............... 8,798\n    cache-read tokens ........... 181,504\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 223.2s\n      gate-draft ................ 121.0s\n      gate ...................... 22.1s\n      gate-impl ................. 30.7s\n      review .................... 49.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2  integration 0  acceptance 0  total 2"
+}

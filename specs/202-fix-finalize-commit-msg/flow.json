@@ -1,0 +1,212 @@
+{
+  "spec": "specs/202-fix-finalize-commit-msg/spec.md",
+  "baseBranch": "main",
+  "featureBranch": "feature/202-fix-finalize-commit-msg",
+  "runId": "8bcb39d2-ce62-4e16-b84e-4cb115e44608",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "pending"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "finalize retro/report post-commit は spec ディレクトリ配下のみをステージする",
+      "status": "done"
+    },
+    {
+      "desc": "finalize の主たるコミットは既存挙動を維持する",
+      "status": "done"
+    },
+    {
+      "desc": "retro/report/issue-log など spec ディレクトリ配下の metadata ファイルを全て含める",
+      "status": "done"
+    },
+    {
+      "desc": "spec ディレクトリ外の未コミット変更はワーキングツリーに残す（警告なし）",
+      "status": "done"
+    },
+    {
+      "desc": "回帰テストを追加する",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 197,
+  "worktree": true,
+  "request": "flow finalize の自動 commit が 'chore: add retro and report' で固定化されている問題を修正する",
+  "metrics": {
+    "plan": {
+      "docsRead": 1,
+      "srcRead": 2
+    },
+    "draft": {
+      "question": 4
+    },
+    "gate-draft": {
+      "tokens": {
+        "input": 31277,
+        "output": 5054,
+        "cacheRead": 96896,
+        "cacheCreation": 0
+      },
+      "callCount": 5,
+      "responseChars": 9736,
+      "durationMs": 121024
+    },
+    "gate": {
+      "tokens": {
+        "input": 6452,
+        "output": 953,
+        "cacheRead": 19072,
+        "cacheCreation": 0
+      },
+      "callCount": 1,
+      "responseChars": 2439,
+      "durationMs": 22145
+    },
+    "gate-impl": {
+      "tokens": {
+        "input": 12955,
+        "output": 950,
+        "cacheRead": 38144,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 2019,
+      "durationMs": 30675
+    },
+    "task-impl": {
+      "gateRetry": 0
+    },
+    "review": {
+      "tokens": {
+        "input": 52682,
+        "output": 1841,
+        "cacheRead": 27392,
+        "cacheCreation": 0
+      },
+      "callCount": 2,
+      "responseChars": 3500,
+      "durationMs": 49314
+    }
+  },
+  "notes": [
+    "draft Q1: retro/report commit のスコープ汚染として修正する方針（[1]採用）",
+    "draft Q2: stage 範囲は specs/<specId>/ 配下のみ",
+    "draft Q3: 残余の未コミット変更は放置。警告出さない",
+    "draft Q4: テストはソース正規表現検査",
+    "finalize: auto-select mode=all, PR route expected (gh available)"
+  ],
+  "autoApprove": true,
+  "test": {
+    "summary": {
+      "unit": 2
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-21T00:27:57.711Z"
+  }
+}
