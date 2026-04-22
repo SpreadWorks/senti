@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-22T13:33:18.668Z",
+  "analyzedAt": "2026-04-22T13:40:16.757Z",
   "package": {
     "entries": [
       {
@@ -3843,15 +3843,20 @@
       },
       {
         "file": "src/flow/lib/set-auto.js",
-        "hash": "265159eeb35222c536b84616e20ecc6f",
-        "lines": 108,
-        "mtime": "2026-04-22T12:49:23.489Z",
+        "hash": "3eb84632a1610d1bc257eb0fa852ed67",
+        "lines": 144,
+        "mtime": "2026-04-22T13:40:16.434Z",
         "className": "set-auto",
         "methods": [
           "buildInputText",
+          "isSpecApproved",
+          "loadDraftText",
+          "resolveAutoCheckInput",
           "resolvePreparingRunId"
         ],
         "imports": [
+          "fs",
+          "path",
           "./base-command.js",
           "../../lib/constants.js",
           "./run-auto-check.js"
@@ -3862,22 +3867,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "2c71e989",
-        "summary": "Handles `flow set auto` to toggle automatic approval behavior for active or preparing flows. It validates user input, resolves target run context, and optionally executes an auto-check pass.",
-        "detail": "The module builds structured input text from current state and determines whether to target an explicit preparing run or the active flow. It rejects invalid values using centralized constants and throws actionable errors when no eligible run is found. When enabling auto mode, it invokes the auto-check core logic and returns both the mode and check result. When disabling, it writes a minimal state update and bypasses check execution. Error handling preserves thrown failures while controlling flow-mode-specific return payloads.",
+        "summary": "This module implements the `flow set auto` command logic for toggling auto-approve behavior in the flow system. It also prepares and validates auto-check input when enabling automatic checks.",
+        "detail": "The file defines helper functions to build auto-check input from flow state, detect whether the approval step is completed, and load related draft content from the spec directory. It resolves run context differently for active and preparing flows, including explicit run ID handling and strict error paths when no valid run is found. The command class validates allowed auto values against shared constants and maps each mode to a normalized flow update payload. For `on` mode it disables auto-check, while other modes enable auto-approve with computed auto-check settings. The implementation wraps execution errors to preserve command-level failure semantics while delegating core check execution to `runAutoCheckCore`.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T13:01:40.985Z",
+          "processedAt": "2026-04-22T13:40:32.274Z",
           "attempts": 1
         },
         "keywords": [
-          "auto approve",
-          "flow toggle",
-          "run id resolution",
-          "input validation",
+          "flow command",
+          "auto-approve",
           "auto-check",
-          "preparing flow",
-          "state switch"
+          "run context",
+          "approval state",
+          "draft loading",
+          "argument validation",
+          "command handler"
         ]
       },
       {
@@ -9092,9 +9098,9 @@
     ],
     "summary": {
       "total": 269,
-      "totalMethods": 854
+      "totalMethods": 857
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-22T13:17:59.282Z"
+  "enrichedAt": "2026-04-22T13:40:32.274Z"
 }
