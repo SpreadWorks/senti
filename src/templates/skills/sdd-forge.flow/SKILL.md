@@ -97,6 +97,13 @@ B.4. **Prepare spec (silent)**
      - No branch: `sdd-forge flow prepare --title "..." --no-branch --run-id <runId>`
    - On `{ok: false, code: "DIRTY_WORKTREE"}` → run `sdd-forge flow get prompt plan.dirty-worktree` and present the choices; do not retry until clean.
 
+B.5. **Capture test baseline (silent, best-effort, spec 209)**
+   - Immediately after B.4 succeeds, run `sdd-forge flow run tests --baseline` to snapshot pre-spec test state. The worktree HEAD is identical to the base branch at this moment, so this measurement is the baseline.
+   - On success (`result.summarized == "ok"|"failed"`): baseline is recorded in `flow.json` at `test.baseline`.
+   - On `summarized == "failed"`: agent-side summarization failed. Read the baseline log file at `result.logPath` with Bash/Read, extract failed test identifiers into JSON `{ failed: [{id, reason}, ...] }`, then persist via `sdd-forge flow set test-summary --baseline --mode fallback --json @-` (or `--json '<payload>'`).
+   - On any other error (`NO_TEST_COMMAND`, missing test script, etc.): skip baseline capture, print a short warning to the user, and continue to C. Gate-impl will fall back to head-only evaluation with a "baseline not captured" warning.
+   - Never fail the flow on baseline issues — this step is strictly best-effort.
+
 Proceed to **C. Dispatcher loop**.
 
 ### C. Dispatcher loop

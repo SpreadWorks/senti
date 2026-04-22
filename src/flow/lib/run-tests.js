@@ -1,27 +1,25 @@
 /**
  * src/flow/lib/run-tests.js
  *
- * FlowCommand: `flow run tests` — execute the project's test suite in a
- * subprocess, capture its output to a log file under the work dir, and
- * record exit code + per-type counts to flow.json `test.summary`.
+ * FlowCommand: `flow run tests [--baseline]` — execute the project's test
+ * suite in a subprocess, capture its output to a log file, record
+ * tool-measured exitCode + per-type counts, then delegate log summarization
+ * to an external agent (spec 209). The structured summary is written to
+ * `test.summary` (or `test.baseline` with --baseline).
  *
- * Scope:
+ * Scope (tool-measured part):
  *   - task   → state.currentTaskId != null (REQ-P1-2)
  *   - parent → otherwise
  *
- * Command resolution order (REQ-P1-3):
+ * Test command resolution order:
  *   1. config.commands.test.{task|parent}
- *   2. package.json scripts inference:
- *        task   → `test:unit` if present, else `test`
- *        parent → `test`
+ *   2. package.json scripts inference
  *
- * Log parser resolution (spec 200 REQ-5):
- *   Delegates to `loadTestParser` which returns a preset-supplied parser when
- *   the active preset ships `src/presets/<type>/test-parser.js`, or the
- *   builtin default otherwise.
- *
- * AI processes observe only the returned envelope; the tool alone writes
- * test.summary into flow.json (REQ-P1-5).
+ * Log parsing (built-in):
+ *   Only extracts total counts from labeled lines (unit / integration /
+ *   acceptance). Individual failed test identification is delegated to the
+ *   external summarizer agent (spec 209). Framework-specific log parsing
+ *   presets have been removed — the agent handles the ambiguous portion.
  */
 
 import { spawnSync } from "child_process";
@@ -29,20 +27,34 @@ import fs from "fs";
 import path from "path";
 import { FlowCommand } from "./base-command.js";
 import { resolveWorkDir } from "../../lib/config.js";
-import { loadTestParser } from "./test-parser-loader.js";
+import { summarizeTestLog } from "./summarize-test-log.js";
 
-function extractPresetKey(type) {
-  const t = Array.isArray(type) ? type[0] : type;
-  if (!t) return null;
-  const idx = t.lastIndexOf("/");
-  return idx >= 0 ? t.slice(idx + 1) : t;
-}
+const TYPES = ["unit", "integration", "acceptance"];
 
 const LOG_REL = "logs/test-output.log";
+const BASELINE_LOG_REL = "logs/baseline-test-output.log";
+
+function parseCountsFromLog(text) {
+  const out = {};
+  for (const type of TYPES) {
+    const m = new RegExp(`^\\s*${type}\\s*[:=]\\s*(\\d+)\\s*$`, "im").exec(text);
+    if (m) out[type] = Number(m[1]);
+  }
+  if (out.unit == null) {
+    const pass = /^\s*#\s*pass\s+(\d+)\s*$/m.exec(text);
+    if (pass) out.unit = Number(pass[1]);
+    else {
+      const mocha = /(\d+)\s+passing/.exec(text);
+      if (mocha) out.unit = Number(mocha[1]);
+    }
+  }
+  return out;
+}
 
 export class RunTestsCommand extends FlowCommand {
   async execute(ctx) {
-    const { root, flowState, flowManager, config } = ctx;
+    const { root, flowState, flowManager, config, container } = ctx;
+    const baseline = Boolean(ctx.baseline);
 
     const scope = flowState?.currentTaskId != null ? "task" : "parent";
     const command = resolveTestCommand({ root, config, scope });
@@ -56,7 +68,8 @@ export class RunTestsCommand extends FlowCommand {
 
     const workDir = resolveWorkDir(root, config);
     const absWork = path.isAbsolute(workDir) ? workDir : path.join(root, workDir);
-    const logPath = path.join(absWork, LOG_REL);
+    const logRel = baseline ? BASELINE_LOG_REL : LOG_REL;
+    const logPath = path.join(absWork, logRel);
     fs.mkdirSync(path.dirname(logPath), { recursive: true });
 
     const child = spawnSync(command, {
@@ -70,18 +83,49 @@ export class RunTestsCommand extends FlowCommand {
     fs.writeFileSync(logPath, combined);
 
     const exitCode = child.status ?? 1;
-    const parser = await loadTestParser({ root, presetKey: extractPresetKey(config?.type) });
-    const summary = parser.parseCountsFromLog(combined);
-    flowManager.setTestSummary({ ...summary, exitCode });
+    const counts = parseCountsFromLog(combined);
+
+    // Tool-measured write (spec 198 tool monopoly: exitCode signals tool origin)
+    flowManager.setTestSummary({ ...counts, exitCode }, { baseline });
+
+    // Spec 209: delegate log summarization to external agent
+    let summarized = "skipped";
+    let summarizeError = null;
+    let failed = [];
+    const agent = container?.get?.("agent");
+    if (agent && typeof agent.call === "function") {
+      const res = await summarizeTestLog({
+        agent,
+        log: combined,
+        exitCode,
+        counts,
+      });
+      if (res.ok) {
+        summarized = "ok";
+        failed = res.failed;
+        // Merge failed[] into the tool-recorded entry
+        flowManager.setTestSummary({ failed }, { baseline, mode: "fallback" });
+      } else {
+        summarized = "failed";
+        summarizeError = res.reason;
+      }
+    }
 
     const result = {
       scope,
       command,
       exitCode,
       logPath: path.relative(root, logPath),
-      summary,
+      summary: { ...counts, exitCode, ...(failed.length ? { failed } : {}) },
+      summarized,
+      baseline,
     };
-    if (exitCode !== 0) {
+    if (summarizeError) result.summarizeError = summarizeError;
+
+    // REQ-11: baseline mode treats non-zero exitCode as a normal baseline recording
+    // (we explicitly want to capture pre-existing failures). Only the head-mode
+    // `flow run tests` surfaces TESTS_FAILED as an error to the caller.
+    if (exitCode !== 0 && !baseline) {
       const err = new Error(`tests failed with exit code ${exitCode}`);
       err.code = "TESTS_FAILED";
       err.data = result;
@@ -92,12 +136,6 @@ export class RunTestsCommand extends FlowCommand {
   }
 }
 
-/**
- * Resolve the concrete test command string for the given scope.
- *
- * @param {{ root: string, config: object, scope: "task"|"parent" }} args
- * @returns {string|null}
- */
 function resolveTestCommand({ root, config, scope }) {
   const explicit = config?.commands?.test?.[scope];
   if (explicit) return explicit;

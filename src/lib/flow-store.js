@@ -291,10 +291,17 @@ export class FlowStore {
   }
 
   setTestSummary(summary, opts) {
+    const target = opts?.baseline ? "baseline" : "summary";
+    const mode = opts?.mode ?? "replace";
     this.mutate((state) => {
       const scope = resolveMutationScope(state, opts);
       if (!scope.test) scope.test = {};
-      scope.test.summary = summary;
+      if (mode === "fallback") {
+        const existing = scope.test[target] || {};
+        scope.test[target] = { ...existing, failed: summary.failed };
+      } else {
+        scope.test[target] = summary;
+      }
     });
   }
 

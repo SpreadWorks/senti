@@ -1,0 +1,120 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "invalid development type \"\" (expected one of: feature, bugfix, refactor, docs, chore, test, other); missing section: ## Scope Verification; missing section: ## Impact on Existing Features",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T23:27:58.493Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: avoiding false FAIL by comparing head failures against baseline failures.; Unambiguous Requirements — Most requirements are stated with concrete MUST/MUST NOT conditions and explicit behaviors.; Complete Context — Key requirements include trigger context (e.g., baseline missing, prepare timing) and expected system behavior.; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets are present in the draft content.; Prioritize Requirements — There are many requirements, but no explicit priority ordering is defined.; Impact on Existing Features — A dedicated impact section explicitly describes affected features, schema changes, deletions, and fallback behavior.; Present Recommendations with Reasoning — Q&A records decisions but does not consistently present concise recommended answers with explicit basis (docs/guardrails/code patterns).; Explore Before Asking — The draft shows prior code/context exploration (specific functions/files and observed behavior) before question framing.; Proactively Raise Related Implications — It proactively raises implications such as fallback behavior, active-flow compatibility, performance tradeoffs, and rebase risk.; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation of brainstorming vs decision mode is shown before evaluating alternatives.; Capture Digressions in draft.md — Digressions and decision changes are captured in the draft (e.g., withdrawn Q5, changed approach in Q3/Q7).; Draft Stays at Requirements Level — Draft includes implementation-level details (file-level edits, function names, step-by-step execution design) beyond pure requirements level.; Backward-Compatible CLI Interface — No existing command/option meaning is removed; a new opt-in flag is introduced, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T23:28:53.839Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays focused on one concern: preventing false FAIL by baseline-aware diffing in gate-impl.; Unambiguous Requirements — Several requirement statements remain non-verifiable/vague (e.g., qualitative wording like short reasons or possible speed effects).; Complete Context — Not all requirements are written as clear trigger-condition plus expected shall behavior pairs.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present.; Prioritize Requirements — There are more than three requirements/constraints, but no explicit priority order is defined.; Impact on Existing Features — A dedicated impact section explicitly lists affected features and fallback behavior.; Present Recommendations with Reasoning — Q&A mostly records decisions; it does not consistently lead with recommended answers plus explicit basis (docs/guardrails/code patterns).; Explore Before Asking — The draft references concrete existing code paths and observed behavior, indicating prior exploration.; Proactively Raise Related Implications — It proactively raises related implications such as rebase risk, fallback behavior, and performance tradeoffs.; Confirm Brainstorm vs. Decision Before Critiquing — The thread is handled as explicit decision-making with approvals rather than critiquing brainstorming ideas.; Capture Digressions in draft.md — Digressions and withdrawn topics are captured in the draft (e.g., Q5 withdrawal and out-of-scope items).; Draft Stays at Requirements Level — The draft includes implementation-level detail (file paths, function names, call flow), exceeding pure requirements level.; Backward-Compatible CLI Interface — It adds a new opt-in flag and fallback behavior without removing/changing existing CLI semantics.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T23:29:21.595Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: avoiding false FAILs via baseline-vs-head test diff awareness.; Unambiguous Requirements — Requirements are mostly stated as verifiable conditions with concrete behaviors and data expectations.; Complete Context — Several requirements use only 'shall' statements without explicit When/If trigger context.; No Hardcoded Secrets — No source code secrets or hardcoded credentials are present; this draft is requirements text.; Prioritize Requirements — More than three requirements are explicitly prioritized as P1/P2/P3.; Impact on Existing Features — Impact on existing features is explicitly documented in a dedicated section.; Present Recommendations with Reasoning — Each Q&A item presents a recommendation/conclusion with concise rationale.; Explore Before Asking — Whether docs/code were explored before asking cannot be verified from the draft text alone.; Proactively Raise Related Implications — Related implications are proactively addressed (fallback behavior, baseline staleness, scope splits).; Confirm Brainstorm vs. Decision Before Critiquing — The draft explicitly confirms decision mode and not brainstorming before critique/comparison.; Capture Digressions in draft.md — A digression is explicitly captured and resolved in Q5.; Draft Stays at Requirements Level — Draft includes implementation-level details (e.g., external agent choice and `agent.call()` pattern) beyond pure requirements level.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is specified, so migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T23:30:43.112Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T23:32:26.980Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T23:32:38.266Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 160: unchecked task/question (- [ ] agent 要約の prompt で failed test の reason をどの程度切り詰めるか（例: 200 文字）。実装時に決定); line 161: unchecked task/question (- [ ] skill fallback の JSON 組立プロンプトを SKILL.md に inline するか、partial ファイル化するか。実装時に判断)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T23:34:41.235Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec内容はbaseline比較で誤判定を防ぐという単一の課題に収束している。; Unambiguous Requirements — REQ/ACは多くが条件・出力・保存先を具体化しており検証可能。; Complete Context — REQ-10はWhen/If条件と期待動作の対が明示されておらず文脈が不完全。; No Hardcoded Secrets — APIキー等の秘密情報を直書きする記述はない。; No Silent Error Swallowing — agent要約失敗時は`summarized:\"failed\"`で明示し、黙って破棄する設計ではない。; Prioritize Requirements — 要件が10件あるが優先順位の定義がない。; Impact on Existing Features — 既存gate挙動への影響（baseline未取得時フォールバック等）が明示されている。; Bounded Resource Usage — ログ要約処理やfailed reason長などの上限値が明示されておらず、資源使用境界が未確定。; Changes Require Test Coverage — 新規/変更機能に対するテスト対象と受け入れ基準が記載されている。; Spec Includes Test Strategy — ACと対象テストファイルにより、何をどう検証するかの方針が示されている。; Synthesize Draft, Do Not Copy — 元ドラフト本文が提示されておらず、要約か転載かを比較判定できない。; Record Unresolved Points as Open Questions — 未確定事項をOpen Questionsに分離しており、確定値として捏造していない。; Include 'Why This Approach' Rationale — Design PrinciplesとAlternatives Consideredで採用理由が説明されている。; Do Not Modify Existing Tests Without Approval — 既存テストの削除・無断改変を要求する記述はなく、主に追加/更新対象を定義している。; Backward-Compatible CLI Interface — 既存コマンド/オプションの意味変更や削除は記載されず、主に`--baseline`追加である。; Exit Code Contract — 要約失敗時に例外を投げない要件はあるが、失敗時の非0終了コード契約が明示されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T23:35:24.609Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: preventing false gate failures via baseline-vs-head test result comparison.; Unambiguous Requirements — Requirements are mostly measurable with explicit triggers, expected outputs, schemas, limits, and file/command targets.; Complete Context — Requirements consistently pair trigger conditions (When) with expected behavior (shall).; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are specified.; No Silent Error Swallowing — Error states are surfaced via structured fields (e.g., summarized=\"failed\") and fallback handling rather than being discarded silently.; Prioritize Requirements — Requirements are explicitly prioritized into must/should/nice-to-have groups.; Impact on Existing Features — Impacts on current behavior are described, including fallback to current behavior when baseline is missing and removal of old parsers.; Bounded Resource Usage — Bounds are defined for failed[] and reason length, but no explicit upper bound is defined for test log size/input processing in the new summarization path.; Changes Require Test Coverage — Test coverage is included via dedicated test targets and acceptance criteria for new/changed behavior.; Spec Includes Test Strategy — Acceptance criteria and unit test targets define what to test and how to validate behavior.; Synthesize Draft, Do Not Copy — Cannot verify whether content was synthesized vs copied because the original draft source is not provided.; Record Unresolved Points as Open Questions — Unresolved items are explicitly recorded in an Open Questions section instead of being treated as finalized facts.; Include 'Why This Approach' Rationale — Rationale is provided through design principles and alternatives considered with rejection/adoption reasons.; Do Not Modify Existing Tests Without Approval — Spec adds/updates tests but does not propose deleting or modifying existing tests without approval.; Backward-Compatible CLI Interface — CLI changes are additive (new --baseline flag) and no existing command/option meaning is removed without migration.; Exit Code Contract — REQ-3 explicitly permits exit code 0 when agent summarization fails, which conflicts with non-zero-on-error contract.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-21T23:36:44.129Z"
+    },
+    {
+      "step": "implement",
+      "reason": "template-merger.test.js 'returns layers in priority order' fails on this branch AND on main (pre-existing)",
+      "trigger": "full npm test during implement phase",
+      "resolution": "not fixed in this spec — pre-existing failure unrelated to spec 209 scope (template rendering, not test result handling)",
+      "taskId": null,
+      "timestamp": "2026-04-22T00:00:13.723Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/get-test-result.test.js:0: existing line modified/deleted in test file (removed=83, added=0); tests/unit/flow/test-log-parser.test.js:0: existing line modified/deleted in test file (removed=49, added=0); tests/unit/flow/test-parser-loader.test.js:0: existing line modified/deleted in test file (removed=78, added=0)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T00:04:41.776Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Most scoped changes are present, but at least two spec requirements are not fully met: REQ-9 does not reject non-string failed[].reason (it coerces to \"\"), and REQ-11 is not fully satisfied because run-tests still throws TESTS_FAILED on exitCode!=0 instead of treating test-fail baseline capture as non-fatal baseline recording flow.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T00:06:41.863Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — ほとんどの要件は実装済みだが、`set-test-summary` で `failed[].reason` が 500 文字超過時に `TEST_SUMMARY_INVALID` で拒否せず切り詰めて受理しており、REQ-9 の『違反時は非0終了』を満たしていないため。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T00:07:47.092Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: tests/unit/flow/get-test-result.test.js:0: existing line modified/deleted in test file (removed=83, added=0); tests/unit/flow/test-log-parser.test.js:0: existing line modified/deleted in test file (removed=49, added=0); tests/unit/flow/test-parser-loader.test.js:0: existing line modified/deleted in test file (removed=78, added=0)\n  attempt 2: REQ-SPEC — Most scoped changes are present, but at least two spec requirements are not fully met: REQ-9 does not reject non-string failed[].reason (it coerces to \"\"), and REQ-11 is not fully satisfied because run-tests still throws TESTS_FAILED on exitCode!=0 instead of treating test-fail baseline capture as non-fatal baseline recording flow.\n  attempt 3: REQ-SPEC — ほとんどの要件は実装済みだが、`set-test-summary` で `failed[].reason` が 500 文字超過時に `TEST_SUMMARY_INVALID` で拒否せず切り詰めて受理しており、REQ-9 の『違反時は非0終了』を満たしていないため。\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-22T00:08:12.380Z"
+    },
+    {
+      "step": "merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-04-22T00:24:05.541Z"
+    }
+  ]
+}

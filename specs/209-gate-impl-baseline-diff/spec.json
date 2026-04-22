@@ -1,0 +1,110 @@
+{
+  "goal": "gate-impl AI 評価器が base branch 既存の test failure を誤 FAIL 判定する問題を解消する。flow 開始直後に baseline を取得し、gate-impl では baseline と head の structured summary を比較することで、spec 起因の test 変化のみを評価対象にする。",
+  "scope": {
+    "in": [
+      "flow run tests --baseline フラグの追加",
+      "tool 実測 + 外部 agent 要約 + skill fallback の test 結果構造化パイプライン",
+      "buildImplCheckPrompt を生ログから structured summary (baseline + head) に切替",
+      "test.summary / test.baseline スキーマに failed[] を追加",
+      "skill /sdd-forge.flow の prepare 後に --baseline 自動実行する手順追加",
+      "旧 test-log-parser / test-parser-loader / get-test-result の削除"
+    ],
+    "out": [
+      "テストコマンド動的発見 (board 01be)",
+      "config.commands.test の task/parent 粒度見直し (board 58ff)",
+      "prompt size 上限の config 化（structured summary 採用で問題縮小）"
+    ]
+  },
+  "constraints": [
+    "MUST NOT: base branch で実際にテストを走らせる",
+    "MUST: config.commands.test.parent 設定済みを前提とする",
+    "MUST: exitCode と tool 測定 counts は tool subprocess 実測値を使用し spec 198 tool monopoly を維持",
+    "MUST: structured summary の failed[] は agent 要約 or skill fallback 経由でのみ書き込まれる",
+    "MUST: alpha 版ポリシーに従い旧フォーマットの互換コードは削除する"
+  ],
+  "design_principles": [
+    "tool は実測、agent は要約、skill は調停 — 責務を 3 層に分離",
+    "外部 agent に要約を任せることで実装中の skill AI のバイアスを遮断する",
+    "baseline と head は対称的に扱う（同一スキーマ・同一コマンド・保存先キーのみ違う）",
+    "baseline 未取得 flow は警告付きフォールバックで現行挙動に退避する"
+  ],
+  "overview": {
+    "modules": [
+      { "text": "src/flow/lib/run-tests.js — --baseline フラグ + agent 要約ステップを追加" },
+      { "text": "src/flow/lib/summarize-test-log.js (new) — agent.call() 経由で log を JSON 要約、スキーマ検証・境界値適用" },
+      { "text": "src/flow/lib/set-test-summary.js — --json / --mode fallback / --baseline 対応、failed[] バリデーション" },
+      { "text": "src/flow/lib/run-gate.js — buildImplCheckPrompt を structured summary 受け取りに書き換え、baseline 未取得時の警告" },
+      { "text": "src/lib/flow-store.js — setTestSummary に baseline / mode オプション追加" },
+      { "text": "src/flow/registry.js — run tests --baseline、set test-summary --json/--mode/--baseline を登録" },
+      { "text": "src/templates/skills/sdd-forge.flow/SKILL.md — prepare 後に --baseline 自動実行する手順 B.5 追加" },
+      { "text": "src/flow/lib/get-test-result.js / test-log-parser.js / test-parser-loader.js (削除) — structured summary で代替" }
+    ],
+    "data_flow": [
+      { "text": "flow prepare → skill が flow run tests --baseline → subprocess 実測 → logs/baseline-test-output.log + exitCode + counts 保存 → agent.call() で failed[] 要約 → test.baseline に統合記録" },
+      { "text": "implement 完了後 → flow run tests → logs/test-output.log + test.summary に同様の経路で記録" },
+      { "text": "flow run gate --phase task-impl → buildImplCheckPrompt(spec, diff, {baseline, summary}, reqIds) → 差集合ルール付き prompt を AI 評価器に投入" },
+      { "text": "agent 要約失敗時: envelope.summarized='failed' → skill が Bash で log 読み → flow set test-summary --mode fallback --json で failed[] 補填" }
+    ],
+    "decisions": [
+      { "text": "E-2b 採用: tool 実測 + 外部 agent 要約 + skill fallback。E-1 (skill 主導) は実装バイアスが載り、E-2a (agent 実行) は shell 実行対応 agent インフラが必要で範囲外" },
+      { "text": "入力ログは agent.call 前に末尾 256KB に切り詰め。failed[] 100 件、reason 500 文字上限" },
+      { "text": "baseline と head は同一スキーマ・同一保存経路、target key (summary / baseline) のみ切り替え" },
+      { "text": "fallback モードは failed[] のみ書き込み、exitCode と counts は tool 実測値を保持" },
+      { "text": "baseline 未取得時は gate-impl が warnings に 'baseline not captured' を追加して head のみ評価にフォールバック" }
+    ]
+  },
+  "background": "gate-impl の buildImplCheckPrompt は head の test-output.log と test.summary のみを AI に渡し、baseline と比較する仕組みを持たなかった。このため guardrail 'impl-test-conflict-escalation' が base 既存の failure を誤って『spec が壊した』と判定し、spec 199 で実害が確認された。本 spec は baseline snapshot の取得と gate-impl への構造化 JSON 投入により、この誤 FAIL を排除する。",
+  "requirements": [
+    { "id": "REQ-1", "desc": "flow run tests 実行時に subprocess で実測し logs/test-output.log (--baseline 時は baseline-test-output.log) に保存、exitCode と builtin parser の counts を記録する", "priority": "must" },
+    { "id": "REQ-2", "desc": "flow run tests のログ保存後に summarizeTestLog を呼び agent.call() 経由で failed[] を取得、スキーマ検証後 test.summary/test.baseline に保存する。入力ログは 256KB、reason は 500 文字、failed[] は 100 件に制限する", "priority": "must" },
+    { "id": "REQ-3", "desc": "agent.call() 失敗時は envelope に summarized='failed' + 理由を設定し、flow run tests プロセス自体は致命エラーにしない（exit は本来のテスト結果に従う）", "priority": "should" },
+    { "id": "REQ-4", "desc": "summarized='failed' 時は skill が log を読み JSON 要約を組み立てて flow set test-summary --mode fallback で失敗リストを保存、exitCode と counts は上書きされない", "priority": "should" },
+    { "id": "REQ-5", "desc": "flow run tests --baseline 指定時は保存先キーを test.baseline にし、exitCode の tool monopoly lock を summary と baseline で独立適用する", "priority": "must" },
+    { "id": "REQ-6", "desc": "skill /sdd-forge.flow が flow prepare 完了後に flow run tests --baseline を自動実行し、失敗時は警告を出して flow を継続する", "priority": "must" },
+    { "id": "REQ-7", "desc": "buildImplCheckPrompt は従来の生ログセクションを削除し ## Baseline Test Results と ## Head Test Results の 2 セクションに structured JSON を挿入、差集合ルール説明を含める", "priority": "must" },
+    { "id": "REQ-8", "desc": "test.baseline 未記録のまま gate-impl 実行時は evaluations は head のみで行い artifacts.warnings に 'baseline not captured' を追加する、gate の合否判定ロジックは baseline 有無で変えない", "priority": "should" },
+    { "id": "REQ-9", "desc": "set-test-summary のスキーマ検証で failed[] 各要素は id 非空 1〜200 文字 + reason 文字列 (最大 500 文字) を満たす、違反時は TEST_SUMMARY_INVALID で非 0 終了する", "priority": "should" },
+    { "id": "REQ-10", "desc": "旧 get-test-result.js / test-log-parser.js / test-parser-loader.js および preset 配下の test-parser.js を削除する (alpha 版ポリシー)", "priority": "nice-to-have" },
+    { "id": "REQ-11", "desc": "baseline 取得処理で致命エラー発生時は CLI が envelope で error を返し skill は警告表示後 flow を継続、テスト実行失敗 (exitCode != 0) は致命エラーではなく正常な baseline として記録する", "priority": "should" }
+  ],
+  "acceptance_criteria": [
+    "flow run tests --baseline 実行で logs/baseline-test-output.log が作成され test.baseline に exitCode/counts/failed[]/summarized が記録される",
+    "flow run tests (フラグなし) で test.summary に同様の構造で記録される",
+    "agent 不在環境で flow run tests を実行すると envelope の summarized が 'failed' となり例外にならず終了する",
+    "summarized='failed' 状態で skill fallback (flow set test-summary --mode fallback --json) で failed[] を書き込むと exitCode/counts は変更されず failed[] だけ更新される",
+    "failed[] の id を空文字にすると CLI が非 0 終了し TEST_SUMMARY_INVALID エラーになる",
+    "test.baseline と test.summary 両方が揃った状態で gate-impl 実行時に prompt に 2 セクションの JSON が挿入され差集合ルールが示される",
+    "test.baseline 未記録状態で gate-impl 実行時に warnings に 'baseline not captured' が含まれ gate 結果は head のみで評価される",
+    "旧 get-test-result.js / test-log-parser.js / test-parser-loader.js が削除されている",
+    "skill SKILL.md の prepare ステップに --baseline 自動実行の指示 (B.5) が含まれる"
+  ],
+  "clarifications": [
+    { "q": "baseline は base branch で取るか feature branch で取るか", "a": "feature branch prepare 直後 (= base branch と同一コミット状態) で取る。制約『base branch で実行しない』に反しない" },
+    { "q": "agent 要約失敗時はどうするか", "a": "skill が Bash で log を読み JSON を組み立てて flow set test-summary --mode fallback で書き込む" },
+    { "q": "gate-impl は baseline 未取得時にどう動くか", "a": "warnings[] に 'baseline not captured' を付けて head のみで従来通り評価 (機能無効を可視化しつつ既存 flow を破壊しない)" }
+  ],
+  "alternatives_considered": [
+    { "option": "A: 現状 + baseline 生ログ (log 2 本投入)", "reason": "prompt 最大 1MB に肥大し preset-specific parser の将来的必要性も残るため却下" },
+    { "option": "B: tool 実行 + skill AI が要約", "reason": "skill AI は実装中の文脈を持つため要約にバイアスが載るため却下" },
+    { "option": "C (E-2a): 外部 agent がテスト実行まで担う", "reason": "agent.call() 経由の shell 実行サポートが必要で下層インフラ改修が本 spec の範囲を超えるため却下" },
+    { "option": "D (E-2b 採用): tool 実行 + 外部 agent 要約 + skill fallback", "reason": "既存の agent.call() パターンを再利用、tool monopoly を exitCode レベルで維持、AI のバイアス経路を遮断できるため採用" }
+  ],
+  "open_questions": [
+    "agent 要約 prompt で failed test reason の切り詰め長 (現状 500 文字) の適正値",
+    "skill fallback の JSON 組立プロンプトを SKILL.md inline か partial ファイル化するか"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/run-tests.js",
+    "src/flow/lib/summarize-test-log.js",
+    "src/flow/lib/set-test-summary.js",
+    "src/flow/lib/run-gate.js",
+    "src/lib/flow-store.js",
+    "src/flow/registry.js",
+    "src/templates/skills/sdd-forge.flow/SKILL.md"
+  ],
+  "authorized_test_modifications": [
+    { "path": "tests/unit/flow/get-test-result.test.js", "reason": "REQ-10: obsolete test (get-test-result.js deleted per alpha policy)" },
+    { "path": "tests/unit/flow/test-log-parser.test.js", "reason": "REQ-10: obsolete test (test-log-parser.js deleted per alpha policy)" },
+    { "path": "tests/unit/flow/test-parser-loader.test.js", "reason": "REQ-10: obsolete test (test-parser-loader.js deleted per alpha policy)" }
+  ]
+}

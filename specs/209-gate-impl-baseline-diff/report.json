@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/209-gate-impl-baseline-diff/draft.md         | 116 +++++++\n specs/209-gate-impl-baseline-diff/flow.json        | 386 +++++++++++++++++++++\n specs/209-gate-impl-baseline-diff/issue-log.json   | 120 +++++++\n specs/209-gate-impl-baseline-diff/qa.md            |   9 +\n specs/209-gate-impl-baseline-diff/report.json      |  64 ++++\n specs/209-gate-impl-baseline-diff/review.md        |  41 +++\n specs/209-gate-impl-baseline-diff/spec.json        | 110 ++++++\n specs/209-gate-impl-baseline-diff/spec.md          | 173 +++++++++\n specs/209-gate-impl-baseline-diff/tests/README.md  |  22 ++\n .../tests/build-impl-check-prompt.test.js          |  69 ++++\n .../tests/run-tests-baseline.test.js               | 123 +++++++\n .../tests/set-test-summary-failed.test.js          | 125 +++++++\n .../tests/summarize-test-log.test.js               | 115 ++++++\n src/flow/lib/get-test-result.js                    |  90 -----\n src/flow/lib/run-gate.js                           |  42 ++-\n src/flow/lib/run-tests.js                          | 108 ++++--\n src/flow/lib/set-test-summary.js                   | 147 ++++++--\n src/flow/lib/summarize-test-log.js                 | 113 ++++++\n src/flow/lib/test-log-parser.js                    |  33 --\n src/flow/lib/test-parser-loader.js                 |  31 --\n src/flow/registry.js                               |  29 +-\n src/lib/flow-store.js                              |   9 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |   7 +\n tests/unit/flow/get-test-result.test.js            |  83 -----\n tests/unit/flow/test-log-parser.test.js            |  49 ---\n tests/unit/flow/test-parser-loader.test.js         |  78 -----\n 26 files changed, 1843 insertions(+), 449 deletions(-)",
+      "commits": [
+        "feat: feature/209-gate-impl-baseline-diff",
+        "chore: record finalize issue-log",
+        "chore: add retro and report",
+        "feat: feature/209-gate-impl-baseline-diff",
+        "review: apply approved proposals (failed_count, STATUS template, baseline warning constant)",
+        "wip: set-test-summary rejects reason exceeding 500 chars (REQ-9)",
+        "wip: tighten REQ-9 validation, baseline mode allows non-zero exitCode",
+        "wip: populate spec.json with authorized_test_modifications",
+        "wip: spec 209 implementation for gate-impl"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 4,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 347231,
+      "output": 13511,
+      "cacheRead": 131328,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 315405,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 96578
+        },
+        {
+          "phase": "gate",
+          "durationMs": 91071
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 55708
+        },
+        {
+          "phase": "review",
+          "durationMs": 72048
+        }
+      ]
+    },
+    "tests": {
+      "unit": 4,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 4
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/209-gate-impl-baseline-diff\n    chore: record finalize issue-log\n    chore: add retro and report\n    feat: feature/209-gate-impl-baseline-diff\n    review: apply approved proposals (failed_count, STATUS template, baseline warning constant)\n    wip: set-test-summary rejects reason exceeding 500 chars (REQ-9)\n    wip: tighten REQ-9 validation, baseline mode allows non-zero exitCode\n    wip: populate spec.json with authorized_test_modifications\n    wip: spec 209 implementation for gate-impl\n    26 files changed, 1843 insertions(+), 449 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 4\n    issue-log ................... 1\n    agent calls ................. 11\n    input tokens ................ 347,231\n    output tokens ............... 13,511\n    cache-read tokens ........... 131,328\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 315.4s\n      gate-draft ................ 96.6s\n      gate ...................... 91.1s\n      gate-impl ................. 55.7s\n      review .................... 72.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 4  integration 0  acceptance 0  total 4"
+}

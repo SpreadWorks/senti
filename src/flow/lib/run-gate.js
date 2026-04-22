@@ -22,7 +22,6 @@ import { container } from "../../lib/container.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
 import { loadSpecJson } from "../../lib/spec-json.js";
-import { loadTestEvidence } from "./get-test-result.js";
 import {
   VALID_GATE_PHASES,
   VALID_GATE_LEVELS,
@@ -808,8 +807,12 @@ export function updateGateRetryCounter(ctx, result) {
 // Task-impl / integration: requirements check
 // ---------------------------------------------------------------------------
 
+const BASELINE_MISSING_WARNING = "baseline not captured";
+
 function buildImplCheckPrompt(specText, diff, testEvidence, knownIds) {
-  const hasEvidence = testEvidence && (testEvidence.summary || testEvidence.log);
+  const baseline = testEvidence?.baseline ?? null;
+  const head = testEvidence?.summary ?? null;
+  const hasAnyEvidence = Boolean(baseline || head);
   const lines = [
     "You are an implementation compliance checker.",
     "Check whether each spec requirement has been implemented in the diff.",
@@ -826,10 +829,19 @@ function buildImplCheckPrompt(specText, diff, testEvidence, knownIds) {
     "",
   ];
 
-  if (hasEvidence) {
+  if (hasAnyEvidence) {
     lines.push(
-      "Use the Test Execution Evidence section to verify requirements that refer to test execution results.",
+      "Use the Test Results sections to verify requirements about test execution.",
+      "Baseline-vs-head differential rule:",
+      "- escalate or FAIL only when head.failed contains an id not present in baseline.failed.",
+      "- ids appearing in both baseline.failed and head.failed are pre-existing and must NOT be treated as spec-induced breakage.",
+      "- ids only in baseline.failed (resolved) are a positive side-effect.",
     );
+    if (!baseline) {
+      lines.push(
+        `WARNING: ${BASELINE_MISSING_WARNING}. Evaluate head-only; do NOT infer pre-existing vs new without baseline data.`,
+      );
+    }
   }
 
   lines.push(
@@ -844,14 +856,11 @@ function buildImplCheckPrompt(specText, diff, testEvidence, knownIds) {
     diff,
   );
 
-  if (hasEvidence) {
-    lines.push("", "## Test Execution Evidence");
-    if (testEvidence.summary) {
-      lines.push("Test summary: " + JSON.stringify(testEvidence.summary));
-    }
-    if (testEvidence.log) {
-      lines.push("", "Test output:", testEvidence.log);
-    }
+  if (baseline) {
+    lines.push("", "## Baseline Test Results", JSON.stringify(baseline));
+  }
+  if (head) {
+    lines.push("", "## Head Test Results", JSON.stringify(head));
   }
 
   return lines.join("\n");
@@ -1139,7 +1148,13 @@ export class RunGateCommand extends FlowCommand {
     }
 
     const reqIds = extractRequirementIds(specText);
-    const testEvidence = loadTestEvidence(root, ctx.config, state);
+    const testEvidence = {
+      baseline: state?.test?.baseline ?? null,
+      summary: state?.test?.summary ?? null,
+    };
+    if (!testEvidence.baseline) {
+      unusedWarnings.push(BASELINE_MISSING_WARNING);
+    }
     const reqPrompt = buildImplCheckPrompt(specText, diff, testEvidence, reqIds);
     const reqResponse = await agent.call(reqPrompt, { commandId: "flow.spec.gate" });
     const reqResults = parseEvaluationResponse(reqResponse, reqIds);
@@ -1183,6 +1198,7 @@ export {
   checkSpecText,
   checkDraftText,
   buildGuardrailPrompt,
+  buildImplCheckPrompt,
   checkGuardrail,
 };
 

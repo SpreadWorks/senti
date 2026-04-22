@@ -132,11 +132,6 @@ export const FLOW_COMMANDS = {
       args: { positional: ["target"] },
       help: "Usage: sdd-forge flow get check <target>\n\nCheck a condition. Targets: dirty, gh, impl, finalize.",
     },
-    "test-result": {
-      helpKey: "flow.get.test-result",
-      command: () => import("./lib/get-test-result.js"),
-      help: "Usage: sdd-forge flow get test-result\n\nReturn test execution evidence: flow.json test summary and test output log.",
-    },
     prompt: {
       helpKey: "flow.get.prompt",
       requiresFlow: false,
@@ -295,14 +290,20 @@ export const FLOW_COMMANDS = {
     "test-summary": {
       helpKey: "flow.set.test-summary",
       command: () => import("./lib/set-test-summary.js"),
-      args: { options: ["--unit", "--integration", "--acceptance"] },
+      args: {
+        options: ["--unit", "--integration", "--acceptance", "--json", "--mode"],
+        flags: ["--baseline"],
+      },
       help: [
         "Usage: sdd-forge flow set test-summary [options]",
         "",
         "Options:",
-        "  --unit N          Number of unit tests",
-        "  --integration N   Number of integration tests",
-        "  --acceptance N    Number of acceptance tests",
+        "  --unit N          Number of unit tests (legacy count mode)",
+        "  --integration N   Number of integration tests (legacy count mode)",
+        "  --acceptance N    Number of acceptance tests (legacy count mode)",
+        "  --json <payload>  JSON payload { counts?, failed?, exitCode? } (spec 209)",
+        "  --mode <m>        replace (default) | fallback — fallback writes failed[] only",
+        "  --baseline        Target test.baseline instead of test.summary",
       ].join("\n"),
     },
   },
@@ -484,10 +485,13 @@ export const FLOW_COMMANDS = {
     tests: {
       helpKey: "flow.run.tests",
       command: () => import("./lib/run-tests.js"),
+      args: { flags: ["--baseline"] },
       help: [
-        "Usage: sdd-forge flow run tests",
+        "Usage: sdd-forge flow run tests [--baseline]",
         "",
-        "Execute the project's test suite and record results to flow.json test.summary.",
+        "Execute the project's test suite, capture logs, and record results.",
+        "Without --baseline: writes test.summary. With --baseline: writes test.baseline",
+        "(snapshot of pre-spec state, captured right after flow prepare).",
         "",
         "Scope inference:",
         "  task    when state.currentTaskId is set",
@@ -496,6 +500,9 @@ export const FLOW_COMMANDS = {
         "Command resolution:",
         "  1. config.commands.test.{task|parent}",
         "  2. package.json scripts inference",
+        "",
+        "After tool-measured capture, an external agent summarizes the log into",
+        "structured failed[]. Envelope contains `summarized: ok|failed|skipped`.",
       ].join("\n"),
     },
     // lint is a sub-task of the implement phase; it does not exclusively own the step.
