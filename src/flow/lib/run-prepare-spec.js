@@ -55,13 +55,6 @@ function nextIndex(root) {
   return max + 1;
 }
 
-function ensureClean(root) {
-  const status = runGitTrim(root, ["status", "--porcelain"]);
-  if (status.trim()) {
-    throw new Error("worktree is dirty. commit/stash before spec.");
-  }
-}
-
 function ensureBaseBranch(root, base) {
   try {
     runGitTrim(root, ["rev-parse", "--verify", base]);
@@ -143,12 +136,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
   async execute(ctx) {
     const { root, flowManager } = ctx;
 
-    // Dirty worktree check — abort early if uncommitted changes exist
-    const { dirty, dirtyFiles } = getWorktreeStatus(root);
-    if (dirty) {
-      throw new Error(`dirty worktree: ${dirtyFiles.join(", ")}`);
-    }
-
     const title = ctx.title || "";
     const base = ctx.base || "";
     const runIdArg = ctx.runId || "";
@@ -175,7 +162,17 @@ export class RunPrepareSpecCommand extends FlowCommand {
     const skipBranch = noBranch || inWorktree;
     const useWorktree = !skipBranch && useWorktreeFlag;
 
-    if (!dryRun) ensureClean(root);
+    // Dirty worktree only matters for the `git checkout -b` path: switching
+    // branches in-place would drag uncommitted changes into the new branch.
+    // `git worktree add` creates an isolated checkout from the base branch
+    // tip, and `skipBranch` only writes new files under specs/<idx>-<slug>/ —
+    // both cases leave existing dirty files untouched.
+    if (!dryRun && !skipBranch && !useWorktree) {
+      const { dirty, dirtyFiles } = getWorktreeStatus(root);
+      if (dirty) {
+        throw new Error(`dirty worktree: ${dirtyFiles.join(", ")}. commit/stash before spec, or use --worktree to isolate.`);
+      }
+    }
     if (!skipBranch) ensureBaseBranch(root, resolvedBase);
 
     const idx = String(nextIndex(root)).padStart(3, "0");
