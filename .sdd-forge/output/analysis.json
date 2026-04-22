@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-22T04:41:27.909Z",
+  "analyzedAt": "2026-04-22T09:14:52.433Z",
   "package": {
     "entries": [
       {
@@ -3172,12 +3172,13 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "dd479d710e4106a9224df3d6c445dfa4",
-        "lines": 406,
-        "mtime": "2026-04-21T09:34:26.440Z",
+        "hash": "890b67692b3cd0087c1c2c2ef2416c0b",
+        "lines": 421,
+        "mtime": "2026-04-22T09:14:51.361Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
+          "writeLastFinalizedPointer",
           "commitOrSkip",
           "resolveGitCommonDir",
           "assertGitWriteAccess",
@@ -3200,10 +3201,12 @@
           "../../lib/constants.js",
           "./base-command.js",
           "../registry.js",
-          "../../lib/container.js"
+          "../../lib/container.js",
+          "./run-report-show.js"
         ],
         "exports": [
           "finalizeOnError",
+          "writeLastFinalizedPointer",
           "commitOrSkip",
           "resolveGitCommonDir",
           "assertGitWriteAccess",
@@ -3216,21 +3219,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "summary": "Implements finalize flow execution, including preflight checks, step orchestration, commit handling, merge integration, and cleanup. It is the central post-implementation closure pipeline.",
-        "detail": "The module performs git write-access preflight by probing repository lockability and converts filesystem/git failures into structured preflight errors. Finalize behavior is organized by a step map and reusable sub-step executor that captures status and failure messages consistently. It supports commit-or-skip behavior, merge strategy resolution, optional issue-log updates, docs build hooks, and migration hook execution from spec-local scripts. Cleanup handles worktree and main-repo transitions with guarded logic for spec-only and standard modes. The exported command class validates mode/step/strategy inputs and executes selected or full finalize sequences.",
+        "summary": "Implements the flow finalize command lifecycle, including preflight checks, commit handling, merge behavior, and cleanup. It also records the last finalized spec pointer for later report retrieval.",
+        "detail": "This module centralizes finalize-time orchestration through reusable step execution helpers and a command class derived from the flow base command. It performs git preflight validation by resolving the git common directory and testing write access to guard against lock or permission failures early. The implementation supports selective step execution, strict merge strategy validation, and explicit skip paths such as spec-only mode or nothing-to-commit states. It runs post-commit actions, optional migration hooks, and enriches command results with diff statistics and summaries where available. Cleanup logic handles worktree and main-repo transitions and is wrapped in structured error handling to preserve flow status consistency.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-21T09:35:24.876Z",
+          "processedAt": "2026-04-22T09:15:15.783Z",
           "attempts": 1
         },
         "keywords": [
-          "finalize pipeline",
-          "preflight checks",
-          "step orchestration",
-          "worktree cleanup",
-          "post-commit hooks",
-          "merge finalize"
+          "finalize command",
+          "flow orchestration",
+          "preflight check",
+          "git write access",
+          "merge strategy",
+          "cleanup routine",
+          "post-commit hook",
+          "spec pointer"
         ]
       },
       {
@@ -3482,6 +3487,52 @@
           "slugify",
           "flow state",
           "scaffolding"
+        ]
+      },
+      {
+        "file": "src/flow/lib/run-report-show.js",
+        "hash": "33582603320ceba00bcdf4381177349d",
+        "lines": 87,
+        "mtime": "2026-04-22T09:14:51.361Z",
+        "className": "run-report-show",
+        "methods": [
+          "resolveLatestReportPath",
+          "readReportText",
+          "reportShowError"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path",
+          "../../lib/command.js"
+        ],
+        "exports": [
+          "resolveLatestReportPath",
+          "readReportText",
+          "default",
+          "POINTER_REL_PATH"
+        ],
+        "extends": "Command",
+        "usedBy": [
+          "src/flow/lib/run-finalize.js"
+        ],
+        "id": "3754ab40",
+        "summary": "Provides the flow report show command by resolving the latest finalized report path and printing report text. It validates pointer and report integrity with typed error codes.",
+        "detail": "The module defines a stable pointer location under `.sdd-forge` and uses it to find the most recently finalized spec directory. It throws categorized errors for missing pointer files, empty pointer content, missing report files, malformed JSON, and absent text payloads. Report loading is intentionally strict: JSON parsing and schema-like checks are done before output. The command class writes only the `text` field to stdout for script-friendly behavior. On failure it emits a prefixed CLI error message to stderr and exits with a non-zero status.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-22T09:15:15.783Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "report show",
+          "latest report",
+          "pointer file",
+          "error code",
+          "JSON parse",
+          "stdout output",
+          "CLI command",
+          "failure handling"
         ]
       },
       {
@@ -4247,9 +4298,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "0b510f8d8857ab3212a5acf55cd05749",
-        "lines": 555,
-        "mtime": "2026-04-22T00:25:28.527Z",
+        "hash": "1a460873312b12bae15705ef6b01d89b",
+        "lines": 571,
+        "mtime": "2026-04-22T09:14:51.362Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4269,22 +4320,23 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Registers and orchestrates flow commands with lifecycle hooks for step status and issue-log side effects. It provides shared pre/post wrappers to keep command execution stateful and consistent.",
-        "detail": "This module wires command handlers into a single `FLOW_COMMANDS` registry and derives active phase context for dynamic gate step mapping. It wraps commands with `stepPre` and `stepPost` hooks that update flow step status while isolating failures in best-effort helper guards. It also appends gate outcomes or errors into issue logs and updates retry counters without breaking primary command execution when side writes fail. The design separates command behavior from orchestration mechanics so each command can focus on core logic. Error handling is explicit, with stderr diagnostics for skipped non-critical updates.",
+        "summary": "Defines the flow command registry and shared step-status wrappers used across flow operations. It standardizes phase derivation, status transitions, and issue-log side effects with guarded updates.",
+        "detail": "This module acts as the central registration point for flow subcommands, including help text and execution wiring. It derives active phase state and wraps status mutations in fault-tolerant helpers that log and rethrow update failures consistently. Pre-step and post-step hook factories encapsulate repeated step lifecycle patterns so individual commands can stay focused on business logic. It also contains guarded counters and retry-related updates for gate steps, reducing duplicated error handling in command implementations. The registry ties together command execution with cross-cutting telemetry-like updates to keep flow state and issue log synchronized.",
         "chapter": "project_structure",
-        "role": "controller",
+        "role": "config",
         "enrich": {
-          "processedAt": "2026-04-22T00:26:03.930Z",
+          "processedAt": "2026-04-22T09:15:15.783Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "lifecycle hooks",
+          "flow commands",
           "step status",
-          "issue log integration",
           "phase derivation",
-          "orchestration",
-          "flow runtime"
+          "hook wrapper",
+          "issue log",
+          "retry counter",
+          "execution wiring"
         ]
       },
       {
@@ -9011,10 +9063,10 @@
       }
     ],
     "summary": {
-      "total": 268,
-      "totalMethods": 843
+      "total": 269,
+      "totalMethods": 847
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-22T04:41:42.273Z"
+  "enrichedAt": "2026-04-22T09:15:15.783Z"
 }
