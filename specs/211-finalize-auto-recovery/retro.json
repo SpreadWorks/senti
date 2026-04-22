@@ -1,0 +1,98 @@
+{
+  "spec": "specs/211-finalize-auto-recovery/spec.json",
+  "date": "2026-04-22T10:38:41.864Z",
+  "requirements": [
+    {
+      "desc": "R1: worktree + squash route で merge 実行前に git fetch origin <base> && git rebase <base> を自動実行",
+      "status": "done",
+      "note": "worktree+squash 経路で `runPreSync` を merge 前に実行し、`git fetch <remote> <base>` 後に rebase を実行してから squash merge している。"
+    },
+    {
+      "desc": "R2: finalize 開始時に git rev-list --count base..feature == 0 なら preflight 停止 (reason: no-commits)",
+      "status": "done",
+      "note": "`runPreflightChecks` が `ahead===0` を検知して `reason:no-commits` を返し、`run-finalize` 本体で以降 step を全 skip・`status:failed` で早期 return している。`baseBranch/featureBranch/hasUncommitted` も含む。"
+    },
+    {
+      "desc": "R3: rebase 衝突時は git rebase --abort で原状復帰、結果に conflictFiles と recoveryHint を添えて停止",
+      "status": "done",
+      "note": "rebase 失敗時に `abortRebase()` を呼び、`conflictFiles` と `recoveryHint` を付けて失敗化。merge 失敗として後続 step は既存ロジックで `skipped due to merge failure` になる。"
+    },
+    {
+      "desc": "R4: 未コミット変更がある場合は preflight で reason: dirty-worktree を返して停止",
+      "status": "partial",
+      "note": "dirty 検知と `uncommittedFiles` 返却は実装済み。ただし `no-commits` 判定が先行するため、dirty かつ ahead=0 の場合は `dirty-worktree` ではなく `no-commits` が返る。"
+    },
+    {
+      "desc": "R5: 失敗結果の既存 status / message フィールドは維持、付加情報はフィールド追加",
+      "status": "done",
+      "note": "preflight 失敗・merge 失敗とも `status`/`message` を保持し、`reason`/`conflictFiles`/`recoveryHint` などは追加フィールドで拡張している。"
+    },
+    {
+      "desc": "R6: spec-only / PR route では R1/R3 の事前同期処理を実行しない",
+      "status": "done",
+      "note": "PR route は `runMerge` 冒頭で別経路に分岐し pre-sync を呼ばない。spec-only は `runPreSync` 内で `skipped: spec-only` となり fetch/rebase は実行しない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/211-finalize-auto-recovery/draft.md",
+      "change": "仕様運用ドキュメントの新規追加（R1-R6 実装要件そのものではない）。"
+    },
+    {
+      "file": "specs/211-finalize-auto-recovery/flow.json",
+      "change": "フロー状態・メトリクス記録ファイルの新規追加（運用メタデータ）。"
+    },
+    {
+      "file": "specs/211-finalize-auto-recovery/issue-log.json",
+      "change": "ゲート評価ログの新規追加（運用ログ）。"
+    },
+    {
+      "file": "specs/211-finalize-auto-recovery/qa.md",
+      "change": "QA テンプレート追加（実装要件外）。"
+    },
+    {
+      "file": "specs/211-finalize-auto-recovery/review.md",
+      "change": "コードレビュー記録の追加（実装要件外）。"
+    },
+    {
+      "file": "specs/211-finalize-auto-recovery/spec.json",
+      "change": "仕様定義ファイルの追加（成果物管理用途）。"
+    },
+    {
+      "file": "specs/211-finalize-auto-recovery/spec.md",
+      "change": "仕様書本文の追加（成果物管理用途）。"
+    },
+    {
+      "file": "specs/211-finalize-auto-recovery/tests/README.md",
+      "change": "spec 配下テスト説明文書の追加（実装要件外）。"
+    },
+    {
+      "file": "src/flow/commands/merge.js",
+      "change": "`runPreSync` の `usePr` / `skipped: \"pr-route\"` 分岐と `err.fetchFailed` 付与が追加されているが、要件R1-R6の必須仕様には直接含まれない。"
+    },
+    {
+      "file": "src/flow/lib/run-finalize.js",
+      "change": "preflight 失敗時に `result: \"preflight_failed\"` と `artifacts` を追加返却（R1-R6で明示されていない拡張）。"
+    },
+    {
+      "file": "tests/unit/lib/git-sync-helpers.test.js",
+      "change": "新規ユニットテスト追加（品質担保として妥当だが要件本文には未記載）。"
+    },
+    {
+      "file": "tests/unit/flow/commands/merge-pre-sync.test.js",
+      "change": "新規ユニットテスト追加（品質担保として妥当だが要件本文には未記載）。"
+    },
+    {
+      "file": "tests/unit/flow/run-finalize-early-stop.test.js",
+      "change": "新規ユニットテスト追加（品質担保として妥当だが要件本文には未記載）。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 5,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.92,
+    "notes": "R1/R2/R3/R5/R6 は実装差分で概ね満たされている。主なギャップは R4 の判定優先順で、dirty かつ no-commits 同時成立時に `dirty-worktree` が返らない点。加えて仕様運用ファイルや補助拡張（`result: preflight_failed` など）の未要求変更が含まれる。"
+  }
+}

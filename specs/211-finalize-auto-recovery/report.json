@@ -1,0 +1,75 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/211-finalize-auto-recovery/draft.md        |  49 ++\n specs/211-finalize-auto-recovery/flow.json       | 627 +++++++++++++++++++++++\n specs/211-finalize-auto-recovery/issue-log.json  | 146 ++++++\n specs/211-finalize-auto-recovery/qa.md           |   9 +\n specs/211-finalize-auto-recovery/review.md       |  41 ++\n specs/211-finalize-auto-recovery/spec.json       |  80 +++\n specs/211-finalize-auto-recovery/spec.md         | 108 ++++\n specs/211-finalize-auto-recovery/tests/README.md |  25 +\n src/flow/commands/merge.js                       |  48 +-\n src/flow/lib/run-finalize.js                     |  92 +++-\n src/lib/git-helpers.js                           |  76 ++-\n tests/unit/flow/commands/merge-pre-sync.test.js  | 106 ++++\n tests/unit/flow/run-finalize-early-stop.test.js  |  82 +++\n tests/unit/lib/git-sync-helpers.test.js          | 132 +++++\n 14 files changed, 1616 insertions(+), 5 deletions(-)",
+      "commits": [
+        "feat: feature/211-finalize-auto-recovery",
+        "fix: lift preflight status/reason to top-level result for R5 consistency",
+        "fix: surface pre-sync fetch failures instead of silently falling back",
+        "fix: surface git failures in new helpers instead of returning defaults",
+        "fix: spec.json schema compliance",
+        "gate-impl-staged: finalize auto-recovery impl"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 5,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.92,
+      "notes": "R1/R2/R3/R5/R6 は実装差分で概ね満たされている。主なギャップは R4 の判定優先順で、dirty かつ no-commits 同時成立時に `dirty-worktree` が返らない点。加えて仕様運用ファイルや補助拡張（`result: preflight_failed` など）の未要求変更が含まれる。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 2,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 724083,
+      "output": 23118,
+      "cacheRead": 261120,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 24,
+      "durationMs": 670361,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 159326
+        },
+        {
+          "phase": "gate",
+          "durationMs": 110568
+        },
+        {
+          "phase": "approval",
+          "durationMs": 11783
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 323795
+        },
+        {
+          "phase": "review",
+          "durationMs": 64889
+        }
+      ]
+    },
+    "tests": {
+      "unit": 15,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 15
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/211-finalize-auto-recovery\n    fix: lift preflight status/reason to top-level result for R5 consistency\n    fix: surface pre-sync fetch failures instead of silently falling back\n    fix: surface git failures in new helpers instead of returning defaults\n    fix: spec.json schema compliance\n    gate-impl-staged: finalize auto-recovery impl\n    14 files changed, 1616 insertions(+), 5 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 92%  (5 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 2\n    issue-log ................... 1\n    agent calls ................. 24\n    input tokens ................ 724,083\n    output tokens ............... 23,118\n    cache-read tokens ........... 261,120\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 670.4s\n      gate-draft ................ 159.3s\n      gate ...................... 110.6s\n      approval .................. 11.8s\n      gate-impl ................. 323.8s\n      review .................... 64.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 15  integration 0  acceptance 0  total 15"
+}

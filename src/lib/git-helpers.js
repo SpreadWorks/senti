@@ -5,7 +5,7 @@
  * Includes both read-only state queries and GitHub actions (e.g. issue comments).
  */
 
-import { runCmd, formatError } from "./process.js";
+import { runCmd, formatError, assertOk } from "./process.js";
 import { container } from "./container.js";
 
 /**
@@ -75,6 +75,80 @@ export function collectGitSummary(root, baseBranch) {
   const logRes = runGit(["log", "--format=%s", `${baseBranch}..HEAD`], { cwd: root });
   if (logRes.ok) commitMessages = logRes.stdout.trim().split("\n").filter(Boolean);
   return { diffStat, commitMessages };
+}
+
+/**
+ * Fetch a branch from a remote. Non-throwing: returns runGit's result envelope.
+ * @param {string} remote
+ * @param {string} branch
+ * @param {{cwd?: string}} [opts]
+ */
+export function fetchBranch(remote, branch, opts = {}) {
+  return runGit(["fetch", remote, branch], opts);
+}
+
+/**
+ * Run `git rebase <baseRef>`. Returns { ok: true } on success, or
+ * { ok: false, conflictFiles: string[], stderr: string } on conflict.
+ * Caller is responsible for calling abortRebase() on conflict.
+ * @param {string} baseRef
+ * @param {{cwd?: string}} [opts]
+ */
+export function rebaseOnto(baseRef, opts = {}) {
+  const res = runGit(["rebase", baseRef], opts);
+  if (res.ok) return { ok: true };
+  const statusRes = runGit(["diff", "--name-only", "--diff-filter=U"], opts);
+  const conflictFiles = statusRes.ok
+    ? statusRes.stdout.trim().split("\n").filter(Boolean)
+    : [];
+  return { ok: false, conflictFiles, stderr: res.stderr };
+}
+
+/** @param {{cwd?: string}} [opts] */
+export function abortRebase(opts = {}) {
+  return runGit(["rebase", "--abort"], opts);
+}
+
+/**
+ * Count commits reachable from head but not from base (`git rev-list --count base..head`).
+ *
+ * Throws (via assertOk) when git itself fails — e.g. unresolvable ref, not a repo —
+ * because those are programmer / environment errors that must be surfaced.
+ * A legitimate "no commits in range" yields `0` via stdout, not a failure.
+ *
+ * @param {string} base
+ * @param {string} head
+ * @param {{cwd?: string}} [opts]
+ * @returns {number}
+ */
+export function countCommitsBetween(base, head, opts = {}) {
+  const res = runGit(["rev-list", "--count", `${base}..${head}`], opts);
+  assertOk(res, `countCommitsBetween failed for ${base}..${head}`);
+  const n = parseInt(res.stdout.trim(), 10);
+  if (!Number.isFinite(n)) {
+    throw new Error(
+      `countCommitsBetween: unexpected non-numeric output for ${base}..${head}: ${JSON.stringify(res.stdout)}`,
+    );
+  }
+  return n;
+}
+
+/**
+ * List uncommitted (modified, added, untracked) files via `git status --porcelain`.
+ *
+ * Throws (via assertOk) when git itself fails. Empty output (no uncommitted files)
+ * is a success and yields an empty array.
+ *
+ * @param {{cwd?: string}} [opts]
+ * @returns {string[]}
+ */
+export function listUncommittedFiles(opts = {}) {
+  const res = runGit(["status", "--porcelain"], opts);
+  assertOk(res, "listUncommittedFiles failed");
+  return res.stdout
+    .split("\n")
+    .map((line) => line.slice(3).trim())
+    .filter(Boolean);
 }
 
 /**

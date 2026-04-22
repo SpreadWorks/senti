@@ -8,7 +8,7 @@
 import { runCmd, assertOk } from "../../lib/process.js";
 import path from "path";
 import { container } from "../../lib/container.js";
-import { isGhAvailable, runGit } from "../../lib/git-helpers.js";
+import { isGhAvailable, runGit, fetchBranch, rebaseOnto, abortRebase } from "../../lib/git-helpers.js";
 import { loadSpecJson } from "../../lib/spec-json.js";
 
 /**
@@ -186,6 +186,18 @@ function runMerge(ctx) {
   }
 
   if (worktree && mainRepoPath) {
+    const cfg = container.get("config");
+    const remote = resolveRemote(cfg);
+    const syncResult = runPreSync({ worktreePath: root, baseBranch, featureBranch, remote });
+    if (syncResult.ok === false) {
+      const err = new Error(
+        `Pre-merge rebase detected conflicts in ${syncResult.conflictFiles.join(", ")}. ` +
+          `Worktree has been restored. ${syncResult.recoveryHint}`,
+      );
+      err.conflictFiles = syncResult.conflictFiles;
+      err.recoveryHint = syncResult.recoveryHint;
+      throw err;
+    }
     runSquashMerge(["-C", mainRepoPath], `Run 'git rebase ${baseBranch}' in the worktree and retry finalize.`);
     return { strategy: "squash" };
   }
@@ -197,4 +209,36 @@ function runMerge(ctx) {
   return { strategy: "squash" };
 }
 
-export { runMerge, parseSpec, buildPrTitle, buildPrBody };
+/**
+ * Pre-merge sync: fetch base from remote and rebase the worktree's feature branch
+ * onto it. Runs only in worktree + squash route; PR route and spec-only mode skip.
+ *
+ * Returns one of:
+ *   { ok: true }                                            — rebase succeeded (or fast-forward / no-op).
+ *   { ok: false, conflictFiles: string[], recoveryHint }    — rebase conflicted; worktree restored via --abort.
+ *   { skipped: "pr-route" | "spec-only" }                   — not applicable to this route.
+ */
+function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin", usePr = false }) {
+  if (usePr) return { skipped: "pr-route" };
+  if (featureBranch && featureBranch === baseBranch) return { skipped: "spec-only" };
+
+  const fetchRes = fetchBranch(remote, baseBranch, { cwd: worktreePath });
+  if (!fetchRes.ok) {
+    const err = new Error(
+      `pre-merge fetch failed: git fetch ${remote} ${baseBranch} exited ${fetchRes.status}: ${fetchRes.stderr || fetchRes.stdout}`,
+    );
+    err.fetchFailed = true;
+    throw err;
+  }
+  const rebaseRef = `${remote}/${baseBranch}`;
+
+  const rebaseRes = rebaseOnto(rebaseRef, { cwd: worktreePath });
+  if (rebaseRes.ok) return { ok: true };
+
+  abortRebase({ cwd: worktreePath });
+  const recoveryHint =
+    `Run 'git rebase ${baseBranch}' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.`;
+  return { ok: false, conflictFiles: rebaseRes.conflictFiles, recoveryHint };
+}
+
+export { runMerge, parseSpec, buildPrTitle, buildPrBody, runPreSync };

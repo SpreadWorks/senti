@@ -1,0 +1,80 @@
+{
+  "goal": "finalize 段階で頻発する merge conflict (21 specs) と no-changes (13 specs) の定型失敗を自動復旧・早期検出し、手動介入を削減する。",
+  "scope": {
+    "in": [
+      "worktree モードの squash route で、base branch が feature の分岐点より進んでいる場合、finalize は base を feature に取り込んでから merge を試行する",
+      "base branch と feature branch の間に commit 差分がない状態で finalize が起動した場合、finalize は以降の step を実行せず失敗結果を返す",
+      "事前取り込み自体が衝突した場合、finalize は worktree を原状復帰し、衝突ファイルパス一覧と手動復旧手順テキストを失敗結果に添える",
+      "worktree に未コミット変更が残っている状態で finalize が起動した場合、finalize はその事実を含む失敗結果を返す"
+    ],
+    "out": [
+      "gate-impl 側の git-state 同期チェック（別 spec に分離）",
+      "PR ルートでの自動同期（PR head は remote 管理のため本 spec のローカル同期戦略ではカバーできない）",
+      "merge conflict の自動解決（手動ガイダンスに留める）"
+    ]
+  },
+  "constraints": [
+    "外部依存追加禁止。Node.js 組み込みモジュールと既存ヘルパーのみ使用する",
+    "finalize 結果フォーマットの既存基本フィールド (status, message) は外部契約として互換維持する",
+    "CLI インターフェース (sdd-forge flow run finalize のオプション) の意味変更はしない",
+    "事前取り込み / 差分検査で追加する git 操作は bounded (1 fetch, 1 rebase, 1 rev-list, 1 status)"
+  ],
+  "design_principles": [
+    "衝突処理の分岐を一箇所に集約する（事前同期で base を先取りし、squash merge 実行時点では衝突発生要因を排除する）",
+    "早期失敗: finalize 実行開始時点で差分ゼロ・未コミット変更などの前提条件違反を検出して停止する",
+    "情報性のある失敗結果: 失敗時は原因特定に必要な情報を結果オブジェクトに含める",
+    "既存失敗結果の呼び出し元は変更なく動作する（付加情報はフィールド追加のみ）"
+  ],
+  "overview": {
+    "modules": [
+      { "text": "src/lib/git-helpers.js: fetch / rebase / rebase --abort / rev-list / status ヘルパーの追加" },
+      { "text": "src/flow/commands/merge.js: squash merge 前に base を取り込む事前同期処理を追加。rebase 衝突時は abort + 構造化エラー" },
+      { "text": "src/flow/lib/run-finalize.js: preflight に no-changes / dirty-worktree 検知を追加" }
+    ],
+    "data_flow": [
+      { "text": "finalize 起動 → preflight (git write access 確認 + 差分チェック + dirty チェック) → 問題があれば即停止" },
+      { "text": "preflight OK → step1 commit → step2 merge (事前 fetch + rebase → squash merge → commit)" },
+      { "text": "step2 で失敗 → step3 sync / step4 cleanup は skip" }
+    ],
+    "decisions": [
+      { "text": "常に事前同期（merge 前に rebase）: 衝突処理を一箇所に集約" },
+      { "text": "衝突自動解決は行わず手動ガイダンスのみ: 意味判断が必要なため" },
+      { "text": "no-changes は preflight で早期検出: 待ち時間短縮" }
+    ]
+  },
+  "background": "issue-log 横断調査 (85 specs, 2026-04-18) で finalize 段階の同一原因の失敗が多数記録されており、いずれも resolution null で手動復旧に委ねられている。並行 spec 実行による base 先行で衝突、または flow.json 更新のみ / implement 未コミット状態で finalize が走り差分なしで失敗するケース。",
+  "requirements": [
+    { "id": "R1", "priority": "must", "desc": "worktree モードの squash route で finalize run が merge step を実行する際、merge step は事前に git fetch origin <baseBranch> と git rebase <baseBranch> を worktree で実行してから squash merge を行うこと" },
+    { "id": "R2", "priority": "must", "desc": "finalize run 開始時に git rev-list --count <baseBranch>..<featureBranch> == 0 の場合、preflight は以降の step を実行せず status: failed の結果を返すこと。結果には reason: no-commits, baseBranch, featureBranch, hasUncommitted を含めること" },
+    { "id": "R3", "priority": "should", "desc": "R1 の rebase が衝突した場合、merge step は git rebase --abort を実行して worktree を原状復帰し、status: failed, conflictFiles: string[], recoveryHint: string を含む結果を返すこと。後続 step (sync, cleanup) は skipped due to merge failure とすること" },
+    { "id": "R4", "priority": "nice-to-have", "desc": "finalize run 開始時に worktree で git status --porcelain が非空の場合、preflight は status: failed, reason: dirty-worktree, uncommittedFiles: string[] を含む結果を返すこと" },
+    { "id": "R5", "priority": "should", "desc": "上記すべての失敗ケースで、結果オブジェクトは既存の status および message フィールドを保持し、付加情報は新規フィールドとして追加すること" },
+    { "id": "R6", "priority": "should", "desc": "spec-only モード (featureBranch == baseBranch) と PR route (mergeStrategy: pr) では R1/R3 の事前同期処理は実行しないこと" }
+  ],
+  "acceptance_criteria": [
+    "worktree モードで base が 1 commit 進んだ状態から finalize を実行すると、rebase が透過的に成功し squash merge も成功する（自動テスト）",
+    "故意に衝突するファイル変更を base と feature 双方で行った状態で finalize を実行すると、worktree が rebase 前の状態に戻り、結果に conflictFiles と recoveryHint が含まれる（自動テスト）",
+    "feature branch に commit を追加せず finalize を実行すると、preflight で status: failed, reason: no-commits が返り、commit/merge step は実行されない（自動テスト）",
+    "worktree にステージされていない変更を残して finalize を実行すると、preflight で status: failed, reason: dirty-worktree が返る（自動テスト）",
+    "PR route では事前同期処理が呼び出されないことを確認（自動テスト）",
+    "既存の finalize 成功ケース（base 非先行、クリーン状態）が既存挙動と同じ成功ステータスを返すこと（既存テストが pass する）"
+  ],
+  "implementationTargets": [
+    "src/lib/git-helpers.js",
+    "src/flow/commands/merge.js",
+    "src/flow/lib/run-finalize.js",
+    "tests/"
+  ],
+  "clarifications": [
+    { "q": "merge conflict 自動復旧の発火条件は？", "a": "常に事前同期。merge step 開始時に worktree で git fetch origin <base> && git rebase <base> を必ず試行する" },
+    { "q": "事前同期が衝突した場合は？", "a": "git rebase --abort で worktree を原状復帰。失敗結果に衝突ファイル一覧と手動復旧手順を含め、後続 step は skip" },
+    { "q": "no-changes の検知方法は？", "a": "preflight で base と feature 間の git rev-list --count <base>..<feature> を評価。0 なら早期停止" },
+    { "q": "後方互換性の扱いは？", "a": "結果オブジェクトの status / message 基本フィールドは維持。付加情報はフィールド追加で導入" }
+  ],
+  "alternatives_considered": [
+    { "option": "衝突時のみ rebase リトライ", "reason": "squash merge 後の worktree 状態から rebase に移行する分岐が複雑化。却下" },
+    { "option": "separate pre-flight 確認プロンプト", "reason": "auto モード実行を阻害し、多くは単純な base 先行ケースで対話不要。却下" },
+    { "option": "gate-impl 側でチェック", "reason": "finalize と重複実装になる。本 spec では finalize 側のみに限定" }
+  ],
+  "open_questions": []
+}

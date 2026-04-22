@@ -13,7 +13,14 @@ import { runCmd, assertOk } from "../../lib/process.js";
 import { PKG_DIR } from "../../lib/cli.js";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
-import { isGhAvailable, commentOnIssue, collectGitSummary, runGit } from "../../lib/git-helpers.js";
+import {
+  isGhAvailable,
+  commentOnIssue,
+  collectGitSummary,
+  runGit,
+  countCommitsBetween,
+  listUncommittedFiles,
+} from "../../lib/git-helpers.js";
 import { VALID_MERGE_STRATEGIES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { FLOW_COMMANDS } from "../registry.js";
@@ -133,6 +140,44 @@ export async function runFinalizePreflight(root) {
   await assertGitWriteAccess(gitDir);
 }
 
+/**
+ * Inspect worktree for conditions that should stop finalize before any step runs:
+ *   - no-commits: feature branch has no commits beyond base branch
+ *   - dirty-worktree: uncommitted changes exist in the worktree
+ *
+ * Spec-only mode (featureBranch == baseBranch) skips these checks.
+ *
+ * @param {{root: string, baseBranch: string, featureBranch: string}} opts
+ * @returns one of:
+ *   { ok: true, skipped?: "spec-only" }
+ *   { ok: false, reason: "no-commits", baseBranch, featureBranch, hasUncommitted }
+ *   { ok: false, reason: "dirty-worktree", uncommittedFiles: string[] }
+ */
+export function runPreflightChecks({ root, baseBranch, featureBranch }) {
+  if (featureBranch === baseBranch) {
+    return { ok: true, skipped: "spec-only" };
+  }
+
+  const uncommittedFiles = listUncommittedFiles({ cwd: root });
+  const ahead = countCommitsBetween(baseBranch, featureBranch, { cwd: root });
+
+  if (ahead === 0) {
+    return {
+      ok: false,
+      reason: "no-commits",
+      baseBranch,
+      featureBranch,
+      hasUncommitted: uncommittedFiles.length > 0,
+    };
+  }
+
+  if (uncommittedFiles.length > 0) {
+    return { ok: false, reason: "dirty-worktree", uncommittedFiles };
+  }
+
+  return { ok: true };
+}
+
 export const STEP_MAP = {
   1: "commit",
   2: "merge",
@@ -159,7 +204,12 @@ async function runSubStep(name, fn, ctx) {
     return result;
   } catch (err) {
     if (stepDef?.onError) stepDef.onError(ctx, err);
-    return { status: "failed", message: String(err.stderr || err.message || err) };
+    const base = { status: "failed", message: String(err.stderr || err.message || err) };
+    // Pass through structured diagnostic fields that step code may attach to the
+    // thrown Error (e.g. conflictFiles / recoveryHint from the pre-merge rebase).
+    if (Array.isArray(err.conflictFiles)) base.conflictFiles = err.conflictFiles;
+    if (typeof err.recoveryHint === "string") base.recoveryHint = err.recoveryHint;
+    return base;
   }
 }
 
@@ -299,6 +349,44 @@ export class RunFinalizeCommand extends FlowCommand {
 
     if (!dryRun) {
       await runFinalizePreflight(root);
+
+      // Early-stop checks: no-commits / dirty-worktree (spec 211).
+      const preflight = runPreflightChecks({
+        root,
+        baseBranch: state.baseBranch,
+        featureBranch: state.featureBranch,
+      });
+      if (!preflight.ok) {
+        const skippedSteps = {};
+        for (const name of Object.values(STEP_MAP)) {
+          skippedSteps[name] = { status: "skipped", message: `skipped due to preflight: ${preflight.reason}` };
+        }
+        return {
+          result: "preflight_failed",
+          status: "failed",
+          reason: preflight.reason,
+          ...(preflight.reason === "no-commits"
+            ? {
+                baseBranch: preflight.baseBranch,
+                featureBranch: preflight.featureBranch,
+                hasUncommitted: preflight.hasUncommitted,
+              }
+            : { uncommittedFiles: preflight.uncommittedFiles }),
+          steps: skippedSteps,
+          preflight,
+          message:
+            preflight.reason === "no-commits"
+              ? `no commits on ${preflight.featureBranch} beyond ${preflight.baseBranch}` +
+                (preflight.hasUncommitted ? " (uncommitted changes present)" : "")
+              : `uncommitted changes in worktree: ${preflight.uncommittedFiles.join(", ")}`,
+          artifacts: {
+            baseBranch: state.baseBranch,
+            featureBranch: state.featureBranch,
+            worktree: !!state.worktree,
+            spec: state.spec,
+          },
+        };
+      }
     }
 
     // Resolve merge strategy: explicit > auto
