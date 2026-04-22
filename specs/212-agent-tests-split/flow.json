@@ -1,0 +1,370 @@
+{
+  "spec": "specs/212-agent-tests-split/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/212-agent-tests-split",
+  "runId": "4b4d14f4-60ae-4841-a2ec-ee17bde8d9d8",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: npm test excludes tests/agent/",
+      "status": "pending"
+    },
+    {
+      "desc": "R2: npm run test:agent runs only tests/agent/",
+      "status": "done"
+    },
+    {
+      "desc": "R3: npm run test:all runs everything including tests/agent/",
+      "status": "done"
+    },
+    {
+      "desc": "R4: report.test.js is moved from tests/e2e/acceptance/ to tests/agent/ unchanged",
+      "status": "done"
+    },
+    {
+      "desc": "R5: --agent combined with --preset or --scope exits non-zero with stderr error",
+      "status": "done"
+    },
+    {
+      "desc": "R6: CLAUDE.md ### テスト section instructs to run npm run test:agent when AI-related sources change",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 216,
+  "worktree": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 23,
+    "maxScore": 24,
+    "threshold": 18,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 1
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "目的・変更箇所・受け入れ条件が具体的で機械検証可能。既存テスト構成変更として一般的だが、速度改善値は環境差があるため前例は部分的。"
+  },
+  "request": "Isolate AI-execution tests into tests/agent/ and exclude from default test run. Create tests/agent/ directory, add npm scripts (test excludes agent, test:agent only agent, test:all runs all), add --agent/--all flags to tests/run.js, move tests/e2e/acceptance/report.test.js to tests/agent/, document in CLAUDE.md. Expected impact: npm test 190s -> ~80s.",
+  "autoApprove": true,
+  "metrics": [
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2198,
+      "durationMs": 25713,
+      "tokens": {
+        "input": 6302,
+        "output": 1058,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T12:46:34.866Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2289,
+      "durationMs": 24951,
+      "tokens": {
+        "input": 21945,
+        "output": 1036,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T12:47:16.110Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1481,
+      "durationMs": 26475,
+      "tokens": {
+        "input": 22110,
+        "output": 1188,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T12:48:27.811Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2213,
+      "durationMs": 19509,
+      "tokens": {
+        "input": 6090,
+        "output": 698,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T12:49:23.245Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2177,
+      "durationMs": 25151,
+      "tokens": {
+        "input": 2284,
+        "output": 1031,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T12:50:04.301Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2551,
+      "durationMs": 27615,
+      "tokens": {
+        "input": 7027,
+        "output": 1086,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T12:56:33.348Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2598,
+      "durationMs": 29259,
+      "tokens": {
+        "input": 7045,
+        "output": 1215,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T12:57:24.066Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-22T13:11:47.362Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 342,
+      "durationMs": 26353,
+      "tokens": {
+        "input": 23755,
+        "output": 899,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T13:12:37.162Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1849,
+      "durationMs": 25953,
+      "tokens": {
+        "input": 8920,
+        "output": 875,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T13:13:03.136Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-22T13:13:03.158Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1863,
+      "durationMs": 43059,
+      "tokens": {
+        "input": 35992,
+        "output": 1936,
+        "cacheRead": 6528,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T13:14:02.628Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1612,
+      "durationMs": 69441,
+      "tokens": {
+        "input": 93121,
+        "output": 1920,
+        "cacheRead": 243072,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T13:15:12.163Z"
+    },
+    {
+      "phase": "finalize",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3243,
+      "durationMs": 34565,
+      "tokens": {
+        "input": 36465,
+        "output": 1508,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-22T13:17:15.773Z"
+    }
+  ],
+  "test": {
+    "summary": {
+      "unit": 14
+    }
+  },
+  "state": {
+    "finalizedAt": "2026-04-22T13:16:41.053Z"
+  }
+}

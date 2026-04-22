@@ -1,0 +1,76 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Spec focuses on one concern: separating real-agent tests from default test path for speed.; Unambiguous Requirements — Most requirements are concrete and verifiable (file moves, flags, script behavior, expected runtime change).; Complete Context — Several requirement bullets describe changes but do not consistently use explicit trigger-condition plus expected behavior form.; No Hardcoded Secrets — No API keys, tokens, passwords, or secret literals are present in the draft.; Prioritize Requirements — There are more than three requirements but no explicit priority ordering across the requirement set.; Impact on Existing Features — Impact section explicitly lists affected existing behaviors and unaffected areas.; Present Recommendations with Reasoning — Each Q has a clear recommended answer with concise rationale (issue evidence and behavior rationale).; Explore Before Asking — Cannot verify whether docs/code exploration occurred before questions from the provided draft text alone.; Proactively Raise Related Implications — Draft proactively raises related implications such as CI command migration and flag-combination rules.; Confirm Brainstorm vs. Decision Before Critiquing — No user idea is being critiqued as a final decision in the provided content.; Capture Digressions in draft.md — No digression is evident in the draft; requirement is inapplicable here.; Draft Stays at Requirements Level — Content stays at requirements/spec level without function-level implementation design.; Backward-Compatible CLI Interface — Behavior change to existing test command includes migration guidance to use `npm run test:all` where needed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:46:34.877Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: separating agent-dependent tests from the default test path for speed and workflow clarity.; Unambiguous Requirements — At least one requirement uses non-verifiable wording (\"approximately 80s instead of 190s\") without strict acceptance criteria.; Complete Context — Requirements consistently include trigger conditions (When) and expected outcomes (shall).; No Hardcoded Secrets — No secrets (keys/tokens/passwords) are present; this draft is about test routing and CLI behavior.; Prioritize Requirements — The draft explicitly provides priority order and P1/P2/P3 labels across more than three requirements.; Impact on Existing Features — It explicitly lists impacted existing behaviors and also states unaffected areas.; Present Recommendations with Reasoning — Q&A provides recommendations, but rationale is not consistently grounded in docs/, guardrails, or existing code patterns as required.; Explore Before Asking — Whether docs/code exploration occurred before asking cannot be confirmed from the draft text alone.; Proactively Raise Related Implications — It proactively raises related implications, especially CI parity and required `npm run test:all` migration outside current scope.; Confirm Brainstorm vs. Decision Before Critiquing — No user idea is being critiqued as a final decision in this draft context.; Capture Digressions in draft.md — No evident digression thread requiring capture in `draft.md` is present.; Draft Stays at Requirements Level — The draft stays mostly at requirements/spec level and avoids function-level implementation design.; Backward-Compatible CLI Interface — It identifies changed `npm test` behavior and provides migration guidance to `npm run test:all`.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:47:16.122Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — テスト実行経路の分離とその運用定義という単一の関心事に収まっている。; Unambiguous Requirements — 各要件がコマンド条件・対象・期待動作を具体的に示し、検証可能性が高い。; Complete Context — 要件は概ね When/then/shall 形式で条件と期待結果が対になっている。; No Hardcoded Secrets — 本ドラフトにAPIキー等の秘密情報の直書きは含まれていない。; Prioritize Requirements — 4件以上の要件に対してP1/P2/P3で優先順位が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示され、変更点の影響が列挙されている。; Present Recommendations with Reasoning — 各Qに推奨回答が先に示され、根拠として計測結果・既存コードパターン・原則が付されている。; Explore Before Asking — Open Questionsは空で、Q&Aは既存情報の探索結果に基づく自己解決になっている。; Proactively Raise Related Implications — CI切替必要性やオプション組合せ挙動など関連含意を先回りで提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 最終承認済みドラフトとして提示されており、ブレスト案の最終評価として扱っていない。; Capture Digressions in draft.md — 会話の脱線有無とdraft.mdへの記録状況は、この本文だけでは確認できない。; Draft Stays at Requirements Level — 要件レベルを超えて、特定ファイル移動やCLIフラグ挙動の実装寄り詳細まで記載している。; Backward-Compatible CLI Interface — `npm test`の意味変更に対し、`npm run test:all`への切替方針が影響・移行として明示されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:48:27.820Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft is focused on one concern: separating real AI-agent tests from the default test path.; Unambiguous Requirements — Requirements are phrased with concrete triggers and verifiable outcomes (exclude/run/reject/update docs).; Complete Context — Each listed requirement includes a When condition and a shall behavior.; No Hardcoded Secrets — No source code or secret literals are included in this requirements draft.; Prioritize Requirements — More than three requirements are present and explicitly prioritized with P1/P2 and priority order.; Impact on Existing Features — Impacts are explicitly listed for both affected and unaffected existing features.; Present Recommendations with Reasoning — Each Q&A item leads with a recommended answer and includes concise rationale from docs, guardrails, issue evidence, or code patterns.; Explore Before Asking — The draft uses self-Q&A backed by existing issue/profile/docs context instead of deferring answerable questions to the user.; Proactively Raise Related Implications — It proactively raises CI/default-command and selector-compatibility implications.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of user-proposed decisions is performed; the draft records proposed decisions directly.; Capture Digressions in draft.md — No digressions are evident that required separate capture.; Draft Stays at Requirements Level — Content stays at requirements/scope level without function-level implementation design.; Backward-Compatible CLI Interface — Existing default test behavior is changed, but migration is only partially noted; no concrete migration plan is specified for impacted callers/CI.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:49:23.258Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:51:38.926Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:53:08.697Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:53:19.552Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: separating real-agent tests from default test runs.; Unambiguous Requirements — Requirements are mostly concrete and verifiable with explicit commands, paths, and outcomes.; Complete Context — Requirements pair conditions (When/After) with expected shall-behavior.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present.; No Silent Error Swallowing — Spec explicitly requires non-zero exit and stderr output for invalid flag combinations.; Prioritize Requirements — More than three requirements are prioritized via must/should levels.; Impact on Existing Features — Impact on current test flows and CI boundary is explicitly described in scope/out-of-scope and data flow.; Bounded Resource Usage — No recursive/retry/bulk-unbounded design is introduced; article is not materially triggered by this change.; Changes Require Test Coverage — Acceptance criteria define automated checks for the new behavior and command paths.; Spec Includes Test Strategy — Spec includes a concrete test strategy through command-based acceptance criteria and verification methods.; Synthesize Draft, Do Not Copy — Cannot verify whether content was synthesized vs copied without the original draft source.; Record Unresolved Points as Open Questions — Open Questions section exists and unresolved items are not fabricated into forced answers.; Include 'Why This Approach' Rationale — Background, decisions, and alternatives provide clear rationale for the chosen approach.; Do Not Modify Existing Tests Without Approval — Spec moves an existing test file while user approval is not recorded (User approved unchecked).; Backward-Compatible CLI Interface — Existing CLI options are explicitly preserved; only additive flags are introduced.; Exit Code Contract — Spec explicitly requires non-zero exit on invalid usage and stderr error reporting.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:56:33.377Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/run.js:5: single-line addition in test file (likely assertion insertion); tests/run.js:42: existing line modified/deleted in test file (removed=4, added=2); tests/run.js:71: existing line modified/deleted in test file (removed=19, added=16)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:11:47.363Z"
+    }
+  ]
+}

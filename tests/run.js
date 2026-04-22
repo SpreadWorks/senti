@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { writeSync } from "node:fs";
 import { getPresetAliasNames, resolvePresetTestName } from "./helpers/preset-aliases.js";
 import { groupTestFilesByCategory, formatLabelSummary } from "./helpers/test-runner-labels.js";
+import { buildSearchDirs, validateFlags } from "./helpers/test-runner-search-dirs.js";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const PRESETS_DIR = join(ROOT, "src", "presets");
@@ -41,13 +42,11 @@ function getPresetNames() {
   return [...new Set([...getRealPresetNames(), ...getPresetAliasNames()])];
 }
 
-function collectPresetTestDirs(scope) {
-  return getRealPresetNames().map((name) => join(PRESETS_DIR, name, "tests", scope));
-}
-
 const args = process.argv.slice(2);
 const presetIdx = args.indexOf("--preset");
 const scopeIdx = args.indexOf("--scope");
+const agent = args.includes("--agent");
+const all = args.includes("--all");
 
 let preset = null;
 if (presetIdx !== -1) {
@@ -72,26 +71,23 @@ if (scopeIdx !== -1) {
   }
 }
 
-let searchDirs;
-if (preset) {
-  const presetDirName = resolvePresetTestName(preset);
-  searchDirs = [
-    join(ROOT, "tests", "unit"),
-    join(ROOT, "tests", "e2e"),
-    join(PRESETS_DIR, presetDirName, "tests"),
-  ];
-} else if (scope) {
-  searchDirs = [
-    join(ROOT, "tests", scope),
-    ...collectPresetTestDirs(scope),
-  ];
-} else {
-  searchDirs = [
-    join(ROOT, "tests", "unit"),
-    join(ROOT, "tests", "e2e"),
-    join(PRESETS_DIR),
-  ];
+const validation = validateFlags({ agent, all, preset, scope });
+if (validation.error) {
+  console.error(`Error: ${validation.error}`);
+  process.exit(1);
 }
+
+const searchDirs = buildSearchDirs(
+  { root: ROOT },
+  {
+    preset,
+    scope,
+    agent,
+    all,
+    presetDirName: preset ? resolvePresetTestName(preset) : null,
+    realPresetNames: getRealPresetNames(),
+  },
+);
 
 const testFiles = findTestFiles(searchDirs);
 if (testFiles.length === 0) {
