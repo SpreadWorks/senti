@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-04-22T13:01:01.424Z",
+  "analyzedAt": "2026-04-22T13:17:20.752Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "40c12bb8a8f1bd9ee41eefbd190f25d9",
-        "lines": 39,
-        "mtime": "2026-04-20T13:44:52.497Z",
+        "hash": "b9c1e43500827bd7a9e171f1650513ce",
+        "lines": 41,
+        "mtime": "2026-04-22T13:17:19.559Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -15,16 +15,18 @@
           "test": "node tests/run.js",
           "test:unit": "node tests/run.js --scope unit",
           "test:e2e": "node tests/run.js --scope e2e",
-          "test:acceptance": "node tests/acceptance/run.js"
+          "test:acceptance": "node tests/acceptance/run.js",
+          "test:agent": "node tests/run.js --agent",
+          "test:all": "node tests/run.js --all"
         },
         "composerDeps": null,
         "id": "451a9f25",
-        "summary": "This package manifest defines sdd-forge as a Node.js ESM CLI and distributable module. It also declares runtime constraints, publish scope, and test entrypoints.",
-        "detail": "The file exposes `sdd-forge` through both `bin` and `exports`, making the same entry file usable as a command and module root. It constrains runtime compatibility to Node.js 18.19.0 or newer and uses pnpm as the package manager lock target. Packaging is intentionally narrow through the `files` field, including `src/` while excluding preset test directories from published artifacts. Test scripts are split into unit, e2e, and acceptance scopes through a shared Node-based runner, which aligns with structured verification workflows.",
+        "summary": "This file defines the npm package metadata and runtime contract for the sdd-forge CLI. It declares distribution boundaries, engine requirements, and test entrypoints.",
+        "detail": "The package is published as an ESM module and exposes a single CLI binary mapped to `src/sdd-forge.js`. It enforces a Node.js minimum version and follows an external-dependency-free operational model at the package level. The `files` whitelist limits published artifacts to `src/` while excluding preset test fixtures from package output. Script definitions separate unit, e2e, acceptance, agent, and full test runs to support different validation scopes. Repository and package manager metadata pin source origin and tooling reproducibility.",
         "chapter": "stack_and_ops",
         "role": "config",
         "enrich": {
-          "processedAt": "2026-04-20T13:45:22.534Z",
+          "processedAt": "2026-04-22T13:17:59.282Z",
           "attempts": 1
         },
         "keywords": [
@@ -33,9 +35,8 @@
           "cli entrypoint",
           "esm module",
           "node engine",
-          "publish files",
           "test scripts",
-          "pnpm lock"
+          "publish files"
         ]
       }
     ],
@@ -3443,16 +3444,15 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "26d23c66545fb226fefe2074377069cf",
-        "lines": 353,
-        "mtime": "2026-04-22T12:49:42.856Z",
+        "hash": "cabc201645b9ad3c58ef10b60d082fb8",
+        "lines": 350,
+        "mtime": "2026-04-22T13:01:17.492Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
           "runGitTrim",
           "slugify",
           "nextIndex",
-          "ensureClean",
           "ensureBaseBranch",
           "detectBaseBranch",
           "buildQaTemplate",
@@ -3479,22 +3479,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "Creates and initializes a new spec workspace during flow preparation. It computes IDs, validates git/worktree state, and writes initial spec artifacts.",
-        "detail": "The command includes helper routines for branch detection, slug creation, index allocation, and cleanliness checks against the git working tree. It enforces preconditions such as title presence, config existence, and base-branch validity before creating spec paths. File generation is deterministic: `spec.json` from an empty stub, `spec.md` from the renderer, plus `qa.md` and `draft.md` templates with local override support. It records flow metadata by writing state with run-related fields for later workflow steps. The implementation favors synchronous filesystem operations to keep the setup sequence linear and predictable.",
-        "chapter": "internal_design",
-        "role": "controller",
+        "summary": "This module prepares a new spec workspace for the flow system by generating required files and initial flow state. It encapsulates branch detection, naming, template loading, and file bootstrap logic in a command class.",
+        "detail": "The module defines helper functions for git command execution, title slug generation, sequential spec indexing, and base-branch validation with a fallback strategy. It builds default QA and draft templates and supports local template override loading from `.sdd-forge/templates/<lang>/specs/qa.md`. `RunPrepareSpecCommand` extends `FlowCommand` and enforces required inputs and preconditions such as config presence and clean worktree expectations unless isolated worktree mode is used. The command computes branch and spec paths, creates the spec directory, initializes `spec.json` from an empty stub, and renders `spec.md` from structured JSON through `renderSpecMarkdown`. It also creates missing `qa.md` and `draft.md` files and persists flow state metadata for downstream flow steps.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T13:01:40.985Z",
+          "processedAt": "2026-04-22T13:17:59.282Z",
           "attempts": 1
         },
         "keywords": [
-          "spec preparation",
-          "worktree setup",
-          "git preflight",
+          "flow prepare",
+          "spec bootstrap",
+          "worktree isolation",
+          "branch detection",
           "slugify",
-          "spec scaffold",
-          "flow state",
-          "template bootstrap"
+          "template fallback",
+          "state initialization",
+          "markdown rendering"
         ]
       },
       {
@@ -9091,9 +9092,9 @@
     ],
     "summary": {
       "total": 269,
-      "totalMethods": 855
+      "totalMethods": 854
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-22T13:01:40.985Z"
+  "enrichedAt": "2026-04-22T13:17:59.282Z"
 }
