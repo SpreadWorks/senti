@@ -157,6 +157,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     const dryRun = ctx.dryRun || false;
 
     const { issue, request } = flowManager.resolvePreparingInputs(runIdArg, ctx.issue, ctx.request);
+    const preparingState = runIdArg ? flowManager.loadPreparingFlow(runIdArg) : null;
 
     if (!title) {
       throw new Error("--title is required");
@@ -262,6 +263,8 @@ export class RunPrepareSpecCommand extends FlowCommand {
         currentTaskId: null,
         ...(issue ? { issue: Number(issue) } : {}),
         ...(request ? { request } : {}),
+        ...(preparingState?.autoApprove ? { autoApprove: true } : {}),
+        ...(preparingState?.autoCheck ? { autoCheck: preparingState.autoCheck } : {}),
         ...extra,
       };
       flowManager.forRoot(specRoot).save(state);

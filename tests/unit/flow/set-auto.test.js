@@ -134,6 +134,60 @@ describe("flow set auto", () => {
     assert.equal(output.data.autoApprove, false);
   });
 
+  it("sets autoApprove on a preparing flow when no flow.json exists", () => {
+    tmp = createTmpProject(passResponse());
+    // Create a preparing flow (no flow.json)
+    const fm = makeFlowManager(tmp);
+    const runId = fm.generateRunId();
+    fm.createPreparingFlow(runId, { request: "add a progress bar" });
+
+    const res = runSetAuto(tmp, "on");
+    assert.equal(res.status, 0, res.stderr);
+    const output = JSON.parse(res.stdout.trim());
+    assert.equal(output.ok, true);
+    assert.equal(output.data.autoApprove, true);
+    assert.equal(output.data.runId, runId);
+
+    const preparing = fm.loadPreparingFlow(runId);
+    assert.equal(preparing.autoApprove, true);
+    assert.ok(preparing.autoCheck);
+    assert.equal(preparing.autoCheck.eligible, true);
+  });
+
+  it("fails when no flow.json and multiple preparing flows exist without --run-id", () => {
+    tmp = createTmpProject(passResponse());
+    const fm = makeFlowManager(tmp);
+    fm.createPreparingFlow(fm.generateRunId(), { request: "a" });
+    fm.createPreparingFlow(fm.generateRunId(), { request: "b" });
+
+    const res = runSetAuto(tmp, "on");
+    assert.notEqual(res.status, 0);
+    const envelope = JSON.parse(res.stdout.trim());
+    assert.equal(envelope.ok, false);
+    assert.ok(
+      envelope.errors?.some((e) => /multiple preparing/i.test(e.messages?.join(" ") ?? "")),
+    );
+  });
+
+  it("targets a specific preparing flow via --run-id", () => {
+    tmp = createTmpProject(passResponse());
+    const fm = makeFlowManager(tmp);
+    const runIdA = fm.generateRunId();
+    const runIdB = fm.generateRunId();
+    fm.createPreparingFlow(runIdA, { request: "add a progress bar" });
+    fm.createPreparingFlow(runIdB, { request: "add a progress bar" });
+
+    const script = path.resolve("src/sdd-forge.js");
+    const res = spawnSync(
+      "node",
+      [script, "flow", "set", "auto", "on", "--run-id", runIdB],
+      { encoding: "utf8", cwd: tmp, env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+    );
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(fm.loadPreparingFlow(runIdA).autoApprove, false);
+    assert.equal(fm.loadPreparingFlow(runIdB).autoApprove, true);
+  });
+
   it("fails without argument", () => {
     tmp = createTmpProject();
     createFlowState(tmp);

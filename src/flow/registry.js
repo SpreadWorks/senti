@@ -283,9 +283,17 @@ export const FLOW_COMMANDS = {
     },
     auto: {
       helpKey: "flow.set.auto",
+      requiresFlow: false,
       command: () => import("./lib/set-auto.js"),
-      args: { positional: ["value"] },
-      help: "Usage: sdd-forge flow set auto on|off\n\nEnable or disable autoApprove mode in flow.json.",
+      args: { positional: ["value"], options: ["--run-id"] },
+      help: [
+        "Usage: sdd-forge flow set auto on|off [--run-id <id>]",
+        "",
+        "Enable or disable autoApprove mode. Writes to flow.json when an",
+        "active flow exists; otherwise writes to the matching preparing",
+        "flow (.active-flow.<runId>). --run-id selects a preparing flow",
+        "when multiple exist; auto-detected when exactly one is present.",
+      ].join("\n"),
     },
     "test-summary": {
       helpKey: "flow.set.test-summary",

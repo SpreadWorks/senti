@@ -95,6 +95,25 @@ export class PreparingFlowStore {
     return { issue, request };
   }
 
+  /**
+   * Mutate a preparing flow state by runId. Loads the file, applies the
+   * mutator, and writes it back atomically.
+   *
+   * @param {string} runId
+   * @param {(state: object) => void} mutator
+   * @returns {object} the updated state
+   */
+  mutate(runId, mutator) {
+    const p = path.join(sddDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
+    if (!fs.existsSync(p)) {
+      throw new Error(`preparing flow not found: ${runId}`);
+    }
+    const state = JSON.parse(fs.readFileSync(p, "utf8"));
+    mutator(state);
+    fs.writeFileSync(p, JSON.stringify(state, null, 2) + "\n", "utf8");
+    return state;
+  }
+
   /** @param {string} runId */
   delete(runId) {
     const p = path.join(sddDir(this._mainRoot), `${PREPARING_PREFIX}${runId}`);
