@@ -37,6 +37,7 @@
 ### テスト
 
 - **MUST: テストを通すためにテストコードを修正してはならない。** テスト失敗時はまずシナリオの妥当性を確認し、妥当であればプロダクトコードを修正する。
+- **AI 実行を伴うテスト**: 実 `claude` CLI を呼ぶテストは `tests/agent/` 配下に集約されている。`npm test` のデフォルト実行からは除外されるため、`src/lib/agent.js`, `src/docs/commands/enrich.js`, `src/docs/commands/text.js` など AI コマンド関連を変更した場合は `npm run test:agent` を実行して回帰検知すること。CI 等でフル検証が必要な場合は `npm run test:all`。
 
 ### コマンド実行結果の確認
 

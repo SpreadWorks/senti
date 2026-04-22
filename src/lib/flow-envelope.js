@@ -29,11 +29,12 @@ export class Envelope {
    * @param {string} key
    * @param {string} code - machine-readable error code
    * @param {string|string[]} messages
+   * @param {*} [data] - optional structured judgment data (score, hashes, …)
    */
-  static fail(type, key, code, messages) {
+  static fail(type, key, code, messages, data) {
     const msgs = Array.isArray(messages) ? messages : [messages];
     return new Envelope({
-      ok: false, type, key, data: null,
+      ok: false, type, key, data: data ?? null,
       errors: [{ level: "fatal", code, messages: msgs }],
     });
   }

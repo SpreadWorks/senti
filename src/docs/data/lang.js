@@ -23,6 +23,7 @@ const LANG_NAMES = {
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");
+  const Paragraph = container.get("base.Paragraph");
   const loadJsonFile = container.get("config.loadJsonFile");
 
   class LangSource extends DataSource {
@@ -65,7 +66,7 @@ export default function register(container) {
     }
 
     if (links.length === 0) return null;
-    return `🌐 ${links.join(" | ")}`;
+    return new Paragraph(`🌐 ${links.join(" | ")}`);
   }
 
   /**

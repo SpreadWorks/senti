@@ -213,10 +213,21 @@ export async function dispatch({
   if (!caught) {
     let envelope;
     if (mode === "envelope") {
-      envelope = Envelope.ok(envelopeType || "run", envelopeKey || "?", result || {});
+      // Commands may return an Envelope directly (e.g. Envelope.fail for
+      // recoverable / user-avoidable outcomes). In that case honor it verbatim
+      // rather than re-wrapping it in Envelope.ok.
+      if (result instanceof Envelope) {
+        envelope = result;
+      } else {
+        envelope = Envelope.ok(envelopeType || "run", envelopeKey || "?", result || {});
+      }
     }
     let postFailed = false;
-    if (entry.post) {
+    // Skip post hooks when the command explicitly returned an ok:false envelope —
+    // post hooks advance step status / counters assuming success, which would
+    // fire incorrectly on a judgment-result rejection.
+    const skipPost = result instanceof Envelope && result.ok === false;
+    if (entry.post && !skipPost) {
       try {
         await entry.post(hookCtx, result);
       } catch (postErr) {

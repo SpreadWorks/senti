@@ -9,6 +9,7 @@
 
 import { FlowCommand } from "./base-command.js";
 import { countGateRetry } from "./run-gate.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 const VALID_ACTIONS = Object.freeze(["reset"]);
 const RESET_TRACKED_PHASES = Object.freeze(["task-impl", "integration"]);
@@ -18,15 +19,26 @@ export default class SetGateRetryCommand extends FlowCommand {
     const { action, phase } = ctx;
 
     if (!action || !phase) {
-      throw new Error("usage: flow set gate-retry <action> <phase> --yes");
+      return Envelope.fail(
+        "set",
+        "gate-retry",
+        "INVALID_USAGE",
+        "usage: flow set gate-retry <action> <phase> --yes",
+      );
     }
     if (!VALID_ACTIONS.includes(action)) {
-      throw new Error(
+      return Envelope.fail(
+        "set",
+        "gate-retry",
+        "INVALID_ARG_VALUE",
         `invalid action: ${action} (valid: ${VALID_ACTIONS.join(", ")})`,
       );
     }
     if (!RESET_TRACKED_PHASES.includes(phase)) {
-      throw new Error(
+      return Envelope.fail(
+        "set",
+        "gate-retry",
+        "INVALID_PHASE",
         `invalid phase: ${phase} (valid: ${RESET_TRACKED_PHASES.join(", ")})`,
       );
     }
@@ -38,7 +50,12 @@ export default class SetGateRetryCommand extends FlowCommand {
         `[sdd-forge] current gateRetry count for phase "${phase}": ${current}\n` +
           "[sdd-forge] pass --yes to confirm the reset.\n",
       );
-      throw new Error("--yes is required to reset gateRetry");
+      return Envelope.fail(
+        "set",
+        "gate-retry",
+        "CONFIRMATION_REQUIRED",
+        "--yes is required to reset gateRetry",
+      );
     }
 
     ctx.flowManager.appendMetric({

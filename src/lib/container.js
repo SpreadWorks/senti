@@ -17,6 +17,17 @@ import { translate } from "./i18n.js";
 import { FlowManager } from "./flow-manager.js";
 import { DataSource } from "../docs/lib/data-source.js";
 import { Scannable } from "../docs/lib/scan-source.js";
+import {
+  Renderable,
+  Table,
+  BulletList,
+  OrderedList,
+  Paragraph,
+  CodeBlock,
+  Blockquote,
+  Heading,
+  Fragment,
+} from "../docs/lib/renderable.js";
 import { AnalysisEntry, ANALYSIS_META_KEYS } from "../docs/lib/analysis-entry.js";
 import { findFiles, collectFiles, patternToRegex, parseFile, parsePHPFile, parseJSFile, camelToSnake, pluralize, getFileStats } from "../docs/lib/scanner.js";
 import { stripBlockComments, extractArrayBody, extractTopLevelKeys, extractQuotedStrings } from "../docs/lib/php-array-parser.js";
@@ -169,6 +180,15 @@ export function initContainer(opts = {}) {
   container.register("base.Scannable", Scannable);
   container.register("base.AnalysisEntry", AnalysisEntry);
   container.register("base.ANALYSIS_META_KEYS", ANALYSIS_META_KEYS);
+  container.register("base.Renderable", Renderable);
+  container.register("base.Table", Table);
+  container.register("base.BulletList", BulletList);
+  container.register("base.OrderedList", OrderedList);
+  container.register("base.Paragraph", Paragraph);
+  container.register("base.CodeBlock", CodeBlock);
+  container.register("base.Blockquote", Blockquote);
+  container.register("base.Heading", Heading);
+  container.register("base.Fragment", Fragment);
   container.register("scanner.findFiles", findFiles);
   container.register("scanner.collectFiles", collectFiles);
   container.register("scanner.patternToRegex", patternToRegex);

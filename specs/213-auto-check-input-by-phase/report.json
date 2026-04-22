@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/213-auto-check-input-by-phase/draft.md       |  45 +++\n specs/213-auto-check-input-by-phase/flow.json      | 353 +++++++++++++++++++++\n specs/213-auto-check-input-by-phase/issue-log.json |  77 +++++\n specs/213-auto-check-input-by-phase/qa.md          |   9 +\n specs/213-auto-check-input-by-phase/review.md      |  33 ++\n specs/213-auto-check-input-by-phase/spec.json      |  30 ++\n specs/213-auto-check-input-by-phase/spec.md        | 106 +++++++\n src/flow/lib/set-auto.js                           |  38 ++-\n tests/helpers/stub-agent.js                        |  19 ++\n tests/unit/flow/set-auto.test.js                   | 136 +++++++-\n 10 files changed, 844 insertions(+), 2 deletions(-)",
+      "commits": [
+        "feat: feature/213-auto-check-input-by-phase",
+        "feat(flow): auto-check phase-aware input / skip after spec approval"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 5,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.92,
+      "notes": "機能変更は概ね R1-R6 を満たしている。主なズレは R3 の厳密解釈で、draft.md が存在しても中身が空だと draft 入力に切り替わらない点。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 192988,
+      "output": 10123,
+      "cacheRead": 118528,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 438964,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 101588
+        },
+        {
+          "phase": "gate",
+          "durationMs": 239559
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 40394
+        },
+        {
+          "phase": "review",
+          "durationMs": 57423
+        }
+      ]
+    },
+    "tests": {
+      "unit": 11,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 11
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/213-auto-check-input-by-phase\n    feat(flow): auto-check phase-aware input / skip after spec approval\n    10 files changed, 844 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 92%  (5 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 10\n    input tokens ................ 192,988\n    output tokens ............... 10,123\n    cache-read tokens ........... 118,528\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 439.0s\n      gate-draft ................ 101.6s\n      gate ...................... 239.6s\n      gate-impl ................. 40.4s\n      review .................... 57.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 11  integration 0  acceptance 0  total 11"
+}

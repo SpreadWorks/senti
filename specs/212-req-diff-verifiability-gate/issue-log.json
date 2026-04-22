@@ -1,0 +1,60 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: adding a spec-phase guardrail for REQ diff/test verifiability.; Unambiguous Requirements — Core requirement is stated in testable terms (PASS/FAIL determinable from unified diff and test execution summary).; Complete Context — Requirements are mostly listed as scope bullets and Q&A, not consistently expressed with explicit trigger condition plus expected shall-behavior.; No Hardcoded Secrets — No source code secrets or credential values are present in the draft content.; Prioritize Requirements — The draft does not present more than three competing requirement items needing explicit priority ordering.; Impact on Existing Features — Impact on existing features is explicitly documented, including affected commands and unaffected areas.; Present Recommendations with Reasoning — Q&A provides answers but does not consistently state the basis as project docs, guardrail principles, or existing code patterns.; Explore Before Asking — No unresolved questions are deferred to the user; draft presents decided answers.; Proactively Raise Related Implications — Draft proactively notes implications such as additional guardrail evaluations and possible re-gate failures for active flows.; Confirm Brainstorm vs. Decision Before Critiquing — Content is clearly in decision mode with explicit user approval, so no brainstorming/decision ambiguity remains.; Capture Digressions in draft.md — No evident digressions are present that required separate capture in draft.md.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific file path and test handling) beyond pure requirements/RFP level.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed; migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:40:53.534Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:44:04.173Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: adding and validating a single new spec-phase guardrail.; Unambiguous Requirements — Requirements use concrete, verifiable conditions (specific IDs, phases, schema fields, and expected inclusion/exclusion).; Complete Context — Requirements pair conditions (e.g., phase/load context) with explicit expected behavior using shall/shall not.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present in the content.; No Silent Error Swallowing — No error-handling code is specified; article is not implicated by this spec content.; Prioritize Requirements — There are four requirements (R1-R4) but no explicit priority order is provided.; Impact on Existing Features — Impact is stated: existing guardrails must remain unchanged and only one new entry is added.; Bounded Resource Usage — No recursive/retry/bulk-processing design is introduced by this change.; Changes Require Test Coverage — Spec includes regression/unit test expectations and requires all tests to pass.; Spec Includes Test Strategy — Test strategy is included via acceptance criteria describing what to validate and which commands/outputs to check.; Synthesize Draft, Do Not Copy — Original draft source is not provided, so direct-copy vs synthesis cannot be verified.; Record Unresolved Points as Open Questions — Open Questions section is present and indicates no unresolved items remain.; Include 'Why This Approach' Rationale — Rationale is documented in Background, root-cause analysis, and Alternatives Considered.; Do Not Modify Existing Tests Without Approval — Spec allows updating existing tests but does not record explicit user approval for modifying them.; Backward-Compatible CLI Interface — No existing command/option semantics are removed or changed, so no migration plan is required.; Exit Code Contract — Spec does not introduce failure-path command behavior that would alter exit-code semantics.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:46:45.196Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: adding and validating the req-diff-verifiability guardrail in spec phase.; Unambiguous Requirements — Requirements are mostly stated with concrete, verifiable conditions (IDs, phases, schema fields, inclusion/exclusion).; Complete Context — Not every requirement includes an explicit trigger+outcome pair; R3 is a standalone shall without a clear When/If context.; No Hardcoded Secrets — No API keys, passwords, tokens, or similar secrets are present.; No Silent Error Swallowing — No error-handling code or silent catch behavior is specified in this content.; Prioritize Requirements — There are four requirements (R1-R4) but no priority ordering is defined.; Impact on Existing Features — Impact is addressed via scope/constraints and R4, stating existing guardrails remain unchanged except the additive entry.; Bounded Resource Usage — The spec does not introduce recursive/retry/bulk processing logic requiring explicit bounds.; Changes Require Test Coverage — Spec includes required test coverage via phase-filter regression checks and overall test pass criteria.; Spec Includes Test Strategy — Test strategy is present through defined acceptance criteria and explicit test targets (spec/draft/task-impl outputs and schema validity).; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs direct copying without the original draft/source comparison material.; Record Unresolved Points as Open Questions — Unresolved points are explicitly handled via an Open Questions section (none remaining).; Include 'Why This Approach' Rationale — Rationale is clearly documented in Background, Decisions, and Alternatives Considered.; Do Not Modify Existing Tests Without Approval — Spec notes possible existing-test updates and includes explicit user approval for this spec.; Backward-Compatible CLI Interface — No command or option semantics are removed/changed; migration plan is not applicable.; Exit Code Contract — No new failure-path command behavior is introduced; exit-code contract is not implicated by this spec content.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:47:20.485Z"
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate reads state.spec (spec.json) as markdown text, failing section checks; workaround: pass --spec specs/NNN/spec.md explicitly",
+      "trigger": "sdd-forge flow run gate --phase spec with state.spec pointing at spec.json",
+      "resolution": "invoke gate with --spec specs/212-req-diff-verifiability-gate/spec.md; underlying bug not fixed in this spec scope",
+      "guardrailCandidate": "state.spec should resolve to spec.md for phase=spec text checks, or text check should auto-resolve sibling spec.md",
+      "taskId": null,
+      "timestamp": "2026-04-22T12:47:41.944Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: adding and validating the req-diff-verifiability guardrail.; Unambiguous Requirements — Requirements use explicit, verifiable conditions (phase, id, schema fields, inclusion/exclusion).; Complete Context — Each requirement pairs a trigger condition (When) with expected behavior (shall/shall not).; No Hardcoded Secrets — No secrets (API keys/passwords/tokens) are present; article is inapplicable to this spec text.; No Silent Error Swallowing — No error-handling implementation is specified; article is inapplicable to this change scope.; Prioritize Requirements — More than three requirements are present and explicitly prioritized (R1 highest to R4 low).; Impact on Existing Features — Impact is addressed via scope/constraints and explicit non-regression requirement for existing guardrails.; Bounded Resource Usage — No recursive processing, retry loops, or bulk-loading behavior is introduced in this spec.; Changes Require Test Coverage — Spec includes regression/unit test expectations and requires test pass in acceptance criteria.; Spec Includes Test Strategy — Spec defines what to test and how via phase-specific outputs, schema checks, and npm test pass criteria.; Synthesize Draft, Do Not Copy — Cannot verify whether draft text was synthesized vs copied without the source draft content.; Record Unresolved Points as Open Questions — Open Questions section is present and unresolved points are explicitly recorded as none.; Include 'Why This Approach' Rationale — Background and Alternatives sections explain why this approach was chosen.; Do Not Modify Existing Tests Without Approval — Spec allows updating existing tests but does not state user approval for modifying existing tests.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed; migration plan not required.; Exit Code Contract — No command failure/success exit-code behavior changes are specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:48:14.035Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.decisions[0]: must be object, got string; overview.decisions[1]: must be object, got string; overview.decisions[2]: must be object, got string; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; alternatives_considered[2]: must be object, got string",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-22T12:55:37.043Z"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/212-req-diff-verifiability-gate/draft.md     |  47 +++\n specs/212-req-diff-verifiability-gate/flow.json    | 374 +++++++++++++++++++++\n .../212-req-diff-verifiability-gate/issue-log.json |  60 ++++\n specs/212-req-diff-verifiability-gate/qa.md        |   8 +\n specs/212-req-diff-verifiability-gate/review.md    |  41 +++\n specs/212-req-diff-verifiability-gate/spec.json    | 100 ++++++\n specs/212-req-diff-verifiability-gate/spec.md      |  90 +++++\n .../tests/README.md                                |  33 ++\n src/presets/base/guardrail.json                    |  11 +\n .../base/req-diff-verifiability-guardrail.test.js  | 112 ++++++\n 10 files changed, 876 insertions(+)",
+      "commits": [
+        "feat: feature/212-req-diff-verifiability-gate",
+        "chore(212): record finalize preflight metrics",
+        "chore(212): record gate-impl metrics",
+        "refactor(212): apply review feedback — dedupe id, fail-fast fixture, drop placeholder qa",
+        "fix(212): normalize spec.json to object form for overview and alternatives",
+        "feat(212): add req-diff-verifiability guardrail to spec phase"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 244658,
+      "output": 12151,
+      "cacheRead": 159616,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 328464,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 50274
+        },
+        {
+          "phase": "gate",
+          "durationMs": 150776
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 79455
+        },
+        {
+          "phase": "review",
+          "durationMs": 47959
+        }
+      ]
+    },
+    "tests": {
+      "unit": 1,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 1
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/212-req-diff-verifiability-gate\n    chore(212): record finalize preflight metrics\n    chore(212): record gate-impl metrics\n    refactor(212): apply review feedback — dedupe id, fail-fast fixture, drop placeholder qa\n    fix(212): normalize spec.json to object form for overview and alternatives\n    feat(212): add req-diff-verifiability guardrail to spec phase\n    10 files changed, 876 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 13\n    input tokens ................ 244,658\n    output tokens ............... 12,151\n    cache-read tokens ........... 159,616\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 328.5s\n      gate-draft ................ 50.3s\n      gate ...................... 150.8s\n      gate-impl ................. 79.5s\n      review .................... 48.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 1  integration 0  acceptance 0  total 1"
+}

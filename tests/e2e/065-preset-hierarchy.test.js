@@ -158,7 +158,7 @@ describe("resolver-factory: parent chain loading", () => {
 
     const resolver = await createResolver("node-cli", tmp);
     const result = resolver.resolve("node-cli", "project", "name", {}, [""]);
-    assert.equal(result, "test-pkg");
+    assert.equal(result.toMarkdown(), "test-pkg");
     removeTmpDir(tmp);
   });
 
@@ -172,7 +172,7 @@ describe("resolver-factory: parent chain loading", () => {
     assert.equal(typeof resolver.resolve, "function");
     // common data sources should still be available
     const result = resolver.resolve("cakephp2", "project", "name", {}, [""]);
-    assert.equal(result, "test-cakephp");
+    assert.equal(result.toMarkdown(), "test-cakephp");
     removeTmpDir(tmp);
   });
 

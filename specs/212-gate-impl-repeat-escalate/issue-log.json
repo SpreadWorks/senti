@@ -1,0 +1,93 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: repeated identical FAIL detection and escalation in gate-impl.; Unambiguous Requirements — Conditions and outcomes are stated concretely (matching rule, threshold, error code, retry behavior).; Complete Context — Key requirements include trigger context and expected behavior (e.g., match condition -> throw escalation error).; No Hardcoded Secrets — No secrets (API keys/tokens/passwords) are present in the draft content.; Prioritize Requirements — More than three requirement items are listed without an explicit priority order.; Impact on Existing Features — Impact section explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Each Q&A includes a recommended decision and concise rationale tied to policy/code context.; Explore Before Asking — Cannot verify from this draft alone whether docs/code exploration was done before asking questions.; Proactively Raise Related Implications — Related implications are proactively covered (retry counter behavior, consumers, phase scope, complementarity with spec 210).; Confirm Brainstorm vs. Decision Before Critiquing — No process evidence here to confirm whether brainstorm-vs-decision was explicitly checked before critique.; Capture Digressions in draft.md — Cannot determine from provided content whether any digressions occurred and were captured in draft.md.; Draft Stays at Requirements Level — Draft includes implementation-level details (function names, hook behavior, error envelope, test cases) beyond requirements level.; Backward-Compatible CLI Interface — No CLI command/option semantic change is described, so migration-plan requirement is not applicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:51:43.083Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Spec focuses on one concern: early escalation for repeated identical gate-impl FAIL patterns, with only supporting requirements tied to that concern.; Unambiguous Requirements — Requirements are stated with concrete conditions/scope (phase, matching rule, retry handling, envelope/schema expectations) and are verifiable.; Complete Context — Several requirements are imperative but lack explicit When/If trigger framing (e.g., envelope format and log-field retention), so trigger-outcome pairing is not consistently explicit.; No Hardcoded Secrets — Draft contains no API keys, passwords, tokens, or other secret literals.; Prioritize Requirements — More than three requirements are prioritized explicitly via P0/P1/P2 and ordered numbering.; Impact on Existing Features — Impact section explicitly lists affected existing features and explicitly states unaffected areas.; Present Recommendations with Reasoning — Each Q has a recommended decision (採択) plus concise reasoning grounded in project policy, prior spec behavior, or compatibility concerns.; Explore Before Asking — Cannot verify from the draft alone whether docs/code exploration occurred before questions were raised.; Proactively Raise Related Implications — Draft proactively calls out related implications (retry consumption, schema effects, consumer compatibility, interaction with spec 210).; Confirm Brainstorm vs. Decision Before Critiquing — No conversation evidence is provided to confirm whether brainstorming-vs-decision was checked before critique.; Capture Digressions in draft.md — No runtime discussion trail is provided to determine whether digressions occurred and were captured in draft.md.; Draft Stays at Requirements Level — Content stays at requirements/spec scope and avoids function-level or code-level implementation design.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is specified, so migration-plan requirement is inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:52:58.302Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:55:37.618Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 119: unchecked task/question (- [ ] なし)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T12:57:52.553Z"
+    },
+    {
+      "step": "implement",
+      "reason": "accidentally edited src/flow/lib/run-gate.js in main repo instead of worktree via absolute path; worktree boundary violation",
+      "trigger": "Edit tool called with main-repo absolute path while session cwd was worktree",
+      "resolution": "cp edited file to worktree, git restore main repo path",
+      "guardrailCandidate": "always verify edit paths start with worktree path when flow.worktree is true",
+      "taskId": null,
+      "timestamp": "2026-04-22T13:07:05.071Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "The argument 'args[7]' must be a string without null bytes. Received 'You are an implementation compliance checker.\\n' +\n  'Check whether each spec requirement has been implemented in the diff.\\n' ...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-22T13:14:31.571Z"
+    },
+    {
+      "step": "implement",
+      "reason": "introduced NUL bytes in run-gate.js template literal during manual edit; child_process spawn rejected args with null bytes",
+      "trigger": "gate-impl run threw ERR_INVALID_ARG_VALUE about args[7] null bytes",
+      "resolution": "awk gsub to replace NULs with pipe separator and refactor key builder",
+      "guardrailCandidate": "after edits on source files, verify no control chars leaked via tr -cd '\\000' | wc -c",
+      "taskId": null,
+      "timestamp": "2026-04-22T13:15:56.045Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements repeated FAIL detection in gate-impl path with normalized (guardrail_id, reason) matching, throws ESCALATE_REPEATED_FAIL with phase/matched data before normal FAIL return (preserving retry non-consumption), adds failedEvaluations to issue-log while keeping flat reason, and includes unit tests covering the specified behaviors; head test evidence is provided (unit:18).; No Hardcoded Secrets — No added or modified diff lines contain hardcoded API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Diff-added logic does not introduce empty catch blocks or silent error discarding; failures are thrown explicitly.; Bounded Resource Usage — No recursive or retry loops were introduced; added processing is linear over existing in-memory evaluations/entries.; No Sensitive Data in Logs — Added code logs/persists raw failure reasons (`m.reason`, `failedEvaluations.reason`) without masking, which can expose sensitive content if present.; No Disabling Existing Tests — Diff adds new tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Cannot determine from diff alone whether new tests broke existing tests and whether escalation to user occurred.; Flag Tests That Become Irrelevant — Cannot determine from provided diff alone whether any prior tests became irrelevant and were flagged to the user.; Exit Code Contract — Failure path added via thrown error (`ESCALATE_REPEATED_FAIL`) rather than returning success on failure.; No Synchronous I/O in Hot Paths — No synchronous I/O was introduced inside loops or bulk-processing hot paths in added production code.; Validate User Input at Entry Point — No new CLI/stdin entry-point input handling was introduced in the diff; article is not impacted by these changes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:17:27.496Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff adds gate-impl repeated FAIL detection with normalized (guardrail_id, reason) matching, throws ESCALATE_REPEATED_FAIL with phase/matched data before normal FAIL return, persists failedEvaluations while keeping flat reason, scopes behavior to retry-tracked gate phase, and includes unit-test evidence (head: unit=18).; No Hardcoded Secrets — Added/modified diff lines contain no hardcoded API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — No empty catch blocks or silent error-discard patterns were introduced; failure paths throw errors explicitly.; Bounded Resource Usage — New logic is bounded to linear scans/maps over existing in-memory evaluation/entry arrays; no new unbounded recursion or retry loops were added.; No Sensitive Data in Logs — Diff adds raw failure reasons to escalation message/detail and persisted `failedEvaluations.reason` without masking, which can log sensitive content if present.; No Disabling Existing Tests — Diff adds new tests and does not skip, comment out, or delete existing tests in added/modified lines.; Escalate When New Tests Break Existing Tests — Cannot be determined from the provided diff alone whether newly added tests caused existing tests to fail and whether user escalation occurred.; Flag Tests That Become Irrelevant — Cannot be determined from the provided diff alone whether any prior tests became irrelevant and were flagged to the user.; Exit Code Contract — Failure handling introduced in diff uses thrown errors (`ESCALATE_REPEATED_FAIL`) rather than signaling success on failure.; No Synchronous I/O in Hot Paths — No synchronous I/O was introduced in added production hot-path logic; added sync file I/O appears only in tests.; Validate User Input at Entry Point — No new CLI/stdin entry-point input path was added or modified in the diff, so this guardrail is not impacted by these changes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:18:28.076Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — The diff implements repeated FAIL detection in gate-impl with normalized (guardrail_id, reason) exact matching, throws ESCALATE_REPEATED_FAIL with envelope data (phase, matched) before normal FAIL return, preserves retry non-consumption via throw path, adds failedEvaluations while keeping flat reason, and includes supporting unit test evidence (head unit:18).; No Hardcoded Secrets — Added/modified diff lines contain no hardcoded API keys, passwords, tokens, or secret literals.; No Silent Error Swallowing — No empty catch blocks or silent error-discard patterns were introduced; failure paths throw errors.; Bounded Resource Usage — New logic is linear over existing arrays/maps and introduces no unbounded recursion, retry loop, or bulk-loading pattern.; No Sensitive Data in Logs — Added lines persist and format raw evaluation reasons (`failedEvaluations.reason`, escalation detail text) without masking, which can expose sensitive content if present.; No Disabling Existing Tests — Diff adds new tests and does not skip, comment out, or delete existing tests in added/modified lines.; Escalate When New Tests Break Existing Tests — Cannot be determined from diff alone whether new tests caused existing tests to fail and whether user escalation occurred.; Flag Tests That Become Irrelevant — Cannot be determined from diff alone whether older tests became irrelevant and were flagged to the user.; Exit Code Contract — Failure is signaled via thrown errors (`ESCALATE_REPEATED_FAIL`), not by returning success on failure.; No Synchronous I/O in Hot Paths — No synchronous I/O was added to production hot paths; sync file I/O appears only in test code.; Validate User Input at Entry Point — No new CLI/stdin entry-point input handling was introduced in the diff, so this guardrail is not impacted.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:19:55.441Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff adds repeated FAIL detection in gate-impl with normalized (guardrail_id, reason) matching, throws ESCALATE_REPEATED_FAIL with phase/matched envelope data before normal FAIL return (preserving retry non-consumption), persists failedEvaluations while keeping flat reason, and includes unit-test evidence (head: unit=18).; No Hardcoded Secrets — Added/modified lines do not hardcode API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — No empty catch blocks or silent error-discard patterns were introduced; failure paths throw errors.; Bounded Resource Usage — Diff introduces only finite linear scans/maps over existing arrays; no new unbounded recursion or retry loops.; No Sensitive Data in Logs — Added code persists and formats raw failure reason text (`failedEvaluations.reason`, escalation detail), which is unmasked dynamic content in logs.; No Disabling Existing Tests — Diff adds tests and does not skip, comment out, or delete existing tests in added/modified lines.; Escalate When New Tests Break Existing Tests — Whether new tests broke existing tests and were escalated requires runtime/process evidence not provided in the diff.; Flag Tests That Become Irrelevant — Whether older tests became irrelevant and were flagged cannot be determined from the provided diff alone.; Exit Code Contract — Failure is signaled by thrown errors (`ESCALATE_REPEATED_FAIL`), not by returning success on failure.; No Synchronous I/O in Hot Paths — No synchronous I/O was added in production hot-path logic; added sync file I/O appears only in test code.; Validate User Input at Entry Point — No CLI/stdin entry-point input handling was added or modified, so this guardrail is not impacted by this diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:34:01.576Z"
+    }
+  ]
+}

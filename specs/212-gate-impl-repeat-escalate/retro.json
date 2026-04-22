@@ -1,0 +1,66 @@
+{
+  "spec": "specs/212-gate-impl-repeat-escalate/spec.json",
+  "date": "2026-04-22T13:43:12.574Z",
+  "requirements": [
+    {
+      "desc": "REQ-1: gate-impl FAIL の (guardrail, 正規化理由) ペアが直近同 phase FAIL と一致したら ESCALATE_REPEATED_FAIL を throw",
+      "status": "done",
+      "note": "`assertNoRepeatedFail` が一致ペア検出時に `ESCALATE_REPEATED_FAIL` を throw し、`gateFail(...)` return 前に実行されるため通常 FAIL return に進まない。"
+    },
+    {
+      "desc": "REQ-2: REQ-1 発生時に retry カウンタを増分しない",
+      "status": "done",
+      "note": "throw 経路が `gateFail(...)` return 前に発生する実装で、コメントと既存フロー前提どおり POST-hook の retry 増分経路を通らない。"
+    },
+    {
+      "desc": "REQ-3: REQ-1 発生時 envelope は既存 ESCALATE_* と同形式、data に phase と一致ペア列を含む",
+      "status": "partial",
+      "note": "throw される `Error` に `code='ESCALATE_REPEATED_FAIL'` と `data={ phase, matched }` は実装済みだが、`{ ok:false, errors:[...] }` envelope 返却自体は既存の上位エラーハンドラ依存で、このdiff内では直接検証できない。"
+    },
+    {
+      "desc": "REQ-4: FAIL issue-log entry に failedEvaluations: [{guardrail_id, reason}] を追加（flat reason 維持）",
+      "status": "done",
+      "note": "`appendIssueLogFromGateResult` で `failedEvaluations` を追加しつつ既存 `entry.reason` を維持している。"
+    },
+    {
+      "desc": "REQ-5: 検出対象は gate-impl のみ",
+      "status": "done",
+      "note": "`assertNoRepeatedFail` は `RETRY_TRACKED_PHASES` に含まれない phase で即 return し、テストでも phase 不一致時に非発火を確認している。"
+    },
+    {
+      "desc": "REQ-6: 同一性判定は trim + 空白畳み込み + 小文字化後の文字列完全一致のみ",
+      "status": "done",
+      "note": "`normalizeReason` が trim/`\\s+`畳み込み/lowercase を実装し、キー比較は `guardrail_id + normalized reason` の完全一致のみ。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "旧ログ互換として `failedEvaluations` を持たない過去entryを比較対象から除外する挙動（legacy skip）を追加。"
+    },
+    {
+      "file": "specs/212-gate-impl-repeat-escalate/flow.json",
+      "change": "実装要件そのものではなく、フロー進捗・メトリクス・ライフサイクル情報の記録を追加。"
+    },
+    {
+      "file": "specs/212-gate-impl-repeat-escalate/issue-log.json",
+      "change": "開発中のゲート実行ログ/レビュー記録を追加（機能要件の実装コードではない）。"
+    },
+    {
+      "file": "specs/212-gate-impl-repeat-escalate/review.md",
+      "change": "コードレビュー所見ドキュメントを追加（要件外のプロセス成果物）。"
+    },
+    {
+      "file": "specs/212-gate-impl-repeat-escalate/qa.md",
+      "change": "確認用Q&Aテンプレートを追加（機能要件外）。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 5,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.92,
+    "notes": "コア実装（REQ-1/2/4/5/6）はdiff上で満たしている。REQ-3は例外オブジェクトの code/data までは満たすが、最終的な envelope 返却は既存上位ハンドラ依存のため、このdiff単体では完全確認できない。"
+  }
+}

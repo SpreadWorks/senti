@@ -1,0 +1,80 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/212-gate-impl-repeat-escalate/draft.md       |  68 +++\n specs/212-gate-impl-repeat-escalate/flow.json      | 547 +++++++++++++++++++++\n specs/212-gate-impl-repeat-escalate/issue-log.json |  93 ++++\n specs/212-gate-impl-repeat-escalate/qa.md          |   9 +\n specs/212-gate-impl-repeat-escalate/review.md      |  41 ++\n specs/212-gate-impl-repeat-escalate/spec.json      |  84 ++++\n specs/212-gate-impl-repeat-escalate/spec.md        | 120 +++++\n .../212-gate-impl-repeat-escalate/tests/README.md  |  33 ++\n src/flow/lib/run-gate.js                           | 110 +++++\n tests/unit/flow/gate-repeat-escalate.test.js       | 334 +++++++++++++\n 10 files changed, 1439 insertions(+)",
+      "commits": [
+        "feat: feature/212-gate-impl-repeat-escalate",
+        "chore: update flow.json metrics after impl/review cycle",
+        "refactor(gate): extract buildFailPairKey helper for FAIL identity keys",
+        "spec: add no-sensitive-data-in-logs guardrail to Out of Scope",
+        "docs(gate): clarify that failedEvaluations reasons are AI gate metadata",
+        "fix(gate): replace NUL bytes in repeat-fail key builder with pipe separator",
+        "feat(gate): detect repeated identical FAIL in gate-impl and escalate"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 5,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.92,
+      "notes": "コア実装（REQ-1/2/4/5/6）はdiff上で満たしている。REQ-3は例外オブジェクトの code/data までは満たすが、最終的な envelope 返却は既存上位ハンドラ依存のため、このdiff単体では完全確認できない。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 2,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 580912,
+      "output": 15876,
+      "cacheRead": 199168,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 19,
+      "durationMs": 450323,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 13426
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 79041
+        },
+        {
+          "phase": "gate",
+          "durationMs": 31342
+        },
+        {
+          "phase": "approval",
+          "durationMs": 13356
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 226943
+        },
+        {
+          "phase": "review",
+          "durationMs": 86215
+        }
+      ]
+    },
+    "tests": {
+      "unit": 18,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 18
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/212-gate-impl-repeat-escalate\n    chore: update flow.json metrics after impl/review cycle\n    refactor(gate): extract buildFailPairKey helper for FAIL identity keys\n    spec: add no-sensitive-data-in-logs guardrail to Out of Scope\n    docs(gate): clarify that failedEvaluations reasons are AI gate metadata\n    fix(gate): replace NUL bytes in repeat-fail key builder with pipe separator\n    feat(gate): detect repeated identical FAIL in gate-impl and escalate\n    10 files changed, 1439 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 92%  (5 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 2\n    issue-log ................... 2\n    agent calls ................. 19\n    input tokens ................ 580,912\n    output tokens ............... 15,876\n    cache-read tokens ........... 199,168\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 450.3s\n      draft ..................... 13.4s\n      gate-draft ................ 79.0s\n      gate ...................... 31.3s\n      approval .................. 13.4s\n      gate-impl ................. 226.9s\n      review .................... 86.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 18  integration 0  acceptance 0  total 18"
+}

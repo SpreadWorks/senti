@@ -141,9 +141,9 @@ describe("docs.nav link generation", () => {
 
     const result = ds.nav({}, ["docs/overview.md"]);
     assert.ok(result !== null, "should return nav for first chapter");
-    assert.ok(!result.includes("←"), "first chapter should not have prev link");
-    assert.ok(result.includes("→"), "first chapter should have next link");
-    assert.ok(result.includes("design.md"), "should link to second chapter");
+    assert.ok(!result.toMarkdown().includes("←"), "first chapter should not have prev link");
+    assert.ok(result.toMarkdown().includes("→"), "first chapter should have next link");
+    assert.ok(result.toMarkdown().includes("design.md"), "should link to second chapter");
 
     fs.rmSync(tmpDir, { recursive: true });
   });
@@ -172,9 +172,9 @@ describe("docs.nav link generation", () => {
 
     const result = ds.nav({}, ["docs/dev.md"]);
     assert.ok(result !== null, "should return nav for last chapter");
-    assert.ok(result.includes("←"), "last chapter should have prev link");
-    assert.ok(!result.includes("→"), "last chapter should not have next link");
-    assert.ok(result.includes("design.md"), "should link to second chapter");
+    assert.ok(result.toMarkdown().includes("←"), "last chapter should have prev link");
+    assert.ok(!result.toMarkdown().includes("→"), "last chapter should not have next link");
+    assert.ok(result.toMarkdown().includes("design.md"), "should link to second chapter");
 
     fs.rmSync(tmpDir, { recursive: true });
   });
@@ -203,10 +203,10 @@ describe("docs.nav link generation", () => {
 
     const result = ds.nav({}, ["docs/design.md"]);
     assert.ok(result !== null, "should return nav for middle chapter");
-    assert.ok(result.includes("←"), "middle chapter should have prev link");
-    assert.ok(result.includes("→"), "middle chapter should have next link");
-    assert.ok(result.includes("overview.md"), "should link to first chapter");
-    assert.ok(result.includes("dev.md"), "should link to third chapter");
+    assert.ok(result.toMarkdown().includes("←"), "middle chapter should have prev link");
+    assert.ok(result.toMarkdown().includes("→"), "middle chapter should have next link");
+    assert.ok(result.toMarkdown().includes("overview.md"), "should link to first chapter");
+    assert.ok(result.toMarkdown().includes("dev.md"), "should link to third chapter");
 
     fs.rmSync(tmpDir, { recursive: true });
   });

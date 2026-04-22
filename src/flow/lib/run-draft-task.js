@@ -21,6 +21,7 @@ import path from "path";
 import { FlowCommand } from "./base-command.js";
 import { container } from "../../lib/container.js";
 import { RunGateCommand } from "./run-gate.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 const DEFAULT_RETRY_MAX = 10;
 
@@ -68,10 +69,13 @@ export class RunDraftTaskCommand extends FlowCommand {
     }
 
     if (lastGate.result !== "pass") {
-      const err = new Error(`draft gate failed after ${attempts} attempts`);
-      err.code = "ESCALATE_RETRY_EXHAUSTED";
-      err.data = { draftPath: relDraft, attempts, gate: lastGate };
-      throw err;
+      return Envelope.fail(
+        "run",
+        "draft-task",
+        "ESCALATE_RETRY_EXHAUSTED",
+        `draft gate failed after ${attempts} attempts`,
+        { draftPath: relDraft, attempts, gate: lastGate },
+      );
     }
 
     const fresh = ctx.flowManager.load();

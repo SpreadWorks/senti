@@ -128,7 +128,7 @@ See the [configuration reference](docs/configuration.md) for details.
 | [Project Structure](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/project_structure.md) | This chapter describes the overall directory organization of the sdd-forge project, which is structured around seven … |
 | [CLI Command Reference](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/cli_commands.md) | This chapter documents 8 CLI entrypoints and routed commands in the analyzed files: setup, check, check freshness, do… |
 | [Configuration and Customization](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/configuration.md) | sdd-forge is configured through a single project-level JSON file (.sdd-forge/config.json) and optionally extended by … |
-| [Internal Design](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/internal_design.md) | This chapter describes the internal structure of sdd-forge: a layered CLI tool built entirely on Node.js built-in mod… |
+| [Internal Design](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/internal_design.md) | This project is organized around three main areas: src/docs for documentation analysis and generation, src/flow for S… |
 | [Preset Creation Guide](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/creating_presets.md) |  |
 <!-- {{/data}} -->
 

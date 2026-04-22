@@ -1,0 +1,68 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "AGENTS.md                                      |   1 +\n CLAUDE.md                                      |   1 +\n package.json                                   |   4 +-\n specs/212-agent-tests-split/draft.md           |  56 ++++\n specs/212-agent-tests-split/flow.json          | 355 +++++++++++++++++++++++++\n specs/212-agent-tests-split/issue-log.json     |  76 ++++++\n specs/212-agent-tests-split/qa.md              |   9 +\n specs/212-agent-tests-split/review.md          |  33 +++\n specs/212-agent-tests-split/spec.json          |  80 ++++++\n specs/212-agent-tests-split/spec.md            |  94 +++++++\n specs/212-agent-tests-split/tests/README.md    |  32 +++\n tests/{e2e/acceptance => agent}/report.test.js |   0\n tests/helpers/test-runner-search-dirs.js       |  69 +++++\n tests/run.js                                   |  42 ++-\n tests/unit/test-runner-flags.test.js           | 106 ++++++++\n 15 files changed, 934 insertions(+), 24 deletions(-)",
+      "commits": [
+        "feat: feature/212-agent-tests-split",
+        "feat(tests): split AI-execution tests into tests/agent/ (spec 212)",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "All six listed requirements are satisfied by the diff. Additional changes are mainly process/documentation artifacts and extra runner-focused tests beyond the explicit requirements."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 234591,
+      "output": 12942,
+      "cacheRead": 376960,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 343479,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 121799
+        },
+        {
+          "phase": "gate",
+          "durationMs": 56874
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 52306
+        },
+        {
+          "phase": "review",
+          "durationMs": 112500
+        }
+      ]
+    },
+    "tests": {
+      "unit": 14,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 14
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/212-agent-tests-split\n    feat(tests): split AI-execution tests into tests/agent/ (spec 212)\n    chore: add retro and report\n    15 files changed, 934 insertions(+), 24 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 11\n    input tokens ................ 234,591\n    output tokens ............... 12,942\n    cache-read tokens ........... 376,960\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 343.5s\n      gate-draft ................ 121.8s\n      gate ...................... 56.9s\n      gate-impl ................. 52.3s\n      review .................... 112.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 14  integration 0  acceptance 0  total 14"
+}

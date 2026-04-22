@@ -1,0 +1,90 @@
+# Feature Specification: 212-req-diff-verifiability-gate
+
+**Feature Branch**: `feature/212-req-diff-verifiability-gate`
+**Created**: 2026-04-22
+**Status**: Draft
+**Input**: GitHub Issue #214
+
+## Goal
+- spec phase の gate に新 guardrail `req-diff-verifiability` を追加し、各 REQ が unified diff + test execution summary だけで PASS/FAIL 判定可能であることを spec 段階で強制する。診断不能な REQ（将来挙動の保証・拡張性契約・diff 外プロセス不変条件）を spec 段階で弾き、impl phase の retry ceiling 浪費を防ぐ。
+
+## Background
+- issue #211 (cc61) は gate-impl の FAIL を「AI 判定ブレ」と仮定し多数決案を提示したが、3 spec (203/207 x2) の issue-log 分析で前提が崩れた。
+- 203 は REQ-11 の extensibility contract が diff 単独で検証不能なため 3 回一貫して FAIL、207 系は段階的な legitimate FAIL であり判定ブレではなかった。
+- 根本原因は「診断不能な REQ の書き方」を spec 段階で許していること。spec gate で verifiability を問う guardrail を追加することで、impl phase ceiling 浪費の構造的要因を断つ。
+
+## Scope
+- `src/presets/base/guardrail.json` に guardrail エントリ 1 件追加 (id: `req-diff-verifiability`, phase: `spec`, category: `process`)
+- 新 guardrail の phase filter 挙動 (spec phase のみ含まれ、draft / task-impl phase では含まれない) の回帰テスト
+- 追加した guardrail entry の schema 妥当性 (id / title / body / meta.phase / meta.category)
+
+## Out of Scope
+- 既存 spec の REQ 書き換え・遡及修正
+- 案C (多数決) / 案F との統合 (別 draft)
+- gate-impl 側の guardrail 調整・判定 fallback 見直し
+- guardrail JSON schema 自体の変更
+
+## Constraints
+- 既存の guardrail JSON schema (id / title / body / meta.phase / meta.category) は変更しない
+- 既存 guardrail id / body は一切変更しない (追加のみ)
+- preset 継承チェーン・loader 側のロジック変更なし
+- AI evaluation response の schema (`evaluations[]`) 変更なし
+
+## Design Principles
+- 追加のみ (alpha policy: 後方互換コード不要だが、既存 guardrail を壊さないのは別軸)
+- 新 guardrail 1 エントリのみで機能を成立させる (loader / run-gate 側に特別扱いを入れない)
+
+## Overview
+### Modules
+- `src/presets/base/guardrail.json` — 新 guardrail エントリの追加対象
+- `src/lib/guardrail.js` — 変更なし (既存の phase filter がそのまま機能する)
+- `src/flow/lib/run-gate.js` — 変更なし (knownIds が動的に guardrail 一覧から構築されるため新 id が自動的に許可される)
+
+### Data Flow
+- spec gate 起動 → `src/lib/guardrail.js` が base preset から guardrail JSON を読み込み → phase=spec の entry を filter → run-gate.js が AI に prompt で guardrail 一覧を渡す → AI が各 guardrail について REQ を評価 → `req-diff-verifiability` が FAIL なら spec gate 全体 FAIL
+
+### Decisions
+- phase は `spec` のみ。draft には含めない (guardrail `draft-scope-boundary` の原則により draft は要件レベルで verifiability を厳密に問う段階ではない)
+- category は `process` (既存の `unambiguous-requirements` `complete-context` と同系列のメタ要件)
+- id は `req-diff-verifiability` (既存 id と命名規約が揃う)
+
+## Clarifications (Q&A)
+- Q: guardrail id の命名は既存と揃っているか？
+  - A: 揃っている。既存の `unambiguous-requirements` `complete-context` `prioritize-requirements` 等と同じ kebab-case / 名詞句パターン。
+- Q: run-gate.js の knownIds validation は追加 id を受け入れるか？
+  - A: 受け入れる。knownIds は guardrail JSON から動的に構築されるため (`src/flow/lib/run-gate.js:377` の `new Set(knownIds)` を参照)、新 id が自動的に許可される。
+- Q: body 文面の最終形は？
+  - A: "Each requirement shall be verifiable using a standard unified diff and a test execution summary alone. Requirements that depend on future behavior guarantees, extensibility contracts (e.g. \"X can be done without code changes\"), or out-of-diff process invariants shall be rewritten."
+
+## Alternatives Considered
+- 案 A: gate-impl 側に新 guardrail を追加 → 却下。impl phase で検出しても retry ceiling 浪費は発生済み。根本解決は spec 段階で弾くこと。
+- 案 B: guardrail JSON schema を拡張して `verifiable_via` のような構造化フィールドを追加 → 却下。scope 拡大になり、本 draft の最小変更原則に反する。既存 body 文字列で十分。
+- 案 C: draft phase にも同 guardrail を追加 → 却下。draft は要件レベル段階であり、`draft-scope-boundary` 原則と衝突する。
+
+## User Confirmation
+- [x] User approved this spec
+- Confirmed at: 2026-04-22
+- Notes: issue #214 / draft 承認済み
+
+## Requirements
+
+優先順位 (必須機能 → 構造的保証 → 回帰防止の順):
+
+- **R1 (highest):** When spec phase の gate 実行時 (`sdd-forge spec gate` / `sdd-forge flow run gate --phase spec`) に guardrail 一覧を AI に渡すとき、guardrail 一覧は id=`req-diff-verifiability`, phase=`spec`, category=`process`, title と body を持つエントリを含まなければならない (shall)。
+- **R2 (high):** When draft phase または task-impl phase で guardrail を読み込むとき、`req-diff-verifiability` エントリは含まれてはならない (shall not)。
+- **R3 (medium):** When `src/presets/base/guardrail.json` を JSON parse したとき、新規追加エントリは既存の guardrail JSON schema (id: 非空 string, title: 非空 string, body: 非空 string, meta.phase: string 配列, meta.category: string) に準拠していなければならない (shall)。
+- **R4 (low, 回帰防止):** When 既存の guardrail (`unambiguous-requirements` 他すべて) を読み込むとき、id / title / body / meta すべて本 spec 前の値と一致しなければならない (shall)。
+
+## Acceptance Criteria
+- `src/presets/base/guardrail.json` に id=`req-diff-verifiability` のエントリが 1 件存在する
+- `sdd-forge flow get guardrail spec` の markdown 出力に新 guardrail の title が含まれる
+- `sdd-forge flow get guardrail draft` の markdown 出力に新 guardrail の title が含まれない
+- `sdd-forge flow get guardrail task-impl` の markdown 出力に新 guardrail の title が含まれない
+- 新規 / 既存のユニットテスト (`npm test`) がすべて PASS する
+- 既存の guardrail 件数に関する assertion がある既存テストは 1 件増える形で更新される (もしくは件数に依存しないテストになっている)
+
+## Implementation Targets
+- src/presets/base/guardrail.json
+
+## Open Questions
+- [x] (なし)

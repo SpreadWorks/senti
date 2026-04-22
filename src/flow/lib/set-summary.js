@@ -7,24 +7,35 @@
  */
 
 import { FlowCommand } from "./base-command.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 export default class SetSummaryCommand extends FlowCommand {
   execute(ctx) {
     const raw = ctx.json;
 
     if (!raw) {
-      throw new Error("usage: flow set summary '<json-array>'");
+      return Envelope.fail(
+        "set",
+        "summary",
+        "INVALID_USAGE",
+        "usage: flow set summary '<json-array>'",
+      );
     }
 
     let parsed;
     try {
       parsed = JSON.parse(raw);
     } catch (e) {
-      throw new Error(`failed to parse JSON: ${e.message}`);
+      return Envelope.fail("set", "summary", "INVALID_JSON", `failed to parse JSON: ${e.message}`);
     }
 
     if (!Array.isArray(parsed)) {
-      throw new Error("expected a JSON array of strings or {text, status} objects");
+      return Envelope.fail(
+        "set",
+        "summary",
+        "INVALID_ARG_VALUE",
+        "expected a JSON array of strings or {text, status} objects",
+      );
     }
 
     for (let i = 0; i < parsed.length; i++) {
@@ -32,7 +43,12 @@ export default class SetSummaryCommand extends FlowCommand {
       const isString = typeof el === "string";
       const isValidObject = typeof el === "object" && el !== null && !Array.isArray(el) && typeof el.text === "string";
       if (!isString && !isValidObject) {
-        throw new Error(`invalid element at index ${i}: expected string or {text, status} object`);
+        return Envelope.fail(
+          "set",
+          "summary",
+          "INVALID_ARG_VALUE",
+          `invalid element at index ${i}: expected string or {text, status} object`,
+        );
       }
     }
 

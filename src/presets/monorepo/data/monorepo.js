@@ -12,6 +12,7 @@ import path from "path";
 export default function register(container) {
   const DataSource = container.get("base.DataSource");
   const ANALYSIS_META_KEYS = container.get("base.ANALYSIS_META_KEYS");
+  const Blockquote = container.get("base.Blockquote");
   const loadJsonFile = container.get("config.loadJsonFile");
 
   class MonorepoSource extends DataSource {
@@ -68,7 +69,7 @@ export default function register(container) {
     }
 
     _formatBadge(names) {
-      return `> **Target:** ${names.join(", ")}`;
+      return new Blockquote(`**Target:** ${names.join(", ")}`);
     }
 
     _loadConfig() {

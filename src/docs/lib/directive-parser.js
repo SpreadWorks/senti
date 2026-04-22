@@ -1,3 +1,5 @@
+import { Renderable } from "./renderable.js";
+
 /**
  * src/docs/lib/directive-parser.js
  *
@@ -386,8 +388,9 @@ export function resolveDataDirectives(text, resolveFn, opts) {
       continue;
     }
 
-    const rendered = resolveFn(d.preset, d.source, d.method, d.labels);
-    if (rendered === null || rendered === undefined) {
+    const resolved = resolveFn(d.preset, d.source, d.method, d.labels);
+    const rendered = resolved instanceof Renderable ? resolved.toMarkdown() : null;
+    if (resolved === null || resolved === undefined || rendered === null) {
       if (d.params?.ignoreError === true) {
         if (d.inline) {
           replaceInlineDirective(lines, d);

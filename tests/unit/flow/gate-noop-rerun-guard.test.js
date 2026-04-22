@@ -7,7 +7,7 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
   computeGitState,
   findPreviousFailState,
-  assertNoProgressSinceLastFail,
+  checkNoProgressSinceLastFail,
 } from "../../../src/flow/lib/run-gate.js";
 
 // -----------------------------------------------------------------------------
@@ -137,10 +137,10 @@ describe("findPreviousFailState (REQ-2, REQ-7, REQ-8)", () => {
   });
 });
 
-describe("assertNoProgressSinceLastFail (REQ-3, REQ-4, REQ-7)", () => {
+describe("checkNoProgressSinceLastFail (REQ-3, REQ-4, REQ-7)", () => {
   const phase = "task-impl";
 
-  it("throws NO_PROGRESS_SINCE_LAST_FAIL when state matches the last FAIL", () => {
+  it("returns failure envelope with NO_PROGRESS_SINCE_LAST_FAIL when state matches the last FAIL", () => {
     const flowState = { metrics: [{ phase, counter: "gateRetry", delta: 1 }] };
     const issueLog = {
       entries: [
@@ -148,53 +148,62 @@ describe("assertNoProgressSinceLastFail (REQ-3, REQ-4, REQ-7)", () => {
       ],
     };
     const currentState = { headSha: "aaa", worktreeHash: "111" };
-    assert.throws(
-      () => assertNoProgressSinceLastFail({ flowState, issueLog, phase, currentState }),
-      (err) => {
-        assert.equal(err.code, "NO_PROGRESS_SINCE_LAST_FAIL");
-        assert.match(err.message, /prev fail reason/);
-        return true;
-      },
+    const result = checkNoProgressSinceLastFail({ flowState, issueLog, phase, currentState });
+    assert.ok(result, "expected an envelope return, not null");
+    assert.equal(result.ok, false);
+    assert.equal(result.errors[0].code, "NO_PROGRESS_SINCE_LAST_FAIL");
+    assert.ok(
+      result.errors[0].messages.some((m) => /prev fail reason/.test(m)),
+      "messages should include the prior FAIL reason",
     );
   });
 
-  it("does not throw when either identifier differs", () => {
+  it("returns null when either identifier differs", () => {
     const flowState = { metrics: [{ phase, counter: "gateRetry", delta: 1 }] };
     const issueLog = {
       entries: [
         { step: "gate-impl", phase, reason: "prev fail", headSha: "aaa", worktreeHash: "111" },
       ],
     };
-    assertNoProgressSinceLastFail({
-      flowState,
-      issueLog,
-      phase,
-      currentState: { headSha: "aaa", worktreeHash: "222" },
-    });
-    assertNoProgressSinceLastFail({
-      flowState,
-      issueLog,
-      phase,
-      currentState: { headSha: "bbb", worktreeHash: "111" },
-    });
+    assert.equal(
+      checkNoProgressSinceLastFail({
+        flowState,
+        issueLog,
+        phase,
+        currentState: { headSha: "aaa", worktreeHash: "222" },
+      }),
+      null,
+    );
+    assert.equal(
+      checkNoProgressSinceLastFail({
+        flowState,
+        issueLog,
+        phase,
+        currentState: { headSha: "bbb", worktreeHash: "111" },
+      }),
+      null,
+    );
   });
 
-  it("does not throw when the prior FAIL lacks state identifiers (REQ-7)", () => {
+  it("returns null when the prior FAIL lacks state identifiers (REQ-7)", () => {
     const flowState = { metrics: [{ phase, counter: "gateRetry", delta: 1 }] };
     const issueLog = {
       entries: [
         { step: "gate-impl", phase, reason: "legacy entry without hash" },
       ],
     };
-    assertNoProgressSinceLastFail({
-      flowState,
-      issueLog,
-      phase,
-      currentState: { headSha: "aaa", worktreeHash: "111" },
-    });
+    assert.equal(
+      checkNoProgressSinceLastFail({
+        flowState,
+        issueLog,
+        phase,
+        currentState: { headSha: "aaa", worktreeHash: "111" },
+      }),
+      null,
+    );
   });
 
-  it("does not throw when no prior FAIL counts toward the retry budget (REQ-8)", () => {
+  it("returns null when no prior FAIL counts toward the retry budget (REQ-8)", () => {
     const flowState = {
       metrics: [
         { phase, counter: "gateRetry", delta: 1 },
@@ -206,12 +215,15 @@ describe("assertNoProgressSinceLastFail (REQ-3, REQ-4, REQ-7)", () => {
         { step: "gate-impl", phase, reason: "fail before reset", headSha: "aaa", worktreeHash: "111" },
       ],
     };
-    assertNoProgressSinceLastFail({
-      flowState,
-      issueLog,
-      phase,
-      currentState: { headSha: "aaa", worktreeHash: "111" },
-    });
+    assert.equal(
+      checkNoProgressSinceLastFail({
+        flowState,
+        issueLog,
+        phase,
+        currentState: { headSha: "aaa", worktreeHash: "111" },
+      }),
+      null,
+    );
   });
 });
 

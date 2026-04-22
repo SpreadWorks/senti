@@ -9,24 +9,35 @@
 
 import { FlowCommand } from "./base-command.js";
 import { VALID_REQ_STATUSES } from "../../lib/constants.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 export default class SetReqCommand extends FlowCommand {
   execute(ctx) {
     const { index: rawIndex, status } = ctx;
 
     if (rawIndex == null || !status) {
-      throw new Error("usage: flow set req <index> <status>");
+      return Envelope.fail("set", "req", "INVALID_USAGE", "usage: flow set req <index> <status>");
     }
 
     const str = String(rawIndex);
     if (!/^\d+$/.test(str)) {
-      throw new Error(`not a valid non-negative integer: ${rawIndex}`);
+      return Envelope.fail(
+        "set",
+        "req",
+        "INVALID_ARG_VALUE",
+        `not a valid non-negative integer: ${rawIndex}`,
+      );
     }
 
     const index = parseInt(str, 10);
 
     if (!VALID_REQ_STATUSES.includes(status)) {
-      throw new Error(`invalid status: ${status} (valid: ${VALID_REQ_STATUSES.join(", ")})`);
+      return Envelope.fail(
+        "set",
+        "req",
+        "INVALID_STATUS",
+        `invalid status: ${status} (valid: ${VALID_REQ_STATUSES.join(", ")})`,
+      );
     }
 
     ctx.flowManager.updateRequirement(index, status);

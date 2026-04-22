@@ -142,6 +142,7 @@ export class FlowManager {
   generateRunId() { return this._preparing.generateRunId(); }
   createPreparingFlow(runId, extra) { return this._preparing.create(runId, extra); }
   loadPreparingFlow(runId) { return this._preparing.load(runId); }
+  mutatePreparingFlow(runId, mutator) { return this._preparing.mutate(runId, mutator); }
   resolvePreparingInputs(runId, cliIssue, cliRequest) {
     return this._preparing.resolveInputs(runId, cliIssue, cliRequest);
   }

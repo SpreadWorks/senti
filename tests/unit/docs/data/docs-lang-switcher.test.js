@@ -59,11 +59,11 @@ describe("docs.langSwitcher", () => {
 
     assert.ok(result, "should return a non-null string");
     // Current lang (en) should be bold
-    assert.ok(result.includes("**English**"), `should contain bold English, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("**English**"), `should contain bold English, got: ${result}`);
     // Other lang (ja) should be a link
-    assert.ok(result.includes("[日本語]"), `should contain link to Japanese, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("[日本語]"), `should contain link to Japanese, got: ${result}`);
     // Relative path from docs/overview.md to docs/ja/overview.md
-    assert.ok(result.includes("ja/overview.md"), `should contain relative path, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("ja/overview.md"), `should contain relative path, got: ${result}`);
     removeTmpDir(tmp);
   });
 
@@ -77,9 +77,9 @@ describe("docs.langSwitcher", () => {
 
     assert.ok(result, "should return a non-null string");
     // Current lang (ja) should be bold
-    assert.ok(result.includes("**日本語**"), `should contain bold Japanese, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("**日本語**"), `should contain bold Japanese, got: ${result}`);
     // Other lang (en) should link to parent dir
-    assert.ok(result.includes("../overview.md"), `should contain ../ relative path, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("../overview.md"), `should contain ../ relative path, got: ${result}`);
     removeTmpDir(tmp);
   });
 
@@ -91,9 +91,9 @@ describe("docs.langSwitcher", () => {
     const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["relative", "README.md"]);
 
     assert.ok(result, "should return a non-null string");
-    assert.ok(result.includes("**English**"), `should contain bold English, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("**English**"), `should contain bold English, got: ${result}`);
     // From README.md to docs/ja/README.md
-    assert.ok(result.includes("docs/ja/README.md"), `should contain docs/ja/README.md, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("docs/ja/README.md"), `should contain docs/ja/README.md, got: ${result}`);
     removeTmpDir(tmp);
   });
 
@@ -105,9 +105,9 @@ describe("docs.langSwitcher", () => {
     const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["relative", "docs/ja/README.md"]);
 
     assert.ok(result, "should return a non-null string");
-    assert.ok(result.includes("**日本語**"), `should contain bold Japanese, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("**日本語**"), `should contain bold Japanese, got: ${result}`);
     // From docs/ja/README.md to ../../README.md
-    assert.ok(result.includes("../../README.md"), `should contain ../../README.md, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("../../README.md"), `should contain ../../README.md, got: ${result}`);
     removeTmpDir(tmp);
   });
 
@@ -120,10 +120,10 @@ describe("docs.langSwitcher", () => {
     const result = resolver.resolve("node-cli", "docs", "langSwitcher", {}, ["absolute", "README.md"]);
 
     assert.ok(result, "should return a non-null string");
-    assert.ok(result.includes("**English**"), `should contain bold English, got: ${result}`);
+    assert.ok(result.toMarkdown().includes("**English**"), `should contain bold English, got: ${result}`);
     // Absolute URL to ja README
     assert.ok(
-      result.includes("https://github.com/TestOrg/test-project/blob/main/docs/ja/README.md"),
+      result.toMarkdown().includes("https://github.com/TestOrg/test-project/blob/main/docs/ja/README.md"),
       `should contain absolute GitHub URL, got: ${result}`,
     );
     removeTmpDir(tmp);
@@ -139,7 +139,7 @@ describe("docs.langSwitcher", () => {
 
     assert.ok(result, "should return a non-null string");
     assert.ok(
-      result.includes("https://github.com/TestOrg/test-project/blob/main/docs/ja/overview.md"),
+      result.toMarkdown().includes("https://github.com/TestOrg/test-project/blob/main/docs/ja/overview.md"),
       `should contain absolute URL to ja chapter, got: ${result}`,
     );
     removeTmpDir(tmp);

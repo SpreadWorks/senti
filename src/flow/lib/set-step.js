@@ -10,17 +10,23 @@
 import { FlowCommand } from "./base-command.js";
 import { VALID_STEP_STATUSES } from "../../lib/constants.js";
 import { container } from "../../lib/container.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 export default class SetStepCommand extends FlowCommand {
   execute(ctx) {
     const { id, status } = ctx;
 
     if (!id || !status) {
-      throw new Error("usage: flow set step <id> <status>");
+      return Envelope.fail("set", "step", "INVALID_USAGE", "usage: flow set step <id> <status>");
     }
 
     if (!VALID_STEP_STATUSES.includes(status)) {
-      throw new Error(`invalid status: ${status} (valid: ${VALID_STEP_STATUSES.join(", ")})`);
+      return Envelope.fail(
+        "set",
+        "step",
+        "INVALID_STATUS",
+        `invalid status: ${status} (valid: ${VALID_STEP_STATUSES.join(", ")})`,
+      );
     }
 
     ctx.flowManager.updateStepStatus(id, status);

@@ -31,6 +31,7 @@ import {
 import { FlowCommand } from "./base-command.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { resolveGateStepId } from "./gate-step.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 export { resolveGateStepId };
 
@@ -767,24 +768,33 @@ function warnGateRetryBudget(ctx, phase) {
   );
 }
 
-function assertRetryBelowMax(ctx, phase) {
-  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+/**
+ * Returns a failure Envelope when the retry budget for the given phase is
+ * exhausted, or null when the command is still allowed to proceed. Callers
+ * return the envelope verbatim to short-circuit the command with ok:false.
+ * (Spec 213: "judgment-result" exhaustion must not throw.)
+ */
+export function checkRetryBelowMax(ctx, phase) {
+  if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
   const count = readGateRetryCount(ctx.flowState, phase);
   const max = resolveRetryMax(ctx.config);
-  if (count < max) return;
+  if (count < max) return null;
 
   const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max);
-  const msg = [
+  const messages = [
     `gate retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${phase}".`,
     "Previous FAIL reasons:",
     history || "  (no issue-log entries found)",
     "",
     "Stop the automatic retry loop and return control to the user.",
-  ].join("\n");
-  const err = new Error(msg);
-  err.code = "ESCALATE_RETRY_EXHAUSTED";
-  err.data = { phase, attempts: count, max };
-  throw err;
+  ];
+  return Envelope.fail(
+    "run",
+    "gate",
+    "ESCALATE_RETRY_EXHAUSTED",
+    messages,
+    { phase, attempts: count, max },
+  );
 }
 
 /**
@@ -863,30 +873,118 @@ export function findPreviousFailState({ flowState, issueLog, phase }) {
 }
 
 /**
- * Throw `Error` with `err.code = "NO_PROGRESS_SINCE_LAST_FAIL"` when the
+ * Returns a failure Envelope with `code="NO_PROGRESS_SINCE_LAST_FAIL"` when the
  * current working-tree state matches the last recorded FAIL for the same
- * phase. The caller runs this before invoking the AI agent so no retry budget
- * is consumed (registry's post-hook — which increments gateRetry — only runs
- * on a successful command return).
+ * phase. Returns null when the command is allowed to proceed. The caller runs
+ * this before invoking the AI agent so no retry budget is consumed (registry's
+ * post-hook — which increments gateRetry — only runs on a successful ok:true
+ * command return).
  */
-export function assertNoProgressSinceLastFail({ flowState, issueLog, phase, currentState }) {
+export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, currentState }) {
   const prev = findPreviousFailState({ flowState, issueLog, phase });
-  if (!prev) return;
-  if (prev.headSha !== currentState.headSha) return;
-  if (prev.worktreeHash !== currentState.worktreeHash) return;
+  if (!prev) return null;
+  if (prev.headSha !== currentState.headSha) return null;
+  if (prev.worktreeHash !== currentState.worktreeHash) return null;
 
   const prevEntry = findPreviousFailEntry(issueLog, phase);
   const prevReason = prevEntry?.reason || null;
-  const msg = [
+  const messages = [
     `gate-impl re-run rejected: working tree is unchanged since the previous FAIL (phase "${phase}").`,
     "Previous FAIL reason:",
     `  ${prevReason || "(no reason recorded)"}`,
     "",
     "Modify the spec or implementation before retrying.",
+  ];
+  return Envelope.fail(
+    "run",
+    "gate",
+    "NO_PROGRESS_SINCE_LAST_FAIL",
+    messages,
+    { phase, previous: { headSha: prev.headSha, worktreeHash: prev.worktreeHash } },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Repeated-identical-FAIL escalation guard (spec 212)
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalize a reason string for identity comparison: trim, collapse any
+ * consecutive whitespace to a single space, lowercase ASCII. Semantic
+ * similarity (Levenshtein / embedding) is intentionally excluded — the
+ * guard compares decision-level text produced by the same model with
+ * matching inputs, so exact-after-normalization suffices (REQ-6).
+ */
+export function normalizeReason(text) {
+  if (text == null) return "";
+  return String(text).trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/**
+ * Extract FAIL-only evaluations as `{ guardrail_id, reason }` pairs for
+ * persistence in issue-log and for identity comparison. PASS / SKIP are
+ * dropped.
+ */
+export function buildFailedEvaluations(evaluations) {
+  if (!Array.isArray(evaluations)) return [];
+  return evaluations
+    .filter((e) => e && e.result === "fail" && typeof e.guardrail_id === "string")
+    .map((e) => ({ guardrail_id: e.guardrail_id, reason: String(e.reason ?? "") }));
+}
+
+/**
+ * Return the most recent same-phase FAIL entry's `failedEvaluations`, or
+ * null when no such entry exists. Legacy entries without the field are
+ * skipped so pre-212 issue-logs cannot cause false matches.
+ */
+export function findPreviousFailedEvaluations({ issueLog, phase }) {
+  const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i];
+    if (e.phase !== phase) continue;
+    if (!Array.isArray(e.failedEvaluations) || e.failedEvaluations.length === 0) continue;
+    return e.failedEvaluations;
+  }
+  return null;
+}
+
+/**
+ * Throw `Error` with `err.code = "ESCALATE_REPEATED_FAIL"` when any FAIL
+ * pair in the current evaluation matches a pair recorded in the previous
+ * same-phase FAIL entry (guardrail_id exact match + normalized reason
+ * exact match). The caller runs this after AI evaluation but before the
+ * gateFail return, so the registry's POST-hook (which increments
+ * `gateRetry`) never fires — retry budget is preserved (REQ-2).
+ */
+function buildFailPairKey({ guardrail_id, reason }) {
+  return `${guardrail_id}|${normalizeReason(reason)}`;
+}
+
+export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations }) {
+  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+  const current = buildFailedEvaluations(currentEvaluations);
+  if (current.length === 0) return;
+  const previous = findPreviousFailedEvaluations({ issueLog, phase });
+  if (!previous) return;
+
+  const priorKeys = new Set(previous.map(buildFailPairKey));
+  const matched = current.filter((c) => priorKeys.has(buildFailPairKey(c)));
+  if (matched.length === 0) return;
+
+  const detail = matched
+    .map((m) => `  ${m.guardrail_id}: ${m.reason}`)
+    .join("\n");
+  const msg = [
+    `gate-impl escalation: repeated identical FAIL detected for phase "${phase}".`,
+    "Matching (guardrail, reason) pairs:",
+    detail,
+    "",
+    "The AI has failed on the same requirement(s) for the same reason as the previous attempt.",
+    "Fix the spec wording or implementation so the failure mode changes, then retry.",
   ].join("\n");
   const err = new Error(msg);
-  err.code = "NO_PROGRESS_SINCE_LAST_FAIL";
-  err.data = { phase, previous: { headSha: prev.headSha, worktreeHash: prev.worktreeHash } };
+  err.code = "ESCALATE_REPEATED_FAIL";
+  err.data = { phase, matched };
   throw err;
 }
 
@@ -1182,18 +1280,21 @@ export class RunGateCommand extends FlowCommand {
     // spec 209 REQ-6: surface remaining retry budget before running the gate.
     warnGateRetryBudget(ctx, phase);
     // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
-    assertRetryBelowMax(ctx, phase);
+    const retryFail = checkRetryBelowMax(ctx, phase);
+    if (retryFail) return retryFail;
 
     // spec 210 REQ-2/REQ-3: reject re-run when the working tree is unchanged
-    // since the previous FAIL. Throws before AI invocation, so gateRetry is
-    // not incremented (the registry post-hook never runs on throw).
+    // since the previous FAIL. Returns ok:false envelope before AI invocation,
+    // so gateRetry is not incremented (the registry post-hook never runs on
+    // an ok:false return).
     const gitState = computeGitState(root);
-    assertNoProgressSinceLastFail({
+    const noProgressFail = checkNoProgressSinceLastFail({
       flowState: state,
       issueLog: loadIssueLog(root, state.spec),
       phase,
       currentState: gitState,
     });
+    if (noProgressFail) return noProgressFail;
     // spec 210 REQ-1: stash current state on ctx so appendIssueLogFromGateResult
     // can attach it to FAIL entries without re-running git.
     ctx.gitState = gitState;
@@ -1269,6 +1370,14 @@ export class RunGateCommand extends FlowCommand {
       (r) => r.result === "pass" || r.result === "skip",
     );
     if (!reqPassed) {
+      // spec 212 REQ-1: escalate when the same requirement FAILs for the same
+      // reason as the previous attempt. Throws before gateFail return so the
+      // POST-hook retry counter increment never fires (REQ-2).
+      assertNoRepeatedFail({
+        issueLog: loadIssueLog(root, state.spec),
+        phase,
+        currentEvaluations: reqEvaluations,
+      });
       return gateFail(level, phase, specPath, reqEvaluations, []);
     }
 
@@ -1288,6 +1397,12 @@ export class RunGateCommand extends FlowCommand {
     }
     const combined = [...reqEvaluations, ...grResult.evaluations];
     if (!grResult.passed) {
+      // spec 212 REQ-1: escalate on repeated identical guardrail FAIL.
+      assertNoRepeatedFail({
+        issueLog: loadIssueLog(root, state.spec),
+        phase,
+        currentEvaluations: combined,
+      });
       return gateFail(level, phase, specPath, combined, []);
     }
     return gatePass(level, phase, specPath, combined, unusedWarnings);
@@ -1322,6 +1437,18 @@ export function appendIssueLogFromGateResult(ctx, result) {
   if (ctx.gitState && RETRY_TRACKED_PHASES.includes(ctx.phase)) {
     entry.headSha = ctx.gitState.headSha;
     entry.worktreeHash = ctx.gitState.worktreeHash;
+  }
+  // spec 212 REQ-4: persist per-FAIL (guardrail_id, reason) pairs so a
+  // subsequent gate-impl run can detect repeated identical failures and
+  // escalate (see assertNoRepeatedFail). Omit when no FAIL evaluations are
+  // present to keep structural-only failures (e.g. "no changes") clean.
+  // Note: these reasons are AI-generated gate metadata describing spec /
+  // diff compliance; the same text is already persisted in the flat
+  // `entry.reason` field above. This adds a structured view of the same
+  // data, not new content — so it carries no new log-sensitivity surface.
+  const failedEvaluations = buildFailedEvaluations(result?.artifacts?.evaluations);
+  if (failedEvaluations.length > 0) {
+    entry.failedEvaluations = failedEvaluations;
   }
   issueLog.entries.push(entry);
   saveIssueLog(ctx.root, ctx.flowState?.spec, issueLog);

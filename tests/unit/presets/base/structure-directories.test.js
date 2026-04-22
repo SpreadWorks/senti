@@ -43,10 +43,10 @@ describe("StructureSource.directories() fallback", () => {
 
     const result = getDirectories(analysis);
     // Should show src/controllers, src/models, src/lib — not just src
-    assert.ok(result.includes("src/controllers"), "should include src/controllers");
-    assert.ok(result.includes("src/models"), "should include src/models");
-    assert.ok(result.includes("src/lib"), "should include src/lib");
-    assert.ok(!result.match(/\| src \|/), "should NOT show just 'src' as a row");
+    assert.ok(result.toMarkdown().includes("src/controllers"), "should include src/controllers");
+    assert.ok(result.toMarkdown().includes("src/models"), "should include src/models");
+    assert.ok(result.toMarkdown().includes("src/lib"), "should include src/lib");
+    assert.ok(!result.toMarkdown().match(/\| src \|/), "should NOT show just 'src' as a row");
   });
 
   it("keeps top-level aggregation when multiple top-level directories exist", () => {
@@ -59,8 +59,8 @@ describe("StructureSource.directories() fallback", () => {
 
     const result = getDirectories(analysis);
     // Should show src and tests as top-level
-    assert.ok(result.includes("| src |"), "should include src as top-level");
-    assert.ok(result.includes("| tests |"), "should include tests as top-level");
+    assert.ok(result.toMarkdown().includes("| src |"), "should include src as top-level");
+    assert.ok(result.toMarkdown().includes("| tests |"), "should include tests as top-level");
   });
 
   it("recursively expands deep single-path structures", () => {
@@ -72,8 +72,8 @@ describe("StructureSource.directories() fallback", () => {
 
     const result = getDirectories(analysis);
     // app → app/src → app/src/controllers, app/src/models
-    assert.ok(result.includes("app/src/controllers"), "should expand to app/src/controllers");
-    assert.ok(result.includes("app/src/models"), "should expand to app/src/models");
+    assert.ok(result.toMarkdown().includes("app/src/controllers"), "should expand to app/src/controllers");
+    assert.ok(result.toMarkdown().includes("app/src/models"), "should expand to app/src/models");
   });
 
   it("stops expansion at MAX_EXPAND_DEPTH (5 levels)", () => {
@@ -87,7 +87,7 @@ describe("StructureSource.directories() fallback", () => {
     // Should not throw or loop infinitely
     assert.ok(result, "should return a result even for deeply nested paths");
     // The result should contain some path (exact depth depends on implementation)
-    assert.ok(result.includes("|"), "should contain a markdown table");
+    assert.ok(result.toMarkdown().includes("|"), "should contain a markdown table");
   });
 
   it("does not affect tree() output", () => {

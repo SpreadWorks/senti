@@ -14,6 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");
+  const Paragraph = container.get("base.Paragraph");
   const loadJsonFile = container.get("config.loadJsonFile");
 
   class DocsSource extends DataSource {
@@ -72,7 +73,7 @@ export default function register(container) {
       }
     }
 
-    return parts.join(" | ");
+    return new Paragraph(parts.join(" | "));
   }
 
   /**
@@ -267,7 +268,7 @@ export default function register(container) {
     }
 
     if (parts.length === 0) return null;
-    return parts.join(" | ");
+    return new Paragraph(parts.join(" | "));
   }
 
   /**

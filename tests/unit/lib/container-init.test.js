@@ -49,4 +49,22 @@ describe("initContainer — config registration contract (R1, #175)", () => {
     assert.strictEqual(got, null, "config must be null (not {}) when missing");
     assert.notDeepEqual(got, {}, "config must not be an empty object");
   });
+
+  it("registers Renderable base class and concrete classes for preset use", () => {
+    initContainer();
+    for (const name of [
+      "base.Renderable",
+      "base.Table",
+      "base.BulletList",
+      "base.OrderedList",
+      "base.Paragraph",
+      "base.CodeBlock",
+      "base.Blockquote",
+      "base.Heading",
+      "base.Fragment",
+    ]) {
+      const cls = container.get(name);
+      assert.equal(typeof cls, "function", `${name} should be a class`);
+    }
+  });
 });

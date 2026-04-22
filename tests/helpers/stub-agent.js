@@ -23,6 +23,25 @@ export function writeStubAgentScript(dir, relPath, jsonResponse) {
   return scriptPath;
 }
 
+/**
+ * Write a stub agent script that records the prompt (passed via argv) to
+ * `capturePath` before emitting `jsonResponse` on stdout. Useful for tests
+ * that need to assert the prompt text (e.g. auto-check input source).
+ */
+export function writeCapturingStubAgentScript(dir, relPath, capturePath, jsonResponse) {
+  const scriptPath = join(dir, relPath);
+  const body = [
+    "#!/usr/bin/env node",
+    "const fs = require('fs');",
+    `fs.writeFileSync(${JSON.stringify(capturePath)}, process.argv.slice(2).join('\\n'));`,
+    `process.stdout.write(${JSON.stringify(jsonResponse)});`,
+    "",
+  ].join("\n");
+  writeFileSync(scriptPath, body);
+  chmodSync(scriptPath, 0o755);
+  return scriptPath;
+}
+
 export function stubAgentConfig(scriptPath) {
   return {
     default: "stub-agent",
