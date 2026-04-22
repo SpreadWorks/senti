@@ -37,6 +37,17 @@
       }
     },
     {
+      "id": "req-diff-verifiability",
+      "title": "REQ Diff-Verifiability",
+      "body": "Each requirement shall be verifiable using a standard unified diff and a test execution summary alone. Requirements that depend on future behavior guarantees, extensibility contracts (e.g. \"X can be done without code changes\"), or out-of-diff process invariants shall be rewritten into a form whose PASS/FAIL is decidable from diff + tests.",
+      "meta": {
+        "phase": [
+          "spec"
+        ],
+        "category": "process"
+      }
+    },
+    {
       "id": "no-hardcoded-secrets",
       "title": "No Hardcoded Secrets",
       "body": "Source code shall not contain API keys, passwords, tokens, or other secrets directly. Externalize them via environment variables or configuration files.",
