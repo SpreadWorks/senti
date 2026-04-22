@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-21T22:37:02.588Z",
+  "analyzedAt": "2026-04-22T00:25:28.815Z",
   "package": {
     "entries": [
       {
@@ -3029,47 +3029,6 @@
         ]
       },
       {
-        "file": "src/flow/lib/get-test-result.js",
-        "hash": "51f5a155a81b73ff78e28b93d3e54d97",
-        "lines": 91,
-        "mtime": "2026-04-14T08:21:38.519Z",
-        "className": "get-test-result",
-        "methods": [
-          "loadTestEvidence",
-          "readLogFile",
-          "redactLog"
-        ],
-        "imports": [
-          "path",
-          "fs",
-          "./base-command.js",
-          "../../lib/config.js"
-        ],
-        "exports": [
-          "loadTestEvidence",
-          "default"
-        ],
-        "extends": "FlowCommand",
-        "usedBy": [
-          "src/flow/lib/run-gate.js"
-        ],
-        "id": "ebb0d8ed",
-        "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Loads and redacts test execution evidence for flow decisions. It reads bounded log tails and normalizes summary data.",
-        "detail": "The implementation reads test-output logs with a byte cap to avoid excessive memory usage on large files. It redacts sensitive fragments before returning or rewriting log content. Summary JSON and log text are combined into a standard evidence object consumed by gate logic. Errors are surfaced clearly while preserving original exception details.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "test evidence",
-          "log redaction",
-          "bounded log read",
-          "flow gate input"
-        ]
-      },
-      {
         "file": "src/flow/lib/overview-merge.js",
         "hash": "901f5ee38ff125931b652a14ea3d0276",
         "lines": 102,
@@ -3276,9 +3235,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "7d0bc26a9733fd0c00575f5c32d42785",
-        "lines": 1216,
-        "mtime": "2026-04-21T22:37:02.295Z",
+        "hash": "144fb8f9379094fc3ecd9ce1ff354c65",
+        "lines": 1232,
+        "mtime": "2026-04-22T00:25:28.527Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3328,7 +3287,6 @@
           "../../lib/guardrail.js",
           "../../lib/flow-helpers.js",
           "../../lib/spec-json.js",
-          "./get-test-result.js",
           "../../lib/constants.js",
           "./base-command.js",
           "./set-issue-log.js",
@@ -3353,6 +3311,7 @@
           "checkSpecText",
           "checkDraftText",
           "buildGuardrailPrompt",
+          "buildImplCheckPrompt",
           "checkGuardrail",
           "PHASE_TO_LEVEL",
           "IMPL_DIFF_SCOPE_LINES"
@@ -3363,23 +3322,23 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This module is the core gate engine for SDD phases, including spec checks, draft checks, guardrail evaluation, retry tracking, and diff-based test policy enforcement. It also provides the command implementation and issue-log integration helpers.",
-        "detail": "It validates level-phase combinations, reads and inspects spec or draft content, and runs guardrail evaluation through strict JSON schema parsing with explicit error types. For implementation phases, it parses git diffs, detects test-file modifications, and enforces authorization rules with optional warning paths for unused allowances. It tracks retry metrics by phase, emits budget warnings, and can block execution once retry limits are exceeded. Gate results are normalized into pass/fail payloads with requirement-linked reasons and next-step hints. The command class routes execution by phase mode (draft/spec/diff-based) and appends structured outcomes to issue logs.",
+        "summary": "Implements the flow gate evaluation pipeline for draft, spec, and diff-based phases. It validates guardrail responses, enforces phase/level rules, and returns normalized pass/fail gate results.",
+        "detail": "This module centralizes gate logic in `runGateFlow` and `RunGateCommand`, routing execution based on flow level and phase. It builds AI guardrail prompts, parses and strictly validates JSON evaluation payloads, and raises schema-specific errors for malformed responses. For implementation phases, it inspects git diffs, checks test-file modification policy, parses authorized exceptions from spec content, and reports unused authorizations as warnings. It also tracks retry budgets per phase through issue-log metrics and blocks execution when retry limits are exceeded. The output format is standardized through `gatePass` and `gateFail`, including next-step hints and evaluation reasons.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-21T22:37:39.358Z",
+          "processedAt": "2026-04-22T00:26:03.930Z",
           "attempts": 1
         },
         "keywords": [
-          "quality gate",
-          "guardrail",
-          "spec validation",
-          "diff analysis",
-          "test authorization",
+          "gate evaluation",
+          "guardrail checks",
+          "flow command",
+          "diff validation",
           "retry budget",
-          "issue log",
-          "gate report"
+          "spec compliance",
+          "policy enforcement",
+          "result normalization"
         ]
       },
       {
@@ -3729,13 +3688,13 @@
       },
       {
         "file": "src/flow/lib/run-tests.js",
-        "hash": "9630a6e93515e4d9a39c2c7ff89791c7",
-        "lines": 125,
-        "mtime": "2026-04-20T13:44:52.498Z",
+        "hash": "aa6842876b8a97aae4886cbbf365ed67",
+        "lines": 163,
+        "mtime": "2026-04-22T00:25:28.527Z",
         "className": "run-tests",
         "methods": [
           "RunTestsCommand",
-          "extractPresetKey",
+          "parseCountsFromLog",
           "resolveTestCommand",
           "readPkgScripts"
         ],
@@ -3745,7 +3704,7 @@
           "path",
           "./base-command.js",
           "../../lib/config.js",
-          "./test-parser-loader.js"
+          "./summarize-test-log.js"
         ],
         "exports": [
           "RunTestsCommand",
@@ -3754,23 +3713,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c016d8e6",
-        "summary": "This command module runs flow-scoped tests, captures output, and persists logs for later analysis. It encapsulates test command resolution and integrates parser loading for result extraction.",
-        "detail": "The implementation uses `spawnSync` to execute tests in a resolved working directory, then writes combined stdout/stderr to a stable log path under `logs/test-output.log`. It normalizes absolute and relative work directories against the project root and ensures log directories exist before writing. The command selects executable test scripts by reading `package.json` scripts and mapping scope settings into runnable commands. It loads a parser via `loadTestParser` and returns structured results, while rethrowing operational errors after preserving context.",
+        "summary": "Runs project tests for flow phases and persists test logs with structured metadata. It resolves commands from config or package scripts and returns parsed count summaries.",
+        "detail": "The command supports unit, integration, and acceptance scopes and maps each run to a fixed log destination, including baseline mode output paths. It executes tests synchronously in the configured work directory, captures combined stdout/stderr, and writes logs to disk before returning structured results. Command resolution follows a fallback order from explicit flow config to `package.json` scripts, then to `npm test` when available. It parses test counts from raw logs to provide machine-readable metrics for downstream gate logic. Errors preserve execution context by attaching `logPath` and parsed `counts` before rethrowing.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-20T13:45:22.534Z",
+          "processedAt": "2026-04-22T00:26:03.930Z",
           "attempts": 1
         },
         "keywords": [
           "test runner",
-          "flow command",
-          "child process",
+          "baseline tests",
           "log capture",
-          "script resolution",
-          "command orchestration",
-          "workdir handling",
-          "result parsing"
+          "command resolution",
+          "test counts",
+          "flow automation",
+          "npm scripts",
+          "execution context"
         ]
       },
       {
@@ -4197,11 +4156,15 @@
       },
       {
         "file": "src/flow/lib/set-test-summary.js",
-        "hash": "1801468fa76cd49301e0a3ee3f5af956",
-        "lines": 52,
-        "mtime": "2026-04-20T12:13:22.616Z",
+        "hash": "f72d5a9f5785a0394d6498eb918be621",
+        "lines": 149,
+        "mtime": "2026-04-22T00:25:28.527Z",
         "className": "set-test-summary",
-        "methods": [],
+        "methods": [
+          "parseLegacy",
+          "parseJsonPayload",
+          "validateFailedArray"
+        ],
         "imports": [
           "./base-command.js"
         ],
@@ -4211,106 +4174,72 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "962cab89",
-        "summary": "This command sets and validates manual test summary counts in flow state. It supports unit, integration, and acceptance counters.",
-        "detail": "It validates numeric CLI inputs per test type and rejects invalid values with clear errors. At least one counter is required to avoid empty updates. The command persists the summary through flow storage and returns normalized output. This provides a lightweight manual evidence path when full automated parsing is unavailable.",
+        "summary": "Sets test summary data in flow state from legacy flags or JSON payload input. It validates shape, truncates limits, and writes into either head or baseline slots.",
+        "detail": "The module supports two input modes: numeric per-type flags and structured JSON payloads, with a strict usage contract for argument combinations. Validation enforces bounds on failed entry counts and field lengths, requiring non-empty string identifiers and reasons. It normalizes accepted data into a consistent summary object keyed by unit, integration, and acceptance domains. The command supports a fallback mode and a baseline toggle to choose the target state path. Errors are explicit and immediate, making malformed summaries fail fast before state mutation.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
+          "processedAt": "2026-04-22T00:26:03.930Z",
           "attempts": 1
         },
         "keywords": [
           "test summary",
-          "manual counters",
+          "payload validation",
           "flow state update",
-          "validation",
-          "unit integration acceptance"
+          "baseline mode",
+          "input normalization",
+          "failure metadata",
+          "CLI parsing"
         ]
       },
       {
-        "file": "src/flow/lib/test-log-parser.js",
-        "hash": "9c8f969f547c9b47d962c80c4e8479a9",
-        "lines": 34,
-        "mtime": "2026-04-20T13:44:52.498Z",
-        "className": "test-log-parser",
+        "file": "src/flow/lib/summarize-test-log.js",
+        "hash": "7ad69a1dbc2c00d0424ae71126817dbb",
+        "lines": 114,
+        "mtime": "2026-04-22T00:25:28.527Z",
+        "className": "summarize-test-log",
         "methods": [
-          "parseCountsFromLog"
+          "summarizeTestLog",
+          "tailBytes",
+          "buildPrompt",
+          "extractJsonObject",
+          "validateAndNormalize"
         ],
         "imports": [],
         "exports": [
-          "parseCountsFromLog"
+          "summarizeTestLog",
+          "SUMMARIZE_CONSTANTS"
         ],
         "extends": null,
         "usedBy": [
-          "src/flow/lib/test-parser-loader.js"
+          "src/flow/lib/run-tests.js",
+          "src/lib/agent.js",
+          "src/lib/container.js"
         ],
-        "id": "eef9716a",
-        "summary": "This utility parses test log text into structured count values by test type. It provides a lightweight built-in fallback parser for standard categories.",
-        "detail": "The module defines a fixed test type list including unit, integration, and acceptance categories. Its parser function scans log content and populates an output object with numeric counts keyed by those categories. The implementation is intentionally minimal and deterministic, making it suitable as a default parser when no preset-specific logic is available. By isolating parsing in a small pure function, the code supports consistent downstream consumption and simpler custom parser substitution.",
+        "id": "07da56c8",
+        "summary": "Summarizes noisy test logs into bounded structured failure entries using an agent response. It builds a constrained prompt, extracts JSON, and validates output shape.",
+        "detail": "The module trims input by byte size, preserving tail content for signal while controlling prompt volume. It composes a strict instruction prompt containing exit code and pre-parsed count context to guide deterministic structured output. JSON extraction tolerates surrounding text and attempts to isolate the object payload before parsing. Validation enforces `failed[]` schema rules and applies limits on entry count, identifier length, and reason length. The final API returns either normalized failed cases or a precise machine-readable error reason.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-20T13:45:22.534Z",
+          "processedAt": "2026-04-22T00:26:03.930Z",
           "attempts": 1
         },
         "keywords": [
-          "log parser",
-          "test counts",
-          "unit tests",
-          "integration tests",
-          "acceptance tests",
-          "text parsing",
-          "fallback parser",
-          "metrics extraction"
-        ]
-      },
-      {
-        "file": "src/flow/lib/test-parser-loader.js",
-        "hash": "f1773a3f32a0d77d8c96c24e4c193ece",
-        "lines": 32,
-        "mtime": "2026-04-20T13:44:52.498Z",
-        "className": "test-parser-loader",
-        "methods": [
-          "loadTestParser"
-        ],
-        "imports": [
-          "fs",
-          "path",
-          "url",
-          "./test-log-parser.js"
-        ],
-        "exports": [
-          "loadTestParser"
-        ],
-        "extends": null,
-        "usedBy": [
-          "src/flow/lib/run-tests.js"
-        ],
-        "id": "64a5621b",
-        "summary": "This loader resolves and imports a preset-specific test parser when present, otherwise falling back to the built-in parser. It enables extensible parsing behavior per preset without changing core flow code.",
-        "detail": "The module constructs a deterministic parser file path under `src/presets/<presetKey>/test-parser.js` from the project root. When the file exists, it dynamically imports the module through a file URL and returns its `parseCountsFromLog` implementation. If no custom parser is found, it returns the built-in parser imported from `test-log-parser.js`. This pattern cleanly separates extension points from default behavior and keeps parser selection logic centralized in one place.",
-        "chapter": "creating_presets",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-04-20T13:45:22.534Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "dynamic import",
-          "preset extension",
-          "plugin loading",
-          "fallback strategy",
-          "parser hook",
-          "file url import",
-          "custom test parser",
-          "extensibility"
+          "log summarization",
+          "JSON extraction",
+          "schema validation",
+          "failure normalization",
+          "prompt shaping",
+          "bounded input",
+          "test diagnostics"
         ]
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "64d2b83b7f1a8308f41486d7d7076794",
-        "lines": 548,
-        "mtime": "2026-04-21T14:27:48.936Z",
+        "hash": "0b510f8d8857ab3212a5acf55cd05749",
+        "lines": 555,
+        "mtime": "2026-04-22T00:25:28.527Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4330,22 +4259,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "This module registers flow commands and wires lifecycle hooks for step status updates, issue-log appends, and retry metric tracking. It centralizes command orchestration around pre/post execution wrappers.",
-        "detail": "It derives active phase from current state and maps gate phases to step IDs for consistent progress updates. Wrapper helpers catch and report non-fatal logging/status errors while preserving command failure semantics for critical paths. Post hooks append gate results or gate errors into issue logs and update retry counters when relevant. The exported registry includes command metadata, help text, and async execution integration points. This makes flow command behavior composable and observable without duplicating control logic across command modules.",
+        "summary": "Registers and orchestrates flow commands with lifecycle hooks for step status and issue-log side effects. It provides shared pre/post wrappers to keep command execution stateful and consistent.",
+        "detail": "This module wires command handlers into a single `FLOW_COMMANDS` registry and derives active phase context for dynamic gate step mapping. It wraps commands with `stepPre` and `stepPost` hooks that update flow step status while isolating failures in best-effort helper guards. It also appends gate outcomes or errors into issue logs and updates retry counters without breaking primary command execution when side writes fail. The design separates command behavior from orchestration mechanics so each command can focus on core logic. Error handling is explicit, with stderr diagnostics for skipped non-critical updates.",
         "chapter": "project_structure",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-21T22:37:39.358Z",
+          "processedAt": "2026-04-22T00:26:03.930Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "orchestration",
           "lifecycle hooks",
           "step status",
-          "issue logging",
-          "flow routing",
-          "post-execution handling"
+          "issue log integration",
+          "phase derivation",
+          "orchestration",
+          "flow runtime"
         ]
       },
       {
@@ -5041,9 +4970,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "850cb62c86885a76f8d4640aa1515f07",
-        "lines": 506,
-        "mtime": "2026-04-21T09:07:02.052Z",
+        "hash": "8feeaf91676b6720d02f8bc0b84f6c95",
+        "lines": 513,
+        "mtime": "2026-04-22T00:25:28.527Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -5073,21 +5002,23 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "This module is the primary persistence and mutation layer for flow state (`flow.json`). It enforces schema validity, mutation scoping, and task/step invariants.",
-        "detail": "It defines path-resolution helpers and branch/spec identification utilities for locating per-spec state files. Strong schema assertions validate task shapes, step statuses, requirement statuses, and key state fields before writes. The store exposes read, read-only, write, and targeted mutation helpers that preserve deterministic JSON formatting and directory creation. It includes task-level operations such as adding tasks, updating current steps, resolving mutation scope, and finalization timestamp checks. This file is the core domain model boundary for flow-state consistency.",
-        "chapter": "internal_design",
+        "summary": "Implements persistent flow/task state storage, schema validation, and task-scoped mutation logic. It resolves per-spec state files and enforces strict structural invariants.",
+        "detail": "The module defines path resolution for spec-local flow files, branch-derived spec IDs, and worktree/main-repo location metadata. It validates full flow schema and task shape aggressively, including required fields, allowed enums, and nested step/requirement contracts. Read/write methods support standard, resolved, and read-only access patterns while guarding against malformed JSON and missing state files. It provides mutation-scope resolution helpers to target either global flow state or the current task branch of state data. Additional utilities manage task insertion, duplicate detection, current-task enforcement, parent summary aggregation, and finalized timestamp format checks.",
+        "chapter": "configuration",
         "role": "model",
         "enrich": {
-          "processedAt": "2026-04-21T09:07:51.961Z",
+          "processedAt": "2026-04-22T00:26:03.930Z",
           "attempts": 1
         },
         "keywords": [
-          "flow store",
-          "state machine",
-          "schema validation",
+          "state store",
+          "schema enforcement",
           "task model",
-          "json persistence",
-          "invariants"
+          "flow persistence",
+          "mutation scope",
+          "worktree metadata",
+          "invariant checks",
+          "JSON state"
         ]
       },
       {
@@ -9070,10 +9001,10 @@
       }
     ],
     "summary": {
-      "total": 270,
-      "totalMethods": 836
+      "total": 268,
+      "totalMethods": 839
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-21T22:37:39.358Z"
+  "enrichedAt": "2026-04-22T00:26:03.930Z"
 }
