@@ -20,13 +20,13 @@ This chapter describes the overall directory organization of the sdd-forge proje
 
 <!-- {{data("base.structure.tree")}} -->
 ```
-src/    (cli, controller)
+src/    (cli)
 src/check/commands/    (cli)
 src/docs/commands/    (cli, controller)
 src/docs/data/    (model, lib)
 src/docs/lib/    (model, lib)
 src/docs/lib/lang/    (lib)
-src/flow/    (config)
+src/flow/    (controller)
 src/flow/commands/    (controller, cli)
 src/flow/lib/    (lib, controller, cli)
 src/lib/    (lib, route, model, config, middleware, view)
@@ -40,10 +40,10 @@ src/spec/commands/    (cli)
 
 | Directory | Files | Role |
 | --- | --- | --- |
-| src/flow | 47 | controller, cli, lib, config |
+| src/flow | 47 | controller, cli, lib |
 | src/docs | 43 | cli, controller, model, lib |
 | src/lib | 33 | lib, route, model, config, middleware, view |
-| src | 10 | cli, controller |
+| src | 10 | cli |
 | src/check | 3 | cli |
 | src/metrics | 1 | cli |
 | src/spec | 1 | cli |

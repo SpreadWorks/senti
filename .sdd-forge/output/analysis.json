@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-22T10:38:43.318Z",
+  "analyzedAt": "2026-04-22T13:01:01.424Z",
   "package": {
     "entries": [
       {
@@ -320,9 +320,9 @@
       },
       {
         "file": "src/docs/commands/build.js",
-        "hash": "f0a5ed9a53615c9a52f845690dcfccd1",
-        "lines": 231,
-        "mtime": "2026-04-19T01:08:34.184Z",
+        "hash": "d7207be0a8e24c11b14df58ab94d2262",
+        "lines": 232,
+        "mtime": "2026-04-22T10:40:18.506Z",
         "className": "build",
         "methods": [
           "dirExists",
@@ -332,6 +332,7 @@
         "imports": [
           "node:fs/promises",
           "path",
+          "node:url",
           "../../lib/cli.js",
           "../lib/docs-context.js",
           "../../lib/command.js",
@@ -352,21 +353,22 @@
         "extends": "Command",
         "usedBy": null,
         "id": "d07fb128",
-        "summary": "This command orchestrates the full docs build pipeline by chaining scan, enrich, init, data, text, readme, agents, and translate steps. It is the high-level automation entry for docs generation.",
-        "detail": "It validates allowed flags, imports i18n/progress helpers dynamically, and creates per-step command contexts. Execution order is explicit, with force/dry-run/regenerate variants altering selected steps. Language-specific README and docs handling is included through output path overrides and per-language contexts. On any step failure, it emits translated diagnostics and exits with a shared error code. The orchestrator delegates real work to command classes while enforcing consistent control flow.",
+        "summary": "Implements the `docs build` command as a pipeline controller for documentation generation steps. It validates CLI flags, builds context, and executes per-step command classes in order.",
+        "detail": "The module defines allowed flags and rejects unknown options with an explicit error and process exit. It resolves i18n and progress helpers dynamically, then runs each docs step through a shared helper that instantiates command classes and forwards a normalized context. The flow includes scan, enrich, init, data, readme, agents, text, and translate operations, with conditional paths for dry-run, force, and regenerate behaviors. It also iterates language-specific docs directories and routes output paths per language README generation. Error paths consistently terminate with the shared error exit code.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
+          "processedAt": "2026-04-22T13:01:40.985Z",
           "attempts": 1
         },
         "keywords": [
-          "build pipeline",
-          "orchestration",
-          "docs automation",
-          "dry-run",
-          "force rebuild",
-          "multistep command"
+          "docs build",
+          "pipeline orchestration",
+          "command runner",
+          "flag validation",
+          "multilingual docs",
+          "dry run",
+          "force regenerate"
         ]
       },
       {
@@ -3441,9 +3443,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "c2517e6633008465c609b3b7c4c3ec8b",
-        "lines": 350,
-        "mtime": "2026-04-21T22:37:02.295Z",
+        "hash": "26d23c66545fb226fefe2074377069cf",
+        "lines": 353,
+        "mtime": "2026-04-22T12:49:42.856Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3477,22 +3479,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "This module prepares a new spec workspace for flow execution, including naming, branch/worktree setup, and initial file generation. It creates spec, QA, draft, and flow-state artifacts in a consistent structure.",
-        "detail": "It derives slugged directory names, computes next numeric indices, and validates cleanliness/base-branch readiness before setup. The command can create an isolated worktree path and branch naming scheme tied to the new spec identifier. It writes `spec.json` stubs, renders markdown spec output from the stub, and populates localized QA templates with local override support. Draft templates are initialized with standard sections to guide requirement capture and implementation planning. Flow state is persisted with generated paths and metadata so later flow steps can continue deterministically.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Creates and initializes a new spec workspace during flow preparation. It computes IDs, validates git/worktree state, and writes initial spec artifacts.",
+        "detail": "The command includes helper routines for branch detection, slug creation, index allocation, and cleanliness checks against the git working tree. It enforces preconditions such as title presence, config existence, and base-branch validity before creating spec paths. File generation is deterministic: `spec.json` from an empty stub, `spec.md` from the renderer, plus `qa.md` and `draft.md` templates with local override support. It records flow metadata by writing state with run-related fields for later workflow steps. The implementation favors synchronous filesystem operations to keep the setup sequence linear and predictable.",
+        "chapter": "internal_design",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-21T22:37:39.358Z",
+          "processedAt": "2026-04-22T13:01:40.985Z",
           "attempts": 1
         },
         "keywords": [
-          "spec bootstrap",
+          "spec preparation",
           "worktree setup",
-          "branch preparation",
-          "template generation",
+          "git preflight",
           "slugify",
+          "spec scaffold",
           "flow state",
-          "scaffolding"
+          "template bootstrap"
         ]
       },
       {
@@ -3840,12 +3842,13 @@
       },
       {
         "file": "src/flow/lib/set-auto.js",
-        "hash": "4e17531daf69c6004e5d11adc206946b",
-        "lines": 59,
-        "mtime": "2026-04-21T13:22:01.251Z",
+        "hash": "265159eeb35222c536b84616e20ecc6f",
+        "lines": 108,
+        "mtime": "2026-04-22T12:49:23.489Z",
         "className": "set-auto",
         "methods": [
-          "buildInputText"
+          "buildInputText",
+          "resolvePreparingRunId"
         ],
         "imports": [
           "./base-command.js",
@@ -3858,21 +3861,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "2c71e989",
-        "summary": "This command toggles flow auto-approve mode with optional AI-backed safety checking. It validates accepted values and records auto-check diagnostics when enabling auto mode.",
-        "detail": "It builds input text from current flow state to support contextual auto-check evaluation. The command enforces usage with a fixed value set and has a direct off-path that disables auto mode immediately. On enable, it invokes `runAutoCheckCore` and surfaces failures by throwing when safety checks reject the request. Successful execution persists both `autoApprove: true` and structured `autoCheck` evidence for traceability. The implementation cleanly separates input assembly, mode validation, and decision delegation.",
+        "summary": "Handles `flow set auto` to toggle automatic approval behavior for active or preparing flows. It validates user input, resolves target run context, and optionally executes an auto-check pass.",
+        "detail": "The module builds structured input text from current state and determines whether to target an explicit preparing run or the active flow. It rejects invalid values using centralized constants and throws actionable errors when no eligible run is found. When enabling auto mode, it invokes the auto-check core logic and returns both the mode and check result. When disabling, it writes a minimal state update and bypasses check execution. Error handling preserves thrown failures while controlling flow-mode-specific return payloads.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-21T22:37:39.358Z",
+          "processedAt": "2026-04-22T13:01:40.985Z",
           "attempts": 1
         },
         "keywords": [
-          "auto-approve",
-          "mode toggle",
-          "safety check",
-          "flow state",
-          "command validation",
-          "AI gate"
+          "auto approve",
+          "flow toggle",
+          "run id resolution",
+          "input validation",
+          "auto-check",
+          "preparing flow",
+          "state switch"
         ]
       },
       {
@@ -4304,9 +4308,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "1a460873312b12bae15705ef6b01d89b",
-        "lines": 571,
-        "mtime": "2026-04-22T09:14:51.362Z",
+        "hash": "714b100907173fb3dafcfbd753629d37",
+        "lines": 579,
+        "mtime": "2026-04-22T12:49:30.337Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4326,23 +4330,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the flow command registry and shared step-status wrappers used across flow operations. It standardizes phase derivation, status transitions, and issue-log side effects with guarded updates.",
-        "detail": "This module acts as the central registration point for flow subcommands, including help text and execution wiring. It derives active phase state and wraps status mutations in fault-tolerant helpers that log and rethrow update failures consistently. Pre-step and post-step hook factories encapsulate repeated step lifecycle patterns so individual commands can stay focused on business logic. It also contains guarded counters and retry-related updates for gate steps, reducing duplicated error handling in command implementations. The registry ties together command execution with cross-cutting telemetry-like updates to keep flow state and issue log synchronized.",
-        "chapter": "project_structure",
-        "role": "config",
+        "summary": "Defines the flow command registry and wraps command execution with step-status and issue-log side effects. It centralizes lifecycle hooks around flow operations.",
+        "detail": "The module derives active phase information from persisted state and exposes helper wrappers for pre/post step updates. It uses guarded update functions that can either log-and-skip or rethrow depending on context, reducing accidental command failure from telemetry writes. Registry entries include command help text and post-actions such as gate retry counter updates and commit post-processing. Step hooks convert command outcomes into standardized status transitions, enabling consistent progress tracking across flow stages. This file acts as a dispatch integration layer between command handlers and flow bookkeeping.",
+        "chapter": "cli_commands",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T09:15:15.783Z",
+          "processedAt": "2026-04-22T13:01:40.985Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "flow commands",
+          "lifecycle hooks",
           "step status",
-          "phase derivation",
-          "hook wrapper",
           "issue log",
-          "retry counter",
-          "execution wiring"
+          "flow phase",
+          "gate retry",
+          "post action"
         ]
       },
       {
@@ -4995,9 +4998,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "a9fe1ebc111daafaeba10c507a13c983",
-        "lines": 315,
-        "mtime": "2026-04-21T09:07:02.052Z",
+        "hash": "2f22963b0b26f03b11a221e36c98c23a",
+        "lines": 316,
+        "mtime": "2026-04-22T12:49:03.667Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -5019,21 +5022,22 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "This module implements high-level flow lifecycle management across main repo and worktrees. It discovers, resolves, and tracks active/preparing flows with repository-aware logic.",
-        "detail": "The `FlowManager` coordinates `FlowStore`, active-flow registry, and preparing-flow store to provide a single management interface. It scans local specs, worktree specs, and branch snapshots to enumerate flows while handling malformed JSON defensively. It exposes helpers for current task/step resolution, metric accumulation delegation, and run input resolution for preparation stages. Worktree ownership checks prevent unsafe operations when paths are missing or inconsistent. The design encapsulates cross-repository state discovery and keeps command modules from embedding git/path traversal details.",
+        "summary": "Implements the core flow manager abstraction for reading, mutating, and discovering flow state across main and worktree contexts. It coordinates multiple stores and git-backed scanning.",
+        "detail": "The class composes `FlowStore`, `ActiveFlowRegistry`, and `PreparingFlowStore` to present a unified API for flow operations. It exposes task and step helpers, metrics accumulation, and context switching via `forRoot` while preserving main-root awareness. Discovery logic scans `specs/*/flow.json` in both main and worktree trees, including branch-based inspection and guarded JSON parsing. It returns enriched scan results with spec IDs and worktree paths, while warning on malformed records or truncation limits. Error handling explicitly guards missing or invalid state boundaries when resolving active flows.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-21T09:07:51.961Z",
+          "processedAt": "2026-04-22T13:01:40.985Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
-          "worktree",
-          "state discovery",
+          "state store",
+          "worktree scan",
           "active flow",
-          "preparing store",
-          "repository scan"
+          "task step lookup",
+          "branch discovery",
+          "flow.json"
         ]
       },
       {
@@ -5545,9 +5549,9 @@
       },
       {
         "file": "src/lib/preparing-flow-store.js",
-        "hash": "0e03d23230edaafe66a3a69a79138f43",
-        "lines": 142,
-        "mtime": "2026-04-20T12:13:22.617Z",
+        "hash": "bc11734c67108a6d3600aab113ecee60",
+        "lines": 161,
+        "mtime": "2026-04-22T12:48:59.178Z",
         "className": "preparing-flow-store",
         "methods": [
           "PreparingFlowStore"
@@ -5567,20 +5571,22 @@
           "src/lib/flow-manager.js"
         ],
         "id": "14a29a15",
-        "summary": "This store manages temporary preparing-flow records keyed by run IDs. It persists pending issue/request inputs before full flow creation.",
-        "detail": "It creates UUID-backed files under `.sdd-forge`, reads records safely, and supports deletion after resolution. Input resolution enforces existence and returns normalized issue/request values. Listing and cleanup methods cap stale state by prefix and age constraints. The class isolates transient pre-flow lifecycle management from main flow storage.",
+        "summary": "Provides persistent storage for preparing-flow runs under the project’s `.sdd-forge` directory. It supports create, read, update, delete, list, and garbage-collection operations.",
+        "detail": "The store generates run IDs with UUIDs and persists each run as a prefixed JSON file with normalized UTF-8 formatting. Read paths return `null` for missing files but throw explicit errors when callers require strict existence. It resolves issue/request inputs from stored state and supports patch-style state updates through file rewrite. Listing and scan helpers enumerate preparing runs from disk and can delete stale entries based on filesystem metadata. The implementation uses synchronous file APIs for simple, atomic control flow in CLI execution paths.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
+          "processedAt": "2026-04-22T13:01:40.985Z",
           "attempts": 1
         },
         "keywords": [
           "preparing flow",
-          "run id",
-          "temporary state",
+          "file-backed store",
+          "state persistence",
+          "UUID run id",
+          "json state",
           "cleanup",
-          "pending request"
+          "stale entry pruning"
         ]
       },
       {
@@ -8856,13 +8862,14 @@
       },
       {
         "file": "src/sdd-forge.js",
-        "hash": "7d5ee464b6ef8fb5fd42de6da5e108ef",
-        "lines": 85,
-        "mtime": "2026-04-19T22:26:12.754Z",
+        "hash": "346c9c4fee6145d8345ebf408f7ff018",
+        "lines": 86,
+        "mtime": "2026-04-22T10:40:07.074Z",
         "className": "sdd-forge",
         "methods": [],
         "imports": [
           "path",
+          "node:url",
           "./lib/cli.js",
           "./lib/constants.js",
           "./lib/container.js"
@@ -8871,21 +8878,22 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
-        "enrich": {
-          "processedAt": "2026-04-20T12:13:54.794Z",
-          "attempts": 5
-        },
-        "summary": "Acts as the top-level `sdd-forge` executable dispatcher. It routes root commands to namespace scripts or independent entrypoints based on the first argument.",
-        "detail": "The file parses raw arguments, handles direct help/version-like flows, and rewrites `process.argv` before dynamically importing target scripts. It maintains two dispatch maps, one for namespace script families and one for independent commands, reflecting the project’s multi-entry CLI architecture. Container initialization and module invocation are coordinated so shared infrastructure is available when needed. It uses centralized exit codes and explicit process termination for predictable shell behavior. Error handling is defensive at the boundary to surface load or execution failures cleanly.",
+        "summary": "Acts as the top-level CLI entrypoint and dispatcher for `sdd-forge`. It routes subcommands to namespace scripts or independent command modules with consistent exit behavior.",
+        "detail": "The file parses raw argv once, handles top-level help/version behavior, and rewrites `process.argv` before dynamic imports. It maintains command maps for namespace dispatchers and independent scripts, enabling lightweight command routing without a monolithic parser. Errors in module loading or command execution are trapped and mapped to shared error exit codes. When a module exposes `main`, execution is delegated there; otherwise, import side effects perform command work. This design keeps startup minimal while preserving explicit command boundaries.",
         "chapter": "project_structure",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-22T13:01:40.985Z",
+          "attempts": 1
+        },
         "keywords": [
-          "entrypoint dispatcher",
-          "command routing",
+          "CLI entrypoint",
+          "command dispatch",
           "dynamic import",
-          "argv rewrite",
-          "CLI architecture",
-          "namespace scripts"
+          "argv routing",
+          "namespace script",
+          "exit code handling",
+          "bootstrap"
         ]
       },
       {
@@ -9083,9 +9091,9 @@
     ],
     "summary": {
       "total": 269,
-      "totalMethods": 854
+      "totalMethods": 855
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-22T10:39:18.253Z"
+  "enrichedAt": "2026-04-22T13:01:40.985Z"
 }
