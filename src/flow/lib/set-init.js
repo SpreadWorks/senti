@@ -8,6 +8,7 @@
  */
 
 import { FlowCommand } from "./base-command.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 export default class SetInitCommand extends FlowCommand {
   constructor() {
@@ -21,7 +22,12 @@ export default class SetInitCommand extends FlowCommand {
     if (ctx.issue != null && ctx.issue !== "") {
       const n = Number(ctx.issue);
       if (!Number.isInteger(n) || n <= 0) {
-        throw new Error(`--issue must be a positive integer: ${ctx.issue}`);
+        return Envelope.fail(
+          "set",
+          "init",
+          "INVALID_ARG_VALUE",
+          `--issue must be a positive integer: ${ctx.issue}`,
+        );
       }
       extra.issue = n;
     }

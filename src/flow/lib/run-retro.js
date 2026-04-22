@@ -13,6 +13,7 @@ import { repairJson } from "../../lib/json-parse.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
 import { loadSpecJson } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 /**
  * Build the requirements text block from spec.json.requirements. Replaces the
@@ -133,7 +134,15 @@ export class RunRetroCommand extends FlowCommand {
 
     // Check existing retro.json
     if (fs.existsSync(retroPath) && !force) {
-      throw new Error("retro.json already exists. Use --force to overwrite.");
+      return Envelope.fail(
+        "run",
+        "retro",
+        "RETRO_EXISTS",
+        [
+          "retro.json already exists.",
+          "Pass --force to overwrite.",
+        ],
+      );
     }
 
     // Read spec from spec.json (T8). specPath may point to .md, .json, or dir —
@@ -158,7 +167,15 @@ export class RunRetroCommand extends FlowCommand {
     const detailedDiff = getDetailedDiff(root, baseBranch);
 
     if (!detailedDiff) {
-      throw new Error("no diff found between base branch and HEAD");
+      return Envelope.fail(
+        "run",
+        "retro",
+        "NO_CHANGES",
+        [
+          "no diff found between base branch and HEAD",
+          "Commit your changes before re-running retro.",
+        ],
+      );
     }
 
     if (dryRun) {

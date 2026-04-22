@@ -8,13 +8,19 @@
  */
 
 import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 export default class SetNoteCommand extends FlowCommand {
   execute(ctx) {
     const { text } = ctx;
 
     if (!text) {
-      throw new Error('usage: flow set note "<text>" [--task-id <id>]');
+      return Envelope.fail(
+        "set",
+        "note",
+        "INVALID_USAGE",
+        'usage: flow set note "<text>" [--task-id <id>]',
+      );
     }
 
     ctx.flowManager.addNote(text, resolveExplicitTaskOption(ctx));

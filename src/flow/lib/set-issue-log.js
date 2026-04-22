@@ -14,6 +14,7 @@ import fs from "fs";
 import path from "path";
 import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
 import { resolveTaskIdForEntry } from "../../lib/flow-store.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 /**
  * Load issue-log.json from specs/<spec>/ directory.
@@ -52,24 +53,28 @@ const MIN_OPTIONAL_FIELD_LENGTH = 10;
 
 function validateReason(reason) {
   if ((reason ?? "").trim().length < MIN_REASON_LENGTH) {
-    const err = new Error(
+    return Envelope.fail(
+      "set",
+      "issue-log",
+      "INVALID_REASON",
       `--reason must be at least ${MIN_REASON_LENGTH} characters (trimmed). ` +
-      `Provide a specific, descriptive reason — placeholder text is rejected.`,
+        `Provide a specific, descriptive reason — placeholder text is rejected.`,
     );
-    err.code = "INVALID_REASON";
-    throw err;
   }
+  return null;
 }
 
 function validateOptionalIssueLogField(name, value) {
-  if (value == null) return;
+  if (value == null) return null;
   if (value.trim().length < MIN_OPTIONAL_FIELD_LENGTH) {
-    const err = new Error(
+    return Envelope.fail(
+      "set",
+      "issue-log",
+      "INVALID_FIELD",
       `--${name} must be at least ${MIN_OPTIONAL_FIELD_LENGTH} characters (trimmed) when provided.`,
     );
-    err.code = "INVALID_FIELD";
-    throw err;
   }
+  return null;
 }
 
 export default class SetIssueLogCommand extends FlowCommand {
@@ -77,12 +82,19 @@ export default class SetIssueLogCommand extends FlowCommand {
     const { root } = ctx;
 
     if (!ctx.step || !ctx.reason) {
-      throw new Error("--step and --reason are required");
+      return Envelope.fail("set", "issue-log", "INVALID_USAGE", "--step and --reason are required");
     }
-    validateReason(ctx.reason);
-    validateOptionalIssueLogField("trigger", ctx.trigger);
-    validateOptionalIssueLogField("resolution", ctx.resolution);
-    validateOptionalIssueLogField("guardrail-candidate", ctx.guardrailCandidate);
+    const reasonFail = validateReason(ctx.reason);
+    if (reasonFail) return reasonFail;
+    const optionalFields = [
+      ["trigger", ctx.trigger],
+      ["resolution", ctx.resolution],
+      ["guardrail-candidate", ctx.guardrailCandidate],
+    ];
+    for (const [name, value] of optionalFields) {
+      const fail = validateOptionalIssueLogField(name, value);
+      if (fail) return fail;
+    }
 
     const state = ctx.flowState;
     const taskId = resolveTaskIdForEntry(state, resolveExplicitTaskOption(ctx));

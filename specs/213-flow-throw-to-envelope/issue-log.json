@@ -1,0 +1,156 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: standardizing throwable recoverable flow errors to Envelope failures in defined categories.; Unambiguous Requirements — Requirements define concrete triggers, expected behavior, and specific error codes, making them verifiable.; Complete Context — Each requirement pairs conditions (When) with explicit shall outcomes.; No Hardcoded Secrets — No API keys, tokens, passwords, or secret literals are specified in the draft.; Prioritize Requirements — Priority ordering is explicitly provided (R1 highest to R5 low, with category labels).; Impact on Existing Features — Impact section explicitly lists affected features and explicitly states unaffected areas.; Present Recommendations with Reasoning — Q&A provides clear recommended answers first and includes basis from existing behavior, guardrails, and code investigation.; Explore Before Asking — Draft shows code-based evidence for decisions (e.g., specific file behavior) and leaves no unresolved user question.; Proactively Raise Related Implications — Related implications are proactively documented via impact analysis, out-of-scope boundaries, and compatibility notes.; Confirm Brainstorm vs. Decision Before Critiquing — Draft records decision status with explicit user approval and confirmation date, indicating decision mode.; Capture Digressions in draft.md — Cannot determine from the draft alone whether any off-thread digressions occurred and were captured.; Draft Stays at Requirements Level — Draft includes implementation-level details (exact file paths, function/API forms, assertion rewrite specifics) beyond pure requirements level.; Backward-Compatible CLI Interface — No command/option removal or semantic redefinition is proposed; exit-code behavior is explicitly kept.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:46:04.883Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (exact file paths, function/API forms, assertion rewrite specifics) beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: standardizing recoverable flow errors from throw to ok:false envelopes.; Unambiguous Requirements — Requirements are mostly concrete and testable, with explicit conditions, expected outputs, and code-format constraints.; Complete Context — Each requirement includes trigger context (When) and expected behavior (shall).; No Hardcoded Secrets — Inapplicable to this requirements draft; no source code secrets are present.; Prioritize Requirements — More than three requirements are present and priority ordering is explicitly defined.; Impact on Existing Features — Draft explicitly lists impacted existing features and also states unaffected areas.; Present Recommendations with Reasoning — Q&A leads with recommendations and includes clear basis from code investigation, guardrails, and existing behavior.; Explore Before Asking — Draft shows prior exploration (e.g., code investigation findings) and does not defer answerable items to the user.; Proactively Raise Related Implications — It proactively covers related implications such as exit code semantics, dispatcher safety net, and ecosystem/test effects.; Confirm Brainstorm vs. Decision Before Critiquing — Decision state is explicit via User Approval section with confirmation date and agreed option.; Capture Digressions in draft.md — No unresolved digression is evident; related side discussion is captured in approval notes.; Draft Stays at Requirements Level — Draft includes implementation-level detail (e.g., explicit Envelope.fail signature and detailed assertion rewrites) beyond pure requirements level.; Backward-Compatible CLI Interface — CLI error behavior is being changed, but no explicit migration plan for existing command/option consumers is defined.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:48:11.152Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level detail (e.g., explicit Envelope.fail signature and detailed assertion rewrites) beyond pure requirements level."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "CLI error behavior is being changed, but no explicit migration plan for existing command/option consumers is defined."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: unifying flow error handling from throw to ok:false envelopes for scoped categories.; Unambiguous Requirements — Requirements are mostly testable with explicit conditions and expected outputs (ok:false, code, hint, throw retention cases).; Complete Context — Each requirement pairs trigger context (When) with required behavior (shall).; No Hardcoded Secrets — No API keys, tokens, passwords, or secret literals appear in the draft content.; Prioritize Requirements — Five requirements are present and explicitly prioritized (highest/high/medium/low with category labels).; Impact on Existing Features — Impact section explicitly lists affected existing features and explicitly states unaffected areas.; Present Recommendations with Reasoning — Q&A provides clear recommended answers and concise basis from existing behavior, guardrails, and code investigation.; Explore Before Asking — Draft shows prior exploration evidence (code調査, no open questions) instead of deferring answerable items to user.; Proactively Raise Related Implications — Related implications are proactively documented (stderr-dependent scripts, release-note guidance, migration effects).; Confirm Brainstorm vs. Decision Before Critiquing — Cannot verify whether brainstorming vs decision mode was explicitly confirmed from this standalone draft text.; Capture Digressions in draft.md — Cannot determine from the draft alone whether digressions occurred and were captured during discussion flow.; Draft Stays at Requirements Level — Draft includes implementation/design-level choices (e.g., helper introduction decision, dispatcher catch handling), exceeding pure requirements level.; Backward-Compatible CLI Interface — Migration plan is provided and explicitly describes compatibility expectations and required follow-up for affected scripts.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:49:14.628Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation/design-level choices (e.g., helper introduction decision, dispatcher catch handling), exceeding pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: replacing specific flow throw paths with ok:false envelopes.; Unambiguous Requirements — Some requirement terms are subjective (e.g., \"user-avoidable\", \"fine-grained\"), leaving PASS/FAIL interpretation ambiguous.; Complete Context — Each listed requirement includes trigger context (When) and expected behavior (shall).; REQ Diff-Verifiability — Conditions like \"unrecoverable or unexpected\" are not fully decidable from diff + test summary alone.; No Hardcoded Secrets — Spec content includes no API keys, passwords, tokens, or secret literals.; No Silent Error Swallowing — Spec does not propose silent catch/discard behavior; it routes expected failures via envelope codes.; Prioritize Requirements — Priority is explicitly provided (C > B > D) and requirements are labeled must/should.; Impact on Existing Features — Migration/impact is explicitly described, including what remains unchanged and what behavior shifts.; Bounded Resource Usage — Retry-related behavior is discussed, but explicit numeric bounds are not specified in this spec text.; Changes Require Test Coverage — Spec explicitly requires updating/adding tests and acceptance criteria include test validation.; Spec Includes Test Strategy — Acceptance criteria define what to test (per category/code) and how to validate (unit tests and npm test).; Synthesize Draft, Do Not Copy — Cannot assess whether draft text was copied vs synthesized without the source draft content.; Record Unresolved Points as Open Questions — Unresolved items are represented via Open Questions and marked as none unresolved.; Include 'Why This Approach' Rationale — Background, decisions, and alternatives with rejection reasons provide clear rationale.; Do Not Modify Existing Tests Without Approval — Test modifications are explicitly scoped and the spec indicates user approval of this plan.; Backward-Compatible CLI Interface — CLI command/option compatibility is preserved and migration guidance is included for behavior changes.; Exit Code Contract — Spec explicitly keeps failure paths as non-zero exit (ok:false -> exit code 1).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:55:47.875Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some requirement terms are subjective (e.g., \"user-avoidable\", \"fine-grained\"), leaving PASS/FAIL interpretation ambiguous."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Conditions like \"unrecoverable or unexpected\" are not fully decidable from diff + test summary alone."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Retry-related behavior is discussed, but explicit numeric bounds are not specified in this spec text."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/gate-noop-rerun-guard.test.js:7: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/gate-noop-rerun-guard.test.js:137: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/gate-noop-rerun-guard.test.js:148: existing line modified/deleted in test file (removed=28, added=37); tests/unit/flow/gate-noop-rerun-guard.test.js:215: existing line modified/deleted in test file (removed=6, added=9)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:13:36.642Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/gate-noop-rerun-guard.test.js:7: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/gate-noop-rerun-guard.test.js:137: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/gate-noop-rerun-guard.test.js:148: existing line modified/deleted in test file (removed=28, added=37); tests/unit/flow/gate-noop-rerun-guard.test.js:215: existing line modified/deleted in test file (removed=6, added=9)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:14:20.752Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Spec-mandated R1 codes/data are not fully implemented: `run-gate` returns `ESCALATE_RETRY_EXHAUSTED` and `NO_PROGRESS_SINCE_LAST_FAIL` (not `GATE_RETRY_EXHAUSTED` / `GATE_NO_PROGRESS_SINCE_LAST_FAIL`), and no-progress data shape differs from spec. Test coverage/evidence is also incomplete for all required codes (`Head Test Results` only shows `{ \"unit\": 1 }`).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:15:29.945Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Spec-mandated R1 codes/data are not fully implemented: `run-gate` returns `ESCALATE_RETRY_EXHAUSTED` and `NO_PROGRESS_SINCE_LAST_FAIL` (not `GATE_RETRY_EXHAUSTED` / `GATE_NO_PROGRESS_SINCE_LAST_FAIL`), and no-progress data shape differs from spec. Test coverage/evidence is also incomplete for all required codes (`Head Test Results` only shows `{ \"unit\": 1 }`)."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: tests/unit/flow/gate-noop-rerun-guard.test.js:7: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/gate-noop-rerun-guard.test.js:137: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/gate-noop-rerun-guard.test.js:148: existing line modified/deleted in test file (removed=28, added=37); tests/unit/flow/gate-noop-rerun-guard.test.js:215: existing line modified/deleted in test file (removed=6, added=9)\n  attempt 2: tests/unit/flow/gate-noop-rerun-guard.test.js:7: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/gate-noop-rerun-guard.test.js:137: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/gate-noop-rerun-guard.test.js:148: existing line modified/deleted in test file (removed=28, added=37); tests/unit/flow/gate-noop-rerun-guard.test.js:215: existing line modified/deleted in test file (removed=6, added=9)\n  attempt 3: REQ-SPEC — Spec-mandated R1 codes/data are not fully implemented: `run-gate` returns `ESCALATE_RETRY_EXHAUSTED` and `NO_PROGRESS_SINCE_LAST_FAIL` (not `GATE_RETRY_EXHAUSTED` / `GATE_NO_PROGRESS_SINCE_LAST_FAIL`), and no-progress data shape differs from spec. Test coverage/evidence is also incomplete for all required codes (`Head Test Results` only shows `{ \"unit\": 1 }`).\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-22T14:16:23.295Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff shows major throw→ok:false migrations, but spec compliance is incomplete: R1c data shape in run-gate differs from the spec’s explicit hash-field contract, and new tests explicitly defer coverage for required R1b/R1c codes; Head Test Results ({\"unit\":20}) also do not evidence full required test execution (e.g., npm test full pass).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:17:05.439Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Diff shows major throw→ok:false migrations, but spec compliance is incomplete: R1c data shape in run-gate differs from the spec’s explicit hash-field contract, and new tests explicitly defer coverage for required R1b/R1c codes; Head Test Results ({\"unit\":20}) also do not evidence full required test execution (e.g., npm test full pass)."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Spec compliance is not fully evidenced: Head Test Results show only {\"unit\":21} (no full npm test pass evidence), and required per-code verification appears incomplete (notably R1b coverage is deferred/missing in tests).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:20:32.702Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Spec compliance is not fully evidenced: Head Test Results show only {\"unit\":21} (no full npm test pass evidence), and required per-code verification appears incomplete (notably R1b coverage is deferred/missing in tests)."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Core throw→ok:false code changes are present, but required test evidence is incomplete: Head Test Results report only {\"unit\":23} and do not demonstrate the spec’s required full-suite pass (baseline had unit/integration/exitCode), so end-to-end REQ-SPEC compliance is not verified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:21:49.958Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Core throw→ok:false code changes are present, but required test evidence is incomplete: Head Test Results report only {\"unit\":23} and do not demonstrate the spec’s required full-suite pass (baseline had unit/integration/exitCode), so end-to-end REQ-SPEC compliance is not verified."
+        }
+      ]
+    },
+    {
+      "step": "merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-04-22T14:31:07.814Z"
+    }
+  ]
+}

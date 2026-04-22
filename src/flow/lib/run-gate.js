@@ -31,6 +31,7 @@ import {
 import { FlowCommand } from "./base-command.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { resolveGateStepId } from "./gate-step.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 export { resolveGateStepId };
 
@@ -767,24 +768,33 @@ function warnGateRetryBudget(ctx, phase) {
   );
 }
 
-function assertRetryBelowMax(ctx, phase) {
-  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+/**
+ * Returns a failure Envelope when the retry budget for the given phase is
+ * exhausted, or null when the command is still allowed to proceed. Callers
+ * return the envelope verbatim to short-circuit the command with ok:false.
+ * (Spec 213: "judgment-result" exhaustion must not throw.)
+ */
+export function checkRetryBelowMax(ctx, phase) {
+  if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
   const count = readGateRetryCount(ctx.flowState, phase);
   const max = resolveRetryMax(ctx.config);
-  if (count < max) return;
+  if (count < max) return null;
 
   const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max);
-  const msg = [
+  const messages = [
     `gate retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${phase}".`,
     "Previous FAIL reasons:",
     history || "  (no issue-log entries found)",
     "",
     "Stop the automatic retry loop and return control to the user.",
-  ].join("\n");
-  const err = new Error(msg);
-  err.code = "ESCALATE_RETRY_EXHAUSTED";
-  err.data = { phase, attempts: count, max };
-  throw err;
+  ];
+  return Envelope.fail(
+    "run",
+    "gate",
+    "ESCALATE_RETRY_EXHAUSTED",
+    messages,
+    { phase, attempts: count, max },
+  );
 }
 
 /**
@@ -863,31 +873,35 @@ export function findPreviousFailState({ flowState, issueLog, phase }) {
 }
 
 /**
- * Throw `Error` with `err.code = "NO_PROGRESS_SINCE_LAST_FAIL"` when the
+ * Returns a failure Envelope with `code="NO_PROGRESS_SINCE_LAST_FAIL"` when the
  * current working-tree state matches the last recorded FAIL for the same
- * phase. The caller runs this before invoking the AI agent so no retry budget
- * is consumed (registry's post-hook — which increments gateRetry — only runs
- * on a successful command return).
+ * phase. Returns null when the command is allowed to proceed. The caller runs
+ * this before invoking the AI agent so no retry budget is consumed (registry's
+ * post-hook — which increments gateRetry — only runs on a successful ok:true
+ * command return).
  */
-export function assertNoProgressSinceLastFail({ flowState, issueLog, phase, currentState }) {
+export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, currentState }) {
   const prev = findPreviousFailState({ flowState, issueLog, phase });
-  if (!prev) return;
-  if (prev.headSha !== currentState.headSha) return;
-  if (prev.worktreeHash !== currentState.worktreeHash) return;
+  if (!prev) return null;
+  if (prev.headSha !== currentState.headSha) return null;
+  if (prev.worktreeHash !== currentState.worktreeHash) return null;
 
   const prevEntry = findPreviousFailEntry(issueLog, phase);
   const prevReason = prevEntry?.reason || null;
-  const msg = [
+  const messages = [
     `gate-impl re-run rejected: working tree is unchanged since the previous FAIL (phase "${phase}").`,
     "Previous FAIL reason:",
     `  ${prevReason || "(no reason recorded)"}`,
     "",
     "Modify the spec or implementation before retrying.",
-  ].join("\n");
-  const err = new Error(msg);
-  err.code = "NO_PROGRESS_SINCE_LAST_FAIL";
-  err.data = { phase, previous: { headSha: prev.headSha, worktreeHash: prev.worktreeHash } };
-  throw err;
+  ];
+  return Envelope.fail(
+    "run",
+    "gate",
+    "NO_PROGRESS_SINCE_LAST_FAIL",
+    messages,
+    { phase, previous: { headSha: prev.headSha, worktreeHash: prev.worktreeHash } },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1266,18 +1280,21 @@ export class RunGateCommand extends FlowCommand {
     // spec 209 REQ-6: surface remaining retry budget before running the gate.
     warnGateRetryBudget(ctx, phase);
     // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
-    assertRetryBelowMax(ctx, phase);
+    const retryFail = checkRetryBelowMax(ctx, phase);
+    if (retryFail) return retryFail;
 
     // spec 210 REQ-2/REQ-3: reject re-run when the working tree is unchanged
-    // since the previous FAIL. Throws before AI invocation, so gateRetry is
-    // not incremented (the registry post-hook never runs on throw).
+    // since the previous FAIL. Returns ok:false envelope before AI invocation,
+    // so gateRetry is not incremented (the registry post-hook never runs on
+    // an ok:false return).
     const gitState = computeGitState(root);
-    assertNoProgressSinceLastFail({
+    const noProgressFail = checkNoProgressSinceLastFail({
       flowState: state,
       issueLog: loadIssueLog(root, state.spec),
       phase,
       currentState: gitState,
     });
+    if (noProgressFail) return noProgressFail;
     // spec 210 REQ-1: stash current state on ctx so appendIssueLogFromGateResult
     // can attach it to FAIL entries without re-running git.
     ctx.gitState = gitState;

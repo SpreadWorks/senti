@@ -28,6 +28,7 @@ import path from "path";
 import { FlowCommand } from "./base-command.js";
 import { VALID_AUTO_VALUES } from "../../lib/constants.js";
 import { runAutoCheckCore } from "./run-auto-check.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 function buildInputText(state) {
   const parts = [];
@@ -60,15 +61,27 @@ function resolveAutoCheckInput(ctx, state, preparingMode) {
 }
 
 function resolvePreparingRunId(flowManager, explicitRunId) {
-  if (explicitRunId) return explicitRunId;
+  if (explicitRunId) return { runId: explicitRunId };
   const ids = flowManager.listPreparingFlows();
-  if (ids.length === 1) return ids[0];
+  if (ids.length === 1) return { runId: ids[0] };
   if (ids.length === 0) {
-    throw new Error("no active flow and no preparing flow found");
+    return {
+      fail: Envelope.fail(
+        "set",
+        "auto",
+        "NO_FLOW",
+        "no active flow and no preparing flow found",
+      ),
+    };
   }
-  throw new Error(
-    `multiple preparing flows found; pass --run-id <id> (candidates: ${ids.join(", ")})`,
-  );
+  return {
+    fail: Envelope.fail(
+      "set",
+      "auto",
+      "MULTIPLE_PREPARING_FLOWS",
+      `multiple preparing flows found; pass --run-id <id> (candidates: ${ids.join(", ")})`,
+    ),
+  };
 }
 
 export default class SetAutoCommand extends FlowCommand {
@@ -80,14 +93,22 @@ export default class SetAutoCommand extends FlowCommand {
     const value = ctx.value;
 
     if (!value || !VALID_AUTO_VALUES.includes(value)) {
-      throw new Error(`usage: flow set auto ${VALID_AUTO_VALUES.join("|")}`);
+      return Envelope.fail(
+        "set",
+        "auto",
+        "INVALID_USAGE",
+        `usage: flow set auto ${VALID_AUTO_VALUES.join("|")}`,
+      );
     }
 
     const { flowManager, flowState } = ctx;
     const preparingMode = !flowState;
-    const runId = preparingMode
-      ? resolvePreparingRunId(flowManager, ctx.runId)
-      : null;
+    let runId = null;
+    if (preparingMode) {
+      const resolved = resolvePreparingRunId(flowManager, ctx.runId);
+      if (resolved.fail) return resolved.fail;
+      runId = resolved.runId;
+    }
 
     if (value === "off") {
       if (preparingMode) {
@@ -127,9 +148,13 @@ export default class SetAutoCommand extends FlowCommand {
     }
 
     if (!autoCheck.eligible) {
-      const err = new Error(`auto-check rejected: ${autoCheck.reason || "not eligible"}`);
-      err.autoCheck = autoCheck;
-      throw err;
+      return Envelope.fail(
+        "set",
+        "auto",
+        "AUTO_CHECK_INELIGIBLE",
+        `auto-check rejected: ${autoCheck.reason || "not eligible"}`,
+        autoCheck,
+      );
     }
 
     const applyApprove = (s) => { s.autoApprove = true; };

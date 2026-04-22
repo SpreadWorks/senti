@@ -20,12 +20,15 @@
  */
 
 import { FlowCommand } from "./base-command.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 const TYPE_KEYS = ["unit", "integration", "acceptance"];
 const MAX_ID_CHARS = 200;
 const MAX_REASON_CHARS = 500;
 const MAX_FAILED = 100;
 
+// Returns { summary } on success, { fail: Envelope } on validation error, or
+// { summary: null } when no legacy flags were provided at all.
 function parseLegacy(ctx) {
   const summary = {};
   for (const key of TYPE_KEYS) {
@@ -33,12 +36,19 @@ function parseLegacy(ctx) {
     if (val != null && val !== "") {
       const num = parseInt(val, 10);
       if (isNaN(num) || num < 0) {
-        throw new Error(`invalid value for --${key}: ${val}`);
+        return {
+          fail: Envelope.fail(
+            "set",
+            "test-summary",
+            "INVALID_ARG_VALUE",
+            `invalid value for --${key}: ${val}`,
+          ),
+        };
       }
       summary[key] = num;
     }
   }
-  return Object.keys(summary).length > 0 ? summary : null;
+  return { summary: Object.keys(summary).length > 0 ? summary : null };
 }
 
 function parseJsonPayload(raw) {
@@ -124,21 +134,28 @@ export default class SetTestSummaryCommand extends FlowCommand {
         if (typeof payload.exitCode === "number") summary.exitCode = payload.exitCode;
       }
     } else {
-      const legacy = parseLegacy(ctx);
-      if (!legacy) {
-        throw new Error("usage: flow set test-summary --unit N [--integration N] [--acceptance N] | --json <payload> [--mode fallback] [--baseline]");
+      const legacyResult = parseLegacy(ctx);
+      if (legacyResult.fail) return legacyResult.fail;
+      if (!legacyResult.summary) {
+        return Envelope.fail(
+          "set",
+          "test-summary",
+          "INVALID_USAGE",
+          "usage: flow set test-summary --unit N [--integration N] [--acceptance N] | --json <payload> [--mode fallback] [--baseline]",
+        );
       }
-      summary = legacy;
+      summary = legacyResult.summary;
     }
 
     const state = ctx.flowState;
     const existing = state?.test?.[targetKey];
     if (mode === "replace" && existing?.exitCode != null) {
-      const err = new Error(
+      return Envelope.fail(
+        "set",
+        "test-summary",
+        "TEST_SUMMARY_LOCKED",
         `test.${targetKey}.exitCode is tool-recorded; AI-side write rejected (use --mode fallback to write failed[] only, or \`flow run tests\` to re-measure)`,
       );
-      err.code = "TEST_SUMMARY_LOCKED";
-      throw err;
     }
 
     ctx.flowManager.setTestSummary(summary, { baseline, mode });

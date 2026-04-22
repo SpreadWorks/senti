@@ -1,0 +1,75 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/213-flow-throw-to-envelope/draft.md        |  61 +++\n specs/213-flow-throw-to-envelope/flow.json       | 512 +++++++++++++++++++++++\n specs/213-flow-throw-to-envelope/issue-log.json  | 156 +++++++\n specs/213-flow-throw-to-envelope/qa.md           |   9 +\n specs/213-flow-throw-to-envelope/report.json     |  72 ++++\n specs/213-flow-throw-to-envelope/review.md       |  41 ++\n specs/213-flow-throw-to-envelope/spec.json       | 123 ++++++\n specs/213-flow-throw-to-envelope/spec.md         | 127 ++++++\n specs/213-flow-throw-to-envelope/tests/README.md |  44 ++\n src/flow/lib/run-draft-task.js                   |  12 +-\n src/flow/lib/run-gate.js                         |  71 ++--\n src/flow/lib/run-retro.js                        |  21 +-\n src/flow/lib/set-auto.js                         |  51 ++-\n src/flow/lib/set-gate-retry.js                   |  25 +-\n src/flow/lib/set-init.js                         |   8 +-\n src/flow/lib/set-issue-log.js                    |  38 +-\n src/flow/lib/set-issue.js                        |  17 +-\n src/flow/lib/set-metric.js                       |  22 +-\n src/flow/lib/set-note.js                         |   8 +-\n src/flow/lib/set-req.js                          |  17 +-\n src/flow/lib/set-request.js                      |   3 +-\n src/flow/lib/set-step.js                         |  10 +-\n src/flow/lib/set-summary.js                      |  24 +-\n src/flow/lib/set-test-summary.js                 |  35 +-\n src/lib/dispatcher.js                            |  15 +-\n src/lib/flow-envelope.js                         |   5 +-\n tests/unit/flow/gate-noop-rerun-guard.test.js    |  86 ++--\n tests/unit/flow/throw-to-envelope-codes.test.js  | 311 ++++++++++++++\n 28 files changed, 1793 insertions(+), 131 deletions(-)",
+      "commits": [
+        "feat: feature/213-flow-throw-to-envelope",
+        "chore(213): record finalize issue-log",
+        "chore: add retro and report",
+        "feat: feature/213-flow-throw-to-envelope",
+        "chore(213): record pre-finalize metrics",
+        "refactor(213): apply review feedback — dedupe dirty check, table-driven tests, doc alignment",
+        "chore(213): record full test summary evidence",
+        "test(213): add R1b envelope assertion for checkRetryBelowMax",
+        "test(213): add R1c envelope assertion for checkNoProgressSinceLastFail",
+        "docs(213): align spec codes with existing symbols (no GATE_ prefix)",
+        "docs(213): add authorized_test_modifications to spec.json",
+        "docs(213): authorize test modification for checkNoProgressSinceLastFail rename",
+        "feat(213): migrate flow throws to ok:false envelope for recoverable outcomes"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 662045,
+      "output": 15173,
+      "cacheRead": 145792,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 17,
+      "durationMs": 412111,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 10433
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 115419
+        },
+        {
+          "phase": "gate",
+          "durationMs": 65685
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 165682
+        },
+        {
+          "phase": "review",
+          "durationMs": 54892
+        }
+      ]
+    },
+    "tests": {
+      "unit": 1958,
+      "integration": 260,
+      "acceptance": 0,
+      "total": 2218
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/213-flow-throw-to-envelope\n    chore(213): record finalize issue-log\n    chore: add retro and report\n    feat: feature/213-flow-throw-to-envelope\n    chore(213): record pre-finalize metrics\n    refactor(213): apply review feedback — dedupe dirty check, table-driven tests, doc alignment\n    chore(213): record full test summary evidence\n    test(213): add R1b envelope assertion for checkRetryBelowMax\n    test(213): add R1c envelope assertion for checkNoProgressSinceLastFail\n    docs(213): align spec codes with existing symbols (no GATE_ prefix)\n    docs(213): add authorized_test_modifications to spec.json\n    docs(213): authorize test modification for checkNoProgressSinceLastFail rename\n    feat(213): migrate flow throws to ok:false envelope for recoverable outcomes\n    28 files changed, 1793 insertions(+), 131 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 17\n    input tokens ................ 662,045\n    output tokens ............... 15,173\n    cache-read tokens ........... 145,792\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 412.1s\n      draft ..................... 10.4s\n      gate-draft ................ 115.4s\n      gate ...................... 65.7s\n      gate-impl ................. 165.7s\n      review .................... 54.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 1958  integration 260  acceptance 0  total 2218"
+}

@@ -10,21 +10,37 @@
 
 import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
 import { VALID_PHASES, VALID_METRIC_COUNTERS } from "../../lib/constants.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 export default class SetMetricCommand extends FlowCommand {
   execute(ctx) {
     const { phase, counter } = ctx;
 
     if (!phase || !counter) {
-      throw new Error("usage: flow set metric <phase> <counter> [--task-id <id>]");
+      return Envelope.fail(
+        "set",
+        "metric",
+        "INVALID_USAGE",
+        "usage: flow set metric <phase> <counter> [--task-id <id>]",
+      );
     }
 
     if (!VALID_PHASES.includes(phase)) {
-      throw new Error(`invalid phase: ${phase} (valid: ${VALID_PHASES.join(", ")})`);
+      return Envelope.fail(
+        "set",
+        "metric",
+        "INVALID_PHASE",
+        `invalid phase: ${phase} (valid: ${VALID_PHASES.join(", ")})`,
+      );
     }
 
     if (!VALID_METRIC_COUNTERS.includes(counter)) {
-      throw new Error(`invalid counter: ${counter} (valid: ${VALID_METRIC_COUNTERS.join(", ")})`);
+      return Envelope.fail(
+        "set",
+        "metric",
+        "INVALID_ARG_VALUE",
+        `invalid counter: ${counter} (valid: ${VALID_METRIC_COUNTERS.join(", ")})`,
+      );
     }
 
     ctx.flowManager.incrementMetric(phase, counter, resolveExplicitTaskOption(ctx));
