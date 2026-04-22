@@ -18,6 +18,7 @@ import { VALID_MERGE_STRATEGIES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { FLOW_COMMANDS } from "../registry.js";
 import { container } from "../../lib/container.js";
+import { POINTER_REL_PATH as LAST_FINALIZED_SPEC_POINTER_REL_PATH } from "./run-report-show.js";
 
 /**
  * Create an onError hook for finalize sub-steps that records to issue-log.
@@ -41,11 +42,25 @@ export function finalizeOnError(stepName, trigger) {
 }
 
 /**
+ * Write the relative spec path of the current finalize target to
+ * `.sdd-forge/last-finalized-spec` under the main repo. Consumed by
+ * `sdd-forge flow report show` after the worktree/flow state is removed.
+ */
+export function writeLastFinalizedPointer(targetRoot, specPath) {
+  if (!targetRoot || !specPath) return;
+  const pointerAbs = path.join(targetRoot, LAST_FINALIZED_SPEC_POINTER_REL_PATH);
+  fs.mkdirSync(path.dirname(pointerAbs), { recursive: true });
+  fs.writeFileSync(pointerAbs, specPath + "\n");
+}
+
+/**
  * Execute cleanup: clear flow state, remove worktree/branch.
  */
 function executeCleanupImpl({ root, flowState, flowManager, worktreePath, mainRepoPath }) {
   const { baseBranch, featureBranch, worktree } = flowState;
   const specId = specIdFromPath(flowState.spec);
+
+  writeLastFinalizedPointer(mainRepoPath || root, flowState.spec);
 
   if (featureBranch === baseBranch) {
     flowManager.clearFlowState(specId);

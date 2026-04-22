@@ -1,0 +1,94 @@
+# Feature Specification: 211-finalize-report-show-cmd
+
+**Feature Branch**: `feature/211-finalize-report-show-cmd`
+**Created**: 2026-04-22
+**Status**: Draft
+**Input**: GitHub Issue #212
+
+## Goal
+finalize 完了時の Report 表示を AI 転記依存から CLI 経由に切り替え、AI が prompt 指示を省略したときに Report がユーザに届かない問題を構造的に解消する。
+
+## Background
+`sdd-forge flow run finalize` は post-commit hook で report.json を生成し、specs/<id>/report.json として spec dir に保存、merge 経由で main に永続化している。一方で Report の表示は現状 src/flow/prompts/impl/finalize.md の prose rule（AI が code block で verbatim 出力する）にのみ依存しており、CLI 側で強制機構が無い。spec #208 の finalize では AI が転記を省略し、ユーザに Report が届かなかった。『気をつける』では再発防止にならないため、表示責務を AI 転記から CLI 実行に移す。
+
+## Scope
+- `sdd-forge flow report show` サブコマンドを追加し、直近 finalize の Report テキストを stdout に出力する
+- finalize パイプラインに『直近 finalize 対象の spec』を記録する処理を追加する (cleanup で worktree が削除されても main 側から参照できるようにする)
+- finalize の AI プロンプト (finalize.md) を、転記指示から `flow report show` 実行指示に変更する
+- 正常系・失敗系 (ポインタ/report.json 不在) のユニットテストを追加する
+
+## Out of Scope
+- Report フォーマットの変更
+- Retro 失敗時の AI 呼び出し再試行
+- 既存 `flow report` コマンド (report.json 生成系) の再設計
+- 履歴一覧・過去 Report の参照機能 (最新のみ対応)
+
+## Constraints
+- 外部依存を追加しない (Node.js 組み込みのみ)
+- src/ に配布コードとして相応しくないプロジェクト固有情報を入れない
+- alpha 期ポリシー: 後方互換コードは書かない。新コマンドの追加のみで既存 CLI のシグネチャは変更しない
+- finalize の step 構成・merge 順序・cleanup 挙動は変更しない
+
+## Design Principles
+- Single Source of Truth: Report データは specs/<id>/report.json のみ。別ファイル書き出しで二重管理しない
+- AI 転記依存の排除: AI は『表示すべき文字列』を持たず、CLI 実行結果をそのまま提示する
+- 最小追加情報で実現: 『直近 finalize の spec』を示す最小限のポインタ情報のみを新規追加する
+
+## Overview
+### Modules
+- src/flow/lib/run-finalize.js (既存): cleanup 直前に『直近 finalize 対象 spec』を main repo 側のポインタファイルに書き出す
+- src/flow/lib/run-report-show.js (新規): ポインタを読み、対応する report.json の text フィールドを stdout に出力する FlowCommand
+- src/flow/registry.js (既存): `flow report show` サブコマンドを登録
+- src/flow/prompts/impl/finalize.md (既存): AI 指示を `sdd-forge flow report show` 実行に変更
+
+### Data Flow
+- finalize の post-commit hook が report.json を specs/<id>/report.json に書き出す (既存)
+- finalize の cleanup 直前に、最新対象 spec の相対パスを main repo 側の .sdd-forge/last-finalized-spec に書く (新規)
+- `flow report show` がポインタファイルを読む → 指し先の report.json を読む → text フィールドを stdout にそのまま出力
+
+### Decisions
+- ポインタファイルは .sdd-forge/last-finalized-spec (1 行、spec 相対パス)。.sdd-forge/ は既に git ignore 対象で配布対象外
+- show は引数なし (常に最新対象)。履歴参照は Out of Scope
+- ポインタ/report.json が不在の場合は非 0 exit + stderr メッセージ。stdout は空のまま (パイプで誤認識されないため)
+- 書き出しタイミングは cleanup の worktree 削除前 (mainRepoPath が取れている箇所)
+
+## Clarifications (Q&A)
+- Q: Report テキストの永続化先を別ファイル (last-finalize-report.txt) にする案 B か、既存 report.json 再利用の案 D か？
+  - A: 案 D。既存コード (src/flow/commands/report.js:194 saveReport) により report.json は {data, text} を保持し merge 経由で main に残る。別ファイルは source of truth を分散させる
+- Q: show が最新 finalize を特定する方法は？
+  - A: finalize 実行中に最小ポインタファイルを書き出す。specs/*/report.json の mtime スキャンは誤検出リスク (手動編集や rebase 等) があるため採用しない
+- Q: 源泉不在時の挙動は？
+  - A: 非 0 exit + stderr。既存 flow get/run の不在ケース規約と揃える (ガードレール: Exit Code Contract)
+
+## Alternatives Considered
+- 案 A (stderr 直出力) — 実装は最小だが stderr は AI の Bash ツール出力で埋没しやすく、ユーザ提示経路として弱い
+- 案 B (独立ファイル書き出し、Issue 原案) — 実装可能だが report.json との二重管理になり、保存・更新・削除の責務が複数箇所に分散する
+- 案 C (表示漏れ検知フック) — ターン境界を CLI から検知できず実装困難
+
+## User Confirmation
+- [x] User approved this spec
+- Confirmed at: 2026-04-22
+- Notes: Auto mode.
+
+## Requirements
+- R1 [must]: `sdd-forge flow report show` は直近 finalize の Report テキストを stdout に出力する。When: finalize が 1 回以上完了した後、ユーザが `sdd-forge flow report show` を実行したとき / Shall: 直近 finalize 対象 spec の report.json.text の内容を改行整形無しで stdout に流し、exit code 0 で終了する
+- R2 [must]: finalize のプロンプト指示は転記ではなく show 実行を求める。When: finalize 完了時、AI が Report をユーザに提示するフェーズ / Shall: src/flow/prompts/impl/finalize.md は『Report は `sdd-forge flow report show` を実行し、その stdout を code block で提示する』旨を明記し、steps.report.text からの転記指示を削除する
+- R3 [must]: finalize は『直近 finalize 対象 spec』のポインタを main repo 側に書き出す。When: finalize パイプラインが cleanup (worktree 削除) に到達する前 / Shall: main repo の .sdd-forge/last-finalized-spec に対象 spec の相対パスを 1 行で書き出す
+- R4 [should]: show はポインタが指す report.json を源泉とし、別途テキストファイルを生成しない。When: show が Report を出力するとき / Shall: ポインタファイルの示す specs/<id>/report.json を読み、text フィールドを出力する (新規の *-report.txt を書き出さない)
+- R5 [should]: 源泉不在時は安全に失敗する。When: ポインタファイルまたは指し先 report.json が存在しない／パース不能なとき / Shall: stderr に原因を示すメッセージを出力し、非 0 exit で終了する (stdout には何も出力しない)
+
+## Acceptance Criteria
+- AC1 (R1, R4): finalize 後、main repo の root で `sdd-forge flow report show` を実行すると、直近 finalize の report.json.text 内容が stdout に出力され exit 0 となる
+- AC2 (R5): .sdd-forge/last-finalized-spec が存在しない状態で show を実行すると非 0 exit + stderr にメッセージが出る
+- AC3 (R5): ポインタは存在するが指し先 report.json が存在しない場合も非 0 exit + stderr メッセージとなる
+- AC4 (R3): finalize 実行後に .sdd-forge/last-finalized-spec が生成され、内容が対象 spec の相対パスと一致する (ユニットテストで cleanup 関連関数を呼び、ファイル内容を検証)
+- AC5 (R2): src/flow/prompts/impl/finalize.md に `flow report show` 実行指示が含まれ、既存の steps.report.text 転記指示が削除されている (ファイル内容検証)
+
+## Implementation Targets
+- src/flow/lib/run-finalize.js
+- src/flow/lib/run-report-show.js
+- src/flow/registry.js
+- src/flow/prompts/impl/finalize.md
+
+## Open Questions
+- [ ]

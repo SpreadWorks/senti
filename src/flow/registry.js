@@ -551,4 +551,20 @@ export const FLOW_COMMANDS = {
       ].join("\n"),
     },
   },
+  report: {
+    show: {
+      helpKey: "flow.report.show",
+      command: () => import("./lib/run-report-show.js"),
+      requiresFlow: false,
+      args: { flags: [] },
+      help: [
+        "Usage: sdd-forge flow report show",
+        "",
+        "Stream the most recent finalize Report text to stdout.",
+        "Reads .sdd-forge/last-finalized-spec to locate the latest",
+        "finalized spec and prints its report.json `text` field.",
+        "Exits non-zero if the pointer or report.json is missing.",
+      ].join("\n"),
+    },
+  },
 };

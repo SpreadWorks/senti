@@ -1,0 +1,61 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: making finalize report display reliable via CLI-based retrieval.; Unambiguous Requirements — Most requirements are concrete and testable (target files, command behavior, exit conditions).; Complete Context — Requirements are listed as scope bullets but many do not explicitly pair trigger conditions with shall-style expected behavior.; No Hardcoded Secrets — No API keys, passwords, tokens, or similar secrets are present in the draft content.; Prioritize Requirements — More than three requirement items are present without an explicit priority order.; Impact on Existing Features — The draft explicitly lists affected existing features and unaffected areas.; Present Recommendations with Reasoning — Q&A includes recommendations, but the basis is not consistently stated as docs, guardrails, or existing code patterns for each question.; Explore Before Asking — Cannot verify from the draft alone whether docs/code were explored before asking questions.; Proactively Raise Related Implications — The draft proactively covers related implications such as missing pointer/report handling and feature impact boundaries.; Confirm Brainstorm vs. Decision Before Critiquing — Cannot determine from the draft alone whether brainstorming-vs-decision was confirmed before critique.; Capture Digressions in draft.md — No digression is evident in the provided draft content, so this is inapplicable.; Draft Stays at Requirements Level — Draft includes implementation-level details (exact file paths, internal pointer file design, stderr message strings) beyond pure requirements level.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is specified; migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T08:44:14.850Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T08:46:51.943Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T08:48:28.758Z"
+    },
+    {
+      "step": "gate",
+      "reason": "flow run gate --phase spec reads state.spec (spec.json) as text but checkSpecText expects spec.md markdown sections. Workaround: explicitly pass --spec specs/<id>/spec.md",
+      "trigger": "gate FAIL with 'missing section: ## Clarifications' etc. even though spec.md was fully populated",
+      "resolution": "explicitly passed --spec <specDir>/spec.md to gate invocation",
+      "guardrailCandidate": "executeSpec in run-gate.js should resolve state.spec (.json) to its sibling .md for markdown-section text check",
+      "taskId": null,
+      "timestamp": "2026-04-22T08:50:59.253Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff covers pointer write (R3), prompt update (R2), and command registration, but lacks the actual `run-report-show.js` implementation and required unit tests for success/failure paths (R1/R4/R5), so spec is not fully implemented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T09:04:06.442Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — 主要要件（showコマンド追加、ポインタ書き出し、prompt更新、異常系テスト追加）は実装されているが、`flow report show` 実装が `report.json.text` に末尾改行が無い場合に改行を付与しており、要件R1の『改行整形無しで stdout に流す』に厳密一致していない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T09:05:58.191Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — R2/R3/R4/R5 and related unit tests are implemented, but R1 is not strictly met because `run-report-show.js` appends a trailing newline when `report.json.text` lacks one (`process.stdout.write(text.endsWith(\"\\n\") ? text : text + \"\\n\")`), violating the spec’s ‘no reformatting’ requirement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T09:06:15.161Z"
+    }
+  ]
+}

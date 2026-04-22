@@ -1,0 +1,59 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/211-finalize-report-show-cmd/draft.md       |  66 +++\n specs/211-finalize-report-show-cmd/flow.json      | 466 ++++++++++++++++++++++\n specs/211-finalize-report-show-cmd/issue-log.json |  61 +++\n specs/211-finalize-report-show-cmd/qa.md          |   9 +\n specs/211-finalize-report-show-cmd/review.md      |  41 ++\n specs/211-finalize-report-show-cmd/spec.json      |  79 ++++\n specs/211-finalize-report-show-cmd/spec.md        |  94 +++++\n src/flow/lib/run-finalize.js                      |  15 +\n src/flow/lib/run-report-show.js                   |  86 ++++\n src/flow/prompts/impl/finalize.md                 |   2 +-\n src/flow/registry.js                              |  16 +\n tests/unit/flow/run-finalize-pointer.test.js      |  57 +++\n tests/unit/flow/run-report-show.test.js           |  88 ++++\n 13 files changed, 1079 insertions(+), 1 deletion(-)",
+      "commits": [
+        "feat: feature/211-finalize-report-show-cmd",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 1,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 439585,
+      "output": 11939,
+      "cacheRead": 163200,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 17,
+      "durationMs": 431733,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 44950
+        },
+        {
+          "phase": "gate",
+          "durationMs": 53740
+        },
+        {
+          "phase": "approval",
+          "durationMs": 23188
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 234701
+        },
+        {
+          "phase": "review",
+          "durationMs": 75154
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/211-finalize-report-show-cmd\n    chore: add retro and report\n    13 files changed, 1079 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 1\n    issue-log ................... 1\n    agent calls ................. 17\n    input tokens ................ 439,585\n    output tokens ............... 11,939\n    cache-read tokens ........... 163,200\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 431.7s\n      gate-draft ................ 45.0s\n      gate ...................... 53.7s\n      approval .................. 23.2s\n      gate-impl ................. 234.7s\n      review .................... 75.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    -"
+}
