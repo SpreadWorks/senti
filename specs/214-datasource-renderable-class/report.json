@@ -1,0 +1,61 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/214-datasource-renderable-class/draft.md     |  64 ++++\n specs/214-datasource-renderable-class/flow.json    | 342 +++++++++++++++++++++\n .../214-datasource-renderable-class/issue-log.json | 113 +++++++\n specs/214-datasource-renderable-class/qa.md        |   9 +\n specs/214-datasource-renderable-class/review.md    |  49 +++\n specs/214-datasource-renderable-class/spec.json    | 132 ++++++++\n specs/214-datasource-renderable-class/spec.md      | 127 ++++++++\n .../tests/README.md                                |  49 +++\n src/docs/data/agents.js                            |   5 +-\n src/docs/data/docs.js                              |   5 +-\n src/docs/data/lang.js                              |   3 +-\n src/docs/data/project.js                           |   7 +-\n src/docs/lib/data-source.js                        |  22 +-\n src/docs/lib/directive-parser.js                   |   7 +-\n src/docs/lib/renderable.js                         | 168 ++++++++++\n src/lib/container.js                               |  20 ++\n src/presets/monorepo/data/monorepo.js              |   3 +-\n tests/e2e/065-preset-hierarchy.test.js             |   4 +-\n tests/e2e/071-multi-preset-selection.test.js       |   2 +-\n tests/unit/docs/data/docs-lang-switcher.test.js    |  24 +-\n tests/unit/docs/data/monorepo.test.js              |   8 +-\n tests/unit/docs/lib/data-source.test.js            |  44 ++-\n .../docs/lib/directive-parser-ignore-error.test.js |  11 +-\n tests/unit/docs/lib/directive-parser.test.js       |  39 ++-\n tests/unit/docs/lib/layout-and-nav.test.js         |  20 +-\n tests/unit/docs/lib/renderable.test.js             | 220 +++++++++++++\n tests/unit/docs/lib/resolver-factory.test.js       |  24 +-\n tests/unit/lib/container-init.test.js              |  18 ++\n .../presets/base/structure-directories.test.js     |  18 +-\n .../unit/presets/github-actions-pipelines.test.js  |  14 +-\n 30 files changed, 1467 insertions(+), 104 deletions(-)",
+      "commits": [
+        "feat: feature/214-datasource-renderable-class",
+        "chore: update flow.json tracking state",
+        "feat: introduce Renderable value types for DataSource returns"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 2,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 201543,
+      "output": 12371,
+      "cacheRead": 124544,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 9,
+      "durationMs": 283849,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 103166
+        },
+        {
+          "phase": "gate",
+          "durationMs": 29260
+        },
+        {
+          "phase": "implement",
+          "durationMs": 90050
+        },
+        {
+          "phase": "review",
+          "durationMs": 61373
+        }
+      ]
+    },
+    "tests": {
+      "unit": 1991,
+      "integration": 260,
+      "acceptance": 0,
+      "total": 2251
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/214-datasource-renderable-class\n    chore: update flow.json tracking state\n    feat: introduce Renderable value types for DataSource returns\n    30 files changed, 1467 insertions(+), 104 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 2\n    issue-log ................... 1\n    agent calls ................. 9\n    input tokens ................ 201,543\n    output tokens ............... 12,371\n    cache-read tokens ........... 124,544\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 283.8s\n      gate-draft ................ 103.2s\n      gate ...................... 29.3s\n      implement ................. 90.0s\n      review .................... 61.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 1991  integration 260  acceptance 0  total 2251"
+}
