@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-22T13:40:16.757Z",
+  "analyzedAt": "2026-04-22T13:43:16.501Z",
   "package": {
     "entries": [
       {
@@ -3249,9 +3249,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "11033314065681bab21151fa7bf35ecf",
-        "lines": 1341,
-        "mtime": "2026-04-22T04:41:27.581Z",
+        "hash": "b3d0b2231846322b40e4f093f1a9812d",
+        "lines": 1451,
+        "mtime": "2026-04-22T13:43:15.921Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3267,6 +3267,10 @@
           "computeGitState",
           "findPreviousFailState",
           "assertNoProgressSinceLastFail",
+          "normalizeReason",
+          "buildFailedEvaluations",
+          "findPreviousFailedEvaluations",
+          "assertNoRepeatedFail",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
@@ -3289,6 +3293,7 @@
           "warnGateRetryBudget",
           "assertRetryBelowMax",
           "findPreviousFailEntry",
+          "buildFailPairKey",
           "buildImplCheckPrompt",
           "extractRequirementIds",
           "reasonsFromEvaluations",
@@ -3325,6 +3330,10 @@
           "computeGitState",
           "findPreviousFailState",
           "assertNoProgressSinceLastFail",
+          "normalizeReason",
+          "buildFailedEvaluations",
+          "findPreviousFailedEvaluations",
+          "assertNoRepeatedFail",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
@@ -3344,24 +3353,23 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This module implements the flow gate execution pipeline for draft, spec, and diff-based phases in sdd-forge. It validates inputs, runs guardrail evaluation, and produces structured pass/fail gate results with retry and issue-log tracking.",
-        "detail": "The file combines low-level gate utilities and the `RunGateCommand` orchestration class, mapping phase/level constraints and enforcing phase-specific checks. It parses and validates AI guardrail JSON responses with a strict schema, including allowed result values, known guardrail IDs, and required reason/category fields. For implementation gates, it analyzes git diffs, detects test-file modifications, validates authorization sections in spec content, and reports unused authorizations as warnings. It also tracks retry budgets and no-progress failures using HEAD/worktree state hashes and issue-log history to prevent repeated retries without code changes. The final gate result payload is normalized through pass/fail builders and appended to issue-log metrics for downstream flow steps.",
+        "summary": "Implements the flow gate execution logic for draft, spec, and diff-based phases in the SDD workflow. It validates inputs, runs guardrail evaluation, and returns structured pass/fail gate results.",
+        "detail": "The module combines command orchestration (`RunGateCommand`) with a broad set of pure helpers for parsing AI evaluation JSON, normalizing failures, and building deterministic gate reports. It enforces phase/level consistency, checks spec and draft content rules, and inspects git diffs for test-file modifications, including authorization parsing and unused-authorization warnings. Guardrail prompts are assembled from phase-filtered guardrails, and responses are schema-validated with explicit error classes to keep failure modes clear. It also tracks retry metrics and previous failure state in issue logs, blocking repeated runs when no progress or repeated failure patterns are detected. Final outcomes are emitted as structured gate pass/fail objects with next-action hints and reason payloads for downstream flow steps.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T04:41:42.273Z",
+          "processedAt": "2026-04-22T13:43:30.825Z",
           "attempts": 1
         },
         "keywords": [
-          "gate execution",
-          "flow command",
-          "guardrail validation",
-          "schema parsing",
+          "flow gate",
+          "guardrail evaluation",
+          "CLI command",
+          "spec validation",
           "diff analysis",
-          "test modification policy",
           "retry budget",
           "issue log",
-          "spec gate",
+          "JSON schema parsing",
           "quality gate"
         ]
       },
@@ -9098,9 +9106,9 @@
     ],
     "summary": {
       "total": 269,
-      "totalMethods": 857
+      "totalMethods": 862
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-22T13:40:32.274Z"
+  "enrichedAt": "2026-04-22T13:43:30.825Z"
 }
