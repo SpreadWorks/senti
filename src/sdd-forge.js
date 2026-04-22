@@ -15,6 +15,7 @@
  */
 
 import path from "path";
+import { pathToFileURL } from "node:url";
 import { PKG_DIR } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { initContainer } from "./lib/container.js";
@@ -34,7 +35,7 @@ if (!subCmd || subCmd === "-h" || subCmd === "--help" || subCmd === "help") {
   initContainer({ entryCommand: rawArgs.join(" ") });
   const helpPath = path.join(PKG_DIR, "help.js");
   process.argv = [process.argv[0], helpPath, ...rest];
-  const helpMod = await import(helpPath);
+  const helpMod = await import(pathToFileURL(helpPath).href);
   if (typeof helpMod.main === "function") helpMod.main();
   process.exit(0);
 }
@@ -62,11 +63,11 @@ const INDEPENDENT = {
 if (NAMESPACE_SCRIPTS[subCmd]) {
   const dispatcherPath = path.join(PKG_DIR, `${NAMESPACE_SCRIPTS[subCmd]}.js`);
   process.argv = [process.argv[0], dispatcherPath, ...rest];
-  await import(dispatcherPath);
+  await import(pathToFileURL(dispatcherPath).href);
 } else if (INDEPENDENT[subCmd]) {
   const scriptPath = path.join(PKG_DIR, `${INDEPENDENT[subCmd]}.js`);
   process.argv = [process.argv[0], scriptPath, ...rest];
-  const mod = await import(scriptPath);
+  const mod = await import(pathToFileURL(scriptPath).href);
   if (typeof mod.main !== "function") {
     console.error(`sdd-forge: command module does not export main(): ${scriptPath}`);
     process.exit(EXIT_ERROR);

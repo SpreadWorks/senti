@@ -9,6 +9,7 @@
 
 import { stat, readdir } from "node:fs/promises";
 import path from "path";
+import { pathToFileURL } from "node:url";
 import { PKG_DIR } from "../../lib/cli.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
@@ -47,7 +48,7 @@ function validateBuildArgs(rawArgs) {
 async function runBuild(rawArgs, container) {
   validateBuildArgs(rawArgs);
   if (rawArgs.includes("-h") || rawArgs.includes("--help")) {
-    const { translate } = await import(path.join(PKG_DIR, "lib/i18n.js"));
+    const { translate } = await import(pathToFileURL(path.join(PKG_DIR, "lib/i18n.js")).href);
     const t = translate();
     const h = t.raw("ui:help.cmdHelp.build");
     const o = h.options;
@@ -82,7 +83,7 @@ async function runBuild(rawArgs, container) {
     ...(hasTranslateStep ? [{ label: "translate", weight: 2 }] : []),
   ];
 
-  const { createProgress } = await import(path.join(PKG_DIR, "lib/progress.js"));
+  const { createProgress } = await import(pathToFileURL(path.join(PKG_DIR, "lib/progress.js")).href);
   const progress = createProgress(pipelineSteps, {
     verbose: isVerbose,
     title: "Generating docs with SDD Forge...",
