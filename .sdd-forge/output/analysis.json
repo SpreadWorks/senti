@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-22T09:14:52.433Z",
+  "analyzedAt": "2026-04-22T10:38:43.318Z",
   "package": {
     "entries": [
       {
@@ -2234,9 +2234,9 @@
       },
       {
         "file": "src/flow/commands/merge.js",
-        "hash": "ddc0d5a2acc16fbe655abfb3d0d9e877",
-        "lines": 201,
-        "mtime": "2026-04-21T09:34:26.439Z",
+        "hash": "cce82d1bfddf836719834a99d4254119",
+        "lines": 245,
+        "mtime": "2026-04-22T10:38:43.069Z",
         "className": "merge",
         "methods": [
           "resolveRemote",
@@ -2246,7 +2246,8 @@
           "buildPrTitle",
           "buildPrBody",
           "loadSpec",
-          "runMerge"
+          "runMerge",
+          "runPreSync"
         ],
         "imports": [
           "../../lib/process.js",
@@ -2259,26 +2260,29 @@
           "runMerge",
           "parseSpec",
           "buildPrTitle",
-          "buildPrBody"
+          "buildPrBody",
+          "runPreSync"
         ],
         "extends": null,
         "usedBy": null,
         "id": "3a0db928",
-        "summary": "Handles flow merge behavior, including PR-based and squash merge strategies. It derives PR title/body content from spec and flow state metadata.",
-        "detail": "The module resolves remote and strategy inputs from configuration and parses spec requirements into reusable text blocks. It builds structured PR content by composing scope, requirements, and fallback context when complete spec metadata is unavailable. The merge runner branches between skip, PR, and squash paths and enforces tool availability for GitHub CLI dependent routes. Squash merge logic centralizes conflict detection and emits actionable errors on merge failure states. Exported helpers make title/body generation and spec parsing reusable by finalize workflows.",
+        "summary": "This module implements flow merge behavior, including PR-based and squash-based strategies. It also builds PR metadata from spec content and runs pre-sync safety checks before integration.",
+        "detail": "It centralizes merge execution in `runMerge`, selecting strategy from flow configuration and environment capability checks such as GitHub CLI availability. Spec parsing and normalization are handled through `parseSpec`, then reused by `buildPrTitle` and `buildPrBody` to generate consistent PR text with requirements and scope sections. The squash path delegates to git helper primitives and raises explicit conflict errors with actionable hints when rebase or merge steps fail. `runPreSync` performs fetch/rebase style synchronization and returns structured conflict information instead of only throwing. The design keeps policy decisions in the command layer while delegating low-level git operations to shared helpers.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-21T09:35:24.876Z",
+          "processedAt": "2026-04-22T10:39:18.253Z",
           "attempts": 1
         },
         "keywords": [
           "merge strategy",
           "pull request body",
           "squash merge",
-          "flow state",
-          "release integration",
-          "git automation"
+          "pre-sync",
+          "rebase conflict",
+          "flow command",
+          "spec parsing",
+          "GitHub CLI"
         ]
       },
       {
@@ -3172,9 +3176,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "890b67692b3cd0087c1c2c2ef2416c0b",
-        "lines": 421,
-        "mtime": "2026-04-22T09:14:51.361Z",
+        "hash": "adc2664e003f7e28a99e9aa400e50105",
+        "lines": 509,
+        "mtime": "2026-04-22T10:38:43.069Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3183,6 +3187,7 @@
           "resolveGitCommonDir",
           "assertGitWriteAccess",
           "runFinalizePreflight",
+          "runPreflightChecks",
           "executeCommitPost",
           "RunFinalizeCommand",
           "executeCleanupImpl",
@@ -3211,6 +3216,7 @@
           "resolveGitCommonDir",
           "assertGitWriteAccess",
           "runFinalizePreflight",
+          "runPreflightChecks",
           "executeCommitPost",
           "RunFinalizeCommand",
           "default",
@@ -3219,23 +3225,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "summary": "Implements the flow finalize command lifecycle, including preflight checks, commit handling, merge behavior, and cleanup. It also records the last finalized spec pointer for later report retrieval.",
-        "detail": "This module centralizes finalize-time orchestration through reusable step execution helpers and a command class derived from the flow base command. It performs git preflight validation by resolving the git common directory and testing write access to guard against lock or permission failures early. The implementation supports selective step execution, strict merge strategy validation, and explicit skip paths such as spec-only mode or nothing-to-commit states. It runs post-commit actions, optional migration hooks, and enriches command results with diff statistics and summaries where available. Cleanup logic handles worktree and main-repo transitions and is wrapped in structured error handling to preserve flow status consistency.",
+        "summary": "This module defines finalize orchestration for the flow lifecycle, including preflight checks, optional commit/merge steps, reporting, and cleanup. It exposes both reusable step functions and the `RunFinalizeCommand` controller.",
+        "detail": "It implements robust finalize sequencing with a step map, sub-step runner, and error-wrapping helpers so failures can be attributed to precise phases. Preflight logic validates git writability, branch/worktree cleanliness, and merge strategy constraints before mutating repository state. The command supports full and selective execution modes, verifies user-provided step names, and composes post-commit operations like docs/build hooks and migration scripts. Cleanup handling is worktree-aware and can skip or finalize differently for spec-only mode. Persistent pointers and issue-log integration provide traceability of the last finalized spec and downstream flow state.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T09:15:15.783Z",
+          "processedAt": "2026-04-22T10:39:18.253Z",
           "attempts": 1
         },
         "keywords": [
-          "finalize command",
-          "flow orchestration",
-          "preflight check",
-          "git write access",
-          "merge strategy",
-          "cleanup routine",
-          "post-commit hook",
-          "spec pointer"
+          "finalize pipeline",
+          "preflight checks",
+          "step orchestration",
+          "worktree cleanup",
+          "merge strategy validation",
+          "flow command",
+          "issue log",
+          "post-commit hook"
         ]
       },
       {
@@ -5120,9 +5126,9 @@
       },
       {
         "file": "src/lib/git-helpers.js",
-        "hash": "e74e2d1d2f475a4c63bcc35e6ae575c2",
-        "lines": 94,
-        "mtime": "2026-04-17T14:28:53.268Z",
+        "hash": "92996094b7a80624088c8761e04f5b29",
+        "lines": 168,
+        "mtime": "2026-04-22T10:38:43.069Z",
         "className": "git-helpers",
         "methods": [
           "runGit",
@@ -5132,6 +5138,11 @@
           "getLastCommit",
           "isGhAvailable",
           "collectGitSummary",
+          "fetchBranch",
+          "rebaseOnto",
+          "abortRebase",
+          "countCommitsBetween",
+          "listUncommittedFiles",
           "commentOnIssue"
         ],
         "imports": [
@@ -5146,6 +5157,11 @@
           "getLastCommit",
           "isGhAvailable",
           "collectGitSummary",
+          "fetchBranch",
+          "rebaseOnto",
+          "abortRebase",
+          "countCommitsBetween",
+          "listUncommittedFiles",
           "commentOnIssue"
         ],
         "extends": null,
@@ -5156,20 +5172,23 @@
           "src/lib/lint.js"
         ],
         "id": "61b28e9c",
-        "summary": "git-helpers.js wraps git and gh operations with consistent command execution semantics. It exposes status, branch, commit, and diff summary helpers used across flow commands.",
-        "detail": "The module routes process execution through shared utilities and returns normalized result objects. It provides lightweight parsers for dirty files, ahead counts, and latest commit info. It also supports issue commenting via `gh` with success/error shaping. These helpers reduce duplicated shell logic and centralize git interaction behavior.",
+        "summary": "This library module provides reusable git and GitHub CLI helper functions used across flow commands. It wraps command execution into stable, structured utilities for status, branching, rebase, commit counting, and issue commenting.",
+        "detail": "All git interactions are funneled through `runGit`, which standardizes process invocation and error handling behavior. Utility functions expose normalized results for common operations such as dirty-file detection, current branch lookup, ahead-count calculation, and last commit retrieval. Rebase helpers include conflict file extraction and an explicit abort path, enabling higher layers to recover safely. Numeric parsing is strict in `countCommitsBetween`, with defensive error messages for unexpected command output. The module also includes lightweight GitHub CLI integration for availability checks and issue comments while keeping external behavior simple for callers.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
+          "processedAt": "2026-04-22T10:39:18.253Z",
           "attempts": 1
         },
         "keywords": [
-          "git wrapper",
+          "git utilities",
+          "command wrapper",
           "worktree status",
-          "ahead count",
-          "gh cli",
-          "diff summary"
+          "branch metrics",
+          "rebase helper",
+          "commit count",
+          "gh integration",
+          "process abstraction"
         ]
       },
       {
@@ -9064,9 +9083,9 @@
     ],
     "summary": {
       "total": 269,
-      "totalMethods": 847
+      "totalMethods": 854
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-22T09:15:15.783Z"
+  "enrichedAt": "2026-04-22T10:39:18.253Z"
 }
