@@ -16,6 +16,7 @@
 
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { assertOk } from "../../lib/process.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { container } from "../../lib/container.js";
@@ -804,6 +805,92 @@ export function updateGateRetryCounter(ctx, result) {
 }
 
 // ---------------------------------------------------------------------------
+// No-progress-since-last-fail guard (spec 210)
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute a state identifier for the current working tree. `headSha` is the
+ * current HEAD commit; `worktreeHash` is a sha256 over the tracked diff and
+ * the porcelain status output, so any modification — tracked content change
+ * or untracked file addition — changes the hash.
+ */
+export function computeGitState(root) {
+  const head = runGit(["rev-parse", "HEAD"], { cwd: root });
+  assertOk(head, "failed to read HEAD sha");
+  const diff = runGit(["diff", "HEAD"], { cwd: root });
+  assertOk(diff, "failed to read git diff HEAD");
+  const status = runGit(["status", "--porcelain=v1", "-z"], { cwd: root });
+  assertOk(status, "failed to read git status");
+  const worktreeHash = crypto
+    .createHash("sha256")
+    .update(diff.stdout)
+    .update("\x00")
+    .update(status.stdout)
+    .digest("hex");
+  return { headSha: head.stdout.trim(), worktreeHash };
+}
+
+/**
+ * Return the most recent same-phase FAIL entry that carries state identifiers,
+ * or null. Shared scan used by {@link findPreviousFailState} and the rejection
+ * error message.
+ */
+function findPreviousFailEntry(issueLog, phase) {
+  const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i];
+    if (e.phase !== phase) continue;
+    if (typeof e.headSha !== "string" || typeof e.worktreeHash !== "string") continue;
+    return e;
+  }
+  return null;
+}
+
+/**
+ * Return the state identifiers of the most recent same-phase FAIL entry that
+ * should still be considered active, or null when no such reference exists.
+ *
+ * A PASS resets the guard via metrics (spec 209 reset entry), so we skip the
+ * scan entirely when `countGateRetry` reports zero. Legacy FAIL entries that
+ * pre-date this guard are also treated as "no reference" because they lack
+ * the state identifiers needed to compare (REQ-7).
+ */
+export function findPreviousFailState({ flowState, issueLog, phase }) {
+  if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
+  if (countGateRetry(flowState?.metrics, phase) === 0) return null;
+  const entry = findPreviousFailEntry(issueLog, phase);
+  return entry ? { headSha: entry.headSha, worktreeHash: entry.worktreeHash } : null;
+}
+
+/**
+ * Throw `Error` with `err.code = "NO_PROGRESS_SINCE_LAST_FAIL"` when the
+ * current working-tree state matches the last recorded FAIL for the same
+ * phase. The caller runs this before invoking the AI agent so no retry budget
+ * is consumed (registry's post-hook — which increments gateRetry — only runs
+ * on a successful command return).
+ */
+export function assertNoProgressSinceLastFail({ flowState, issueLog, phase, currentState }) {
+  const prev = findPreviousFailState({ flowState, issueLog, phase });
+  if (!prev) return;
+  if (prev.headSha !== currentState.headSha) return;
+  if (prev.worktreeHash !== currentState.worktreeHash) return;
+
+  const prevEntry = findPreviousFailEntry(issueLog, phase);
+  const prevReason = prevEntry?.reason || null;
+  const msg = [
+    `gate-impl re-run rejected: working tree is unchanged since the previous FAIL (phase "${phase}").`,
+    "Previous FAIL reason:",
+    `  ${prevReason || "(no reason recorded)"}`,
+    "",
+    "Modify the spec or implementation before retrying.",
+  ].join("\n");
+  const err = new Error(msg);
+  err.code = "NO_PROGRESS_SINCE_LAST_FAIL";
+  err.data = { phase, previous: { headSha: prev.headSha, worktreeHash: prev.worktreeHash } };
+  throw err;
+}
+
+// ---------------------------------------------------------------------------
 // Task-impl / integration: requirements check
 // ---------------------------------------------------------------------------
 
@@ -1097,6 +1184,20 @@ export class RunGateCommand extends FlowCommand {
     // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
     assertRetryBelowMax(ctx, phase);
 
+    // spec 210 REQ-2/REQ-3: reject re-run when the working tree is unchanged
+    // since the previous FAIL. Throws before AI invocation, so gateRetry is
+    // not incremented (the registry post-hook never runs on throw).
+    const gitState = computeGitState(root);
+    assertNoProgressSinceLastFail({
+      flowState: state,
+      issueLog: loadIssueLog(root, state.spec),
+      phase,
+      currentState: gitState,
+    });
+    // spec 210 REQ-1: stash current state on ctx so appendIssueLogFromGateResult
+    // can attach it to FAIL entries without re-running git.
+    ctx.gitState = gitState;
+
     const specPath = state.spec;
     const absSpecPath = path.resolve(root, specPath);
     if (!fs.existsSync(absSpecPath)) {
@@ -1207,14 +1308,22 @@ export function appendIssueLogFromGateResult(ctx, result) {
   const reasons = result?.artifacts?.issues?.length
     ? result.artifacts.issues.join("; ")
     : (result?.artifacts?.reasons || []).map((r) => r.detail || r).join("; ");
-  issueLog.entries.push({
+  const entry = {
     step: resolveGateStepId(ctx.phase),
     level: result?.artifacts?.level,
     phase: result?.artifacts?.phase,
     reason: reasons || "gate FAIL (no details)",
     trigger: "gate post hook (auto)",
     timestamp: new Date().toISOString(),
-  });
+  };
+  // spec 210 REQ-1: persist the state identifier captured before AI evaluation
+  // so a subsequent gate-impl run can reject unchanged re-execution. Only
+  // tracked phases carry gitState; gate it explicitly to document the invariant.
+  if (ctx.gitState && RETRY_TRACKED_PHASES.includes(ctx.phase)) {
+    entry.headSha = ctx.gitState.headSha;
+    entry.worktreeHash = ctx.gitState.worktreeHash;
+  }
+  issueLog.entries.push(entry);
   saveIssueLog(ctx.root, ctx.flowState?.spec, issueLog);
 }
 

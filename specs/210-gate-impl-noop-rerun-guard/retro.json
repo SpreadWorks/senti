@@ -1,0 +1,92 @@
+{
+  "spec": "specs/210-gate-impl-noop-rerun-guard/spec.json",
+  "date": "2026-04-22T04:41:26.259Z",
+  "requirements": [
+    {
+      "desc": "REQ-1: FAIL entry must record headSha and worktreeHash",
+      "status": "done",
+      "note": "`appendIssueLogFromGateResult` now attaches `headSha`/`worktreeHash` from `ctx.gitState` for retry-tracked phases, and `ctx.gitState` is captured before gate evaluation."
+    },
+    {
+      "desc": "REQ-2: gate-impl compares current state to latest same-phase FAIL before AI eval",
+      "status": "partial",
+      "note": "Comparison is executed before AI call (`assertNoProgressSinceLastFail`), but lookup targets the latest same-phase FAIL that has state fields, not strictly the latest same-phase FAIL entry."
+    },
+    {
+      "desc": "REQ-3: throw NO_PROGRESS_SINCE_LAST_FAIL when state matches previous FAIL",
+      "status": "done",
+      "note": "On exact state match, code throws `Error` with `err.code = 'NO_PROGRESS_SINCE_LAST_FAIL'`; message includes previous FAIL reason and instruction to modify spec/implementation before retry."
+    },
+    {
+      "desc": "REQ-4: NO_PROGRESS_SINCE_LAST_FAIL does not increment gateRetry",
+      "status": "done",
+      "note": "Guard throws before AI invocation/normal command completion, so post-hook retry increment path is not reached."
+    },
+    {
+      "desc": "REQ-5: gate-impl prompt MUST require recording fix evidence before re-run",
+      "status": "done",
+      "note": "`src/flow/prompts/impl/gate-impl.md` now includes an explicit MUST to record what was fixed (or rationale) in issue-log before re-run."
+    },
+    {
+      "desc": "REQ-6: gate-impl prompt MUST forbid re-run with unchanged tree",
+      "status": "done",
+      "note": "Prompt now includes an explicit MUST forbidding re-run when working tree is unchanged since previous FAIL."
+    },
+    {
+      "desc": "REQ-7: missing state identifier on prior FAIL means no rejection",
+      "status": "partial",
+      "note": "Entries lacking identifiers are skipped, but logic can still fall back to an older FAIL with identifiers instead of treating the latest FAIL-with-missing-fields as non-rejecting."
+    },
+    {
+      "desc": "REQ-8: PASS between FAILs resets the guard",
+      "status": "partial",
+      "note": "Reset is implemented via `countGateRetry(...)=0` (metrics reset) rather than directly constraining selection to FAIL-after-latest-PASS in issue-log; behavior is aligned in common path but not strictly by entry-boundary rule."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/210-gate-impl-noop-rerun-guard/draft.md",
+      "change": "New draft document added (spec artifact), not a runtime requirement implementation."
+    },
+    {
+      "file": "specs/210-gate-impl-noop-rerun-guard/flow.json",
+      "change": "Flow lifecycle/metrics artifact added, outside the 8 functional requirements."
+    },
+    {
+      "file": "specs/210-gate-impl-noop-rerun-guard/issue-log.json",
+      "change": "Spec-local issue log artifact added, not required by REQ-1..REQ-8."
+    },
+    {
+      "file": "specs/210-gate-impl-noop-rerun-guard/qa.md",
+      "change": "QA template/stub added, not mapped to listed requirements."
+    },
+    {
+      "file": "specs/210-gate-impl-noop-rerun-guard/review.md",
+      "change": "Review notes added, not a requirement deliverable."
+    },
+    {
+      "file": "specs/210-gate-impl-noop-rerun-guard/spec.json",
+      "change": "Spec definition artifact added, not part of code-path requirement fulfillment."
+    },
+    {
+      "file": "specs/210-gate-impl-noop-rerun-guard/spec.md",
+      "change": "Human-readable spec artifact added, outside REQ-1..REQ-8 implementation scope."
+    },
+    {
+      "file": "specs/210-gate-impl-noop-rerun-guard/tests/README.md",
+      "change": "Spec-scoped test documentation added, not directly required by listed requirements."
+    },
+    {
+      "file": "tests/unit/flow/gate-noop-rerun-guard.test.js",
+      "change": "New unit tests added; useful validation, but test addition itself is not one of the 8 requirements."
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "done": 5,
+    "partial": 3,
+    "not_done": 0,
+    "rate": 0.81,
+    "notes": "Most core behavior is implemented (REQ-1,3,4,5,6), but strict interpretation of 'latest FAIL' semantics is not fully preserved because lookup skips missing-state FAIL entries and can use older FAILs; this affects full compliance for REQ-2, REQ-7, and REQ-8."
+  }
+}

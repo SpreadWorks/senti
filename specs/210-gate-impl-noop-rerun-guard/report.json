@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/210-gate-impl-noop-rerun-guard/draft.md      |  63 +++\n specs/210-gate-impl-noop-rerun-guard/flow.json     | 439 +++++++++++++++++++++\n .../210-gate-impl-noop-rerun-guard/issue-log.json  |  67 ++++\n specs/210-gate-impl-noop-rerun-guard/qa.md         |   9 +\n specs/210-gate-impl-noop-rerun-guard/review.md     |  41 ++\n specs/210-gate-impl-noop-rerun-guard/spec.json     |  80 ++++\n specs/210-gate-impl-noop-rerun-guard/spec.md       | 111 ++++++\n .../210-gate-impl-noop-rerun-guard/tests/README.md |  19 +\n src/flow/lib/run-gate.js                           | 113 +++++-\n src/flow/prompts/impl/gate-impl.md                 |   2 +\n tests/unit/flow/gate-noop-rerun-guard.test.js      | 239 +++++++++++\n 11 files changed, 1181 insertions(+), 2 deletions(-)",
+      "commits": [
+        "feat: feature/210-gate-impl-noop-rerun-guard",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 5,
+      "partial": 3,
+      "not_done": 0,
+      "rate": 0.81,
+      "notes": "Most core behavior is implemented (REQ-1,3,4,5,6), but strict interpretation of 'latest FAIL' semantics is not fully preserved because lookup skips missing-state FAIL entries and can use older FAILs; this affects full compliance for REQ-2, REQ-7, and REQ-8."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 362909,
+      "output": 13763,
+      "cacheRead": 189056,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 15,
+      "durationMs": 349141,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 125400
+        },
+        {
+          "phase": "gate",
+          "durationMs": 50679
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 126920
+        },
+        {
+          "phase": "review",
+          "durationMs": 46142
+        }
+      ]
+    },
+    "tests": {
+      "unit": 14,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 14
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/210-gate-impl-noop-rerun-guard\n    chore: add retro and report\n    11 files changed, 1181 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ██████░░ 81%  (5 done / 3 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 15\n    input tokens ................ 362,909\n    output tokens ............... 13,763\n    cache-read tokens ........... 189,056\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 349.1s\n      gate-draft ................ 125.4s\n      gate ...................... 50.7s\n      gate-impl ................. 126.9s\n      review .................... 46.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 14  integration 0  acceptance 0  total 14"
+}
