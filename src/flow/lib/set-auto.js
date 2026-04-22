@@ -23,6 +23,8 @@
  * ctx.runId — optional preparing-flow target
  */
 
+import fs from "fs";
+import path from "path";
 import { FlowCommand } from "./base-command.js";
 import { VALID_AUTO_VALUES } from "../../lib/constants.js";
 import { runAutoCheckCore } from "./run-auto-check.js";
@@ -32,6 +34,29 @@ function buildInputText(state) {
   if (state?.request) parts.push(String(state.request));
   if (state?.issue) parts.push(`Issue #${state.issue}`);
   return parts.join("\n").trim();
+}
+
+function isSpecApproved(state) {
+  const steps = state?.steps;
+  if (!Array.isArray(steps)) return false;
+  return steps.some((s) => s && s.id === "approval" && s.status === "done");
+}
+
+function loadDraftText(root, state) {
+  const specPath = state?.spec;
+  if (!root || !specPath) return null;
+  const draftPath = path.join(path.dirname(path.resolve(root, specPath)), "draft.md");
+  if (!fs.existsSync(draftPath)) return null;
+  const text = fs.readFileSync(draftPath, "utf8").trim();
+  return text || null;
+}
+
+function resolveAutoCheckInput(ctx, state, preparingMode) {
+  if (!preparingMode) {
+    const draft = loadDraftText(ctx.root, state);
+    if (draft) return draft;
+  }
+  return buildInputText(state);
 }
 
 function resolvePreparingRunId(flowManager, explicitRunId) {
@@ -80,7 +105,18 @@ export default class SetAutoCommand extends FlowCommand {
     const state = preparingMode
       ? flowManager.loadPreparingFlow(runId)
       : flowManager.load();
-    const input = buildInputText(state);
+
+    // Spec-approved skip path: skip auto-check entirely (active flow only).
+    if (!preparingMode && isSpecApproved(state)) {
+      const autoCheck = { eligible: true, skipped: true, reason: "spec approved" };
+      flowManager.mutate((s) => {
+        s.autoCheck = autoCheck;
+        s.autoApprove = true;
+      });
+      return { autoApprove: true, autoCheck };
+    }
+
+    const input = resolveAutoCheckInput(ctx, state, preparingMode);
     const autoCheck = await runAutoCheckCore(this.container, input);
 
     const applyCheck = (s) => { s.autoCheck = autoCheck; };

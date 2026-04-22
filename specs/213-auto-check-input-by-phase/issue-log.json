@@ -1,0 +1,77 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one feature concern: phase-aware auto-check behavior for `flow set auto on`.; Unambiguous Requirements — Most requirements are expressed with concrete conditions and expected outcomes (approval status, draft existence, mode).; Complete Context — Requirements generally pair trigger context (active/preparing, approval/draft state) with explicit behavior.; No Hardcoded Secrets — No secrets (API keys/passwords/tokens) are present; this draft contains requirement text only.; Prioritize Requirements — The scope lists more than three requirement items but does not define any priority order.; Impact on Existing Features — A dedicated impact section explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Q&A answers lead with decisions and include rationale based on flow state semantics and existing behavior.; Explore Before Asking — The draft shows prior exploration (e.g., alternative approval signal checks) before settling decisions.; Proactively Raise Related Implications — It proactively covers related implications such as static gate handling and `autoCheck` persistence shape.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of a tentative idea is presented; the document is already framed as a decided draft.; Capture Digressions in draft.md — Cannot be verified from the draft alone because no discussion transcript/runtime digression history is provided.; Draft Stays at Requirements Level — It includes implementation-level details (specific files/functions and field schema) beyond requirements-level drafting.; Backward-Compatible CLI Interface — `flow set auto on` behavior is changed, but no migration/compatibility guidance is documented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:12:08.529Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: phase-aware input selection/skip behavior for `flow set auto on` auto-check.; Unambiguous Requirements — Scope items are concrete and testable with explicit phase conditions and expected outcomes.; Complete Context — Requirements pair trigger contexts (spec approved/draft exists/otherwise) with explicit shall-like behavior.; No Hardcoded Secrets — No credentials or secret literals are present; this is a requirements draft, not secret-bearing source code.; Prioritize Requirements — More than three requirements are explicitly prioritized as P1 through P5.; Impact on Existing Features — Impacts on existing commands are listed, and unaffected areas are explicitly stated.; Present Recommendations with Reasoning — Each Q&A provides a clear recommended answer and concise rationale based on flow definitions and consistency concerns.; Explore Before Asking — No unresolved user-facing questions remain; draft shows decisions made from internal artifacts/context.; Proactively Raise Related Implications — It proactively covers compatibility, audit record semantics, and behavior differences by path.; Confirm Brainstorm vs. Decision Before Critiquing — Content is presented as a decided draft with explicit user approval, not treated as open brainstorming.; Capture Digressions in draft.md — Cannot determine whether any off-thread digressions occurred or were captured without conversation/runtime history.; Draft Stays at Requirements Level — Draft includes implementation-level details (file names, field-level envelope shape) beyond pure requirements level.; Backward-Compatible CLI Interface — CLI commands/options are stated as unchanged; no breaking interface change requiring migration plan is introduced.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:13:07.858Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: phase-based switching of auto-check behavior for `flow set auto on`.; Unambiguous Requirements — Some requirements remain non-verifiable (e.g., \"distinguishable record\" / \"explicit marker\") without concrete acceptance criteria.; Complete Context — Core requirements pair conditions (approved spec / draft exists / neither) with expected behavior.; No Hardcoded Secrets — No source code secrets or credential-like values are present in this draft.; Prioritize Requirements — More than three requirements are explicitly prioritized as P1 through P4.; Impact on Existing Features — Impact on existing features is explicitly listed, including both affected and unaffected areas.; Present Recommendations with Reasoning — Each Q&A provides a clear recommended answer with rationale tied to workflow rules or existing behavior.; Explore Before Asking — Cannot verify from the draft alone whether docs/code exploration was done before asking.; Proactively Raise Related Implications — Related implications are proactively called out (cost reduction, result changes, audit-record differences, compatibility risk).; Confirm Brainstorm vs. Decision Before Critiquing — Requires conversation-process evidence; draft text alone does not show whether brainstorming vs decision was confirmed.; Capture Digressions in draft.md — No digression is evident in the provided content; nothing indicates missed capture in `draft.md`.; Draft Stays at Requirements Level — Includes implementation-leaning details (e.g., direct `draft.md` read path and mechanism-level acquisition), beyond pure requirements level.; Backward-Compatible CLI Interface — CLI command/interface is stated as unchanged, and migration impact is explicitly addressed as no user action required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:14:22.047Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:16:39.319Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:16:57.228Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 100: unchecked task/question (- [ ] なし)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:19:50.621Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: phase-aware auto-check input selection for `flow set auto on`.; Unambiguous Requirements — Requirements and acceptance criteria are concrete and testable with explicit conditions and outcomes.; Complete Context — R6 states a constraint but lacks an explicit trigger condition (When/If + shall pattern).; REQ Diff-Verifiability — Pass/fail is decidable from code diff plus unit test results in the listed targets.; No Hardcoded Secrets — No secrets or credential embedding is specified; article is inapplicable to this content.; No Silent Error Swallowing — No silent error swallowing behavior is introduced or required by this spec.; Prioritize Requirements — Requirements are explicitly prioritized with P1/P2/P3.; Impact on Existing Features — Spec describes compatibility and non-regression expectations for existing flows and tests.; Bounded Resource Usage — Design does not introduce recursion, retries, or unbounded bulk processing paths.; Changes Require Test Coverage — Happy-path and regression coverage are included via AC1-AC5 and test target updates.; Spec Includes Test Strategy — Test strategy is present through explicit acceptance criteria and unit-test verification approach.; Synthesize Draft, Do Not Copy — Cannot determine whether draft content was copied without the original draft/source material.; Record Unresolved Points as Open Questions — Unresolved points are handled with an explicit Open Questions section ('none').; Include 'Why This Approach' Rationale — Rationale is documented in Background, Decisions, and Alternatives Considered.; Do Not Modify Existing Tests Without Approval — Spec plans to modify an existing test file but does not record explicit user approval for modifying existing tests.; Backward-Compatible CLI Interface — No command/option removal or semantic break is proposed; migration plan not needed.; Exit Code Contract — No change to failure signaling is proposed; nothing in the spec suggests returning 0 on failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:20:31.144Z"
+    },
+    {
+      "step": "test",
+      "reason": "accidentally wrote test edits to main repo path instead of worktree path; worktree boundary violated",
+      "trigger": "used absolute path /home/nakano/workspace/sdd-forge/... which resolves to main repo, not the worktree /home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-213-...",
+      "resolution": "reverted main-repo edits via Edit tool (not git reset), re-applying edits to worktree absolute paths",
+      "guardrailCandidate": "always verify absolute file_path starts with the worktree root when active flow is in worktree mode",
+      "taskId": null,
+      "timestamp": "2026-04-22T13:30:33.009Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/set-auto.test.js:6: existing line modified/deleted in test file (removed=1, added=5)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T13:36:26.942Z"
+    }
+  ]
+}

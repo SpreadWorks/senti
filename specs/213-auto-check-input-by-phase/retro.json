@@ -1,0 +1,62 @@
+{
+  "spec": "specs/213-auto-check-input-by-phase/spec.json",
+  "date": "2026-04-22T13:40:13.032Z",
+  "requirements": [
+    {
+      "desc": "R1: approval=done なら auto-check をスキップして autoApprove を有効化",
+      "status": "done",
+      "note": "active flow で approval=done を検知すると runAutoCheckCore を呼ばず、autoApprove=true を保存して即 return している。"
+    },
+    {
+      "desc": "R2: R1 のとき autoCheck に skipped:true と eligible:true を保存",
+      "status": "done",
+      "note": "skip 分岐で autoCheck={ eligible:true, skipped:true, reason:\"spec approved\" } を保存している。"
+    },
+    {
+      "desc": "R3: approval 未完了で draft.md が存在する場合は auto-check 入力を draft 本文に切替",
+      "status": "partial",
+      "note": "approval 完了時は先に skip されるため通常は満たすが、draft.md が空文字の場合は null 扱いで request+issue にフォールバックする実装になっている。"
+    },
+    {
+      "desc": "R4: R3 条件下でも auto-check 自体は従来どおり実行",
+      "status": "done",
+      "note": "draft 入力経路は runAutoCheckCore を通常どおり実行し、skip しない。"
+    },
+    {
+      "desc": "R5: R1/R3 のいずれでもない場合は従来の request+issue を入力に採用",
+      "status": "done",
+      "note": "draft 不在（または解決不能）時・preparing 時はいずれも buildInputText(state) に戻る。"
+    },
+    {
+      "desc": "R6: 既存 CLI 名・引数・envelope 既存フィールドは不変",
+      "status": "done",
+      "note": "CLI コマンド名・引数処理の変更はなく、返却形は既存の autoApprove/autoCheck を維持したまま追加情報を載せる形。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/set-auto.js",
+      "change": "R2 必須外の追加フィールドとして skip 時に autoCheck.reason=\"spec approved\" を保存している。"
+    },
+    {
+      "file": "tests/helpers/stub-agent.js",
+      "change": "プロンプト内容を記録するテスト用 helper（writeCapturingStubAgentScript）を新規追加。要件本文には明示なし。"
+    },
+    {
+      "file": "tests/unit/flow/set-auto.test.js",
+      "change": "R1-R5 検証の単体テストを追加し、fixture 初期化ロジックを拡張。要件本文にはテスト追加自体の明示なし。"
+    },
+    {
+      "file": "specs/213-auto-check-input-by-phase/*",
+      "change": "draft/spec/flow/qa/review/issue-log などの仕様運用ファイルが新規追加されているが、機能要件（R1-R6）そのものには含まれない。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 5,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.92,
+    "notes": "機能変更は概ね R1-R6 を満たしている。主なズレは R3 の厳密解釈で、draft.md が存在しても中身が空だと draft 入力に切り替わらない点。"
+  }
+}
