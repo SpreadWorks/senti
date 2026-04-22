@@ -1,0 +1,56 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/212-draft-recommended-first/draft.md       |  46 ++++\n specs/212-draft-recommended-first/flow.json      | 285 +++++++++++++++++++++++\n specs/212-draft-recommended-first/issue-log.json |  36 +++\n specs/212-draft-recommended-first/qa.md          |   9 +\n specs/212-draft-recommended-first/spec.json      |  60 +++++\n specs/212-draft-recommended-first/spec.md        |  77 ++++++\n src/templates/partials/ai-question-style.md      |   1 +\n tests/unit/templates/ai-question-style.test.js   |  46 ++++\n 8 files changed, 560 insertions(+)",
+      "commits": [
+        "feat: feature/212-draft-recommended-first",
+        "feat: require recommended choice at [1] in AI question style"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 1,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 61786,
+      "output": 5262,
+      "cacheRead": 114816,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 7,
+      "durationMs": 163607,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 55957
+        },
+        {
+          "phase": "gate",
+          "durationMs": 43603
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 64047
+        }
+      ]
+    },
+    "tests": {
+      "unit": 1905,
+      "integration": 265,
+      "acceptance": 0,
+      "total": 2170
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/212-draft-recommended-first\n    feat: require recommended choice at [1] in AI question style\n    8 files changed, 560 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 1\n    issue-log ................... 0\n    agent calls ................. 7\n    input tokens ................ 61,786\n    output tokens ............... 5,262\n    cache-read tokens ........... 114,816\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 163.6s\n      gate-draft ................ 56.0s\n      gate ...................... 43.6s\n      gate-impl ................. 64.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 1905  integration 265  acceptance 0  total 2170"
+}
