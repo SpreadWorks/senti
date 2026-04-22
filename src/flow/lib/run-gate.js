@@ -891,6 +891,90 @@ export function assertNoProgressSinceLastFail({ flowState, issueLog, phase, curr
 }
 
 // ---------------------------------------------------------------------------
+// Repeated-identical-FAIL escalation guard (spec 212)
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalize a reason string for identity comparison: trim, collapse any
+ * consecutive whitespace to a single space, lowercase ASCII. Semantic
+ * similarity (Levenshtein / embedding) is intentionally excluded — the
+ * guard compares decision-level text produced by the same model with
+ * matching inputs, so exact-after-normalization suffices (REQ-6).
+ */
+export function normalizeReason(text) {
+  if (text == null) return "";
+  return String(text).trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/**
+ * Extract FAIL-only evaluations as `{ guardrail_id, reason }` pairs for
+ * persistence in issue-log and for identity comparison. PASS / SKIP are
+ * dropped.
+ */
+export function buildFailedEvaluations(evaluations) {
+  if (!Array.isArray(evaluations)) return [];
+  return evaluations
+    .filter((e) => e && e.result === "fail" && typeof e.guardrail_id === "string")
+    .map((e) => ({ guardrail_id: e.guardrail_id, reason: String(e.reason ?? "") }));
+}
+
+/**
+ * Return the most recent same-phase FAIL entry's `failedEvaluations`, or
+ * null when no such entry exists. Legacy entries without the field are
+ * skipped so pre-212 issue-logs cannot cause false matches.
+ */
+export function findPreviousFailedEvaluations({ issueLog, phase }) {
+  const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i];
+    if (e.phase !== phase) continue;
+    if (!Array.isArray(e.failedEvaluations) || e.failedEvaluations.length === 0) continue;
+    return e.failedEvaluations;
+  }
+  return null;
+}
+
+/**
+ * Throw `Error` with `err.code = "ESCALATE_REPEATED_FAIL"` when any FAIL
+ * pair in the current evaluation matches a pair recorded in the previous
+ * same-phase FAIL entry (guardrail_id exact match + normalized reason
+ * exact match). The caller runs this after AI evaluation but before the
+ * gateFail return, so the registry's POST-hook (which increments
+ * `gateRetry`) never fires — retry budget is preserved (REQ-2).
+ */
+function buildFailPairKey({ guardrail_id, reason }) {
+  return `${guardrail_id}|${normalizeReason(reason)}`;
+}
+
+export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations }) {
+  if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+  const current = buildFailedEvaluations(currentEvaluations);
+  if (current.length === 0) return;
+  const previous = findPreviousFailedEvaluations({ issueLog, phase });
+  if (!previous) return;
+
+  const priorKeys = new Set(previous.map(buildFailPairKey));
+  const matched = current.filter((c) => priorKeys.has(buildFailPairKey(c)));
+  if (matched.length === 0) return;
+
+  const detail = matched
+    .map((m) => `  ${m.guardrail_id}: ${m.reason}`)
+    .join("\n");
+  const msg = [
+    `gate-impl escalation: repeated identical FAIL detected for phase "${phase}".`,
+    "Matching (guardrail, reason) pairs:",
+    detail,
+    "",
+    "The AI has failed on the same requirement(s) for the same reason as the previous attempt.",
+    "Fix the spec wording or implementation so the failure mode changes, then retry.",
+  ].join("\n");
+  const err = new Error(msg);
+  err.code = "ESCALATE_REPEATED_FAIL";
+  err.data = { phase, matched };
+  throw err;
+}
+
+// ---------------------------------------------------------------------------
 // Task-impl / integration: requirements check
 // ---------------------------------------------------------------------------
 
@@ -1269,6 +1353,14 @@ export class RunGateCommand extends FlowCommand {
       (r) => r.result === "pass" || r.result === "skip",
     );
     if (!reqPassed) {
+      // spec 212 REQ-1: escalate when the same requirement FAILs for the same
+      // reason as the previous attempt. Throws before gateFail return so the
+      // POST-hook retry counter increment never fires (REQ-2).
+      assertNoRepeatedFail({
+        issueLog: loadIssueLog(root, state.spec),
+        phase,
+        currentEvaluations: reqEvaluations,
+      });
       return gateFail(level, phase, specPath, reqEvaluations, []);
     }
 
@@ -1288,6 +1380,12 @@ export class RunGateCommand extends FlowCommand {
     }
     const combined = [...reqEvaluations, ...grResult.evaluations];
     if (!grResult.passed) {
+      // spec 212 REQ-1: escalate on repeated identical guardrail FAIL.
+      assertNoRepeatedFail({
+        issueLog: loadIssueLog(root, state.spec),
+        phase,
+        currentEvaluations: combined,
+      });
       return gateFail(level, phase, specPath, combined, []);
     }
     return gatePass(level, phase, specPath, combined, unusedWarnings);
@@ -1322,6 +1420,18 @@ export function appendIssueLogFromGateResult(ctx, result) {
   if (ctx.gitState && RETRY_TRACKED_PHASES.includes(ctx.phase)) {
     entry.headSha = ctx.gitState.headSha;
     entry.worktreeHash = ctx.gitState.worktreeHash;
+  }
+  // spec 212 REQ-4: persist per-FAIL (guardrail_id, reason) pairs so a
+  // subsequent gate-impl run can detect repeated identical failures and
+  // escalate (see assertNoRepeatedFail). Omit when no FAIL evaluations are
+  // present to keep structural-only failures (e.g. "no changes") clean.
+  // Note: these reasons are AI-generated gate metadata describing spec /
+  // diff compliance; the same text is already persisted in the flat
+  // `entry.reason` field above. This adds a structured view of the same
+  // data, not new content — so it carries no new log-sensitivity surface.
+  const failedEvaluations = buildFailedEvaluations(result?.artifacts?.evaluations);
+  if (failedEvaluations.length > 0) {
+    entry.failedEvaluations = failedEvaluations;
   }
   issueLog.entries.push(entry);
   saveIssueLog(ctx.root, ctx.flowState?.spec, issueLog);
