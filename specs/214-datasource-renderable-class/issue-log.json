@@ -1,0 +1,113 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: migrating DataSource outputs to Renderable-based typing.; Unambiguous Requirements — Most statements are concrete and testable (specific files, classes, behaviors, and tests).; Complete Context — Requirements are listed as scope/tasks but not consistently expressed with explicit trigger condition (When/If) plus expected shall-behavior.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present.; Prioritize Requirements — There are more than three requirement items, but no explicit priority ordering is provided.; Impact on Existing Features — Impact is explicitly documented for affected and unaffected existing features.; Present Recommendations with Reasoning — Recommendations are provided, but reasoning basis is not consistently stated for each Q&A item.; Explore Before Asking — Cannot verify from draft alone whether docs/code exploration happened before user questioning.; Proactively Raise Related Implications — Related implications are proactively raised (external preset breakage and communication approach).; Confirm Brainstorm vs. Decision Before Critiquing — Draft records approved decisions; no evidence of critiquing brainstorm ideas as final decisions.; Capture Digressions in draft.md — Cannot evaluate without conversation history showing whether digressions occurred and were captured.; Draft Stays at Requirements Level — Includes implementation-level details (file paths, function names, class-level design), exceeding requirements-level scope.; Backward-Compatible CLI Interface — CLI command interface is stated as unchanged, so migration planning for CLI changes is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:44:37.753Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirements are listed as scope/tasks but not consistently expressed with explicit trigger condition (When/If) plus expected shall-behavior."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirement items, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Recommendations are provided, but reasoning basis is not consistently stated for each Q&A item."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Includes implementation-level details (file paths, function names, class-level design), exceeding requirements-level scope."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: migrating DataSource return values to Renderable classes.; Unambiguous Requirements — Requirements are mostly stated with verifiable shall/if-when conditions and concrete outcomes.; Complete Context — Each requirement pairs a trigger condition (When/If) with expected shall behavior.; No Hardcoded Secrets — Inapplicable to this draft content; no source code secrets are present.; Prioritize Requirements — More than three requirements are explicitly prioritized by order and labels ([必須]/[重要]).; Impact on Existing Features — Impact section explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Q&A provides recommended answers first and includes concise rationale with stated bases.; Explore Before Asking — Cannot be verified from draft text alone; requires process/runtime evidence of prior docs/code exploration.; Proactively Raise Related Implications — Draft proactively raises related implications such as external preset breakage and migration/notification concerns.; Confirm Brainstorm vs. Decision Before Critiquing — Cannot be verified from draft content alone; requires conversation evidence before critique.; Capture Digressions in draft.md — Cannot be evaluated without thread history showing whether digressions occurred and were captured.; Draft Stays at Requirements Level — Includes implementation-leaning details (concrete class breakdown, method name, PR/test strategy) beyond pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option semantic change is proposed; migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:45:56.399Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Includes implementation-leaning details (concrete class breakdown, method name, PR/test strategy) beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft is centered on one concern: migrating DataSource resolver returns to structured value types.; Unambiguous Requirements — Some requirements use non-verifiable wording such as \"利用可能\" and \"対応可能\" without concrete acceptance criteria.; Complete Context — Requirements consistently pair trigger conditions (When/If) with expected shall-style outcomes.; No Hardcoded Secrets — No source code secrets are present; this draft contains requirements text only.; Prioritize Requirements — More than three requirements are listed and explicitly ordered by priority.; Impact on Existing Features — Impact section explicitly lists affected existing features and unaffected areas.; Present Recommendations with Reasoning — Each Q&A provides a recommendation and cites reasoning basis (policy, user decision, or existing patterns).; Explore Before Asking — Whether questions could have been answered via docs/code exploration first cannot be verified from draft text alone.; Proactively Raise Related Implications — Related implications are proactively surfaced (external preset breakage and communication in Open Questions).; Confirm Brainstorm vs. Decision Before Critiquing — Explicit confirmation of brainstorming vs decision requires conversation process evidence not contained in the draft.; Capture Digressions in draft.md — No clear digression is evident; draft remains focused and includes captured discussion outcomes.; Draft Stays at Requirements Level — Content stays at requirements/spec level and avoids function-level implementation design.; Backward-Compatible CLI Interface — CLI command/options are explicitly out of scope and unchanged, so migration-plan requirement is inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:47:00.129Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some requirements use non-verifiable wording such as \"利用可能\" and \"対応可能\" without concrete acceptance criteria."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:49:53.907Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 127: unchecked task/question (- [ ] 外部 preset（npm 配布利用側）への破壊的変更の告知方法: CHANGELOG.md への記載を行うか、README.md の migration section に追記するか。alpha 期間のため必須ではないが、外部利用者が存在する場合の配慮を implement フェーズ終了時に決定する。)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T14:54:58.288Z"
+    },
+    {
+      "step": "implement",
+      "reason": "spec REQ-03 requires toMarkdownTable to return string (Table.toMarkdown()), but REQ-05 requires all DataSource methods to return Renderable. These are contradictory for the 40+ methods that do 'return this.toMarkdownTable(rows, labels)' — they would return strings, violating REQ-05.",
+      "trigger": "migration of DataSource methods revealed that keeping toMarkdownTable as string-returning helper forces individual migration of 40+ call sites, vastly expanding scope",
+      "resolution": "changed toMarkdownTable to return a Table instance instead of a string; all 40+ callers automatically return Renderable via delegation; updated the delegation test to compare Table instance instead of string",
+      "guardrailCandidate": "when a spec has a thin compat helper that is called by many sites, ensure the helper's return type matches the target type system — otherwise the helper becomes a migration blocker rather than a bridge",
+      "taskId": null,
+      "timestamp": "2026-04-22T15:09:28.556Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/e2e/065-preset-hierarchy.test.js:158: existing line modified/deleted in test file (removed=1, added=1); tests/e2e/065-preset-hierarchy.test.js:172: existing line modified/deleted in test file (removed=1, added=1); tests/e2e/071-multi-preset-selection.test.js:320: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/data/docs-lang-switcher.test.js:59: existing line modified/deleted in test file (removed=3, added=3); tests/unit/docs/data/docs-lang-switcher.test.js:77: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/data/docs-lang-switcher.test.js:91: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/data/docs-lang-switcher.test.js:105: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/data/docs-lang-switcher.test.js:120: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/data/docs-lang-switcher.test.js:139: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/data/monorepo.test.js:58: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/data/monorepo.test.js:77: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/lib/data-source.test.js:1: single-line addition in test file (likely assertion insertion); tests/unit/docs/lib/data-source.test.js:137: existing line modified/deleted in test file (removed=17, added=26); tests/unit/docs/lib/directive-parser-ignore-error.test.js:4: single-line addition in test file (likely assertion insertion); tests/unit/docs/lib/directive-parser-ignore-error.test.js:127: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser-ignore-error.test.js:161: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser-ignore-error.test.js:202: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser-ignore-error.test.js:219: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser-ignore-error.test.js:236: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser.test.js:237: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser.test.js:245: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser.test.js:267: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser.test.js:280: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/layout-and-nav.test.js:73: existing line modified/deleted in test file (removed=5, added=5); tests/unit/docs/lib/layout-and-nav.test.js:141: existing line modified/deleted in test file (removed=3, added=3); tests/unit/docs/lib/layout-and-nav.test.js:172: existing line modified/deleted in test file (removed=3, added=3); tests/unit/docs/lib/layout-and-nav.test.js:203: existing line modified/deleted in test file (removed=4, added=4); tests/unit/docs/lib/resolver-factory.test.js:30: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:38: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:78: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:86: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:95: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:105: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:113: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/lib/resolver-factory.test.js:129: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:138: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:146: existing line modified/deleted in test file (removed=2, added=2); tests/unit/presets/base/structure-directories.test.js:43: existing line modified/deleted in test file (removed=3, added=3); tests/unit/presets/base/structure-directories.test.js:59: existing line modified/deleted in test file (removed=2, added=2); tests/unit/presets/base/structure-directories.test.js:72: existing line modified/deleted in test file (removed=2, added=2); tests/unit/presets/base/structure-directories.test.js:87: existing line modified/deleted in test file (removed=1, added=1); tests/unit/presets/github-actions-pipelines.test.js:234: existing line modified/deleted in test file (removed=2, added=2); tests/unit/presets/github-actions-pipelines.test.js:250: existing line modified/deleted in test file (removed=3, added=3); tests/unit/presets/github-actions-pipelines.test.js:267: existing line modified/deleted in test file (removed=2, added=2)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T15:26:57.136Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/e2e/065-preset-hierarchy.test.js:158: existing line modified/deleted in test file (removed=1, added=1); tests/e2e/065-preset-hierarchy.test.js:172: existing line modified/deleted in test file (removed=1, added=1); tests/e2e/071-multi-preset-selection.test.js:320: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/data/docs-lang-switcher.test.js:59: existing line modified/deleted in test file (removed=3, added=3); tests/unit/docs/data/docs-lang-switcher.test.js:77: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/data/docs-lang-switcher.test.js:91: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/data/docs-lang-switcher.test.js:105: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/data/docs-lang-switcher.test.js:120: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/data/docs-lang-switcher.test.js:139: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/data/monorepo.test.js:58: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/data/monorepo.test.js:77: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/lib/data-source.test.js:1: single-line addition in test file (likely assertion insertion); tests/unit/docs/lib/data-source.test.js:137: existing line modified/deleted in test file (removed=17, added=26); tests/unit/docs/lib/directive-parser-ignore-error.test.js:4: single-line addition in test file (likely assertion insertion); tests/unit/docs/lib/directive-parser-ignore-error.test.js:127: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser-ignore-error.test.js:161: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser-ignore-error.test.js:202: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser-ignore-error.test.js:219: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser-ignore-error.test.js:236: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser.test.js:237: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser.test.js:245: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser.test.js:267: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/directive-parser.test.js:280: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/layout-and-nav.test.js:73: existing line modified/deleted in test file (removed=5, added=5); tests/unit/docs/lib/layout-and-nav.test.js:141: existing line modified/deleted in test file (removed=3, added=3); tests/unit/docs/lib/layout-and-nav.test.js:172: existing line modified/deleted in test file (removed=3, added=3); tests/unit/docs/lib/layout-and-nav.test.js:203: existing line modified/deleted in test file (removed=4, added=4); tests/unit/docs/lib/resolver-factory.test.js:30: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:38: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:78: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:86: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:95: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:105: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:113: existing line modified/deleted in test file (removed=2, added=2); tests/unit/docs/lib/resolver-factory.test.js:129: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:138: existing line modified/deleted in test file (removed=1, added=1); tests/unit/docs/lib/resolver-factory.test.js:146: existing line modified/deleted in test file (removed=2, added=2); tests/unit/presets/base/structure-directories.test.js:43: existing line modified/deleted in test file (removed=3, added=3); tests/unit/presets/base/structure-directories.test.js:59: existing line modified/deleted in test file (removed=2, added=2); tests/unit/presets/base/structure-directories.test.js:72: existing line modified/deleted in test file (removed=2, added=2); tests/unit/presets/base/structure-directories.test.js:87: existing line modified/deleted in test file (removed=1, added=1); tests/unit/presets/github-actions-pipelines.test.js:234: existing line modified/deleted in test file (removed=2, added=2); tests/unit/presets/github-actions-pipelines.test.js:250: existing line modified/deleted in test file (removed=3, added=3); tests/unit/presets/github-actions-pipelines.test.js:267: existing line modified/deleted in test file (removed=2, added=2)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T15:27:01.666Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff does not demonstrate full spec compliance: new `src/docs/lib/renderable.js` and `tests/unit/renderable.test.js` are not shown, migration appears partial (only a subset of DataSource files updated), and `toMarkdownTable` returns `Table` instead of calling `new Table(labels, rows).toMarkdown()` per spec text; also test evidence is incomplete (`head` only shows `{\"unit\":25}` vs full baseline suite).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T15:27:53.306Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Diff does not demonstrate full spec compliance: new `src/docs/lib/renderable.js` and `tests/unit/renderable.test.js` are not shown, migration appears partial (only a subset of DataSource files updated), and `toMarkdownTable` returns `Table` instead of calling `new Table(labels, rows).toMarkdown()` per spec text; also test evidence is incomplete (`head` only shows `{\"unit\":25}` vs full baseline suite)."
+        }
+      ]
+    }
+  ]
+}

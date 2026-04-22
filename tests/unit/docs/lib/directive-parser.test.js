@@ -6,6 +6,10 @@ import {
   resolveDataDirectives,
   parseBlocks,
 } from "../../../../src/docs/lib/directive-parser.js";
+import {
+  Table,
+  Paragraph,
+} from "../../../../src/docs/lib/renderable.js";
 
 // ---------------------------------------------------------------------------
 // parseDirectives
@@ -233,7 +237,7 @@ describe("resolveDataDirectives", () => {
       "old content",
       "<!-- {{/data}} -->",
     ].join("\n");
-    const result = resolveDataDirectives(text, () => "new content");
+    const result = resolveDataDirectives(text, () => new Paragraph("new content"));
     assert.equal(result.replaced, 1);
     assert.ok(result.text.includes("new content"));
     assert.ok(!result.text.includes("old content"));
@@ -241,7 +245,7 @@ describe("resolveDataDirectives", () => {
 
   it("resolves inline data directive", () => {
     const text = '<!-- {{data("base.p.name")}} -->old<!-- {{/data}} -->';
-    const result = resolveDataDirectives(text, () => "NEW");
+    const result = resolveDataDirectives(text, () => new Paragraph("NEW"));
     assert.equal(result.replaced, 1);
     assert.ok(result.text.includes("NEW"));
   });
@@ -263,7 +267,7 @@ describe("resolveDataDirectives", () => {
       "<!-- {{/text}} -->",
     ].join("\n");
     const skipped = [];
-    resolveDataDirectives(text, () => "x", {
+    resolveDataDirectives(text, () => new Paragraph("x"), {
       onSkip(d) { skipped.push(d.type); },
     });
     assert.deepEqual(skipped, ["text"]);
@@ -276,13 +280,40 @@ describe("resolveDataDirectives", () => {
       "<!-- {{/data}} -->",
     ].join("\n");
     const resolved = [];
-    resolveDataDirectives(text, () => "val", {
+    resolveDataDirectives(text, () => new Paragraph("val"), {
       onResolve(d, rendered) { resolved.push({ preset: d.preset, source: d.source, rendered }); },
     });
     assert.equal(resolved.length, 1);
     assert.equal(resolved[0].preset, "p");
     assert.equal(resolved[0].source, "a");
     assert.equal(resolved[0].rendered, "val");
+  });
+
+  it("calls .toMarkdown() when resolver returns a Renderable", () => {
+    const text = '<!-- {{data("p.a.b")}} -->\nold\n<!-- {{/data}} -->';
+    const table = new Table(["H"], [["v"]]);
+    const result = resolveDataDirectives(text, () => table);
+    assert.ok(result.text.includes("| H |"));
+    assert.ok(result.text.includes("| --- |"));
+    assert.ok(result.text.includes("| v |"));
+    assert.equal(result.replaced, 1);
+  });
+
+  it("calls .toMarkdown() for Paragraph Renderable", () => {
+    const text = '<!-- {{data("p.a.b")}} -->\nold\n<!-- {{/data}} -->';
+    const result = resolveDataDirectives(text, () => new Paragraph("hello"));
+    assert.ok(result.text.includes("hello"));
+    assert.equal(result.replaced, 1);
+  });
+
+  it("treats non-Renderable non-null resolver return value as unresolved", () => {
+    const text = '<!-- {{data("p.a.b")}} -->\nold\n<!-- {{/data}} -->';
+    let unresolvedCalled = false;
+    const result = resolveDataDirectives(text, () => "a plain string", {
+      onUnresolved: () => { unresolvedCalled = true; },
+    });
+    assert.equal(unresolvedCalled, true);
+    assert.equal(result.replaced, 0);
   });
 });
 

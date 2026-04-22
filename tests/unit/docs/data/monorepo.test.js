@@ -58,7 +58,7 @@ describe("MonorepoSource", () => {
 
       const result = source.apps(analysis, ["overview"]);
       assert.ok(result);
-      assert.ok(result.includes("Frontend"));
+      assert.ok(result.toMarkdown().includes("Frontend"));
     });
 
     it("returns badge text from enriched analysis app field when no config", async () => {
@@ -77,8 +77,8 @@ describe("MonorepoSource", () => {
 
       const result = source.apps(analysis, ["overview"]);
       assert.ok(result);
-      assert.ok(result.includes("Frontend"));
-      assert.ok(result.includes("Backend CMS"));
+      assert.ok(result.toMarkdown().includes("Frontend"));
+      assert.ok(result.toMarkdown().includes("Backend CMS"));
     });
 
     it("returns unique app names (no duplicates)", async () => {
@@ -98,7 +98,7 @@ describe("MonorepoSource", () => {
       const result = source.apps(analysis, ["components"]);
       assert.ok(result);
       // Should only mention "Web" once
-      const count = (result.match(/Web/g) || []).length;
+      const count = (result.toMarkdown().match(/Web/g) || []).length;
       assert.equal(count, 1);
     });
 

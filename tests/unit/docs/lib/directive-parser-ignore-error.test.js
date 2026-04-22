@@ -4,6 +4,7 @@ import {
   parseDirectives,
   resolveDataDirectives,
 } from "../../../../src/docs/lib/directive-parser.js";
+import { Paragraph } from "../../../../src/docs/lib/renderable.js";
 
 // ---------------------------------------------------------------------------
 // {{data(..., {ignoreError: true})}} パラメータ解析
@@ -126,7 +127,7 @@ describe("resolveDataDirectives — ignoreError", () => {
       "<!-- {{/data}} -->",
     ].join("\n");
 
-    const resolveFn = () => "> 対象: Frontend, Backend";
+    const resolveFn = () => new Paragraph("> 対象: Frontend, Backend");
     const result = resolveDataDirectives(text, resolveFn);
 
     assert.ok(result.text.includes("> 対象: Frontend, Backend"));
@@ -160,7 +161,7 @@ describe("resolveDataDirectives — header/footer", () => {
       "<!-- {{/data}} -->",
     ].join("\n");
 
-    const resolveFn = () => "| Name |\n| --- |\n| App1 |";
+    const resolveFn = () => new Paragraph("| Name |\n| --- |\n| App1 |");
     const result = resolveDataDirectives(text, resolveFn);
 
     const lines = result.text.split("\n");
@@ -201,7 +202,7 @@ describe("resolveDataDirectives — header/footer", () => {
       "<!-- {{/data}} -->",
     ].join("\n");
 
-    const resolveFn = () => "content";
+    const resolveFn = () => new Paragraph("content");
     const result = resolveDataDirectives(text, resolveFn);
 
     const lines = result.text.split("\n");
@@ -218,7 +219,7 @@ describe("resolveDataDirectives — header/footer", () => {
       "<!-- {{/data}} -->",
     ].join("\n");
 
-    const resolveFn = () => "content";
+    const resolveFn = () => new Paragraph("content");
     const result = resolveDataDirectives(text, resolveFn);
 
     const lines = result.text.split("\n");
@@ -235,7 +236,7 @@ describe("resolveDataDirectives — header/footer", () => {
       "<!-- {{/data}} -->",
     ].join("\n");
 
-    const resolveFn = () => "content";
+    const resolveFn = () => new Paragraph("content");
     const result = resolveDataDirectives(text, resolveFn);
 
     const lines = result.text.split("\n");

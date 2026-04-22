@@ -30,7 +30,7 @@ describe("createResolver", () => {
     writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
     const resolver = await createResolver("node-cli", tmp);
     const result = resolver.resolve("node-cli", "project", "name", {}, [""]);
-    assert.equal(result, "test-pkg");
+    assert.equal(result.toMarkdown(), "test-pkg");
   });
 
   it("resolves project.version", async () => {
@@ -38,7 +38,7 @@ describe("createResolver", () => {
     writeJson(tmp, "package.json", { name: "pkg", version: "2.5.0" });
     const resolver = await createResolver("node-cli", tmp);
     const result = resolver.resolve("node-cli", "project", "version", {}, [""]);
-    assert.equal(result, "2.5.0");
+    assert.equal(result.toMarkdown(), "2.5.0");
   });
 
   it("returns null for unknown preset", async () => {
@@ -78,7 +78,7 @@ describe("createResolver", () => {
     writeJson(tmp, "package.json", { name: "test-pkg", version: "1.0.0" });
     const resolver = await createResolver("node-cli", tmp);
     // Verify resolver still resolves normally with overrides loaded
-    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]), "test-pkg");
+    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]).toMarkdown(), "test-pkg");
   });
 
   it("works without overrides.json", async () => {
@@ -86,7 +86,7 @@ describe("createResolver", () => {
     writeJson(tmp, "package.json", { name: "pkg", version: "1.0.0" });
     const resolver = await createResolver("node-cli", tmp);
     const result = resolver.resolve("node-cli", "project", "name", {}, [""]);
-    assert.equal(result, "pkg");
+    assert.equal(result.toMarkdown(), "pkg");
   });
 
   it("accepts docsDir option and resolves data", async () => {
@@ -95,7 +95,7 @@ describe("createResolver", () => {
     const docsDir = path.join(tmp, "docs", "ja");
     fs.mkdirSync(docsDir, { recursive: true });
     const resolver = await createResolver("node-cli", tmp, { docsDir });
-    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]), "docsdir-pkg");
+    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]).toMarkdown(), "docsdir-pkg");
   });
 
   it("resolves data from parent chain presets", async () => {
@@ -105,7 +105,7 @@ describe("createResolver", () => {
     const resolver = await createResolver("node-cli", tmp);
     // project source is from common, should be available through chain
     const name = resolver.resolve("node-cli", "project", "name", {}, [""]);
-    assert.equal(name, "chain-pkg");
+    assert.equal(name.toMarkdown(), "chain-pkg");
   });
 
   it("works with single-segment type (no parent)", async () => {
@@ -113,14 +113,14 @@ describe("createResolver", () => {
     writeJson(tmp, "package.json", { name: "single", version: "0.1.0" });
     const resolver = await createResolver("cli", tmp);
     const result = resolver.resolve("cli", "project", "name", {}, [""]);
-    assert.equal(result, "single");
+    assert.equal(result.toMarkdown(), "single");
   });
 
   it("works with base type", async () => {
     setupTmp("resolver-base");
     writeJson(tmp, "package.json", { name: "base-pkg", version: "1.0.0" });
     const resolver = await createResolver("base", tmp);
-    assert.equal(resolver.resolve("base", "project", "name", {}, [""]), "base-pkg");
+    assert.equal(resolver.resolve("base", "project", "name", {}, [""]).toMarkdown(), "base-pkg");
   });
 
   it("loads project-specific DataSources from .sdd-forge/data/", async () => {
@@ -129,7 +129,7 @@ describe("createResolver", () => {
     // Project data dir exists but is empty — should not break
     fs.mkdirSync(path.join(tmp, ".sdd-forge", "data"), { recursive: true });
     const resolver = await createResolver("node-cli", tmp);
-    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]), "projds");
+    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]).toMarkdown(), "projds");
   });
 
   it("accepts configChapters option", async () => {
@@ -138,7 +138,7 @@ describe("createResolver", () => {
     const resolver = await createResolver("node-cli", tmp, {
       configChapters: ["overview", "cli_commands"],
     });
-    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]), "ch-pkg");
+    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]).toMarkdown(), "ch-pkg");
   });
 
   it("accepts array of presets and resolves each independently", async () => {
@@ -146,8 +146,8 @@ describe("createResolver", () => {
     writeJson(tmp, "package.json", { name: "multi-pkg", version: "1.0.0" });
     const resolver = await createResolver(["node-cli", "postgres"], tmp);
     // Both presets should be resolvable
-    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]), "multi-pkg");
-    assert.equal(resolver.resolve("postgres", "project", "name", {}, [""]), "multi-pkg");
+    assert.equal(resolver.resolve("node-cli", "project", "name", {}, [""]).toMarkdown(), "multi-pkg");
+    assert.equal(resolver.resolve("postgres", "project", "name", {}, [""]).toMarkdown(), "multi-pkg");
   });
 
   it("exposes presetKeys() listing all leaf keys", async () => {

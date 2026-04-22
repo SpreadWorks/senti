@@ -1,8 +1,12 @@
+import { Table } from "./renderable.js";
+
 /**
  * DataSource — base class for OOP-based {{data}} directive resolvers.
  *
  * Each preset category (e.g. controllers, models, tables) extends this class
- * and implements one or more named resolver methods.
+ * and implements one or more named resolver methods. Resolvers should return
+ * a Renderable (see ./renderable.js) or null; the expansion layer calls
+ * `.toMarkdown()` polymorphically.
  *
  * Directive syntax:
  *   {{data: controllers.list("Name|File|Description")}}
@@ -74,18 +78,16 @@ export class DataSource {
   }
 
   /**
-   * Generate a Markdown table from rows and labels.
+   * Construct a Table renderable from rows and labels.
+   *
+   * Thin delegation to `new Table(labels, rows)`; preserved as a helper so
+   * existing callers keep the `(rows, labels)` argument order.
+   *
    * @param {Array<Array>} rows - [[col1, col2, ...], ...]
    * @param {string[]} labels - column headers
-   * @returns {string} Markdown table
+   * @returns {Table} renderable table
    */
   toMarkdownTable(rows, labels) {
-    const escape = (v) => String(v ?? "—").replace(/\|/g, "\\|");
-    const header = `| ${labels.map(escape).join(" | ")} |`;
-    const sep = `| ${labels.map(() => "---").join(" | ")} |`;
-    const body = rows
-      .map((r) => `| ${r.map(escape).join(" | ")} |`)
-      .join("\n");
-    return [header, sep, body].join("\n");
+    return new Table(labels, rows);
   }
 }

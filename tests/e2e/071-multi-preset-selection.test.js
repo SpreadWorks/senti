@@ -320,7 +320,7 @@ describe("E2E: multi-preset combination", () => {
 
     // common DataSource (project) should work via each preset
     const name = resolver.resolve("node-cli", "project", "name", {}, [""]);
-    assert.equal(name, "test-multi");
+    assert.equal(name.toMarkdown(), "test-multi");
 
     removeTmpDir(tmp);
   });

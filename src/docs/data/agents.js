@@ -11,6 +11,7 @@ import { formatUTCTimestamp } from "../../lib/cli.js";
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");
+  const Paragraph = container.get("base.Paragraph");
   const loadJsonFile = container.get("config.loadJsonFile");
 
   class AgentsSource extends DataSource {
@@ -24,7 +25,7 @@ export default function register(container) {
     const lang = this._lang();
     for (const l of [lang, "en"]) {
       const p = path.join(PRESETS_DIR, "base", "templates", l, "AGENTS.sdd.md");
-      if (fs.existsSync(p)) return fs.readFileSync(p, "utf8");
+      if (fs.existsSync(p)) return new Paragraph(fs.readFileSync(p, "utf8"));
     }
     return null;
   }
@@ -113,7 +114,7 @@ export default function register(container) {
       lines.push("");
     }
 
-    return lines.join("\n");
+    return new Paragraph(lines.join("\n"));
   }
 
   _lang() {

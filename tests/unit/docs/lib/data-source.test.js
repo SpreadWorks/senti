@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { DataSource } from "../../../../src/docs/lib/data-source.js";
+import { Table } from "../../../../src/docs/lib/renderable.js";
 
 describe("DataSource base class", () => {
   // ---------------------------------------------------------------------------
@@ -136,41 +137,50 @@ describe("DataSource base class", () => {
   // toMarkdownTable()
   // ---------------------------------------------------------------------------
 
-  it("toMarkdownTable() generates correct markdown table", () => {
+  it("toMarkdownTable() returns a Table instance with correct markdown output", () => {
     const ds = new DataSource();
     const rows = [
       ["FooController", "3", "Handles foo"],
       ["BarController", "5", "Handles bar"],
     ];
     const labels = ["Name", "Actions", "Description"];
-    const result = ds.toMarkdownTable(rows, labels);
+    const t = ds.toMarkdownTable(rows, labels);
 
-    assert.ok(result.includes("| Name | Actions | Description |"));
-    assert.ok(result.includes("| --- | --- | --- |"));
-    assert.ok(result.includes("| FooController | 3 | Handles foo |"));
-    assert.ok(result.includes("| BarController | 5 | Handles bar |"));
+    assert.ok(t instanceof Table);
+    const md = t.toMarkdown();
+    assert.ok(md.includes("| Name | Actions | Description |"));
+    assert.ok(md.includes("| --- | --- | --- |"));
+    assert.ok(md.includes("| FooController | 3 | Handles foo |"));
+    assert.ok(md.includes("| BarController | 5 | Handles bar |"));
   });
 
   it("toMarkdownTable() escapes pipe characters in values", () => {
     const ds = new DataSource();
-    const rows = [["a|b", "c"]];
-    const labels = ["Col1", "Col2"];
-    const result = ds.toMarkdownTable(rows, labels);
-    assert.ok(result.includes("a\\|b"));
+    const t = ds.toMarkdownTable([["a|b", "c"]], ["Col1", "Col2"]);
+    assert.ok(t.toMarkdown().includes("a\\|b"));
   });
 
   it("toMarkdownTable() replaces null/undefined with dash", () => {
     const ds = new DataSource();
-    const rows = [[null, undefined, "ok"]];
-    const labels = ["A", "B", "C"];
-    const result = ds.toMarkdownTable(rows, labels);
-    assert.ok(result.includes("| — | — | ok |"));
+    const t = ds.toMarkdownTable([[null, undefined, "ok"]], ["A", "B", "C"]);
+    assert.ok(t.toMarkdown().includes("| — | — | ok |"));
   });
 
   it("toMarkdownTable() handles empty rows", () => {
     const ds = new DataSource();
-    const result = ds.toMarkdownTable([], ["A", "B"]);
-    assert.ok(result.includes("| A | B |"));
-    assert.ok(result.includes("| --- | --- |"));
+    const t = ds.toMarkdownTable([], ["A", "B"]);
+    const md = t.toMarkdown();
+    assert.ok(md.includes("| A | B |"));
+    assert.ok(md.includes("| --- | --- |"));
+  });
+
+  it("toMarkdownTable() delegates to Table construction", () => {
+    const ds = new DataSource();
+    const rows = [["x", "1"], ["y", "2"]];
+    const labels = ["Name", "Count"];
+    assert.equal(
+      ds.toMarkdownTable(rows, labels).toMarkdown(),
+      new Table(labels, rows).toMarkdown(),
+    );
   });
 });

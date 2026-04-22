@@ -10,6 +10,7 @@ import path from "path";
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");
+  const Paragraph = container.get("base.Paragraph");
 
   class ProjectSource extends DataSource {
   init(ctx) {
@@ -32,19 +33,19 @@ export default function register(container) {
   /** Project / package name. */
   name(_analysis, _labels) {
     const pkg = this._pkg();
-    return pkg?.name || path.basename(this._root);
+    return new Paragraph(pkg?.name || path.basename(this._root));
   }
 
   /** Project description. */
   description(_analysis, _labels) {
     const pkg = this._pkg();
-    return pkg?.description || null;
+    return pkg?.description ? new Paragraph(pkg.description) : null;
   }
 
   /** Project version. */
   version(_analysis, _labels) {
     const pkg = this._pkg();
-    return pkg?.version || "0.0.0";
+    return new Paragraph(pkg?.version || "0.0.0");
   }
 
   /** package.json scripts as a markdown table. */

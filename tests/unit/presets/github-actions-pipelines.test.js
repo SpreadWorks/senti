@@ -234,8 +234,8 @@ describe("github-actions preset: data/pipelines.js", async () => {
       const source = createSource();
       const result = source.list(MOCK_ANALYSIS, ["Name", "File", "Triggers", "Jobs"]);
       assert.ok(result);
-      assert.ok(result.includes("CI"));
-      assert.ok(result.includes("ci.yml"));
+      assert.ok(result.toMarkdown().includes("CI"));
+      assert.ok(result.toMarkdown().includes("ci.yml"));
     });
 
     it("returns null for empty pipelines", () => {
@@ -250,9 +250,9 @@ describe("github-actions preset: data/pipelines.js", async () => {
       const source = createSource();
       const result = source.jobs(MOCK_ANALYSIS, ["Pipeline", "Job", "Runner", "Steps", "Dependencies"]);
       assert.ok(result);
-      assert.ok(result.includes("build"));
-      assert.ok(result.includes("lint"));
-      assert.ok(result.includes("ubuntu-latest"));
+      assert.ok(result.toMarkdown().includes("build"));
+      assert.ok(result.toMarkdown().includes("lint"));
+      assert.ok(result.toMarkdown().includes("ubuntu-latest"));
     });
 
     it("returns null for empty pipelines", () => {
@@ -267,8 +267,8 @@ describe("github-actions preset: data/pipelines.js", async () => {
       const source = createSource();
       const result = source.env(MOCK_ANALYSIS, ["Pipeline", "Secrets", "Env Vars"]);
       assert.ok(result);
-      assert.ok(result.includes("NPM_TOKEN"));
-      assert.ok(result.includes("NODE_ENV"));
+      assert.ok(result.toMarkdown().includes("NPM_TOKEN"));
+      assert.ok(result.toMarkdown().includes("NODE_ENV"));
     });
 
     it("returns null when no secrets or env vars", () => {
