@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T08:16:38.410Z",
+  "analyzedAt": "2026-04-23T08:45:49.033Z",
   "package": {
     "entries": [
       {
@@ -2687,16 +2687,23 @@
       },
       {
         "file": "src/flow/lib/gate-step.js",
-        "hash": "7816a278b3aff89998e2ae070ba9a5e6",
-        "lines": 13,
-        "mtime": "2026-04-20T02:05:16.466Z",
+        "hash": "8aafba377d662a3b3b9f5eb6d80a79da",
+        "lines": 120,
+        "mtime": "2026-04-23T08:45:48.740Z",
         "className": "gate-step",
         "methods": [
-          "resolveGateStepId"
+          "resolveGateStepId",
+          "resolveGatePhaseFromState",
+          "resolveActiveTask",
+          "pickLatestFlowGateStep"
         ],
-        "imports": [],
+        "imports": [
+          "../../lib/flow-helpers.js"
+        ],
         "exports": [
-          "resolveGateStepId"
+          "resolveGateStepId",
+          "resolveGatePhaseFromState",
+          "STEP_TO_PHASE"
         ],
         "extends": null,
         "usedBy": [
@@ -2704,20 +2711,21 @@
           "src/flow/registry.js"
         ],
         "id": "9bbc3f1d",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 3
-        },
-        "summary": "This module resolves a gate step identifier for flow tracking. It currently maps any phase to the fixed step id \"gate\".",
-        "detail": "The implementation is intentionally minimal and returns a stable constant regardless of input. This keeps registry hooks and gate logging aligned on one canonical step id. The function acts as a small compatibility boundary if phase-to-step mapping becomes more granular later.",
-        "chapter": "cli_commands",
+        "summary": "This module centralizes mappings between flow phases and gate step IDs and resolves the correct gate context from runtime state. It also determines which stale in-progress gate steps should be cleaned up.",
+        "detail": "It defines immutable phase-to-step and step-to-phase maps so gate routing is consistent across flow-level and task-level execution. `resolveGateStepId` normalizes unknown phases to a safe default gate step. `resolveGatePhaseFromState` inspects current state, prefers active task context when present, and returns both the chosen phase and stale gate steps for reconciliation. The implementation separates task gate steps from global flow gate steps, which avoids cross-contamination between scopes. Internal helpers like active-task resolution and latest-step selection keep selection logic deterministic.",
+        "chapter": "internal_design",
         "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-23T08:46:13.432Z",
+          "attempts": 1
+        },
         "keywords": [
-          "gate step",
-          "step id",
+          "gate step resolution",
           "phase mapping",
-          "flow state",
-          "command hook"
+          "state reconciliation",
+          "task-level gating",
+          "flow state machine",
+          "stale step cleanup"
         ]
       },
       {
@@ -3435,9 +3443,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "90411f1a335007f39dc30d8065e442d2",
-        "lines": 1584,
-        "mtime": "2026-04-23T03:27:46.253Z",
+        "hash": "e5c924b10329aec224ae5e7ad6b91b79",
+        "lines": 1628,
+        "mtime": "2026-04-23T08:45:48.740Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3489,7 +3497,8 @@
           "reasonsFromEvaluations",
           "gatePass",
           "gateFail",
-          "runGateFlow"
+          "runGateFlow",
+          "updateStepStatusDuringInference"
         ],
         "imports": [
           "fs",
@@ -3546,24 +3555,23 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate execution pipeline that validates specs, diffs, and guardrail evaluations across multiple flow phases. It also defines the `RunGateCommand` CLI command that dispatches phase-specific gate behavior.",
-        "detail": "The module maps gate levels to allowed phases and enforces that combination before running checks, then builds pass/fail envelopes with next-step guidance. It includes rich validation for draft/spec text and spec JSON, unresolved placeholder detection, and AI guardrail response parsing with strict schema validation and explicit error types. For implementation phases, it parses git diffs to detect test-file edits, enforces authorization sections, and reports unused test-modification allowances. It tracks retry metrics and failure history in issue logs, computes git state fingerprints, and blocks repeated or no-progress failures using normalized evaluation signatures. The command class routes to draft/spec/task/integration handlers, loads flow context and target files, and appends gate outcomes or errors back into the flow issue log.",
+        "summary": "This file implements the core gate execution engine for flow phases, including validation, guardrail evaluation, retry/escalation handling, and result reporting. It also exposes the `RunGateCommand` CLI command integration and issue-log updates.",
+        "detail": "The module combines many gate concerns: level-phase validation, spec/draft checks, JSON schema parsing for AI evaluations, and guardrail prompt construction. It supports diff-based checks, test-change authorization analysis, retry budget accounting, and no-progress/repeated-failure detection using git state snapshots and issue-log history. Gate outputs are normalized as pass/fail envelopes with structured evaluations, reasons, and next-step hints, and robust errors are raised for malformed model responses. `RunGateCommand` orchestrates phase-specific execution paths (`draft`, `spec`, `task-spec`, diff-scoped phases), loading files and state from the active flow context when explicit inputs are absent. Utility exports provide reusable parsing, reporting, and logging hooks used by other flow components.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T03:28:04.873Z",
+          "processedAt": "2026-04-23T08:46:13.432Z",
           "attempts": 1
         },
         "keywords": [
-          "gate execution",
-          "flow command",
+          "gate runner",
           "guardrail evaluation",
-          "schema validation",
-          "git diff analysis",
-          "test modification authorization",
           "retry budget",
-          "issue log tracking",
-          "failure deduplication"
+          "issue log",
+          "diff validation",
+          "spec linting",
+          "command orchestration",
+          "failure escalation"
         ]
       },
       {
@@ -4600,9 +4608,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "59b6169d319e435bcc50ebbb4b123acb",
-        "lines": 589,
-        "mtime": "2026-04-23T08:16:29.609Z",
+        "hash": "b2eeb7f9cfc51ffec27b114cc320133a",
+        "lines": 596,
+        "mtime": "2026-04-23T08:45:48.741Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4622,21 +4630,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the flow command registry, lifecycle hooks, and automatic step/issue-log side effects for command execution. It centralizes command wiring and cross-cutting behavior.",
-        "detail": "The registry maps command names to handlers and metadata while deriving active phase context from current flow state. Pre/post wrappers update step statuses and append issue-log entries with resilient error handling. Some helper operations intentionally log non-fatal failures to stderr instead of aborting command execution. It also integrates gate retry counters and finalize post-processing hooks. This file is the dispatch backbone for flow subcommands and orchestration policy.",
-        "chapter": "project_structure",
-        "role": "config",
+        "summary": "This registry module wires flow commands to lifecycle hooks and coordinates step/issue-log side effects around command execution. It acts as the central dispatcher for flow command behavior.",
+        "detail": "It derives active phase context and imports gate-step resolvers so registry-level hooks can align command state with current gating progression. Pre/post hook helpers wrap status and issue-log mutations with fail-safe error handling, logging skipped updates to stderr without crashing unrelated paths. The module defines reusable wrappers (`stepPre`, `stepPost`, append helpers) to standardize command instrumentation. `FLOW_COMMANDS` stores command metadata and execution behavior, including help text and post-execution integrations such as retry-counter updates and commit post-processing. This design keeps command registration declarative while isolating operational side effects in small guard-wrapped helpers.",
+        "chapter": "internal_design",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
+          "processedAt": "2026-04-23T08:46:13.432Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "dispatcher",
-          "step hooks",
-          "issue log",
-          "flow lifecycle",
-          "command wiring"
+          "flow dispatcher",
+          "lifecycle hooks",
+          "step status tracking",
+          "issue log append",
+          "phase derivation",
+          "orchestration layer"
         ]
       },
       {
@@ -9398,9 +9407,9 @@
     ],
     "summary": {
       "total": 275,
-      "totalMethods": 892
+      "totalMethods": 896
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T08:18:11.489Z"
+  "enrichedAt": "2026-04-23T08:46:13.432Z"
 }
