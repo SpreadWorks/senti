@@ -305,11 +305,18 @@ function writeReviewMd(root, flow, results) {
   return reviewPath;
 }
 
+const NO_PROPOSALS_MARKER = "_No proposals generated for this spec._";
+
 /**
  * Generate review.md content.
  */
 function formatReviewMd(results) {
   const lines = ["# Code Review Results", ""];
+  if (results.length === 0) {
+    lines.push(NO_PROPOSALS_MARKER);
+    lines.push("");
+    return lines.join("\n");
+  }
   for (const r of results) {
     const mark = r.verdict === "APPROVED" ? "[x]" : "[ ]";
     lines.push(`### ${mark} ${r.title}`);
@@ -320,6 +327,25 @@ function formatReviewMd(results) {
     lines.push("");
   }
   return lines.join("\n");
+}
+
+/**
+ * Build the final validation prompt from the scope-filtered proposal set.
+ * The AI is asked to emit verdicts numbered 1..N matching the array order so
+ * `mergeVerdicts` can map verdict[i] back to proposals[i] without drift.
+ */
+function buildFinalValidationPrompt(proposals, diff) {
+  const numbered = proposals
+    .map((p, i) => `### ${i + 1}. ${p.title}\n${p.body}`)
+    .join("\n\n");
+  return [
+    "Validate these refactoring proposals:",
+    "",
+    numbered,
+    "",
+    "## Original diff for context:",
+    diff,
+  ].join("\n");
 }
 
 /**
@@ -967,6 +993,7 @@ async function runReview(rawArgs) {
   const rawProposals = parseProposals(draftResult);
   if (rawProposals.length === 0) {
     console.log("No structured proposals found.");
+    writeReviewMd(root, flow, []);
     return;
   }
 
@@ -988,14 +1015,7 @@ async function runReview(rawArgs) {
   // --- Final phase ---
   console.error("  [final] Validating proposals...");
   const finalAgent = ensureAgent("flow.impl.review.final");
-  const finalPrompt = [
-    "Validate these refactoring proposals:",
-    "",
-    draftResult,
-    "",
-    "## Original diff for context:",
-    diff,
-  ].join("\n");
+  const finalPrompt = buildFinalValidationPrompt(proposals, diff);
 
   const finalResult = await callReviewAgent(finalAgent, finalPrompt, "flow.impl.review.final", buildFinalSystemPrompt());
 
@@ -1066,7 +1086,8 @@ function isValidSpecOutput(text) {
 
 export {
   parseProposals, mergeVerdicts, formatReviewMd, resolveReviewTarget,
-  buildDraftSystemPrompt, buildFinalSystemPrompt,
+  buildDraftSystemPrompt, buildFinalSystemPrompt, buildFinalValidationPrompt,
+  NO_PROPOSALS_MARKER,
   collectTouchedFiles, filterProposalsByScope, extractProposalFile,
   MAX_REVIEW_RETRIES, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
   applyTestFixes, formatTestReviewMd, runReviewLoop,

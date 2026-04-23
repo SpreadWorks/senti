@@ -1,0 +1,69 @@
+{
+  "spec": "specs/219-fix-review-envelope-mismatch/spec.json",
+  "date": "2026-04-23T05:13:38.863Z",
+  "requirements": [
+    {
+      "desc": "When impl-phase の review 実行が正常終了する時、当該実行は specs/<active-spec>/review.md を 1 回書き込み、書き込み内容は当該実行の検証結果のみを反映していなければならない（過去実行の内容が残留してはならない）。",
+      "status": "partial",
+      "note": "未書き込みだった経路（rawProposals=0）に `writeReviewMd(..., [])` が追加され、静的テストも追加されたが、全正常終了経路で“正確に1回”を実動で担保する証拠は差分だけでは不足。"
+    },
+    {
+      "desc": "When sdd-forge flow run review（impl-phase）の envelope が approved: 0 を報告する時、書き出された review 結果ファイルの本文は『採用可能な提案は 0 件である』旨を示す固定の識別可能な行を 1 行以上含んでいなければならない。ヘッダ行のみの本文は許容しない。",
+      "status": "partial",
+      "note": "`NO_PROPOSALS_MARKER` と空配列時の本文行追加で要件意図を満たすが、実装条件は `results.length===0` のため、`approved:0` かつ `rejected>0` ケースまで包含する保証はない。"
+    },
+    {
+      "desc": "When 当該実行の envelope が approved: N_a, rejected: N_r を報告する時、同実行で書き出された review 結果ファイルの本文に含まれる提案エントリ数は N_a + N_r と等しくなければならない。",
+      "status": "partial",
+      "note": "`formatReviewMd` は渡された結果配列を1件1エントリで出力し単体テストもあるが、envelope 側カウントと同一実行で常に一致することを直接検証するテストは見当たらない。"
+    },
+    {
+      "desc": "When 最終検証フェーズに入る時、AI に渡される検証対象の提案集合は scope フィルタによって除外された提案を含まず、かつ verdict 解析結果の要素順は当該フィルタ後集合の配列位置と 1 対 1 で対応していなければならない。",
+      "status": "done",
+      "note": "最終検証 prompt を `buildFinalValidationPrompt(proposals, diff)` に置換し、scope-filter後配列の順で 1..N 採番して渡す実装と単体テストが追加された。"
+    },
+    {
+      "desc": "R1〜R4 の振る舞いを検証する自動テストは外部プロセス（AI CLI、git、ネットワーク呼び出し）を起動せず完結していなければならない。",
+      "status": "done",
+      "note": "追加テストは `node:test` ベースの純粋ユニットで、外部CLI/ネットワーク呼び出しを行う実装は含まれていない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/219-fix-review-envelope-mismatch/draft.md",
+      "change": "仕様ドラフト文書の新規追加（要求実装そのものではない）。"
+    },
+    {
+      "file": "specs/219-fix-review-envelope-mismatch/flow.json",
+      "change": "フロー実行メタデータの新規追加（要求挙動の実装要件外）。"
+    },
+    {
+      "file": "specs/219-fix-review-envelope-mismatch/issue-log.json",
+      "change": "ゲート/レビュー履歴ログの新規追加（要求挙動の実装要件外）。"
+    },
+    {
+      "file": "specs/219-fix-review-envelope-mismatch/qa.md",
+      "change": "Q&Aテンプレート文書の新規追加（要求項目に未定義）。"
+    },
+    {
+      "file": "specs/219-fix-review-envelope-mismatch/spec.json",
+      "change": "仕様定義JSONの新規追加（実装挙動とは別の成果物）。"
+    },
+    {
+      "file": "specs/219-fix-review-envelope-mismatch/spec.md",
+      "change": "仕様書Markdownの新規追加（要求項目に未定義）。"
+    },
+    {
+      "file": "specs/219-fix-review-envelope-mismatch/tests/README.md",
+      "change": "spec配下テスト説明文書の新規追加（要求項目に未定義）。"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 2,
+    "partial": 3,
+    "not_done": 0,
+    "rate": 0.7,
+    "notes": "差分は R4・R5 を明確に満たし、R1〜R3 の改善も入っているが、R1〜R3 を“同一実行で常に成立”と断定するには実装/検証のつながりが一部不足しており総合評価は部分達成。"
+  }
+}

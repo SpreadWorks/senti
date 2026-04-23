@@ -1,0 +1,158 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one bugfix concern: keeping review envelope/count and review.md output consistent.; Unambiguous Requirements — Most requirements are stated as concrete, testable changes (target files/paths, behaviors, and test scope).; Complete Context — Several requirements are action-only and do not consistently use explicit trigger-condition + expected-behavior form (When/If ... shall ...).; No Hardcoded Secrets — No API keys, passwords, tokens, or similar secrets appear in the draft content.; Prioritize Requirements — There are more than three requirements in scope, but no explicit priority ordering is provided.; Impact on Existing Features — The draft has an explicit impact section listing affected and unaffected existing features.; Present Recommendations with Reasoning — Q&A provides answers, but does not explicitly cite basis from docs, guardrails, or existing code patterns for each recommendation.; Explore Before Asking — Cannot verify whether docs/code exploration occurred before asking without process/runtime evidence.; Proactively Raise Related Implications — Related implications are proactively captured (affected behavior, unchanged envelope format, out-of-scope follow-ups).; Confirm Brainstorm vs. Decision Before Critiquing — Draft indicates finalized decisions and explicit user approval; no unconfirmed brainstorming is being critiqued as final.; Capture Digressions in draft.md — No digression is evident in the provided content, so no missing digression capture is observable.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions and test implementation approach), exceeding pure requirements level.; Backward-Compatible CLI Interface — No command/option removal or semantic CLI break is specified; interface compatibility risk is explicitly noted as unchanged for envelope format.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:33:02.116Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirements are action-only and do not consistently use explicit trigger-condition + expected-behavior form (When/If ... shall ...)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements in scope, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A provides answers, but does not explicitly cite basis from docs, guardrails, or existing code patterns for each recommendation."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific files/functions and test implementation approach), exceeding pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 主目的は review envelope と結果ファイル内容の整合性確保で一貫しており、同梱項目も同一不具合系統に限定されているため。; Unambiguous Requirements — 「即座に判別できる」「視認可能な明示表現」など検証基準が曖昧な表現が残っているため。; Complete Context — 主要要件は When 条件と期待動作（〜こと）を対で記述しているため。; No Hardcoded Secrets — 本ドラフトに API key や token 等の秘密情報の直書きは含まれていないため。; Prioritize Requirements — 4件の要件に対して P1〜P4 の優先度順が明示されているため。; Impact on Existing Features — 既存機能への影響あり/なしが明示され、非影響範囲も明記されているため。; Present Recommendations with Reasoning — 各Qで推奨回答を先に提示し、Issue/プロジェクト文書/原則に基づく根拠を併記しているため。; Explore Before Asking — Q&Aは既存文書・既知事象を根拠に自己解決されており、未調査前提の質問は残っていないため。; Proactively Raise Related Implications — 互換性、非対象範囲、既存機能影響を先回りして整理しているため。; Confirm Brainstorm vs. Decision Before Critiquing — User Approval で最終選択肢と確定日時が明記され、検討段階から決定段階へ確定しているため。; Capture Digressions in draft.md — ドラフト内に主要論点と決定事項が集約されており、別途未記録の脱線は確認できないため。; Draft Stays at Requirements Level — 「純粋な関数として取り出す」など実装/設計寄りの記述が含まれ、要件レベルを一部超えているため。; Backward-Compatible CLI Interface — CLI コマンド名・オプションは不変と明記されており、移行計画を要する変更がないため。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:34:15.006Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「即座に判別できる」「視認可能な明示表現」など検証基準が曖昧な表現が残っているため。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "「純粋な関数として取り出す」など実装/設計寄りの記述が含まれ、要件レベルを一部超えているため。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec defines no concrete concern/goal, so single-responsibility cannot be established.; Unambiguous Requirements — No requirements are provided to evaluate for ambiguity or verifiable wording.; Complete Context — No requirements exist with When/If trigger plus expected shall behavior.; REQ Diff-Verifiability — No requirements are stated, so diff+test verifiability cannot be determined.; No Hardcoded Secrets — No source code or credentials are present in the content.; No Silent Error Swallowing — No implementation/error-handling code is present.; Prioritize Requirements — Inapplicable: requirements do not exceed three (none provided).; Impact on Existing Features — Impact on existing features is not listed, and no explicit 'no impact' statement is provided.; Bounded Resource Usage — Inapplicable: no recursive/retry/bulk-processing design is specified.; Changes Require Test Coverage — No test coverage plan or justification for missing tests is provided.; Spec Includes Test Strategy — Test strategy section/content is absent.; Synthesize Draft, Do Not Copy — Cannot evaluate synthesis-vs-copying without draft source content for comparison.; Record Unresolved Points as Open Questions — No fabricated answers are evident; unresolved points can remain open.; Include 'Why This Approach' Rationale — No 'why this approach' rationale is included.; Do Not Modify Existing Tests Without Approval — Inapplicable: no test modifications are proposed.; Backward-Compatible CLI Interface — Inapplicable: no CLI command/option changes are specified.; Exit Code Contract — Inapplicable: no command failure/exit-code behavior is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:37:17.723Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "Spec defines no concrete concern/goal, so single-responsibility cannot be established."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "No requirements are provided to evaluate for ambiguity or verifiable wording."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "No requirements exist with When/If trigger plus expected shall behavior."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "No requirements are stated, so diff+test verifiability cannot be determined."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not listed, and no explicit 'no impact' statement is provided."
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "No test coverage plan or justification for missing tests is provided."
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "Test strategy section/content is absent."
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "No 'why this approach' rationale is included."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — All changes target one concern: consistency and correctness of impl-phase review outputs.; Unambiguous Requirements — Requirements define concrete triggers and measurable outcomes (counts, write behavior, index mapping, test constraints).; Complete Context — Each requirement pairs a condition (When) with expected behavior (shall/must).; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus unit test results; no unverifiable future guarantees are required.; No Hardcoded Secrets — No secrets or credential material are introduced in the spec content.; No Silent Error Swallowing — This spec does not define error-swallowing behavior; article is inapplicable to described changes.; Prioritize Requirements — There are more than three requirements, but all are marked only as \"must\" without an explicit priority order.; Impact on Existing Features — Scope/out-of-scope explicitly states impacted and non-impacted areas of existing features.; Bounded Resource Usage — No recursive/retry/bulk-unbounded design is introduced by this spec.; Changes Require Test Coverage — Spec includes explicit automated test coverage for the bug fixes and behavior changes.; Spec Includes Test Strategy — Test strategy is clearly defined via unit-test focus, acceptance criteria, and execution constraints.; Synthesize Draft, Do Not Copy — Cannot evaluate whether content was synthesized vs copied because no source draft is provided.; Record Unresolved Points as Open Questions — Open questions are explicitly tracked and unresolved items are not fabricated.; Include 'Why This Approach' Rationale — Rationale is provided through design principles and alternatives considered with rejection reasons.; Do Not Modify Existing Tests Without Approval — Spec calls for adding tests and does not require modifying/deleting existing tests.; Backward-Compatible CLI Interface — Constraints explicitly keep existing command/subcommand/option interfaces unchanged.; Exit Code Contract — No exit-code behavior change is proposed; article is inapplicable to this scope.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:40:02.918Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements, but all are marked only as \"must\" without an explicit priority order."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff addresses zero-proposal marker and final-validation prompt alignment, but provides no added unit tests for R1–R5/AC1–AC6 and only partial execution evidence ({\"unit\":1}), so full spec compliance is not demonstrated.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T05:03:50.566Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Diff addresses zero-proposal marker and final-validation prompt alignment, but provides no added unit tests for R1–R5/AC1–AC6 and only partial execution evidence ({\"unit\":1}), so full spec compliance is not demonstrated."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "initial test-summary undercounted unit tests as 1 (file count) instead of 12 (individual test count); gate read partial evidence",
+      "trigger": "flow run gate --phase task-impl FAIL citing insufficient test evidence",
+      "resolution": "updated test-summary --unit 12 to reflect the actual passing unit-test count in review-envelope-consistency.test.js",
+      "guardrailCandidate": "test-summary --unit should be the individual test count not the file count",
+      "taskId": null,
+      "timestamp": "2026-04-23T05:04:08.705Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff addresses zero-proposal marker and scope-filtered final prompt alignment, but it does not demonstrate all required terminal-path overwrite guarantees nor include the required new unit tests (R1–R5/AC1–AC6); provided head test summary (`{\"unit\":12}`) is insufficient to prove full compliance.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T05:04:30.370Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Diff addresses zero-proposal marker and scope-filtered final prompt alignment, but it does not demonstrate all required terminal-path overwrite guarantees nor include the required new unit tests (R1–R5/AC1–AC6); provided head test summary (`{\"unit\":12}`) is insufficient to prove full compliance."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "test file and specs were untracked; gate diff did not include them in evidence",
+      "trigger": "impl gate FAIL citing missing unit tests in diff",
+      "resolution": "git add staged the new test file and spec artifacts so they appear in the diff visible to the gate",
+      "taskId": null,
+      "timestamp": "2026-04-23T05:04:45.183Z"
+    },
+    {
+      "step": "review",
+      "reason": "review.md contains 7 APPROVED entries but envelope reports approved:0 — exact bug this spec fixes (running sdd-forge CLI is the unpatched main-branch copy)",
+      "trigger": "flow run review under user-selected Option 1 (auto-fix)",
+      "resolution": "no proposals applied: #1-6 target out-of-scope files outside diff, #7 conflicts with spec Q2 decision (unit-only, no stubs). envelope approved:0 is the authoritative count.",
+      "guardrailCandidate": "when envelope.approved=0, auto-apply path should no-op regardless of review.md content — the proposed fix in this spec enforces this invariant",
+      "taskId": null,
+      "timestamp": "2026-04-23T05:09:29.891Z"
+    }
+  ]
+}

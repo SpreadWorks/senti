@@ -1,0 +1,440 @@
+{
+  "spec": "specs/219-fix-review-envelope-mismatch/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/219-fix-review-envelope-mismatch",
+  "runId": "d8ae18aa-68c0-4825-b203-19b832cecc0f",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 236,
+  "autoCheck": {
+    "eligible": false,
+    "score": 14,
+    "maxScore": 24,
+    "threshold": 18,
+    "breakdown": {
+      "specBuildability": 1,
+      "ambiguity": 0,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 1
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "hard-gate zero: ambiguity"
+  },
+  "worktree": true,
+  "request": "[BUG] flow run review envelope count and review.md content are inconsistent (#236). Envelope returns proposalCount:0 / approved:0 / rejected:0 but review.md lists out-of-scope proposals (5 items in the reporting incident). Align envelope counts with review.md content: write 'no proposals' placeholder when approved==0, or filter out-of-scope proposals before writing, or add reviewedFiles/inScopeFiles to envelope for consistency check. Related: src/flow/lib/run-review.js, src/flow/commands/review.js, src/flow/lib/review/*",
+  "test": {
+    "baseline": {
+      "unit": 2082,
+      "integration": 259,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 12
+    }
+  },
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:07:41.244Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:07:44.356Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:15:08.635Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:31:47.873Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:32:05.440Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2432,
+      "durationMs": 24405,
+      "tokens": {
+        "input": 5986,
+        "output": 1051,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:33:02.102Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1526,
+      "durationMs": 30448,
+      "tokens": {
+        "input": 6595,
+        "output": 1198,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:34:14.995Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2265,
+      "durationMs": 33447,
+      "tokens": {
+        "input": 1528,
+        "output": 1076,
+        "cacheRead": 23936,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:35:26.813Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2346,
+      "durationMs": 27226,
+      "tokens": {
+        "input": 1347,
+        "output": 1119,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:37:17.714Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2767,
+      "durationMs": 25943,
+      "tokens": {
+        "input": 8159,
+        "output": 1140,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:40:02.879Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2869,
+      "durationMs": 32171,
+      "tokens": {
+        "input": 2015,
+        "output": 1286,
+        "cacheRead": 24960,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:40:53.250Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 295,
+      "durationMs": 16970,
+      "tokens": {
+        "input": 23698,
+        "output": 602,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:03:50.544Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T05:03:50.565Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T05:04:08.729Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 371,
+      "durationMs": 18511,
+      "tokens": {
+        "input": 8338,
+        "output": 758,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:04:30.331Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T05:04:30.369Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T05:04:45.213Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 389,
+      "durationMs": 23886,
+      "tokens": {
+        "input": 40420,
+        "output": 856,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:05:09.835Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1655,
+      "durationMs": 21317,
+      "tokens": {
+        "input": 40940,
+        "output": 837,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:05:31.172Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-23T05:05:31.207Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2893,
+      "durationMs": 38075,
+      "tokens": {
+        "input": 125803,
+        "output": 1390,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:07:43.020Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1717,
+      "durationMs": 23915,
+      "tokens": {
+        "input": 126355,
+        "output": 968,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:08:06.992Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T05:09:29.915Z"
+    },
+    {
+      "phase": "finalize",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2528,
+      "durationMs": 50031,
+      "tokens": {
+        "input": 23744,
+        "output": 2458,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:13:38.862Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft Q1: scope = main fix (review.md always written, placeholder when empty) + final phase prompt fix (filtered proposals)",
+      "taskId": null,
+      "ts": "2026-04-23T04:15:10.881Z"
+    },
+    {
+      "text": "draft Q2: test strategy = unit tests covering all early-return paths and final phase prompt construction",
+      "taskId": null,
+      "ts": "2026-04-23T04:31:48.760Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-23T05:12:48.731Z"
+  }
+}

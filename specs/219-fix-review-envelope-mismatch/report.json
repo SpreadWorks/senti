@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/219-fix-review-envelope-mismatch/draft.md    |  47 +++\n specs/219-fix-review-envelope-mismatch/flow.json   | 425 +++++++++++++++++++++\n .../issue-log.json                                 | 158 ++++++++\n specs/219-fix-review-envelope-mismatch/qa.md       |   9 +\n specs/219-fix-review-envelope-mismatch/spec.json   | 148 +++++++\n specs/219-fix-review-envelope-mismatch/spec.md     | 100 +++++\n .../tests/README.md                                |  47 +++\n src/flow/commands/review.js                        |  39 +-\n .../commands/review-envelope-consistency.test.js   | 150 ++++++++\n 9 files changed, 1114 insertions(+), 9 deletions(-)",
+      "commits": [
+        "feat: feature/219-fix-review-envelope-mismatch"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 2,
+      "partial": 3,
+      "not_done": 0,
+      "rate": 0.7,
+      "notes": "差分は R4・R5 を明確に満たし、R1〜R3 の改善も入っているが、R1〜R3 を“同一実行で常に成立”と断定するには実装/検証のつながりが一部不足しており総合評価は部分達成。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 3,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 391184,
+      "output": 12281,
+      "cacheRead": 164352,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 12,
+      "durationMs": 316314,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 88300
+        },
+        {
+          "phase": "gate",
+          "durationMs": 85340
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 80684
+        },
+        {
+          "phase": "review",
+          "durationMs": 61990
+        }
+      ]
+    },
+    "tests": {
+      "unit": 12,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 12
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/219-fix-review-envelope-mismatch\n    9 files changed, 1114 insertions(+), 9 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ██████░░ 70%  (2 done / 3 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 3\n    issue-log ................... 3\n    agent calls ................. 12\n    input tokens ................ 391,184\n    output tokens ............... 12,281\n    cache-read tokens ........... 164,352\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 316.3s\n      gate-draft ................ 88.3s\n      gate ...................... 85.3s\n      gate-impl ................. 80.7s\n      review .................... 62.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 12  integration 0  acceptance 0  total 12"
+}
