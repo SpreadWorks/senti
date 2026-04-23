@@ -8,7 +8,7 @@
 
 <!-- {{text({prompt: "Write a 1-2 sentence overview of this chapter. Include the total number of commands and subcommand structure."})}} -->
 
-The published help layout lists 21 command entries across Project, Docs, Flow, Metrics, and Info sections. Command execution is hierarchical: entrypoints such as `docs`, `flow`, `metrics`, `spec`, and `check` validate a subcommand key, then dispatch to registered handlers through the shared container/dispatcher path.
+The CLI is organized as command groups that dispatch subcommands from registries, with `docs`, `flow`, `metrics`, `spec`, and `check` acting as primary routers. The built-in help layout lists 21 user-facing commands across Project, Docs, Flow, Metrics, and Info, while `flow` and `spec` further branch into nested subcommands.
 <!-- {{/text}} -->
 
 ## Content
@@ -19,91 +19,104 @@ The published help layout lists 21 command entries across Project, Docs, Flow, M
 
 | Command | Description | Key options |
 | --- | --- | --- |
-| `sdd-forge help` | Prints localized command catalog with sectioned layout and version. | `-h`, `--help` (via general CLI handling) |
-| `sdd-forge check <command>` | Routes to `checkCommands` registry and runs a check subcommand. | `-h`, `--help` |
-| `sdd-forge docs <command>` | Routes docs subcommands (`build`, `scan`, `enrich`, `init`, `data`, `text`, `readme`, `forge`, `review`, `translate`, `changelog`, `agents`, `snapshot`). | `-h`, `--help` |
-| `sdd-forge docs build` | Runs docs pipeline (`scan → enrich → init → data → text → readme → agents` and optional `translate`). | `--verbose`, `--dry-run`, `--force`, `--regenerate`, `-h`, `--help` |
-| `sdd-forge docs changelog [outFile]` | Builds changelog from `specs/*` metadata and writes `docs/change_log.md` by default. | `--dry-run`, `-h`, `--help` |
-| `sdd-forge docs forge` | AI-assisted docs update loop with per-file targeting, retries, and review integration. | `--prompt`, `--prompt-file`, `--spec`, `--max-runs`, `--review-cmd`, `--mode`, `--dry-run`, `--verbose` |
-| `sdd-forge docs text` | Fills `{{text}}` directives using analysis + agent calls, with batching/filtering behavior. | Supports parsed CLI options and `-h/--help` through parser/command help flow |
-| `sdd-forge flow <command>` | Flow command gateway with `prepare`, `resume`, `get <key>`, `set <key>`, `run <action>`. | `-h`, `--help` |
-| `sdd-forge flow get <key>` | Read flow-derived data (shown modules include `check`, `guardrail`, `issue`, `next-action`, `prompt`, `qa-count`, `resolve-context`). | Key-specific arguments (for example target/phase/format/number/kind) |
-| `sdd-forge flow set <key>` | Mutate flow state (shown modules include `auto`, `gate-retry`, `init`, `issue`, `metric`, `note`, `request`, `step`, `test-summary`). | Key-specific flags such as `--yes`, `--json`, `--baseline`, `--mode` |
-| `sdd-forge flow run <action>` | Execute flow actions (shown modules include `gate`, `lint`, `merge`, `prepare-spec`, `reopen-draft`, `report`, `review`, `sync`, `tests`; plus report-show command class). | Action-specific flags such as `--phase`, `--dry-run`, `--skip-confirm`, `--baseline` |
-| `sdd-forge metrics <command>` | Routes to `metricsCommands` (help layout explicitly shows `metrics token`). | `-h`, `--help` |
-| `sdd-forge spec <command>` | Routes to `specCommands` registry (implemented command shown: `render`). | `-h`, `--help` |
-| `sdd-forge spec render` | Validates `spec.json` against schema and renders deterministic `spec.md`. | `--spec`, `--out`, `-h`, `--help` |
+| `sdd-forge help` | Prints localized command catalog with version and grouped sections. | None (entry command). |
+| `sdd-forge check <command>` | Dispatches check subcommands from `checkCommands`. | `-h`, `--help`. |
+| `sdd-forge docs <command>` | Dispatches documentation subcommands from `docsCommands`. | `-h`, `--help`. |
+| `sdd-forge docs build` | Runs docs pipeline (`scan` → `enrich` → `init` → `data` → `text` → `readme` → `agents` → optional `translate`). | `--verbose`, `--dry-run`, `--force`, `--regenerate`, `-h`, `--help`. |
+| `sdd-forge docs changelog [outFile]` | Generates changelog from `specs/*` metadata and writes `docs/change_log.md` by default. | `--dry-run`, `-h`, `--help`. |
+| `sdd-forge docs forge` | Orchestrates AI-assisted docs updates with iterative review loops. | `--prompt`, `--prompt-file`, `--spec`, `--max-runs`, `--review-cmd`, `--mode`, `--dry-run`, `--verbose`, `-h`, `--help`. |
+| `sdd-forge docs text` | Fills `{{text}}` directives from analysis + agent responses, with batch/retry/filtering support. | Supports command-specific options via parsed args and help output. |
+| `sdd-forge flow <group>` | Routes flow operations (`prepare`, `resume`, `get`, `set`, `run`). | `-h`, `--help`. |
+| `sdd-forge flow prepare` | Alias route to `flow run prepare-spec`. | Options handled by `run prepare-spec` (for example `--title`, `--base`, `--worktree`, `--no-branch`, `--dry-run`). |
+| `sdd-forge flow resume` | Alias route to `flow run resume`. | Group help and run-specific options. |
+| `sdd-forge flow get check <target>` | Returns prerequisite/tool checks (`dirty`, `gh`, step prereqs). | Target required; valid targets constrained by constants. |
+| `sdd-forge flow get guardrail <phase>` | Returns merged guardrails filtered by phase. | `--format json` supported by command context; phase required. |
+| `sdd-forge flow get issue <number>` | Fetches GitHub issue fields via `gh issue view`. | Positive integer issue number required. |
+| `sdd-forge flow get next-action` | Resolves next actionable flow instruction from state + schema rules. | No extra flags required; requires resolvable flow state. |
+| `sdd-forge flow get prompt <kind>` | Returns localized prompt template by kind. | Valid kind required. |
+| `sdd-forge flow get qa-count` | Returns QA question count from metrics summary. | None beyond flow context. |
+| `sdd-forge flow set auto <on\|off>` | Toggles auto-approve with optional auto-check evaluation. | `--run-id` in preparing mode. |
+| `sdd-forge flow set gate-retry reset <phase> --yes` | Resets tracked gate retry counters for `task-impl` or `integration`. | `--yes` confirmation required. |
+| `sdd-forge flow set init` | Creates preparing run and stores initial issue/request metadata. | `--issue`, `--request`. |
+| `sdd-forge flow set issue <number>` | Persists flow issue number. | Positive integer required. |
+| `sdd-forge flow set metric <phase> <counter>` | Increments a metric counter for a phase. | `--task-id` optional. |
+| `sdd-forge flow set note "<text>"` | Appends operator note to flow state. | `--task-id` optional. |
+| `sdd-forge flow set request "<text>"` | Stores high-level request text in flow state. | Text required. |
+| `sdd-forge flow set step <id> <status>` | Updates step status and triggers approval-time task sync. | Valid status required. |
+| `sdd-forge flow set test-summary ...` | Writes test summary (`legacy flags` or `--json` payload). | `--unit`, `--integration`, `--acceptance`, or `--json`; `--mode fallback`; `--baseline`. |
+| `sdd-forge flow run gate` | Executes gate validations (draft/spec/task/integration), guardrails, diff checks, and retry controls. | Phase/level driven by command context and constants. |
+| `sdd-forge flow run lint` | Runs guardrail-based lint against changed files. | `--base` optional (falls back to active flow base branch). |
+| `sdd-forge flow run merge` | Finalize merge route (`pr` via `gh` or local `squash`), including pre-sync rebase checks. | Strategy inferred from config + environment. |
+| `sdd-forge flow run prepare-spec` | Initializes spec directory, templates, branch/worktree, and flow state. | `--title`, `--base`, `--run-id`, `--no-branch`, `--worktree`, `--dry-run`, plus issue/request context. |
+| `sdd-forge flow run reopen-draft` | Rewinds draft/gate-draft for adding tasks mid-implementation. | `--reason` (validated, optional). |
+| `sdd-forge flow run report` | Generates and saves `report.json` for active spec. | `--dry-run`. |
+| `sdd-forge flow report show` | Prints text from most recent finalized `report.json`. | No options required by command implementation. |
+| `sdd-forge flow run review` | Runs review subprocess for generic/spec/test phases with retry. | `--phase`, `--dry-run`, `--skip-confirm`. |
+| `sdd-forge flow run sync` | Executes docs build/review and optionally commits docs sync changes. | `--dry-run`. |
+| `sdd-forge flow run tests` | Runs resolved test command, stores logs, parses counts, and updates test summary. | `--baseline` supported in command context. |
+| `sdd-forge metrics <command>` | Dispatches metrics subcommands from `metricsCommands`. | `-h`, `--help`. |
+| `sdd-forge spec <command>` | Dispatches spec subcommands from `specCommands`. | `-h`, `--help`. |
+| `sdd-forge spec render` | Validates `spec.json` against schema and renders deterministic `spec.md`. | `--spec`, `--out`, `-h`, `--help`. |
 <!-- {{/text}} -->
 
 ### Global Options
 
 <!-- {{text({prompt: "Describe global options shared by all commands in table format. Extract from argument parsing logic in the source code.", mode: "deep"})}} -->
 
-| Option | Scope | Behavior |
+| Global option | Scope | Behavior |
 | --- | --- | --- |
-| `-h`, `--help` | Shared across top-level command entrypoints and parser-backed subcommands | Shows usage/help text; many entrypoints exit success for explicit help and non-zero for missing required subcommand. |
-| `--` | `parseArgs`-based commands | Recognized as separator token by parser loop (ignored during option parsing). |
-| Unknown option handling | `parseArgs`-based commands and explicit validators | Parser throws `Unknown option: ...`; some commands (for example `docs build`) print command-scoped unknown-option errors and exit non-zero. |
-| Global non-help flags | Not defined as universal | No cross-command flag set (such as global `--verbose`) is shared by all commands; flags are command-specific.
+| `-h`, `--help` | Implemented across top-level routers (`check`, `docs`, `flow`, `metrics`, `spec`) and many subcommands using `parseArgs` | Prints usage/help text and exits successfully when explicitly requested. |
+| Subcommand key (positional) | Top-level command routers | Required for command groups; missing or unknown keys print usage/error and exit non-zero. |
+| `--` | Commands using shared `parseArgs` | Recognized as a token and skipped by parser loop (does not create an option value by itself). |
 <!-- {{/text}} -->
 
 ### Command Details
 
 <!-- {{text({prompt: "Describe each command's usage, options, and examples in detail. Create a #### subsection for each command. Extract from argument definitions and help messages in the source code.", mode: "deep"})}} -->
 
+#### `sdd-forge check`
+Usage: `sdd-forge check <command>`.
+Options: `-h`, `--help`.
+Behavior: lists available `checkCommands` on help; unknown subcommand exits with error.
+Example: `sdd-forge check --help`.
+
+#### `sdd-forge docs`
+Usage: `sdd-forge docs <command>`.
+Core subcommands in analyzed code: `build`, `changelog`, `forge`, `text` (plus registry-driven siblings such as `scan`, `enrich`, `init`, `data`, `readme`, `agents`, `translate`, `review`, `snapshot`).
+Example: `sdd-forge docs build --verbose --force`, `sdd-forge docs changelog --dry-run`, `sdd-forge docs forge --prompt-file prompt.md --mode agent --max-runs 3`.
+
+#### `sdd-forge flow`
+Usage: `sdd-forge flow <prepare|resume|get|set|run> ...`.
+Aliases: `flow prepare` routes to `run prepare-spec`; `flow resume` routes to `run resume`.
+Examples: `sdd-forge flow get check dirty`, `sdd-forge flow set step approval done`, `sdd-forge flow run review --phase spec`, `sdd-forge flow run tests --baseline`.
+
+#### `sdd-forge metrics`
+Usage: `sdd-forge metrics <command>`.
+Behavior: registry-dispatched metrics commands; help path shows available keys.
+Example: `sdd-forge metrics --help` and `sdd-forge metrics token` (listed in help layout).
+
+#### `sdd-forge spec`
+Usage: `sdd-forge spec <command> [options]`.
+Known analyzed subcommand: `render` with `--spec <dir>` and `--out <path>`; validates schema before writing Markdown.
+Example: `sdd-forge spec render --spec specs/001-example --out specs/001-example/spec.md`.
+
 #### `sdd-forge help`
-Usage: `sdd-forge help`. Prints localized, sectioned command help with package version.
-Examples: `sdd-forge help`.
-
-#### `sdd-forge check <command>`
-Usage: `sdd-forge check <command>`; without a subcommand it prints available keys from `checkCommands`.
-Examples: `sdd-forge check --help`, `sdd-forge check <registered-subcommand>`.
-
-#### `sdd-forge docs <command>`
-Usage: `sdd-forge docs <command>`; routes to docs command registry and dispatches remaining args.
-Examples: `sdd-forge docs --help`, `sdd-forge docs build`, `sdd-forge docs changelog --dry-run`.
-
-#### `sdd-forge docs build`
-Usage: `sdd-forge docs build [--verbose] [--dry-run] [--force] [--regenerate]`.
-Options: `--verbose`, `--dry-run`, `--force`, `--regenerate`, `-h/--help`; unknown flags are rejected.
-Examples: `sdd-forge docs build --dry-run --verbose`, `sdd-forge docs build --force`.
-
-#### `sdd-forge docs changelog`
-Usage: `sdd-forge docs changelog [outFile] [--dry-run]`.
-Behavior: scans `specs/`, parses `spec.json`/`flow.json`, and writes `docs/change_log.md` if no output path is provided.
-Examples: `sdd-forge docs changelog`, `sdd-forge docs changelog docs/change_log.md --dry-run`.
-
-#### `sdd-forge docs forge`
-Usage: `sdd-forge docs forge --prompt <text>|--prompt-file <path> [--spec <path>] [--max-runs N] [--review-cmd <cmd>] [--mode local|assist|agent] [--dry-run] [--verbose]`.
-Behavior: optional analysis placeholder fill, target-file selection, iterative generation/review loops, and optional agent mode.
-Examples: `sdd-forge docs forge --prompt "Refresh CLI docs" --mode local`, `sdd-forge docs forge --prompt-file prompts/forge.txt --spec specs/001-x/spec.json --max-runs 2`.
-
-#### `sdd-forge spec <command>` and `sdd-forge spec render`
-Usage: `sdd-forge spec <command>` and `sdd-forge spec render [--spec <dir>] [--out <path>]`.
-`spec render` validates `spec.json` using schema, resolves active-flow spec dir by default, then writes rendered markdown.
-Examples: `sdd-forge spec --help`, `sdd-forge spec render`, `sdd-forge spec render --spec specs/001-foo --out specs/001-foo/spec.md`.
-
-#### `sdd-forge flow <command>`
-Usage: `sdd-forge flow prepare|resume|get <key>|set <key>|run <action>`.
-Behavior: `prepare` and `resume` are convenience routes mapped into run-style envelopes; grouped commands validate key/action before dispatch.
-Examples: `sdd-forge flow --help`, `sdd-forge flow get check dirty`, `sdd-forge flow set issue 123`, `sdd-forge flow run review --phase spec --skip-confirm`.
-
-#### `sdd-forge metrics <command>`
-Usage: `sdd-forge metrics <command>`; help layout includes `metrics token`.
-Examples: `sdd-forge metrics --help`, `sdd-forge metrics token`.
+Usage: `sdd-forge help`.
+Behavior: prints localized grouped command list with package version and per-command descriptions.
+Example: `sdd-forge help`.
 <!-- {{/text}} -->
 
 ### Exit Codes and Output
 
 <!-- {{text({prompt: "Define exit codes and describe stdout/stderr conventions in table format. Extract from process.exit() calls and output patterns in the source code.", mode: "deep"})}} -->
 
-| Situation | Exit behavior | Stdout convention | Stderr convention |
+| Context | Exit code behavior | Stdout convention | Stderr convention |
 | --- | --- | --- | --- |
-| Explicit help (`-h/--help`) on command groups | Exits `0` on explicit help paths in group entrypoints. | Usage/help text is printed (some groups use `console.log`). | Some group help paths print usage to stderr (`check`, `docs`, `metrics`). |
-| Missing required subcommand/key | Exits non-zero (`EXIT_ERROR` or `1` depending on entrypoint). | Usually none. | Prints usage guidance and/or unknown-command messages. |
-| Unknown command/option | Exits `EXIT_ERROR` in command entrypoints and option validators. | Usually none. | Prints command-scoped error text (for example unknown subcommand/unknown option). |
-| Successful command execution | Exits `0` by normal completion (no explicit error exit). | Command result text/artifacts are printed to stdout (`generated`, `rendered`, report text, dry-run outputs). | Progress/warnings may be printed to stderr in some flows (for example retries, warnings). |
-| Runtime failure during dispatch/command execution | Exits non-zero (`EXIT_ERROR` or `1` in explicit handlers such as `flow report show`). | Partial output may exist for commands that stream progress. | Error summary is printed with command prefix/context and failure details. |
+| Top-level routers (`check`, `docs`, `flow`, `metrics`, `spec`) | Missing/unknown command paths exit non-zero (`EXIT_ERROR`); explicit help exits `0` in most commands; `check` exits `1` when no subcommand is provided. | Usage/help or normal command output is printed to stdout (for example `flow --help`, `spec --help`). | Error and usage diagnostics are commonly printed to stderr in router failures (`unknown command`, guidance lines). |
+| `docs build` and other orchestrators | Fatal pipeline failures call `process.exit(EXIT_ERROR)` or throw; help returns without error. | Progress logs and successful step messages are printed to stdout. | Validation and pipeline errors are printed to stderr (for example unknown flag, regenerate precondition failures). |
+| `flow report show` | Exits `1` on pointer/report resolution or parse failures. | Writes only report `text` payload to stdout on success. | Prefixes failures as `sdd-forge flow report show: ...` to stderr. |
+| Shared process wrapper patterns | Non-zero subprocess outcomes are escalated through thrown errors or explicit asserts. | Machine-readable command results often return JSON-like objects through command framework output modes. | Retry notices, warnings, and command-failure details are written to stderr (for example review retry lines, guardrail warnings). |
+| `spec render` | Invalid options, missing files, or schema validation errors exit with `EXIT_ERROR`. | Success prints `rendered: <relative-path>`. | Validation and path errors are written to stderr before exit. |
 <!-- {{/text}} -->
 
 ---

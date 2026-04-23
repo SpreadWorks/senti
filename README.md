@@ -126,7 +126,7 @@ See the [configuration reference](docs/configuration.md) for details.
 | [Tool Overview and Architecture](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/overview.md) | This chapter introduces sdd-forge, a CLI tool that automates documentation generation from source code analysis and e… |
 | [Technology Stack and Operations](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/stack_and_ops.md) | This chapter covers the technology stack, dependency management, deployment, and operations procedures for sdd-forge,… |
 | [Project Structure](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/project_structure.md) | This chapter describes the overall directory organization of the sdd-forge project, which is structured around seven … |
-| [CLI Command Reference](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/cli_commands.md) | The published help layout lists 21 command entries across Project, Docs, Flow, Metrics, and Info sections. |
+| [CLI Command Reference](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/cli_commands.md) | The CLI is organized as command groups that dispatch subcommands from registries, with docs, flow, metrics, spec, and… |
 | [Configuration and Customization](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/configuration.md) | sdd-forge is configured through a single project-level JSON file (.sdd-forge/config.json) and optionally extended by … |
 | [Internal Design](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/internal_design.md) | This project is organized around three main areas: src/docs for documentation analysis and generation, src/flow for S… |
 | [Preset Creation Guide](https://github.com/SpreadWorks/sdd-forge/blob/main/docs/creating_presets.md) |  |
