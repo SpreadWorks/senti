@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-22T14:34:07.835Z",
+  "analyzedAt": "2026-04-23T00:13:09.989Z",
   "package": {
     "entries": [
       {
@@ -947,9 +947,9 @@
       },
       {
         "file": "src/docs/data/agents.js",
-        "hash": "b7c6ca59fc8b190a77203d11fd037597",
-        "lines": 145,
-        "mtime": "2026-04-19T12:12:39.675Z",
+        "hash": "092e57fde6d918023a810cd05a4a556d",
+        "lines": 146,
+        "mtime": "2026-04-22T23:27:14.749Z",
         "className": "agents",
         "methods": [],
         "imports": [
@@ -966,28 +966,15 @@
           "src/docs/commands/build.js"
         ],
         "id": "861d6c47",
-        "summary": "This DataSource exposes AGENTS-related dynamic values for template directives. It provides package metadata, config access, and timestamped sections.",
-        "detail": "The source class reads preset AGENTS templates by language and returns fallback-null when unavailable. It loads `.sdd-forge/config.json` and `package.json` safely for downstream interpolation. Helper methods produce formatted markdown fragments and normalized project metadata views. The implementation follows the shared DataSource registration pattern through container binding. This keeps agent-document generation decoupled from command code.",
-        "chapter": "internal_design",
-        "role": "model",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
           "attempts": 1
-        },
-        "keywords": [
-          "DataSource",
-          "agents metadata",
-          "template values",
-          "package introspection",
-          "config loader",
-          "container registration"
-        ]
+        }
       },
       {
         "file": "src/docs/data/docs.js",
-        "hash": "a61169837df7b0c22ff79383ae90c1e4",
-        "lines": 293,
-        "mtime": "2026-04-19T12:12:39.675Z",
+        "hash": "fbb861c3371e9fb7f2c89a0549ff8107",
+        "lines": 294,
+        "mtime": "2026-04-22T23:27:14.749Z",
         "className": "docs",
         "methods": [],
         "imports": [
@@ -1002,28 +989,15 @@
         "extends": "DataSource",
         "usedBy": null,
         "id": "273334ae",
-        "summary": "This DataSource provides docs navigation, repository links, language labels, and chapter-derived tables. It centralizes docs-aware computed fields for template rendering.",
-        "detail": "It derives repository URLs from package metadata and normalizes git-style prefixes/suffixes. Path helpers compute cross-language relative links and GitHub blob URLs for chapter files. The class reads docs chapters, extracts titles, and emits markdown table or prev/next navigation fragments. Locale files are loaded with fallback behavior for language names. All behaviors are encapsulated behind DataSource methods to keep templates declarative.",
-        "chapter": "internal_design",
-        "role": "model",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
           "attempts": 1
-        },
-        "keywords": [
-          "docs datasource",
-          "navigation links",
-          "repo URL",
-          "language detection",
-          "markdown table",
-          "chapter title extraction"
-        ]
+        }
       },
       {
         "file": "src/docs/data/lang.js",
-        "hash": "8fa76daa16ee47c286a1dda92fbefd15",
-        "lines": 115,
-        "mtime": "2026-04-19T12:12:39.675Z",
+        "hash": "176715a527640523ff3bc45e84522a23",
+        "lines": 116,
+        "mtime": "2026-04-22T23:27:14.750Z",
         "className": "lang",
         "methods": [],
         "imports": [
@@ -1035,28 +1009,15 @@
         "extends": "DataSource",
         "usedBy": null,
         "id": "780c6d68",
-        "summary": "This DataSource supplies language-switch links and language metadata for docs templates. It focuses on multilingual path mapping for chapter files.",
-        "detail": "It defines language display names and computes target links based on current file location and default language rules. File path analysis detects language context from directory patterns. The source reads project config to determine enabled languages and defaults. Outputs are formatted as compact markdown link groups for insertion in templates. The module follows the same registration and class-based DataSource contract as other data providers.",
-        "chapter": "internal_design",
-        "role": "model",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
           "attempts": 1
-        },
-        "keywords": [
-          "language switcher",
-          "multilingual links",
-          "path mapping",
-          "locale metadata",
-          "docs i18n",
-          "DataSource class"
-        ]
+        }
       },
       {
         "file": "src/docs/data/project.js",
-        "hash": "a0c96d8f0ea2c231c270093aabda9beb",
-        "lines": 62,
-        "mtime": "2026-04-19T12:12:39.675Z",
+        "hash": "8f3a6937462b20163c3973f34d7fd254",
+        "lines": 63,
+        "mtime": "2026-04-22T23:27:14.750Z",
         "className": "project",
         "methods": [],
         "imports": [
@@ -1069,22 +1030,9 @@
         "extends": "DataSource",
         "usedBy": null,
         "id": "dd4d31db",
-        "summary": "This DataSource exposes core project metadata such as name, description, and version from `package.json`. It supports markdown table rendering for project overview sections.",
-        "detail": "The class lazily loads and caches package data to avoid repeated filesystem reads. Accessor methods provide resilient fallbacks when fields are missing. It includes a formatter that converts key-value rows into markdown table output. Registration is container-based, consistent with the rest of the docs data layer. This source is intentionally small and focused on project identity fields.",
-        "chapter": "overview",
-        "role": "model",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
           "attempts": 1
-        },
-        "keywords": [
-          "project metadata",
-          "package.json reader",
-          "version info",
-          "markdown formatter",
-          "cached accessors",
-          "DataSource"
-        ]
+        }
       },
       {
         "file": "src/docs/data/text.js",
@@ -1359,14 +1307,16 @@
       },
       {
         "file": "src/docs/lib/data-source.js",
-        "hash": "4c94fbb481e50f1c35796d75016cb61e",
-        "lines": 92,
-        "mtime": "2026-03-26T03:13:47.933Z",
+        "hash": "6647572616d9e98467c009ec0f6e5e11",
+        "lines": 94,
+        "mtime": "2026-04-22T23:27:14.750Z",
         "className": "data-source",
         "methods": [
           "DataSource"
         ],
-        "imports": [],
+        "imports": [
+          "./renderable.js"
+        ],
         "exports": [
           "DataSource"
         ],
@@ -1376,25 +1326,14 @@
         ],
         "id": "f0f9731d",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Defines the base DataSource class used by docs data resolvers. It provides description lookup, override handling, and markdown table rendering helpers.",
-        "detail": "The class offers shared utility methods so concrete sources can focus on domain-specific data extraction. It supports summary override loading and mapping to enrich generated rows without duplicating logic in subclasses. Built-in markdown table construction standardizes output formatting across different data sections. The design encourages class-based extensibility and invariant-friendly behavior.",
-        "chapter": "creating_presets",
-        "role": "model",
-        "keywords": [
-          "DataSource base class",
-          "markdown table",
-          "summary overrides",
-          "extensibility"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/docs/lib/directive-parser.js",
-        "hash": "0159608f9b7a8733397895d9c36b3e31",
-        "lines": 513,
-        "mtime": "2026-03-22T13:22:06.958Z",
+        "hash": "5b129d469e341758d944e8a57f9fabbd",
+        "lines": 516,
+        "mtime": "2026-04-22T23:27:14.750Z",
         "className": "directive-parser",
         "methods": [
           "parseDirectives",
@@ -1411,7 +1350,9 @@
           "findClosingTag",
           "replaceInlineDirective"
         ],
-        "imports": [],
+        "imports": [
+          "./renderable.js"
+        ],
         "exports": [
           "parseDirectives",
           "replaceBlockDirective",
@@ -1429,19 +1370,8 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Parses and resolves docs directives such as data, text, block, and extends. It also supports inline directive replacement and block extraction.",
-        "detail": "Regex-driven parsers identify directive boundaries and convert options into structured fields with labels and params. The module includes robust closing-tag detection with explicit unclosed-directive errors and line context. Replacement helpers rewrite source text by injecting resolved content for block and inline directives. Block parsing captures inheritance-related metadata used by template merging.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "keywords": [
-          "directive parser",
-          "template directives",
-          "block inheritance",
-          "inline replacement"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/docs/lib/docs-context.js",
@@ -1856,6 +1786,48 @@
         ]
       },
       {
+        "file": "src/docs/lib/renderable.js",
+        "hash": "c82f849b14db8a639397dca6245bbd0f",
+        "lines": 169,
+        "mtime": "2026-04-22T23:27:14.750Z",
+        "className": "renderable",
+        "methods": [
+          "Renderable",
+          "Table",
+          "BulletList",
+          "OrderedList",
+          "Paragraph",
+          "CodeBlock",
+          "Blockquote",
+          "Heading",
+          "Fragment",
+          "escapeCell",
+          "indent",
+          "renderPart"
+        ],
+        "imports": [],
+        "exports": [
+          "Renderable",
+          "Table",
+          "BulletList",
+          "OrderedList",
+          "Paragraph",
+          "CodeBlock",
+          "Blockquote",
+          "Heading",
+          "Fragment"
+        ],
+        "extends": "Renderable",
+        "usedBy": [
+          "src/docs/lib/data-source.js",
+          "src/docs/lib/directive-parser.js"
+        ],
+        "id": "f6126150",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/docs/lib/resolver-factory.js",
         "hash": "f23e067f6741852bb757f8928d94b4b5",
         "lines": 163,
@@ -2237,9 +2209,9 @@
       },
       {
         "file": "src/flow/commands/merge.js",
-        "hash": "cce82d1bfddf836719834a99d4254119",
-        "lines": 245,
-        "mtime": "2026-04-22T10:38:43.069Z",
+        "hash": "704aa3a5b9b5c766cb8b9f7866f26c0a",
+        "lines": 253,
+        "mtime": "2026-04-23T00:13:09.700Z",
         "className": "merge",
         "methods": [
           "resolveRemote",
@@ -2249,6 +2221,7 @@
           "buildPrTitle",
           "buildPrBody",
           "loadSpec",
+          "resolveMergeStrategy",
           "runMerge",
           "runPreSync"
         ],
@@ -2261,6 +2234,7 @@
         ],
         "exports": [
           "runMerge",
+          "resolveMergeStrategy",
           "parseSpec",
           "buildPrTitle",
           "buildPrBody",
@@ -2269,24 +2243,9 @@
         "extends": null,
         "usedBy": null,
         "id": "3a0db928",
-        "summary": "This module implements flow merge behavior, including PR-based and squash-based strategies. It also builds PR metadata from spec content and runs pre-sync safety checks before integration.",
-        "detail": "It centralizes merge execution in `runMerge`, selecting strategy from flow configuration and environment capability checks such as GitHub CLI availability. Spec parsing and normalization are handled through `parseSpec`, then reused by `buildPrTitle` and `buildPrBody` to generate consistent PR text with requirements and scope sections. The squash path delegates to git helper primitives and raises explicit conflict errors with actionable hints when rebase or merge steps fail. `runPreSync` performs fetch/rebase style synchronization and returns structured conflict information instead of only throwing. The design keeps policy decisions in the command layer while delegating low-level git operations to shared helpers.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T10:39:18.253Z",
           "attempts": 1
-        },
-        "keywords": [
-          "merge strategy",
-          "pull request body",
-          "squash merge",
-          "pre-sync",
-          "rebase conflict",
-          "flow command",
-          "spec parsing",
-          "GitHub CLI"
-        ]
+        }
       },
       {
         "file": "src/flow/commands/report.js",
@@ -2841,9 +2800,9 @@
       },
       {
         "file": "src/flow/lib/get-prompt.js",
-        "hash": "8f98a5811142808f139e953541ddb386",
-        "lines": 344,
-        "mtime": "2026-04-14T08:21:38.519Z",
+        "hash": "fa65c8ba31b81f4484d1b6bc6537c0f3",
+        "lines": 326,
+        "mtime": "2026-04-23T00:13:09.700Z",
         "className": "get-prompt",
         "methods": [
           "validKinds"
@@ -2858,19 +2817,8 @@
         "usedBy": null,
         "id": "410dfcc9",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Returns localized prompt templates by kind for flow phases. It validates requested prompt kinds against supported keys.",
-        "detail": "A language-keyed prompt map stores canonical text snippets for each supported prompt category. The command checks missing or unknown kinds and raises informative errors with valid options. Returned output includes the selected prompt content in a stable shape for callers. This creates a single source of truth for built-in prompt wording.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "prompt catalog",
-          "localized prompts",
-          "kind validation",
-          "flow prompts"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/get-qa-count.js",
@@ -3178,9 +3126,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "adc2664e003f7e28a99e9aa400e50105",
-        "lines": 509,
-        "mtime": "2026-04-22T10:38:43.069Z",
+        "hash": "f92fe5dab8a4e7ed02605f2ff9fd0a48",
+        "lines": 501,
+        "mtime": "2026-04-23T00:13:09.700Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3205,7 +3153,6 @@
           "../../lib/flow-helpers.js",
           "./set-issue-log.js",
           "../../lib/git-helpers.js",
-          "../../lib/constants.js",
           "./base-command.js",
           "../registry.js",
           "../../lib/container.js",
@@ -3227,24 +3174,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "summary": "This module defines finalize orchestration for the flow lifecycle, including preflight checks, optional commit/merge steps, reporting, and cleanup. It exposes both reusable step functions and the `RunFinalizeCommand` controller.",
-        "detail": "It implements robust finalize sequencing with a step map, sub-step runner, and error-wrapping helpers so failures can be attributed to precise phases. Preflight logic validates git writability, branch/worktree cleanliness, and merge strategy constraints before mutating repository state. The command supports full and selective execution modes, verifies user-provided step names, and composes post-commit operations like docs/build hooks and migration scripts. Cleanup handling is worktree-aware and can skip or finalize differently for spec-only mode. Persistent pointers and issue-log integration provide traceability of the last finalized spec and downstream flow state.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T10:39:18.253Z",
           "attempts": 1
-        },
-        "keywords": [
-          "finalize pipeline",
-          "preflight checks",
-          "step orchestration",
-          "worktree cleanup",
-          "merge strategy validation",
-          "flow command",
-          "issue log",
-          "post-commit hook"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -4329,9 +4261,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "714b100907173fb3dafcfbd753629d37",
-        "lines": 579,
-        "mtime": "2026-04-22T12:49:30.337Z",
+        "hash": "25ca44b3bd484b9ddfe165ced04a3ce1",
+        "lines": 578,
+        "mtime": "2026-04-23T00:13:09.701Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4351,23 +4283,9 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the flow command registry and wraps command execution with step-status and issue-log side effects. It centralizes lifecycle hooks around flow operations.",
-        "detail": "The module derives active phase information from persisted state and exposes helper wrappers for pre/post step updates. It uses guarded update functions that can either log-and-skip or rethrow depending on context, reducing accidental command failure from telemetry writes. Registry entries include command help text and post-actions such as gate retry counter updates and commit post-processing. Step hooks convert command outcomes into standardized status transitions, enabling consistent progress tracking across flow stages. This file acts as a dispatch integration layer between command handlers and flow bookkeeping.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T13:01:40.985Z",
           "attempts": 1
-        },
-        "keywords": [
-          "command registry",
-          "lifecycle hooks",
-          "step status",
-          "issue log",
-          "flow phase",
-          "gate retry",
-          "post action"
-        ]
+        }
       },
       {
         "file": "src/help.js",
@@ -4751,9 +4669,9 @@
       },
       {
         "file": "src/lib/constants.js",
-        "hash": "787ccbbbdb7c90752c5e680d32d7301d",
-        "lines": 166,
-        "mtime": "2026-04-20T16:14:41.463Z",
+        "hash": "a680d98324c1aca3a5b9ae4c5bc3a72f",
+        "lines": 157,
+        "mtime": "2026-04-23T00:13:09.701Z",
         "className": "constants",
         "methods": [],
         "imports": [],
@@ -4769,7 +4687,6 @@
           "VALID_CHECK_TARGETS",
           "VALID_REVIEW_PHASES",
           "VALID_IMPL_CONFIRM_MODES",
-          "VALID_MERGE_STRATEGIES",
           "VALID_AUTO_VALUES",
           "VALID_REQ_STATUSES",
           "EXIT_SUCCESS",
@@ -4790,28 +4707,14 @@
         ],
         "id": "74b5e1c3",
         "enrich": {
-          "processedAt": "2026-04-21T06:12:29.233Z",
-          "attempts": 8
-        },
-        "summary": "Defines shared constant enums and exit codes used across flow, gate, review, and CLI validation paths. It centralizes allowable values for phases, statuses, strategies, and categories.",
-        "detail": "The module exports frozen arrays for many domain constraints, including phase names, gate levels, review phases, merge strategies, and requirement states. These constants are consumed by command parsers and runtime validators to enforce consistent behavior. It also provides process-level exit code constants for success and error termination semantics. By concentrating canonical value sets in one file, it reduces drift and mismatch across modules. The design is static and dependency-free, intended as a single source of truth.",
-        "chapter": "internal_design",
-        "role": "config",
-        "keywords": [
-          "constants",
-          "enum values",
-          "phase definitions",
-          "exit codes",
-          "merge strategies",
-          "validation set",
-          "shared config"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/container.js",
-        "hash": "def97327779d69e17b28b3840116f331",
-        "lines": 192,
-        "mtime": "2026-04-19T12:12:39.676Z",
+        "hash": "322952e1f649f6a88d06ad858bfcf41b",
+        "lines": 212,
+        "mtime": "2026-04-22T23:27:14.750Z",
         "className": "container",
         "methods": [
           "Container",
@@ -4829,6 +4732,7 @@
           "./flow-manager.js",
           "../docs/lib/data-source.js",
           "../docs/lib/scan-source.js",
+          "../docs/lib/renderable.js",
           "../docs/lib/analysis-entry.js",
           "../docs/lib/scanner.js",
           "../docs/lib/php-array-parser.js",
@@ -4853,21 +4757,9 @@
           "src/spec.js"
         ],
         "id": "fc4eae43",
-        "summary": "container.js implements dependency registration and bootstraps the application service graph. It wires config, logging, flow management, scanning, and preset utilities.",
-        "detail": "The Container class supports registration, retrieval, and preset cache access with strict missing-dependency errors. `initContainer` computes runtime paths and initializes services such as Agent, Logger, FlowManager, i18n, and docs analyzers. It captures config-load failures to stderr while preserving startup resilience. This module is the runtime composition root for the CLI.",
-        "chapter": "project_structure",
-        "role": "middleware",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
           "attempts": 1
-        },
-        "keywords": [
-          "dependency injection",
-          "service container",
-          "bootstrap",
-          "runtime wiring",
-          "composition root"
-        ]
+        }
       },
       {
         "file": "src/lib/dispatcher.js",
@@ -7926,9 +7818,9 @@
       },
       {
         "file": "src/presets/monorepo/data/monorepo.js",
-        "hash": "95e246ee6648f1a8fa9bc6f61c9929f7",
-        "lines": 85,
-        "mtime": "2026-04-19T12:12:39.680Z",
+        "hash": "46beb43722f065b62abbc63bf9126a70",
+        "lines": 86,
+        "mtime": "2026-04-22T23:27:14.750Z",
         "className": "monorepo",
         "methods": [],
         "imports": [
@@ -9113,10 +9005,10 @@
       }
     ],
     "summary": {
-      "total": 269,
-      "totalMethods": 862
+      "total": 270,
+      "totalMethods": 875
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-22T14:35:12.030Z"
+  "enrichedAt": "2026-04-23T00:14:05.755Z"
 }
