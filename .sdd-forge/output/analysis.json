@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T00:13:09.989Z",
+  "analyzedAt": "2026-04-23T01:13:11.944Z",
   "package": {
     "entries": [
       {
@@ -967,8 +967,21 @@
         ],
         "id": "861d6c47",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Defines the docs data source for AGENTS-related metadata and text blocks. It reads template and project files to provide renderable content for documentation generation.",
+        "detail": "The module registers an `AgentsSource` class that extends `DataSource` and resolves data from preset templates, project config, and package metadata. It loads language-specific `AGENTS.sdd.md` files from the base preset and returns them as `Paragraph` instances when available. The implementation uses filesystem guards (`existsSync`) before reads and returns `null` when optional data is missing. It also exposes language and config accessors with safe fallback objects. The overall pattern is a small, synchronous, file-backed provider tailored for directive-based docs rendering.",
+        "chapter": "internal_design",
+        "role": "model",
+        "keywords": [
+          "data source",
+          "agents metadata",
+          "preset template",
+          "filesystem read",
+          "documentation provider",
+          "config fallback"
+        ]
       },
       {
         "file": "src/docs/data/docs.js",
@@ -990,8 +1003,22 @@
         "usedBy": null,
         "id": "273334ae",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Implements a rich docs-oriented data source that resolves links, language variants, repository URLs, and navigation metadata. It powers multi-language documentation rendering and cross-file references.",
+        "detail": "The `DocsSource` class derives repository and package metadata, normalizes Git URLs, and formats output using `Paragraph` and markdown table helpers. It detects language from path patterns and computes relative links between default and localized docs directories. The code loads locale labels from `locale/*/ui.json` with fallback to English, then uses those names in language-aware link generation. It also scans docs files to build index tables and prev/next navigation by extracting titles from markdown headings. The design is synchronous and deterministic, emphasizing stable path transforms and graceful behavior when files or directories are absent.",
+        "chapter": "internal_design",
+        "role": "model",
+        "keywords": [
+          "docs source",
+          "i18n links",
+          "relative path",
+          "repository URL",
+          "markdown navigation",
+          "locale fallback",
+          "documentation index"
+        ]
       },
       {
         "file": "src/docs/data/lang.js",
@@ -1010,8 +1037,21 @@
         "usedBy": null,
         "id": "780c6d68",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Provides language-link data generation for documentation pages. It maps file paths to language variants and renders compact language switch UI text.",
+        "detail": "The module defines `LangSource`, which extends `DataSource` and uses a static language-name map for display labels. It determines a file’s language from directory conventions and computes sibling paths for target languages. The output is formatted as a single paragraph containing link separators for easy embedding in templates. Configuration is loaded from `.sdd-forge/config.json` with an empty-object fallback. The implementation stays minimal and path-driven, focused on predictable multilingual navigation.",
+        "chapter": "internal_design",
+        "role": "model",
+        "keywords": [
+          "language switcher",
+          "localized docs",
+          "path detection",
+          "link generation",
+          "multilingual",
+          "docs i18n"
+        ]
       },
       {
         "file": "src/docs/data/project.js",
@@ -1031,8 +1071,20 @@
         "usedBy": null,
         "id": "dd4d31db",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Supplies project-level metadata for docs from `package.json` and root path context. It exposes project name, description, version, and table-formatted fields.",
+        "detail": "The `ProjectSource` class caches parsed package metadata to avoid repeated file reads. It conditionally loads `package.json`, then derives basic presentation fields with sensible defaults. Missing description fields return `null`, while version falls back to `0.0.0`. Tabular outputs are produced through shared markdown table utilities inherited from `DataSource`. The module follows a straightforward adapter pattern from package metadata into renderable documentation fragments.",
+        "chapter": "overview",
+        "role": "model",
+        "keywords": [
+          "project metadata",
+          "package.json",
+          "name description version",
+          "markdown table",
+          "docs data source"
+        ]
       },
       {
         "file": "src/docs/data/text.js",
@@ -1326,8 +1378,21 @@
         ],
         "id": "f0f9731d",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Defines the base `DataSource` abstraction and common transformation helpers used by docs providers. It centralizes shared rendering and override logic.",
+        "detail": "The class offers reusable methods for description lookup, default placeholders, item mapping, and summary override application. It supports optional override loading hooks and composable list transformations for derived sources. A table factory method standardizes conversion to `Table` renderables with labels and row data. This keeps concrete data sources small by moving formatting and merge behavior into one base class. The design promotes consistency across docs data modules while preserving extension points.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "DataSource base",
+          "shared helpers",
+          "table rendering",
+          "override mapping",
+          "abstraction",
+          "docs pipeline"
+        ]
       },
       {
         "file": "src/docs/lib/directive-parser.js",
@@ -1370,8 +1435,21 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Implements parsing and replacement for custom docs directives such as `data`, `text`, `block`, and `extends`. It is the core parser for the template-like directive system.",
+        "detail": "The module defines regex-driven parsing primitives for inline and block directives, including robust open/close matching with explicit unclosed-tag errors. It extracts options, path fields, labels, and parameters into normalized directive objects. Utility functions replace parsed directives with resolved content and can strip or isolate block directives for composition workflows. `parseBlocks` additionally captures inheritance metadata (`extends`) plus preamble/postamble segments. The implementation uses line-based scanning with deterministic transformations, enabling predictable preprocessing before markdown rendering.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "directive parser",
+          "template engine",
+          "regex parser",
+          "block inheritance",
+          "inline directives",
+          "content replacement"
+        ]
       },
       {
         "file": "src/docs/lib/docs-context.js",
@@ -1824,8 +1902,21 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Defines renderable markdown object types and composition primitives. It provides structured markdown generation via class-based polymorphism.",
+        "detail": "The module starts with an abstract `Renderable` contract and concrete implementations including `Table`, `BulletList`, `OrderedList`, `Paragraph`, `CodeBlock`, `Blockquote`, `Heading`, and `Fragment`. Constructors enforce invariants (for example, heading levels and table shape), and throw explicit errors when invalid data is provided. Helper functions escape table cells, indent multiline text, and recursively render nested parts. Output generation is centralized in `toMarkdown()` methods, keeping formatting behavior close to each type. This design aligns with OOP-based typed value modeling and supports reliable `instanceof`-based rendering flows.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "renderable",
+          "markdown AST",
+          "table renderer",
+          "bullet list",
+          "OOP modeling",
+          "toMarkdown"
+        ]
       },
       {
         "file": "src/docs/lib/resolver-factory.js",
@@ -2244,8 +2335,21 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Implements flow merge orchestration, including PR-based and squash-based strategies. It builds PR metadata from spec content and handles pre-sync/rebase preparation.",
+        "detail": "The module parses spec fields into normalized structures and formats requirements and scope blocks for PR body construction. Merge strategy resolution combines config flags and GitHub CLI availability to choose between `pr` and `squash`. It includes guarded squash merge execution with conflict detection and actionable recovery hints. `runPreSync` fetches branches and rebases feature work onto base, returning structured conflict information when rebase fails. Exports expose both high-level command behavior and helper utilities for testability.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "keywords": [
+          "merge strategy",
+          "pull request body",
+          "squash merge",
+          "rebase pre-sync",
+          "spec parsing",
+          "flow command"
+        ]
       },
       {
         "file": "src/flow/commands/report.js",
@@ -2817,8 +2921,20 @@
         "usedBy": null,
         "id": "410dfcc9",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Provides a flow command that returns localized prompt templates by kind. It validates prompt type and emits structured prompt payloads.",
+        "detail": "A language-keyed prompt map stores prompt strings categorized by command intent. The command validates that `kind` is provided and belongs to known keys, throwing explicit errors otherwise. It derives valid kinds from the Japanese map as canonical key source. The class extends `FlowCommand` and returns a uniform response object for downstream consumers. The module is intentionally small and focused on deterministic prompt lookup.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "keywords": [
+          "prompt registry",
+          "localized prompts",
+          "flow command",
+          "kind validation",
+          "template lookup"
+        ]
       },
       {
         "file": "src/flow/lib/get-qa-count.js",
@@ -3175,14 +3291,27 @@
         "usedBy": null,
         "id": "c711309b",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Implements finalize-phase orchestration for the SDD flow, including preflight checks, commit/merge/docs sync, and cleanup. It also handles pointer updates and failure finalization hooks.",
+        "detail": "The module provides helper functions for error-triggered finalization, last-finalized spec pointer writing, and cleanup behavior across main/worktree contexts. It includes git write-access preflight validation via temporary lock-file creation and wraps IO failures with domain-specific errors. `RunFinalizeCommand` supports full and selective step execution using `STEP_MAP`, with strict argument validation and structured step results. The command integrates migration hooks, merge strategy propagation, and optional docs build metadata in commit post-processing. Overall, it acts as the controller for terminal flow completion and state normalization.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "finalize flow",
+          "preflight checks",
+          "cleanup orchestration",
+          "step map",
+          "commit post",
+          "worktree handling"
+        ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "f24aadd3b28ff13371d9ca32a6058f11",
-        "lines": 1468,
-        "mtime": "2026-04-22T14:34:07.553Z",
+        "hash": "3f2ac3d056072342f7954542a0f505ff",
+        "lines": 1487,
+        "mtime": "2026-04-23T01:13:11.607Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3223,6 +3352,7 @@
           "readGateRetryCount",
           "formatRetryHistory",
           "warnGateRetryBudget",
+          "appendGateEscalationIssueLog",
           "findPreviousFailEntry",
           "buildFailPairKey",
           "buildImplCheckPrompt",
@@ -3286,22 +3416,22 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Provides the core gate evaluation engine for spec, draft, and diff-based checks across flow phases. It validates guardrail responses, enforces retry policies, and emits structured pass/fail results.",
-        "detail": "The module defines phase-level validation rules and maps phases to gate levels for deterministic command routing. It performs text and diff analysis, including draft structure checks, test-change authorization checks, and guardrail-based AI evaluation parsing with schema enforcement. Retry and anti-stall mechanisms track repeated failures using issue-log history, Git state fingerprints, and normalized failure reasons. Guardrail prompts are dynamically filtered by phase and role, then parsed with strict JSON expectations to avoid ambiguous outputs. Results are normalized into gate reports with evaluations, warnings, and next-step hints.",
-        "chapter": "internal_design",
-        "role": "lib",
+        "summary": "Implements the gate engine for spec/draft/diff validation, guardrail evaluation, and retry/escalation logic. It is the core quality gate controller in the flow pipeline.",
+        "detail": "The module validates phase-level combinations, inspects text structure, parses diff hunks, and checks constraints such as unauthorized test-file modifications. It builds AI guardrail prompts, parses strict JSON evaluation responses, enforces schema validity, and produces standardized gate reports. Retry accounting and no-progress detection are tracked through issue-log and git-state fingerprints, with escalation paths for repeated failures. Command execution supports draft, spec, and implementation-diff modes with shared pass/fail envelope outputs. The design combines deterministic static checks with configurable AI evaluations for staged quality control.",
+        "chapter": "cli_commands",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
+          "processedAt": "2026-04-23T01:14:19.398Z",
           "attempts": 1
         },
         "keywords": [
-          "gate validation",
-          "guardrails",
+          "quality gate",
+          "guardrail evaluation",
           "diff analysis",
           "retry budget",
-          "evaluation schema",
-          "spec compliance",
-          "quality gate"
+          "schema validation",
+          "issue log",
+          "flow enforcement"
         ]
       },
       {
@@ -3383,9 +3513,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "cabc201645b9ad3c58ef10b60d082fb8",
+        "hash": "3f592acc4c00fed15f2733924fd484ee",
         "lines": 350,
-        "mtime": "2026-04-22T13:01:17.492Z",
+        "mtime": "2026-04-23T00:47:40.262Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3418,23 +3548,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "This module prepares a new spec workspace for the flow system by generating required files and initial flow state. It encapsulates branch detection, naming, template loading, and file bootstrap logic in a command class.",
-        "detail": "The module defines helper functions for git command execution, title slug generation, sequential spec indexing, and base-branch validation with a fallback strategy. It builds default QA and draft templates and supports local template override loading from `.sdd-forge/templates/<lang>/specs/qa.md`. `RunPrepareSpecCommand` extends `FlowCommand` and enforces required inputs and preconditions such as config presence and clean worktree expectations unless isolated worktree mode is used. The command computes branch and spec paths, creates the spec directory, initializes `spec.json` from an empty stub, and renders `spec.md` from structured JSON through `renderSpecMarkdown`. It also creates missing `qa.md` and `draft.md` files and persists flow state metadata for downstream flow steps.",
+        "summary": "Creates and initializes new spec work items, including directory scaffolding, templates, and optional worktree setup. It prepares `spec.json`, `spec.md`, `qa.md`, and `draft.md` consistently.",
+        "detail": "The command generates stable spec identifiers through slugification and index allocation, then validates base branch and dirty-worktree constraints. It supports local template override loading from `.sdd-forge/templates/...` with fallback built-in QA/draft templates. When files are missing, it writes canonical stubs and renders markdown from `spec.json` using the shared renderer. Flow state is persisted with contextual metadata for subsequent flow commands. This module acts as the entry point for structured spec lifecycle initiation.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T13:17:59.282Z",
+          "processedAt": "2026-04-23T01:14:19.398Z",
           "attempts": 1
         },
         "keywords": [
-          "flow prepare",
-          "spec bootstrap",
-          "worktree isolation",
-          "branch detection",
-          "slugify",
+          "prepare spec",
+          "scaffolding",
+          "worktree setup",
           "template fallback",
-          "state initialization",
-          "markdown rendering"
+          "spec initialization",
+          "flow state"
         ]
       },
       {
@@ -4284,8 +4412,21 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Defines the flow command registry and step hook wiring for status updates and issue-log integration. It coordinates command lifecycle side effects around execute phases.",
+        "detail": "The module derives active phase from flow state and wraps status mutations in resilient helpers that log and rethrow on failure. Pre/post hook builders (`stepPre`, `stepPost`) abstract repeated step-status update behavior. It centralizes command descriptors, help text, and integration points such as retry-counter updates and commit post execution. Error-handling wrappers keep command orchestration robust without hiding failures. The registry functions as the dispatch/control layer linking command execution to flow telemetry.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "command registry",
+          "flow hooks",
+          "step status",
+          "issue log",
+          "dispatch",
+          "lifecycle orchestration"
+        ]
       },
       {
         "file": "src/help.js",
@@ -4707,8 +4848,21 @@
         ],
         "id": "74b5e1c3",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Exports canonical constant sets for phases, statuses, guardrail categories, and other CLI/domain enums. It provides shared validation vocabularies and exit codes.",
+        "detail": "All constant arrays are frozen to prevent runtime mutation and to keep command behavior consistent across modules. The file covers flow phases, gate levels, category lists, metric counters, and mode options used by validators. It also defines process-level exit code constants for success/error signaling. By consolidating enums in one place, the codebase avoids string drift and improves cross-module compatibility. This module acts as the authoritative configuration surface for internal state machines.",
+        "chapter": "configuration",
+        "role": "config",
+        "keywords": [
+          "constants",
+          "enum definitions",
+          "validation sets",
+          "exit codes",
+          "shared config",
+          "state machine values"
+        ]
       },
       {
         "file": "src/lib/container.js",
@@ -4758,8 +4912,21 @@
         ],
         "id": "fc4eae43",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-04-23T01:14:19.398Z",
+          "attempts": 2
+        },
+        "summary": "Implements the dependency injection container and application bootstrap wiring. It registers core services, docs analyzers, parsers, and path/config resolution utilities.",
+        "detail": "The `Container` class provides strict dependency lookup with explicit errors for missing registrations, plus preset registry helpers. Initialization composes runtime paths from root/config context and resolves log directories with workdir-aware behavior. The module imports and wires subsystems spanning CLI services, flow management, scanning/parsing utilities, language handlers, and docs analysis components. It includes guarded config load behavior that logs failures to stderr. This file is the primary composition root for runtime object graph setup.",
+        "chapter": "project_structure",
+        "role": "lib",
+        "keywords": [
+          "dependency injection",
+          "service container",
+          "bootstrap",
+          "composition root",
+          "path resolution",
+          "runtime wiring"
+        ]
       },
       {
         "file": "src/lib/dispatcher.js",
@@ -9006,9 +9173,9 @@
     ],
     "summary": {
       "total": 270,
-      "totalMethods": 875
+      "totalMethods": 876
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T00:14:05.755Z"
+  "enrichedAt": "2026-04-23T01:14:19.398Z"
 }
