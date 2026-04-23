@@ -1,0 +1,68 @@
+{
+  "spec": "specs/216-gate-envelope-issue-log/spec.md",
+  "date": "2026-04-23T01:13:08.314Z",
+  "requirements": [
+    {
+      "desc": "REQ-1 (P1): checkRetryBelowMax が Envelope.fail (ESCALATE_RETRY_EXHAUSTED) を return する場合、同じ呼び出しで issue-log に新しいエントリが1件追記される。reason には envelope messages を連結した文字列が含まれる。",
+      "status": "done",
+      "note": "checkRetryBelowMax で return 直前に appendGateEscalationIssueLog を呼び、messages.join(\"\\n\") を reason として issue-log 追記。追加テストでも1件追記と reason 内容を検証。"
+    },
+    {
+      "desc": "REQ-2 (P1): checkNoProgressSinceLastFail が Envelope.fail (NO_PROGRESS_SINCE_LAST_FAIL) を return する場合、同じ呼び出しで issue-log に新しいエントリが1件追記される。reason には envelope messages を連結した文字列が含まれる。",
+      "status": "done",
+      "note": "checkNoProgressSinceLastFail に ctx を渡し、Envelope.fail 前に同じ helper を実行して issue-log 追記。追加テストで1件追記と reason 内容を確認。"
+    },
+    {
+      "desc": "REQ-3 (P2): REQ-1 / REQ-2 のいずれのケースでも flowState.metrics[phase].gateRetry は増加しない。",
+      "status": "done",
+      "note": "実装は issue-log 追記のみで metrics を変更せず、post-hook 経路も未変更。新規テストで before/after の gateRetry が不変であることを確認。"
+    },
+    {
+      "desc": "REQ-4 (P3): REQ-1 / REQ-2 で追記されるエントリの phase は呼び出し時の phase と一致し、step は resolveGateStepId(phase) の結果に一致する。",
+      "status": "done",
+      "note": "helper から appendIssueLogFromGateError({ ...ctx, phase }, ...) を呼ぶ実装で phase を明示伝播。追加テストで phase=task-impl 時に step=gate-impl を検証。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/216-gate-envelope-issue-log/draft.md",
+      "change": "要件実装そのものではなく、SDDドラフト文書を新規追加。"
+    },
+    {
+      "file": "specs/216-gate-envelope-issue-log/flow.json",
+      "change": "フロー状態・メトリクス・実行履歴の管理データを新規追加。"
+    },
+    {
+      "file": "specs/216-gate-envelope-issue-log/issue-log.json",
+      "change": "開発中のゲート実行ログ（運用/検証履歴）を新規追加。"
+    },
+    {
+      "file": "specs/216-gate-envelope-issue-log/qa.md",
+      "change": "仕様確認用Q&Aテンプレートを新規追加。"
+    },
+    {
+      "file": "specs/216-gate-envelope-issue-log/review.md",
+      "change": "コードレビュー記録文書を新規追加。"
+    },
+    {
+      "file": "specs/216-gate-envelope-issue-log/spec.json",
+      "change": "仕様の構造化JSON定義を新規追加（実装コード要件とは別の管理成果物）。"
+    },
+    {
+      "file": "specs/216-gate-envelope-issue-log/spec.md",
+      "change": "仕様Markdownを新規追加（管理ドキュメント）。"
+    },
+    {
+      "file": "specs/216-gate-envelope-issue-log/tests/README.md",
+      "change": "新規テストの説明ドキュメントを追加（要件の振る舞い実装自体ではない）。"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "REQ-1〜REQ-4 は実装差分と追加ユニットテストの両面で満たされている。未計画変更は主に specs 配下の運用・文書成果物で、プロダクト挙動変更は run-gate.js と対応テストに限定されている。"
+  }
+}

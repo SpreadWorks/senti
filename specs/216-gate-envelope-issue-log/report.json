@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/216-gate-envelope-issue-log/draft.md        |  38 +++\n specs/216-gate-envelope-issue-log/flow.json       | 372 ++++++++++++++++++++++\n specs/216-gate-envelope-issue-log/issue-log.json  |  58 ++++\n specs/216-gate-envelope-issue-log/qa.md           |   9 +\n specs/216-gate-envelope-issue-log/review.md       |  33 ++\n specs/216-gate-envelope-issue-log/spec.json       |  88 +++++\n specs/216-gate-envelope-issue-log/spec.md         |  87 +++++\n specs/216-gate-envelope-issue-log/tests/README.md |  22 ++\n src/flow/lib/run-gate.js                          |  21 +-\n tests/unit/flow/gate-envelope-issue-log.test.js   | 219 +++++++++++++\n 10 files changed, 946 insertions(+), 1 deletion(-)",
+      "commits": [
+        "feat: feature/216-gate-envelope-issue-log",
+        "gate-envelope-issue-log"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "REQ-1〜REQ-4 は実装差分と追加ユニットテストの両面で満たされている。未計画変更は主に specs 配下の運用・文書成果物で、プロダクト挙動変更は run-gate.js と対応テストに限定されている。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 121214,
+      "output": 8095,
+      "cacheRead": 166016,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 205417,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 24569
+        },
+        {
+          "phase": "gate",
+          "durationMs": 46389
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 100249
+        },
+        {
+          "phase": "review",
+          "durationMs": 34210
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2019,
+      "integration": 260,
+      "acceptance": 0,
+      "total": 2279
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/216-gate-envelope-issue-log\n    gate-envelope-issue-log\n    10 files changed, 946 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 11\n    input tokens ................ 121,214\n    output tokens ............... 8,095\n    cache-read tokens ........... 166,016\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 205.4s\n      gate-draft ................ 24.6s\n      gate ...................... 46.4s\n      gate-impl ................. 100.2s\n      review .................... 34.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2019  integration 260  acceptance 0  total 2279"
+}

@@ -1,0 +1,58 @@
+{
+  "entries": [
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T00:51:44.990Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T00:51:57.633Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 84: unchecked task/question (- [ ] なし)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T00:56:04.995Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: issue-log recording for two Envelope.fail gate paths.; Unambiguous Requirements — Requirements are stated with concrete conditions and observable outcomes (entry count, reason content, metrics unchanged).; Complete Context — Each requirement includes a trigger condition and an expected shall-style behavior.; REQ Diff-Verifiability — Pass/fail is decidable from code diff plus unit test results; no future extensibility guarantees are required.; No Hardcoded Secrets — No secrets or credential material are specified or introduced.; No Silent Error Swallowing — Spec explicitly requires issue-log write errors to propagate and not be swallowed.; Prioritize Requirements — There are more than three requirements (REQ-1 to REQ-4) but no explicit priority order is provided.; Impact on Existing Features — Impact is explicitly described, including preserved skipPost/gateRetry behavior and unchanged out-of-scope paths.; Bounded Resource Usage — No recursive, retry-loop, or bulk-loading design change is introduced; boundedness is not newly at risk in this spec.; Changes Require Test Coverage — Spec includes new unit tests for the changed behaviors and happy-path verification expectations.; Spec Includes Test Strategy — Acceptance criteria define what to test and how (targeted unit tests plus npm test pass).; Synthesize Draft, Do Not Copy — Cannot determine whether content was copied vs synthesized because the source draft is not provided.; Record Unresolved Points as Open Questions — Open Questions section is present and explicitly states none unresolved.; Include 'Why This Approach' Rationale — Rationale is provided in Design Principles and Decisions with explicit why/why-not tradeoffs.; Do Not Modify Existing Tests Without Approval — Spec explicitly says existing tests should not be modified and only new tests are added.; Backward-Compatible CLI Interface — No CLI command/option semantic change is proposed, so migration-plan requirement is inapplicable.; Exit Code Contract — No command contract change is proposed; nothing indicates returning exit code 0 on failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T00:56:38.873Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements (REQ-1 to REQ-4) but no explicit priority order is provided."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate reads state.spec which was set to spec.json by prepare-spec, but checkSpecText greps markdown sections that only exist in spec.md. Worked around by editing flow.json to point state.spec at spec.md.",
+      "trigger": "sdd-forge flow run gate --phase spec returned issues 'missing section: ## Clarifications' etc. against spec.json",
+      "resolution": "updated flow.json state.spec to specs/216-.../spec.md so gate reads the rendered markdown",
+      "guardrailCandidate": "executeSpec should resolve spec.md from state.spec's dirname when state.spec points to spec.json (spec-json-primary oversight)",
+      "taskId": null,
+      "timestamp": "2026-04-23T00:57:01.416Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.decisions[0]: must be object, got string; overview.decisions[1]: must be object, got string; overview.decisions[2]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T01:06:29.892Z"
+    }
+  ]
+}

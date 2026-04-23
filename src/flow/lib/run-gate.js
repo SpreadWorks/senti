@@ -788,6 +788,7 @@ export function checkRetryBelowMax(ctx, phase) {
     "",
     "Stop the automatic retry loop and return control to the user.",
   ];
+  appendGateEscalationIssueLog(ctx, phase, messages);
   return Envelope.fail(
     "run",
     "gate",
@@ -795,6 +796,22 @@ export function checkRetryBelowMax(ctx, phase) {
     messages,
     { phase, attempts: count, max },
   );
+}
+
+/**
+ * spec 216: record a gate escalation (retry exhausted / no-progress) in
+ * issue-log before its caller returns an `Envelope.fail`. The dispatcher's
+ * success path treats an ok:false envelope as `skipPost=true` and never
+ * invokes `onError`, so without this call the escalation would not be
+ * logged — asymmetric with the throw-based `ESCALATE_REPEATED_FAIL` path.
+ *
+ * `flowState.metrics` is not touched, so `gateRetry` remains un-incremented.
+ *
+ * Skipped when no spec is available (unit-level callers without flow state).
+ */
+function appendGateEscalationIssueLog(ctx, phase, messages) {
+  if (!ctx?.flowState?.spec) return;
+  appendIssueLogFromGateError({ ...ctx, phase }, { message: messages.join("\n") });
 }
 
 /**
@@ -880,7 +897,7 @@ export function findPreviousFailState({ flowState, issueLog, phase }) {
  * post-hook — which increments gateRetry — only runs on a successful ok:true
  * command return).
  */
-export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, currentState }) {
+export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, currentState, ctx }) {
   const prev = findPreviousFailState({ flowState, issueLog, phase });
   if (!prev) return null;
   if (prev.headSha !== currentState.headSha) return null;
@@ -895,6 +912,7 @@ export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, curre
     "",
     "Modify the spec or implementation before retrying.",
   ];
+  appendGateEscalationIssueLog(ctx, phase, messages);
   return Envelope.fail(
     "run",
     "gate",
@@ -1293,6 +1311,7 @@ export class RunGateCommand extends FlowCommand {
       issueLog: loadIssueLog(root, state.spec),
       phase,
       currentState: gitState,
+      ctx,
     });
     if (noProgressFail) return noProgressFail;
     // spec 210 REQ-1: stash current state on ctx so appendIssueLogFromGateResult
