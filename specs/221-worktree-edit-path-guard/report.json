@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/221-worktree-edit-path-guard/draft.md        |  38 ++\n specs/221-worktree-edit-path-guard/flow.json       | 425 +++++++++++++++++++++\n specs/221-worktree-edit-path-guard/issue-log.json  |  99 +++++\n specs/221-worktree-edit-path-guard/qa.md           |   9 +\n specs/221-worktree-edit-path-guard/review.md       |  25 ++\n specs/221-worktree-edit-path-guard/spec.json       | 112 ++++++\n specs/221-worktree-edit-path-guard/spec.md         |  81 ++++\n specs/221-worktree-edit-path-guard/tests/README.md |  27 ++\n src/templates/partials/worktree-mode.md            |   1 +\n tests/unit/templates/worktree-mode.test.js         |  58 +++\n 10 files changed, 875 insertions(+)",
+      "commits": [
+        "feat: feature/221-worktree-edit-path-guard"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "All four listed requirements are satisfied by the implementation diff. Additional spec-process artifacts were added that are outside the explicit requirement set."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 2,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 240316,
+      "output": 10587,
+      "cacheRead": 118016,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14,
+      "durationMs": 490647,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 103117
+        },
+        {
+          "phase": "spec",
+          "durationMs": 125785
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 89118
+        },
+        {
+          "phase": "review",
+          "durationMs": 172627
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2148,
+      "integration": 261,
+      "acceptance": 0,
+      "total": 2409
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/221-worktree-edit-path-guard\n    10 files changed, 875 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 2\n    issue-log ................... 1\n    agent calls ................. 14\n    input tokens ................ 240,316\n    output tokens ............... 10,587\n    cache-read tokens ........... 118,016\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 490.6s\n      draft ..................... 103.1s\n      spec ...................... 125.8s\n      gate-impl ................. 89.1s\n      review .................... 172.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2148  integration 261  acceptance 0  total 2409"
+}

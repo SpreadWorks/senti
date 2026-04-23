@@ -1,0 +1,81 @@
+# Feature Specification: 221-worktree-edit-path-guard
+
+**Feature Branch**: `feature/221-worktree-edit-path-guard`
+**Created**: 2026-04-23
+**Status**: Draft
+**Input**: GitHub Issue #243
+
+## Goal
+active worktree flow 中に AI が main repo の絶対パスを Edit/Write ツールに渡して境界違反を起こすリスクを、SDD flow skill の Worktree boundary 節 (partial) に MUST 行を追加することで防ぐ。
+
+## Background
+spec 217 実装中、AI が Grep / Read から返った main repo 絶対パス (例: `/home/nakano/workspace/sdd-forge/src/...`) を Edit にそのまま渡した結果、worktree 側には変更が反映されず、main 側のファイルを汚染した。`cd` していなくてもツールは絶対パス引数に従うため、cwd ベースの保護は効かない。現行の Worktree boundary 節は `cd` 禁止・`git stash` 禁止・baseline 比較の 3 MUST を持つが、Edit/Write の絶対パス指定という具体的な失敗モードに対する明示的注意喚起がない。
+
+## Scope
+- SDD flow skill の Worktree boundary 節 partial (`src/templates/partials/worktree-mode.md`) に MUST 行を追加する。
+- 追加 MUST 行に、許可される代替手段 (worktree cwd からの相対パス / `sdd-forge flow get resolve-context` から得た worktreePath 配下の絶対パス) を明示する。
+- 追加 MUST 文言が template から欠落しないことを保証する軽量な unit test を 1 件追加する。
+
+## Out of Scope
+- 検査用 CLI サブコマンド (例: `flow get check worktree-edit <path>`) の追加。
+- Claude Code のツール層における自動パス書き換え (sdd-forge の管轄外)。
+- Worktree boundary 節以外の文書 (CLAUDE.md, docs/, 他 skill) への波及更新。
+- 過去 spec の遡及調査。
+
+## Constraints
+- 追加する MUST は partial ファイル (`src/templates/partials/worktree-mode.md`) の 1 箇所に集約し、SKILL.md 本体や他 partial には波及させない。
+- 回帰テストは Node.js 組み込みの `node:test` + `node:assert/strict` のみで書き、外部依存を追加しない。
+- 既存の Worktree boundary 節の 3 MUST (`cd` 禁止 / `git stash` 禁止 / baseline 比較の detached worktree) を変更しない。
+- CLI の runtime 挙動 (コマンド出力 / flow state schema / agent invocation / gate / review 等) には影響させない。
+
+## Design Principles
+- MUST 文言で防御する: AI が Edit/Write の引数を構築する段階で絶対パスを main repo 向けに書かないことを skill 読み込み時に認識させる。
+- 自発性に依存しない保証: MUST 文言自体は AI の遵守に依存するが、少なくとも 'template から欠落しない' ことは回帰テストで機械的に保証する。
+- 既存 partial テストの前例踏襲: `tests/unit/templates/ai-question-style.test.js` と同型の regex ベース検査で追加コストを抑える。
+
+## Overview
+### Modules
+- `src/templates/partials/worktree-mode.md` — Worktree boundary 節で include される partial。MUST 行追加対象。
+- `tests/unit/templates/worktree-mode.test.js` — 新規。追加 MUST 文言の存在を regex で assert。
+
+### Data Flow
+- ユーザー project で `sdd-forge upgrade` を実行すると、更新された partial が include 経由で SKILL.md に展開される。AI は worktree flow 実行時にこの MUST を読み込み遵守する。
+
+### Decisions
+- ヘルパー CLI を追加しない (Issue 判断と一致: AI の自発性に依存する限り MUST 文言と実効性が同等)。
+- 既存 partial テスト (`ai-question-style.test.js`) と同型のテストを追加する (学習コストゼロ、保守負荷均一)。
+
+## Clarifications (Q&A)
+- Q: 実装方針 (MUST 行のみ / 検査ヘルパー / ヘルパー強制) のどれか?
+  - A: MUST 行のみ追加。Issue 本文の判断と一致。
+- Q: テスト戦略は?
+  - A: 既存 partial テスト `ai-question-style.test.js` と同型の regex 検査を 1 ファイル・assert 5 件以内で追加。
+
+## Alternatives Considered
+- 検査ヘルパー CLI (`flow get check worktree-edit <path>`) を追加する。 — AI がツール呼び出し前に毎回明示的に呼ばないと意味がなく、呼ぶか否かは AI の自発性に依存するため MUST 文言と実効性が同等。CLI 面積のみ増えるため却下。
+- partial に Edit 前の check CLI 呼び出しを強制する。 — 実効性は最大だが、Edit のたびに CLI round-trip が発生し実装速度が低下する。MUST 文言のみで大部分のケースは防げると判断し却下。
+- テスト追加なし (docs-only 扱い)。 — partial 編集時に文言を消してしまうリスクが残る。既存前例があるため追加コストは小さく、保険として採用する。却下しない (R3 として採択)。
+
+## User Confirmation
+- [x] User approved this spec (autoApprove)
+- Confirmed at: 2026-04-23
+- Notes: auto mode enabled after auto-check score 24/24 eligible.
+
+## Requirements
+- R1 [must]: When an AI reads the flow skill's Worktree boundary partial during an active worktree flow, the partial shall contain a MUST line prohibiting the use of main repo absolute paths as the file-path argument to Edit/Write tool calls.
+- R2 [must]: When R1's MUST line is read, it shall explicitly list both allowed alternatives: (a) a relative path from the worktree cwd, and (b) an absolute path under the `worktreePath` obtained via `sdd-forge flow get resolve-context`.
+- R3 [should]: When the project adds this change, a new unit test file at `tests/unit/templates/worktree-mode.test.js` shall exist and, when `npm test` is run, shall assert the presence of the characteristic keywords of R1/R2 (at minimum 'main repo' and 'worktreePath') in the partial file and pass with a zero exit code.
+- R4 [must]: When this change is applied, the three existing MUST lines in the Worktree boundary partial (`cd` prohibition, `git stash`/`reset --hard` prohibition, baseline comparison via detached worktree) shall remain unchanged.
+
+## Acceptance Criteria
+- AC1: `src/templates/partials/worktree-mode.md` の diff に、R1/R2 を満たす新規 MUST 行が追加されている。
+- AC2: 同 partial の diff に、既存 3 MUST 行の削除・改変がない。
+- AC3: 新規ファイル `tests/unit/templates/worktree-mode.test.js` が存在し、その assert 対象に 'main repo' と 'worktreePath' のキーワード検査が含まれている (diff で確認可能)。
+- AC4: `npm test` 全体で baseline に対する新規 FAIL が発生しない (新規テストはパスする)。
+
+## Implementation Targets
+- src/templates/partials/worktree-mode.md
+- tests/unit/templates/worktree-mode.test.js
+
+## Open Questions
+- [ ]

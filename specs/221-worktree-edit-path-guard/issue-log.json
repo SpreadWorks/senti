@@ -1,0 +1,99 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: preventing worktree path-boundary violations via template guidance (plus matching test).; Unambiguous Requirements — Requirements are concrete and testable (forbidden path pattern, allowed path forms, specific test assertion target).; Complete Context — Requirements include trigger and outcome (e.g., on Edit/Write path usage, specific MUST behavior is defined).; No Hardcoded Secrets — No API keys, passwords, tokens, or similar secrets are present in the draft.; Prioritize Requirements — Multiple requirements are listed without an explicit priority order when the set exceeds three requirement items.; Impact on Existing Features — Impact is explicitly documented for affected and unaffected existing features.; Present Recommendations with Reasoning — Each question has a clear recommended answer with concise rationale based on issue context and existing test pattern precedent.; Explore Before Asking — The draft resolves decisions without leaving avoidable questions to the user; no unanswered code/docs-checkable questions remain.; Proactively Raise Related Implications — Related implications are proactively covered via impact and out-of-scope sections.; Confirm Brainstorm vs. Decision Before Critiquing — No brainstorming ideas are critiqued as final decisions; the document records approved decisions.; Capture Digressions in draft.md — Cannot evaluate digression handling from this standalone draft content without discussion timeline evidence.; Draft Stays at Requirements Level — Draft includes implementation-level details (exact file paths and regex-style unit test approach) beyond pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option meaning is changed or removed, so migration planning is not applicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:38:42.028Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Multiple requirements are listed without an explicit priority order when the set exceeds three requirement items."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (exact file paths and regex-style unit test approach) beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "draft",
+      "reason": "draft gate failed: prioritize-requirements and draft-scope-boundary — draft contained implementation-level details (file paths, regex) and lacked priority ordering",
+      "trigger": "flow run gate --phase draft after writing initial draft",
+      "resolution": "rewrite draft at requirements level without concrete file paths; add explicit priority ordering",
+      "guardrailCandidate": "draft should describe WHAT not HOW; move concrete paths to spec.md",
+      "taskId": null,
+      "timestamp": "2026-04-23T07:38:52.990Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 単一の主題（worktree境界のEdit/Writeパス制約追加）に集中しており、関連する回帰検査も同一関心内。; Unambiguous Requirements — 「同水準の軽量な回帰検査」など検証基準が曖昧で、具体的な合格条件が不足している。; Complete Context — 一部要件はWhen/If条件とshall結果の対が明確だが、P2要件はトリガー条件が不足している。; No Hardcoded Secrets — 仕様文書に秘密情報の埋め込みはなく、この観点では問題なし。; Prioritize Requirements — スコープ要件にP1/P2の優先度が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示的に整理されている。; Present Recommendations with Reasoning — Q&Aで推奨案を先に示し、Issue判断や既存テストパターンを根拠として簡潔に理由付けしている。; Explore Before Asking — docs/やコード探索を事前実施したかは本文だけでは確認できない。; Proactively Raise Related Implications — 影響範囲、非対象範囲、CLI非変更など関連含意を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 批評前にブレストか決定かを確認した対話プロセスは本文のみでは評価不能。; Capture Digressions in draft.md — 脱線の記録が必要な状況が示されておらず、この観点では適用上問題なし。; Draft Stays at Requirements Level — 要件レベルに留まり、関数設計や実装詳細には踏み込んでいない。; Backward-Compatible CLI Interface — 既存CLIの意味変更・削除は行わないと明記され、移行計画が必要なケースに該当しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:40:08.523Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「同水準の軽量な回帰検査」など検証基準が曖昧で、具体的な合格条件が不足している。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "一部要件はWhen/If条件とshall結果の対が明確だが、P2要件はトリガー条件が不足している。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — No concerns are specified, so no unrelated changes are bundled.; Unambiguous Requirements — No requirements are present; no vague wording appears.; Complete Context — No requirements are listed, so none violate the When/If + shall pattern.; REQ Diff-Verifiability — No requirements are defined that would be unverifiable from diff + tests.; No Hardcoded Secrets — No source code or secrets are present in the content.; No Silent Error Swallowing — No code is provided, so no silent error swallowing is present.; Prioritize Requirements — There are not more than three requirements (there are zero).; Impact on Existing Features — The spec does not state impact on existing features or explicitly state that none are affected.; Bounded Resource Usage — No recursive/retry/bulk-processing design is specified.; Changes Require Test Coverage — No feature or bug-fix changes are specified.; Spec Includes Test Strategy — No test strategy is included.; Synthesize Draft, Do Not Copy — No draft/source material is provided to determine whether content was synthesized or copied.; Record Unresolved Points as Open Questions — No fabricated answers are present; unresolved points are not claimed as resolved.; Include 'Why This Approach' Rationale — No rationale for the chosen approach is provided.; Do Not Modify Existing Tests Without Approval — No implementation actions or test modifications are described.; Backward-Compatible CLI Interface — No CLI command or option changes are specified.; Exit Code Contract — No command failure-handling behavior is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:43:36.391Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not state impact on existing features or explicitly state that none are affected."
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "No test strategy is included."
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "No rationale for the chosen approach is provided."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: preventing worktree boundary violations via partial wording + guard test.; Unambiguous Requirements — Requirements use concrete, verifiable conditions (specific file, keywords, test behavior, unchanged MUST lines).; Complete Context — Each listed requirement pairs a trigger condition (When) with an expected shall behavior.; REQ Diff-Verifiability — AC4/R3 rely on a counterfactual rehearsal (manually removing keywords), which is not decidable from normal diff + test summary alone.; No Hardcoded Secrets — No credentials or secret literals are introduced in the spec content.; No Silent Error Swallowing — No error-handling implementation is specified; nothing indicates silent swallowing.; Prioritize Requirements — There are four requirements and each includes an explicit priority (must/should).; Impact on Existing Features — Impact is explicitly stated: no CLI/runtime behavior changes; only targeted partial/test updates.; Bounded Resource Usage — Design is static text/test updates and does not introduce recursive/retry/bulk unbounded processing.; Changes Require Test Coverage — Spec requires a new unit test for the change and defines expected pass/fail behavior.; Spec Includes Test Strategy — Test strategy is explicitly described (regex-based unit test pattern, npm test expectations).; Synthesize Draft, Do Not Copy — No source draft text is provided, so synthesis-vs-copying cannot be determined.; Record Unresolved Points as Open Questions — Unresolved points are not fabricated; open questions are explicitly tracked (currently none).; Include 'Why This Approach' Rationale — Rationale is documented in background, decisions, and alternatives with rejection reasons.; Do Not Modify Existing Tests Without Approval — Spec adds a new test and does not require modifying or deleting existing tests.; Backward-Compatible CLI Interface — CLI command/option semantics are explicitly out of scope, so no migration plan is needed.; Exit Code Contract — Spec explicitly requires non-zero exit on test failure and does not propose success-on-failure behavior.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:46:00.015Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "AC4/R3 rely on a counterfactual rehearsal (manually removing keywords), which is not decidable from normal diff + test summary alone."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff adds the new MUST line with both allowed alternatives and keeps existing MUST lines unchanged, but it does not include the required new test file `tests/unit/templates/worktree-mode.test.js`; head test evidence is also incomplete (`{\"unit\":4}`), so R3/AC3 is not satisfied.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:12:24.251Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Diff adds the new MUST line with both allowed alternatives and keeps existing MUST lines unchanged, but it does not include the required new test file `tests/unit/templates/worktree-mode.test.js`; head test evidence is also incomplete (`{\"unit\":4}`), so R3/AC3 is not satisfied."
+        }
+      ]
+    }
+  ]
+}

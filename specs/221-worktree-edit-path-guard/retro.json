@@ -1,0 +1,68 @@
+{
+  "spec": "specs/221-worktree-edit-path-guard/spec.json",
+  "date": "2026-04-23T08:16:33.898Z",
+  "requirements": [
+    {
+      "desc": "When an AI reads the flow skill's Worktree boundary partial during an active worktree flow, the partial shall contain a MUST line prohibiting the use of main repo absolute paths as the file-path argument to Edit/Write tool calls.",
+      "status": "done",
+      "note": "Added new MUST bullet in src/templates/partials/worktree-mode.md explicitly forbidding main repo absolute paths for Edit/Write file-path arguments."
+    },
+    {
+      "desc": "When R1's MUST line is read, it shall explicitly list both allowed alternatives: (a) a relative path from the worktree cwd, and (b) an absolute path under the `worktreePath` obtained via `sdd-forge flow get resolve-context`.",
+      "status": "done",
+      "note": "Same new MUST bullet explicitly lists both alternatives: relative path from worktree cwd and absolute path under worktreePath from `sdd-forge flow get resolve-context`."
+    },
+    {
+      "desc": "When the project adds this change, a new unit test file at `tests/unit/templates/worktree-mode.test.js` shall exist and, when `npm test` is run, shall assert the presence of the characteristic keywords of R1/R2 (at minimum 'main repo' and 'worktreePath') in the partial file and pass with a zero exit code.",
+      "status": "done",
+      "note": "New file tests/unit/templates/worktree-mode.test.js exists, includes assertions for 'main repo' and 'worktreePath', and flow metadata in diff reports npm test exitCode 0."
+    },
+    {
+      "desc": "When this change is applied, the three existing MUST lines in the Worktree boundary partial (`cd` prohibition, `git stash`/`reset --hard` prohibition, baseline comparison via detached worktree) shall remain unchanged.",
+      "status": "done",
+      "note": "Diff shows the three pre-existing boundary lines retained with no edits; only one new MUST line was appended."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/221-worktree-edit-path-guard/draft.md",
+      "change": "New draft specification document added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-worktree-edit-path-guard/flow.json",
+      "change": "New flow state/metadata file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-worktree-edit-path-guard/issue-log.json",
+      "change": "New issue/gate log file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-worktree-edit-path-guard/qa.md",
+      "change": "New QA template file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-worktree-edit-path-guard/review.md",
+      "change": "New review notes file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-worktree-edit-path-guard/spec.json",
+      "change": "New structured spec file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-worktree-edit-path-guard/spec.md",
+      "change": "New spec markdown file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-worktree-edit-path-guard/tests/README.md",
+      "change": "New spec-local test README added; not required by R1-R4."
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All four listed requirements are satisfied by the implementation diff. Additional spec-process artifacts were added that are outside the explicit requirement set."
+  }
+}

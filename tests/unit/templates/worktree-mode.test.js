@@ -1,0 +1,58 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PARTIAL_PATH = path.resolve(
+  __dirname,
+  "../../../src/templates/partials/worktree-mode.md",
+);
+
+describe("templates/partials/worktree-mode.md — Edit/Write absolute path guard (spec 221)", () => {
+  const text = fs.readFileSync(PARTIAL_PATH, "utf8");
+
+  it("R1: contains a MUST line prohibiting main repo absolute paths in Edit/Write", () => {
+    assert.match(
+      text,
+      /\*\*MUST[^*]*main repo[^*]*Edit\/Write[^*]*\*\*|\*\*MUST[^*]*Edit\/Write[^*]*main repo[^*]*\*\*/,
+      "partial must state that main repo absolute paths are forbidden in Edit/Write tool calls",
+    );
+  });
+
+  it("R2: names `worktreePath` from `flow get resolve-context` as the allowed absolute-path source", () => {
+    assert.match(
+      text,
+      /worktreePath/,
+      "partial must mention the worktreePath obtained via flow get resolve-context",
+    );
+    assert.match(
+      text,
+      /resolve-context/,
+      "partial must reference `sdd-forge flow get resolve-context` as the source of worktreePath",
+    );
+  });
+
+  it("R2: names the worktree cwd relative path as an allowed alternative", () => {
+    assert.match(
+      text,
+      /相対パス|relative path/i,
+      "partial must mention a worktree-cwd relative path as an allowed alternative",
+    );
+  });
+
+  it("R4: preserves the three existing MUST lines (cd / git stash / baseline)", () => {
+    assert.match(text, /cd/, "existing cd-prohibition MUST line must remain");
+    assert.match(
+      text,
+      /git stash/,
+      "existing git-stash-prohibition MUST line must remain",
+    );
+    assert.match(
+      text,
+      /detached worktree/,
+      "existing baseline-comparison MUST line must remain",
+    );
+  });
+});
