@@ -86,6 +86,24 @@ function renderOverviewSub(label, items) {
 }
 
 /**
+ * Render the User Confirmation section from spec.user_approval. When the field
+ * is absent or `approved` is false, emit the unapproved placeholder (preserves
+ * the gate's section-presence check). When `approved` is true, emit a checked
+ * marker plus the persisted confirmed_at and notes.
+ */
+function renderUserConfirmation(userApproval) {
+  const approved = userApproval?.approved === true;
+  const checkbox = approved ? "- [x] User approved this spec" : "- [ ] User approved this spec";
+  const confirmedAt = approved ? (userApproval?.confirmed_at ?? "") : "";
+  const notes = approved ? (userApproval?.notes ?? "") : "";
+  return [
+    checkbox,
+    confirmedAt ? `- Confirmed at: ${confirmedAt}` : "- Confirmed at:",
+    notes ? `- Notes: ${notes}` : "- Notes:",
+  ];
+}
+
+/**
  * Pure render function. Given a validated spec object and meta info, produce
  * the Markdown text for spec.md. Deterministic — no timestamps or randomness.
  *
@@ -145,9 +163,9 @@ export function renderSpecMarkdown(spec, meta) {
   sections.push("");
 
   sections.push("## User Confirmation");
-  sections.push("- [ ] User approved this spec");
-  sections.push("- Confirmed at:");
-  sections.push("- Notes:");
+  for (const line of renderUserConfirmation(spec.user_approval)) {
+    sections.push(line);
+  }
   sections.push("");
 
   sections.push("## Requirements");

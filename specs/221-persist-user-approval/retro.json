@@ -1,0 +1,67 @@
+{
+  "spec": "specs/221-persist-user-approval/spec.json",
+  "date": "2026-04-23T12:16:10.843Z",
+  "requirements": [
+    {
+      "desc": "When `sdd-forge spec render` runs, the renderer shall derive the `## User Confirmation` section from `spec.user_approval` in spec.json instead of preserving any prior hand-edited content on spec.md.",
+      "status": "done",
+      "note": "`src/spec/commands/render.js` now renders the section via `renderUserConfirmation(spec.user_approval)` instead of fixed/manual-preserve content."
+    },
+    {
+      "desc": "If `spec.user_approval` is absent or `approved` is false, the renderer shall emit the unapproved placeholder (`- [ ] User approved this spec`, empty `Confirmed at:`, empty `Notes:`) so that subsequent renders remain idempotent and the gate's section-presence check passes.",
+      "status": "done",
+      "note": "Renderer outputs unchecked marker and empty `Confirmed at:`/`Notes:` when approval is missing or false."
+    },
+    {
+      "desc": "If `spec.user_approval.approved` is true, the renderer shall emit a checked marker (`- [x] User approved this spec`), the `Confirmed at:` line populated from `confirmed_at`, and a `Notes:` line populated from `notes` (empty string when notes is unset).",
+      "status": "done",
+      "note": "Approved path emits checked marker, uses `confirmed_at` and `notes`, and keeps `Notes:` empty when notes is unset."
+    },
+    {
+      "desc": "When the schema is loaded for spec validation (e.g., during `spec render` or schema-validated tooling), the schema shall accept an optional `user_approval` object whose properties are `approved` (boolean), `confirmed_at` (string), and `notes` (string), and shall reject any spec.json that contains unknown sub-properties under `user_approval` (additionalProperties: false).",
+      "status": "done",
+      "note": "`src/flow/schemas/spec.schema.json` adds optional `user_approval` with the required fields and `additionalProperties: false`."
+    },
+    {
+      "desc": "When the operator runs `sdd-forge flow set approval --approved`, the CLI shall locate the active flow's spec.json, set `user_approval.approved` to true, set `confirmed_at` to either the value of `--confirmed-at` (when provided) or the current time as ISO 8601, set `notes` to the value of `--notes` (when provided), and write the file back. The command shall fail with a non-zero exit code when no active flow is present.",
+      "status": "done",
+      "note": "New `src/flow/lib/set-approval.js` plus registry wiring implements the command, writes `user_approval`, defaults timestamp to `new Date().toISOString()`, supports overrides, and failure cases are covered by tests."
+    },
+    {
+      "desc": "When an operator reads the plan-level approval step's operator instructions (skill prompt, prepare-spec skeleton text, locale `approvalInstruction` messages), the instructions shall direct them to invoke `flow set approval` rather than to hand-edit spec.md, so that future contributors do not re-introduce the manual edit pattern.",
+      "status": "done",
+      "note": "Updated in `src/flow/prompts/plan/approval.md`, `src/flow/lib/run-prepare-spec.js`, and both locale message files."
+    },
+    {
+      "desc": "When the operator invokes `sdd-forge flow set approval` without `--approved`, the CLI shall print a usage error and exit non-zero rather than silently inferring or defaulting an approval state.",
+      "status": "done",
+      "note": "`set-approval` returns `Envelope.fail(..., \"INVALID_USAGE\", \"usage: ...\")` when `ctx.approved` is not set; tests assert non-zero."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/set-approval.js",
+      "change": "Added extra argument validation not specified in requirements: ISO 8601 validation for `--confirmed-at` and 2000-char cap for `--notes` (`INVALID_ARG_VALUE`)."
+    },
+    {
+      "file": "specs/221-persist-user-approval/flow.json",
+      "change": "Flow run metadata/artifact file added; operational trace data is not part of functional requirements R1-R7."
+    },
+    {
+      "file": "specs/221-persist-user-approval/issue-log.json",
+      "change": "Gate/evaluation log artifact added; not a requirement deliverable."
+    },
+    {
+      "file": "specs/221-persist-user-approval/review.md",
+      "change": "Review notes artifact added; not covered by R1-R7."
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All seven requirements are implemented in the diff. The only notable out-of-scope functional behavior is stricter CLI input validation (`--confirmed-at`, `--notes`), plus several process/artifact files under `specs/221-persist-user-approval/`."
+  }
+}

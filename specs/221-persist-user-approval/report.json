@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/221-persist-user-approval/draft.md          |  44 +++\n specs/221-persist-user-approval/flow.json         | 370 ++++++++++++++++++++++\n specs/221-persist-user-approval/issue-log.json    |  97 ++++++\n specs/221-persist-user-approval/qa.md             |   9 +\n specs/221-persist-user-approval/review.md         |  49 +++\n specs/221-persist-user-approval/spec.json         | 186 +++++++++++\n specs/221-persist-user-approval/spec.md           | 112 +++++++\n specs/221-persist-user-approval/tests/README.md   |  37 +++\n src/flow/lib/run-prepare-spec.js                  |   2 +-\n src/flow/lib/set-approval.js                      |  75 +++++\n src/flow/prompts/plan/approval.md                 |   6 +-\n src/flow/registry.js                              |  18 ++\n src/flow/schemas/spec.schema.json                 |   9 +\n src/locale/en/messages.json                       |   2 +-\n src/locale/ja/messages.json                       |   2 +-\n src/spec/commands/render.js                       |  24 +-\n tests/unit/flow/set-approval.test.js              | 139 ++++++++\n tests/unit/spec/render-user-approval.test.js      | 104 ++++++\n tests/unit/spec/schema.test.js                    |   3 +-\n tests/unit/spec/spec-user-approval-schema.test.js |  96 ++++++\n 20 files changed, 1374 insertions(+), 10 deletions(-)",
+      "commits": [
+        "feat: feature/221-persist-user-approval",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "All seven requirements are implemented in the diff. The only notable out-of-scope functional behavior is stricter CLI input validation (`--confirmed-at`, `--notes`), plus several process/artifact files under `specs/221-persist-user-approval/`."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 443852,
+      "output": 10381,
+      "cacheRead": 107648,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 297929,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 51996
+        },
+        {
+          "phase": "gate",
+          "durationMs": 59195
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 119955
+        },
+        {
+          "phase": "review",
+          "durationMs": 66783
+        }
+      ]
+    },
+    "tests": {
+      "unit": 9,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 9
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/221-persist-user-approval\n    chore: add retro and report\n    20 files changed, 1374 insertions(+), 10 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 11\n    input tokens ................ 443,852\n    output tokens ............... 10,381\n    cache-read tokens ........... 107,648\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 297.9s\n      gate-draft ................ 52.0s\n      gate ...................... 59.2s\n      gate-impl ................. 120.0s\n      review .................... 66.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 9  integration 0  acceptance 0  total 9"
+}

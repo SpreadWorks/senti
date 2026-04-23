@@ -4,8 +4,8 @@
    - The user reads the gate-passed final spec and approves.
    - Wait for approval before any implementation.
    - Run `sdd-forge flow get prompt plan.approval` and present the choices.
-   - Update `## User Confirmation` with:
-     - `- [x] User approved this spec`
-     - Confirmation date and short note.
+   - Persist the approval to spec.json (do NOT hand-edit `## User Confirmation` — `spec render` regenerates that section from spec.json):
+     - Run `sdd-forge flow set approval --approved [--notes "<text>"]`.
+     - Re-render with `sdd-forge spec render` if you want spec.md to reflect the new state immediately.
    - **On complete**: Mark step done. Requirements already live in spec.json (the single source of truth) from the gate step — no manual transfer is needed.
      - `sdd-forge flow set step approval done`

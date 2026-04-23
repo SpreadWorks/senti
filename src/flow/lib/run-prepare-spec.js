@@ -84,7 +84,7 @@ function buildQaTemplate() {
     "## Confirmation",
     "- Before implementation, ask the user:",
     `  - "${prompt}"`,
-    "- If approved, update `spec.md` -> `## User Confirmation` with checked state.",
+    "- If approved, run `sdd-forge flow set approval --approved [--notes <text>]` to persist the approval into spec.json (then re-render to refresh spec.md).",
     "",
   ].join("\n");
 }

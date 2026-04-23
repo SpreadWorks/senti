@@ -142,6 +142,15 @@
         }
       }
     },
+    "user_approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "approved": { "type": "boolean" },
+        "confirmed_at": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
     "tasks": {
       "type": "array",
       "maxItems": 200,

@@ -1,0 +1,97 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft centers on one concern: persisting spec user approval to prevent render overwrite.; Unambiguous Requirements — Most requirements are concrete and testable (fields, command, behavior when unset).; Complete Context — Requirements are listed as changes but generally lack explicit trigger-condition phrasing (When/If) paired with shall outcomes.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret values are present.; Prioritize Requirements — More than three in-scope requirements are listed without priority ordering.; Impact on Existing Features — Impacted and non-impacted existing features are explicitly documented.; Present Recommendations with Reasoning — Q&A gives clear recommendations and concise rationale (design principle alignment and issue guidance).; Explore Before Asking — Cannot verify whether docs/code exploration occurred before decisions from the draft text alone.; Proactively Raise Related Implications — Related implications are proactively raised via impact and out-of-scope sections.; Confirm Brainstorm vs. Decision Before Critiquing — No conversation evidence is provided to confirm whether brainstorming-vs-decision was explicitly checked.; Capture Digressions in draft.md — No digression is evident; nothing indicates uncaptured side-thread decisions.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific file paths, command wiring, line reference).; Backward-Compatible CLI Interface — It introduces a new CLI command and does not remove/change existing command semantics.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:05:01.972Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirements are listed as changes but generally lack explicit trigger-condition phrasing (When/If) paired with shall outcomes."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three in-scope requirements are listed without priority ordering."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific file paths, command wiring, line reference)."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: persisting approval state via spec.json and related flow updates.; Unambiguous Requirements — Requirements are mostly concrete and testable, with explicit fields, commands, and expected outputs.; Complete Context — Not all requirements include an explicit trigger condition; some are unconditional declarations without clear When/If context.; REQ Diff-Verifiability — PASS/FAIL can be decided from code diff plus test outcomes for schema, renderer, CLI behavior, and prompts.; No Hardcoded Secrets — No secrets, credentials, or sensitive literals are specified.; No Silent Error Swallowing — No requirement introduces silent error swallowing; failure handling is explicitly required for key CLI error case.; Prioritize Requirements — Requirements include priority labels (`must`/`should`), providing ordering by criticality.; Impact on Existing Features — Impact on existing behavior is described (render behavior, gate section-presence continuity, historical specs appearing unapproved).; Bounded Resource Usage — No recursive/retry/bulk-processing design requiring explicit bounds is introduced.; Changes Require Test Coverage — Acceptance criteria cover core happy paths and key failure path; testing intent is present.; Spec Includes Test Strategy — Spec includes concrete test scenarios in acceptance criteria describing what to validate and expected outcomes.; Synthesize Draft, Do Not Copy — Cannot determine synthesis vs direct copying without the original draft source.; Record Unresolved Points as Open Questions — Unresolved items are not fabricated; open questions are explicitly represented as none.; Include 'Why This Approach' Rationale — Rationale is documented via decisions, clarifications, and alternatives considered with rejection reasons.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying or deleting existing tests.; Backward-Compatible CLI Interface — No existing command/option semantic removal is specified; change is additive.; Exit Code Contract — Spec explicitly requires non-zero exit on failure case (no active flow).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:08:43.687Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Not all requirements include an explicit trigger condition; some are unconditional declarations without clear When/If context."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/spec/schema.test.js:36: existing line modified/deleted in test file (removed=1, added=1); tests/unit/spec/schema.test.js:54: single-line addition in test file (likely assertion insertion)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:27:26.584Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "schema.test.js enumerates agreed schema fields; adding user_approval requires updating the enumerated list",
+      "resolution": "Added authorized_test_modifications entry for tests/unit/spec/schema.test.js documenting that this is a schema-vocabulary update, not a bug-masking change",
+      "taskId": null,
+      "timestamp": "2026-04-23T10:28:12.481Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff updates schema, renderer, and instruction text, but shows no implementation for `src/flow/lib/set-approval.js`; therefore required CLI behavior (`flow set approval --approved` mutation, default timestamp, no-active-flow failure, and missing `--approved` usage error) is not evidenced as implemented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:28:33.000Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Diff updates schema, renderer, and instruction text, but shows no implementation for `src/flow/lib/set-approval.js`; therefore required CLI behavior (`flow set approval --approved` mutation, default timestamp, no-active-flow failure, and missing `--approved` usage error) is not evidenced as implemented."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements the spec end-to-end: schema adds optional strict `user_approval`, renderer drives `## User Confirmation` from it with approved/unapproved variants, new `flow set approval` command persists state with required `--approved` and timestamp behavior, command is registered, and approval guidance text is updated in prompt/skeleton/i18n.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or other secret literals.; No Silent Error Swallowing — No empty catch blocks or silent error-discarding logic were introduced in added/modified lines.; Bounded Resource Usage — Added logic is bounded and does not introduce unbounded recursion, retry loops, or bulk loading patterns.; No Sensitive Data in Logs — No new logging statements were introduced that expose sensitive data.; No Disabling Existing Tests — Diff adds and updates tests; it does not skip, comment out, or delete existing tests to force passing.; Escalate When New Tests Break Existing Tests — Cannot be determined from diff alone; requires runtime/test-failure interaction evidence with the user.; Flag Tests That Become Irrelevant — Within diff scope, tests were updated/added to match the feature; no clear case of newly irrelevant legacy tests is introduced.; Exit Code Contract — Added command path explicitly returns failure envelope for invalid usage, and added tests assert non-zero exit on failure scenarios.; No Synchronous I/O in Hot Paths — No synchronous I/O was introduced in production hot-path loops or bulk-processing paths; sync I/O additions are in tests.; Validate User Input at Entry Point — `--confirmed-at`/`--notes` values are written from ctx with only minimal type/empty checks; no entry-point validation of timestamp format before internal use/persistence.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:29:44.694Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "`--confirmed-at`/`--notes` values are written from ctx with only minimal type/empty checks; no entry-point validation of timestamp format before internal use/persistence."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "validate-user-input-at-entry-point FAIL: confirmed-at and notes lacked entry-point validation",
+      "resolution": "Added ISO 8601 format validation for --confirmed-at and length cap (2000 chars) for --notes; both return INVALID_ARG_VALUE on rejection",
+      "taskId": null,
+      "timestamp": "2026-04-23T10:32:08.677Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: REQ-SPEC — Diff updates schema, renderer, and instruction text, but shows no implementation for `src/flow/lib/set-approval.js`; therefore required CLI behavior (`flow set approval --approved` mutation, default timestamp, no-active-flow failure, and missing `--approved` usage error) is not evidenced as implemented.\n  attempt 2: REQ-SPEC — Diff implements the spec end-to-end: schema adds optional strict `user_approval`, renderer drives `## User Confirmation` from it with approved/unapproved variants, new `flow set approval` command persists state with required `--approved` and timestamp behavior, command is registered, and approval guidance text is updated in prompt/skeleton/i18n.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or other secret literals.; No Silent Error Swallowing — No empty catch blocks or silent error-discarding logic were introduced in added/modified lines.; Bounded Resource Usage — Added logic is bounded and does not introduce unbounded recursion, retry loops, or bulk loading patterns.; No Sensitive Data in Logs — No new logging statements were introduced that expose sensitive data.; No Disabling Existing Tests — Diff adds and updates tests; it does not skip, comment out, or delete existing tests to force passing.; Escalate When New Tests Break Existing Tests — Cannot be determined from diff alone; requires runtime/test-failure interaction evidence with the user.; Flag Tests That Become Irrelevant — Within diff scope, tests were updated/added to match the feature; no clear case of newly irrelevant legacy tests is introduced.; Exit Code Contract — Added command path explicitly returns failure envelope for invalid usage, and added tests assert non-zero exit on failure scenarios.; No Synchronous I/O in Hot Paths — No synchronous I/O was introduced in production hot-path loops or bulk-processing paths; sync I/O additions are in tests.; Validate User Input at Entry Point — `--confirmed-at`/`--notes` values are written from ctx with only minimal type/empty checks; no entry-point validation of timestamp format before internal use/persistence.\n  attempt 3: validate-user-input-at-entry-point FAIL: confirmed-at and notes lacked entry-point validation\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T10:32:13.339Z"
+    }
+  ]
+}

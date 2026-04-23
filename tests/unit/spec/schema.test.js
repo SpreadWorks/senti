@@ -36,7 +36,7 @@ describe("spec.schema.json", () => {
     assert.ok(fs.existsSync(SCHEMA_PATH), `schema file not found at ${SCHEMA_PATH}`);
   });
 
-  it("defines the agreed fields (11 baseline + implementationTargets + authorized_test_modifications + tasks)", () => {
+  it("defines the agreed fields (11 baseline + implementationTargets + authorized_test_modifications + tasks + user_approval)", () => {
     const schema = loadSchema();
     assert.equal(schema.type, "object");
     const expected = [
@@ -54,6 +54,7 @@ describe("spec.schema.json", () => {
       "implementationTargets",
       "authorized_test_modifications",
       "tasks",
+      "user_approval",
     ].sort();
     const actual = Object.keys(schema.properties || {}).sort();
     assert.deepEqual(actual, expected);
