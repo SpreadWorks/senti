@@ -41,7 +41,7 @@
 <!-- {%block "login-flow"%} -->
 ### Login Flow
 
-<!-- {{text({prompt: "Generate a mermaid sequenceDiagram of the login process flow. Output only the mermaid code block.", mode: "deep"})}} -->
+<!-- {{text({prompt: "Generate a mermaid sequenceDiagram of the login process flow. Output only the mermaid code block. For line breaks inside participant or note labels, use <br/> inside the label; do not place a literal backslash-n (two characters) outside a label.", mode: "deep"})}} -->
 <!-- {{/text}} -->
 <!-- {%/block%} -->
 <!-- {%/block%} -->

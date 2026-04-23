@@ -1,0 +1,63 @@
+{
+  "spec": "specs/217-fix-mermaid-line-breaks/spec.json",
+  "date": "2026-04-23T02:31:36.032Z",
+  "requirements": [
+    {
+      "desc": "R1: mermaid code blocks in docs/internal_design.md must not contain literal \\n outside node labels",
+      "status": "done",
+      "note": "The offending mermaid node was changed from a label followed by literal \\n to an in-label <br/> form, matching the requirement intent."
+    },
+    {
+      "desc": "R2: listed preset templates modified for mermaid must include br line-break instruction",
+      "status": "done",
+      "note": "All listed mermaid-related preset template files in the diff were updated to include explicit <br/> line-break guidance and to forbid literal backslash-n outside labels."
+    },
+    {
+      "desc": "R3: npm test must exit 0 after the change",
+      "status": "partial",
+      "note": "The diff includes metadata claiming test step/requirement completion, but no direct npm test execution log/output is shown in the diff itself."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/217-fix-mermaid-line-breaks/draft.md",
+      "change": "New draft specification document added; not required by R1-R3."
+    },
+    {
+      "file": "specs/217-fix-mermaid-line-breaks/flow.json",
+      "change": "Flow state/metadata file added; process artifact outside R1-R3 implementation scope."
+    },
+    {
+      "file": "specs/217-fix-mermaid-line-breaks/issue-log.json",
+      "change": "Gate/evaluation log added; not a direct requirement deliverable."
+    },
+    {
+      "file": "specs/217-fix-mermaid-line-breaks/qa.md",
+      "change": "Clarification Q&A template file added; outside listed requirements."
+    },
+    {
+      "file": "specs/217-fix-mermaid-line-breaks/review.md",
+      "change": "Code review notes file added; not covered by R1-R3."
+    },
+    {
+      "file": "specs/217-fix-mermaid-line-breaks/spec.json",
+      "change": "Structured spec JSON scaffold added; not required by requirements list."
+    },
+    {
+      "file": "specs/217-fix-mermaid-line-breaks/spec.md",
+      "change": "Human-readable feature spec document added; outside R1-R3."
+    },
+    {
+      "file": "specs/217-fix-mermaid-line-breaks/tests/README.md",
+      "change": "Spec-local test rationale document added; not a direct requirement output."
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "done": 2,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.83,
+    "notes": "Implementation changes for the mermaid fix and preset prompt hardening align well with R1 and R2. R3 is likely satisfied based on workflow metadata, but direct test-run evidence is not present in the provided diff."
+  }
+}

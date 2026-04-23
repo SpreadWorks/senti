@@ -35,7 +35,7 @@
 <!-- {%block "er-diagram"%} -->
 ### ER 図（主要テーブル）
 
-<!-- {{text({prompt: "主要テーブルの ER 図を mermaid erDiagram で生成してください。出力は mermaid コードブロックのみ。", mode: "deep"})}} -->
+<!-- {{text({prompt: "主要テーブルの ER 図を mermaid erDiagram で生成してください。出力は mermaid コードブロックのみ。エンティティラベル内で改行する場合は <br/> を [...] 内に含めること。ラベル外にリテラルのバックスラッシュ n（2 文字）を置かない。", mode: "deep"})}} -->
 <!-- {{/text}} -->
 <!-- {%/block%} -->
 <!-- {%/block%} -->

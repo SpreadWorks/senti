@@ -24,6 +24,6 @@
 <!-- {%block "login-flow"%} -->
 ### ログインフロー
 
-<!-- {{text({prompt: "ログイン処理のフローを mermaid sequenceDiagram で生成してください。出力は mermaid コードブロックのみ。", mode: "deep"})}} -->
+<!-- {{text({prompt: "ログイン処理のフローを mermaid sequenceDiagram で生成してください。出力は mermaid コードブロックのみ。participant や note のラベル内で改行する場合は <br/> をラベル内に含めること。ラベル外にリテラルのバックスラッシュ n（2 文字）を置かない。", mode: "deep"})}} -->
 <!-- {{/text}} -->
 <!-- {%/block%} -->

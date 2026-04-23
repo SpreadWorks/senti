@@ -1,0 +1,344 @@
+{
+  "spec": "specs/217-fix-mermaid-line-breaks/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/217-fix-mermaid-line-breaks",
+  "runId": "dd58956a-ce81-4c06-b337-441233f4d875",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "R1: mermaid code blocks in docs/internal_design.md must not contain literal \\n outside node labels",
+      "status": "done"
+    },
+    {
+      "desc": "R2: listed preset templates modified for mermaid must include br line-break instruction",
+      "status": "done"
+    },
+    {
+      "desc": "R3: npm test must exit 0 after the change",
+      "status": "done"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 227,
+  "request": "[BUG] internal_design.md の mermaid が literal \\n で壊れる。docs/internal_design.md の Module Dependencies mermaid 図 (64-90 付近) で、ノードラベル [...] の外側にリテラル \\n が置かれている。mermaid は \\n をラベル内クオート文字列でしか改行として解釈しないため GitHub 上で図が壊れる。docs/ja/internal_design.md は <br/> で正しく書かれている。対象: docs/internal_design.md および docs 生成パイプライン（enrich / text のプロンプトやテンプレート）。方針: \\n を <br/> に置き換え、trailing の括弧表現はノードラベルの [...] 内に取り込む。生成側で同種パターンが再発しないか確認する。出典: ultrareview bug_008",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 21,
+    "maxScore": 24,
+    "threshold": 18,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 1,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "不具合箇所・修正方針・対象範囲が具体的で受け入れ条件も導ける。生成側の再発防止確認手順のみ軽い裁量が必要。"
+  },
+  "worktree": true,
+  "test": {
+    "baseline": {
+      "unit": 2019,
+      "integration": 260,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 0,
+      "integration": 0,
+      "acceptance": 0
+    }
+  },
+  "metrics": [
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1478,
+      "durationMs": 28798,
+      "tokens": {
+        "input": 9431,
+        "output": 1056,
+        "cacheRead": 15744,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:11:14.821Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2120,
+      "durationMs": 22647,
+      "tokens": {
+        "input": 21915,
+        "output": 832,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:12:20.091Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2112,
+      "durationMs": 25711,
+      "tokens": {
+        "input": 21992,
+        "output": 827,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:13:05.046Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2844,
+      "durationMs": 36584,
+      "tokens": {
+        "input": 10701,
+        "output": 1476,
+        "cacheRead": 15744,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:16:59.636Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2912,
+      "durationMs": 36977,
+      "tokens": {
+        "input": 10868,
+        "output": 1530,
+        "cacheRead": 15744,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:18:03.987Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2717,
+      "durationMs": 31037,
+      "tokens": {
+        "input": 7911,
+        "output": 1376,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:18:54.107Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 186,
+      "durationMs": 7926,
+      "tokens": {
+        "input": 8526,
+        "output": 133,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:28:37.006Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1597,
+      "durationMs": 21290,
+      "tokens": {
+        "input": 24397,
+        "output": 645,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:28:58.334Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-23T02:28:58.400Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2172,
+      "durationMs": 35184,
+      "tokens": {
+        "input": 41276,
+        "output": 1352,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:29:41.480Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1189,
+      "durationMs": 22061,
+      "tokens": {
+        "input": 57019,
+        "output": 806,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:30:03.614Z"
+    },
+    {
+      "phase": "finalize",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2468,
+      "durationMs": 29665,
+      "tokens": {
+        "input": 34033,
+        "output": 1355,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:31:36.030Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-23T02:31:06.161Z"
+  }
+}

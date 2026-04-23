@@ -1,0 +1,92 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Mermaid改行不具合の修正と再発防止（同一関心）に限定されている。; Unambiguous Requirements — 対象ファイル・変更内容・除外範囲が具体的で検証可能な記述になっている。; Complete Context — 多くの記述が方針/範囲説明に留まり、When/If と shall の対で定義された要求としては不完全。; No Hardcoded Secrets — APIキーやトークン等の秘密情報の記載はない。; Prioritize Requirements — 独立した要求項目が優先順位付けを要するほど列挙されていない。; Impact on Existing Features — 既存機能への影響あり/なしが明示され、再生成時のみ反映など条件も記載されている。; Present Recommendations with Reasoning — Q&Aで回答はあるが、各回答の根拠を docs/・guardrail・既存コードパターンのどれかとして明示していない。; Explore Before Asking — 他箇所確認済み・L66のみ等、事前調査した内容が示されている。; Proactively Raise Related Implications — upgrade必要性、再生成時の反映条件、将来リスク緩和まで先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 「validationはoverengineering」等の判断に対し、ブレストか意思決定かの確認記録がない。; Capture Digressions in draft.md — 脱線した議論の記録が必要な状況は示されていないため実質的に適合。; Draft Stays at Requirements Level — L66の具体diffやgrep検証手順など、要件レベルを超える実装/検証詳細が含まれている。; Backward-Compatible CLI Interface — 既存CLIコマンド/オプションの意味変更や削除を伴う変更ではない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:11:14.838Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "多くの記述が方針/範囲説明に留まり、When/If と shall の対で定義された要求としては不完全。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&Aで回答はあるが、各回答の根拠を docs/・guardrail・既存コードパターンのどれかとして明示していない。"
+        },
+        {
+          "guardrail_id": "draft-confirm-brainstorm-vs-decide",
+          "reason": "「validationはoverengineering」等の判断に対し、ブレストか意思決定かの確認記録がない。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "L66の具体diffやgrep検証手順など、要件レベルを超える実装/検証詳細が含まれている。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Mermaid line-break rendering fix and recurrence prevention are part of one coherent concern.; Unambiguous Requirements — R1 uses vague wording like 'correctly rendered on GitHub' without precise, testable acceptance criteria.; Complete Context — Each requirement includes a trigger condition (If/When) and expected behavior (shall).; No Hardcoded Secrets — No API keys, tokens, passwords, or similar secrets are present in the draft.; Prioritize Requirements — The draft has three requirements, so priority ordering is not required.; Impact on Existing Features — It explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Each Q&A leads with a decision and gives concise rationale from issue context, project rules, or code exploration.; Explore Before Asking — The draft cites direct file reading and grep-based exploration before settling decisions.; Proactively Raise Related Implications — It proactively calls out template-wide scope, upgrade implications, and regeneration boundaries.; Confirm Brainstorm vs. Decision Before Critiquing — It explicitly labels the key choice as a decision and distinguishes it from brainstorming.; Capture Digressions in draft.md — No unresolved digressive thread is evident; draft remains focused with Q&A captured.; Draft Stays at Requirements Level — Content stays at requirement/spec scope without function-level or algorithmic implementation design.; Backward-Compatible CLI Interface — No CLI command/option behavior change is proposed, so migration planning is not applicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:12:20.104Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R1 uses vague wording like 'correctly rendered on GitHub' without precise, testable acceptance criteria."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:14:22.551Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 101: unchecked task/question (- [ ] （なし）)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:16:08.683Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: fixing Mermaid line-break rendering and preventing the same issue in generation prompts.; Unambiguous Requirements — Requirements use concrete conditions (literal `\\n`, `<br/>`, `npm test` exit code) that are objectively checkable.; Complete Context — Each requirement includes a trigger/context (When/If) and an expected shall-behavior.; REQ Diff-Verifiability — R3 depends on baseline comparison from `flow.json` context, not strictly decidable from unified diff plus test summary alone.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are specified.; No Silent Error Swallowing — No implementation pattern involving catch/error handling is introduced in this spec.; Prioritize Requirements — There are exactly three requirements, so explicit priority ordering is not required.; Impact on Existing Features — Impact is described (no logic change, targeted doc/prompt updates, avoid regressions).; Bounded Resource Usage — Spec does not introduce recursive processing, retries, or unbounded bulk-loading behavior.; Changes Require Test Coverage — Bug-fix changes are specified without adding happy-path tests and without explicitly stating a reason for omitting new tests.; Spec Includes Test Strategy — Test strategy is present via AC1-AC3 (grep-based checks and `npm test` regression check).; Synthesize Draft, Do Not Copy — Cannot verify whether content was synthesized vs copied because original draft source is not provided.; Record Unresolved Points as Open Questions — Open Questions section is present and explicitly states none unresolved.; Include 'Why This Approach' Rationale — Rationale is provided through Decisions and Alternatives Considered with rejection reasons.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying or deleting existing tests.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is introduced, so migration planning is inapplicable.; Exit Code Contract — Spec expectation aligns with correct contract (`npm test` success requires exit code 0; failures are not treated as success).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:16:59.661Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "R3 depends on baseline comparison from `flow.json` context, not strictly decidable from unified diff plus test summary alone."
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "Bug-fix changes are specified without adding happy-path tests and without explicitly stating a reason for omitting new tests."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: fixing Mermaid line-break rendering and preventing recurrence via prompt guidance.; Unambiguous Requirements — Requirements use concrete, verifiable conditions (literal \\n placement, prompt inclusion, npm test exit code).; Complete Context — Each requirement includes trigger context (When/If) and expected behavior (shall/shall not).; REQ Diff-Verifiability — R2 requires repo-wide prompt completeness checks beyond unified diff + test summary alone.; No Hardcoded Secrets — No secrets, credentials, or key material are introduced in the spec content.; No Silent Error Swallowing — No error-handling implementation is specified; article is inapplicable to this document-only change.; Prioritize Requirements — Only three requirements are listed, so explicit priority ordering is not required.; Impact on Existing Features — Impact is described: docs/prompt updates only, no CLI/logic changes, and existing tests are to remain passing.; Bounded Resource Usage — No recursive/retry/bulk-processing design is introduced; bounded-resource rule is inapplicable.; Changes Require Test Coverage — Spec provides validation (AC1/AC2) and explains why no new unit tests are added, plus regression check via npm test.; Spec Includes Test Strategy — Test strategy is explicitly documented in Acceptance Criteria and Test Coverage Rationale.; Synthesize Draft, Do Not Copy — Cannot assess copy-vs-synthesis without the original draft source for comparison.; Record Unresolved Points as Open Questions — Open Questions section is present and explicitly states none unresolved; no fabricated unresolved answers are evident.; Include 'Why This Approach' Rationale — Rationale is included via Background, Decisions, and Alternatives Considered with rejection reasons.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying/deleting existing tests and preserves current test suite execution.; Backward-Compatible CLI Interface — No existing command/option behavior is changed, so migration-plan requirement is inapplicable.; Exit Code Contract — Spec does not introduce failure-path commands returning 0; it requires npm test success to be exit code 0 only on pass.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:18:04.011Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "R2 requires repo-wide prompt completeness checks beyond unified diff + test summary alone."
+        }
+      ]
+    }
+  ]
+}

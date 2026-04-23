@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "docs/internal_design.md                            |   2 +-\n specs/217-fix-mermaid-line-breaks/draft.md         |  56 ++++\n specs/217-fix-mermaid-line-breaks/flow.json        | 329 +++++++++++++++++++++\n specs/217-fix-mermaid-line-breaks/issue-log.json   |  92 ++++++\n specs/217-fix-mermaid-line-breaks/qa.md            |   9 +\n specs/217-fix-mermaid-line-breaks/review.md        |  41 +++\n specs/217-fix-mermaid-line-breaks/spec.json        |  20 ++\n specs/217-fix-mermaid-line-breaks/spec.md          | 106 +++++++\n specs/217-fix-mermaid-line-breaks/tests/README.md  |  21 ++\n src/presets/base/templates/en/overview.md          |   2 +-\n src/presets/base/templates/ja/overview.md          |   2 +-\n .../laravel/templates/en/auth_and_session.md       |   2 +-\n .../laravel/templates/ja/auth_and_session.md       |   2 +-\n .../node-cli/templates/en/internal_design.md       |   2 +-\n src/presets/node-cli/templates/en/overview.md      |   2 +-\n .../node-cli/templates/ja/internal_design.md       |   2 +-\n src/presets/node-cli/templates/ja/overview.md      |   2 +-\n .../symfony/templates/en/auth_and_session.md       |   2 +-\n .../symfony/templates/ja/auth_and_session.md       |   2 +-\n .../webapp/templates/en/auth_and_session.md        |   2 +-\n .../webapp/templates/en/database_architecture.md   |   2 +-\n .../webapp/templates/ja/auth_and_session.md        |   2 +-\n .../webapp/templates/ja/database_architecture.md   |   2 +-\n 23 files changed, 689 insertions(+), 15 deletions(-)",
+      "commits": [
+        "feat: feature/217-fix-mermaid-line-breaks",
+        "Fix broken mermaid line break in internal_design.md"
+      ]
+    },
+    "retro": {
+      "total": 3,
+      "done": 2,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.83,
+      "notes": "Implementation changes for the mermaid fix and preset prompt hardening align well with R1 and R2. R3 is likely satisfied based on workflow metadata, but direct test-run evidence is not present in the provided diff."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 214036,
+      "output": 10033,
+      "cacheRead": 117504,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 268215,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 77156
+        },
+        {
+          "phase": "gate",
+          "durationMs": 104598
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 29216
+        },
+        {
+          "phase": "review",
+          "durationMs": 57245
+        }
+      ]
+    },
+    "tests": {
+      "unit": 0,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 0
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/217-fix-mermaid-line-breaks\n    Fix broken mermaid line break in internal_design.md\n    23 files changed, 689 insertions(+), 15 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (2 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 10\n    input tokens ................ 214,036\n    output tokens ............... 10,033\n    cache-read tokens ........... 117,504\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 268.2s\n      gate-draft ................ 77.2s\n      gate ...................... 104.6s\n      gate-impl ................. 29.2s\n      review .................... 57.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 0  integration 0  acceptance 0  total 0"
+}

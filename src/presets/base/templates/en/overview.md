@@ -20,7 +20,7 @@
 <!-- {%block "architecture"%} -->
 ### Architecture Diagram
 
-<!-- {{text({prompt: "Generate a mermaid flowchart showing the project architecture. Include data flows between major components. Output only the mermaid code block."})}} -->
+<!-- {{text({prompt: "Generate a mermaid flowchart showing the project architecture. Include data flows between major components. Output only the mermaid code block. For line breaks inside node labels, use <br/> inside [...]; do not place a literal backslash-n (two characters) outside a label."})}} -->
 <!-- {{/text}} -->
 <!-- {%/block%} -->
 

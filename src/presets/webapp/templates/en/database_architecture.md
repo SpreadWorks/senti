@@ -35,7 +35,7 @@
 <!-- {%block "er-diagram"%} -->
 ### ER Diagram (Key Tables)
 
-<!-- {{text({prompt: "Generate a mermaid erDiagram of the key tables. Output only the mermaid code block.", mode: "deep"})}} -->
+<!-- {{text({prompt: "Generate a mermaid erDiagram of the key tables. Output only the mermaid code block. For line breaks inside entity labels, use <br/> inside [...]; do not place a literal backslash-n (two characters) outside a label.", mode: "deep"})}} -->
 <!-- {{/text}} -->
 <!-- {%/block%} -->
 <!-- {%/block%} -->

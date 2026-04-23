@@ -63,7 +63,7 @@ src/
 
 ```mermaid
 graph TD
-  CLI[CLI Commands]\n(scan/check/readme/translate/flow) --> DOCS_CMD[src/docs/commands/*]
+  CLI[CLI Commands<br/>(scan/check/readme/translate/flow)] --> DOCS_CMD[src/docs/commands/*]
   CLI --> CHECK_CMD[src/check/commands/scan.js]
   CLI --> FLOW_CMD[src/flow/lib/* commands]
 
