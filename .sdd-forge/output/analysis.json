@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T13:57:13.417Z",
+  "analyzedAt": "2026-04-23T15:43:43.558Z",
   "package": {
     "entries": [
       {
@@ -1533,9 +1533,9 @@
       },
       {
         "file": "src/docs/lib/lang-factory.js",
-        "hash": "1e7cc8c085af338d7ba6286188965431",
-        "lines": 38,
-        "mtime": "2026-04-05T09:45:33.799Z",
+        "hash": "baea892a71d776f9ca07b3832a019a95",
+        "lines": 40,
+        "mtime": "2026-04-23T15:43:43.302Z",
         "className": "lang-factory",
         "methods": [
           "getLangHandler"
@@ -1545,7 +1545,8 @@
           "./lang/js.js",
           "./lang/php.js",
           "./lang/py.js",
-          "./lang/yaml.js"
+          "./lang/yaml.js",
+          "./lang/md.js"
         ],
         "exports": [
           "getLangHandler"
@@ -1557,19 +1558,8 @@
         ],
         "id": "8f8393ac",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Maps file extensions to language handler modules. It exposes a single resolver to obtain parser/minifier behavior by path.",
-        "detail": "The extension map binds known suffixes to JS, PHP, Python, and YAML handler implementations. getLangHandler normalizes extension casing and returns null for unsupported files. This allows scanner and minifier modules to remain language-agnostic. The factory pattern keeps language support additions localized.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "keywords": [
-          "language factory",
-          "extension map",
-          "handler resolver",
-          "parser dispatch"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/docs/lib/lang/comments.js",
@@ -1664,6 +1654,32 @@
           "import export extraction",
           "essential code"
         ]
+      },
+      {
+        "file": "src/docs/lib/lang/md.js",
+        "hash": "9176e964d1a44f1d32fd06f03b627199",
+        "lines": 39,
+        "mtime": "2026-04-23T15:43:43.303Z",
+        "className": "md",
+        "methods": [
+          "minify",
+          "truncate",
+          "collapseBlankLines"
+        ],
+        "imports": [],
+        "exports": [
+          "minify",
+          "truncate",
+          "preserveBlankLines"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/docs/lib/lang-factory.js"
+        ],
+        "id": "f9080cfd",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/docs/lib/lang/php.js",
@@ -1788,9 +1804,9 @@
       },
       {
         "file": "src/docs/lib/minify.js",
-        "hash": "c7b4266a51f47a302b3e2ff7501971ee",
-        "lines": 50,
-        "mtime": "2026-04-05T09:45:33.800Z",
+        "hash": "1522063b78916d4efe10d7750b50bf17",
+        "lines": 54,
+        "mtime": "2026-04-23T15:43:43.303Z",
         "className": "minify",
         "methods": [
           "minify",
@@ -1809,19 +1825,8 @@
         ],
         "id": "212fe46f",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Provides top-level minification orchestration by delegating to language handlers. It includes generic whitespace cleanup fallbacks.",
-        "detail": "The module first resolves a handler by file path and chooses extractEssential or minify based on options. If no handler exists, it applies blank-line and trailing-whitespace normalization to keep outputs tidy. This design separates language-specific logic from generic cleanup behavior. It is used to compress source snippets before embedding them in prompts.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "keywords": [
-          "minify orchestrator",
-          "language dispatch",
-          "whitespace cleanup",
-          "prompt compression"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/docs/lib/php-array-parser.js",
@@ -2507,9 +2512,9 @@
       },
       {
         "file": "src/flow/lib/auto-check-static.js",
-        "hash": "bbe60af63223be580b805749ef9d59d0",
-        "lines": 60,
-        "mtime": "2026-04-21T13:22:01.251Z",
+        "hash": "8a6539f7ee886b8b3fda394414459d6b",
+        "lines": 58,
+        "mtime": "2026-04-23T15:43:43.303Z",
         "className": "auto-check-static",
         "methods": [
           "evaluateStaticGates",
@@ -2525,22 +2530,9 @@
           "src/flow/lib/run-auto-check.js"
         ],
         "id": "234a900d",
-        "summary": "This module performs lightweight static screening for SDD auto mode eligibility. It flags requests that contain risky keywords or contradictory inversion patterns before any AI scoring runs.",
-        "detail": "It defines keyword lists for two gate types and a third heuristic based on inversion counting. The `anyKeyword` helper lowercases input and checks substring matches across configured terms. The `countInversions` helper computes how many contradiction-like patterns appear in the text. `evaluateStaticGates` combines these checks into boolean gate outputs (`G`, `H`, `I`) and derives a final `eligible` flag that only passes when all three gates are false. The design favors deterministic, fast pre-filtering with no external dependencies.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-21T22:37:39.358Z",
           "attempts": 1
-        },
-        "keywords": [
-          "static analysis",
-          "heuristic gate",
-          "keyword matching",
-          "precheck",
-          "eligibility filter",
-          "rule-based screening"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/base-command.js",
@@ -2652,6 +2644,31 @@
           "task sync",
           "validation helper"
         ]
+      },
+      {
+        "file": "src/flow/lib/fetch-issue.js",
+        "hash": "f5c65cf56af483a00e939ff8be69ecda",
+        "lines": 51,
+        "mtime": "2026-04-23T15:43:43.303Z",
+        "className": "fetch-issue",
+        "methods": [
+          "fetchIssue"
+        ],
+        "imports": [
+          "../../lib/process.js"
+        ],
+        "exports": [
+          "fetchIssue"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-issue.js",
+          "src/flow/lib/issue-body-cache.js"
+        ],
+        "id": "9716514c",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/flow-context.js",
@@ -2882,14 +2899,14 @@
       },
       {
         "file": "src/flow/lib/get-issue.js",
-        "hash": "cb71e1f166d6d7accedaf1e986411c2e",
-        "lines": 43,
-        "mtime": "2026-04-08T09:17:36.519Z",
+        "hash": "57160ca5e43e3aea33fc22aef1f4219e",
+        "lines": 35,
+        "mtime": "2026-04-23T15:43:43.303Z",
         "className": "get-issue",
         "methods": [],
         "imports": [
-          "../../lib/process.js",
-          "./base-command.js"
+          "./base-command.js",
+          "./fetch-issue.js"
         ],
         "exports": [
           "default"
@@ -2898,19 +2915,8 @@
         "usedBy": null,
         "id": "7aec11d1",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Implements issue retrieval for flow using command execution wrappers. It validates issue number input and returns parsed issue payloads.",
-        "detail": "The command enforces positive integer issue IDs before invoking external tooling. It runs a process command and asserts success via shared process helpers. JSON output is parsed into structured result objects for downstream use. This keeps issue fetch behavior strict and predictable.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "issue fetch",
-          "flow issue command",
-          "input validation",
-          "JSON parsing"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/get-next-action.js",
@@ -3154,6 +3160,37 @@
         ]
       },
       {
+        "file": "src/flow/lib/issue-body-cache.js",
+        "hash": "e28f9bc6e2d5aaa19bcd6a1d07ee64b2",
+        "lines": 37,
+        "mtime": "2026-04-23T15:43:43.303Z",
+        "className": "issue-body-cache",
+        "methods": [
+          "fetchNormalizedIssueBody",
+          "writeIssueMd"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "./fetch-issue.js",
+          "../../docs/lib/lang/md.js"
+        ],
+        "exports": [
+          "fetchNormalizedIssueBody",
+          "writeIssueMd"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-prepare-spec.js",
+          "src/flow/lib/set-init.js",
+          "src/flow/lib/set-issue.js"
+        ],
+        "id": "52e67338",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/lib/overview-merge.js",
         "hash": "901f5ee38ff125931b652a14ea3d0276",
         "lines": 102,
@@ -3197,9 +3234,9 @@
       },
       {
         "file": "src/flow/lib/resolve-auto-check-input.js",
-        "hash": "e416e6c5d60283bd9088929979b9b325",
-        "lines": 77,
-        "mtime": "2026-04-23T05:53:32.265Z",
+        "hash": "23174f3beb7e7ebce69c6d7d8103e13e",
+        "lines": 101,
+        "mtime": "2026-04-23T15:43:43.303Z",
         "className": "resolve-auto-check-input",
         "methods": [
           "isSpecApproved",
@@ -3207,7 +3244,7 @@
           "buildSkipVerdict",
           "isStepDone",
           "isDraftGateDone",
-          "loadDraftText",
+          "loadSpecSiblingText",
           "buildBaseInput"
         ],
         "imports": [
@@ -3226,21 +3263,8 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 3
-        },
-        "summary": "Resolves input text for auto-check evaluation and handles skip behavior when approval is already complete. It also exports a shared skip verdict helper used by auto mode commands.",
-        "detail": "The module checks step completion flags from flow task steps, including approval and draft-gate completion. It can read `draft.md` to enrich evaluation input when draft gating has passed, while still producing a fallback base prompt from request metadata. The resolver returns either a `skip` envelope with reason or a normalized text payload for scoring. Logic is intentionally small and deterministic, keeping state checks isolated from AI scoring code. A dedicated `buildSkipVerdict` function standardizes skip response shape across commands.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "keywords": [
-          "auto-check input",
-          "spec approved skip",
-          "draft.md",
-          "step status",
-          "flow state",
-          "eligibility verdict"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
@@ -3568,7 +3592,10 @@
         "usedBy": [
           "src/flow/lib/set-gate-retry.js"
         ],
-        "id": "b4aa4dad"
+        "id": "b4aa4dad",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -3652,9 +3679,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "570bac079d989f487555c3b09e205ac7",
-        "lines": 350,
-        "mtime": "2026-04-23T12:16:14.735Z",
+        "hash": "3fa47c074a21dfe731265dbb1daa46b3",
+        "lines": 356,
+        "mtime": "2026-04-23T15:43:43.303Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3678,7 +3705,8 @@
           "../../lib/git-helpers.js",
           "../../lib/spec-json.js",
           "../../spec/commands/render.js",
-          "./base-command.js"
+          "./base-command.js",
+          "./issue-body-cache.js"
         ],
         "exports": [
           "RunPrepareSpecCommand",
@@ -3687,24 +3715,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "This module prepares a new flow spec workspace and initializes required spec artifacts for execution. It encapsulates branch detection, naming, template generation, and flow-state persistence in a command class.",
-        "detail": "It defines helper routines for git command execution, slug creation, and numeric spec directory indexing to produce stable spec folder names. The command validates prerequisites such as title presence, config availability, and clean worktree constraints before creating files. It writes `spec.json`, rendered `spec.md`, `qa.md`, and `draft.md` only when missing, using fallback templates and localized content where applicable. It also records flow state metadata, including spec paths and initial step status, so downstream flow commands can continue from a deterministic baseline. Error paths are explicit and fail fast to avoid partially initialized flow state.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T12:16:40.997Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow prepare",
-          "spec bootstrap",
-          "worktree setup",
-          "slug generation",
-          "branch detection",
-          "state initialization",
-          "template fallback",
-          "spec scaffolding"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
@@ -4198,14 +4211,15 @@
       },
       {
         "file": "src/flow/lib/set-init.js",
-        "hash": "1ca1a591c60a69322fc5722b13af72ca",
-        "lines": 51,
-        "mtime": "2026-04-23T12:18:47.177Z",
+        "hash": "5c1095b8d3c1b04a2fd372dae4b9cde5",
+        "lines": 54,
+        "mtime": "2026-04-23T15:43:43.303Z",
         "className": "set-init",
         "methods": [],
         "imports": [
           "./base-command.js",
-          "../../lib/flow-envelope.js"
+          "../../lib/flow-envelope.js",
+          "./issue-body-cache.js"
         ],
         "exports": [
           "default"
@@ -4215,22 +4229,9 @@
           "src/docs/commands/build.js"
         ],
         "id": "e407389c",
-        "summary": "SetInitCommand is a flow command entry point that wraps init behavior behind the shared FlowCommand base class. It standardizes returned payloads by including a run identifier and uses Envelope-based failure handling.",
-        "detail": "The class extends the command abstraction used by flow subcommands, which keeps lifecycle handling consistent across commands. It uses `Envelope.fail(...)` for error paths, indicating a uniform result contract instead of throwing raw errors to callers. Its success-side shaping includes `{ runId, ...extra }`, which suggests that initialization metadata is merged into a stable response object for downstream consumers. This pattern keeps CLI-facing and internal callers aligned on response shape and status semantics.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T12:19:13.411Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow init",
-          "command handler",
-          "envelope response",
-          "error wrapper",
-          "run id",
-          "command abstraction"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-issue-log.js",
@@ -4285,14 +4286,16 @@
       },
       {
         "file": "src/flow/lib/set-issue.js",
-        "hash": "b2479b99aad62a1cddbf87e151112618",
-        "lines": 45,
-        "mtime": "2026-04-22T14:34:07.553Z",
+        "hash": "2266c293f5fd7a92c3e2ae002151a4c9",
+        "lines": 57,
+        "mtime": "2026-04-23T15:43:43.303Z",
         "className": "set-issue",
         "methods": [],
         "imports": [
+          "path",
           "./base-command.js",
-          "../../lib/flow-envelope.js"
+          "../../lib/flow-envelope.js",
+          "./issue-body-cache.js"
         ],
         "exports": [
           "default"
@@ -4300,21 +4303,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c3865b58",
-        "summary": "Sets the current issue number in flow state with strict numeric validation. It is a focused command for issue linkage during flow execution.",
-        "detail": "The command checks argument presence and enforces integer parsing before updating state. Invalid input paths return envelope failures with usage guidance. Successful execution stores a normalized numeric issue identifier. The implementation avoids side effects beyond state mutation to keep behavior predictable. It fits the uniform `flow set` command pattern used across the module set.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
           "attempts": 1
-        },
-        "keywords": [
-          "issue number",
-          "state mutation",
-          "input validation",
-          "flow set issue",
-          "command usage"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-metric.js",
@@ -9452,10 +9443,10 @@
       }
     ],
     "summary": {
-      "total": 276,
-      "totalMethods": 904
+      "total": 279,
+      "totalMethods": 910
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T13:05:34.709Z"
+  "enrichedAt": "2026-04-23T15:44:32.078Z"
 }
