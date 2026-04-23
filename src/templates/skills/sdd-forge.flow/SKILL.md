@@ -68,11 +68,11 @@ B.0.5. **Auto-mode eligibility check** (spec 208)
      - Choices: `[1] はい — AI が確認なしで進めます` `[2] いいえ — 通常通り各ステップで確認します`.
      - Note below choices: "後から `/sdd-forge.flow-auto on` で切り替え可能".
      - If user picks `[1]`:
-       - Run `sdd-forge flow set auto on --run-id <runId>` (the CLI re-verifies auto-check and writes to the preparing flow so `flow prepare` will inherit it; rejection here means STOP).
+       - Run `sdd-forge flow set auto on --run-id <runId>` (the CLI trusts the verdict already persisted by `run auto-check` above and writes `autoApprove: true` to the preparing flow so `flow prepare` will inherit it; no second AI call. Rejection here means STOP).
        - **Skip B.1 and B.2.** Use work-environment = worktree and base-branch = current branch by default.
        - Proceed to B.3 (Draft Q1 is also auto-approved under autoApprove).
      - If user picks `[2]`: continue with the normal B.1 → B.2 → B.3 flow.
-   - **If `eligible: false`**: do NOT display the auto-mode prompt. Continue with the normal B.1 → B.2 → B.3 flow. The result is still stored in flow.json `autoCheck` for audit.
+   - **If `eligible: false`**: do NOT display the auto-mode prompt. Continue with the normal B.1 → B.2 → B.3 flow. The result is still persisted in the flow state `autoCheck` for audit.
 
 B.1. **Choose work environment**
    - **Auto-detect:** if `.git` is a file (not directory) in the project root, you are already inside a worktree — skip the choice and use `--no-branch` automatically.

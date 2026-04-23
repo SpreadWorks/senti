@@ -15,9 +15,15 @@
  *   - Otherwise → auto-detect only when exactly one preparing flow exists.
  *   - If no flow.json and multiple/zero preparing flows and no --run-id → error.
  *
- * Spec 208 R8 / R9: `on` is gated by auto-check — if the check returns
- * eligible:false, autoApprove is NOT updated and the CLI exits non-zero
- * with the reason on stderr.
+ * Gate on `on`:
+ *   - Spec 208 R8 / R9: `on` is gated by auto-check — if the check returns
+ *     eligible:false, autoApprove is NOT updated and the CLI exits non-zero
+ *     with the reason on stderr.
+ *   - Spec 218: When state already contains a persisted `autoCheck` (written
+ *     earlier by `flow run auto-check`), the verdict is trusted verbatim and
+ *     the AI is NOT invoked again. This eliminates the split-brain where
+ *     `run auto-check` evaluates a rich issue body while `set auto on`
+ *     re-evaluates the bare `Issue #<n>` literal and hard-gate-rejects.
  *
  * ctx.value — "on" | "off"
  * ctx.runId — optional preparing-flow target
@@ -29,6 +35,7 @@ import { FlowCommand } from "./base-command.js";
 import { VALID_AUTO_VALUES } from "../../lib/constants.js";
 import { runAutoCheckCore } from "./run-auto-check.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
 
 function buildInputText(state) {
   const parts = [];
@@ -60,42 +67,6 @@ function resolveAutoCheckInput(ctx, state, preparingMode) {
   return buildInputText(state);
 }
 
-function resolvePreparingRunId(flowManager, explicitRunId) {
-  if (explicitRunId) {
-    if (!flowManager.loadPreparingFlow(explicitRunId)) {
-      return {
-        fail: Envelope.fail(
-          "set",
-          "auto",
-          "PREPARING_FLOW_NOT_FOUND",
-          `preparing flow not found: ${explicitRunId}`,
-        ),
-      };
-    }
-    return { runId: explicitRunId };
-  }
-  const ids = flowManager.listPreparingFlows();
-  if (ids.length === 1) return { runId: ids[0] };
-  if (ids.length === 0) {
-    return {
-      fail: Envelope.fail(
-        "set",
-        "auto",
-        "NO_FLOW",
-        "no active flow and no preparing flow found",
-      ),
-    };
-  }
-  return {
-    fail: Envelope.fail(
-      "set",
-      "auto",
-      "MULTIPLE_PREPARING_FLOWS",
-      `multiple preparing flows found; pass --run-id <id> (candidates: ${ids.join(", ")})`,
-    ),
-  };
-}
-
 export default class SetAutoCommand extends FlowCommand {
   constructor() {
     super({ requiresFlow: false });
@@ -117,7 +88,11 @@ export default class SetAutoCommand extends FlowCommand {
     const preparingMode = !flowState;
     let runId = null;
     if (preparingMode) {
-      const resolved = resolvePreparingRunId(flowManager, ctx.runId);
+      const resolved = resolvePreparingRunId(flowManager, ctx.runId, {
+        type: "set",
+        key: "auto",
+        zeroPreparingAsFail: true,
+      });
       if (resolved.fail) return resolved.fail;
       runId = resolved.runId;
     }
@@ -149,14 +124,22 @@ export default class SetAutoCommand extends FlowCommand {
       return { autoApprove: true, autoCheck };
     }
 
-    const input = resolveAutoCheckInput(ctx, state, preparingMode);
-    const autoCheck = await runAutoCheckCore(this.container, input);
-
-    const applyCheck = (s) => { s.autoCheck = autoCheck; };
-    if (preparingMode) {
-      flowManager.mutatePreparingFlow(runId, applyCheck);
-    } else {
-      flowManager.mutate(applyCheck);
+    // Trust path: a prior `flow run auto-check` already persisted a verdict to
+    // this state. Use it directly instead of re-invoking the AI with a
+    // different (typically thinner) input. Eliminates the split-brain where
+    // run auto-check evaluates a rich issue body but set auto on re-evaluates
+    // the bare "Issue #<n>" literal and hard-gate-rejects.
+    let autoCheck = state?.autoCheck || null;
+    const trusted = !!autoCheck;
+    if (!autoCheck) {
+      const input = resolveAutoCheckInput(ctx, state, preparingMode);
+      autoCheck = await runAutoCheckCore(this.container, input);
+      const applyCheck = (s) => { s.autoCheck = autoCheck; };
+      if (preparingMode) {
+        flowManager.mutatePreparingFlow(runId, applyCheck);
+      } else {
+        flowManager.mutate(applyCheck);
+      }
     }
 
     if (!autoCheck.eligible) {
@@ -175,6 +158,6 @@ export default class SetAutoCommand extends FlowCommand {
     } else {
       flowManager.mutate(applyApprove);
     }
-    return { autoApprove: true, autoCheck, ...(preparingMode ? { runId } : {}) };
+    return { autoApprove: true, autoCheck, trusted, ...(preparingMode ? { runId } : {}) };
   }
 }

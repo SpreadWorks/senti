@@ -1,0 +1,64 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/218-fix-auto-check-persist/draft.md        |  73 ++++\n specs/218-fix-auto-check-persist/flow.json       | 482 +++++++++++++++++++++++\n specs/218-fix-auto-check-persist/issue-log.json  | 186 +++++++++\n specs/218-fix-auto-check-persist/qa.md           |   9 +\n specs/218-fix-auto-check-persist/report.json     |  60 +++\n specs/218-fix-auto-check-persist/review.md       |  49 +++\n specs/218-fix-auto-check-persist/spec.json       | 145 +++++++\n specs/218-fix-auto-check-persist/spec.md         | 109 +++++\n specs/218-fix-auto-check-persist/tests/README.md |  37 ++\n src/flow/lib/resolve-preparing-run-id.js         |  63 +++\n src/flow/lib/run-auto-check.js                   |  25 +-\n src/flow/lib/set-auto.js                         |  81 ++--\n src/flow/registry.js                             |  10 +-\n src/templates/skills/sdd-forge.flow/SKILL.md     |   4 +-\n tests/unit/flow/run-auto-check.test.js           |  47 +++\n tests/unit/flow/set-auto.test.js                 | 170 ++++++++\n 16 files changed, 1495 insertions(+), 55 deletions(-)",
+      "commits": [
+        "feat: feature/218-fix-auto-check-persist",
+        "chore: record rebase conflict resolution in flow state",
+        "chore: record finalize retry issue-log entries",
+        "chore: add retro and report",
+        "feat: feature/218-fix-auto-check-persist",
+        "fix(flow): trust persisted auto-check verdict in set auto on"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 4,
+      "issueLog": 5
+    },
+    "tokenMetrics": {
+      "input": 570704,
+      "output": 18518,
+      "cacheRead": 172288,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 457978,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 163562
+        },
+        {
+          "phase": "gate",
+          "durationMs": 26421
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 199381
+        },
+        {
+          "phase": "review",
+          "durationMs": 68614
+        }
+      ]
+    },
+    "tests": {
+      "unit": 5,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 5
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/218-fix-auto-check-persist\n    chore: record rebase conflict resolution in flow state\n    chore: record finalize retry issue-log entries\n    chore: add retro and report\n    feat: feature/218-fix-auto-check-persist\n    fix(flow): trust persisted auto-check verdict in set auto on\n    16 files changed, 1495 insertions(+), 55 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 4\n    issue-log ................... 5\n    agent calls ................. 16\n    input tokens ................ 570,704\n    output tokens ............... 18,518\n    cache-read tokens ........... 172,288\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 458.0s\n      gate-draft ................ 163.6s\n      gate ...................... 26.4s\n      gate-impl ................. 199.4s\n      review .................... 68.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 5  integration 0  acceptance 0  total 5"
+}

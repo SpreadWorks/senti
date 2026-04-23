@@ -4,16 +4,25 @@
  * `sdd-forge flow run auto-check` — hybrid eligibility check for auto mode.
  *
  * Flow: static gates (keyword match, sync) → AI scoring (1 stateless call) →
- *       compose eligible verdict → persist to flow.json autoCheck.
+ *       compose eligible verdict → persist to active flow.json `autoCheck`
+ *       OR to the preparing flow state (.active-flow.<runId>) when no active
+ *       flow exists. Persisting to the preparing state is what allows the
+ *       subsequent `flow set auto on` to trust this verdict instead of
+ *       re-invoking the AI with a different input (spec 218).
  *
  * Spec 208: R1 / R2 / R3 / R4 / R5 / R6 / R13.
+ * Spec 218: preparing-flow persistence for split-brain elimination.
  *
  * ctx inputs (merged from CLI by FlowCommand base):
  *   - input: optional --input <text>. Falls back to flow state (request + issue).
+ *   - runId: optional --run-id <id>. Selects a specific preparing flow when no
+ *            active flow exists and multiple preparing flows are present. When
+ *            exactly one preparing flow exists, it is auto-detected.
  */
 
 import { FlowCommand } from "./base-command.js";
 import { evaluateStaticGates } from "./auto-check-static.js";
+import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
 
 const PROMPT_TEMPLATE = `You evaluate whether a feature request can safely proceed in SDD "auto mode" —
 meaning the AI drafts, specs, and implements without human confirmation loops.
@@ -209,6 +218,20 @@ export default class RunAutoCheckCommand extends FlowCommand {
       ctx.flowManager.mutate((state) => {
         state.autoCheck = result;
       });
+      return result;
+    }
+
+    if (ctx.flowManager) {
+      const resolved = resolvePreparingRunId(ctx.flowManager, ctx.runId, {
+        type: "run",
+        key: "auto-check",
+      });
+      if (resolved.fail) return resolved.fail;
+      if (resolved.runId) {
+        ctx.flowManager.mutatePreparingFlow(resolved.runId, (state) => {
+          state.autoCheck = result;
+        });
+      }
     }
     return result;
   }

@@ -150,4 +150,51 @@ describe("flow run auto-check CLI", () => {
     assert.equal(state.autoCheck.eligible, false);
     assert.equal(state.autoCheck.staticGates.G, true);
   });
+
+  // Spec 218: run auto-check must persist the verdict to the preparing flow
+  // state file as well, so that a subsequent `flow set auto on --run-id <id>`
+  // can trust the result instead of re-invoking the agent with a different
+  // (thinner) input.
+  it("persists autoCheck to preparing flow state when no active flow exists", () => {
+    setupProject(tmp);
+    const fm = makeFlowManager(tmp);
+    const runId = fm.generateRunId();
+    fm.createPreparingFlow(runId, { issue: 230 });
+
+    const res = runCli(tmp, [
+      "flow", "run", "auto-check",
+      "--input", "add a progress bar with bounded scope",
+    ]);
+    assert.equal(res.status, 0, res.stderr);
+    const envelope = JSON.parse(res.stdout.trim());
+    assert.equal(envelope.data.eligible, true);
+
+    const preparing = fm.loadPreparingFlow(runId);
+    assert.ok(preparing.autoCheck, "autoCheck must be persisted to preparing state");
+    assert.equal(preparing.autoCheck.eligible, true);
+    assert.equal(preparing.autoCheck.maxScore, 24);
+    assert.notEqual(preparing.autoApprove, true, "autoApprove must not be set by auto-check alone");
+  });
+
+  it("persists autoCheck to the --run-id-targeted preparing flow", () => {
+    setupProject(tmp);
+    const fm = makeFlowManager(tmp);
+    const runIdA = fm.generateRunId();
+    const runIdB = fm.generateRunId();
+    fm.createPreparingFlow(runIdA, { issue: 1 });
+    fm.createPreparingFlow(runIdB, { issue: 2 });
+
+    const res = runCli(tmp, [
+      "flow", "run", "auto-check",
+      "--input", "add a progress bar with bounded scope",
+      "--run-id", runIdB,
+    ]);
+    assert.equal(res.status, 0, res.stderr);
+
+    const a = fm.loadPreparingFlow(runIdA);
+    const b = fm.loadPreparingFlow(runIdB);
+    assert.equal(a.autoCheck, undefined, "non-targeted preparing flow must remain untouched");
+    assert.ok(b.autoCheck, "targeted preparing flow must receive the verdict");
+    assert.equal(b.autoCheck.eligible, true);
+  });
 });

@@ -1,0 +1,186 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one bugfix concern (auto-check persistence/trust) with directly related tests/docs updates.; Unambiguous Requirements — Most items are concrete and verifiable (target files, specific behavior changes, fallback conditions, and test expectations).; Complete Context — Not all requirements are written with explicit trigger-condition and expected shall-style outcome pairs.; No Hardcoded Secrets — No secrets or credential-like values are included; this draft is requirements-focused.; Prioritize Requirements — There are more than three requirements/scope items but no explicit priority order is provided.; Impact on Existing Features — Impact is explicitly listed for affected and unaffected existing features.; Present Recommendations with Reasoning — Each key question has a recommended answer with concise rationale tied to responsibility separation/guard choices.; Explore Before Asking — Draft cites concrete files/paths and leaves no open questions, indicating pre-asking exploration.; Proactively Raise Related Implications — It proactively covers related implications such as stale guard choice, fallback path, and skill/doc update handling.; Confirm Brainstorm vs. Decision Before Critiquing — Draft records that options were discussed and a final choice was explicitly approved on 2026-04-23.; Capture Digressions in draft.md — Discussion outcomes from option/quality debate are captured in the draft approval notes.; Draft Stays at Requirements Level — Content remains at requirements/scope/test-strategy level without function-level implementation design.; Backward-Compatible CLI Interface — Behavior of existing command flow set auto on is changed, but no migration plan is documented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:42:38.785Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Not all requirements are written with explicit trigger-condition and expected shall-style outcome pairs."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements/scope items but no explicit priority order is provided."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Behavior of existing command flow set auto on is changed, but no migration plan is documented."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one bugfix concern: eliminating auto-check split-brain behavior.; Unambiguous Requirements — Requirements are mostly concrete, Shall-style, and testable with explicit command/state outcomes.; Complete Context — Not all requirements include explicit trigger context (e.g., P2-R6 and P3-R7 are outcome-only statements).; No Hardcoded Secrets — No secrets (keys/tokens/passwords) are present in the draft content.; Prioritize Requirements — More than three requirements are provided and clearly priority-ordered (P1/P2/P3).; Impact on Existing Features — Impact is explicitly documented, including affected and unaffected existing features.; Present Recommendations with Reasoning — Each Q&A item leads with a recommendation and includes concise rationale.; Explore Before Asking — Cannot verify exploration process from draft text alone without runtime/worklog evidence.; Proactively Raise Related Implications — Related implications are proactively covered in scope, impact, compatibility, and fallback behavior.; Confirm Brainstorm vs. Decision Before Critiquing — Confirmation timing (brainstorm vs decision before critique) is process evidence not provable from draft alone.; Capture Digressions in draft.md — Digressions/alternatives (A/C, G2/G3, etc.) are captured and bounded in the draft.; Draft Stays at Requirements Level — Draft includes implementation-level detail (specific file paths and internal function-group references), exceeding pure requirements level.; Backward-Compatible CLI Interface — CLI compatibility is explicitly addressed, with no command/flag removals and migration behavior documented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:43:46.650Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Not all requirements include explicit trigger context (e.g., P2-R6 and P3-R7 are outcome-only statements)."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level detail (specific file paths and internal function-group references), exceeding pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Bugfix scope is cohesive around resolving auto-check/set-auto split-brain behavior.; Unambiguous Requirements — Requirements are written with specific, testable conditions and outcomes.; Complete Context — Each requirement includes a trigger condition (When) and expected behavior (shall).; No Hardcoded Secrets — No secrets or credential-like values appear in the draft content.; Prioritize Requirements — More than three requirements are present and explicitly priority-ordered (P1/P2/P3).; Impact on Existing Features — Impact section explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Q&A gives recommendations, but basis is not consistently tied to docs/, guardrails, or code patterns for each question.; Explore Before Asking — No unresolved user-directed questions remain; draft appears self-resolved.; Proactively Raise Related Implications — Draft proactively covers scope boundaries, compatibility, and regression-test implications.; Confirm Brainstorm vs. Decision Before Critiquing — Whether mode (brainstorm vs decision) was confirmed requires conversation/runtime evidence not present in the draft text alone.; Capture Digressions in draft.md — Side-path options and decisions (A/B/C, G1/G2/G3) are captured in scope and notes.; Draft Stays at Requirements Level — Content stays primarily at requirements/spec level without function-level design details.; Backward-Compatible CLI Interface — CLI interface changes are explicitly stated as none, with compatibility/migration behavior documented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:44:56.154Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A gives recommendations, but basis is not consistently tied to docs/, guardrails, or code patterns for each question."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 全体が auto-check/set-auto の split-brain 解消という単一の懸念に集中している。; Unambiguous Requirements — 各要件が具体的な条件と検証可能な期待結果（shall）で記述されている。; Complete Context — 要件はすべて When/If の条件と shall の期待動作を対で持っている。; No Hardcoded Secrets — 要件ドラフト文書であり、APIキー等の秘密情報は含まれていない。; Prioritize Requirements — 4件超の要件に対して P1/P2/P3 の優先度順が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示的に列挙されている。; Present Recommendations with Reasoning — 各Qに推奨回答を先に示し、既存コードパターンやルールを根拠として添えている。; Explore Before Asking — 既存テスト/ファイル/挙動への参照があり、調査に基づく判断になっている。; Proactively Raise Related Implications — 互換性・移行不要性・影響範囲・stale対策など関連含意を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 最終的に User approved と決定内容が明記され、決定フェーズとして扱われている。; Capture Digressions in draft.md — A/B/C案比較やstaleガード議論などの派生論点がQ&AとNotesに記録されている。; Draft Stays at Requirements Level — 要件レベルを超え、具体ファイル名やテスト関数名など実装寄り詳細が含まれている。; Backward-Compatible CLI Interface — CLI変更有無と互換性影響、移行不要の説明が Migration/Compatibility で示されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:45:47.996Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "要件レベルを超え、具体ファイル名やテスト関数名など実装寄り詳細が含まれている。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — split-brain不具合の解消という単一関心に集中し、関連するdocs/test更新も同一目的に従属している。; Unambiguous Requirements — 要件は具体的な条件と検証可能な振る舞い（AI再実行有無、終了コード、状態保存）で記述されている。; Complete Context — 各要件がWhen/条件とshall/期待結果の対になっており、文脈と結果が揃っている。; No Hardcoded Secrets — 本内容は仕様ドラフトであり、APIキー等の秘密情報の直書きは含まれない。; Prioritize Requirements — 要件が3件を超える中でP1/P2/P3の優先度順が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示され、対象コマンドごとの差分が整理されている。; Present Recommendations with Reasoning — Q&Aごとに推奨案を先に提示し、docs/ガードレール/既存パターンに基づく根拠を併記している。; Explore Before Asking — 既存コードパターンとCLAUDE.md規約を参照して結論を出しており、ユーザーへの未解決照会に依存していない。; Proactively Raise Related Implications — 互換性、stale対策、テスト方針、テンプレート同期など関連影響を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 批評前に『ブレスト中か最終判断か』を確認した明示的記述がドラフト内にない。; Capture Digressions in draft.md — A/B/C案やG1/G2/G3の検討と却下範囲がdraft内に記録され、主線へ復帰できる形になっている。; Draft Stays at Requirements Level — requirementsレベルを超えて、stub agent呼出回数カウント等の実装/テスト手法の具体が含まれている。; Backward-Compatible CLI Interface — CLIコマンド/オプションの非変更を明示し、既存stateにverdictが無い場合のフォールバック方針も示している。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:46:48.581Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-confirm-brainstorm-vs-decide",
+          "reason": "批評前に『ブレスト中か最終判断か』を確認した明示的記述がドラフト内にない。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "requirementsレベルを超えて、stub agent呼出回数カウント等の実装/テスト手法の具体が含まれている。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:49:25.898Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:52:14.144Z"
+    },
+    {
+      "step": "gate",
+      "reason": "EISDIR: illegal operation on a directory, read",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T02:53:51.344Z"
+    },
+    {
+      "step": "gate",
+      "reason": "gate fails when state.spec points to spec.json because run-gate.executeSpec reads the JSON file as text and searches for markdown headings. Worked around by passing --spec specs/.../spec.md explicitly.",
+      "trigger": "sdd-forge flow run gate with default (no --spec)",
+      "resolution": "ran gate with --spec <spec.md> path explicitly to bypass the JSON-as-text read",
+      "guardrailCandidate": "run-gate.executeSpec should resolve spec.json paths to their sibling spec.md before reading text for section checks",
+      "taskId": null,
+      "timestamp": "2026-04-23T02:54:35.191Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Core persist/trust/fallback behavior and related unit tests were added, but the diff introduces a new CLI flag (`flow run auto-check --run-id`), which violates the spec constraint that existing CLI flags/subcommands must not be added/removed/changed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T03:03:46.184Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Core persist/trust/fallback behavior and related unit tests were added, but the diff introduces a new CLI flag (`flow run auto-check --run-id`), which violates the spec constraint that existing CLI flags/subcommands must not be added/removed/changed."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate-impl FAIL: adding --run-id to run auto-check flagged as CLI addition forbidden by spec constraint",
+      "trigger": "spec constraint '既存 CLI フラグ・サブコマンドの追加・削除・意味変更を行わない' interpreted strictly",
+      "resolution": "refining spec constraint to allow additive non-breaking options (symmetric with existing --run-id on set auto and flow prepare)",
+      "guardrailCandidate": "spec constraints on CLI compatibility should distinguish breaking vs additive changes",
+      "taskId": null,
+      "timestamp": "2026-04-23T03:04:08.078Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements persist-and-trust flow for preparing/active states, keeps fallback and spec-approved shortcut, updates skill template text, and adds unit tests for trust/no-reinvoke and fallback invocation; no conflicting test-failure evidence is provided.; No Hardcoded Secrets — Added/modified diff lines contain no hardcoded keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — No added empty catch blocks or silent error discards; failure path uses explicit Envelope.fail.; Bounded Resource Usage — Added logic uses finite checks on preparing-flow IDs; no new unbounded recursion/retry/bulk loop introduced.; No Sensitive Data in Logs — No added logging statements that emit sensitive data.; No Disabling Existing Tests — Diff only adds tests and test assertions; no existing tests are skipped, removed, or commented out.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of newly introduced test failures and user escalation behavior, which is not provided in the diff.; Flag Tests That Become Irrelevant — No added/modified diff lines indicate existing tests became irrelevant or were left unflagged.; Exit Code Contract — Added paths preserve explicit failure signaling (e.g., Envelope.fail / ineligible rejection) rather than masking failures as success.; No Synchronous I/O in Hot Paths — No synchronous I/O was added to production hot/bulk-processing paths; sync fs usage appears only in unit tests.; Validate User Input at Entry Point — New CLI input path (`--run-id`) is added and propagated without explicit entry-point validation in added lines.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T03:05:09.097Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "New CLI input path (`--run-id`) is added and propagated without explicit entry-point validation in added lines."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate-impl FAIL (retry 1): validate-user-input-at-entry-point flagged --run-id as unvalidated",
+      "trigger": "new CLI option without entry-point validation",
+      "resolution": "added runId string/existence validation in resolvePreparingRunId returning INVALID_USAGE or UNKNOWN_RUN_ID envelopes before mutating state",
+      "taskId": null,
+      "timestamp": "2026-04-23T03:05:43.978Z"
+    },
+    {
+      "step": "review",
+      "reason": "review approved 6 proposals; applied #1 (existence validation in set-auto) and #2 (extract shared helper) since they are in-scope; proposals #3-#6 relate to pre-existing code paths (prepare-spec, schema-validate, run-draft-task, finalize help) outside spec 218 scope",
+      "resolution": "created resolve-preparing-run-id.js shared helper, updated both set-auto and run-auto-check to use it with structured existence validation",
+      "taskId": null,
+      "timestamp": "2026-04-23T03:12:23.195Z"
+    },
+    {
+      "step": "merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-04-23T03:14:49.036Z"
+    },
+    {
+      "step": "finalize",
+      "reason": "merge conflict during finalize: upstream main added overlapping PREPARING_FLOW_NOT_FOUND validation in set-auto.js and related test block",
+      "trigger": "git rebase main during finalize",
+      "resolution": "rebased, kept resolve-preparing-run-id.js shared helper approach but aligned error code to upstream PREPARING_FLOW_NOT_FOUND; merged upstream's describe block with spec 218 trust tests",
+      "taskId": null,
+      "timestamp": "2026-04-23T03:18:44.505Z"
+    }
+  ]
+}

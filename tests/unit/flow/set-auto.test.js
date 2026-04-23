@@ -407,4 +407,174 @@ describe("flow set auto", () => {
       );
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Spec 218: Trust previously persisted autoCheck instead of re-invoking the AI.
+  // The split-brain between `run auto-check` (rich input) and `set auto on`
+  // (thin input rebuild) is resolved by making `set auto on` trust whatever
+  // verdict is already in state. These tests assert the trust path on both
+  // preparing and active flows, the rejection-on-trust path, and that the
+  // fallback (no verdict present) still invokes the agent.
+  // ---------------------------------------------------------------------------
+
+  function createCapturingProject() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-trust-"));
+    fs.mkdirSync(path.join(dir, ".sdd-forge"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "specs", "001-test"), { recursive: true });
+    execFileSync("git", ["init", dir], { stdio: "ignore" });
+    const capturePath = path.join(dir, "captured-prompt.txt");
+    const stubPath = writeCapturingStubAgentScript(
+      dir,
+      ".stub-agent.js",
+      capturePath,
+      passResponse(),
+    );
+    fs.writeFileSync(
+      path.join(dir, ".sdd-forge", "config.json"),
+      JSON.stringify({
+        lang: "ja",
+        type: "base",
+        docs: { languages: ["ja"], defaultLanguage: "ja" },
+        agent: stubAgentConfig(stubPath),
+      }),
+    );
+    fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "fixture" }));
+    return { dir, capturePath };
+  }
+
+  it("trusts persisted autoCheck on preparing flow without re-invoking the agent", () => {
+    const { dir, capturePath } = createCapturingProject();
+    tmp = dir;
+    const fm = makeFlowManager(tmp);
+    const runId = fm.generateRunId();
+    fm.createPreparingFlow(runId, { issue: 230 });
+    fm.mutatePreparingFlow(runId, (s) => {
+      s.autoCheck = {
+        eligible: true,
+        score: 20,
+        maxScore: 24,
+        threshold: 18,
+        breakdown: {},
+        staticGates: { G: false, H: false, I: false },
+        reason: "persisted by run auto-check",
+      };
+    });
+
+    const res = runSetAuto(tmp, "on");
+    assert.equal(res.status, 0, res.stderr);
+    const output = JSON.parse(res.stdout.trim());
+    assert.equal(output.ok, true);
+    assert.equal(output.data.autoApprove, true);
+
+    assert.equal(
+      fs.existsSync(capturePath),
+      false,
+      "agent must not be invoked when a verdict is already persisted",
+    );
+
+    const preparing = fm.loadPreparingFlow(runId);
+    assert.equal(preparing.autoApprove, true);
+    assert.equal(preparing.autoCheck.reason, "persisted by run auto-check");
+  });
+
+  it("rejects persisted autoCheck on preparing flow without re-invoking the agent (eligible:false)", () => {
+    const { dir, capturePath } = createCapturingProject();
+    tmp = dir;
+    const fm = makeFlowManager(tmp);
+    const runId = fm.generateRunId();
+    fm.createPreparingFlow(runId, { issue: 230 });
+    fm.mutatePreparingFlow(runId, (s) => {
+      s.autoCheck = {
+        eligible: false,
+        score: 4,
+        maxScore: 24,
+        threshold: 18,
+        breakdown: {},
+        staticGates: { G: false, H: false, I: false },
+        reason: "persisted ineligible",
+      };
+    });
+
+    const res = runSetAuto(tmp, "on");
+    assert.notEqual(res.status, 0);
+    const envelope = JSON.parse(res.stdout.trim());
+    assert.equal(envelope.ok, false);
+    assert.ok(
+      envelope.errors?.some((e) => /AUTO_CHECK_INELIGIBLE/.test(e.code ?? "")),
+      "envelope must signal AUTO_CHECK_INELIGIBLE",
+    );
+
+    assert.equal(
+      fs.existsSync(capturePath),
+      false,
+      "agent must not be invoked when a verdict is already persisted",
+    );
+
+    const preparing = fm.loadPreparingFlow(runId);
+    assert.notEqual(preparing.autoApprove, true);
+    assert.equal(preparing.autoCheck.reason, "persisted ineligible");
+  });
+
+  it("trusts persisted autoCheck on active flow without re-invoking the agent", () => {
+    const { dir, capturePath } = createCapturingProject();
+    tmp = dir;
+    const state = {
+      spec: "specs/001-test/spec.md",
+      baseBranch: "main",
+      featureBranch: "feature/001-test",
+      request: "add a progress bar",
+      steps: buildInitialSteps(),
+      autoCheck: {
+        eligible: true,
+        score: 20,
+        maxScore: 24,
+        threshold: 18,
+        breakdown: {},
+        staticGates: { G: false, H: false, I: false },
+        reason: "persisted by run auto-check",
+      },
+    };
+    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+
+    const res = runSetAuto(tmp, "on");
+    assert.equal(res.status, 0, res.stderr);
+    const output = JSON.parse(res.stdout.trim());
+    assert.equal(output.ok, true);
+    assert.equal(output.data.autoApprove, true);
+
+    assert.equal(
+      fs.existsSync(capturePath),
+      false,
+      "agent must not be invoked when a verdict is already persisted",
+    );
+
+    const saved = makeFlowManager(tmp).load();
+    assert.equal(saved.autoApprove, true);
+    assert.equal(saved.autoCheck.reason, "persisted by run auto-check");
+  });
+
+  it("falls back to agent invocation on preparing flow when no autoCheck is persisted", () => {
+    const { dir, capturePath } = createCapturingProject();
+    tmp = dir;
+    const fm = makeFlowManager(tmp);
+    const runId = fm.generateRunId();
+    fm.createPreparingFlow(runId, { request: "add a progress bar" });
+
+    const res = runSetAuto(tmp, "on");
+    assert.equal(res.status, 0, res.stderr);
+    const output = JSON.parse(res.stdout.trim());
+    assert.equal(output.ok, true);
+    assert.equal(output.data.autoApprove, true);
+
+    assert.ok(
+      fs.existsSync(capturePath),
+      "agent must be invoked when no verdict is persisted (fallback path)",
+    );
+
+    const preparing = fm.loadPreparingFlow(runId);
+    assert.equal(preparing.autoApprove, true);
+    assert.ok(preparing.autoCheck);
+    assert.equal(preparing.autoCheck.eligible, true);
+  });
 });
