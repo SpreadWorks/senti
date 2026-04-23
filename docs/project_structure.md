@@ -40,13 +40,13 @@ src/spec/commands/    (cli)
 
 | Directory | Files | Role |
 | --- | --- | --- |
-| src/flow | 47 | cli, lib, controller |
+| src/flow | 49 | cli, lib, controller |
 | src/docs | 44 | cli, controller, model, lib |
 | src/lib | 33 | lib, route, model, config, middleware, view |
 | src | 10 | cli |
 | src/check | 3 | cli |
 | src/metrics | 1 | cli |
-| src/spec | 1 | cli |
+| src/spec | 1 | — |
 <!-- {{/data}} -->
 
 ### Shared Libraries

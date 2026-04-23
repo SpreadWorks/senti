@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T02:31:39.590Z",
+  "analyzedAt": "2026-04-23T02:44:07.241Z",
   "package": {
     "entries": [
       {
@@ -2586,7 +2586,8 @@
           "src/flow/lib/set-test-summary.js",
           "src/lib/dispatcher.js",
           "src/flow/lib/run-auto-check.js",
-          "src/flow/lib/set-gate-retry.js"
+          "src/flow/lib/set-gate-retry.js",
+          "src/flow/lib/run-reopen-draft.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -2605,6 +2606,28 @@
           "task option parsing",
           "abstraction"
         ]
+      },
+      {
+        "file": "src/flow/lib/check-tasks-monotonic.js",
+        "hash": "9b18aca0f35c03d5ad6b8dd3f203e61f",
+        "lines": 53,
+        "mtime": "2026-04-23T02:44:06.666Z",
+        "className": "check-tasks-monotonic",
+        "methods": [
+          "checkTasksMonotonic"
+        ],
+        "imports": [],
+        "exports": [
+          "checkTasksMonotonic"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js"
+        ],
+        "id": "c0e04159",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/flow-context.js",
@@ -3193,54 +3216,6 @@
         ]
       },
       {
-        "file": "src/flow/lib/run-draft-task.js",
-        "hash": "c30ab427cf453cf9ad94cc5561eb5839",
-        "lines": 272,
-        "mtime": "2026-04-22T14:34:07.552Z",
-        "className": "run-draft-task",
-        "methods": [
-          "RunDraftTaskCommand",
-          "buildDraftPrompt",
-          "invokeAgent",
-          "collectGateFeedback",
-          "extractDraft",
-          "collectContext"
-        ],
-        "imports": [
-          "child_process",
-          "fs",
-          "path",
-          "./base-command.js",
-          "../../lib/container.js",
-          "./run-gate.js",
-          "../../lib/flow-envelope.js"
-        ],
-        "exports": [
-          "RunDraftTaskCommand",
-          "buildDraftPrompt",
-          "default"
-        ],
-        "extends": "FlowCommand",
-        "usedBy": null,
-        "id": "ebc8234d",
-        "summary": "Implements draft task generation within the flow pipeline, including prompt construction, agent invocation, and draft file persistence. It also supports retry-oriented feedback loops from gate failures.",
-        "detail": "The command resolves the current task context from flow state, builds a task-specific directory, and writes generated output to `tasks/<id>/draft.md`. It invokes an AI agent through either a configured path or a stub, injecting sibling task context through environment variables. Prompt generation adapts based on prior gate feedback, so retries focus on concrete failure reasons instead of rewriting from scratch. The module includes response extraction and normalization helpers to safely pull draft text from structured agent output. It returns standardized success or failure envelopes for consistent CLI behavior.",
-        "chapter": "internal_design",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "draft generation",
-          "task prompt",
-          "agent invocation",
-          "retry feedback",
-          "flow task",
-          "envelope response"
-        ]
-      },
-      {
         "file": "src/flow/lib/run-finalize.js",
         "hash": "97a6018e8d3d6b3f61f86788330f1ea5",
         "lines": 516,
@@ -3314,9 +3289,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "3f2ac3d056072342f7954542a0f505ff",
-        "lines": 1487,
-        "mtime": "2026-04-23T01:13:11.607Z",
+        "hash": "8818088c0389d44d170cc0a8c7828489",
+        "lines": 1506,
+        "mtime": "2026-04-23T02:44:06.666Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3377,6 +3352,7 @@
           "../../lib/guardrail.js",
           "../../lib/flow-helpers.js",
           "../../lib/spec-json.js",
+          "./check-tasks-monotonic.js",
           "../../lib/constants.js",
           "./base-command.js",
           "./set-issue-log.js",
@@ -3417,27 +3393,12 @@
         ],
         "extends": "Error",
         "usedBy": [
-          "src/flow/lib/run-draft-task.js",
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the gate engine for spec/draft/diff validation, guardrail evaluation, and retry/escalation logic. It is the core quality gate controller in the flow pipeline.",
-        "detail": "The module validates phase-level combinations, inspects text structure, parses diff hunks, and checks constraints such as unauthorized test-file modifications. It builds AI guardrail prompts, parses strict JSON evaluation responses, enforces schema validity, and produces standardized gate reports. Retry accounting and no-progress detection are tracked through issue-log and git-state fingerprints, with escalation paths for repeated failures. Command execution supports draft, spec, and implementation-diff modes with shared pass/fail envelope outputs. The design combines deterministic static checks with configurable AI evaluations for staged quality control.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
           "attempts": 1
-        },
-        "keywords": [
-          "quality gate",
-          "guardrail evaluation",
-          "diff analysis",
-          "retry budget",
-          "schema validation",
-          "issue log",
-          "flow enforcement"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -3569,6 +3530,32 @@
           "spec initialization",
           "flow state"
         ]
+      },
+      {
+        "file": "src/flow/lib/run-reopen-draft.js",
+        "hash": "01252d3d93d7cbdf5b668dee02bdbb9a",
+        "lines": 110,
+        "mtime": "2026-04-23T02:44:06.666Z",
+        "className": "run-reopen-draft",
+        "methods": [
+          "RunReopenDraftCommand",
+          "validateReason"
+        ],
+        "imports": [
+          "./base-command.js",
+          "../../lib/flow-manager.js",
+          "../../lib/flow-envelope.js",
+          "./set-issue-log.js"
+        ],
+        "exports": [
+          "RunReopenDraftCommand"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "82a89eee",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-report-show.js",
@@ -4060,7 +4047,8 @@
           "src/flow/lib/run-gate.js",
           "src/flow/lib/run-report.js",
           "src/lib/agent.js",
-          "src/lib/container.js"
+          "src/lib/container.js",
+          "src/flow/lib/run-reopen-draft.js"
         ],
         "id": "65ac9e4f",
         "summary": "Manages `issue-log.json` loading, validation, persistence, and manual entry insertion for flow diagnostics. It enforces minimum quality constraints on reason and optional text fields.",
@@ -4249,16 +4237,17 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "cc1662a6dcadf7100c047aed05e6c27d",
-        "lines": 40,
-        "mtime": "2026-04-22T14:34:07.554Z",
+        "hash": "dcc3e6eb01f438e073cd250e611948fe",
+        "lines": 61,
+        "mtime": "2026-04-23T02:44:06.666Z",
         "className": "set-step",
         "methods": [],
         "imports": [
           "./base-command.js",
           "../../lib/constants.js",
           "../../lib/container.js",
-          "../../lib/flow-envelope.js"
+          "../../lib/flow-envelope.js",
+          "./sync-spec-tasks.js"
         ],
         "exports": [
           "default"
@@ -4266,21 +4255,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4cb8d93",
-        "summary": "Transitions a specific flow step to a validated status value. It integrates with container-managed flow metadata for step resolution.",
-        "detail": "The command validates both step ID and status against approved constants before applying changes. It uses injected container services to align updates with active flow context and known step definitions. Error paths consistently emit envelope failures for invalid usage or unknown values. Successful output returns the updated step identity and status pair. This keeps step lifecycle transitions constrained and observable.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
           "attempts": 1
-        },
-        "keywords": [
-          "step transition",
-          "workflow state",
-          "status update",
-          "flow set step",
-          "container integration"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -4400,10 +4377,39 @@
         ]
       },
       {
+        "file": "src/flow/lib/sync-spec-tasks.js",
+        "hash": "cff23ac75815953115e8c391e6720e59",
+        "lines": 88,
+        "mtime": "2026-04-23T02:44:06.666Z",
+        "className": "sync-spec-tasks",
+        "methods": [
+          "syncSpecTasksToFlow",
+          "buildFlowTask"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path",
+          "../../lib/flow-manager.js",
+          "../../lib/spec-json.js",
+          "../../lib/flow-helpers.js"
+        ],
+        "exports": [
+          "syncSpecTasksToFlow"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/set-step.js"
+        ],
+        "id": "5bb691f5",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/registry.js",
-        "hash": "25ca44b3bd484b9ddfe165ced04a3ce1",
-        "lines": 578,
-        "mtime": "2026-04-23T00:13:09.701Z",
+        "hash": "79caacc4d21d97232fbeb5d9d0bc173f",
+        "lines": 581,
+        "mtime": "2026-04-23T02:44:06.669Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4424,21 +4430,8 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
-          "attempts": 2
-        },
-        "summary": "Defines the flow command registry and step hook wiring for status updates and issue-log integration. It coordinates command lifecycle side effects around execute phases.",
-        "detail": "The module derives active phase from flow state and wraps status mutations in resilient helpers that log and rethrow on failure. Pre/post hook builders (`stepPre`, `stepPost`) abstract repeated step-status update behavior. It centralizes command descriptors, help text, and integration points such as retry-counter updates and commit post execution. Error-handling wrappers keep command orchestration robust without hiding failures. The registry functions as the dispatch/control layer linking command execution to flow telemetry.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "command registry",
-          "flow hooks",
-          "step status",
-          "issue log",
-          "dispatch",
-          "lifecycle orchestration"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/help.js",
@@ -5026,9 +5019,9 @@
       },
       {
         "file": "src/lib/flow-helpers.js",
-        "hash": "8357eb22fee88928d1fc690e92c3bcc7",
-        "lines": 198,
-        "mtime": "2026-04-20T12:13:22.617Z",
+        "hash": "313420e2c57963dce265a72bad54d25f",
+        "lines": 189,
+        "mtime": "2026-04-23T02:44:06.669Z",
         "className": "flow-helpers",
         "methods": [
           "getSpecName",
@@ -5061,7 +5054,6 @@
           "TASK_STEP_STATUSES",
           "TASK_REQUIREMENT_STATUSES",
           "TASK_STEPS_PLAN",
-          "TASK_STEPS_ADDITION",
           "TASK_PHASE_MAP",
           "INTEGRATION_STEP_IDS"
         ],
@@ -5073,22 +5065,9 @@
           "src/lib/preparing-flow-store.js"
         ],
         "id": "09ff0ab4",
-        "summary": "This helper module defines flow state primitives such as files, phases, steps, and task state maps. It also includes utilities for deriving spec identity and active phase.",
-        "detail": "It exports canonical step plans for main flow and task-level subflows, plus status vocabularies. `derivePhase` maps completed steps to high-level flow phases used across commands and guards. Utility functions resolve spec directory/name from persisted state paths. These helpers provide the semantic backbone for flow progression logic.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow helpers",
-          "phase map",
-          "step plan",
-          "task states",
-          "spec id",
-          "state model"
-        ]
+        }
       },
       {
         "file": "src/lib/flow-manager.js",
@@ -5862,9 +5841,9 @@
       },
       {
         "file": "src/lib/schema-validate.js",
-        "hash": "8810f1797a6b09cf9198437a7d89b4da",
-        "lines": 136,
-        "mtime": "2026-04-17T03:48:03.043Z",
+        "hash": "300b44629a0b3234f19628e14309f366",
+        "lines": 137,
+        "mtime": "2026-04-23T02:44:06.669Z",
         "className": "schema-validate",
         "methods": [
           "validateSchema",
@@ -5882,20 +5861,8 @@
         ],
         "id": "8bb94bbb",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 8
-        },
-        "summary": "This utility validates arbitrary JSON-like values against a lightweight schema format. It returns error arrays instead of throwing to support aggregate reporting.",
-        "detail": "Validation checks include type assertions, object shape rules, required fields, and nested traversal with path tracking. It short-circuits where deeper checks are not meaningful after fundamental type mismatches. Helper functions provide normalized runtime type names for clearer messages. The module is used by config validation and other schema-constrained inputs.",
-        "chapter": "configuration",
-        "role": "lib",
-        "keywords": [
-          "schema validation",
-          "runtime type check",
-          "error list",
-          "object shape",
-          "input validation"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/skills.js",
@@ -9090,9 +9057,9 @@
       },
       {
         "file": "src/spec/commands/render.js",
-        "hash": "573ee3ec233a8d700487d91ee59a1628",
-        "lines": 253,
-        "mtime": "2026-04-21T08:55:58.303Z",
+        "hash": "1f20ae05e8f591d7686b2278def4cc7b",
+        "lines": 280,
+        "mtime": "2026-04-23T02:44:06.670Z",
         "className": "render",
         "methods": [
           "renderSpecMarkdown",
@@ -9121,23 +9088,9 @@
         "extends": "Command",
         "usedBy": null,
         "id": "d63c4335",
-        "summary": "This file implements the `sdd-forge spec render` command and the markdown rendering logic for spec documents. It validates inputs and schema, then writes a rendered `spec.md` output.",
-        "detail": "The command layer parses CLI arguments, validates path options, resolves the active spec directory, and handles error exits with explicit messages. It loads the spec schema, validates `spec.json`, and aborts with detailed validation errors when the document is invalid. Rendering is composed through helper formatters for lists and overview subsections, producing sectioned markdown from structured fields. Output path handling supports absolute and relative targets while defaulting to `spec.md` inside the spec directory. The module exports both the command class and reusable render function for internal reuse by other flow components.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-21T08:56:18.643Z",
           "attempts": 1
-        },
-        "keywords": [
-          "CLI command",
-          "spec render",
-          "schema validation",
-          "markdown generation",
-          "argument parsing",
-          "path resolution",
-          "exit codes"
-        ]
+        }
       },
       {
         "file": "src/upgrade.js",
@@ -9184,10 +9137,10 @@
       }
     ],
     "summary": {
-      "total": 270,
-      "totalMethods": 878
+      "total": 272,
+      "totalMethods": 877
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T02:29:43.778Z"
+  "enrichedAt": "2026-04-23T02:44:52.574Z"
 }
