@@ -1,0 +1,64 @@
+{
+  "spec": "specs/221-fix-hook-post-cleanup-cd/spec.json",
+  "date": "2026-04-23T08:10:21.861Z",
+  "requirements": [
+    {
+      "desc": "When src/templates/partials/worktree-mode.md defines worktree boundary behavior, the rule text shall place the MUST-forbid clause and the boundary-release condition clause on different top-level bullets (they shall not appear within the same bullet or sentence).",
+      "status": "done",
+      "note": "The MUST-forbid rule (while active, never cd out) and the boundary-release rule (once released, cd out is allowed) are now separate top-level bullets."
+    },
+    {
+      "desc": "When the rule text defines 'flow is active', it shall state that 'active' means both of the following hold simultaneously — sdd-forge flow get status returns active:true AND the worktree directory still exists (AND semantics).",
+      "status": "done",
+      "note": "The new 'Flow is active' definition explicitly requires both conditions with AND semantics: status active:true and existing worktree directory."
+    },
+    {
+      "desc": "When either of the two active conditions flips (status returns active:false, OR the worktree directory no longer exists), the rule text shall explicitly state that the boundary is lifted and cd out of the (former) worktree is allowed.",
+      "status": "done",
+      "note": "The new 'Flow is released' definition uses OR semantics for those two conditions, and a separate bullet explicitly says boundary is lifted and cd out is allowed."
+    },
+    {
+      "desc": "When flow run finalize cleanup has completed (the worktree directory has been deleted OR flow get status returns active:false), the rule text shall state that the AI must execute cd back to the main repo path as the very next Bash tool invocation, and shall state that this cd is mandatory (not optional).",
+      "status": "done",
+      "note": "A dedicated MUST bullet now requires `cd <main-repository-path>` as the very next Bash tool invocation after finalize cleanup and explicitly says it is mandatory, not optional."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/221-fix-hook-post-cleanup-cd/draft.md",
+      "change": "New draft specification document added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-fix-hook-post-cleanup-cd/flow.json",
+      "change": "New flow tracking/state file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-fix-hook-post-cleanup-cd/issue-log.json",
+      "change": "New issue/gate log artifact added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-fix-hook-post-cleanup-cd/qa.md",
+      "change": "New QA template file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-fix-hook-post-cleanup-cd/review.md",
+      "change": "New review notes file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-fix-hook-post-cleanup-cd/spec.json",
+      "change": "New structured spec file added; not required by R1-R4."
+    },
+    {
+      "file": "specs/221-fix-hook-post-cleanup-cd/spec.md",
+      "change": "New human-readable spec file added; not required by R1-R4."
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All four listed requirements are satisfied by the changes in src/templates/partials/worktree-mode.md. Additional spec/process artifact files were changed but are outside the scope of R1-R4."
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/221-fix-hook-post-cleanup-cd/draft.md       |  64 +++\n specs/221-fix-hook-post-cleanup-cd/flow.json      | 472 ++++++++++++++++++++++\n specs/221-fix-hook-post-cleanup-cd/issue-log.json | 206 ++++++++++\n specs/221-fix-hook-post-cleanup-cd/qa.md          |   9 +\n specs/221-fix-hook-post-cleanup-cd/review.md      |  33 ++\n specs/221-fix-hook-post-cleanup-cd/spec.json      | 131 ++++++\n specs/221-fix-hook-post-cleanup-cd/spec.md        | 103 +++++\n src/templates/partials/worktree-mode.md           |  13 +-\n 8 files changed, 1029 insertions(+), 2 deletions(-)",
+      "commits": [
+        "feat: feature/221-fix-hook-post-cleanup-cd"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "All four listed requirements are satisfied by the changes in src/templates/partials/worktree-mode.md. Additional spec/process artifact files were changed but are outside the scope of R1-R4."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 351107,
+      "output": 17389,
+      "cacheRead": 139648,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 19,
+      "durationMs": 619868,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 302322
+        },
+        {
+          "phase": "gate",
+          "durationMs": 164538
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 98815
+        },
+        {
+          "phase": "review",
+          "durationMs": 54193
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2144,
+      "integration": 261,
+      "acceptance": 0,
+      "total": 2405
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/221-fix-hook-post-cleanup-cd\n    8 files changed, 1029 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 19\n    input tokens ................ 351,107\n    output tokens ............... 17,389\n    cache-read tokens ........... 139,648\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 619.9s\n      gate-draft ................ 302.3s\n      gate ...................... 164.5s\n      gate-impl ................. 98.8s\n      review .................... 54.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2144  integration 261  acceptance 0  total 2405"
+}

@@ -2,6 +2,15 @@ When `worktree: true` in flow.json:
 - **All file operations (editing, creating, reading) MUST be done inside the worktree directory.** Do not edit files in the main repository.
 - Run `sdd-forge flow get status` to see the worktree path. Use absolute paths if needed.
 - The worktree is an isolated copy — changes in the main repo are NOT visible in the worktree and vice versa.
-- **MUST: Never `cd` out of the worktree path during an active flow.** The only legitimate exit is after `sdd-forge flow run finalize` cleanup (the finalize skill handles that transition explicitly).
-- **MUST: Never run `git stash` / `git stash pop` / `git stash apply` / `git reset --hard` / `git checkout -- <path>` in the main repository while a flow is active.** Stashes, resets, and checkouts on shared state can restore stale content (e.g. unrelated stashes from other branches), introduce conflicts, and corrupt the main working tree — even when the flow's own worktree is unaffected.
+- **Flow state definitions:**
+  - **Flow is active** — BOTH of the following hold simultaneously (AND):
+    - `sdd-forge flow get status` returns `active: true`.
+    - The worktree directory still exists on disk (verifiable via `test -d <worktree-path>`).
+  - **Flow is released** — EITHER of the following has flipped (OR); either one alone is sufficient:
+    - `sdd-forge flow get status` returns `active: false` — the flow has ended.
+    - The worktree directory no longer exists (`test -d <worktree-path>` fails) — cleanup has deleted it.
+- **MUST: While the flow is active (per the definition above), never `cd` out of the worktree path.**
+- **Once the flow is released, the worktree boundary is lifted and `cd` out of the (former) worktree path is allowed.**
+- **MUST: Once `sdd-forge flow run finalize` cleanup has completed, both release conditions flip together; the AI shall execute `cd <main-repository-path>` as the very next Bash tool invocation. This post-cleanup `cd` is mandatory, not optional.** Obtain the main repository path from `sdd-forge flow get resolve-context` BEFORE running finalize.
+- **MUST: Never run `git stash` / `git stash pop` / `git stash apply` / `git reset --hard` / `git checkout -- <path>` in the main repository while the flow is active.** Stashes, resets, and checkouts on shared state can restore stale content (e.g. unrelated stashes from other branches), introduce conflicts, and corrupt the main working tree — even when the flow's own worktree is unaffected.
 - **If baseline comparison (e.g., running tests on `baseBranch` to compare failure counts) is required, do NOT cd into the main repo.** Instead, create a short-lived detached worktree (`git worktree add --detach <tmp-path> <baseBranch>` in an allowed location, run the comparison there, then remove it with `git worktree remove <tmp-path>`). When in doubt, reuse evidence already captured in prior `issue-log.json` entries rather than re-measuring against `main`.
