@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T04:30:48.692Z",
+  "analyzedAt": "2026-04-23T04:40:00.243Z",
   "package": {
     "entries": [
       {
@@ -3009,19 +3009,14 @@
       },
       {
         "file": "src/flow/lib/get-resolve-context.js",
-        "hash": "65d27bc5b8c6f96e72d9a8d02ac31f23",
-        "lines": 100,
-        "mtime": "2026-04-19T23:25:00.556Z",
+        "hash": "927c6ac2a7c969925313b18e6206b46a",
+        "lines": 16,
+        "mtime": "2026-04-23T04:39:59.629Z",
         "className": "get-resolve-context",
-        "methods": [
-          "extractSection"
-        ],
+        "methods": [],
         "imports": [
-          "fs",
-          "path",
-          "../../lib/git-helpers.js",
-          "../../lib/flow-helpers.js",
-          "./base-command.js"
+          "./base-command.js",
+          "./resolve-context-envelope.js"
         ],
         "exports": [
           "default"
@@ -3033,21 +3028,21 @@
           "src/docs/commands/readme.js"
         ],
         "id": "c2848d40",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 4
-        },
-        "summary": "This command gathers a resolve-time snapshot of the active flow and repository state. It is used to prepare actionable context for continuation or closure work.",
-        "detail": "It loads the active flow record, resolves whether to use worktree or main repository paths, and reads the current spec document when available. The module extracts structured sections from markdown to provide focused context slices. It augments the result with branch, ahead-count, last-commit, and GitHub CLI availability signals. Errors are raised early when no active flow is found.",
+        "summary": "This command class provides a thin flow-command wrapper for resolving the current flow context. It delegates all substantive logic to a shared context builder.",
+        "detail": "The module imports `FlowCommand` as its command base and `buildResolvedFlowContext` as the core resolver. Its class implementation is intentionally minimal and follows a command-dispatch pattern where orchestration and business logic are separated. The command receives execution context and directly returns the normalized resolved context payload from the helper module. This structure keeps command handlers consistent and avoids duplicating resolution logic across multiple flow subcommands.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-23T04:40:43.475Z",
+          "attempts": 1
+        },
         "keywords": [
-          "resume context",
-          "flow snapshot",
-          "worktree detection",
-          "spec extraction",
-          "git status",
-          "resolve flow"
+          "flow command",
+          "context resolution",
+          "command wrapper",
+          "delegation",
+          "thin controller",
+          "shared helper"
         ]
       },
       {
@@ -3177,6 +3172,50 @@
           "category limits",
           "normalization",
           "entry filtering"
+        ]
+      },
+      {
+        "file": "src/flow/lib/resolve-context-envelope.js",
+        "hash": "8ebff8334b7fe7c0a9c94518f8928887",
+        "lines": 107,
+        "mtime": "2026-04-23T04:39:59.629Z",
+        "className": "resolve-context-envelope",
+        "methods": [
+          "buildResolvedFlowContext",
+          "extractSection",
+          "phaseToSkill"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "../../lib/git-helpers.js",
+          "../../lib/flow-helpers.js"
+        ],
+        "exports": [
+          "buildResolvedFlowContext"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-resolve-context.js",
+          "src/flow/lib/run-resume.js"
+        ],
+        "id": "d569f2a6",
+        "summary": "This library module constructs a resolved flow context envelope by combining repository state, flow state files, and derived workflow metadata. It centralizes file-system and git-aware logic used by flow resume and inspection commands.",
+        "detail": "The implementation uses Node built-ins (`fs`, `path`) and git helper utilities to gather branch, commit, ahead-count, worktree, and CLI availability signals. It validates active flow presence and throws when no active flow exists, enforcing explicit failure instead of silent fallback. The resolver computes canonical paths such as `specs/<specId>/flow.json`, selects an effective root between worktree and main repository, and conditionally reads spec content when present. Internal helpers like section extraction and phase-to-skill mapping normalize narrative and phase metadata into a stable output object for downstream commands.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-23T04:40:43.475Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow envelope",
+          "context builder",
+          "worktree fallback",
+          "git state",
+          "spec parsing",
+          "phase mapping",
+          "state resolution"
         ]
       },
       {
@@ -3728,19 +3767,14 @@
       },
       {
         "file": "src/flow/lib/run-resume.js",
-        "hash": "866ccada7bfae5264792a9f0719fca6a",
-        "lines": 106,
-        "mtime": "2026-04-19T23:25:00.556Z",
+        "hash": "670abadb1543ce8cc173281beccdabfe",
+        "lines": 27,
+        "mtime": "2026-04-23T04:39:59.629Z",
         "className": "run-resume",
-        "methods": [
-          "extractSection"
-        ],
+        "methods": [],
         "imports": [
-          "fs",
-          "path",
-          "../../lib/git-helpers.js",
-          "../../lib/flow-helpers.js",
-          "./base-command.js"
+          "./base-command.js",
+          "./resolve-context-envelope.js"
         ],
         "exports": [
           "default"
@@ -3748,20 +3782,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "abe5ac21",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 4
-        },
-        "summary": "This command resumes an active flow by reconstructing execution context and repository signals. It mirrors resolve-context behavior for user-facing continuation commands.",
-        "detail": "It resolves active flow metadata, determines effective root between main repo and worktree, and reads spec text when present. The module extracts key sections to reduce noise and improve next-step guidance. Git-related fields such as branch, ahead count, and last commit are included for operational awareness. It fails fast when active flow state cannot be found.",
+        "summary": "This resume command class exposes resolved flow context for the resume workflow path. It reuses the same context-envelope builder used by other flow commands.",
+        "detail": "The module follows the same command architecture as other flow handlers by extending `FlowCommand`. It imports and calls `buildResolvedFlowContext`, indicating the resume path relies on a standardized context snapshot rather than bespoke state assembly. The returned object shape is designed for resume execution and user-facing continuation guidance. This reuse pattern improves consistency between resume-related commands and reduces divergence in flow-state interpretation.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-23T04:40:43.475Z",
+          "attempts": 1
+        },
         "keywords": [
-          "flow resume",
-          "active flow",
-          "worktree root",
-          "spec sections",
-          "git context"
+          "resume command",
+          "flow continuation",
+          "resolved context",
+          "command reuse",
+          "state snapshot",
+          "workflow resume"
         ]
       },
       {
@@ -9299,10 +9334,10 @@
       }
     ],
     "summary": {
-      "total": 273,
-      "totalMethods": 884
+      "total": 274,
+      "totalMethods": 885
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T04:31:06.065Z"
+  "enrichedAt": "2026-04-23T04:40:43.475Z"
 }
