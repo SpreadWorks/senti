@@ -270,6 +270,10 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
       ],
       tasks: [],
       currentTaskId: null,
+      // spec 222: satisfy the head-evidence guard so the downstream path runs
+      // (and the expected throw from missing git/config fires as originally
+      // intended).
+      test: { summary: { exitCode: 0 } },
     };
     const transitions = [];
     const stubFlowManager = {

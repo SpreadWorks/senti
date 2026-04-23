@@ -8,7 +8,7 @@
      - **`tests/` (formal tests, run by `npm test`):** Public API / function interface contract tests, CLI command behavior specs, preset integrity checks — tests where breakage indicates a bug regardless of which spec introduced them.
      - **`specs/<spec>/tests/` (spec verification tests, NOT run by `npm test`):** Tests that only verify this spec's requirements are met, bug fix reproduction tests, temporary setup/integration verification. These are kept as history, not maintained long-term.
      - **Decision rule:** Ask "If a future change breaks this test, is that always a bug?" — YES → `tests/`, NO → `specs/<spec>/tests/`.
-   - **MUST: When running tests, save output to a log file** under the resolved work directory (priority: `SDD_FORGE_WORK_DIR` env > `config.agent.workDir` > `.tmp`): `node tests/run.js ... > <workDir>/logs/test-output.log 2>&1`. This enables `sdd-forge flow get test-result` to retrieve execution evidence for gate-impl.
+   - **MUST: Use `sdd-forge flow run tests` to execute tests.** It runs the project's test command, saves output to the resolved work directory (priority: `SDD_FORGE_WORK_DIR` env > `config.agent.workDir` > `.tmp`), and populates `flow.json` `test.summary.exitCode` — the head test evidence that gate-impl requires. Running `npm test` (or any other raw test command) directly does NOT update flow state.
    - Write test code (tests should fail initially).
    - **MUST: If a test reveals a production code bug that is outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step test --reason "..."`) before adjusting the test to match current behavior. Do not silently fix or skip the test.
    - **MUST: Create `specs/<spec>/tests/README.md`** documenting:

@@ -46,7 +46,7 @@
    - Code only after confirming gate PASS, test phase completion, and approach approval.
    - Aim to make tests pass.
    - **Update requirements as you go**: `sdd-forge flow set req <index> done` for each completed requirement.
-   - Run tests to verify: use the test command from `package.json` scripts or the project's test runner.
+   - **MUST: Run `sdd-forge flow run tests` to verify tests pass and record head test evidence in flow state.** This writes `flow.json` `test.summary.exitCode` which gate-impl reads as evidence. Running `npm test` directly (or any other raw test command) does NOT populate flow state — gate-impl will then reject the run with `NO_HEAD_TEST_EVIDENCE` and refuse to evaluate the implementation.
    - **MUST: If test failures are caused by pre-existing bugs (not the current spec's changes)**, record them in issue-log (`sdd-forge flow set issue-log --step implement --reason "..."`) before applying a workaround or adjusting the test.
    - **Retry limit for test fixes: 5 attempts.** If tests do not pass after 5 fix-and-rerun cycles, STOP and return control to the user.
    - **On complete**:

@@ -1,0 +1,90 @@
+{
+  "spec": "specs/222-gate-impl-tests-prereq/spec.json",
+  "date": "2026-04-23T12:24:30.470Z",
+  "requirements": [
+    {
+      "desc": "`flow run gate --phase task-impl` または `--phase integration` 実行時に `state.test.summary` に `exitCode` が記録されていない（null または `exitCode` フィールドなし — すなわち `flow run tests` による tool-recorded な head test evidence が無い）とき、gate は AI 呼び出しを行わずに ok:false Envelope を返し、エラーメッセージに復旧コマンド `sdd-forge flow run tests` を含む文字列を 1 件含むこと。",
+      "status": "done",
+      "note": "`checkMissingHeadTestEvidence` を追加し、task-impl/integration で exitCode 欠落時に `Envelope.fail` を返し、メッセージに `Run: sdd-forge flow run tests` を含め、AI 呼び出し前に早期 return している。"
+    },
+    {
+      "desc": "REQ-1 の条件で早期 FAIL が返る場合、`flow.json` の gate retry カウンタが増分されないこと。",
+      "status": "done",
+      "note": "早期 FAIL は `execute` から `ok:false` Envelope を直接 return する経路に入り、既存の post-hook 増分経路を通らない実装コメント・既存パターンに沿っている。"
+    },
+    {
+      "desc": "`flow run gate --phase draft` / `--phase spec` / `--phase task-spec` の挙動は、`state.test.summary` が null でも変更されないこと（従前と同じ経路で AI を呼ぶ）。",
+      "status": "done",
+      "note": "ガードは `RETRY_TRACKED_PHASES` のみ対象で、対象外 phase は `null` を返すため既存経路を維持。対応 unit test も追加されている。"
+    },
+    {
+      "desc": "スキル／AI 読者が実装完了時の手順を読んだとき（ファイル: `src/flow/prompts/impl/implement.md`）、gate-impl 用の head test evidence を flow state に記録する手段として `sdd-forge flow run tests` を実行する旨が読めること。テキスト中に `sdd-forge flow run tests` の文字列が含まれることで検証する。",
+      "status": "done",
+      "note": "`implement.md` に `MUST: Run sdd-forge flow run tests` と、`test.summary.exitCode` を記録する説明が追加されている。"
+    },
+    {
+      "desc": "スキル／AI 読者が gate-impl 実行手順を読んだとき（ファイル: `src/flow/prompts/impl/gate-impl.md`）、実行前に head test evidence が flow state に記録されている必要がある旨（または未記録時に早期 FAIL が返る旨）が読めること。テキスト中に「test evidence」または `flow run tests` の文字列が含まれることで検証する。",
+      "status": "done",
+      "note": "`gate-impl.md` に prerequisite として head test evidence、`flow run tests`、未記録時早期 FAIL（`NO_HEAD_TEST_EVIDENCE`）が明記された。"
+    },
+    {
+      "desc": "スキル／AI 読者が plan フェーズの test 手順を読んだとき（ファイル: `src/flow/prompts/plan/test.md`）、存在しないサブコマンド `sdd-forge flow get test-result` への参照が無く、代わりに `sdd-forge flow run tests` が flow state に head evidence を記録する旨が読めること。テキスト中に `sdd-forge flow get test-result` が含まれないこと、および `sdd-forge flow run tests` が含まれることで検証する。",
+      "status": "done",
+      "note": "`plan/test.md` の該当行が置換され、`flow get test-result` 参照を削除し `sdd-forge flow run tests` と state 更新説明に変更されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "tests/unit/flow/gate-head-test-evidence-guard.test.js",
+      "change": "REQ検証用の新規 unit test 一式を追加（要件本文にはテスト追加自体は明示されていない）。"
+    },
+    {
+      "file": "tests/e2e/flow/gate-impl-integration.test.js",
+      "change": "fixture に `test.summary.exitCode` を追加して新ガード前提へ調整。"
+    },
+    {
+      "file": "tests/unit/flow/gate-phase-inference.test.js",
+      "change": "既存テスト fixture に `test.summary.exitCode` を追加して新ガードを回避する調整。"
+    },
+    {
+      "file": "specs/222-gate-impl-tests-prereq/draft.md",
+      "change": "spec 管理用ドキュメントを新規追加。"
+    },
+    {
+      "file": "specs/222-gate-impl-tests-prereq/flow.json",
+      "change": "spec 実行状態・メトリクス記録ファイルを新規追加。"
+    },
+    {
+      "file": "specs/222-gate-impl-tests-prereq/issue-log.json",
+      "change": "issue-log を新規追加。"
+    },
+    {
+      "file": "specs/222-gate-impl-tests-prereq/qa.md",
+      "change": "QA テンプレートを新規追加。"
+    },
+    {
+      "file": "specs/222-gate-impl-tests-prereq/review.md",
+      "change": "コードレビュー結果ファイルを新規追加。"
+    },
+    {
+      "file": "specs/222-gate-impl-tests-prereq/spec.json",
+      "change": "仕様JSONを新規追加。"
+    },
+    {
+      "file": "specs/222-gate-impl-tests-prereq/spec.md",
+      "change": "仕様Markdownを新規追加。"
+    },
+    {
+      "file": "specs/222-gate-impl-tests-prereq/tests/README.md",
+      "change": "spec用テストREADMEを新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "6件すべて要件は実装差分で満たされている。未計画扱いの差分は主に spec運用アーティファクト追加と、新ガードに合わせた既存テストfixture調整。"
+  }
+}

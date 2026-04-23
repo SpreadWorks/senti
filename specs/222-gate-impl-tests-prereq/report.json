@@ -1,0 +1,70 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/222-gate-impl-tests-prereq/draft.md          |  46 +++\n specs/222-gate-impl-tests-prereq/flow.json         | 375 +++++++++++++++++++++\n specs/222-gate-impl-tests-prereq/issue-log.json    | 138 ++++++++\n specs/222-gate-impl-tests-prereq/qa.md             |   9 +\n specs/222-gate-impl-tests-prereq/review.md         |  41 +++\n specs/222-gate-impl-tests-prereq/spec.json         | 145 ++++++++\n specs/222-gate-impl-tests-prereq/spec.md           | 100 ++++++\n specs/222-gate-impl-tests-prereq/tests/README.md   |  32 ++\n src/flow/lib/run-gate.js                           |  40 +++\n src/flow/prompts/impl/gate-impl.md                 |   1 +\n src/flow/prompts/impl/implement.md                 |   2 +-\n src/flow/prompts/plan/test.md                      |   2 +-\n tests/e2e/flow/gate-impl-integration.test.js       |   3 +\n .../flow/gate-head-test-evidence-guard.test.js     | 149 ++++++++\n tests/unit/flow/gate-phase-inference.test.js       |   4 +\n 15 files changed, 1085 insertions(+), 2 deletions(-)",
+      "commits": [
+        "feat: feature/222-gate-impl-tests-prereq"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "6件すべて要件は実装差分で満たされている。未計画扱いの差分は主に spec運用アーティファクト追加と、新ガードに合わせた既存テストfixture調整。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 356763,
+      "output": 14120,
+      "cacheRead": 159616,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 361823,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 78123
+        },
+        {
+          "phase": "spec",
+          "durationMs": 114981
+        },
+        {
+          "phase": "gate",
+          "durationMs": 60044
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 36312
+        },
+        {
+          "phase": "review",
+          "durationMs": 72363
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2180,
+      "integration": 261,
+      "acceptance": 0,
+      "total": 2441
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/222-gate-impl-tests-prereq\n    15 files changed, 1085 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 3\n    agent calls ................. 13\n    input tokens ................ 356,763\n    output tokens ............... 14,120\n    cache-read tokens ........... 159,616\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 361.8s\n      draft ..................... 78.1s\n      spec ...................... 115.0s\n      gate ...................... 60.0s\n      gate-impl ................. 36.3s\n      review .................... 72.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2180  integration 261  acceptance 0  total 2441"
+}

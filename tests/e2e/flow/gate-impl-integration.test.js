@@ -96,6 +96,9 @@ function setupFixture(tmp, { initialTest, modifiedTest, gateRetry = 0, seedIssue
     tasks: [],
     currentTaskId: null,
     metrics,
+    // spec 222: gate-impl requires tool-recorded head test evidence
+    // (`test.summary.exitCode`) before invoking the AI evaluator.
+    test: { summary: { exitCode: 0 } },
   });
 
   // Active flow pointer — format is `[{ spec: <specId>, mode }]`.

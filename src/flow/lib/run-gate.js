@@ -975,6 +975,40 @@ export function updateGateRetryCounter(ctx, result) {
 }
 
 // ---------------------------------------------------------------------------
+// Missing head test evidence guard (spec 222)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns a failure Envelope with `code="NO_HEAD_TEST_EVIDENCE"` when the gate
+ * is running on a retry-tracked phase (task-impl / integration) without
+ * tool-recorded head test evidence in flow state. The signal is the presence
+ * of `flowState.test.summary.exitCode` — only `flow run tests` writes it
+ * (via `flowManager.setTestSummary({ ...counts, exitCode }, ...)`), while
+ * AI-side `flow set test-summary --unit N` writes counts without exitCode.
+ *
+ * Returns null when the command is allowed to proceed. The caller runs this
+ * before invoking the AI agent so no retry budget is consumed — the dispatcher
+ * skips the post-hook (which increments gateRetry) for ok:false envelopes.
+ */
+export function checkMissingHeadTestEvidence({ phase, flowState }) {
+  if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
+  const exitCode = flowState?.test?.summary?.exitCode;
+  if (typeof exitCode === "number") return null;
+  const messages = [
+    `gate ${phase}: no tool-recorded head test evidence found in flow state.`,
+    "Run: sdd-forge flow run tests",
+    "This populates flow.json `test.summary.exitCode` which gate-impl requires to evaluate implementation against the spec's test requirements.",
+  ];
+  return Envelope.fail(
+    "run",
+    "gate",
+    "NO_HEAD_TEST_EVIDENCE",
+    messages,
+    { phase },
+  );
+}
+
+// ---------------------------------------------------------------------------
 // No-progress-since-last-fail guard (spec 210)
 // ---------------------------------------------------------------------------
 
@@ -1542,6 +1576,12 @@ export class RunGateCommand extends FlowCommand {
     // spec 201 P2-R2/R3: refuse to run further retries once the limit is reached.
     const retryFail = checkRetryBelowMax(ctx, phase);
     if (retryFail) return retryFail;
+
+    // spec 222 REQ-1/REQ-2: fail early when head test evidence is missing.
+    // Returns ok:false envelope before AI invocation, so gateRetry is not
+    // incremented (the registry post-hook never runs on an ok:false return).
+    const missingEvidenceFail = checkMissingHeadTestEvidence({ phase, flowState: state });
+    if (missingEvidenceFail) return missingEvidenceFail;
 
     // spec 210 REQ-2/REQ-3: reject re-run when the working tree is unchanged
     // since the previous FAIL. Returns ok:false envelope before AI invocation,
