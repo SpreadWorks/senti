@@ -9,6 +9,7 @@
 
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { fetchNormalizedIssueBody } from "./issue-body-cache.js";
 
 export default class SetInitCommand extends FlowCommand {
   constructor() {
@@ -30,6 +31,8 @@ export default class SetInitCommand extends FlowCommand {
         );
       }
       extra.issue = n;
+      const body = fetchNormalizedIssueBody(n, ctx.root);
+      if (body) extra.issueBody = body;
     }
     if (ctx.request) extra.request = ctx.request;
 

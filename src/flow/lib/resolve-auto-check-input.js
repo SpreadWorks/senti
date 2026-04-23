@@ -31,17 +31,41 @@ function isDraftGateDone(state) {
   return isStepDone(state, "gate-draft");
 }
 
-function loadDraftText(root, specPath) {
+function loadSpecSiblingText(root, specPath, fileName, { warnOnError = false } = {}) {
   if (!root || !specPath) return null;
-  const draftPath = path.join(path.dirname(path.resolve(root, specPath)), "draft.md");
-  if (!fs.existsSync(draftPath)) return null;
-  const text = fs.readFileSync(draftPath, "utf8").trim();
-  return text || null;
+  const filePath = path.join(path.dirname(path.resolve(root, specPath)), fileName);
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    const text = fs.readFileSync(filePath, "utf8").trim();
+    return text || null;
+  } catch (e) {
+    if (warnOnError) {
+      process.stderr.write(`warn: failed to read ${fileName} at ${filePath}: ${e.message}\n`);
+    }
+    return null;
+  }
 }
 
-function buildBaseInput(state) {
+function buildBaseInput(state, paths = {}) {
   const parts = [];
   if (state?.request) parts.push(String(state.request));
+
+  const preparingBody = typeof state?.issueBody === "string" && state.issueBody.length > 0
+    ? state.issueBody
+    : null;
+  if (preparingBody) {
+    parts.push(preparingBody);
+    return parts.join("\n").trim();
+  }
+
+  if (state?.spec) {
+    const fileBody = loadSpecSiblingText(paths.root, state.spec, "issue.md", { warnOnError: true });
+    if (fileBody) {
+      parts.push(fileBody);
+      return parts.join("\n").trim();
+    }
+  }
+
   if (state?.issue) parts.push(`Issue #${state.issue}`);
   return parts.join("\n").trim();
 }
@@ -57,9 +81,9 @@ export function resolveAutoCheckInput(state, paths = {}) {
   if (isSpecApproved(state)) {
     return { skip: true, reason: "spec approved" };
   }
-  const base = buildBaseInput(state);
+  const base = buildBaseInput(state, paths);
   if (isDraftGateDone(state)) {
-    const draft = loadDraftText(paths.root, paths.specPath);
+    const draft = loadSpecSiblingText(paths.root, paths.specPath, "draft.md");
     if (draft) {
       const text = base ? `${base}\n\n${draft}` : draft;
       return { skip: false, text };

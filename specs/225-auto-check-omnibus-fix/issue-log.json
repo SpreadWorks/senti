@@ -1,0 +1,131 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "worktree boundary violation: board draft 追加時に 'cd /home/nakano/workspace/sdd-forge && node experimental/workflow.js add' で main repo に一時遷移した",
+      "trigger": "workflow.js スクリプトパスを main repo 相対で指定しようとした判断ミス",
+      "resolution": "即座に worktree に cd で戻した。作業への影響は無し（board 操作は repo 独立）",
+      "guardrailCandidate": "experimental/workflow.js は worktree 内からも node で実行可能。worktree 中は絶対パスで 'node /home/nakano/workspace/sdd-forge/experimental/workflow.js' を使う、もしくは symlink 追跡",
+      "taskId": null,
+      "timestamp": "2026-04-23T14:34:08.855Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "exit=1 | Reading additional input from stdin...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T14:49:07.565Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "exit=1 | Reading additional input from stdin...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T14:49:42.378Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — spec is empty, no content to evaluate; Unambiguous Requirements — no requirements present; Complete Context — no requirements present; REQ Diff-Verifiability — no requirements present; No Hardcoded Secrets — no source code in spec; No Silent Error Swallowing — no source code in spec; Prioritize Requirements — no requirements present; Impact on Existing Features — impact on existing features is not stated; Bounded Resource Usage — no design content to evaluate; Changes Require Test Coverage — no requirements or changes specified; Spec Includes Test Strategy — test strategy section is absent; Synthesize Draft, Do Not Copy — no draft content copied; spec is empty; Record Unresolved Points as Open Questions — no fabricated answers; all sections are empty; Include 'Why This Approach' Rationale — rationale/why-this-approach is absent; Do Not Modify Existing Tests Without Approval — no implementation changes described; Backward-Compatible CLI Interface — no CLI changes described; Exit Code Contract — no command behavior described",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T14:55:37.990Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "impact on existing features is not stated"
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "test strategy section is absent"
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "rationale/why-this-approach is absent"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — goal フィールドが空文字のため、このスペックが何の concern を扱うか定義されていない。; Unambiguous Requirements — requirements 配列が空。検証可能な条件が一つも記述されていない。; Complete Context — requirements 配列が空。トリガー条件と期待される振る舞いのペアが存在しない。; REQ Diff-Verifiability — requirements が存在しないため diff + テスト結果で判定可能な要件が一つもない。; No Hardcoded Secrets — スペック文書であり、ソースコードを含まない。シークレット記述なし。; No Silent Error Swallowing — コードを含まないスペック文書のため適用外。; Prioritize Requirements — requirements が 0 件のため、3 件超という発火条件を満たさない。; Impact on Existing Features — 既存機能への影響について何も記載がない（明示的な「影響なし」の宣言も含む）。; Bounded Resource Usage — 再帰処理・リトライ・バルクロードに関する設計が存在しないため適用外。; Changes Require Test Coverage — テストカバレッジへの言及がなく、テストを省略する理由も記載されていない。; Spec Includes Test Strategy — テスト戦略（何をどうテストするか）が含まれていない。; Synthesize Draft, Do Not Copy — 元のドラフト素材が提供されていないため、合成か複写かを判断できない。; Record Unresolved Points as Open Questions — コンテンツが空のため捏造も存在しない。open_questions も空で未解決事項を隠蔽した形跡はない。; Include 'Why This Approach' Rationale — このアプローチを選んだ理由（rationale）が含まれていない。; Do Not Modify Existing Tests Without Approval — 既存テストへの言及・変更がないため適用外。; Backward-Compatible CLI Interface — CLI コマンドや既存オプションへの変更が記述されていないため適用外。; Exit Code Contract — コマンド定義が存在しないため適用外。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T14:56:18.721Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "goal フィールドが空文字のため、このスペックが何の concern を扱うか定義されていない。"
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "requirements 配列が空。検証可能な条件が一つも記述されていない。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "requirements 配列が空。トリガー条件と期待される振る舞いのペアが存在しない。"
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "requirements が存在しないため diff + テスト結果で判定可能な要件が一つもない。"
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "既存機能への影響について何も記載がない（明示的な「影響なし」の宣言も含む）。"
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "テストカバレッジへの言及がなく、テストを省略する理由も記載されていない。"
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "テスト戦略（何をどうテストするか）が含まれていない。"
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "このアプローチを選んだ理由（rationale）が含まれていない。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — G_KEYWORDS 縮減（静的ゲート調整）と Issue 本文取得・キャッシュパイプライン（入力エンリッチメント）という 2 つの独立した技術的関心事が 1 spec に束ねられている。どちらも auto-check 改善を目的としているが、実装ファイルは流とdocsサブシステムにまたがる 10+ ファイルに及び、それぞれ独立してリリース・検証可能である。; Unambiguous Requirements — 全要件が When/shall 構造で具体的・検証可能な条件を記述している。キーワードリストは列挙形式で厳密に定義され、挙動も enumerated steps (a)〜(e) 等で具体化されている。; Complete Context — R1〜R11 すべてにトリガー条件（When〜）と期待挙動（shall〜）の対が揃っている。; REQ Diff-Verifiability — G_KEYWORDS 配列の diff 確認・テスト実行サマリーのみで全要件の PASS/FAIL が判断できる。将来拡張性への依存や out-of-diff 保証はない。; No Hardcoded Secrets — spec ドキュメントであり、API キー・パスワード等の秘密情報を含まない。; No Silent Error Swallowing — R10 が『ファイル I/O エラー時は silent fallback で従来入力を返す』と明示しており、ログ出力・stderr 警告なしのエラー無音飲み込みを要件として規定している。R7/R9 の gh 失敗時も上位レイヤーでの警告出力が保証されていない。; Prioritize Requirements — 11 要件に must（R1–R6）/ should（R7–R10）/ nice-to-have（R11）の 3 段階優先度が明示されており、design_principles にも R1–R6 > R7–R10 > R11 の順位が記載されている。; Impact on Existing Features — constraints に『既存 CLI オプション・引数契約は変更しない』、R3 に『外部から観測できる挙動は変更しない』、R5 に『既存の他言語 handler マッピングは変更しない』と明記。scope.out にも除外した変更が列挙されている。; Bounded Resource Usage — Issue 本文のサイズ上限が未定義。open_questions で『10KB 超の場合の truncate は不要と判断するが実装時に再判断』と記載しているが、spec として上限値を規定しておらず、無制限のファイルサイズが許容された状態になっている。; Changes Require Test Coverage — テスト追加が R11 として nice-to-have に分類されており、機能要件 R1–R10 はテストなしで実装完了と見なせる。テストを省略する理由も spec 内に記載されていない。; Spec Includes Test Strategy — background の Test Strategy セクションに Unit / Integration / Agent / Regression の 4 種別とファイルパスが具体的に記載されている。; Synthesize Draft, Do Not Copy — draft 議論の要点を抽象化・構造化して記述しており、草稿の直接コピーではない。発明的な内容追加も見られない。; Record Unresolved Points as Open Questions — 未解決事項（warning 出力先・preserveBlankLines 名称・サイズ上限）は open_questions セクションに明記されており、回答を捏造していない。; Include 'Why This Approach' Rationale — design_principles の最終項目に『Why this approach』として根本原因への対処方針を記述。alternatives_considered に 5 案の不採用理由が説明されている。; Do Not Modify Existing Tests Without Approval — authorized_test_modifications が空配列であり、既存テストの修正・削除は承認されていない。Regression 要件で既存テストの PASS 継続が求められている。; Backward-Compatible CLI Interface — constraints に『既存 CLI オプション・引数契約（flow set init / flow prepare / flow set issue）は変更しない（挙動の追加のみ）』と明記されており、移行計画の記載が不要な変更のみに限定されている。; Exit Code Contract — spec は内部ライブラリ層の変更を主とし、CLI コマンドの終了コード変化を明示的に記述していない。実際の終了コード挙動はランタイム証拠なしには評価できない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T15:00:41.727Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "G_KEYWORDS 縮減（静的ゲート調整）と Issue 本文取得・キャッシュパイプライン（入力エンリッチメント）という 2 つの独立した技術的関心事が 1 spec に束ねられている。どちらも auto-check 改善を目的としているが、実装ファイルは流とdocsサブシステムにまたがる 10+ ファイルに及び、それぞれ独立してリリース・検証可能である。"
+        },
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "R10 が『ファイル I/O エラー時は silent fallback で従来入力を返す』と明示しており、ログ出力・stderr 警告なしのエラー無音飲み込みを要件として規定している。R7/R9 の gh 失敗時も上位レイヤーでの警告出力が保証されていない。"
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Issue 本文のサイズ上限が未定義。open_questions で『10KB 超の場合の truncate は不要と判断するが実装時に再判断』と記載しているが、spec として上限値を規定しておらず、無制限のファイルサイズが許容された状態になっている。"
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "テスト追加が R11 として nice-to-have に分類されており、機能要件 R1–R10 はテストなしで実装完了と見なせる。テストを省略する理由も spec 内に記載されていない。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — spec の背景で明示的に '#1（G_KEYWORDS 広すぎ）と #4（Issue 本文未参照）の 2 点を扱う' と述べており、静的ゲートのキーワード縮減と Issue 本文フェッチ/キャッシュ/minify パイプラインという異なるサブシステムの変更を 1 spec にまとめている。; Unambiguous Requirements — 各要件は When/shall 構造を持ち、R1 はキーワードを列挙、R4 は変換手順を順番付きで列挙、R7–R10 はフォールバック条件と warning 形式まで明示している。曖昧な形容詞は見当たらない。; Complete Context — R1–R11 の全要件が 'When <トリガー条件>, shall <期待挙動>' 形式を持ち、文脈と期待結果の両方を含んでいる。; REQ Diff-Verifiability — R1 はキーワード配列の diff で検証可能、R2–R10 は R11 で対応するテストファイルと具体的な検証内容が紐付けられており、diff + テスト実行サマリのみで PASS/FAIL を判定できる。; No Hardcoded Secrets — spec 文書にソースコードは含まれず、シークレット類の記述はない。; No Silent Error Swallowing — R2 で strict=false 時の null + stderr warning、R7/R9 で gh 失敗時の warning 出力、R10 でファイル I/O エラー時の warning 出力をそれぞれ明示し、constraints でも '完全に無音でエラーを捨てない' と明記されている。; Prioritize Requirements — R1–R6/R11 を must、R7–R10 を should と分類し、design_principles で 'R1–R6 = R11 > R7–R10' という優先順位が明示されている。; Impact on Existing Features — constraints で既存 CLI 引数契約の不変を明示し、test strategy で既存 spec 208/218/220 のリグレッション検証を明記している。R3 も get-issue.js の外部契約不変を要件化している。; Bounded Resource Usage — Issue 本文の上限を 'minify 後 20,000 文字、超過時は末尾 truncate + (truncated) 付加' と constraints に明示している。retry や再帰処理は設計に含まれない。; Changes Require Test Coverage — R11 が must として全変更対象のテストファイルと検証内容を具体的に列挙し、happy path および各分岐・fallback シナリオのカバレッジを要求している。; Spec Includes Test Strategy — background に Test Strategy セクションがあり、unit・integration・agent・regression の 4 種別を列挙し、対応するファイルパスと検証観点を記述している。; Synthesize Draft, Do Not Copy — 元の draft 文書が提供されておらず、コピーか合成かを判定する比較元がない。; Record Unresolved Points as Open Questions — open_questions に 'preserveBlankLines 名称は実装時に最終確定' と未確定事項が明記されている。ただし R6 でその名称を仮定定義している点は矛盾気味だが、open_questions 自体は未解決点として正しく記録されている。; Include 'Why This Approach' Rationale — design_principles に 'Why this approach' として根本原因に基づく判断理由が記述され、alternatives_considered で各代替案の却下理由が詳述されており、overview.decisions にも個別設計判断の rationale が含まれている。; Do Not Modify Existing Tests Without Approval — authorized_test_modifications が空配列であり、既存テストの修正・削除を行わないことが明示されている。; Backward-Compatible CLI Interface — constraints で 'flow set init / flow prepare / flow set issue の既存 CLI 契約は変更しない (挙動の追加のみ)' と明記しており、破壊的変更がないため migration plan は不要。; Exit Code Contract — R2 で strict=true 時の失敗は Error を throw（非ゼロ終了に繋がる）と規定。gh fetch 失敗時の init 継続は意図的な fallback 設計であり、コマンド自体の失敗ではなくオプション機能の劣化として設計されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T15:03:08.789Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "spec の背景で明示的に '#1（G_KEYWORDS 広すぎ）と #4（Issue 本文未参照）の 2 点を扱う' と述べており、静的ゲートのキーワード縮減と Issue 本文フェッチ/キャッシュ/minify パイプラインという異なるサブシステムの変更を 1 spec にまとめている。"
+        }
+      ]
+    }
+  ]
+}

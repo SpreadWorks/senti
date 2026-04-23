@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/225-auto-check-omnibus-fix/draft.md        |  52 +++\n specs/225-auto-check-omnibus-fix/flow.json       | 430 +++++++++++++++++++++++\n specs/225-auto-check-omnibus-fix/issue-log.json  | 131 +++++++\n specs/225-auto-check-omnibus-fix/qa.md           |   9 +\n specs/225-auto-check-omnibus-fix/review.md       |  41 +++\n specs/225-auto-check-omnibus-fix/spec.json       | 274 +++++++++++++++\n specs/225-auto-check-omnibus-fix/spec.md         | 187 ++++++++++\n specs/225-auto-check-omnibus-fix/tests/README.md |  66 ++++\n src/docs/lib/lang-factory.js                     |   2 +\n src/docs/lib/lang/md.js                          |  38 ++\n src/docs/lib/minify.js                           |  10 +-\n src/flow/lib/auto-check-static.js                |  14 +-\n src/flow/lib/fetch-issue.js                      |  50 +++\n src/flow/lib/get-issue.js                        |  12 +-\n src/flow/lib/issue-body-cache.js                 |  36 ++\n src/flow/lib/resolve-auto-check-input.js         |  40 ++-\n src/flow/lib/run-prepare-spec.js                 |   6 +\n src/flow/lib/set-init.js                         |   3 +\n src/flow/lib/set-issue.js                        |  14 +-\n tests/e2e/issue-body-flow.test.js                | 156 ++++++++\n tests/unit/docs/lang-md.test.js                  | 164 +++++++++\n tests/unit/flow/auto-check-static.test.js        | 131 ++++---\n tests/unit/flow/fetch-issue.test.js              | 165 +++++++++\n tests/unit/flow/resolve-auto-check-input.test.js |  68 ++++\n 24 files changed, 2012 insertions(+), 87 deletions(-)",
+      "commits": [
+        "feat: feature/225-auto-check-omnibus-fix"
+      ]
+    },
+    "retro": {
+      "total": 11,
+      "done": 9,
+      "partial": 2,
+      "not_done": 0,
+      "rate": 0.91,
+      "notes": "Core functional requirements R1-R3 and R5-R10 are implemented. Main gaps are strict compliance nuances in R4 (exact transform order and guaranteed `<details>` non-modification) and verification completeness for R11 (test pass evidence and explicit warning assertion coverage)."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 4,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 36441,
+      "output": 40986,
+      "cacheRead": 429197,
+      "cacheCreation": 341574,
+      "cost": 2.3418336,
+      "callCount": 14,
+      "durationMs": 773740,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 124446
+        },
+        {
+          "phase": "gate",
+          "durationMs": 319049
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 205550
+        },
+        {
+          "phase": "review",
+          "durationMs": 124695
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2287,
+      "integration": 263,
+      "acceptance": 0,
+      "total": 2550
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/225-auto-check-omnibus-fix\n    24 files changed, 2012 insertions(+), 87 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 91%  (9 done / 2 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 4\n    issue-log ................... 1\n    agent calls ................. 14\n    input tokens ................ 36,441\n    output tokens ............... 40,986\n    cache-read tokens ........... 429,197\n    cache-create tokens ......... 341,574\n    cost ........................ $2.3418\n    duration (total) ............ 773.7s\n      gate-draft ................ 124.4s\n      gate ...................... 319.0s\n      gate-impl ................. 205.6s\n      review .................... 124.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2287  integration 263  acceptance 0  total 2550"
+}

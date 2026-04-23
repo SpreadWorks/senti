@@ -1,0 +1,111 @@
+{
+  "spec": "specs/225-auto-check-omnibus-fix/spec.json",
+  "date": "2026-04-23T15:43:39.885Z",
+  "requirements": [
+    {
+      "desc": "When `src/flow/lib/auto-check-static.js` is loaded, G_KEYWORDS must contain only the 9 specified keywords, exclude the 14 removed keywords, and keep H_KEYWORDS/I_INVERSIONS unchanged.",
+      "status": "done",
+      "note": "G_KEYWORDS now matches the exact 9-item set; removed terms are absent; H_KEYWORDS and I_INVERSIONS were not changed."
+    },
+    {
+      "desc": "When `fetchIssue(number, root, { strict: true })` is called, it must run `gh issue view <number> --json title,body,labels,state` synchronously, return `{ title, body, labels, state }` on success, and throw on failure; with `strict: false`, return null and emit one stderr warning line on failure.",
+      "status": "done",
+      "note": "`src/flow/lib/fetch-issue.js` implements strict/lenient behavior with sync `runCmd`, returns the required shape, throws in strict mode, and warns+null in lenient mode."
+    },
+    {
+      "desc": "When `src/flow/lib/get-issue.js` executes with ctx.number, it must call `fetchIssue(number, root, { strict: true })` and return `{ number, title, body, labels, state }` without changing externally observable envelope/error behavior.",
+      "status": "done",
+      "note": "`get-issue.js` now delegates to `fetchIssue(..., { strict: true })` and keeps returned fields and command structure intact."
+    },
+    {
+      "desc": "When `src/docs/lib/lang/md.js` `minify(text)` is called, it must apply the specified transformations in order (a)-(e), keep `<details>...</details>` unchanged, and export `truncate(text, maxChars = 20000)`.",
+      "status": "partial",
+      "note": "Handler and `truncate` were added, but transform order is not exact (trailing-whitespace removal runs before blank-line collapse), and `<details>` is not explicitly protected from internal transformations."
+    },
+    {
+      "desc": "When `src/docs/lib/lang-factory.js` is loaded, EXT_MAP must include `.md` mapped to md handler, with other mappings unchanged.",
+      "status": "done",
+      "note": "`.md` mapping was added and no other extension mapping changes appear in diff."
+    },
+    {
+      "desc": "When `src/docs/lib/minify.js` runs and handler exports `preserveBlankLines === true`, it must skip generic `removeBlankLines` and apply only `removeTrailingWhitespace` then `handler.minify`; otherwise keep prior behavior. md handler must export `preserveBlankLines === true`.",
+      "status": "done",
+      "note": "Pipeline now branches on `preserveBlankLines`; md handler exports `preserveBlankLines = true`."
+    },
+    {
+      "desc": "When `flow set init --issue <n>` runs and gh fetch succeeds, it should store minified+truncated issue body in preparing state `issueBody`; on fetch failure it should continue without `issueBody` and print one warning line.",
+      "status": "done",
+      "note": "`set-init.js` uses shared normalization helper; failures in lenient fetch return null with warning and do not fail init."
+    },
+    {
+      "desc": "When `flow prepare` runs and preparing state has `issueBody`, it should write `issue.md` in spec directory; if absent, do not create `issue.md`.",
+      "status": "done",
+      "note": "`run-prepare-spec.js` writes `issue.md` from `preparingState.issueBody`; no write occurs when `issueBody` is absent."
+    },
+    {
+      "desc": "When `flow set issue <n>` runs in active mode and gh fetch succeeds, it should write minified+truncated body to `specs/<spec>/issue.md`; on failure, leave issue.md unchanged, set state.issue, and warn.",
+      "status": "done",
+      "note": "`set-issue.js` sets issue state and only writes `issue.md` when normalized body exists; lenient fetch emits warning on failure."
+    },
+    {
+      "desc": "When `buildBaseInput(state, paths)` in `resolve-auto-check-input.js` is called, it should use request+state.issueBody in preparing mode, request+`issue.md` in active mode, fallback to request+`Issue #<n>`, and warn on issue.md read I/O errors.",
+      "status": "done",
+      "note": "Implementation adds issueBody/issue.md precedence and fallback behavior, with required warning format on read errors."
+    },
+    {
+      "desc": "When this spec is implemented, required tests (a)-(e) must be added and all pass under `npm test`.",
+      "status": "partial",
+      "note": "All listed test files were added/updated, but diff alone cannot prove `npm test` PASS; also R10 warning-output assertion is not clearly covered in `resolve-auto-check-input` unit additions."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/issue-body-cache.js",
+      "change": "New shared helper module (fetch/minify/truncate/write lifecycle) was introduced though no requirement explicitly required this file/module extraction."
+    },
+    {
+      "file": "src/flow/lib/resolve-auto-check-input.js",
+      "change": "General refactor from `loadDraftText` to `loadSpecSiblingText` affects draft.md loading path as well, beyond explicit issue.md requirement scope."
+    },
+    {
+      "file": "specs/225-auto-check-omnibus-fix/draft.md",
+      "change": "Spec process artifact added; not part of R1–R11 implementation requirements."
+    },
+    {
+      "file": "specs/225-auto-check-omnibus-fix/flow.json",
+      "change": "Flow metadata artifact added; not a functional requirement target."
+    },
+    {
+      "file": "specs/225-auto-check-omnibus-fix/issue-log.json",
+      "change": "Issue log artifact added; not covered by R1–R11."
+    },
+    {
+      "file": "specs/225-auto-check-omnibus-fix/qa.md",
+      "change": "Q&A artifact added; not covered by R1–R11."
+    },
+    {
+      "file": "specs/225-auto-check-omnibus-fix/review.md",
+      "change": "Review notes artifact added; not covered by R1–R11."
+    },
+    {
+      "file": "specs/225-auto-check-omnibus-fix/spec.json",
+      "change": "Spec definition artifact added; not part of implementation requirement set."
+    },
+    {
+      "file": "specs/225-auto-check-omnibus-fix/spec.md",
+      "change": "Rendered spec document added; not part of implementation requirement set."
+    },
+    {
+      "file": "specs/225-auto-check-omnibus-fix/tests/README.md",
+      "change": "Spec-local test documentation added; not required by R1–R11."
+    }
+  ],
+  "summary": {
+    "total": 11,
+    "done": 9,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.91,
+    "notes": "Core functional requirements R1-R3 and R5-R10 are implemented. Main gaps are strict compliance nuances in R4 (exact transform order and guaranteed `<details>` non-modification) and verification completeness for R11 (test pass evidence and explicit warning assertion coverage)."
+  }
+}

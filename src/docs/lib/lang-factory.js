@@ -11,6 +11,7 @@ import * as js from "./lang/js.js";
 import * as php from "./lang/php.js";
 import * as py from "./lang/py.js";
 import * as yaml from "./lang/yaml.js";
+import * as md from "./lang/md.js";
 
 const EXT_MAP = {
   ".js": js,
@@ -23,6 +24,7 @@ const EXT_MAP = {
   ".py": py,
   ".yaml": yaml,
   ".yml": yaml,
+  ".md": md,
 };
 
 /**

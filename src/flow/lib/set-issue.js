@@ -1,13 +1,16 @@
 /**
  * src/flow/lib/set-issue.js
  *
- * Set the GitHub issue number in flow.json.
+ * Set the GitHub issue number in flow.json and cache the issue body
+ * to specs/<spec>/issue.md (spec 225 R9).
  *
  * ctx.number — issue number (string or number)
  */
 
+import path from "path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { fetchNormalizedIssueBody, writeIssueMd } from "./issue-body-cache.js";
 
 export default class SetIssueCommand extends FlowCommand {
   execute(ctx) {
@@ -38,6 +41,15 @@ export default class SetIssueCommand extends FlowCommand {
     }
 
     ctx.flowManager.setIssue(num);
+
+    const specRel = ctx.flowState?.spec;
+    if (specRel) {
+      const body = fetchNormalizedIssueBody(num, ctx.root);
+      if (body) {
+        const specDir = path.dirname(path.resolve(ctx.root, specRel));
+        writeIssueMd(specDir, body);
+      }
+    }
 
     return { issue: num };
   }

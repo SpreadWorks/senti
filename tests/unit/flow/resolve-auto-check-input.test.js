@@ -132,4 +132,72 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     assert.ok(out.text.includes("implement X"));
     assert.ok(out.text.includes("10"));
   });
+
+  // spec 225 R10 — Issue body integration
+  describe("spec 225 R10 — Issue body incorporation", () => {
+    it("preparing mode + state.issueBody: input contains issueBody instead of 'Issue #<n>' literal", () => {
+      const state = {
+        issue: 77,
+        request: "implement Y",
+        issueBody: "ISSUE_BODY_MARKER 詳細説明がここに入る",
+        steps: stepsWith([]),
+      };
+      const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
+      assert.equal(out.skip, false);
+      assert.ok(out.text.includes("ISSUE_BODY_MARKER"));
+      assert.ok(out.text.includes("implement Y"));
+    });
+
+    it("active mode + issue.md file exists: input includes file contents", () => {
+      const specDir = path.join(tmp, "specs/225-test");
+      fs.mkdirSync(specDir, { recursive: true });
+      fs.writeFileSync(path.join(specDir, "issue.md"), "ISSUE_MD_MARKER 実ファイル内容");
+
+      const state = {
+        issue: 88,
+        request: "implement Z",
+        spec: "specs/225-test/spec.md",
+        steps: stepsWith([]),
+      };
+      const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
+      assert.equal(out.skip, false);
+      assert.ok(out.text.includes("ISSUE_MD_MARKER"));
+      assert.ok(out.text.includes("implement Z"));
+    });
+
+    it("active mode + issue.md absent: falls back to 'Issue #<n>' literal", () => {
+      const state = {
+        issue: 99,
+        request: "implement W",
+        spec: "specs/225-test/spec.md",
+        steps: stepsWith([]),
+      };
+      const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
+      assert.equal(out.skip, false);
+      assert.ok(out.text.includes("implement W"));
+      assert.ok(out.text.includes("99"));
+    });
+
+    it("preparing mode without issueBody: falls back to 'Issue #<n>' literal", () => {
+      const state = {
+        issue: 55,
+        request: "implement V",
+        steps: stepsWith([]),
+      };
+      const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
+      assert.equal(out.skip, false);
+      assert.ok(out.text.includes("55"));
+    });
+
+    it("issueBody empty string is treated as absent", () => {
+      const state = {
+        issue: 1,
+        request: "rq",
+        issueBody: "",
+        steps: stepsWith([]),
+      };
+      const out = resolveAutoCheckInput(state, { root: tmp, specPath: null });
+      assert.ok(out.text.includes("1"));
+    });
+  });
 });

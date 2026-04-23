@@ -3,22 +3,20 @@
  *
  * Static pre-gates for `sdd-forge flow run auto-check`.
  * Runs before the AI scoring step — if any gate hits, auto mode is rejected
- * without spending an AI call. See spec 208 R2 / R14.
+ * without spending an AI call. See spec 208 R2 / R14 and spec 225 R1.
  *
  * Input: raw text (request text / Issue body concatenated).
  * Output: { G, H, I, eligible }
- *   - G: high-risk domain keywords (auth / credentials / migrations / release ops)
- *   - H: external-contract keywords (breaking change / public interface / API contract)
+ *   - G: high-risk domain keywords (narrow: credentials, breaking publish ops)
+ *   - H: external-contract keywords (breaking change / public interface)
  *   - I: contradiction markers — two or more inversion phrases in the same input
  *   - eligible: true when all three gates are false
  */
 
 const G_KEYWORDS = [
-  "security", "auth", "authentication", "password", "token", "credential",
-  "migration", "migrate", "delete", "drop", "destructive", "secret",
-  "npm publish", "release",
-  "パスワード", "認証", "トークン", "資格情報", "マイグレーション",
-  "削除", "破壊的", "リリース",
+  "password", "credential", "secret", "token", "authentication",
+  "npm publish",
+  "破壊的", "パスワード", "認証情報",
 ];
 
 const H_KEYWORDS = [

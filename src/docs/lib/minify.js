@@ -35,15 +35,19 @@ export function minify(code, filePath, opts) {
     // Fall back to regular minify if handler has no extractEssential
   }
 
-  let result = removeBlankLines(code);
+  const preserveBlanks = handler?.preserveBlankLines === true;
+
+  let result = preserveBlanks ? code : removeBlankLines(code);
   result = removeTrailingWhitespace(result);
 
   if (handler?.minify) {
     result = handler.minify(result);
   }
 
-  // Final cleanup: remove blank lines introduced by comment removal
-  result = removeBlankLines(result);
+  if (!preserveBlanks) {
+    // Final cleanup: remove blank lines introduced by comment removal
+    result = removeBlankLines(result);
+  }
 
   return result;
 }

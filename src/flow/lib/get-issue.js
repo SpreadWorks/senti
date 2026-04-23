@@ -6,8 +6,8 @@
  * ctx.number — issue number (string or number)
  */
 
-import { runCmd, assertOk } from "../../lib/process.js";
 import { FlowCommand } from "./base-command.js";
+import { fetchIssue } from "./fetch-issue.js";
 
 export default class GetIssueCommand extends FlowCommand {
   constructor() {
@@ -22,15 +22,7 @@ export default class GetIssueCommand extends FlowCommand {
       throw new Error("issue number required (positive integer)");
     }
 
-    const res = runCmd(
-      "gh",
-      ["issue", "view", number, "--json", "title,body,labels,state"],
-      { cwd: root, timeout: 15000 },
-    );
-    if (!res.ok) {
-      assertOk(res, "failed to fetch issue");
-    }
-    const data = JSON.parse(res.stdout);
+    const data = fetchIssue(number, root, { strict: true });
     return {
       number: Number(number),
       title: data.title,

@@ -16,6 +16,7 @@ import { getWorktreeStatus, runGit } from "../../lib/git-helpers.js";
 import { emptySpecStub } from "../../lib/spec-json.js";
 import { renderSpecMarkdown } from "../../spec/commands/render.js";
 import { FlowCommand } from "./base-command.js";
+import { writeIssueMd } from "./issue-body-cache.js";
 
 function runGitTrim(root, args) {
   const res = runGit(["-C", root, ...args]);
@@ -233,6 +234,11 @@ export class RunPrepareSpecCommand extends FlowCommand {
       }
       if (!fs.existsSync(draftPath)) {
         fs.writeFileSync(draftPath, buildDraftTemplate(specDirName));
+      }
+      if (preparingState?.issueBody && typeof preparingState.issueBody === "string") {
+        if (!fs.existsSync(path.join(specDir, "issue.md"))) {
+          writeIssueMd(specDir, preparingState.issueBody);
+        }
       }
     }
 
