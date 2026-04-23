@@ -10,10 +10,8 @@
  *     `flow prepare` creates flow.json. `run-prepare-spec` then inherits the
  *     values into the new flow.json.
  *
- * Preparing-flow target resolution:
- *   - If --run-id is provided → use that runId.
- *   - Otherwise → auto-detect only when exactly one preparing flow exists.
- *   - If no flow.json and multiple/zero preparing flows and no --run-id → error.
+ * Preparing-flow target resolution (spec 220):
+ *   - --run-id is REQUIRED in preparing mode. Auto-select heuristics are gone.
  *
  * Gate on `on`:
  *   - Spec 208 R8 / R9: `on` is gated by auto-check — if the check returns
@@ -21,51 +19,24 @@
  *     with the reason on stderr.
  *   - Spec 218: When state already contains a persisted `autoCheck` (written
  *     earlier by `flow run auto-check`), the verdict is trusted verbatim and
- *     the AI is NOT invoked again. This eliminates the split-brain where
- *     `run auto-check` evaluates a rich issue body while `set auto on`
- *     re-evaluates the bare `Issue #<n>` literal and hard-gate-rejects.
+ *     the AI is NOT invoked again.
+ *   - Spec 220: phase-aware input and spec-approved skip share a single
+ *     module with run-auto-check via `resolveAutoCheckInput`.
  *
  * ctx.value — "on" | "off"
- * ctx.runId — optional preparing-flow target
+ * ctx.runId — preparing-flow target (required in preparing mode)
  */
 
-import fs from "fs";
-import path from "path";
 import { FlowCommand } from "./base-command.js";
 import { VALID_AUTO_VALUES } from "../../lib/constants.js";
 import { runAutoCheckCore } from "./run-auto-check.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
-
-function buildInputText(state) {
-  const parts = [];
-  if (state?.request) parts.push(String(state.request));
-  if (state?.issue) parts.push(`Issue #${state.issue}`);
-  return parts.join("\n").trim();
-}
-
-function isSpecApproved(state) {
-  const steps = state?.steps;
-  if (!Array.isArray(steps)) return false;
-  return steps.some((s) => s && s.id === "approval" && s.status === "done");
-}
-
-function loadDraftText(root, state) {
-  const specPath = state?.spec;
-  if (!root || !specPath) return null;
-  const draftPath = path.join(path.dirname(path.resolve(root, specPath)), "draft.md");
-  if (!fs.existsSync(draftPath)) return null;
-  const text = fs.readFileSync(draftPath, "utf8").trim();
-  return text || null;
-}
-
-function resolveAutoCheckInput(ctx, state, preparingMode) {
-  if (!preparingMode) {
-    const draft = loadDraftText(ctx.root, state);
-    if (draft) return draft;
-  }
-  return buildInputText(state);
-}
+import {
+  resolveAutoCheckInput,
+  isSpecApproved,
+  buildSkipVerdict,
+} from "./resolve-auto-check-input.js";
 
 export default class SetAutoCommand extends FlowCommand {
   constructor() {
@@ -116,7 +87,7 @@ export default class SetAutoCommand extends FlowCommand {
 
     // Spec-approved skip path: skip auto-check entirely (active flow only).
     if (!preparingMode && isSpecApproved(state)) {
-      const autoCheck = { eligible: true, skipped: true, reason: "spec approved" };
+      const autoCheck = buildSkipVerdict();
       flowManager.mutate((s) => {
         s.autoCheck = autoCheck;
         s.autoApprove = true;
@@ -132,8 +103,13 @@ export default class SetAutoCommand extends FlowCommand {
     let autoCheck = state?.autoCheck || null;
     const trusted = !!autoCheck;
     if (!autoCheck) {
-      const input = resolveAutoCheckInput(ctx, state, preparingMode);
-      autoCheck = await runAutoCheckCore(this.container, input);
+      const paths = { root: ctx.root, specPath: preparingMode ? null : state?.spec };
+      const resolved = resolveAutoCheckInput(state, paths);
+      if (resolved.skip) {
+        autoCheck = buildSkipVerdict();
+      } else {
+        autoCheck = await runAutoCheckCore(this.container, resolved.text);
+      }
       const applyCheck = (s) => { s.autoCheck = autoCheck; };
       if (preparingMode) {
         flowManager.mutatePreparingFlow(runId, applyCheck);

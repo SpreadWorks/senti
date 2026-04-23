@@ -1,19 +1,18 @@
 /**
  * src/flow/lib/resolve-preparing-run-id.js
  *
- * Shared helper: resolve a preparing-flow target from an optional --run-id.
+ * Shared helper: resolve a preparing-flow target from an explicit --run-id.
  *
- * Resolution rules:
+ * Resolution rules (spec 220):
  *   - explicitRunId given: validate shape and existence; return the id or a
  *     structured fail envelope if invalid / unknown.
- *   - no explicitRunId: auto-detect when exactly one preparing flow exists;
- *     return null runId when zero exist; fail when multiple exist.
- *
- * Per-caller differences are limited to the envelope's `type`, `key`, and the
- * error code returned for the zero-preparing case. `set auto` treats "no
- * active flow and no preparing flow" as a hard error (NO_FLOW), whereas
- * `run auto-check` treats it as "no preparing target to persist to" and
- * returns `runId: null` so the command completes without persistence.
+ *   - no explicitRunId: callers must supply --run-id. Preparing flows are
+ *     never auto-selected, even when exactly one exists. Abandoned preparing
+ *     records accumulate over time, so silent auto-selection silently targets
+ *     the wrong flow once a second preparing appears.
+ *   - no explicitRunId and no preparing flow exists: callers opting out via
+ *     zeroPreparingAsFail:false receive {runId:null} (noop path); others
+ *     receive NO_FLOW.
  */
 
 import { Envelope } from "../../lib/flow-envelope.js";
@@ -43,7 +42,6 @@ export function resolvePreparingRunId(flowManager, explicitRunId, opts) {
     return { runId: explicitRunId };
   }
 
-  if (ids.length === 1) return { runId: ids[0] };
   if (ids.length === 0) {
     if (zeroPreparingAsFail) {
       return {
@@ -52,12 +50,13 @@ export function resolvePreparingRunId(flowManager, explicitRunId, opts) {
     }
     return { runId: null };
   }
+
   return {
     fail: Envelope.fail(
       type,
       key,
-      "MULTIPLE_PREPARING_FLOWS",
-      `multiple preparing flows found; pass --run-id <id> (candidates: ${ids.join(", ")})`,
+      "MISSING_RUN_ID",
+      `--run-id is required (candidates: ${ids.join(", ")})`,
     ),
   };
 }

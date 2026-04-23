@@ -1,0 +1,62 @@
+{
+  "spec": "specs/220-auto-check-phase-aware-input/spec.json",
+  "date": "2026-04-23T05:53:29.220Z",
+  "requirements": [
+    {
+      "desc": "When `flow run auto-check` が spec 承認済み (`steps` 配列に `{id: \"approval\", status: \"done\"}` を含む) の active flow に対して実行されたとき, shall CLI は AI 呼び出しを行わず `{eligible: true, skipped: true, reason: \"spec approved\"}` を返し、flow state の `autoCheck` にこれを永続化する。",
+      "status": "done",
+      "note": "`run-auto-check.js` で active flow 時に `resolveAutoCheckInput(...).skip` を判定し、AI未実行で `buildSkipVerdict()` を返して `state.autoCheck` に保存している。"
+    },
+    {
+      "desc": "When `flow run auto-check` が `gate-draft` ステップが done の active flow を対象に実行されたとき, shall 入力テキストは `issue + request + draft.md 本文` を結合したものになる。",
+      "status": "done",
+      "note": "`resolve-auto-check-input.js` で `gate-draft` done かつ `draft.md` 存在時に base(`request`+`Issue #...`)へ draft本文を追記する実装になっている。"
+    },
+    {
+      "desc": "When `flow run auto-check` が preparing flow (flow.json 不在) を対象に実行されるとき, shall `--run-id` が明示指定されていなければ CLI は `MISSING_RUN_ID` エラーで非 0 終了する。",
+      "status": "done",
+      "note": "`run-auto-check.js` の preparing path で `!ctx.runId` 時に即 `MISSING_RUN_ID` fail envelope を返すため、失敗終了になる。"
+    },
+    {
+      "desc": "When auto-check および set-auto の入力解決処理が実行されるとき, shall 両者は同一の共通モジュール (`src/flow/lib/resolve-auto-check-input.js`) に委譲する。",
+      "status": "done",
+      "note": "run-auto-check.js` と `set-auto.js` の双方が `resolve-auto-check-input.js` を import し、旧ローカル実装を削除している。"
+    },
+    {
+      "desc": "When `flow run auto-check` が呼ばれたとき, shall CLI は `--input` オプションを受理しない (未知オプション扱いで失敗する)。",
+      "status": "done",
+      "note": "`src/flow/registry.js` から `--input` が削除され、`--run-id` のみ定義となったため `--input` は未知オプション扱いになる。"
+    },
+    {
+      "desc": "When `resolve-preparing-run-id.js` が `--run-id` 未指定で preparing flow 1 個のみの状態で呼ばれたとき, shall 対象を自動選択せず呼び出し元のオプトイン (`zeroPreparingAsFail`) に従いエラーか null を返す。",
+      "status": "not_done",
+      "note": "現実装は preparing が1個でも常に `MISSING_RUN_ID` fail を返し、`zeroPreparingAsFail` は 0 個時にしか効かないため、要件の「1個時もオプトイン従属」を満たしていない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "CHANGELOG.md",
+      "change": "spec 220の破壊的変更説明・移行ガイドの追記（R1-R6自体には明示されていない）。"
+    },
+    {
+      "file": "src/templates/skills/sdd-forge.flow/SKILL.md",
+      "change": "運用スキル手順(B.0.5)を `--input` 廃止/`--run-id` 必須に更新（要件一覧外の変更）。"
+    },
+    {
+      "file": "specs/220-auto-check-phase-aware-input/*",
+      "change": "draft/spec/flow/qa/review/issue-log/tests README など、仕様運用用ドキュメント一式の新規追加。"
+    },
+    {
+      "file": "tests/e2e/220-auto-check-phase-flow.test.js",
+      "change": "新規E2Eシナリオ追加（要件本文は機能要件であり、E2E追加自体は直接要求されていない）。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 5,
+    "partial": 0,
+    "not_done": 1,
+    "rate": 0.83,
+    "notes": "R1-R5は実装で満たされている。R6のみ、single preparing時の `zeroPreparingAsFail` 連動が実装されておらず未達。全体としては主要機能は達成だが、run-id解決ポリシーの細部に仕様不一致が1点残る。"
+  }
+}

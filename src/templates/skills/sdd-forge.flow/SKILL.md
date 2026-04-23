@@ -60,9 +60,9 @@ B.0. **Initialize flow state**
    - Run `sdd-forge flow set init [--issue N] [--request "<user raw text>"]` to create a preparing state file (`.active-flow.<runId>`).
    - Save the returned `runId` from `data.runId` for use in B.4.
 
-B.0.5. **Auto-mode eligibility check** (spec 208)
-   - Build the input text: combine `--request` and, if an Issue is linked, the fetched Issue body (`sdd-forge flow get issue <n>`).
-   - Run `sdd-forge flow run auto-check --input "<text>"` and read `data.eligible`.
+B.0.5. **Auto-mode eligibility check** (spec 208, phase-aware input per spec 220)
+   - If an Issue is linked, ensure its body is reflected into `--request` at `flow set init` (fetch with `sdd-forge flow get issue <n>` if needed). The CLI derives the input statically from the preparing flow state (`issue + request`) — `--input` is no longer accepted.
+   - Run `sdd-forge flow run auto-check --run-id <runId>` and read `data.eligible`. `--run-id` is required in preparing mode (spec 220 removed the single-preparing auto-select).
    - **If `eligible: true`**: present the auto-mode prompt using the Choice Format. The prompt asks ONLY whether to enable auto mode — do not bundle a "is this summary correct?" question into the same choice (the summary is confirmed in B.3).
      - Question (above choices): `Auto モードを有効にしますか？` (single line).
      - Choices: `[1] はい — AI が確認なしで進めます` `[2] いいえ — 通常通り各ステップで確認します`.

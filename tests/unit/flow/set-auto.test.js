@@ -68,10 +68,11 @@ function createFlowState(tmp, request = "add a progress bar") {
   makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 }
 
-function runSetAuto(tmp, value) {
+function runSetAuto(tmp, value, extraArgs = []) {
   const script = path.resolve("src/sdd-forge.js");
   const args = ["flow", "set", "auto"];
   if (value !== undefined) args.push(value);
+  args.push(...extraArgs);
   return spawnSync("node", [script, ...args], {
     encoding: "utf8",
     cwd: tmp,
@@ -145,7 +146,7 @@ describe("flow set auto", () => {
     const runId = fm.generateRunId();
     fm.createPreparingFlow(runId, { request: "add a progress bar" });
 
-    const res = runSetAuto(tmp, "on");
+    const res = runSetAuto(tmp, "on", ["--run-id", runId]);
     assert.equal(res.status, 0, res.stderr);
     const output = JSON.parse(res.stdout.trim());
     assert.equal(output.ok, true);
@@ -158,7 +159,7 @@ describe("flow set auto", () => {
     assert.equal(preparing.autoCheck.eligible, true);
   });
 
-  it("fails when no flow.json and multiple preparing flows exist without --run-id", () => {
+  it("fails with MISSING_RUN_ID when no flow.json and preparing flows exist without --run-id (spec 220)", () => {
     tmp = createTmpProject(passResponse());
     const fm = makeFlowManager(tmp);
     fm.createPreparingFlow(fm.generateRunId(), { request: "a" });
@@ -168,8 +169,25 @@ describe("flow set auto", () => {
     assert.notEqual(res.status, 0);
     const envelope = JSON.parse(res.stdout.trim());
     assert.equal(envelope.ok, false);
+    const codes = (envelope.errors || []).map((e) => e.code);
     assert.ok(
-      envelope.errors?.some((e) => /multiple preparing/i.test(e.messages?.join(" ") ?? "")),
+      codes.includes("MISSING_RUN_ID"),
+      `expected MISSING_RUN_ID, got ${codes.join(",")}`,
+    );
+  });
+
+  it("fails with MISSING_RUN_ID even when only one preparing exists (spec 220 — no auto-select)", () => {
+    tmp = createTmpProject(passResponse());
+    const fm = makeFlowManager(tmp);
+    fm.createPreparingFlow(fm.generateRunId(), { request: "sole" });
+
+    const res = runSetAuto(tmp, "on");
+    assert.notEqual(res.status, 0);
+    const envelope = JSON.parse(res.stdout.trim());
+    const codes = (envelope.errors || []).map((e) => e.code);
+    assert.ok(
+      codes.includes("MISSING_RUN_ID"),
+      `expected MISSING_RUN_ID for single preparing, got ${codes.join(",")}`,
     );
   });
 
@@ -220,7 +238,7 @@ describe("flow set auto", () => {
     assert.equal(saved.autoCheck.eligible, true);
   });
 
-  it("uses draft.md as auto-check input when present and approval pending (R3/R4)", () => {
+  it("appends draft.md to auto-check input when gate-draft done (spec 220)", () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-draft-"));
     fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
     fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
@@ -245,17 +263,21 @@ describe("flow set auto", () => {
     fs.writeFileSync(path.join(tmp, "package.json"), JSON.stringify({ name: "fixture" }));
 
     const DRAFT_MARKER = "UNIQUE_DRAFT_CONTENT_MARKER_QWERTY";
+    const REQUEST_MARKER = "REQUEST_MARKER_APPENDED_ALONGSIDE_DRAFT";
     fs.writeFileSync(
       path.join(tmp, "specs", "001-test", "draft.md"),
       `# Draft\n\n${DRAFT_MARKER}\n\nGoal: build feature X with bounded scope.\n`,
     );
 
-    const steps = buildInitialSteps();
+    // Mark gate-draft done (phase 2) per spec 220
+    const steps = buildInitialSteps().map((s) =>
+      s.id === "gate-draft" ? { ...s, status: "done" } : s,
+    );
     const state = {
       spec: "specs/001-test/spec.md",
       baseBranch: "main",
       featureBranch: "feature/001-test",
-      request: "REQUEST_ONLY_MARKER_SHOULD_NOT_APPEAR",
+      request: REQUEST_MARKER,
       steps,
     };
     makeFlowManager(tmp).save(state);
@@ -267,8 +289,8 @@ describe("flow set auto", () => {
     const captured = fs.readFileSync(capturePath, "utf8");
     assert.ok(captured.includes(DRAFT_MARKER), "auto-check prompt must include draft content");
     assert.ok(
-      !captured.includes("REQUEST_ONLY_MARKER_SHOULD_NOT_APPEAR"),
-      "auto-check prompt must not include original request when draft is used",
+      captured.includes(REQUEST_MARKER),
+      "spec 220: request must be included alongside draft (not replaced)",
     );
 
     const saved = makeFlowManager(tmp).load();
@@ -460,7 +482,7 @@ describe("flow set auto", () => {
       };
     });
 
-    const res = runSetAuto(tmp, "on");
+    const res = runSetAuto(tmp, "on", ["--run-id", runId]);
     assert.equal(res.status, 0, res.stderr);
     const output = JSON.parse(res.stdout.trim());
     assert.equal(output.ok, true);
@@ -495,7 +517,7 @@ describe("flow set auto", () => {
       };
     });
 
-    const res = runSetAuto(tmp, "on");
+    const res = runSetAuto(tmp, "on", ["--run-id", runId]);
     assert.notEqual(res.status, 0);
     const envelope = JSON.parse(res.stdout.trim());
     assert.equal(envelope.ok, false);
@@ -561,7 +583,7 @@ describe("flow set auto", () => {
     const runId = fm.generateRunId();
     fm.createPreparingFlow(runId, { request: "add a progress bar" });
 
-    const res = runSetAuto(tmp, "on");
+    const res = runSetAuto(tmp, "on", ["--run-id", runId]);
     assert.equal(res.status, 0, res.stderr);
     const output = JSON.parse(res.stdout.trim());
     assert.equal(output.ok, true);

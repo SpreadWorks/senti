@@ -1,28 +1,35 @@
 /**
  * src/flow/lib/run-auto-check.js
  *
- * `sdd-forge flow run auto-check` — hybrid eligibility check for auto mode.
+ * `sdd-forge flow run auto-check` — phase-aware eligibility check for auto mode.
  *
- * Flow: static gates (keyword match, sync) → AI scoring (1 stateless call) →
- *       compose eligible verdict → persist to active flow.json `autoCheck`
- *       OR to the preparing flow state (.active-flow.<runId>) when no active
- *       flow exists. Persisting to the preparing state is what allows the
- *       subsequent `flow set auto on` to trust this verdict instead of
- *       re-invoking the AI with a different input (spec 218).
+ * Flow (spec 220):
+ *   - resolve the target flow (active flow.json or preparing record via --run-id)
+ *   - delegate input resolution to `resolve-auto-check-input` which picks the
+ *     payload based on phase markers in flow state (see that module for rules)
+ *   - if the resolver signals skip (spec approved), persist a skip verdict and
+ *     return without invoking the AI
+ *   - otherwise: static gates (keyword match, sync) → AI scoring → compose
+ *     eligible verdict → persist
+ *
+ * The preparing-state persistence path is what allows the subsequent
+ * `flow set auto on` to trust this verdict instead of re-invoking the AI
+ * with a different input (spec 218).
  *
  * Spec 208: R1 / R2 / R3 / R4 / R5 / R6 / R13.
  * Spec 218: preparing-flow persistence for split-brain elimination.
+ * Spec 220: phase-aware input, spec-approved skip, --run-id required for
+ *           preparing-mode targeting (no auto-select).
  *
  * ctx inputs (merged from CLI by FlowCommand base):
- *   - input: optional --input <text>. Falls back to flow state (request + issue).
- *   - runId: optional --run-id <id>. Selects a specific preparing flow when no
- *            active flow exists and multiple preparing flows are present. When
- *            exactly one preparing flow exists, it is auto-detected.
+ *   - runId: optional for active flow; REQUIRED in preparing mode.
  */
 
 import { FlowCommand } from "./base-command.js";
 import { evaluateStaticGates } from "./auto-check-static.js";
 import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
+import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 const PROMPT_TEMPLATE = `You evaluate whether a feature request can safely proceed in SDD "auto mode" —
 meaning the AI drafts, specs, and implements without human confirmation loops.
@@ -91,16 +98,6 @@ export function computeScore(breakdown) {
 export function hardGateFailed(breakdown) {
   return HARD_GATE_KEYS.some((k) => Number(breakdown?.[k] ?? 0) === 0);
 }
-
-function resolveInputText(ctx) {
-  if (typeof ctx.input === "string" && ctx.input.trim()) return ctx.input.trim();
-  const state = ctx.flowState || {};
-  const parts = [];
-  if (state.request) parts.push(String(state.request));
-  if (state.issue) parts.push(`Issue #${state.issue}`);
-  return parts.join("\n").trim();
-}
-
 
 function parseAiResponse(text) {
   const cleaned = String(text || "").trim().replace(/^```(?:json)?|```$/g, "").trim();
@@ -211,28 +208,57 @@ export default class RunAutoCheckCommand extends FlowCommand {
   }
 
   async execute(ctx) {
-    const input = resolveInputText(ctx);
-    const result = await runAutoCheckCore(this.container, input);
-
+    // Active flow path: state is already loaded; resolve input from state phase
     if (ctx.flowManager && ctx.flowState) {
-      ctx.flowManager.mutate((state) => {
-        state.autoCheck = result;
+      const paths = { root: ctx.root, specPath: ctx.flowState.spec };
+      const resolved = resolveAutoCheckInput(ctx.flowState, paths);
+      if (resolved.skip) {
+        const verdict = buildSkipVerdict();
+        ctx.flowManager.mutate((state) => { state.autoCheck = verdict; });
+        return verdict;
+      }
+      const result = await runAutoCheckCore(this.container, resolved.text);
+      ctx.flowManager.mutate((state) => { state.autoCheck = result; });
+      return result;
+    }
+
+    // Preparing flow path: --run-id is required (no auto-select, no auto-skip).
+    // Per spec 220 A3: both zero-preparing and multi-preparing cases without
+    // --run-id surface as MISSING_RUN_ID so the caller always sees a consistent
+    // error code for "you must specify which preparing flow to target".
+    if (ctx.flowManager) {
+      if (!ctx.runId) {
+        return Envelope.fail(
+          "run",
+          "auto-check",
+          "MISSING_RUN_ID",
+          "--run-id is required when no active flow exists",
+        );
+      }
+      const resolvedId = resolvePreparingRunId(ctx.flowManager, ctx.runId, {
+        type: "run",
+        key: "auto-check",
+      });
+      if (resolvedId.fail) return resolvedId.fail;
+      const state = ctx.flowManager.loadPreparingFlow(resolvedId.runId);
+      // Preparing records have no spec directory yet, so draft body is not
+      // available. Only base input (issue + request) is used.
+      const resolvedInput = resolveAutoCheckInput(state, { root: ctx.root, specPath: null });
+      if (resolvedInput.skip) {
+        const verdict = buildSkipVerdict();
+        ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
+          s.autoCheck = verdict;
+        });
+        return verdict;
+      }
+      const result = await runAutoCheckCore(this.container, resolvedInput.text);
+      ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
+        s.autoCheck = result;
       });
       return result;
     }
 
-    if (ctx.flowManager) {
-      const resolved = resolvePreparingRunId(ctx.flowManager, ctx.runId, {
-        type: "run",
-        key: "auto-check",
-      });
-      if (resolved.fail) return resolved.fail;
-      if (resolved.runId) {
-        ctx.flowManager.mutatePreparingFlow(resolved.runId, (state) => {
-          state.autoCheck = result;
-        });
-      }
-    }
-    return result;
+    // No flowManager (unusual; defensive): run stateless with empty input
+    return await runAutoCheckCore(this.container, "");
   }
 }

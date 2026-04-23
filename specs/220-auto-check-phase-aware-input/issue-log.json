@@ -1,0 +1,162 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one coherent concern: phase-aware auto-check eligibility/input behavior and related CLI flow consistency.; Unambiguous Requirements — Most requirements are stated as verifiable behaviors (e.g., option removal, mandatory run-id, specific error/skip behavior).; Complete Context — Several requirement bullets are change statements without explicit trigger-condition + expected-behavior form.; No Hardcoded Secrets — No secrets (keys/passwords/tokens) are present in the draft content.; Prioritize Requirements — There are more than three requirements, but no explicit priority ordering is provided.; Impact on Existing Features — Draft explicitly lists impacted existing features and explicitly lists unaffected ones.; Present Recommendations with Reasoning — Each Q&A item gives a recommended answer with concise rationale based on policy/code/architecture considerations.; Explore Before Asking — Questions appear pre-resolved using existing context/code references; no unresolved ask remains.; Proactively Raise Related Implications — Draft proactively calls out breaking CLI/skill implications, behavioral changes, and operational side effects.; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation is shown that discussion mode (brainstorm vs decision) was clarified before critique/evaluation.; Capture Digressions in draft.md — No digression is indicated in the provided content, so there is nothing to capture.; Draft Stays at Requirements Level — Draft includes implementation-level details (file paths, specific module changes, tests, error codes, return payload).; Backward-Compatible CLI Interface — Existing CLI option behavior is removed without a migration plan; stating alpha policy does not provide migration steps.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T05:05:28.043Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirement bullets are change statements without explicit trigger-condition + expected-behavior form."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-confirm-brainstorm-vs-decide",
+          "reason": "No explicit confirmation is shown that discussion mode (brainstorm vs decision) was clarified before critique/evaluation."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (file paths, specific module changes, tests, error codes, return payload)."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Existing CLI option behavior is removed without a migration plan; stating alpha policy does not provide migration steps."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays focused on one coherent concern: phase-aware auto-check eligibility/input behavior and its related CLI handling.; Unambiguous Requirements — Requirements are mostly concrete and testable (phase-specific behavior, explicit command behavior, and defined migration outcomes).; Complete Context — Some requirements are listed as goals without explicit When/If trigger plus shall-style expected behavior.; No Hardcoded Secrets — No source code secrets or credential material are present in this draft content.; Prioritize Requirements — More than three requirements are explicitly prioritized as Priority 1 through 4.; Impact on Existing Features — The draft explicitly lists impacted existing features and unaffected ones.; Present Recommendations with Reasoning — Q1-Q5 answers are decided, but the basis is not consistently framed against docs/, guardrail principles, or code patterns for each item.; Explore Before Asking — Whether code/docs exploration happened before user questions requires process evidence not included in the draft text.; Proactively Raise Related Implications — Related implications are proactively covered (migration path, affected callers, changelog note, and explicit-selection rule changes).; Confirm Brainstorm vs. Decision Before Critiquing — The draft explicitly confirms decision mode and states user selections were finalized.; Capture Digressions in draft.md — No digression is indicated in the provided content; nothing appears uncaptured.; Draft Stays at Requirements Level — It includes implementation-leaning details (specific internal skill paths and same-commit update instruction) beyond pure requirements level.; Backward-Compatible CLI Interface — A clear migration plan is included for the breaking CLI behavior changes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T05:06:38.548Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Some requirements are listed as goals without explicit When/If trigger plus shall-style expected behavior."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q1-Q5 answers are decided, but the basis is not consistently framed against docs/, guardrail principles, or code patterns for each item."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "It includes implementation-leaning details (specific internal skill paths and same-commit update instruction) beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Scope is centered on one concern: phase-aware auto-check behavior and its directly related CLI handling.; Unambiguous Requirements — Requirements are stated in concrete, testable terms (e.g., skip AI, return eligible, error on missing identifier).; Complete Context — All listed requirements use explicit trigger conditions (When) paired with expected outcomes (shall).; No Hardcoded Secrets — Inapplicable to this draft text; no API keys, passwords, tokens, or similar secrets are present.; Prioritize Requirements — There are more than three requirements and they are explicitly prioritized as P1-P4.; Impact on Existing Features — Impact section explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Each Q1-Q5 answer leads with a recommendation and includes rationale grounded in guardrails, policy/docs, or existing code patterns.; Explore Before Asking — Draft shows prior exploration via references to existing code (`isSpecApproved`), incident evidence, and issue updates before final decisions.; Proactively Raise Related Implications — Related implications are proactively captured (migration path, affected callers, changelog handling, removal of implicit selection).; Confirm Brainstorm vs. Decision Before Critiquing — Draft explicitly states decision mode and confirms user-selected options were finalized.; Capture Digressions in draft.md — Whether any digression occurred during discussion is not verifiable from the provided draft alone.; Draft Stays at Requirements Level — Draft includes implementation-leaning details (e.g., shared module strategy, specific test mechanics, concrete source-file reference) beyond pure requirements level.; Backward-Compatible CLI Interface — Breaking CLI changes include an explicit migration plan with deprecated operation, replacement flow, and caller impact.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T05:08:16.745Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-leaning details (e.g., shared module strategy, specific test mechanics, concrete source-file reference) beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec does not define any concrete concern or change.; Unambiguous Requirements — No requirement text is present, so no vague adjectives are used.; Complete Context — No requirements are provided with When/If triggers and shall outcomes.; REQ Diff-Verifiability — No requirements are stated, so no unverifiable requirement wording is present.; No Hardcoded Secrets — No source code or secrets are present in the content.; No Silent Error Swallowing — No implementation code is provided to indicate swallowed errors.; Prioritize Requirements — Requirement count is not greater than three (it is zero).; Impact on Existing Features — Impact on existing features is not listed, and no explicit 'no impact' statement is provided.; Bounded Resource Usage — No recursive/retry/bulk-processing design is specified.; Changes Require Test Coverage — No tests or justification for missing tests are included.; Spec Includes Test Strategy — Test strategy section/content is absent.; Synthesize Draft, Do Not Copy — Cannot assess synthesis vs copying without the source draft content.; Record Unresolved Points as Open Questions — No fabricated answers are evident; open questions are left empty.; Include 'Why This Approach' Rationale — No rationale explaining why the approach was chosen is included.; Do Not Modify Existing Tests Without Approval — Requires implementation diff/history to determine whether existing tests were modified.; Backward-Compatible CLI Interface — No CLI command/option changes are specified.; Exit Code Contract — No command behavior is specified; article is inapplicable to this content.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T05:11:27.060Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "Spec does not define any concrete concern or change."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "No requirements are provided with When/If triggers and shall outcomes."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not listed, and no explicit 'no impact' statement is provided."
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "No tests or justification for missing tests are included."
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "Test strategy section/content is absent."
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "No rationale explaining why the approach was chosen is included."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — All changes are centered on auto-check phase-aware input resolution and related CLI behavior.; Unambiguous Requirements — Requirements use concrete conditions and expected outputs with specific statuses, fields, and error codes.; Complete Context — Each listed requirement includes a trigger condition and a shall-style expected behavior.; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus the specified unit/integration test outcomes.; No Hardcoded Secrets — No secrets or credential literals are specified in the content.; No Silent Error Swallowing — No silent error swallowing pattern is proposed; explicit error signaling is specified.; Prioritize Requirements — There are more than three requirements, but no priority order is defined beyond all being 'must'.; Impact on Existing Features — Impact is described via breaking CLI changes, migration steps, and affected skills/call sites.; Bounded Resource Usage — No recursive/retry/bulk-processing design requiring explicit bounds is introduced.; Changes Require Test Coverage — The spec includes added unit/integration tests and regression coverage for new behavior and fixes.; Spec Includes Test Strategy — A dedicated Test Strategy section defines what to test and how.; Synthesize Draft, Do Not Copy — Cannot determine whether draft content was copied or synthesized without the source draft.; Record Unresolved Points as Open Questions — Clarifications are explicitly recorded and Open Questions is present (empty), with no visible fabricated resolutions.; Include 'Why This Approach' Rationale — Rationale is explicitly provided in 'Why this approach' and alternatives sections.; Do Not Modify Existing Tests Without Approval — The spec explicitly states existing tests should not be modified and to extend with additional tests.; Backward-Compatible CLI Interface — A migration plan is included for the breaking CLI option and run-id behavior changes.; Exit Code Contract — Failure paths explicitly require non-zero exit codes in requirements and acceptance criteria.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T05:16:57.262Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements, but no priority order is defined beyond all being 'must'."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/run-auto-check.test.js:45: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/run-auto-check.test.js:76: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/run-auto-check.test.js:93: existing line modified/deleted in test file (removed=5, added=2); tests/unit/flow/run-auto-check.test.js:103: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/run-auto-check.test.js:121: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/run-auto-check.test.js:131: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/run-auto-check.test.js:140: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/run-auto-check.test.js:152: existing line modified/deleted in test file (removed=3, added=3); tests/unit/flow/run-auto-check.test.js:178: existing line modified/deleted in test file (removed=3, added=2); tests/unit/flow/set-auto.test.js:68: existing line modified/deleted in test file (removed=1, added=2); tests/unit/flow/set-auto.test.js:146: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/set-auto.test.js:159: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/set-auto.test.js:169: existing line modified/deleted in test file (removed=1, added=18); tests/unit/flow/set-auto.test.js:238: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/set-auto.test.js:263: existing line modified/deleted in test file (removed=2, added=6); tests/unit/flow/set-auto.test.js:289: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/set-auto.test.js:482: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/set-auto.test.js:517: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/set-auto.test.js:583: existing line modified/deleted in test file (removed=1, added=1)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T05:41:45.882Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: added authorized_test_modifications to spec.json for run-auto-check.test.js and set-auto.test.js",
+      "resolution": "the existing tests used --input and relied on single-preparing auto-select, both removed by spec 220. authorized with rationale matching the spec's migration scope",
+      "taskId": null,
+      "timestamp": "2026-04-23T05:42:10.551Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Core refactor is present, but spec compliance is incomplete: zero-preparing `--run-id` omission path still appears to return `NO_FLOW` (not required `MISSING_RUN_ID`), and required `.claude/.agents` skill-callsite updates are not shown in this diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T05:42:44.924Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Core refactor is present, but spec compliance is incomplete: zero-preparing `--run-id` omission path still appears to return `NO_FLOW` (not required `MISSING_RUN_ID`), and required `.claude/.agents` skill-callsite updates are not shown in this diff."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: MISSING_RUN_ID surface unification for zero-preparing case (gate reviewer flagged spec non-compliance)",
+      "resolution": "run-auto-check.js explicit MISSING_RUN_ID check before calling resolvePreparingRunId; aligns with A3 which mandates this code for both 0 and 2+ preparing + omitted runId; also corrected implementationTargets to point at src/templates source (gitignored .claude/.agents/ are derivatives)",
+      "taskId": null,
+      "timestamp": "2026-04-23T05:46:12.517Z"
+    },
+    {
+      "step": "review",
+      "reason": "review agent proposals all target files outside spec 220 scope (review saw diff main...HEAD but main has advanced beyond my merge-base)",
+      "resolution": "not applied — per Single Responsibility guardrail these would bundle unrelated upstream-era changes; actual spec 220 diff against merge-base is 8 files only",
+      "guardrailCandidate": "when review sees diff against a moved-forward main, narrow the base to the branch merge-base to avoid scope drift",
+      "taskId": null,
+      "timestamp": "2026-04-23T05:52:21.004Z"
+    }
+  ]
+}

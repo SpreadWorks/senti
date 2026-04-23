@@ -4,6 +4,24 @@
 
 ### Breaking Changes
 
+#### `flow run auto-check` input is now phase-aware; `--input` removed (spec 220)
+
+`sdd-forge flow run auto-check` no longer accepts `--input <text>`. The input is now derived statically from flow state based on progress phase:
+
+- `approval` step done → AI is skipped, verdict is unconditionally `{eligible: true, skipped: true, reason: "spec approved"}`.
+- `gate-draft` step done and `draft.md` present → input is `issue + request + draft body`.
+- Otherwise → input is `issue + request`.
+
+Preparing-mode invocations (no active flow) now **require** `--run-id`. The previous heuristic of auto-selecting the sole preparing flow was removed because abandoned preparing records accumulate over time and would silently target the wrong flow once a second preparing appears. Affected commands: `flow run auto-check`, `flow set auto on|off`. The error code for missing `--run-id` is `MISSING_RUN_ID` (replaces the previous `MULTIPLE_PREPARING_FLOWS` surfacing in this scenario).
+
+**Migration:**
+
+- Replace `flow run auto-check --input "<text>"` with `flow set init [--issue N] [--request "..."]` → `flow run auto-check --run-id <runId>` (runId returned from `set init`).
+- If a script relied on auto-selection with exactly one preparing flow, add `--run-id <id>` explicitly.
+- `set auto on/off` against preparing flows: same — add `--run-id`.
+
+The `set auto on` spec-approved skip path and the input-resolution logic are now shared between `run-auto-check.js` and `set-auto.js` via `src/flow/lib/resolve-auto-check-input.js`.
+
 #### Agent provider `jsonOutputFlag` removed; builtin profiles embed JSON flag literally
 
 The implicit JSON flag injection mechanism has been removed. `config.agent.providers.<key>.jsonOutputFlag` is no longer recognized and its auto-injection behavior is gone.

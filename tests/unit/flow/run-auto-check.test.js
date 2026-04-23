@@ -45,13 +45,13 @@ function setupProject(tmp, { aiResponse } = {}) {
   return tmp;
 }
 
-function seedFlowState(tmp) {
+function seedFlowState(tmp, { request = "add a progress bar with bounded scope" } = {}) {
   fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
   makeFlowManager(tmp).save({
     spec: "specs/001-test/spec.md",
     baseBranch: "main",
     featureBranch: "feature/001-test",
-    request: "add a progress bar",
+    request,
     steps: buildInitialSteps(),
   });
   makeFlowManager(tmp).addActiveFlow("001-test", "branch");
@@ -76,10 +76,10 @@ describe("flow run auto-check CLI", () => {
     removeTmpDir(tmp);
   });
 
-  it("returns eligible:true with passing scores", () => {
+  it("returns eligible:true with passing scores (input derived from flow state)", () => {
     setupProject(tmp);
     seedFlowState(tmp);
-    const res = runCli(tmp, ["flow", "run", "auto-check", "--input", "add a progress bar"]);
+    const res = runCli(tmp, ["flow", "run", "auto-check"]);
     assert.equal(res.status, 0, res.stderr);
     const envelope = JSON.parse(res.stdout.trim());
     assert.equal(envelope.ok, true);
@@ -93,11 +93,8 @@ describe("flow run auto-check CLI", () => {
 
   it("returns eligible:false and skips AI when static gate G hits", () => {
     setupProject(tmp);
-    seedFlowState(tmp);
-    const res = runCli(tmp, [
-      "flow", "run", "auto-check",
-      "--input", "reset admin password in migration",
-    ]);
+    seedFlowState(tmp, { request: "reset admin password in migration" });
+    const res = runCli(tmp, ["flow", "run", "auto-check"]);
     assert.equal(res.status, 0, res.stderr);
     const envelope = JSON.parse(res.stdout.trim());
     assert.equal(envelope.data.eligible, false);
@@ -106,8 +103,8 @@ describe("flow run auto-check CLI", () => {
 
   it("returns eligible:false with hard-gate when verifiability is 0", () => {
     setupProject(tmp, { aiResponse: stubResponse({ verifiability: 0 }) });
-    seedFlowState(tmp);
-    const res = runCli(tmp, ["flow", "run", "auto-check", "--input", "vague idea"]);
+    seedFlowState(tmp, { request: "vague idea" });
+    const res = runCli(tmp, ["flow", "run", "auto-check"]);
     assert.equal(res.status, 0, res.stderr);
     const envelope = JSON.parse(res.stdout.trim());
     assert.equal(envelope.data.eligible, false);
@@ -124,8 +121,8 @@ describe("flow run auto-check CLI", () => {
         precedent: 0,
       }),
     });
-    seedFlowState(tmp);
-    const res = runCli(tmp, ["flow", "run", "auto-check", "--input", "x"]);
+    seedFlowState(tmp, { request: "x" });
+    const res = runCli(tmp, ["flow", "run", "auto-check"]);
     const envelope = JSON.parse(res.stdout.trim());
     assert.equal(envelope.data.eligible, false);
     assert.ok(envelope.data.score < envelope.data.threshold);
@@ -134,7 +131,7 @@ describe("flow run auto-check CLI", () => {
   it("persists result to flow.json autoCheck field when active flow exists", () => {
     setupProject(tmp);
     seedFlowState(tmp);
-    runCli(tmp, ["flow", "run", "auto-check", "--input", "add a progress bar"]);
+    runCli(tmp, ["flow", "run", "auto-check"]);
     const state = makeFlowManager(tmp).load();
     assert.ok(state.autoCheck, "autoCheck should be saved");
     assert.equal(state.autoCheck.eligible, true);
@@ -143,8 +140,8 @@ describe("flow run auto-check CLI", () => {
 
   it("persists autoCheck even when eligible:false (audit-friendly)", () => {
     setupProject(tmp);
-    seedFlowState(tmp);
-    runCli(tmp, ["flow", "run", "auto-check", "--input", "password migration release"]);
+    seedFlowState(tmp, { request: "password migration release" });
+    runCli(tmp, ["flow", "run", "auto-check"]);
     const state = makeFlowManager(tmp).load();
     assert.ok(state.autoCheck);
     assert.equal(state.autoCheck.eligible, false);
@@ -155,15 +152,15 @@ describe("flow run auto-check CLI", () => {
   // state file as well, so that a subsequent `flow set auto on --run-id <id>`
   // can trust the result instead of re-invoking the agent with a different
   // (thinner) input.
-  it("persists autoCheck to preparing flow state when no active flow exists", () => {
+  it("persists autoCheck to preparing flow state when --run-id is provided", () => {
     setupProject(tmp);
     const fm = makeFlowManager(tmp);
     const runId = fm.generateRunId();
-    fm.createPreparingFlow(runId, { issue: 230 });
+    fm.createPreparingFlow(runId, { issue: 230, request: "add a progress bar with bounded scope" });
 
     const res = runCli(tmp, [
       "flow", "run", "auto-check",
-      "--input", "add a progress bar with bounded scope",
+      "--run-id", runId,
     ]);
     assert.equal(res.status, 0, res.stderr);
     const envelope = JSON.parse(res.stdout.trim());
@@ -181,12 +178,11 @@ describe("flow run auto-check CLI", () => {
     const fm = makeFlowManager(tmp);
     const runIdA = fm.generateRunId();
     const runIdB = fm.generateRunId();
-    fm.createPreparingFlow(runIdA, { issue: 1 });
-    fm.createPreparingFlow(runIdB, { issue: 2 });
+    fm.createPreparingFlow(runIdA, { issue: 1, request: "add a progress bar with bounded scope" });
+    fm.createPreparingFlow(runIdB, { issue: 2, request: "add a progress bar with bounded scope" });
 
     const res = runCli(tmp, [
       "flow", "run", "auto-check",
-      "--input", "add a progress bar with bounded scope",
       "--run-id", runIdB,
     ]);
     assert.equal(res.status, 0, res.stderr);

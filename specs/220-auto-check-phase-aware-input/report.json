@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "CHANGELOG.md                                       |  18 +\n specs/220-auto-check-phase-aware-input/draft.md    |  68 ++++\n specs/220-auto-check-phase-aware-input/flow.json   | 450 +++++++++++++++++++++\n .../issue-log.json                                 | 162 ++++++++\n specs/220-auto-check-phase-aware-input/qa.md       |   9 +\n specs/220-auto-check-phase-aware-input/review.md   |  49 +++\n specs/220-auto-check-phase-aware-input/spec.json   | 206 ++++++++++\n specs/220-auto-check-phase-aware-input/spec.md     | 139 +++++++\n .../tests/README.md                                |  43 ++\n src/flow/lib/resolve-auto-check-input.js           |  76 ++++\n src/flow/lib/resolve-preparing-run-id.js           |  25 +-\n src/flow/lib/run-auto-check.js                     |  92 +++--\n src/flow/lib/set-auto.js                           |  62 +--\n src/flow/registry.js                               |  12 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |   6 +-\n tests/e2e/220-auto-check-phase-flow.test.js        | 124 ++++++\n tests/unit/flow/resolve-auto-check-input.test.js   | 135 +++++++\n tests/unit/flow/resolve-preparing-run-id.test.js   | 117 ++++++\n tests/unit/flow/run-auto-check-phase.test.js       | 198 +++++++++\n tests/unit/flow/run-auto-check.test.js             |  40 +-\n tests/unit/flow/set-auto.test.js                   |  46 ++-\n 21 files changed, 1947 insertions(+), 130 deletions(-)",
+      "commits": [
+        "feat: feature/220-auto-check-phase-aware-input"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 5,
+      "partial": 0,
+      "not_done": 1,
+      "rate": 0.83,
+      "notes": "R1-R5は実装で満たされている。R6のみ、single preparing時の `zeroPreparingAsFail` 連動が実装されておらず未達。全体としては主要機能は達成だが、run-id解決ポリシーの細部に仕様不一致が1点残る。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 4,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 461285,
+      "output": 14682,
+      "cacheRead": 112512,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 354203,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 126287
+        },
+        {
+          "phase": "gate",
+          "durationMs": 78579
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 81567
+        },
+        {
+          "phase": "review",
+          "durationMs": 67770
+        }
+      ]
+    },
+    "tests": {
+      "unit": 11,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 11
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/220-auto-check-phase-aware-input\n    21 files changed, 1947 insertions(+), 130 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (5 done / 0 partial / 1 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 4\n    issue-log ................... 3\n    agent calls ................. 13\n    input tokens ................ 461,285\n    output tokens ............... 14,682\n    cache-read tokens ........... 112,512\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 354.2s\n      gate-draft ................ 126.3s\n      gate ...................... 78.6s\n      gate-impl ................. 81.6s\n      review .................... 67.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 11  integration 0  acceptance 0  total 11"
+}
