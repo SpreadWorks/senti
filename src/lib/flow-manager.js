@@ -62,9 +62,7 @@ export class FlowManager {
   }
 
   updateStepStatus(stepId, status, opts) { return this._store.updateStepStatus(stepId, status, opts); }
-  setRequirements(descs, opts) { return this._store.setRequirements(descs, opts); }
   setTestSummary(summary, opts) { return this._store.setTestSummary(summary, opts); }
-  updateRequirement(index, status, opts) { return this._store.updateRequirement(index, status, opts); }
   setRequest(text) { return this._store.setRequest(text); }
   setIssue(issue) { return this._store.setIssue(issue); }
   addNote(text, opts) { return this._store.addNote(text, opts); }

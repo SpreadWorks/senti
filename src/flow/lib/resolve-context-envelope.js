@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import { getWorktreeStatus, getCurrentBranch, getAheadCount, getLastCommit, isGhAvailable } from "../../lib/git-helpers.js";
 import { derivePhase } from "../../lib/flow-helpers.js";
+import { loadSpecRequirements } from "../../lib/spec-json.js";
 
 function extractSection(text, heading) {
   const lines = text.split("\n");
@@ -93,7 +94,7 @@ export function buildResolvedFlowContext(ctx) {
     request: state.request || null,
     goal,
     scope,
-    requirements: state.requirements || [],
+    requirements: loadSpecRequirements(effectiveRoot, state.spec),
     notes: state.notes || [],
     dirty,
     dirtyFiles,

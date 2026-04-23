@@ -2,8 +2,8 @@
  * src/flow/lib/run-resume.js
  *
  * Resume command — discover and return context of the active flow.
- * Uses the shared resolveActiveFlow() helper for 3-stage fallback discovery.
- * Returns the same data structure as get-resolve-context for consistency.
+ * Uses the shared resolve-context envelope so the output stays in lockstep
+ * with `flow get resolve-context`.
  */
 
 import { FlowCommand } from "./base-command.js";

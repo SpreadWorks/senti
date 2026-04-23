@@ -1,0 +1,443 @@
+{
+  "spec": "specs/219-sync-spec-requirements/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/219-sync-spec-requirements",
+  "runId": "aebc0c66-7c10-428e-b6d3-dff68d319e7f",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [
+    {
+      "desc": "When finalize の retro ステップが実行されるとき, retro は spec.json.requirements を唯一の requirements ソースとして参照し、flow state 側の requirements を読み取ってはならない。",
+      "status": "pending"
+    },
+    {
+      "desc": "If spec.json.requirements に 1 件以上の要件が存在し、かつ base branch と HEAD の間に diff が存在する then retro は no requirements found 系のエラーを発生させず、retro.json を spec ディレクトリに生成する。",
+      "status": "pending"
+    },
+    {
+      "desc": "When 単件のステータス更新コマンドが呼ばれるとき, 指定インデックスの requirements[].status を spec.json に書き込み、spec.schema.json のバリデーションを通過する。",
+      "status": "pending"
+    },
+    {
+      "desc": "When sdd-forge flow get status が呼ばれるとき, 返却 JSON の requirements と requirementsProgress は spec.json.requirements のみを集計対象として算出される。",
+      "status": "pending"
+    },
+    {
+      "desc": "When 一括設定 CLI (flow set summary) が呼ばれたとき, 非ゼロ終了コードと廃止を明示するエラーメッセージを返し、spec.json / flow state のいずれも変更しない。",
+      "status": "pending"
+    },
+    {
+      "desc": "When 実装確認コマンド・resume コマンドが requirements を参照するとき, 参照元は spec.json であり flow state ではない。",
+      "status": "pending"
+    },
+    {
+      "desc": "If spec.json.requirements の要素に status フィールドが未設定である then reader は欠損値を pending として扱い例外を発生させない。",
+      "status": "pending"
+    },
+    {
+      "desc": "When approval ステップのプロンプトが表示されるとき, プロンプト本文に requirements を追加転記するための手動コマンド実行手順は含まれない。",
+      "status": "pending"
+    }
+  ],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 233,
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 19,
+    "maxScore": 24,
+    "threshold": 18,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 1,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 1,
+      "precedent": 1
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "目的と失敗条件は明確で検証可能だが、実装方針が2案あり最終選択に軽い裁量が必要。対象はretro/approval周辺に概ね限定される。"
+  },
+  "worktree": true,
+  "test": {
+    "baseline": {
+      "unit": 2082,
+      "integration": 259,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 14
+    }
+  },
+  "request": "Issue #233: retro step fails with 'no requirements found in flow.json' because requirements are not synchronized from spec.json to flow.json. Establish single source of truth for requirements.",
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:06:13.207Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2334,
+      "durationMs": 28045,
+      "tokens": {
+        "input": 20953,
+        "output": 1094,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:08:28.941Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:08:36.843Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2227,
+      "durationMs": 25646,
+      "tokens": {
+        "input": 21937,
+        "output": 1027,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:09:39.869Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1485,
+      "durationMs": 23815,
+      "tokens": {
+        "input": 22119,
+        "output": 977,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:10:50.334Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1883,
+      "durationMs": 35855,
+      "tokens": {
+        "input": 7910,
+        "output": 1661,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:14:32.849Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2696,
+      "durationMs": 26821,
+      "tokens": {
+        "input": 8585,
+        "output": 1055,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:16:15.740Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2682,
+      "durationMs": 27152,
+      "tokens": {
+        "input": 23945,
+        "output": 1104,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:30:49.680Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:31:04.964Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:31:16.608Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 376,
+      "durationMs": 18090,
+      "tokens": {
+        "input": 13086,
+        "output": 739,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:31:37.645Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1948,
+      "durationMs": 25903,
+      "tokens": {
+        "input": 28966,
+        "output": 1054,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:32:03.570Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-23T04:32:03.596Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2065,
+      "durationMs": 49025,
+      "tokens": {
+        "input": 27160,
+        "output": 2451,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:32:59.824Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1132,
+      "durationMs": 32340,
+      "tokens": {
+        "input": 42083,
+        "output": 1465,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:33:32.263Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 548,
+      "durationMs": 63221,
+      "tokens": {
+        "input": 35565,
+        "output": 1843,
+        "cacheRead": 146816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:39:06.681Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1824,
+      "durationMs": 25084,
+      "tokens": {
+        "input": 15388,
+        "output": 1010,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:39:31.792Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-23T04:39:31.822Z"
+    },
+    {
+      "phase": "finalize",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3117,
+      "durationMs": 45431,
+      "tokens": {
+        "input": 50153,
+        "output": 2218,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:41:00.963Z"
+    },
+    {
+      "phase": "finalize",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2666,
+      "durationMs": 31631,
+      "tokens": {
+        "input": 50151,
+        "output": 1448,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:45:30.231Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-23T04:44:58.479Z"
+  }
+}

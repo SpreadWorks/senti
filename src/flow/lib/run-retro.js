@@ -11,7 +11,7 @@ import { runGit } from "../../lib/git-helpers.js";
 import { container } from "../../lib/container.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
-import { loadSpecJson } from "../../lib/spec-json.js";
+import { loadSpecJson, normalizeRequirements } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 
@@ -145,17 +145,15 @@ export class RunRetroCommand extends FlowCommand {
       );
     }
 
-    // Read spec from spec.json (T8). specPath may point to .md, .json, or dir —
-    // loadSpecJson resolves all three via resolveSpecJsonPath.
+    // Read spec from spec.json — the single source of truth for requirements.
+    // specPath may point to .md, .json, or dir; loadSpecJson resolves all three.
     const absSpecInput = path.resolve(root, specPath);
     const specJson = loadSpecJson(absSpecInput);
-    const requirementsText = requirementsAsText(specJson.requirements);
-
-    // Get requirements from flow.json
-    const requirements = state.requirements || [];
+    const requirements = normalizeRequirements(specJson.requirements);
     if (requirements.length === 0) {
-      throw new Error("no requirements found in flow.json");
+      throw new Error(`no requirements found in spec.json at ${specPath}`);
     }
+    const requirementsText = requirementsAsText(requirements);
 
     // Get diff
     const baseBranch = state.baseBranch;

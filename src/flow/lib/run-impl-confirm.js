@@ -2,13 +2,14 @@
  * src/flow/lib/run-impl-confirm.js
  *
  * FlowCommand: impl-confirm — check implementation readiness by comparing
- * flow.json requirements against actual file changes.
+ * spec.json requirements against actual file changes.
  */
 
 import fs from "fs";
 import path from "path";
 import { runGit } from "../../lib/git-helpers.js";
 import { VALID_IMPL_CONFIRM_MODES } from "../../lib/constants.js";
+import { loadSpecRequirements } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 
 /**
@@ -24,8 +25,8 @@ function getChangedFiles(root, baseBranch) {
 }
 
 /**
- * Summarize requirements from flow state.
- * @param {import("../../lib/flow-state.js").RequirementEntry[]} requirements
+ * Summarize requirements loaded from spec.json.
+ * @param {Array<{desc: string, status: string}>} requirements
  * @returns {{ total: number, done: number, pending: number, inProgress: number, items: Array }}
  */
 function summarizeRequirements(requirements) {
@@ -53,7 +54,7 @@ export class RunImplConfirmCommand extends FlowCommand {
     if (!VALID_IMPL_CONFIRM_MODES.includes(mode)) {
       throw new Error(`invalid mode: ${mode} (valid: ${VALID_IMPL_CONFIRM_MODES.join(", ")})`);
     }
-    const requirements = summarizeRequirements(state.requirements);
+    const requirements = summarizeRequirements(loadSpecRequirements(root, state.spec));
 
     // Determine readiness
     const allDone = requirements.total > 0 && requirements.done === requirements.total;

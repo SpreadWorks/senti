@@ -1,0 +1,94 @@
+{
+  "goal": "finalize の retro ステップが `no requirements found in flow.json` で失敗する問題を根本解決するため、requirements の source of truth を spec.json に単一化する。",
+  "background": "spec 207/T8 で spec.json に requirements が構造化 (id/desc/priority/status) されたが、flow state 側にも同名配列が残り、承認ステップの手動コマンドで複製されていた。複製が行われないと retro は flow state の空配列を参照して fail する。retro はすでに spec.json を読み込んでおり、二重保持は冗長である。構造的に単一ソース化することで再発を防ぐ。\n\n## Migration Plan\n\n本変更は破壊的変更。alpha 方針に従い後方互換 shim は提供しない。\n\n- **廃止対象 CLI**: `sdd-forge flow set summary` (requirements 一括設定)。approval プロンプトから該当手順を削除する。\n- **インターフェース変更**: `sdd-forge flow set req <index> <status>` は呼び出し形は同じだが、書き込み先が spec.json に変わる。\n- **影響**: 旧 `flow set summary` を呼んでいた外部スクリプトは廃止エラー (非ゼロ終了 + 明示メッセージ) で検知される。active flow 側の flow.json に残る requirements 配列フィールドは読み書きどちらの経路からも使われなくなる。\n- **対応手順**: (1) 本 spec のマージ前に active flow があれば finalize しておくことを推奨 (2) マージ後は approval プロンプトから手動転記ステップが消えるため追加作業不要 (3) 外部スクリプトで `flow set summary` を呼んでいた場合は該当呼び出しを削除する (spec.json 側は gate PASS 時点で確定済み)。",
+  "scope": {
+    "in": [
+      "retro / impl-confirm / flow get status / resume / approval が requirements を参照する際、spec.json.requirements を唯一のソースとする。",
+      "requirements の進捗ステータス (pending / in_progress / done / skipped) の永続先を spec.json に集約する。",
+      "flow state 側の requirements 保持ロジックおよび一括設定 CLI を廃止する。"
+    ],
+    "out": [
+      "spec.schema.json の requirements スキーマ変更。現状の id/desc/priority/status を踏襲する。",
+      "retro の評価アルゴリズム、AI プロンプト、retro.json フォーマット変更。",
+      "flow state ファイル内のその他フィールド (steps / metrics / notes / test など) の再設計。",
+      "旧 CLI への後方互換レイヤ追加 (alpha 方針により不要)。"
+    ]
+  },
+  "constraints": [
+    "外部依存を追加しない (Node.js 組み込みのみ)。",
+    "alpha 方針に従い、旧フォーマットとの互換コードは残さない。",
+    "spec.schema.json のバリデーションは書き込み後も必ず通過する。",
+    "src/ 配下にプロジェクト固有情報を書かない。"
+  ],
+  "design_principles": [
+    "Single Source of Truth: requirements は一箇所にのみ永続化する。",
+    "構造的安全性: 単一ソース化により「同期忘れ」が文法的に発生しない状態にする。",
+    "深いモジュール: 読み取り側は薄いラッパーではなくスキーマ付きローダを直接使う。",
+    "OOP による型表現: 読み取り結果は既存の spec-json ローダの戻り値をそのまま扱う。"
+  ],
+  "overview": {
+    "modules": [
+      { "text": "retro 実行モジュール: finalize フェーズで requirements をソースとして読み込み、diff と突き合わせて評価する。" },
+      { "text": "impl-confirm モジュール: 実装完了確認で requirements の集計を行う。" },
+      { "text": "flow status 取得モジュール: requirements 一覧と進捗集計を返す。" },
+      { "text": "resume モジュール: 再開時に requirements コンテキストを提供する。" },
+      { "text": "単件ステータス更新モジュール: 指定インデックスの requirements[i].status を永続化する。" },
+      { "text": "一括設定 CLI モジュール: 廃止し、廃止エラー応答に置換する。" },
+      { "text": "approval プロンプト: requirements 転記手順を削除する。" }
+    ],
+    "data_flow": [
+      { "text": "prepare-spec → spec.json 生成 (requirements は空配列で初期化)。" },
+      { "text": "spec / gate → AI が spec.json.requirements を編集・承認する。" },
+      { "text": "実装フェーズ → ステータス更新コマンドが spec.json.requirements[i].status を書き換える。" },
+      { "text": "finalize/retro → spec.json.requirements を読み、diff と照合して retro.json を生成する。" },
+      { "text": "flow get status → spec.json.requirements を読んで進捗集計を返す。" }
+    ],
+    "decisions": [
+      { "text": "単一ソース = spec.json。理由は背景と代替案比較を参照。" },
+      { "text": "flow state 側の requirements プロパティは削除する。" },
+      { "text": "status 未設定の既存 spec.json は `pending` として扱う。" },
+      { "text": "廃止 CLI は明示エラーメッセージ + 非ゼロ終了コードで応答する。" },
+      { "text": "既存テストは spec.json fixture 前提に移行する。" }
+    ]
+  },
+  "requirements": [
+    { "id": "R1", "priority": "must", "desc": "When finalize の retro ステップが実行されるとき, retro は spec.json.requirements を唯一の requirements ソースとして参照し、flow state 側の requirements を読み取ってはならない。" },
+    { "id": "R2", "priority": "must", "desc": "If spec.json.requirements に 1 件以上の要件が存在し、かつ base branch と HEAD の間に diff が存在する then retro は `no requirements found` 系のエラーを発生させず、retro.json を spec ディレクトリに生成する。" },
+    { "id": "R3", "priority": "must", "desc": "When 単件のステータス更新コマンドが呼ばれるとき, 指定インデックスの requirements[].status を spec.json に書き込み、spec.schema.json のバリデーションを通過する。" },
+    { "id": "R4", "priority": "must", "desc": "When `sdd-forge flow get status` が呼ばれるとき, 返却 JSON の requirements と requirementsProgress は spec.json.requirements のみを集計対象として算出される。" },
+    { "id": "R5", "priority": "must", "desc": "When 一括設定 CLI (`flow set summary`) が呼ばれたとき, 非ゼロ終了コードと廃止を明示するエラーメッセージを返し、spec.json / flow state のいずれも変更しない。" },
+    { "id": "R6", "priority": "should", "desc": "When 実装確認コマンド・resume コマンドが requirements を参照するとき, 参照元は spec.json であり flow state ではない。" },
+    { "id": "R7", "priority": "should", "desc": "If spec.json.requirements の要素に status フィールドが未設定である then reader は欠損値を pending として扱い例外を発生させない。" },
+    { "id": "R8", "priority": "should", "desc": "When approval ステップのプロンプトが表示されるとき, プロンプト本文に requirements を追加転記するための手動コマンド実行手順は含まれない。" }
+  ],
+  "acceptance_criteria": [
+    "AC1 (R1): retro 実装のソースに対する unified diff に、flow state 側の requirements を参照するコードが残っていない (参照行が 0 件)。",
+    "AC2 (R2): 1 件以上の requirements を持つ spec.json と base との差分を持つコミットを用意した統合テストで retro を実行すると retro.json が生成され、exit code が 0 である。",
+    "AC3 (R3): 単件ステータス更新コマンドを呼ぶ単体テストで spec.json.requirements[i].status が指定値に更新され、更新後の spec.json が spec.schema.json で valid と判定される。",
+    "AC4 (R4): flow get status の単体テストで spec.json.requirements を準備し flow state 側の requirements を空にした状態でも、返却 JSON の requirements 件数と進捗が spec.json 由来で一致する。",
+    "AC5 (R5): 廃止 CLI を呼ぶ単体テストで exit code が非ゼロ、stderr または envelope のエラーメッセージに廃止を示す文言が含まれる。",
+    "AC6 (R6): 実装確認・resume の単体テストで spec.json.requirements のみを参照して集計結果が返る (flow state の同フィールドを空にしてもテストが PASS する)。",
+    "AC7 (R7): status 未設定の requirements を含む spec.json を入力した単体テストで、各 reader が例外を投げず、集計上 pending 扱いとなる。",
+    "AC8 (R8): approval プロンプトテンプレートの差分に、requirements 転記の手動コマンドが含まれていない (grep で 0 件)。"
+  ],
+  "clarifications": [
+    { "q": "flow state 側の requirements を残してミラーする選択肢は？", "a": "不採用。alpha 方針「後方互換コードは書かない／旧フォーマットは保持せず削除」に反するため。構造的単一化を優先する。" },
+    { "q": "廃止 CLI の呼び出し元は？", "a": "現状は approval プロンプトのみ。該当箇所を手順削除と同時に取り除く。" },
+    { "q": "既存 spec.json の status 未設定ケースは？", "a": "読み取り時に pending を補完する。スキーマ enum に含まれる値なので書き戻しても問題ない。" },
+    { "q": "受け入れ基準の verifiability は？", "a": "すべて unified diff とテスト結果のみで PASS/FAIL 判定できる形にする。" }
+  ],
+  "alternatives_considered": [
+    { "option": "案 A: retro の参照先だけ spec.json に切り替える (他は flow state のまま)。", "reason": "不採用 - 状態の二重化が残り、他コマンドで同じクラスのバグが再発する余地がある。" },
+    { "option": "案 B: approval ステップで spec.json → flow state の requirements を自動ミラーする。", "reason": "不採用 - alpha 方針に反する。承認経路を通らない実装更新で再び乖離が起きる。" },
+    { "option": "案 C (採用): spec.json を単一ソースとし flow state 側を廃止する。", "reason": "既存のスキーマ化・retro の spec.json 参照・構造的な乖離防止・alpha 方針との整合から最善。" }
+  ],
+  "open_questions": [],
+  "authorized_test_modifications": [
+    { "path": "tests/unit/flow/get-status.test.js", "reason": "status が spec.json.requirements を参照するよう変更するため、fixture を spec.json 配下に配置する。期待値の JSON 形状は不変。" },
+    { "path": "tests/unit/flow/throw-to-envelope-codes.test.js", "reason": "flow set summary 廃止に伴い、既存 set summary 関連の 3 ケース (INVALID_USAGE / INVALID_JSON / INVALID_ARG_VALUE) を削除し、廃止エラーケースに置き換える。" },
+    { "path": "tests/unit/flow.test.js", "reason": "flow-level の requirements 挙動テストで source が spec.json に切り替わるため、fixture を調整する。検証意図は不変。" },
+    { "path": "tests/e2e/flow/commands/set-request-note.test.js", "reason": "廃止された flow set summary コマンドに関連するケースが含まれている場合は削除し、新しいエラー応答を検証する記述に入れ替える。" },
+    { "path": "tests/unit/flow/run-finalize-retro-commit-scope.test.js", "reason": "retro が spec.json.requirements を唯一のソースとするよう変更するため、fixture の requirements を spec.json 側に揃える。retro 挙動の検証意図は不変。" },
+    { "path": "tests/unit/flow/run-finalize-retro-invocation.test.js", "reason": "同上。retro 呼び出し経路の fixture を spec.json ベースに揃える。" }
+  ]
+}

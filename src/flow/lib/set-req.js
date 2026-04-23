@@ -1,7 +1,7 @@
 /**
  * src/flow/lib/set-req.js
  *
- * Update a single requirement's status.
+ * Update a single requirement's status in spec.json (the single source of truth).
  *
  * ctx.index  — requirement index (string or number)
  * ctx.status — new status string
@@ -10,6 +10,7 @@
 import { FlowCommand } from "./base-command.js";
 import { VALID_REQ_STATUSES } from "../../lib/constants.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { updateSpecRequirementStatus } from "../../lib/spec-json.js";
 
 export default class SetReqCommand extends FlowCommand {
   execute(ctx) {
@@ -40,7 +41,7 @@ export default class SetReqCommand extends FlowCommand {
       );
     }
 
-    ctx.flowManager.updateRequirement(index, status);
+    updateSpecRequirementStatus(ctx.root, ctx.flowState.spec, index, status);
 
     return { index, status };
   }

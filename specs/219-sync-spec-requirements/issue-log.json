@@ -1,0 +1,103 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: eliminating dual requirement sources by making spec.json the single source of truth.; Unambiguous Requirements — Most items are concrete and verifiable (specific files, command behavior, schema/status handling) with little vague wording.; Complete Context — Many requirement bullets are change statements without explicit When/If trigger plus shall-style expected behavior.; No Hardcoded Secrets — No secrets (API keys/tokens/passwords) appear in the draft content.; Prioritize Requirements — There are more than three requirement items, but no explicit priority ordering is provided.; Impact on Existing Features — A dedicated impact section lists affected features and explicitly lists unaffected areas.; Present Recommendations with Reasoning — Each Q&A gives a clear recommendation first and includes rationale from policy, schema/docs, and existing code behavior.; Explore Before Asking — Questions are self-answered with code/schema-based reasoning, and open questions are explicitly none.; Proactively Raise Related Implications — Related implications are proactively addressed (active-flow status defaults, CLI removal impact, test updates).; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not show an explicit brainstorm-vs-decision confirmation before critique/recommendation.; Capture Digressions in draft.md — No digression is evident in the draft, so no special capture requirement is triggered.; Draft Stays at Requirements Level — Draft includes implementation-level detail (specific file/module edits and command-level internal changes), beyond pure requirements level.; Backward-Compatible CLI Interface — CLI changes include a migration note (remove flow set summary usage; flow set req interface unchanged).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:08:28.952Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Many requirement bullets are change statements without explicit When/If trigger plus shall-style expected behavior."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirement items, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-confirm-brainstorm-vs-decide",
+          "reason": "The draft does not show an explicit brainstorm-vs-decision confirmation before critique/recommendation."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level detail (specific file/module edits and command-level internal changes), beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed on 4 guardrails: complete-context (missing When/If trigger + shall), prioritize-requirements (no priority for >3 items), brainstorm-vs-decision (no explicit confirmation), scope-boundary (too much impl detail)",
+      "trigger": "first gate run on initial autoApprove draft",
+      "resolution": "rewrite draft at requirements level with trigger+shall format, explicit priorities, and brainstorm/decision mode line",
+      "taskId": null,
+      "timestamp": "2026-04-23T04:08:36.813Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: unifying requirements source of truth to spec.json and related fallout.; Unambiguous Requirements — Requirements are mostly written as verifiable conditions with explicit triggers and expected outcomes.; Complete Context — Each requirement includes context (When/If) and an expected behavior/outcome.; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are present in the draft content.; Prioritize Requirements — More than three requirements are provided and explicitly prioritized (must/should/nice-to-have, priority order).; Impact on Existing Features — The draft explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Q&A answers lead with clear recommendations and include concise rationale grounded in schema/code/policy.; Explore Before Asking — The draft records code/document analysis and resolves questions without deferring to user input.; Proactively Raise Related Implications — Related implications are proactively covered (CLI effects, status defaults, downstream command behavior).; Confirm Brainstorm vs. Decision Before Critiquing — Mode is explicitly declared as Decision, confirming ideas are treated as finalized decisions.; Capture Digressions in draft.md — No digression is evident; the draft remains on-topic so no separate digression capture was required.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions/tests), exceeding pure requirements-level scope.; Backward-Compatible CLI Interface — An existing CLI command is removed, but no explicit migration plan for users is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:09:39.879Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific files/functions/tests), exceeding pure requirements-level scope."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "An existing CLI command is removed, but no explicit migration plan for users is specified."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; alternatives_considered[2]: must be object, got string",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:13:43.539Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — 仕様は requirements の単一ソース化という一つの関心事に集中している。; Unambiguous Requirements — 各要件は参照先・挙動・失敗条件が具体化され、受け入れ基準で検証可能。; Complete Context — 要件は When/If と期待動作（shall相当）を対で記述している。; REQ Diff-Verifiability — AC が unified diff とテスト結果で PASS/FAIL 判定できる形で定義されている。; No Hardcoded Secrets — APIキー等の秘密情報を埋め込む記述は含まれていない。; No Silent Error Swallowing — 関連箇所では明示エラー応答と非ゼロ終了を要求しており、黙殺方針は示していない。; Prioritize Requirements — 8件の要件に must/should の優先度が付与されている。; Impact on Existing Features — retro/impl-confirm/status/resume/approval/CLI 廃止への影響範囲を明示している。; Bounded Resource Usage — 再帰・無限リトライ・無制限バルクロードを導入する設計は記載されていない。; Changes Require Test Coverage — 新機能/修正ごとに単体・統合テストの受け入れ基準が定義されている。; Spec Includes Test Strategy — 何をどう検証するかが AC1〜AC8 で具体化されている。; Synthesize Draft, Do Not Copy — 元ドラフト本文が提示されておらず、要約/転記の判定ができない。; Record Unresolved Points as Open Questions — Open Questions セクションがあり、未解決事項の置き場が明示されている。; Include 'Why This Approach' Rationale — 背景・代替案比較・採用理由が記載されている。; Do Not Modify Existing Tests Without Approval — 『既存テストを fixture 前提に移行』とあるが、既存テスト変更の承認条件が仕様内で明示されていない。; Backward-Compatible CLI Interface — 既存 CLI（flow set summary）廃止は定義されているが、利用者向け移行計画が示されていない。; Exit Code Contract — 失敗時は非ゼロ終了コードを返す要件と受け入れ基準が明記されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:14:32.864Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impl-test-preservation",
+          "reason": "『既存テストを fixture 前提に移行』とあるが、既存テスト変更の承認条件が仕様内で明示されていない。"
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "既存 CLI（flow set summary）廃止は定義されているが、利用者向け移行計画が示されていない。"
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "authorized-test entry `tests/e2e/flow/commands/set-request-note.test.js`: reason must be at least 40 chars (got 39)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:31:04.966Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "authorized_test_modifications entry for set-request-note.test.js had reason under 40 chars and was rejected by the gate",
+      "trigger": "first gate-impl run",
+      "resolution": "expanded reason to meet the 40-char minimum",
+      "taskId": null,
+      "timestamp": "2026-04-23T04:31:16.585Z"
+    },
+    {
+      "step": "merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-04-23T04:41:04.322Z"
+    }
+  ]
+}

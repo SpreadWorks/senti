@@ -305,13 +305,6 @@ export class FlowStore {
     });
   }
 
-  setRequirements(descriptions, opts) {
-    this.mutate((state) => {
-      const scope = resolveMutationScope(state, opts);
-      scope.requirements = descriptions.map((desc) => ({ desc, status: "pending" }));
-    });
-  }
-
   setTestSummary(summary, opts) {
     const target = opts?.baseline ? "baseline" : "summary";
     const mode = opts?.mode ?? "replace";
@@ -324,14 +317,6 @@ export class FlowStore {
       } else {
         scope.test[target] = summary;
       }
-    });
-  }
-
-  updateRequirement(index, status, opts) {
-    this.mutate((state) => {
-      const scope = resolveMutationScope(state, opts);
-      if (!scope.requirements?.[index]) throw new Error(`requirement index out of range: ${index}`);
-      scope.requirements[index].status = status;
     });
   }
 

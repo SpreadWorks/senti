@@ -1,0 +1,60 @@
+{
+  "spec": "specs/219-sync-spec-requirements/spec.json",
+  "date": "2026-04-23T04:45:30.231Z",
+  "requirements": [
+    {
+      "desc": "When finalize の retro ステップが実行されるとき, retro は spec.json.requirements を唯一の requirements ソースとして参照し、flow state 側の requirements を読み取ってはならない。",
+      "status": "done",
+      "note": "run-retro が state.requirements 参照を削除し、spec.json から normalizeRequirements(specJson.requirements) を読む実装に変更されている。"
+    },
+    {
+      "desc": "If spec.json.requirements に 1 件以上の要件が存在し、かつ base branch と HEAD の間に diff が存在する then retro は no requirements found 系のエラーを発生させず、retro.json を spec ディレクトリに生成する。",
+      "status": "done",
+      "note": "retro の不足エラー判定が spec.json 基準に変更され、flow.json 由来のエラー文言も除去。対応テスト run-retro-no-missing-requirements.test.js が追加されている。"
+    },
+    {
+      "desc": "When 単件のステータス更新コマンドが呼ばれるとき, 指定インデックスの requirements[].status を spec.json に書き込み、spec.schema.json のバリデーションを通過する。",
+      "status": "done",
+      "note": "set-req が flowManager.updateRequirement から updateSpecRequirementStatus に切替。spec-json.js で saveSpecJson(バリデーション付き) 経由で永続化する。"
+    },
+    {
+      "desc": "When sdd-forge flow get status が呼ばれるとき, 返却 JSON の requirements と requirementsProgress は spec.json.requirements のみを集計対象として算出される。",
+      "status": "done",
+      "note": "get-status が state.requirements 集計を廃止し、loadSpecRequirements(root, state.spec) から requirements と progress を計算する実装に変更されている。"
+    },
+    {
+      "desc": "When 一括設定 CLI (flow set summary) が呼ばれたとき, 非ゼロ終了コードと廃止を明示するエラーメッセージを返し、spec.json / flow state のいずれも変更しない。",
+      "status": "done",
+      "note": "set-summary は常に Envelope.fail(..., \"DEPRECATED\", ...) を返す実装へ置換され、状態更新ロジックは削除。専用テスト set-summary-deprecated.test.js も追加。"
+    },
+    {
+      "desc": "When 実装確認コマンド・resume コマンドが requirements を参照するとき, 参照元は spec.json であり flow state ではない。",
+      "status": "done",
+      "note": "run-impl-confirm は loadSpecRequirements を使用。resume 側は共有 resolve-context 経路で requirements を loadSpecRequirements から供給する変更が入っている。"
+    },
+    {
+      "desc": "If spec.json.requirements の要素に status フィールドが未設定である then reader は欠損値を pending として扱い例外を発生させない。",
+      "status": "done",
+      "note": "spec-json.js に normalizeRequirements が追加され、status 欠損時に pending を補完。get-status/retro 等で利用される。"
+    },
+    {
+      "desc": "When approval ステップのプロンプトが表示されるとき, プロンプト本文に requirements を追加転記するための手動コマンド実行手順は含まれない。",
+      "status": "done",
+      "note": "approval.md から flow set summary 実行手順が削除され、「手動転記不要」の説明へ置換されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/metrics/commands/token.js",
+      "change": "requirements 件数の算出元を flow state から spec.json に変更し、spec.json 読み込み処理も JSON.parse ベースへリファクタされている（R1-R8 の直接対象外）。"
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "R1-R8 はいずれも差分上で満たされている。主要な未計画変更は metrics token コマンドの難易度算出ロジック変更。"
+  }
+}

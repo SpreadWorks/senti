@@ -6,6 +6,7 @@
  */
 
 import { derivePhase } from "../../lib/flow-helpers.js";
+import { loadSpecRequirements } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
@@ -85,12 +86,13 @@ export function buildReportTotals(summaryTotal) {
   return { activity, tokens };
 }
 
-function buildStatusOutput(state) {
+function buildStatusOutput(state, root) {
   const phase = state.steps ? derivePhase(state) : null;
   const doneSteps = state.steps ? state.steps.filter((s) => s.status === "done").length : 0;
   const totalSteps = state.steps ? state.steps.length : 0;
-  const doneReqs = state.requirements ? state.requirements.filter((r) => r.status === "done").length : 0;
-  const totalReqs = state.requirements ? state.requirements.length : 0;
+  const requirements = loadSpecRequirements(root, state.spec);
+  const doneReqs = requirements.filter((r) => r.status === "done").length;
+  const totalReqs = requirements.length;
 
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
@@ -107,7 +109,7 @@ function buildStatusOutput(state) {
     phase,
     steps: state.steps || [],
     stepsProgress: { done: doneSteps, total: totalSteps },
-    requirements: state.requirements || [],
+    requirements,
     requirementsProgress: { done: doneReqs, total: totalReqs },
     request: state.request || null,
     notes: state.notes || [],
@@ -132,7 +134,7 @@ export default class GetStatusCommand extends FlowCommand {
       if (!state) {
         throw new Error(`RUN_ID_NOT_FOUND: ${runId}`);
       }
-      return buildStatusOutput(state);
+      return buildStatusOutput(state, ctx.root);
     }
 
     // Default: context-based resolution. No active flow is a normal state,
@@ -140,6 +142,6 @@ export default class GetStatusCommand extends FlowCommand {
     if (!ctx.flowState) {
       return { active: false };
     }
-    return buildStatusOutput(ctx.flowState);
+    return buildStatusOutput(ctx.flowState, ctx.root);
   }
 }

@@ -12,7 +12,6 @@ import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR, EXIT_SUCCESS } from "../../lib/constants.js";
 import { formatDurationSeconds } from "../../lib/formatter.js";
-import { loadSpecJson } from "../../lib/spec-json.js";
 
 const DEFAULT_FORMAT = "text";
 const SUPPORTED_FORMATS = new Set(["text", "json", "csv"]);
@@ -305,9 +304,8 @@ function sumReviewCount(reviewCount) {
   return values[0] + values[1] + values[2];
 }
 
-function computeRequirementCount(flowState) {
-  if (Array.isArray(flowState.summary)) return flowState.summary.length;
-  if (Array.isArray(flowState.requirements)) return flowState.requirements.length;
+function computeRequirementCount(spec) {
+  if (Array.isArray(spec?.requirements)) return spec.requirements.length;
   return null;
 }
 
@@ -336,7 +334,7 @@ async function computeSpecDifficulty(flowState, specDir) {
   // continuity. Historic specs without spec.json (pre-T11) are skipped via
   // returning null — metrics.token iterates many past flows and must tolerate
   // absent artifacts (spec 207 R2 carve-out for multi-spec iteration).
-  //   Malformed spec.json still throws (loadSpecJson schema-validates).
+  //   Malformed spec.json still throws via JSON.parse.
   const specJsonPath = path.join(specDir, "spec.json");
   let stat;
   try {
@@ -349,10 +347,10 @@ async function computeSpecDifficulty(flowState, specDir) {
   }
   if (!stat.isFile()) return null;
   const jsonText = await fs.readFile(specJsonPath, "utf8");
-  loadSpecJson(specDir);
+  const spec = JSON.parse(jsonText);
   const specMdChars = jsonText.length;
 
-  const requirementCount = computeRequirementCount(flowState);
+  const requirementCount = computeRequirementCount(spec);
   const testCountRaw = await countFilesRecursive(path.join(specDir, "tests"));
   const testCount = testCountRaw == null ? 0 : testCountRaw;
   const reviewCount = sumReviewCount(flowState.reviewCount);

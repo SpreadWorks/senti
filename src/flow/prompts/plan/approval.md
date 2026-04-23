@@ -7,6 +7,5 @@
    - Update `## User Confirmation` with:
      - `- [x] User approved this spec`
      - Confirmation date and short note.
-   - **On complete**: Save requirements list and mark step done:
-     - Extract Requirements from spec.md and run: `sdd-forge flow set summary '["req 1", "req 2", ...]'`
+   - **On complete**: Mark step done. Requirements already live in spec.json (the single source of truth) from the gate step — no manual transfer is needed.
      - `sdd-forge flow set step approval done`

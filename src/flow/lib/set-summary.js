@@ -1,59 +1,28 @@
 /**
  * src/flow/lib/set-summary.js
  *
- * Set requirements list from a JSON string array.
- *
- * ctx.json — JSON string representing an array of requirement strings
+ * Deprecated in spec 219: `flow set summary` was used to mirror spec.json.requirements
+ * into flow state. Now that spec.json is the single source of truth, this command
+ * has no purpose and returns a non-zero envelope explaining the deprecation.
  */
 
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 
 export default class SetSummaryCommand extends FlowCommand {
-  execute(ctx) {
-    const raw = ctx.json;
+  constructor() {
+    super({ requiresFlow: false });
+  }
 
-    if (!raw) {
-      return Envelope.fail(
-        "set",
-        "summary",
-        "INVALID_USAGE",
-        "usage: flow set summary '<json-array>'",
-      );
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (e) {
-      return Envelope.fail("set", "summary", "INVALID_JSON", `failed to parse JSON: ${e.message}`);
-    }
-
-    if (!Array.isArray(parsed)) {
-      return Envelope.fail(
-        "set",
-        "summary",
-        "INVALID_ARG_VALUE",
-        "expected a JSON array of strings or {text, status} objects",
-      );
-    }
-
-    for (let i = 0; i < parsed.length; i++) {
-      const el = parsed[i];
-      const isString = typeof el === "string";
-      const isValidObject = typeof el === "object" && el !== null && !Array.isArray(el) && typeof el.text === "string";
-      if (!isString && !isValidObject) {
-        return Envelope.fail(
-          "set",
-          "summary",
-          "INVALID_ARG_VALUE",
-          `invalid element at index ${i}: expected string or {text, status} object`,
-        );
-      }
-    }
-
-    ctx.flowManager.setRequirements(parsed);
-
-    return { count: parsed.length };
+  execute() {
+    return Envelope.fail(
+      "set",
+      "summary",
+      "DEPRECATED",
+      [
+        "`sdd-forge flow set summary` is deprecated and has been removed.",
+        "Requirements live in spec.json and are finalized when the spec gate passes — no manual transfer step is needed.",
+      ],
+    );
   }
 }

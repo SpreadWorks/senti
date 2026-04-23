@@ -1,0 +1,74 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/219-sync-spec-requirements/draft.md          |  72 ++++\n specs/219-sync-spec-requirements/flow.json         | 428 +++++++++++++++++++++\n specs/219-sync-spec-requirements/issue-log.json    | 103 +++++\n specs/219-sync-spec-requirements/qa.md             |   9 +\n specs/219-sync-spec-requirements/report.json       |  67 ++++\n specs/219-sync-spec-requirements/retro.json        |  60 +++\n specs/219-sync-spec-requirements/review.md         |  33 ++\n specs/219-sync-spec-requirements/spec.json         |  94 +++++\n specs/219-sync-spec-requirements/spec.md           | 138 +++++++\n specs/219-sync-spec-requirements/tests/README.md   |  29 ++\n src/flow/lib/get-status.js                         |  14 +-\n src/flow/lib/resolve-context-envelope.js           |   3 +-\n src/flow/lib/run-impl-confirm.js                   |   9 +-\n src/flow/lib/run-resume.js                         |   4 +-\n src/flow/lib/run-retro.js                          |  14 +-\n src/flow/lib/set-req.js                            |   5 +-\n src/flow/lib/set-summary.js                        |  63 +--\n src/flow/prompts/plan/approval.md                  |   3 +-\n src/lib/flow-manager.js                            |   2 -\n src/lib/flow-store.js                              |  15 -\n src/lib/spec-json.js                               |  63 +++\n src/metrics/commands/token.js                      |  12 +-\n .../unit/flow/approval-prompt-no-transfer.test.js  |  22 ++\n tests/unit/flow/requirements-single-source.test.js | 171 ++++++++\n .../flow/run-retro-no-missing-requirements.test.js | 106 +++++\n tests/unit/flow/set-req-spec-writeback.test.js     | 111 ++++++\n tests/unit/flow/set-summary-deprecated.test.js     | 104 +++++\n tests/unit/flow/throw-to-envelope-codes.test.js    |   4 +-\n 28 files changed, 1659 insertions(+), 99 deletions(-)",
+      "commits": [
+        "feat: feature/219-sync-spec-requirements",
+        "chore(spec-219): update issue-log after rebase",
+        "chore: add retro and report",
+        "feat: feature/219-sync-spec-requirements",
+        "fix(flow): unify requirements source of truth to spec.json (#233)"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 8,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "R1-R8 はいずれも差分上で満たされている。主要な未計画変更は metrics token コマンドの難易度算出ロジック変更。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 317850,
+      "output": 17698,
+      "cacheRead": 266112,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 426428,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 77506
+        },
+        {
+          "phase": "gate",
+          "durationMs": 89828
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 132298
+        },
+        {
+          "phase": "review",
+          "durationMs": 81365
+        },
+        {
+          "phase": "finalize",
+          "durationMs": 45431
+        }
+      ]
+    },
+    "tests": {
+      "unit": 14,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 14
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/219-sync-spec-requirements\n    chore(spec-219): update issue-log after rebase\n    chore: add retro and report\n    feat: feature/219-sync-spec-requirements\n    fix(flow): unify requirements source of truth to spec.json (#233)\n    28 files changed, 1659 insertions(+), 99 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (8 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 13\n    input tokens ................ 317,850\n    output tokens ............... 17,698\n    cache-read tokens ........... 266,112\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 426.4s\n      gate-draft ................ 77.5s\n      gate ...................... 89.8s\n      gate-impl ................. 132.3s\n      review .................... 81.4s\n      finalize .................. 45.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 14  integration 0  acceptance 0  total 14"
+}
