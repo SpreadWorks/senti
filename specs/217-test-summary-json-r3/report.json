@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/217-test-summary-json-r3/draft.md         |  48 ++++\n specs/217-test-summary-json-r3/flow.json        | 307 ++++++++++++++++++++++++\n specs/217-test-summary-json-r3/issue-log.json   |  56 +++++\n specs/217-test-summary-json-r3/qa.md            |   9 +\n specs/217-test-summary-json-r3/review.md        |  33 +++\n specs/217-test-summary-json-r3/spec.json        |  20 ++\n specs/217-test-summary-json-r3/spec.md          |  98 ++++++++\n specs/217-test-summary-json-r3/tests/README.md  |  28 +++\n src/flow/lib/set-test-summary.js                |  50 ++--\n tests/unit/flow/throw-to-envelope-codes.test.js |   2 +\n 10 files changed, 622 insertions(+), 29 deletions(-)",
+      "commits": [
+        "feat: feature/217-test-summary-json-r3",
+        "fix(test-summary): migrate --json validation to Envelope.fail with per-cause codes"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "All listed requirements R1-R5 are satisfied by the diff; additional changes are mostly spec/workflow documentation artifacts not covered by the requirement list."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 91096,
+      "output": 6378,
+      "cacheRead": 85632,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 7,
+      "durationMs": 175440,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 47201
+        },
+        {
+          "phase": "gate",
+          "durationMs": 33871
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 32576
+        },
+        {
+          "phase": "review",
+          "durationMs": 61792
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2021,
+      "integration": 260,
+      "acceptance": 0,
+      "total": 2281
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/217-test-summary-json-r3\n    fix(test-summary): migrate --json validation to Envelope.fail with per-cause codes\n    10 files changed, 622 insertions(+), 29 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 7\n    input tokens ................ 91,096\n    output tokens ............... 6,378\n    cache-read tokens ........... 85,632\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 175.4s\n      gate-draft ................ 47.2s\n      gate ...................... 33.9s\n      gate-impl ................. 32.6s\n      review .................... 61.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2021  integration 260  acceptance 0  total 2281"
+}

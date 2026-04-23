@@ -1,0 +1,73 @@
+{
+  "spec": "specs/217-test-summary-json-r3/spec.json",
+  "date": "2026-04-23T02:17:05.964Z",
+  "requirements": [
+    {
+      "desc": "R1 JSON.parse failure returns INVALID_JSON code",
+      "status": "done",
+      "note": "In src/flow/lib/set-test-summary.js, JSON.parse errors now return Envelope.fail with code INVALID_JSON."
+    },
+    {
+      "desc": "R2 JSON structural/type/value violations return INVALID_ARG_VALUE code",
+      "status": "done",
+      "note": "Non-object JSON and all failed[] structure/type/value validation errors now return INVALID_ARG_VALUE in set-test-summary.js."
+    },
+    {
+      "desc": "R3 TEST_SUMMARY_INVALID code removed from set-test-summary.js",
+      "status": "done",
+      "note": "All TEST_SUMMARY_INVALID assignments/throws were removed from src/flow/lib/set-test-summary.js."
+    },
+    {
+      "desc": "R4 2 regression cases added to R3 table-driven CASES",
+      "status": "done",
+      "note": "Two new R3 table-driven cases were added in tests/unit/flow/throw-to-envelope-codes.test.js for invalid JSON and non-object JSON under set test-summary --json."
+    },
+    {
+      "desc": "R5 existing npm test suite still passes (exitCode 0)",
+      "status": "done",
+      "note": "specs/217-test-summary-json-r3/flow.json records test.summary.exitCode as 0 after changes."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/217-test-summary-json-r3/draft.md",
+      "change": "New spec process artifact added, not required by R1-R5."
+    },
+    {
+      "file": "specs/217-test-summary-json-r3/flow.json",
+      "change": "Flow state/metadata file added, not a direct requirement output."
+    },
+    {
+      "file": "specs/217-test-summary-json-r3/issue-log.json",
+      "change": "Issue/gate log artifact added, outside R1-R5."
+    },
+    {
+      "file": "specs/217-test-summary-json-r3/qa.md",
+      "change": "QA template file added, outside R1-R5."
+    },
+    {
+      "file": "specs/217-test-summary-json-r3/review.md",
+      "change": "Code review notes file added, outside R1-R5."
+    },
+    {
+      "file": "specs/217-test-summary-json-r3/spec.json",
+      "change": "Spec template JSON added, outside R1-R5."
+    },
+    {
+      "file": "specs/217-test-summary-json-r3/spec.md",
+      "change": "Rendered feature spec document added, outside R1-R5."
+    },
+    {
+      "file": "specs/217-test-summary-json-r3/tests/README.md",
+      "change": "Spec-local test documentation added, outside R1-R5."
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All listed requirements R1-R5 are satisfied by the diff; additional changes are mostly spec/workflow documentation artifacts not covered by the requirement list."
+  }
+}

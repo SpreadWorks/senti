@@ -51,63 +51,51 @@ function parseLegacy(ctx) {
   return { summary: Object.keys(summary).length > 0 ? summary : null };
 }
 
+function failJson(code, message) {
+  return { fail: Envelope.fail("set", "test-summary", code, message) };
+}
+
 function parseJsonPayload(raw) {
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch (err) {
-    const e = new Error(`invalid --json: ${err.message}`);
-    e.code = "TEST_SUMMARY_INVALID";
-    throw e;
+    return failJson("INVALID_JSON", `invalid --json: ${err.message}`);
   }
   if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    const e = new Error("invalid --json: expected object");
-    e.code = "TEST_SUMMARY_INVALID";
-    throw e;
+    return failJson("INVALID_ARG_VALUE", "invalid --json: expected object");
   }
-  return parsed;
+  return { payload: parsed };
 }
 
 function validateFailedArray(failed) {
-  if (failed == null) return null;
+  if (failed == null) return { failed: null };
   if (!Array.isArray(failed)) {
-    const e = new Error("invalid failed[]: must be array");
-    e.code = "TEST_SUMMARY_INVALID";
-    throw e;
+    return failJson("INVALID_ARG_VALUE", "invalid failed[]: must be array");
   }
   const out = [];
   for (const entry of failed) {
     if (!entry || typeof entry !== "object") {
-      const e = new Error("invalid failed[]: entry must be object");
-      e.code = "TEST_SUMMARY_INVALID";
-      throw e;
+      return failJson("INVALID_ARG_VALUE", "invalid failed[]: entry must be object");
     }
     if (typeof entry.id !== "string" || typeof entry.reason !== "string") {
-      const e = new Error("invalid failed[]: id and reason must be strings");
-      e.code = "TEST_SUMMARY_INVALID";
-      throw e;
+      return failJson("INVALID_ARG_VALUE", "invalid failed[]: id and reason must be strings");
     }
     const id = entry.id.trim();
     const reason = entry.reason;
     if (!id) {
-      const e = new Error("invalid failed[]: id must be non-empty string");
-      e.code = "TEST_SUMMARY_INVALID";
-      throw e;
+      return failJson("INVALID_ARG_VALUE", "invalid failed[]: id must be non-empty string");
     }
     if (id.length > MAX_ID_CHARS) {
-      const e = new Error(`invalid failed[]: id exceeds ${MAX_ID_CHARS} chars`);
-      e.code = "TEST_SUMMARY_INVALID";
-      throw e;
+      return failJson("INVALID_ARG_VALUE", `invalid failed[]: id exceeds ${MAX_ID_CHARS} chars`);
     }
     if (reason.length > MAX_REASON_CHARS) {
-      const e = new Error(`invalid failed[]: reason exceeds ${MAX_REASON_CHARS} chars`);
-      e.code = "TEST_SUMMARY_INVALID";
-      throw e;
+      return failJson("INVALID_ARG_VALUE", `invalid failed[]: reason exceeds ${MAX_REASON_CHARS} chars`);
     }
     out.push({ id, reason });
     if (out.length >= MAX_FAILED) break;
   }
-  return out;
+  return { failed: out };
 }
 
 export default class SetTestSummaryCommand extends FlowCommand {
@@ -119,8 +107,12 @@ export default class SetTestSummaryCommand extends FlowCommand {
     let summary;
 
     if (ctx.json != null && ctx.json !== "") {
-      const payload = parseJsonPayload(ctx.json);
-      const failed = validateFailedArray(payload.failed);
+      const parsed = parseJsonPayload(ctx.json);
+      if (parsed.fail) return parsed.fail;
+      const payload = parsed.payload;
+      const validated = validateFailedArray(payload.failed);
+      if (validated.fail) return validated.fail;
+      const failed = validated.failed;
       summary = {};
       if (failed) summary.failed = failed;
       if (mode === "replace") {

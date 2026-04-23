@@ -1,0 +1,56 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft is focused on one bugfix concern: error-handling/code policy alignment for `flow set test-summary --json`.; Unambiguous Requirements — Some requirements are not fully verifiable (e.g., test additions listed as \"2-3 cases\" instead of an exact condition).; Complete Context — Several requirement bullets describe actions but do not consistently use explicit trigger-condition plus expected behavior form.; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values appear in the draft.; Prioritize Requirements — More than three requirement items are present without an explicit priority order.; Impact on Existing Features — Impact is explicitly documented, including affected behavior and unaffected areas.; Present Recommendations with Reasoning — Each Q&A answer leads with a recommendation and cites basis from spec policy/code pattern alignment.; Explore Before Asking — Questions are resolved within the draft using existing spec/pattern references; no avoidable user queries remain.; Proactively Raise Related Implications — Related implications are proactively captured in scope boundaries and impact analysis.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of tentative user ideas is present; the draft records decided scope/answers.; Capture Digressions in draft.md — No discussion digression is evident that required separate capture.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific functions and control-flow changes), exceeding pure requirements level.; Backward-Compatible CLI Interface — No command/option removal or semantic change is proposed; CLI interface is stated as unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:55:10.984Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some requirements are not fully verifiable (e.g., test additions listed as \"2-3 cases\" instead of an exact condition)."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirement bullets describe actions but do not consistently use explicit trigger-condition plus expected behavior form."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three requirement items are present without an explicit priority order."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific functions and control-flow changes), exceeding pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed on 4 guardrails: unambiguous-requirements (vague '2-3 cases'), complete-context (no When/shall pairing), prioritize-requirements (no priority order), draft-scope-boundary (too implementation-level)",
+      "trigger": "sdd-forge flow run gate --phase draft",
+      "resolution": "revise draft: exact case counts, When/shall phrasing, priority order, remove impl-level control-flow details",
+      "guardrailCandidate": "draft.md must stay at RFP-level; quantify test counts exactly; add priority order when >3 items",
+      "taskId": null,
+      "timestamp": "2026-04-23T01:55:19.822Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:57:29.295Z"
+    },
+    {
+      "step": "gate",
+      "reason": "flow prepare sets state.spec=spec.json but gate executeSpec reads it as raw text and runs markdown section regex, always failing for JSON. Worked around by passing --spec <spec.md> explicitly",
+      "trigger": "sdd-forge flow run gate (no --spec arg)",
+      "resolution": "invoke gate with --spec specs/217-test-summary-json-r3/spec.md to point at the rendered markdown",
+      "guardrailCandidate": "executeSpec should read spec.md (rendered from spec.json) not spec.json for checkSpecText; or checkSpecText should accept structured spec.json",
+      "taskId": null,
+      "timestamp": "2026-04-23T02:03:07.536Z"
+    }
+  ]
+}
