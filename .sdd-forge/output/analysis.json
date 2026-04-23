@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T03:27:46.540Z",
+  "analyzedAt": "2026-04-23T03:52:55.363Z",
   "package": {
     "entries": [
       {
@@ -321,9 +321,9 @@
       },
       {
         "file": "src/docs/commands/build.js",
-        "hash": "d7207be0a8e24c11b14df58ab94d2262",
-        "lines": 232,
-        "mtime": "2026-04-22T10:40:18.506Z",
+        "hash": "2f1643f603a358cbe15b69ecd7045f58",
+        "lines": 242,
+        "mtime": "2026-04-23T03:44:08.188Z",
         "className": "build",
         "methods": [
           "dirExists",
@@ -338,6 +338,7 @@
           "../lib/docs-context.js",
           "../../lib/command.js",
           "../../lib/constants.js",
+          "../../lib/presets.js",
           "./scan.js",
           "./enrich.js",
           "./init.js",
@@ -354,22 +355,22 @@
         "extends": "Command",
         "usedBy": null,
         "id": "d07fb128",
-        "summary": "Implements the `docs build` command as a pipeline controller for documentation generation steps. It validates CLI flags, builds context, and executes per-step command classes in order.",
-        "detail": "The module defines allowed flags and rejects unknown options with an explicit error and process exit. It resolves i18n and progress helpers dynamically, then runs each docs step through a shared helper that instantiates command classes and forwards a normalized context. The flow includes scan, enrich, init, data, readme, agents, text, and translate operations, with conditional paths for dry-run, force, and regenerate behaviors. It also iterates language-specific docs directories and routes output paths per language README generation. Error paths consistently terminate with the shared error exit code.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T13:01:40.985Z",
-          "attempts": 1
+          "processedAt": "2026-04-23T03:53:23.943Z",
+          "attempts": 2
         },
+        "summary": "Implements the `docs build` command orchestration for the documentation pipeline. It validates CLI flags, prepares context, and executes scan/enrich/init/data/readme/agents/translate steps in sequence.",
+        "detail": "The module defines an allowlist of build flags and exits with an error code on unknown options. `runBuild` dynamically imports i18n and progress utilities from package paths, then constructs a shared execution context for step commands. It runs each docs subcommand through a common helper that instantiates the command class and calls `run` with normalized arguments. The flow includes language-aware branches, handling per-language docs directory initialization and README/data generation. Error paths explicitly terminate with `EXIT_ERROR`, making this file the controller for build-stage command composition.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "keywords": [
           "docs build",
-          "pipeline orchestration",
-          "command runner",
+          "command pipeline",
+          "orchestration",
           "flag validation",
           "multilingual docs",
-          "dry run",
-          "force regenerate"
+          "exit code",
+          "subcommand runner"
         ]
       },
       {
@@ -5789,18 +5790,21 @@
       },
       {
         "file": "src/lib/presets.js",
-        "hash": "11a34c9d63a1e0bb50ead5b289acd566",
-        "lines": 210,
-        "mtime": "2026-04-10T12:35:55.522Z",
+        "hash": "8f169b315485a210a0a14dbbfa909f3b",
+        "lines": 373,
+        "mtime": "2026-04-23T03:52:29.194Z",
         "className": "presets",
         "methods": [
           "resolveChain",
           "resolveMultiChains",
           "resolveChainSafe",
+          "validatePresetChain",
           "presetByLeaf",
           "presetsForArch",
           "discoverPresets",
-          "resolveProjectPreset"
+          "resolveProjectPreset",
+          "resolveEffectiveChapters",
+          "templateSearchDirs"
         ],
         "imports": [
           "fs",
@@ -5812,6 +5816,7 @@
           "resolveChain",
           "resolveMultiChains",
           "resolveChainSafe",
+          "validatePresetChain",
           "presetByLeaf",
           "presetsForArch",
           "PRESETS_DIR",
@@ -5823,23 +5828,26 @@
           "src/lib/guardrail.js",
           "src/lib/i18n.js",
           "src/presets-cmd.js",
-          "src/setup.js"
+          "src/setup.js",
+          "src/upgrade.js"
         ],
         "id": "ae76d513",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 8
-        },
-        "summary": "This module discovers presets and resolves inheritance chains for project and built-in preset definitions. It is the core preset registry and resolver.",
-        "detail": "It scans preset manifests, supports project-local overrides, and merges metadata for resolved entries. Chain resolution detects missing parents and circular references with explicit errors. Safe resolution mode returns a fallback base when preset lookup fails. The module also provides convenience selectors for leaf and architecture relationships.",
+        "summary": "Provides preset discovery, inheritance resolution, and validation utilities for docs generation. It is the central library for resolving built-in and project-local preset chains.",
+        "detail": "The file scans preset directories, parses `preset.json`, and materializes preset metadata including aliases, parent, scan settings, and chapters. It resolves project-local overrides under `.sdd-forge/presets` and merges them with built-in entries where keys match. Chain resolution enforces parent existence and cycle prevention, while safe helpers fall back to defaults when necessary. Validation checks depth, language limits, chapter counts, and chapter template existence across computed search directories. It also emits warnings for project-local templates that are not listed in chapter definitions, supporting preset hygiene.",
         "chapter": "creating_presets",
         "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-23T03:53:23.943Z",
+          "attempts": 1
+        },
         "keywords": [
-          "preset registry",
-          "inheritance chain",
-          "manifest discovery",
-          "project override",
-          "circular reference"
+          "preset inheritance",
+          "preset.json",
+          "chain resolution",
+          "circular dependency check",
+          "template lookup",
+          "chapter validation",
+          "project override"
         ]
       },
       {
@@ -9096,9 +9104,9 @@
       },
       {
         "file": "src/setup.js",
-        "hash": "b3051cc6bf20dcfb53fc8d4ed009a5f7",
-        "lines": 571,
-        "mtime": "2026-04-20T14:06:24.424Z",
+        "hash": "b653f95f210f3aff6721adbcc3bf947a",
+        "lines": 577,
+        "mtime": "2026-04-23T03:44:08.189Z",
         "className": "setup",
         "methods": [
           "ask",
@@ -9140,22 +9148,21 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "processedAt": "2026-04-21T06:12:29.233Z",
-          "attempts": 8
+          "processedAt": "2026-04-23T03:53:23.943Z",
+          "attempts": 2
         },
-        "summary": "Implements the interactive and flag-based project setup workflow that creates configuration, directories, agent guidance files, and baseline repository settings. It is the entry point for initializing sdd-forge in a project.",
-        "detail": "The module parses setup CLI arguments, loads defaults from existing config, and runs a wizard for project metadata, presets, and agent preferences. It provisions `.sdd-forge` structure, docs/spec folders, gitignore/gitattributes entries, and writes validated `config.json` output. It manages AGENTS/CLAUDE guidance file injection with directive-aware updates and includes symlink repair for CLAUDE.md edge cases. Skill deployment and preset chain resolution are integrated so setup can bootstrap usable workflow assets immediately. The main function coordinates localization, validation, filesystem writes, and proper process exit behavior.",
+        "summary": "Implements interactive and non-interactive project setup for sdd-forge. It initializes config, project directories, agent guidance files, and skill deployment.",
+        "detail": "The module parses setup arguments, loads existing defaults, and optionally runs a wizard to collect missing values. It creates required directories (`.sdd-forge`, docs/specs/output) and updates repository metadata files like `.gitignore` and `.gitattributes`. Configuration is assembled with language, agent provider defaults, presets, and work directory settings, then validated and written to `.sdd-forge/config.json`. It manages agent instruction file insertion using directive-based replacement logic and handles migration of `CLAUDE.md` symlink content when needed. The setup flow also resolves preset leaf types and validates preset chains before finalizing skills and project state.",
         "chapter": "configuration",
         "role": "cli",
         "keywords": [
-          "project setup",
-          "init wizard",
-          "config generation",
-          "bootstrap",
-          "agent config",
-          "preset selection",
+          "project bootstrap",
+          "setup wizard",
+          "config.json generation",
+          "agent file injection",
           "directory scaffolding",
-          "interactive CLI"
+          "preset selection",
+          "skill deployment"
         ]
       },
       {
@@ -9244,9 +9251,9 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "6541ea774d44c95248d2ac7dfb657657",
-        "lines": 131,
-        "mtime": "2026-04-17T09:02:28.843Z",
+        "hash": "6266f997dc02a729ebfe210d4e3274cf",
+        "lines": 145,
+        "mtime": "2026-04-23T03:44:08.189Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
@@ -9259,6 +9266,7 @@
           "./lib/constants.js",
           "./lib/config.js",
           "./lib/i18n.js",
+          "./lib/presets.js",
           "./lib/skills.js"
         ],
         "exports": [
@@ -9268,29 +9276,29 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "processedAt": "2026-04-20T02:05:33.139Z",
-          "attempts": 6
+          "processedAt": "2026-04-23T03:53:23.943Z",
+          "attempts": 2
         },
-        "summary": "This file defines the `upgrade` command entrypoint that updates project-managed assets and configuration. It parses CLI flags, orchestrates skill/template deployment, and handles upgrade-related filesystem writes.",
-        "detail": "The module parses arguments through a shared CLI utility and runs an async `main` flow that coordinates upgrade operations from repository and package-root context. It integrates configuration loading and i18n translation helpers so user-facing messages remain centralized and localized. Skill synchronization is delegated to specialized helpers for deploying shared skills, deploying project skills, and removing obsolete skill files, with a result logger that reports outcomes. It also reads and rewrites JSON config files in UTF-8 using normalized formatting to persist updates deterministically. Errors are surfaced via standard process exit handling with `EXIT_ERROR`, matching the CLI’s consistent failure behavior.",
+        "summary": "Implements the `upgrade` command for refreshing project skills/templates and related configuration. It validates inputs and applies controlled updates to existing project setup.",
+        "detail": "The command parses upgrade-specific CLI flags and exits with standardized error handling on failure paths. It loads current config, validates preset-chain integrity, and invokes skill deployment plus cleanup routines for obsolete skill files. The flow includes logging of deployment results so users can see what changed. It also patches configuration content where needed and writes normalized JSON output back to disk. This module acts as the maintenance entrypoint that keeps generated project artifacts aligned with the current package templates.",
         "chapter": "development",
         "role": "cli",
         "keywords": [
           "upgrade command",
-          "skill deployment",
-          "config rewrite",
-          "project scaffolding",
-          "maintenance task",
-          "cli orchestration",
-          "migration utility"
+          "skill synchronization",
+          "template refresh",
+          "config patching",
+          "preset validation",
+          "maintenance workflow",
+          "artifact cleanup"
         ]
       }
     ],
     "summary": {
       "total": 273,
-      "totalMethods": 880
+      "totalMethods": 883
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T03:28:04.873Z"
+  "enrichedAt": "2026-04-23T03:53:23.943Z"
 }
