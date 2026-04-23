@@ -330,4 +330,81 @@ describe("flow set auto", () => {
     const output = JSON.parse(res.stdout.trim());
     assert.equal(output.ok, false);
   });
+
+  describe("PREPARING_FLOW_NOT_FOUND for unknown --run-id", () => {
+    function createCapturingFixture(prefix) {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+      fs.mkdirSync(path.join(dir, ".sdd-forge"), { recursive: true });
+      execFileSync("git", ["init", dir], { stdio: "ignore" });
+      const capturePath = path.join(dir, "captured-prompt.txt");
+      const stubPath = writeCapturingStubAgentScript(
+        dir,
+        ".stub-agent.js",
+        capturePath,
+        passResponse(),
+      );
+      fs.writeFileSync(
+        path.join(dir, ".sdd-forge", "config.json"),
+        JSON.stringify({
+          lang: "ja",
+          type: "base",
+          docs: { languages: ["ja"], defaultLanguage: "ja" },
+          agent: stubAgentConfig(stubPath),
+        }),
+      );
+      fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "fixture" }));
+      return { dir, capturePath };
+    }
+
+    function runSetAutoWithRunId(dir, value, runId) {
+      const script = path.resolve("src/sdd-forge.js");
+      return spawnSync(
+        "node",
+        [script, "flow", "set", "auto", value, "--run-id", runId],
+        { encoding: "utf8", cwd: dir, env: { ...process.env, SDD_FORGE_WORK_ROOT: dir } },
+      );
+    }
+
+    it("fails for 'on' without invoking AI", () => {
+      const fixture = createCapturingFixture("set-auto-notfound-on-");
+      tmp = fixture.dir;
+      const nonexistent = "00000000-0000-0000-0000-000000000000";
+      const res = runSetAutoWithRunId(tmp, "on", nonexistent);
+      assert.notEqual(res.status, 0);
+      const envelope = JSON.parse(res.stdout.trim());
+      assert.equal(envelope.ok, false);
+      assert.ok(
+        envelope.errors?.some((e) => e.code === "PREPARING_FLOW_NOT_FOUND"),
+        "envelope must include PREPARING_FLOW_NOT_FOUND code",
+      );
+      assert.ok(
+        envelope.errors?.some((e) => (e.messages?.join(" ") ?? "").includes(nonexistent)),
+        "envelope message must include the offending runId",
+      );
+      assert.equal(
+        fs.existsSync(fixture.capturePath),
+        false,
+        "AI agent must not be invoked when --run-id does not exist",
+      );
+    });
+
+    it("fails for 'off' without invoking AI", () => {
+      const fixture = createCapturingFixture("set-auto-notfound-off-");
+      tmp = fixture.dir;
+      const nonexistent = "11111111-1111-1111-1111-111111111111";
+      const res = runSetAutoWithRunId(tmp, "off", nonexistent);
+      assert.notEqual(res.status, 0);
+      const envelope = JSON.parse(res.stdout.trim());
+      assert.equal(envelope.ok, false);
+      assert.ok(
+        envelope.errors?.some((e) => e.code === "PREPARING_FLOW_NOT_FOUND"),
+        "envelope must include PREPARING_FLOW_NOT_FOUND code",
+      );
+      assert.equal(
+        fs.existsSync(fixture.capturePath),
+        false,
+        "AI agent must not be invoked for 'off' path",
+      );
+    });
+  });
 });

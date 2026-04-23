@@ -61,7 +61,19 @@ function resolveAutoCheckInput(ctx, state, preparingMode) {
 }
 
 function resolvePreparingRunId(flowManager, explicitRunId) {
-  if (explicitRunId) return { runId: explicitRunId };
+  if (explicitRunId) {
+    if (!flowManager.loadPreparingFlow(explicitRunId)) {
+      return {
+        fail: Envelope.fail(
+          "set",
+          "auto",
+          "PREPARING_FLOW_NOT_FOUND",
+          `preparing flow not found: ${explicitRunId}`,
+        ),
+      };
+    }
+    return { runId: explicitRunId };
+  }
   const ids = flowManager.listPreparingFlows();
   if (ids.length === 1) return { runId: ids[0] };
   if (ids.length === 0) {

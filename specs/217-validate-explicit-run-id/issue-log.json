@@ -1,0 +1,89 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft targets one concern: validating explicit non-existent run-id handling for flow set auto.; Unambiguous Requirements — Requirements use verifiable conditions and concrete expected codes/behaviors.; Complete Context — Key requirements pair trigger conditions (explicit non-existent run-id, on/off paths) with expected outcomes.; No Hardcoded Secrets — No secrets or credential-like values are present in the draft.; Prioritize Requirements — Core requirements do not exceed three primary items, so explicit prioritization is not required.; Impact on Existing Features — Impact section explicitly lists affected and unaffected existing behaviors.; Present Recommendations with Reasoning — Q&A provides answers but does not clearly cite basis as project docs, guardrails, or existing code patterns for each recommendation.; Explore Before Asking — Whether docs/code exploration occurred before asking cannot be verified from the draft text alone.; Proactively Raise Related Implications — Draft proactively raises related implications via impact and out-of-scope sections.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of user proposals is present; this article is not triggered by the current draft content.; Capture Digressions in draft.md — No digression is evident in the provided content, so capture requirement is inapplicable.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions/calls), exceeding requirements-level scope.; Backward-Compatible CLI Interface — No command/option removal or meaning change is specified; behavior is a bugfix for invalid input handling.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:03:06.047Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A provides answers but does not clearly cite basis as project docs, guardrails, or existing code patterns for each recommendation."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific files/functions/calls), exceeding requirements-level scope."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: validating explicit --run-id handling in flow set auto.; Unambiguous Requirements — Requirements are framed with concrete, testable outcomes (existence check, no AI call, per-cause code).; Complete Context — Key requirements include trigger conditions (explicit nonexistent --run-id, on/off paths) and expected behavior.; No Hardcoded Secrets — This is a requirements draft and contains no source-level secrets.; Prioritize Requirements — There are more than three requirement items, but no explicit priority order is provided.; Impact on Existing Features — Impact section explicitly lists affected and unaffected existing behaviors.; Present Recommendations with Reasoning — Q&A provides clear recommendations and cites bases (issue/spec references and existing code patterns).; Explore Before Asking — Draft cites existing code patterns/specs and leaves no open questions, indicating prior exploration.; Proactively Raise Related Implications — Draft proactively covers related implications via scope boundaries and feature impact breakdown.; Confirm Brainstorm vs. Decision Before Critiquing — Draft is presented as a decided and approved plan, not a brainstorm being critiqued.; Capture Digressions in draft.md — No digression is evident in the provided content; nothing appears missing to capture.; Draft Stays at Requirements Level — Content stays at requirements/spec level without function-level implementation design.; Backward-Compatible CLI Interface — No command/option removal or semantic break is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:04:04.694Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirement items, but no explicit priority order is provided."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:06:12.247Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:08:50.633Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: validating explicit --run-id for flow set auto and related error handling/tests.; Unambiguous Requirements — Requirements and acceptance criteria use concrete, verifiable conditions (error code, envelope shape, execution path, exit code).; Complete Context — Requirements pair trigger conditions with expected behavior (e.g., missing run-id target in preparing mode -> fail envelope, no AI call, non-zero exit).; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus test results (new validation path, envelope code, no AI call, regression coverage).; No Hardcoded Secrets — No secrets or secret-handling requirements are introduced in this spec.; No Silent Error Swallowing — Spec does not propose swallowing errors; it explicitly requires structured failure responses.; Prioritize Requirements — There are four requirements, but no explicit priority ordering beyond all being labeled must.; Impact on Existing Features — Impact is explicitly addressed: existing auto-detect and valid run-id paths are stated to remain unchanged.; Bounded Resource Usage — No recursive/retry/bulk-unbounded design is introduced by this change.; Changes Require Test Coverage — Spec requires unit tests for new behavior and regression checks for existing behavior.; Spec Includes Test Strategy — Test strategy is provided via Requirements/Acceptance Criteria including what to test and expected outcomes.; Synthesize Draft, Do Not Copy — Cannot verify synthesis-vs-copy behavior without the original draft source to compare against.; Record Unresolved Points as Open Questions — Open Questions section is present and unresolved items are not fabricated with unsupported answers.; Include 'Why This Approach' Rationale — Rationale is included through Design Principles, Decisions, and Alternatives Considered with reasons.; Do Not Modify Existing Tests Without Approval — Spec adds tests and does not request modifying or deleting existing tests without approval.; Backward-Compatible CLI Interface — No command/option removal or semantic break requiring migration is specified.; Exit Code Contract — Spec explicitly requires non-zero exit code on failure in requirements and acceptance criteria.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:10:14.096Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are four requirements, but no explicit priority ordering beyond all being labeled must."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "flow run gate --phase spec defaults to state.spec which is spec.json, but checkSpecText runs markdown regex → all sections reported missing. Workaround: pass --spec <spec.md> explicitly.",
+      "trigger": "sdd-forge flow run gate --phase spec without --spec argument",
+      "resolution": "re-run with --spec specs/217-validate-explicit-run-id/spec.md",
+      "guardrailCandidate": "executeSpec in run-gate.js should resolve state.spec (.json) to sibling spec.md before reading as text",
+      "taskId": null,
+      "timestamp": "2026-04-23T02:11:57.366Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Code changes and new unit tests cover missing explicit --run-id handling for on/off with PREPARING_FLOW_NOT_FOUND and no AI call, but provided head test evidence shows only 2 unit tests and does not demonstrate existing auto-detect/normal-path regression checks or unit+integration suite pass required by the spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:18:29.159Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Code changes and new unit tests cover missing explicit --run-id handling for on/off with PREPARING_FLOW_NOT_FOUND and no AI call, but provided head test evidence shows only 2 unit tests and does not demonstrate existing auto-detect/normal-path regression checks or unit+integration suite pass required by the spec."
+        }
+      ]
+    }
+  ]
+}

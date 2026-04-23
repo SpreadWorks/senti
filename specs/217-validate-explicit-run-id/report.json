@@ -1,0 +1,60 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/217-validate-explicit-run-id/draft.md        |  38 +++\n specs/217-validate-explicit-run-id/flow.json       | 346 +++++++++++++++++++++\n specs/217-validate-explicit-run-id/issue-log.json  |  89 ++++++\n specs/217-validate-explicit-run-id/qa.md           |   9 +\n specs/217-validate-explicit-run-id/review.md       |  41 +++\n specs/217-validate-explicit-run-id/spec.json       |  99 ++++++\n specs/217-validate-explicit-run-id/spec.md         |  85 +++++\n specs/217-validate-explicit-run-id/tests/README.md |  33 ++\n src/flow/lib/set-auto.js                           |  14 +-\n tests/unit/flow/set-auto.test.js                   |  77 +++++\n 10 files changed, 830 insertions(+), 1 deletion(-)",
+      "commits": [
+        "feat: feature/217-validate-explicit-run-id",
+        "validate explicit --run-id in flow set auto"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 2,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 241529,
+      "output": 11067,
+      "cacheRead": 66688,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 334362,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 89825
+        },
+        {
+          "phase": "gate",
+          "durationMs": 100869
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 75451
+        },
+        {
+          "phase": "review",
+          "durationMs": 68217
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2021,
+      "integration": 260,
+      "acceptance": 0,
+      "total": 2281
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/217-validate-explicit-run-id\n    validate explicit --run-id in flow set auto\n    10 files changed, 830 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 2\n    issue-log ................... 1\n    agent calls ................. 11\n    input tokens ................ 241,529\n    output tokens ............... 11,067\n    cache-read tokens ........... 66,688\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 334.4s\n      gate-draft ................ 89.8s\n      gate ...................... 100.9s\n      gate-impl ................. 75.5s\n      review .................... 68.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2021  integration 260  acceptance 0  total 2281"
+}
