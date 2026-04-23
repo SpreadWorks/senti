@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T05:13:42.409Z",
+  "analyzedAt": "2026-04-23T05:53:32.522Z",
   "package": {
     "entries": [
       {
@@ -2482,7 +2482,7 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3066,7 +3066,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3153,6 +3153,40 @@
         ]
       },
       {
+        "file": "src/flow/lib/resolve-auto-check-input.js",
+        "hash": "e416e6c5d60283bd9088929979b9b325",
+        "lines": 77,
+        "mtime": "2026-04-23T05:53:32.265Z",
+        "className": "resolve-auto-check-input",
+        "methods": [
+          "isSpecApproved",
+          "resolveAutoCheckInput",
+          "buildSkipVerdict",
+          "isStepDone",
+          "isDraftGateDone",
+          "loadDraftText",
+          "buildBaseInput"
+        ],
+        "imports": [
+          "fs",
+          "path"
+        ],
+        "exports": [
+          "isSpecApproved",
+          "resolveAutoCheckInput",
+          "buildSkipVerdict"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-auto-check.js",
+          "src/flow/lib/set-auto.js"
+        ],
+        "id": "30a7075c",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/lib/resolve-context-envelope.js",
         "hash": "8f686dfb8c94ba300e93c629caf4da7c",
         "lines": 108,
@@ -3180,14 +3214,14 @@
         ],
         "id": "d569f2a6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
         "file": "src/flow/lib/resolve-preparing-run-id.js",
-        "hash": "95ffacedce97fe5ba872104ec56b119d",
-        "lines": 64,
-        "mtime": "2026-04-23T03:19:00.004Z",
+        "hash": "e364b958c5a2c4fe40fe1e0bd66b4010",
+        "lines": 63,
+        "mtime": "2026-04-23T05:53:32.265Z",
         "className": "resolve-preparing-run-id",
         "methods": [
           "resolvePreparingRunId"
@@ -3204,34 +3238,21 @@
           "src/flow/lib/set-auto.js"
         ],
         "id": "43a24e09",
-        "summary": "Resolves which run ID should be used while preparing flow operations. It centralizes fallback behavior for explicit IDs, active state, and null-safe outcomes.",
-        "detail": "The module uses `Envelope` to standardize success and failure-like return structures. It evaluates multiple sources of truth, including explicitly passed IDs and inferred runtime context. It returns structured objects instead of throwing for normal control flow branches. This keeps caller code predictable when preparing mode has partial or missing state.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-23T03:19:55.267Z",
           "attempts": 1
-        },
-        "keywords": [
-          "run id resolution",
-          "preparing mode",
-          "flow context",
-          "fallback logic",
-          "envelope response"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
-        "hash": "a3c56ca7f4e61833da82d805ddc8b633",
-        "lines": 239,
-        "mtime": "2026-04-23T03:19:00.005Z",
+        "hash": "251ce72c64b4ef448349f20a5681a074",
+        "lines": 265,
+        "mtime": "2026-04-23T05:53:32.265Z",
         "className": "run-auto-check",
         "methods": [
           "computeScore",
           "hardGateFailed",
           "composeAutoCheck",
           "runAutoCheckCore",
-          "resolveInputText",
           "parseAiResponse",
           "emptyBreakdown",
           "sanitizeBreakdown",
@@ -3240,7 +3261,9 @@
         "imports": [
           "./base-command.js",
           "./auto-check-static.js",
-          "./resolve-preparing-run-id.js"
+          "./resolve-preparing-run-id.js",
+          "./resolve-auto-check-input.js",
+          "../../lib/flow-envelope.js"
         ],
         "exports": [
           "computeScore",
@@ -3254,22 +3277,9 @@
           "src/flow/lib/set-auto.js"
         ],
         "id": "62c43842",
-        "summary": "Implements automatic readiness checking by combining static gates with optional AI scoring. It computes a weighted decision and exposes it through a flow command.",
-        "detail": "The file defines scoring weights, thresholding, and hard-gate keys to convert qualitative signals into a deterministic score. It builds input text from context, calls an agent when available, and robustly parses/sanitizes JSON responses. On agent errors, it degrades gracefully with empty breakdowns and explicit reasons. The command wraps this core logic and returns a composed auto-check payload for downstream flow decisions.",
-        "chapter": "internal_design",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-23T03:19:55.267Z",
           "attempts": 1
-        },
-        "keywords": [
-          "auto check",
-          "risk scoring",
-          "hard gate",
-          "AI evaluation",
-          "static analysis",
-          "threshold decision"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-finalize.js",
@@ -3325,7 +3335,7 @@
         "usedBy": null,
         "id": "c711309b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3488,7 +3498,7 @@
         "usedBy": null,
         "id": "e6534160",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3723,7 +3733,7 @@
         "usedBy": null,
         "id": "abe5ac21",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3762,7 +3772,7 @@
         "usedBy": null,
         "id": "862e7d08",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3936,24 +3946,18 @@
       },
       {
         "file": "src/flow/lib/set-auto.js",
-        "hash": "c138e352f3f7b781983f0553a784069f",
-        "lines": 164,
-        "mtime": "2026-04-23T03:19:00.005Z",
+        "hash": "76dd0a80be01593d0e782ee4896ecf0d",
+        "lines": 140,
+        "mtime": "2026-04-23T05:53:32.265Z",
         "className": "set-auto",
-        "methods": [
-          "buildInputText",
-          "isSpecApproved",
-          "loadDraftText",
-          "resolveAutoCheckInput"
-        ],
+        "methods": [],
         "imports": [
-          "fs",
-          "path",
           "./base-command.js",
           "../../lib/constants.js",
           "./run-auto-check.js",
           "../../lib/flow-envelope.js",
-          "./resolve-preparing-run-id.js"
+          "./resolve-preparing-run-id.js",
+          "./resolve-auto-check-input.js"
         ],
         "exports": [
           "default"
@@ -3961,21 +3965,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "2c71e989",
-        "summary": "Controls the `auto` mode setting and optionally runs auto-check evaluation before enabling trusted automation. It reconciles state, draft/spec input, and preparing run context.",
-        "detail": "The module validates target values against `VALID_AUTO_VALUES` and computes input text from current flow state. It can load draft text when approval is incomplete, then execute `runAutoCheckCore` for trust scoring. In preparing mode, it resolves and returns `runId` metadata using shared resolver logic. Outcomes are normalized with envelope-style errors and structured success payloads.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-23T03:19:55.267Z",
           "attempts": 1
-        },
-        "keywords": [
-          "set auto",
-          "auto-approve",
-          "trusted mode",
-          "preparing run",
-          "flow settings"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-gate-retry.js",
@@ -4217,7 +4209,7 @@
         "usedBy": null,
         "id": "6dd22e12",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4307,7 +4299,7 @@
         "usedBy": null,
         "id": "f62c866f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4437,9 +4429,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "035a1b01d2d6b79a9d4ab942c716dc8c",
-        "lines": 585,
-        "mtime": "2026-04-23T03:19:00.005Z",
+        "hash": "b850af63909590cde2adfec7ca22362d",
+        "lines": 589,
+        "mtime": "2026-04-23T05:53:32.265Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4459,21 +4451,9 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the flow command registry and shared pre/post hooks for status and issue-log side effects. It standardizes orchestration for all flow subcommands.",
-        "detail": "The registry derives active phase context and applies guarded helpers for step updates and issue-log writes. Pre/post wrappers isolate side-effect failures so command execution can continue with clear stderr diagnostics. It connects gate outcomes to retry counters and follow-up lifecycle handlers such as commit-post actions. This file is the dispatch and middleware hub for flow command behavior.",
-        "chapter": "project_structure",
-        "role": "middleware",
         "enrich": {
-          "processedAt": "2026-04-23T03:19:55.267Z",
           "attempts": 1
-        },
-        "keywords": [
-          "command registry",
-          "dispatch layer",
-          "pre post hooks",
-          "issue log middleware",
-          "phase orchestration"
-        ]
+        }
       },
       {
         "file": "src/help.js",
@@ -5150,7 +5130,7 @@
         ],
         "id": "3d2ed4c0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5190,7 +5170,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5999,7 +5979,7 @@
         "usedBy": null,
         "id": "e288cfbd",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6122,7 +6102,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -9177,10 +9157,10 @@
       }
     ],
     "summary": {
-      "total": 274,
-      "totalMethods": 890
+      "total": 275,
+      "totalMethods": 892
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T05:14:38.078Z"
+  "enrichedAt": "2026-04-23T05:55:00.399Z"
 }
