@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T04:40:00.243Z",
+  "analyzedAt": "2026-04-23T04:45:33.914Z",
   "package": {
     "entries": [
       {
@@ -3047,9 +3047,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "da380af070dcbae46dcbc9bd4da29c9c",
-        "lines": 146,
-        "mtime": "2026-04-21T09:07:02.051Z",
+        "hash": "5d7d33d5e144139d3fb00b45b843940c",
+        "lines": 148,
+        "mtime": "2026-04-23T04:45:33.473Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -3060,6 +3060,7 @@
         ],
         "imports": [
           "../../lib/flow-helpers.js",
+          "../../lib/spec-json.js",
           "./base-command.js"
         ],
         "exports": [
@@ -3074,22 +3075,9 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "This module implements core status and metrics aggregation utilities and exposes the flow status command. It defines canonical token/activity counters and transforms raw entries into summarized output.",
-        "detail": "It declares shared counter key sets, zero-value initializers, and accumulation helpers that normalize metric buckets across entries. `buildMetricsSummary` and `buildReportTotals` provide reusable rollups consumed by reporting and status commands. The status output builder shapes a stable response object, while command execution supports run-id targeted lookup and active-flow fallback. Error handling is explicit for missing run IDs and inactive states, reducing silent failures. Overall, this file acts as the metrics/status backbone for flow observability.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-21T09:07:51.961Z",
           "attempts": 1
-        },
-        "keywords": [
-          "status builder",
-          "metrics summary",
-          "token counters",
-          "activity counters",
-          "run id lookup",
-          "aggregation"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/get-step-instructions.js",
@@ -3176,9 +3164,9 @@
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
-        "hash": "8ebff8334b7fe7c0a9c94518f8928887",
-        "lines": 107,
-        "mtime": "2026-04-23T04:39:59.629Z",
+        "hash": "8f686dfb8c94ba300e93c629caf4da7c",
+        "lines": 108,
+        "mtime": "2026-04-23T04:45:33.474Z",
         "className": "resolve-context-envelope",
         "methods": [
           "buildResolvedFlowContext",
@@ -3189,7 +3177,8 @@
           "fs",
           "path",
           "../../lib/git-helpers.js",
-          "../../lib/flow-helpers.js"
+          "../../lib/flow-helpers.js",
+          "../../lib/spec-json.js"
         ],
         "exports": [
           "buildResolvedFlowContext"
@@ -3200,23 +3189,9 @@
           "src/flow/lib/run-resume.js"
         ],
         "id": "d569f2a6",
-        "summary": "This library module constructs a resolved flow context envelope by combining repository state, flow state files, and derived workflow metadata. It centralizes file-system and git-aware logic used by flow resume and inspection commands.",
-        "detail": "The implementation uses Node built-ins (`fs`, `path`) and git helper utilities to gather branch, commit, ahead-count, worktree, and CLI availability signals. It validates active flow presence and throws when no active flow exists, enforcing explicit failure instead of silent fallback. The resolver computes canonical paths such as `specs/<specId>/flow.json`, selects an effective root between worktree and main repository, and conditionally reads spec content when present. Internal helpers like section extraction and phase-to-skill mapping normalize narrative and phase metadata into a stable output object for downstream commands.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-23T04:40:43.475Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow envelope",
-          "context builder",
-          "worktree fallback",
-          "git state",
-          "spec parsing",
-          "phase mapping",
-          "state resolution"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/resolve-preparing-run-id.js",
@@ -3513,9 +3488,9 @@
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
-        "hash": "e37144ed0778c0f2d9c0fb59145eb86f",
-        "lines": 102,
-        "mtime": "2026-04-14T11:37:06.523Z",
+        "hash": "3952f97cf31d300ec8ea1ab7349e9b60",
+        "lines": 103,
+        "mtime": "2026-04-23T04:45:33.474Z",
         "className": "run-impl-confirm",
         "methods": [
           "RunImplConfirmCommand",
@@ -3527,6 +3502,7 @@
           "path",
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
+          "../../lib/spec-json.js",
           "./base-command.js"
         ],
         "exports": [
@@ -3537,19 +3513,8 @@
         "usedBy": null,
         "id": "e6534160",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Confirms implementation progress by summarizing requirement completion and changed files. It supports multiple confirmation modes for flow checkpoints.",
-        "detail": "The module gathers changed paths against the base branch and parses requirement sections to compute done/pending counts. It returns a compact structured summary that can be consumed by interactive prompts or scripts. Mode validation enforces allowed confirm behaviors and prevents ambiguous execution. This command helps ensure implementation aligns with spec intent before finalization.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "keywords": [
-          "implementation confirm",
-          "requirement summary",
-          "changed files",
-          "flow checkpoint"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-lint.js",
@@ -3767,9 +3732,9 @@
       },
       {
         "file": "src/flow/lib/run-resume.js",
-        "hash": "670abadb1543ce8cc173281beccdabfe",
+        "hash": "eaa328cf467780125121c1a7c878e627",
         "lines": 27,
-        "mtime": "2026-04-23T04:39:59.629Z",
+        "mtime": "2026-04-23T04:45:33.474Z",
         "className": "run-resume",
         "methods": [],
         "imports": [
@@ -3782,28 +3747,15 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "abe5ac21",
-        "summary": "This resume command class exposes resolved flow context for the resume workflow path. It reuses the same context-envelope builder used by other flow commands.",
-        "detail": "The module follows the same command architecture as other flow handlers by extending `FlowCommand`. It imports and calls `buildResolvedFlowContext`, indicating the resume path relies on a standardized context snapshot rather than bespoke state assembly. The returned object shape is designed for resume execution and user-facing continuation guidance. This reuse pattern improves consistency between resume-related commands and reduces divergence in flow-state interpretation.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T04:40:43.475Z",
           "attempts": 1
-        },
-        "keywords": [
-          "resume command",
-          "flow continuation",
-          "resolved context",
-          "command reuse",
-          "state snapshot",
-          "workflow resume"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-retro.js",
-        "hash": "9ec3c412e8d31664efc779fb801f1ddc",
-        "lines": 248,
-        "mtime": "2026-04-22T14:34:07.553Z",
+        "hash": "8bc46325f714ceddd891c0d569d13256",
+        "lines": 246,
+        "mtime": "2026-04-23T04:45:33.474Z",
         "className": "run-retro",
         "methods": [
           "RunRetroCommand",
@@ -3834,22 +3786,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "862e7d08",
-        "summary": "Runs retrospective generation for completed flow work by comparing requirements against branch diffs and producing `retro.json`. It converts AI output into a normalized requirement-by-requirement summary format.",
-        "detail": "The command loads flow and spec context, ensures required prerequisites exist, and blocks overwrite unless `--force` is provided. It computes both compact and detailed diffs against the configured base branch to provide implementation evidence. Prompt construction ties requirements to observed code changes and asks the agent for structured retrospective data. Parsing uses JSON repair fallback and then normalizes fields such as status, evidence, and notes per requirement. The final artifact is written as formatted JSON in the spec directory and reported as changed output.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
           "attempts": 1
-        },
-        "keywords": [
-          "retrospective",
-          "requirement traceability",
-          "diff-based analysis",
-          "retro.json",
-          "AI parsing",
-          "flow finalize"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-review.js",
@@ -4285,15 +4224,16 @@
       },
       {
         "file": "src/flow/lib/set-req.js",
-        "hash": "d6c9ca850be14e1a1f7f7c67b3ef3e7c",
-        "lines": 48,
-        "mtime": "2026-04-22T14:34:07.554Z",
+        "hash": "71c599e9833184e236867738bdb5887c",
+        "lines": 49,
+        "mtime": "2026-04-23T04:45:33.474Z",
         "className": "set-req",
         "methods": [],
         "imports": [
           "./base-command.js",
           "../../lib/constants.js",
-          "../../lib/flow-envelope.js"
+          "../../lib/flow-envelope.js",
+          "../../lib/spec-json.js"
         ],
         "exports": [
           "default"
@@ -4301,21 +4241,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "6dd22e12",
-        "summary": "Updates requirement status by index with strict status-domain validation. It provides targeted requirement tracking support inside the flow state machine.",
-        "detail": "The command requires both an index and a status argument and validates status against `VALID_REQ_STATUSES`. It rejects non-numeric or invalid index input through envelope failures. On valid input, it returns normalized `{ index, status }` output for persistence. The logic remains intentionally narrow to avoid mixing status transitions with unrelated checks. This promotes predictable requirement lifecycle updates in CLI workflows.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
           "attempts": 1
-        },
-        "keywords": [
-          "requirement status",
-          "index update",
-          "status enum",
-          "flow set req",
-          "validation"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-request.js",
@@ -4388,9 +4316,9 @@
       },
       {
         "file": "src/flow/lib/set-summary.js",
-        "hash": "c64a964c478038448abcdc931408c57a",
-        "lines": 60,
-        "mtime": "2026-04-22T14:34:07.554Z",
+        "hash": "80b8eb2d8dcce6edccd14444c02a6eb1",
+        "lines": 29,
+        "mtime": "2026-04-23T04:45:33.474Z",
         "className": "set-summary",
         "methods": [],
         "imports": [
@@ -4403,21 +4331,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "f62c866f",
-        "summary": "Parses and stores structured summary data from JSON input. It validates payload shape before committing summary state.",
-        "detail": "The command expects JSON text, parses it, and reports parse failures with explicit error messages. It enforces array/object expectations according to command contract before accepting the payload. Invalid structure paths return envelope failures instead of partial writes. On success, it returns the count of summary entries written. This module acts as a typed ingestion boundary for summary artifacts.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
           "attempts": 1
-        },
-        "keywords": [
-          "summary ingestion",
-          "json validation",
-          "structured output",
-          "set summary",
-          "payload parsing"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-test-summary.js",
@@ -5234,9 +5150,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "2f22963b0b26f03b11a221e36c98c23a",
-        "lines": 316,
-        "mtime": "2026-04-22T12:49:03.667Z",
+        "hash": "8bf6ceca1c5092e5eaa9dd528d811ecd",
+        "lines": 314,
+        "mtime": "2026-04-23T04:45:33.474Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -5258,29 +5174,15 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "Implements the core flow manager abstraction for reading, mutating, and discovering flow state across main and worktree contexts. It coordinates multiple stores and git-backed scanning.",
-        "detail": "The class composes `FlowStore`, `ActiveFlowRegistry`, and `PreparingFlowStore` to present a unified API for flow operations. It exposes task and step helpers, metrics accumulation, and context switching via `forRoot` while preserving main-root awareness. Discovery logic scans `specs/*/flow.json` in both main and worktree trees, including branch-based inspection and guarded JSON parsing. It returns enriched scan results with spec IDs and worktree paths, while warning on malformed records or truncation limits. Error handling explicitly guards missing or invalid state boundaries when resolving active flows.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-22T13:01:40.985Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow manager",
-          "state store",
-          "worktree scan",
-          "active flow",
-          "task step lookup",
-          "branch discovery",
-          "flow.json"
-        ]
+        }
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "f772159b4392e199e4b8340aa8793325",
-        "lines": 535,
-        "mtime": "2026-04-23T04:30:48.301Z",
+        "hash": "76d9b77da9852e7de71468e6c42b1757",
+        "lines": 520,
+        "mtime": "2026-04-23T04:45:33.474Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -5312,24 +5214,9 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "This module is the central persistence and mutation library for flow state, tasks, and step progression. It provides path resolution, strict schema validation, task-scoped mutation utilities, and file-based read/write operations.",
-        "detail": "The implementation manages flow.json locations from repo/worktree context, including spec-path resolution and branch-derived spec identification. It validates state and task structures aggressively with explicit invariant checks for IDs, statuses, requirements, and step shapes to prevent malformed runtime state. Utility functions resolve task IDs, mutation scope, and first pending-step promotion, enabling consistent transition logic across commands. The FlowStore class encapsulates loading, read-only fallback behavior, writing, directory creation, and finalized metadata updates while preserving JSON formatting conventions. It also contains task lifecycle helpers such as duplicate detection, current-task enforcement, and parent summary aggregation, making it the core domain library for flow execution state.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-23T04:31:06.065Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow store",
-          "state persistence",
-          "task validation",
-          "step promotion",
-          "mutation scope",
-          "flow.json",
-          "worktree path",
-          "domain invariants"
-        ]
+        }
       },
       {
         "file": "src/lib/formatter.js",
@@ -6098,15 +5985,19 @@
       },
       {
         "file": "src/lib/spec-json.js",
-        "hash": "86fb7edb9e57527927998c3665d30813",
-        "lines": 180,
-        "mtime": "2026-04-21T09:34:26.441Z",
+        "hash": "c52215945ede6d2debf3844977951c84",
+        "lines": 243,
+        "mtime": "2026-04-23T04:45:33.474Z",
         "className": "spec-json",
         "methods": [
           "resolveSpecJsonPath",
           "resolveSpecDir",
           "loadSpecJson",
           "tryLoadSpecJson",
+          "saveSpecJson",
+          "normalizeRequirements",
+          "loadSpecRequirements",
+          "updateSpecRequirementStatus",
           "emptySpecStub",
           "specJsonToPromptText",
           "loadSchema"
@@ -6122,28 +6013,19 @@
           "resolveSpecDir",
           "loadSpecJson",
           "tryLoadSpecJson",
+          "saveSpecJson",
+          "normalizeRequirements",
+          "loadSpecRequirements",
+          "updateSpecRequirementStatus",
           "emptySpecStub",
           "specJsonToPromptText"
         ],
         "extends": null,
         "usedBy": null,
         "id": "e288cfbd",
-        "summary": "Provides canonical loading, path resolution, validation, and prompt conversion for `spec.json`. It is the core utility layer for spec metadata handling.",
-        "detail": "The module resolves whether input points to a directory, markdown file, or direct JSON file and derives both spec file path and spec directory robustly. It loads and caches the schema, parses JSON with explicit error wrapping, and runs schema validation unless disabled. Convenience helpers return nullable loads for optional flows and expose an empty stub for spec bootstrapping. A formatter converts spec JSON and optional metadata into prompt-friendly plain text blocks for agent consumption. Centralizing these responsibilities keeps command modules thin and consistent in spec handling.",
-        "chapter": "configuration",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-21T09:35:24.876Z",
           "attempts": 1
-        },
-        "keywords": [
-          "spec.json",
-          "schema validation",
-          "path resolution",
-          "metadata loader",
-          "prompt serialization",
-          "spec stub"
-        ]
+        }
       },
       {
         "file": "src/lib/types.js",
@@ -6208,9 +6090,9 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "e094e5d1a916c80c5c6c20d622cd45df",
-        "lines": 504,
-        "mtime": "2026-04-21T09:34:26.441Z",
+        "hash": "64fd4aed2d1dd0462acd166feab723cd",
+        "lines": 502,
+        "mtime": "2026-04-23T04:45:33.475Z",
         "className": "token",
         "methods": [
           "formatText",
@@ -6253,8 +6135,7 @@
           "../../lib/cli.js",
           "../../lib/command.js",
           "../../lib/constants.js",
-          "../../lib/formatter.js",
-          "../../lib/spec-json.js"
+          "../../lib/formatter.js"
         ],
         "exports": [
           "formatText",
@@ -6265,22 +6146,9 @@
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "summary": "Implements a token metrics command that aggregates flow metrics across specs and renders text, JSON, or CSV reports. It includes cache reuse keyed by finalize timestamps.",
-        "detail": "The module parses format/help arguments, scans `specs` for `flow.json` files with a hard cap, and computes row-level aggregates by date and phase. It enriches rows with derived metrics such as review counts, duration summaries, and a computed spec difficulty score using heuristics and clamped normalization. Cache freshness is determined from max finalized timestamps, with resilient fallbacks when cache read/parse fails. Rendering logic supports tabular text, structured JSON, and CSV output while preserving sort order and display formatting. The command exits with explicit success/error codes and writes cache artifacts under `.sdd-forge/output`.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-21T09:35:24.876Z",
           "attempts": 1
-        },
-        "keywords": [
-          "metrics aggregation",
-          "token report",
-          "CSV export",
-          "cache invalidation",
-          "flow analytics",
-          "difficulty scoring"
-        ]
+        }
       },
       {
         "file": "src/presets-cmd.js",
@@ -9335,9 +9203,9 @@
     ],
     "summary": {
       "total": 274,
-      "totalMethods": 885
+      "totalMethods": 889
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T04:40:43.475Z"
+  "enrichedAt": "2026-04-23T04:46:23.769Z"
 }
