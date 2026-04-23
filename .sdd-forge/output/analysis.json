@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T12:16:15.432Z",
+  "analyzedAt": "2026-04-23T12:18:47.499Z",
   "package": {
     "entries": [
       {
@@ -4208,9 +4208,9 @@
       },
       {
         "file": "src/flow/lib/set-init.js",
-        "hash": "6eb39fe749a9ddb09b9e89aef1e3db65",
-        "lines": 50,
-        "mtime": "2026-04-22T14:34:07.553Z",
+        "hash": "1ca1a591c60a69322fc5722b13af72ca",
+        "lines": 51,
+        "mtime": "2026-04-23T12:18:47.177Z",
         "className": "set-init",
         "methods": [],
         "imports": [
@@ -4225,20 +4225,21 @@
           "src/docs/commands/build.js"
         ],
         "id": "e407389c",
-        "summary": "Initializes flow run metadata through a dedicated set command. It records run identity and supplemental initialization fields into flow state.",
-        "detail": "The command validates required run initialization input and rejects incomplete usage with envelope failures. It stores the run ID and merges optional extra fields without adding unrelated behavior. The implementation remains intentionally small to keep flow bootstrap semantics explicit. It follows the same command contract as other `flow set` modules for consistency. Output is a minimal structured state delta indicating initialization success.",
+        "summary": "SetInitCommand is a flow command entry point that wraps init behavior behind the shared FlowCommand base class. It standardizes returned payloads by including a run identifier and uses Envelope-based failure handling.",
+        "detail": "The class extends the command abstraction used by flow subcommands, which keeps lifecycle handling consistent across commands. It uses `Envelope.fail(...)` for error paths, indicating a uniform result contract instead of throwing raw errors to callers. Its success-side shaping includes `{ runId, ...extra }`, which suggests that initialization metadata is merged into a stable response object for downstream consumers. This pattern keeps CLI-facing and internal callers aligned on response shape and status semantics.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
+          "processedAt": "2026-04-23T12:19:13.411Z",
           "attempts": 1
         },
         "keywords": [
           "flow init",
+          "command handler",
+          "envelope response",
+          "error wrapper",
           "run id",
-          "state bootstrap",
-          "set command",
-          "initialization metadata"
+          "command abstraction"
         ]
       },
       {
@@ -5283,9 +5284,9 @@
       },
       {
         "file": "src/lib/flow-helpers.js",
-        "hash": "313420e2c57963dce265a72bad54d25f",
+        "hash": "ec371aff705dd77f40f7325cec5d10f5",
         "lines": 189,
-        "mtime": "2026-04-23T02:44:06.669Z",
+        "mtime": "2026-04-23T12:18:47.177Z",
         "className": "flow-helpers",
         "methods": [
           "getSpecName",
@@ -5329,27 +5330,29 @@
           "src/lib/preparing-flow-store.js"
         ],
         "id": "09ff0ab4",
-        "enrich": {
-          "processedAt": "2026-04-23T03:19:55.267Z",
-          "attempts": 2
-        },
-        "summary": "Provides foundational flow constants and helper utilities for paths, phases, and task/step initialization. It models core workflow primitives used across the codebase.",
-        "detail": "The module defines canonical filenames, prefixes, TTL/scan limits, and step/phase maps that drive flow lifecycle behavior. It includes builders for initial flow steps and task-step plans with invariant defaults. Path helpers normalize spec-directory lookup and derive stable spec identifiers. Centralizing these domain constants prevents divergence in command and library modules.",
+        "summary": "flow-helpers.js defines flow/task constants and shared utility functions for path resolution and phase derivation. It acts as the canonical source for step ordering, status vocabularies, and spec identifier extraction.",
+        "detail": "The module centralizes file names, scan limits, preparing-flow TTLs, and arrays of allowed statuses to avoid duplicated literals across the flow subsystem. It provides helper functions such as `getSpecName`, `getSpecDir`, and `specIdFromPath` to normalize spec path parsing in one place. State progression logic is encoded through mappings like `PHASE_MAP` and task-specific plans/maps, supporting deterministic phase inference from completed steps. Builder functions generate initial step/task structures with default `pending` status, ensuring newly created state objects share a consistent schema.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-23T12:19:13.411Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow constants",
-          "phase map",
-          "step initialization",
-          "spec path helpers",
-          "workflow primitives"
+          "state machine",
+          "phase mapping",
+          "spec path parsing",
+          "helper utilities",
+          "status enums",
+          "initial state builder"
         ]
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "8bf6ceca1c5092e5eaa9dd528d811ecd",
-        "lines": 314,
-        "mtime": "2026-04-23T04:45:33.474Z",
+        "hash": "91bb13df2d7d94be4ea0e7f75a56b617",
+        "lines": 315,
+        "mtime": "2026-04-23T12:18:47.177Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -5371,22 +5374,22 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 5
-        },
-        "summary": "Provides `FlowManager`, the high-level service for resolving, scanning, and mutating flow state across main repo and worktrees. It coordinates stores, registries, and preparing flow inputs.",
-        "detail": "The manager composes `FlowStore`, active-flow registry, and preparing-flow store behind a cohesive API. It supports scanning multiple flow locations, including branch/worktree contexts, with truncation safeguards and malformed JSON diagnostics. Resolution methods return both state and location metadata so callers can act correctly in split-root environments. It exposes task/step helpers and metric accumulation passthroughs for command layers. Errors are explicit when referenced flow state is missing or inconsistent across roots.",
+        "summary": "FlowManager orchestrates flow state access, task-step operations, and multi-source flow discovery across main and worktree contexts. It serves as the high-level coordinator over store and registry components.",
+        "detail": "The class composes collaborators (`FlowStore`, `ActiveFlowRegistry`, `PreparingFlowStore`) and exposes convenience methods for current task lookup, in-progress step detection, and step status updates. It creates contextual manager instances with worktree awareness, preserving `mainRoot` while switching effective roots. Discovery logic scans `specs/*/flow.json` in both main and worktree paths, then also inspects branch-scoped state via git output, with explicit JSON parse error reporting to stderr. It enforces scan caps (`SCAN_FLOWS_LIMIT`, `PREPARING_SCAN_LIMIT`) and returns normalized records like `{ state, specId, worktreePath }` for callers.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-23T12:19:13.411Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow manager",
-          "worktree support",
-          "state resolution",
-          "scan flows",
-          "active registry",
-          "preparing store",
-          "task helpers"
+          "state orchestration",
+          "worktree aware",
+          "flow scanning",
+          "git integration",
+          "task step control",
+          "registry coordination"
         ]
       },
       {
@@ -5899,9 +5902,9 @@
       },
       {
         "file": "src/lib/preparing-flow-store.js",
-        "hash": "bc11734c67108a6d3600aab113ecee60",
-        "lines": 161,
-        "mtime": "2026-04-22T12:48:59.178Z",
+        "hash": "ca87a893cf0a5085b4f6478dd476d952",
+        "lines": 179,
+        "mtime": "2026-04-23T12:18:47.178Z",
         "className": "preparing-flow-store",
         "methods": [
           "PreparingFlowStore"
@@ -5921,22 +5924,22 @@
           "src/lib/flow-manager.js"
         ],
         "id": "14a29a15",
-        "summary": "Provides persistent storage for preparing-flow runs under the project’s `.sdd-forge` directory. It supports create, read, update, delete, list, and garbage-collection operations.",
-        "detail": "The store generates run IDs with UUIDs and persists each run as a prefixed JSON file with normalized UTF-8 formatting. Read paths return `null` for missing files but throw explicit errors when callers require strict existence. It resolves issue/request inputs from stored state and supports patch-style state updates through file rewrite. Listing and scan helpers enumerate preparing runs from disk and can delete stale entries based on filesystem metadata. The implementation uses synchronous file APIs for simple, atomic control flow in CLI execution paths.",
+        "summary": "PreparingFlowStore persists temporary pre-init flow state keyed by runId and manages lifecycle cleanup. It provides create/read/update/delete operations plus TTL-based pruning for stale entries.",
+        "detail": "Run identifiers are generated with `crypto.randomUUID()`, and records are stored as JSON files under the SDD directory using the preparing prefix naming convention. The store resolves input fields (issue/request), updates persisted state atomically through read-modify-write, and throws explicit errors when expected preparing files are missing. It supports listing and deletion primitives and includes safe unlink behavior that tolerates missing files (`ENOENT`). A pruning routine scans candidate files, removes entries older than the configured TTL, and returns both deleted and remaining run IDs for observability.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "model",
         "enrich": {
-          "processedAt": "2026-04-22T13:01:40.985Z",
+          "processedAt": "2026-04-23T12:19:13.411Z",
           "attempts": 1
         },
         "keywords": [
-          "preparing flow",
-          "file-backed store",
-          "state persistence",
-          "UUID run id",
-          "json state",
-          "cleanup",
-          "stale entry pruning"
+          "temporary state store",
+          "run id",
+          "json persistence",
+          "ttl cleanup",
+          "stale entry pruning",
+          "flow preparation",
+          "filesystem storage"
         ]
       },
       {
@@ -9463,5 +9466,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T12:16:40.997Z"
+  "enrichedAt": "2026-04-23T12:19:13.411Z"
 }
