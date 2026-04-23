@@ -1,0 +1,102 @@
+{
+  "goal": "finalize 完了後の Report 表示指示が skill テンプレート・envelope・dispatcher prompt のどの経路からでも欠落しないよう、skill SKILL.md と finalize 成功 envelope に冗長配線する (Issue #225 のフォローアップ)。",
+  "scope": {
+    "in": [
+      "src/templates/skills/sdd-forge.flow/SKILL.md の Worktree boundary 節に Report 表示 MUST 行を追加する",
+      "src/flow/lib/run-finalize.js の成功 envelope の data に nextCommand: \"sdd-forge flow report show\" を追加する",
+      "上記 2 点を検証するユニットテストを追加する"
+    ],
+    "out": [
+      "dispatcher のステップ配列に show-report ステップを追加する強化策",
+      "Report 本文のフォーマット変更",
+      "src/flow/prompts/impl/finalize.md の文言変更",
+      "失敗系 envelope (preflight_failed / merge_failed) および dry-run envelope への nextCommand 付与",
+      "sdd-forge flow run finalize 以外のコマンド envelope への nextCommand 付与"
+    ]
+  },
+  "constraints": [
+    "外部依存追加禁止 (Node.js 組み込みのみ)",
+    "src/ にプロジェクト固有情報を含めない (汎用 skill テンプレートおよび汎用 envelope フィールドのため抵触しない)",
+    "既存テストを変更しない (新規テストのみ追加)",
+    "alpha 版ポリシーに従い後方互換コードを書かない (既存フィールドの削除は含まない)"
+  ],
+  "design_principles": [
+    "Defense in depth: 3 つの独立した AI 参照経路 (skill / dispatcher prompt / envelope) に同趣旨の指示を冗長配置する",
+    "Fail-safe: Report 未生成または Report 表示が無意味な状況 (失敗・dry-run) では hint を出さない"
+  ],
+  "overview": {
+    "modules": [
+      { "text": "src/templates/skills/sdd-forge.flow/SKILL.md (skill テンプレート、upgrade で配布される)" },
+      { "text": "src/flow/lib/run-finalize.js の RunFinalizeCommand.execute() 成功リターン構築部" },
+      { "text": "tests/unit/flow/ 配下の新規ユニットテスト 2 本" }
+    ],
+    "data_flow": [
+      { "text": "finalize 実行 → 成功 envelope の data.nextCommand = \"sdd-forge flow report show\" → AI が envelope を機械解釈するか skill/prompt の MUST 行を読むかのいずれかで指示を取得 → sdd-forge flow report show 実行 → stdout を fenced code block で表示" }
+    ],
+    "decisions": [
+      { "text": "新規 envelope フィールド名は data.nextCommand (単数、現状 1 コマンドのみ)" },
+      { "text": "付与条件は result === \"ok\" かつ dryRun === false の成功 envelope のみ" },
+      { "text": "skill テンプレートへの追記箇所は Worktree boundary 節の cwd 復元 MUST 行の直後" }
+    ]
+  },
+  "background": "Issue #212 (board 4142) で sdd-forge flow report show CLI と .sdd-forge/last-finalized-spec ポインタは実装済み。finalize 後の Report 表示を AI 転記からコマンド実行に切り替える方針は Done になったが、指示文面は src/flow/prompts/impl/finalize.md にのみ存在する。spec 216 の finalize 完了後に Report が画面に出ない事象 (Issue #225) が発生し、skill SKILL.md への未反映と finalize envelope への nextCommand hint 不在が原因と特定された。",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "desc": "When AI が src/templates/skills/sdd-forge.flow/SKILL.md を読み込むとき、Worktree boundary 節内に「finalize 完了後 (cd back 完了後) に sdd-forge flow report show を実行し stdout を fenced code block に表示する」旨の MUST 行が 1 行以上存在する (shall)。検証: 当該ファイル内に文字列 'sdd-forge flow report show' が 1 箇所以上存在する。",
+      "priority": "must"
+    },
+    {
+      "id": "REQ-2",
+      "desc": "When sdd-forge flow run finalize が成功 (result === \"ok\" かつ dryRun === false) した場合、返却 envelope の data.nextCommand が文字列 \"sdd-forge flow report show\" と完全一致する (shall)。",
+      "priority": "must"
+    },
+    {
+      "id": "REQ-3",
+      "desc": "When result が \"preflight_failed\" / \"merge_failed\" のいずれか、または dryRun === true の場合、返却 envelope の data に nextCommand プロパティが存在しない (shall)。",
+      "priority": "must"
+    },
+    {
+      "id": "REQ-4",
+      "desc": "When npm test を実行するとき、REQ-1 または REQ-2/REQ-3 の条件が破壊された場合に非ゼロ終了コードで失敗し、失敗メッセージに該当要件を特定できる文言 (対象ファイルパスまたは nextCommand フィールド名) を含むユニットテストがリポジトリに存在する (shall)。",
+      "priority": "must"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC1: git grep -c \"sdd-forge flow report show\" src/templates/skills/sdd-forge.flow/SKILL.md の出力が 1 以上 (REQ-1)",
+    "AC2: 成功 envelope のユニットテストで data.nextCommand === \"sdd-forge flow report show\" (REQ-2)",
+    "AC3: preflight_failed / merge_failed / dry-run envelope のユニットテストで data に nextCommand プロパティが存在しない (REQ-3)",
+    "AC4: npm test が PASS し、REQ-1 および REQ-2/REQ-3 の検証テストが含まれる (REQ-4)",
+    "AC5: baseline (feature branch 作成直後) と head の失敗テスト集合の差が 0 件 (回帰なし)"
+  ],
+  "clarifications": [
+    {
+      "q": "prompt (finalize.md) の既存指示を残したまま skill と envelope の両方に冗長配線する理由は?",
+      "a": "defense in depth。prompt のみだと dispatcher を経由しない経路 (skill を直接読む経路) で指示が失われる実績があるため、独立した 3 経路に同趣旨の指示を配置して盲点を埋める。"
+    },
+    {
+      "q": "envelope hint を成功時のみに限定する理由は?",
+      "a": "Report ファイルの生成は成功経路でのみ発生するため。失敗・dry-run で hint を出すと Report 未生成/空を指す誤誘導になる。"
+    },
+    {
+      "q": "新規 envelope フィールド名を nextCommand (単数) とする理由は?",
+      "a": "現状は 1 コマンドのみを返す要件。将来複数コマンドに拡張する要件が発生した場合は当時の判断で nextCommands (複数) に拡張するか、別フィールドを追加する。"
+    }
+  ],
+  "alternatives_considered": [
+    { "option": "prompt (finalize.md) の文言強化のみ", "reason": "却下。prompt を読まない経路がそもそも存在するため根本解決にならない。" },
+    { "option": "dispatcher のステップ配列に show-report ステップ追加", "reason": "却下。既存のステップ配列への侵襲が大きく、別タスクに分離する (Out of Scope)。" },
+    { "option": "skill + envelope + prompt の 3 経路冗長配線", "reason": "採択。単一経路配線の盲点を全方向から塞ぐ defense in depth。" }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/templates/skills/sdd-forge.flow/SKILL.md",
+    "src/flow/lib/run-finalize.js"
+  ],
+  "authorized_test_modifications": [
+    {
+      "path": "tests/unit/flow/run-finalize-next-command.test.js",
+      "reason": "Review proposal #1 (APPROVED) required replacing brittle source-regex assertions with behavior-based tests against the newly exported buildFinalizeSuccessEnvelope helper; the rewrite happened after the test file was first committed in the test step, which is why the diff shows removed lines in an otherwise new-in-this-spec file."
+    }
+  ]
+}

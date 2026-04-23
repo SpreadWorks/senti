@@ -1,0 +1,68 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/217-finalize-report-wiring/draft.md         |  55 +++\n specs/217-finalize-report-wiring/flow.json        | 463 ++++++++++++++++++++++\n specs/217-finalize-report-wiring/issue-log.json   | 148 +++++++\n specs/217-finalize-report-wiring/qa.md            |   6 +\n specs/217-finalize-report-wiring/review.md        |  41 ++\n specs/217-finalize-report-wiring/spec.json        | 102 +++++\n specs/217-finalize-report-wiring/spec.md          | 103 +++++\n specs/217-finalize-report-wiring/tests/README.md  |  34 ++\n src/flow/lib/run-finalize.js                      |  35 +-\n src/templates/skills/sdd-forge.flow/SKILL.md      |   1 +\n tests/unit/flow/run-finalize-next-command.test.js |  96 +++++\n tests/unit/flow/skill-report-show-wiring.test.js  |  69 ++++\n 12 files changed, 1143 insertions(+), 10 deletions(-)",
+      "commits": [
+        "feat: feature/217-finalize-report-wiring",
+        "feat: wire flow report show into SKILL.md and finalize envelope",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "要件 REQ-1〜REQ-4 は実装差分上すべて満たしている。未計画変更は主に specs/217 配下のプロセス・ドキュメント系ファイル追加。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 3,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 330068,
+      "output": 13943,
+      "cacheRead": 184960,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 15,
+      "durationMs": 386422,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 182223
+        },
+        {
+          "phase": "gate",
+          "durationMs": 30513
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 120570
+        },
+        {
+          "phase": "review",
+          "durationMs": 53116
+        }
+      ]
+    },
+    "tests": {
+      "unit": 8,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 8
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/217-finalize-report-wiring\n    feat: wire flow report show into SKILL.md and finalize envelope\n    chore: add retro and report\n    12 files changed, 1143 insertions(+), 10 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 3\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 15\n    input tokens ................ 330,068\n    output tokens ............... 13,943\n    cache-read tokens ........... 184,960\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 386.4s\n      gate-draft ................ 182.2s\n      gate ...................... 30.5s\n      gate-impl ................. 120.6s\n      review .................... 53.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 8  integration 0  acceptance 0  total 8"
+}

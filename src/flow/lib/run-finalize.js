@@ -26,6 +26,8 @@ import { FLOW_COMMANDS } from "../registry.js";
 import { container } from "../../lib/container.js";
 import { POINTER_REL_PATH as LAST_FINALIZED_SPEC_POINTER_REL_PATH } from "./run-report-show.js";
 
+export const REPORT_SHOW_COMMAND = "sdd-forge flow report show";
+
 /**
  * Create an onError hook for finalize sub-steps that records to issue-log.
  * @param {string} stepName
@@ -484,17 +486,30 @@ export class RunFinalizeCommand extends FlowCommand {
       if (!results[name]) results[name] = { status: "skipped" };
     }
 
-    return {
-      result: dryRun ? "dry-run" : "ok",
-      steps: results,
-      artifacts: {
-        baseBranch: state.baseBranch || null,
-        featureBranch: state.featureBranch || null,
-        worktree: state.worktree || false,
-        spec: state.spec || null,
-      },
-    };
+    return buildFinalizeSuccessEnvelope({ dryRun, steps: results, state });
   }
+}
+
+/**
+ * Build the final envelope for a successful (or dry-run) finalize pipeline.
+ * Exported so unit tests can exercise the shape directly without setting up a
+ * full git / flow runtime.
+ *
+ * @param {{ dryRun: boolean, steps: object, state: { baseBranch?: string|null, featureBranch?: string|null, worktree?: boolean, spec?: string|null } }} params
+ * @returns {{ result: "ok"|"dry-run", steps: object, artifacts: object, nextCommand?: string }}
+ */
+export function buildFinalizeSuccessEnvelope({ dryRun, steps, state }) {
+  return {
+    result: dryRun ? "dry-run" : "ok",
+    steps,
+    artifacts: {
+      baseBranch: state.baseBranch || null,
+      featureBranch: state.featureBranch || null,
+      worktree: state.worktree || false,
+      spec: state.spec || null,
+    },
+    ...(dryRun ? {} : { nextCommand: REPORT_SHOW_COMMAND }),
+  };
 }
 
 export default RunFinalizeCommand;

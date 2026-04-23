@@ -1,0 +1,68 @@
+{
+  "spec": "specs/217-finalize-report-wiring/spec.md",
+  "date": "2026-04-23T02:24:33.754Z",
+  "requirements": [
+    {
+      "desc": "REQ-1: skill テンプレートへの Report 表示指示の配線",
+      "status": "done",
+      "note": "src/templates/skills/sdd-forge.flow/SKILL.md の Worktree boundary 節に MUST 行が追加され、`sdd-forge flow report show` が明記されている。"
+    },
+    {
+      "desc": "REQ-2: finalize 成功 envelope への nextCommand フィールド付与",
+      "status": "done",
+      "note": "src/flow/lib/run-finalize.js で成功時（dryRun=false）に `nextCommand: \"sdd-forge flow report show\"` を返す実装が追加されている。"
+    },
+    {
+      "desc": "REQ-3: 失敗系 / dry-run envelope への nextCommand 非付与",
+      "status": "done",
+      "note": "dry-run では `nextCommand` を付与しない分岐になっており、preflight_failed/merge_failed 側も `nextCommand` を含まないまま。対応テストも追加されている。"
+    },
+    {
+      "desc": "REQ-4: REQ-1/REQ-2/REQ-3 を検証する自動テストの追加",
+      "status": "done",
+      "note": "tests/unit/flow/skill-report-show-wiring.test.js と tests/unit/flow/run-finalize-next-command.test.js が追加され、`npm test` 対象のユニットテストとして要件検証と識別可能な失敗文言（SKILL.md パス/nextCommand）が含まれる。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/217-finalize-report-wiring/draft.md",
+      "change": "要件実装そのものではなく、仕様ドラフト文書が新規追加されている。"
+    },
+    {
+      "file": "specs/217-finalize-report-wiring/flow.json",
+      "change": "フロー実行状態・メトリクスの管理ファイルが新規追加されている。"
+    },
+    {
+      "file": "specs/217-finalize-report-wiring/issue-log.json",
+      "change": "ゲート失敗履歴や運用ログの追記で、機能要件外の変更。"
+    },
+    {
+      "file": "specs/217-finalize-report-wiring/qa.md",
+      "change": "QA/承認メモ文書の追加で、要求機能とは直接無関係。"
+    },
+    {
+      "file": "specs/217-finalize-report-wiring/review.md",
+      "change": "コードレビュー記録文書の追加で、要求機能とは直接無関係。"
+    },
+    {
+      "file": "specs/217-finalize-report-wiring/spec.json",
+      "change": "仕様JSON文書の新規追加（管理アーティファクト）。"
+    },
+    {
+      "file": "specs/217-finalize-report-wiring/spec.md",
+      "change": "仕様Markdown文書の新規追加（管理アーティファクト）。"
+    },
+    {
+      "file": "specs/217-finalize-report-wiring/tests/README.md",
+      "change": "spec配下のテスト説明ドキュメント追加は要件の必須範囲外。"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "要件 REQ-1〜REQ-4 は実装差分上すべて満たしている。未計画変更は主に specs/217 配下のプロセス・ドキュメント系ファイル追加。"
+  }
+}

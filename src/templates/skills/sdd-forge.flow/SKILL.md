@@ -152,6 +152,7 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 - `sdd-forge flow run finalize` handles worktree detection, merge, and cleanup internally.
 - **MUST: Do NOT run `sdd-forge flow run finalize` in background.** Run it in the foreground and wait for it to complete before proceeding.
 - **MUST: After `sdd-forge flow run finalize` completes in worktree mode**, the worktree directory is deleted by cleanup, invalidating the shell's cwd. Immediately run `cd <mainRepoPath>` to restore a valid working directory. Get `mainRepoPath` from `sdd-forge flow get resolve-context` (run this BEFORE finalize).
+- **MUST: After `sdd-forge flow run finalize` completes successfully (and the cwd has been restored to `mainRepoPath`)**, run `sdd-forge flow report show` and place the command's stdout verbatim inside a fenced code block so the user sees the finalize Report. The command reads the authoritative `report.json` via the `.sdd-forge/last-finalized-spec` pointer that finalize cleanup wrote, so `steps.report.text` from the envelope does not need to be re-transcribed. If `sdd-forge flow report show` exits non-zero, surface stderr to the user instead of fabricating report contents. The finalize success envelope also carries `data.nextCommand = "sdd-forge flow report show"` as a machine-readable hint; treat both paths as equivalent reminders of this step.
 
 ### Test-first determinism (task write-tests step)
 

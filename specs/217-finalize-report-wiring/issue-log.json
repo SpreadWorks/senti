@@ -1,0 +1,148 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft targets one concern: ensuring report display guidance is reliably wired after finalize.; Unambiguous Requirements — Requirements are concrete and testable, with specific files, fields, and expected behaviors.; Complete Context — Items generally include both condition/context (e.g., finalize success path) and expected outcome (specific additions/behavior).; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are present in the draft.; Prioritize Requirements — There are more than three requirement items, but no explicit priority ordering is provided.; Impact on Existing Features — The draft explicitly lists impacted existing features and explicitly states unaffected areas.; Present Recommendations with Reasoning — Each Q&A provides a clear recommendation first and includes rationale based on code paths/patterns and guardrail intent.; Explore Before Asking — The draft resolves design questions with concrete repository references instead of deferring to the user.; Proactively Raise Related Implications — It proactively covers related implications such as success-only envelope behavior and distribution via upgrade.; Confirm Brainstorm vs. Decision Before Critiquing — The content is presented as an approved decision draft, not as critique of brainstorming ideas.; Capture Digressions in draft.md — No visible digression is present that required separate capture in draft.md.; Draft Stays at Requirements Level — The draft includes implementation-level details (exact file paths, fields, and test file patterns), exceeding requirements-level scope.; Backward-Compatible CLI Interface — No existing CLI command/option removal or semantic change is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:49:24.985Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirement items, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft includes implementation-level details (exact file paths, fields, and test file patterns), exceeding requirements-level scope."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All requirements focus on one bugfix concern: ensuring finalize report guidance is delivered across paths.; Unambiguous Requirements — Requirements are mostly testable and specific (paths, conditions, success-only hint behavior, regression tests).; Complete Context — Each requirement includes context/condition and expected outcome.; No Hardcoded Secrets — Inapplicable to this draft-level spec; no secrets are present.; Prioritize Requirements — Only three requirements are listed, and they are explicitly ordered by priority.; Impact on Existing Features — Impact section explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Q&A includes reasoning, but basis is not explicitly tied to docs, guardrails, or code patterns as required.; Explore Before Asking — No unresolved user-directed questions are left; draft appears to resolve answers internally.; Proactively Raise Related Implications — Related implications are proactively covered in scope and impact sections.; Confirm Brainstorm vs. Decision Before Critiquing — No critique flow is present; this is a finalized/approved draft context.; Capture Digressions in draft.md — No visible digression requiring capture in draft.md.; Draft Stays at Requirements Level — Content stays at requirements/spec level without function-level implementation design.; Backward-Compatible CLI Interface — No command/option removal or semantic break is proposed, so migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:50:25.881Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A includes reasoning, but basis is not explicitly tied to docs, guardrails, or code patterns as required."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one bugfix concern: ensuring finalize report guidance is reliably wired across paths.; Unambiguous Requirements — Requirements are stated with testable conditions (direct path delivery, success-only hint, regression tests).; Complete Context — Each requirement includes context and expected behavior, including conditional cases like success vs failure/dry-run.; No Hardcoded Secrets — No secrets, credentials, or sensitive literals are present in the draft content.; Prioritize Requirements — There are three requirements and they are explicitly ordered by priority.; Impact on Existing Features — The draft explicitly lists affected existing features and unaffected areas.; Present Recommendations with Reasoning — Each Q&A item leads with a recommendation and provides concise rationale grounded in docs/guardrails/code patterns.; Explore Before Asking — The draft references specific existing files and behavior, indicating code/docs exploration before raising decisions.; Proactively Raise Related Implications — It proactively surfaces related implications (multi-path wiring, success-only hint to avoid misguidance, cwd/report dependency).; Confirm Brainstorm vs. Decision Before Critiquing — No critique workflow is being applied to brainstorming; the draft is treated as an approved decision artifact.; Capture Digressions in draft.md — No evident digression thread requiring separate capture is present in the provided content.; Draft Stays at Requirements Level — The draft includes implementation-level detail (specific source file path and internal return-value branching) beyond pure requirements level.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:51:16.685Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft includes implementation-level detail (specific source file path and internal return-value branching) beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 要件は finalize 後の Report 表示指示の配線不備という単一の課題に集中している。; Unambiguous Requirements — 要件1に「読解上自然」のような検証不能な主観表現が含まれている。; Complete Context — 各要件で条件（経路/成功時/将来編集時）と期待動作（届く・付与条件・回帰検知）が対応している。; No Hardcoded Secrets — ドラフト内容にAPIキーやトークン等の秘密情報の直書きはない。; Prioritize Requirements — 要件は3件で、かつ優先度順が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示され、影響内容も記載されている。; Present Recommendations with Reasoning — 各Qに推奨回答が先頭で示され、根拠が docs/guardrail/既存コードパターンとして提示されている。; Explore Before Asking — 事前探索を実施したかはドラフト本文だけでは検証できない。; Proactively Raise Related Implications — 単一路線配線の盲点や成功時限定hintの誤誘導リスクなど関連含意を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 議論がブレインストーミングか意思決定かを事前確認した事実は本文から判断できない。; Capture Digressions in draft.md — 脱線が発生したか、および draft.md への記録有無は提示情報だけでは評価不能。; Draft Stays at Requirements Level — 内容は要件・スコープ・影響中心で、関数レベル設計や実装手順の詳細には踏み込んでいない。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更は提案されておらず、移行計画が必要な変更ではない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:52:17.772Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "要件1に「読解上自然」のような検証不能な主観表現が含まれている。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: ensuring finalize report guidance is reliably wired across paths.; Unambiguous Requirements — Requirement 2 uses vague wording (\"AI can identify\") without a concrete, verifiable acceptance condition (e.g., exact envelope field/schema).; Complete Context — Requirements generally include condition and expected outcome, including success/failure/dry-run distinctions.; No Hardcoded Secrets — No secrets (API keys/passwords/tokens) are present in the draft content.; Prioritize Requirements — There are three requirements and they are explicitly ordered by priority.; Impact on Existing Features — Impact section explicitly lists affected existing features and unaffected areas.; Present Recommendations with Reasoning — Each Q&A leads with a recommendation and cites concise reasoning from docs/guardrails/code patterns.; Explore Before Asking — Draft grounds decisions in existing issues, current skill structure, and code-pattern references rather than deferring to user questions.; Proactively Raise Related Implications — It proactively surfaces related implications (multi-path wiring, success-only hints, scope exclusions, upgrade distribution).; Confirm Brainstorm vs. Decision Before Critiquing — Cannot verify whether brainstorm-vs-decision confirmation occurred from draft text alone.; Capture Digressions in draft.md — No digression is evident; main-thread decisions are captured in the draft.; Draft Stays at Requirements Level — Content stays at requirements/spec scope without function-level implementation design.; Backward-Compatible CLI Interface — No existing command/option removal or semantic break is proposed, so migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:52:59.269Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Requirement 2 uses vague wording (\"AI can identify\") without a concrete, verifiable acceptance condition (e.g., exact envelope field/schema)."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 全要件が finalize 後の Report 指示配線不備の解消という単一関心に収束している。; Unambiguous Requirements — 要件1/2は文字列存在や JSON 条件一致など検証可能な条件で記述されている。; Complete Context — 要件3が『自動テスト』という意図のみで、When/If と shall の文脈・期待結果が明示不足。; No Hardcoded Secrets — 本内容は要件ドラフトであり、秘密情報の直書きは含まれない。; Prioritize Requirements — 要件は3件で閾値（3件超）に達しておらず、かつ優先度順も明示済み。; Impact on Existing Features — 既存機能への影響あり/なしを明示し、影響内容も具体化している。; Present Recommendations with Reasoning — Q&Aで各質問に推奨を先頭提示し、docs/guardrail/既存コードパターン根拠を併記している。; Explore Before Asking — 事前に docs/コード探索を行ったかは本文のみでは検証できない。; Proactively Raise Related Implications — 冗長配線の必要性や失敗系 envelope で hint を付けない理由など関連含意を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — ブレストか意思決定かの確認有無は対話履歴がないため判定不能。; Capture Digressions in draft.md — 脱線の有無と draft.md への記録実施は本文だけでは確認できない。; Draft Stays at Requirements Level — 全体は要件/スコープ/影響/検証観点に留まり、関数レベル実装設計は含まれない。; Backward-Compatible CLI Interface — 既存コマンドやオプションの削除・意味変更を伴う記述がなく、移行計画要件は非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:53:40.194Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "要件3が『自動テスト』という意図のみで、When/If と shall の文脈・期待結果が明示不足。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:55:32.428Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T01:56:36.247Z"
+    },
+    {
+      "step": "gate",
+      "reason": "gate-spec reads state.spec as markdown but prepare-spec sets state.spec to spec.json (spec 207 spec-json-primary)",
+      "trigger": "sdd-forge flow run gate returned fail with 'missing section' errors because checkSpecText was parsing spec.json (JSON) as markdown",
+      "resolution": "Workaround: manually edit specs/217-finalize-report-wiring/flow.json to change spec field from spec.json to spec.md so executeSpec reads the markdown file",
+      "guardrailCandidate": "When spec-json-primary decoupled state.spec from the markdown file, the text-check path (executeSpec -> checkSpecText) was not updated to read spec.md instead of state.spec. Gate text checks should always read spec.md regardless of what state.spec points to.",
+      "taskId": null,
+      "timestamp": "2026-04-23T01:59:17.114Z"
+    },
+    {
+      "step": "implement",
+      "reason": "Edited files in main repo path instead of worktree path — worktree boundary violation",
+      "trigger": "Used absolute path /home/nakano/workspace/sdd-forge/src/... which routes to main repo, bypassing the worktree copy at /home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-217-finalize-report-wiring/src/...",
+      "resolution": "Revert edits in main repo files (SKILL.md, run-finalize.js), re-apply the same edits using worktree-relative paths (e.g. 'src/flow/lib/run-finalize.js' which from the worktree cwd resolves to the worktree copy)",
+      "guardrailCandidate": "During active worktree flows, prefer worktree-relative paths (cwd-relative) for all Edit/Write calls; never use absolute paths that start with the main repo root",
+      "taskId": null,
+      "timestamp": "2026-04-23T02:06:47.936Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Skill wiring and `run-finalize` `data.nextCommand` were added, but no new `tests/unit/flow/` tests are present in the diff to verify these paths, so the spec requirement set is not fully implemented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:12:35.523Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Skill wiring and `run-finalize` `data.nextCommand` were added, but no new `tests/unit/flow/` tests are present in the diff to verify these paths, so the spec requirement set is not fully implemented."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/run-finalize-next-command.test.js:7: existing line modified/deleted in test file (removed=20, added=59); tests/unit/flow/run-finalize-next-command.test.js:84: existing line modified/deleted in test file (removed=2, added=1); tests/unit/flow/run-finalize-next-command.test.js:93: existing line modified/deleted in test file (removed=17, added=0)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:20:32.452Z"
+    }
+  ]
+}
