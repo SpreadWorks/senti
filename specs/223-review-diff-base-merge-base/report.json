@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/223-review-diff-base-merge-base/draft.md     |  52 +++\n specs/223-review-diff-base-merge-base/flow.json    | 378 +++++++++++++++++++++\n .../223-review-diff-base-merge-base/issue-log.json | 142 ++++++++\n specs/223-review-diff-base-merge-base/qa.md        |   9 +\n specs/223-review-diff-base-merge-base/review.md    |  33 ++\n specs/223-review-diff-base-merge-base/spec.json    | 152 +++++++++\n specs/223-review-diff-base-merge-base/spec.md      | 103 ++++++\n .../tests/README.md                                |  44 +++\n src/flow/commands/review.js                        |  82 +++--\n tests/unit/flow/commands/review.test.js            | 111 +++++-\n 10 files changed, 1082 insertions(+), 24 deletions(-)",
+      "commits": [
+        "feat: feature/223-review-diff-base-merge-base"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "All four listed requirements are implemented in the code/test diff. Main behavior aligns with merge-base-based diff origin and fail-hard handling, with regression coverage present. Extra refactoring/export/doc artifacts are present outside strict requirement scope."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 2,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 186849,
+      "output": 10677,
+      "cacheRead": 156800,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 281388,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 111364
+        },
+        {
+          "phase": "spec",
+          "durationMs": 53908
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 61775
+        },
+        {
+          "phase": "review",
+          "durationMs": 54341
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2217,
+      "integration": 261,
+      "acceptance": 0,
+      "total": 2478
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/223-review-diff-base-merge-base\n    10 files changed, 1082 insertions(+), 24 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 2\n    issue-log ................... 1\n    agent calls ................. 11\n    input tokens ................ 186,849\n    output tokens ............... 10,677\n    cache-read tokens ........... 156,800\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 281.4s\n      draft ..................... 111.4s\n      spec ...................... 53.9s\n      gate-impl ................. 61.8s\n      review .................... 54.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2217  integration 261  acceptance 0  total 2478"
+}

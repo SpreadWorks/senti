@@ -1,0 +1,52 @@
+{
+  "spec": "specs/223-review-diff-base-merge-base/spec.json",
+  "date": "2026-04-23T13:02:13.357Z",
+  "requirements": [
+    {
+      "desc": "When `flow run review` is invoked without a `--phase`, the code-review pass shall resolve a single merge-base SHA via `git merge-base HEAD <flow.baseBranch>` and shall use that SHA as the starting point for the `git diff` invocations that build the review diff text.",
+      "status": "done",
+      "note": "`runReview` resolves `mergeBase` once via `resolveMergeBase(...)` and passes it into `resolveReviewTarget`, which now builds diffs from that SHA."
+    },
+    {
+      "desc": "When `git merge-base HEAD <flow.baseBranch>` exits non-zero or produces an empty SHA, `flow run review` shall terminate with a non-zero exit status and shall emit an error message that names the failing git command and includes its captured stderr, and shall not fall back to using the `baseBranch` tip.",
+      "status": "done",
+      "note": "`resolveMergeBase` throws on non-zero and empty output, error text names `git merge-base HEAD <baseBranch>` and includes stderr; `runReview` uses no fallback path to `baseBranch` tip."
+    },
+    {
+      "desc": "When the code-review pass computes the touched-files set (the input of `filterProposalsByScope`), it shall use the same merge-base SHA resolved in REQ-P1 as the starting point of `git diff --name-only`, so that the diff text and the touched-files set share one origin.",
+      "status": "done",
+      "note": "`runReview` passes the same `mergeBase` into `collectTouchedFiles`, and `collectTouchedFiles` runs `git diff --name-only <baseRef>` plus `--cached` from that value."
+    },
+    {
+      "desc": "When the regression suite in `tests/unit/flow/commands/review.test.js` runs, it shall include at least one test that: (a) initializes a git repository where `baseBranch` has one or more commits beyond the common ancestor with the feature branch, (b) creates changes on the feature branch only, and (c) asserts that the touched-files set (or equivalent diff scope) computed from the merge-base SHA excludes files changed only upstream.",
+      "status": "done",
+      "note": "Added test `excludes upstream-only commits when baseBranch has advanced beyond the merge-base` creates diverged history and asserts merge-base-based touched set excludes upstream-only file."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/commands/review.js",
+      "change": "Refactor added `forEachReviewDiffSource(...)` to deduplicate diff-source traversal logic; this cleanup is not explicitly required by REQ-P1..P4."
+    },
+    {
+      "file": "src/flow/commands/review.js",
+      "change": "`resolveMergeBase` was exported as a public module export (API surface change) to support direct unit testing; not explicitly required by REQ-P1..P4."
+    },
+    {
+      "file": "tests/unit/flow/commands/review.test.js",
+      "change": "Additional coverage beyond minimum requirement was added (old-behavior sanity check and nonexistent-branch merge-base failure test)."
+    },
+    {
+      "file": "specs/223-review-diff-base-merge-base/*",
+      "change": "Large set of spec workflow artifacts (`draft.md`, `flow.json`, `issue-log.json`, `qa.md`, `review.md`, `spec.json`, `spec.md`, `tests/README.md`) added; these are process/docs changes not part of the four runtime requirements."
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All four listed requirements are implemented in the code/test diff. Main behavior aligns with merge-base-based diff origin and fail-hard handling, with regression coverage present. Extra refactoring/export/doc artifacts are present outside strict requirement scope."
+  }
+}

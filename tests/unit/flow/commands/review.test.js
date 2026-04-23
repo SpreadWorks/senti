@@ -15,6 +15,7 @@ import {
   buildDraftSystemPrompt,
   filterProposalsByScope,
   collectTouchedFiles,
+  resolveMergeBase,
 } from "../../../../src/flow/commands/review.js";
 
 function resolveAgent(cfg, commandId) {
@@ -247,15 +248,16 @@ describe("collectTouchedFiles (spec 201 R-P4)", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("returns the set of files changed in committed diff vs baseBranch", () => {
+  it("returns the set of files changed in committed diff vs baseRef", () => {
     tmp = createTmpDir();
     initTestRepo(tmp, { "a.js": "a\n", "b.js": "b\n" });
+    const baseSha = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     execFileSync("git", ["-C", tmp, "checkout", "-q", "-b", "feature"]);
     fs.writeFileSync(join(tmp, "a.js"), "a modified\n");
     execFileSync("git", ["-C", tmp, "add", "a.js"]);
     execFileSync("git", ["-C", tmp, "commit", "-q", "-m", "change a"]);
 
-    const touched = collectTouchedFiles(tmp, "main");
+    const touched = collectTouchedFiles(tmp, baseSha);
     assert.ok(touched instanceof Set, "returns a Set");
     assert.ok(touched.has("a.js"), "includes changed file");
     assert.ok(!touched.has("b.js"), "excludes unchanged file");
@@ -264,11 +266,114 @@ describe("collectTouchedFiles (spec 201 R-P4)", () => {
   it("includes staged-but-uncommitted changes", () => {
     tmp = createTmpDir();
     initTestRepo(tmp, { "a.js": "a\n" });
+    const baseSha = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     fs.writeFileSync(join(tmp, "c.js"), "c\n");
     execFileSync("git", ["-C", tmp, "add", "c.js"]);
 
-    const touched = collectTouchedFiles(tmp, "main");
+    const touched = collectTouchedFiles(tmp, baseSha);
     assert.ok(touched.has("c.js"), "includes staged file");
+  });
+});
+
+function createDivergedHistoryFixture(tmp) {
+  initTestRepo(tmp, { "a.js": "a\n", "upstream.js": "u\n" });
+
+  execFileSync("git", ["-C", tmp, "checkout", "-q", "-b", "feature"]);
+  fs.writeFileSync(join(tmp, "a.js"), "a modified on feature\n");
+  execFileSync("git", ["-C", tmp, "add", "a.js"]);
+  execFileSync("git", ["-C", tmp, "commit", "-q", "-m", "feature change"]);
+
+  execFileSync("git", ["-C", tmp, "checkout", "-q", "main"]);
+  fs.writeFileSync(join(tmp, "upstream.js"), "u modified on main\n");
+  execFileSync("git", ["-C", tmp, "add", "upstream.js"]);
+  execFileSync("git", ["-C", tmp, "commit", "-q", "-m", "upstream-only commit"]);
+
+  execFileSync("git", ["-C", tmp, "checkout", "-q", "feature"]);
+
+  return {
+    featureFile: "a.js",
+    upstreamFile: "upstream.js",
+    mergeBase: resolveMergeBase(tmp, "main"),
+  };
+}
+
+describe("collectTouchedFiles with merge-base starting point (spec 223)", () => {
+  let tmp;
+  afterEach(() => tmp && removeTmpDir(tmp));
+
+  it("excludes upstream-only commits when baseBranch has advanced beyond the merge-base", () => {
+    tmp = createTmpDir();
+    const { featureFile, upstreamFile, mergeBase } = createDivergedHistoryFixture(tmp);
+
+    const touched = collectTouchedFiles(tmp, mergeBase);
+    assert.ok(touched.has(featureFile), "includes branch-local change");
+    assert.ok(
+      !touched.has(upstreamFile),
+      "excludes upstream-only change (baseBranch advanced beyond merge-base)",
+    );
+  });
+
+  it("old behavior (baseBranch tip) would include upstream-only commits — confirms bug would re-appear without merge-base", () => {
+    tmp = createTmpDir();
+    const { upstreamFile, mergeBase } = createDivergedHistoryFixture(tmp);
+
+    // Passing baseBranch tip ref (= main) reproduces the bug: touched includes upstream.js
+    const touchedFromTip = collectTouchedFiles(tmp, "main");
+    assert.ok(
+      touchedFromTip.has(upstreamFile),
+      "sanity: baseBranch tip includes upstream-only file (this is the bug spec 223 fixes at the caller layer)",
+    );
+
+    // Passing merge-base excludes it
+    const touchedFromMergeBase = collectTouchedFiles(tmp, mergeBase);
+    assert.ok(!touchedFromMergeBase.has(upstreamFile));
+  });
+});
+
+describe("resolveMergeBase (spec 223)", () => {
+  let tmp;
+  afterEach(() => tmp && removeTmpDir(tmp));
+
+  it("returns the SHA of the common ancestor between HEAD and baseBranch", () => {
+    tmp = createTmpDir();
+    initTestRepo(tmp, { "a.js": "a\n" });
+    const baseCommit = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+
+    execFileSync("git", ["-C", tmp, "checkout", "-q", "-b", "feature"]);
+    fs.writeFileSync(join(tmp, "a.js"), "a modified\n");
+    execFileSync("git", ["-C", tmp, "add", "a.js"]);
+    execFileSync("git", ["-C", tmp, "commit", "-q", "-m", "feature change"]);
+
+    const mergeBase = resolveMergeBase(tmp, "main");
+    assert.equal(mergeBase, baseCommit);
+  });
+
+  it("throws a non-silent error when no common ancestor exists (orphan branch)", () => {
+    tmp = createTmpDir();
+    initTestRepo(tmp, { "a.js": "a\n" });
+
+    // Create an orphan branch with no shared history
+    execFileSync("git", ["-C", tmp, "checkout", "--orphan", "orphan"]);
+    execFileSync("git", ["-C", tmp, "rm", "-rf", "-q", "."]);
+    fs.writeFileSync(join(tmp, "o.js"), "o\n");
+    execFileSync("git", ["-C", tmp, "add", "o.js"]);
+    execFileSync("git", ["-C", tmp, "commit", "-q", "-m", "orphan root"]);
+
+    assert.throws(
+      () => resolveMergeBase(tmp, "main"),
+      (err) => /merge-base/.test(err.message),
+      "must throw an error that mentions merge-base",
+    );
+  });
+
+  it("throws when the base branch does not exist", () => {
+    tmp = createTmpDir();
+    initTestRepo(tmp, { "a.js": "a\n" });
+
+    assert.throws(
+      () => resolveMergeBase(tmp, "nonexistent-branch"),
+      (err) => /merge-base/.test(err.message),
+    );
   });
 });
 

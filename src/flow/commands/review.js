@@ -53,13 +53,37 @@ for (const key of Object.keys(REVIEW_PHASES)) {
 }
 
 /**
+ * Resolve the merge-base SHA between HEAD and baseBranch. Throws with a
+ * message that names `merge-base` and includes captured stderr when git
+ * reports an error or returns an empty SHA.
+ *
+ * @param {string} root - repo root
+ * @param {string} baseBranch - name/ref of the base branch
+ * @returns {string} merge-base SHA (full)
+ */
+function resolveMergeBase(root, baseBranch) {
+  const res = runGit(["-C", root, "merge-base", "HEAD", baseBranch]);
+  if (!res.ok) {
+    throw new Error(`git merge-base HEAD ${baseBranch} failed: ${res.stderr.trim()}`);
+  }
+  const sha = res.stdout.trim();
+  if (!sha) {
+    throw new Error(
+      `git merge-base HEAD ${baseBranch} produced empty output (stderr: ${res.stderr.trim()})`,
+    );
+  }
+  return sha;
+}
+
+/**
  * Resolve review target files from spec scope or git diff fallback.
  *
  * @param {string} root - repo root
  * @param {import("../../lib/flow-state.js").FlowState} flow - flow state
+ * @param {string} mergeBase - merge-base SHA resolved by resolveMergeBase
  * @returns {string} diff text for review
  */
-function resolveReviewTarget(root, flow) {
+function resolveReviewTarget(root, flow, mergeBase) {
   // spec 207 / T8: read scope.in from spec.json via the single validated load
   // path. Throws when spec.json is missing or invalid — active flows must
   // have a valid spec.json by invariant.
@@ -76,13 +100,13 @@ function resolveReviewTarget(root, flow) {
     for (const f of scopeFiles) {
       const abs = path.resolve(root, f);
       if (!fs.existsSync(abs)) continue;
-      diffs.push(...collectCommittedAndStagedDiff(root, flow.baseBranch, f));
+      diffs.push(...collectCommittedAndStagedDiff(root, mergeBase, f));
     }
     if (diffs.length > 0) return diffs.join("\n");
   }
 
-  // Fallback: committed diff against base branch + staged changes
-  return collectCommittedAndStagedDiff(root, flow.baseBranch).join("\n");
+  // Fallback: committed diff against merge-base + staged changes
+  return collectCommittedAndStagedDiff(root, mergeBase).join("\n");
 }
 
 /** Paths excluded from the fallback (whole-repo) diff in code review.
@@ -116,19 +140,31 @@ function runDiffOrThrow(root, diffArgs, pathspec, label) {
 }
 
 /**
+ * Iterate the two review diff sources (committed vs baseRef, then staged)
+ * and call `fn` for each. Keeps both `collectCommittedAndStagedDiff` and
+ * `collectTouchedFiles` in sync when the set of sources changes.
+ * @param {string} baseRef
+ * @param {(source: { args: string[], label: string }) => void} fn
+ */
+function forEachReviewDiffSource(baseRef, fn) {
+  fn({ args: [baseRef], label: `git diff ${baseRef}` });
+  fn({ args: ["--cached"], label: "git diff --cached" });
+}
+
+/**
  * Collect non-empty committed (vs base) and staged diff outputs.
  * @param {string} root
- * @param {string} baseBranch
+ * @param {string} baseRef - diff starting point (merge-base SHA recommended)
  * @param {string} [filePath] - optional path to scope the diff to
  * @returns {string[]} array of non-empty diff outputs
  */
-function collectCommittedAndStagedDiff(root, baseBranch, filePath) {
+function collectCommittedAndStagedDiff(root, baseRef, filePath) {
   const pathspec = buildReviewPathspec(filePath);
   const out = [];
-  const committed = runDiffOrThrow(root, [baseBranch], pathspec, `git diff ${baseBranch}`);
-  if (committed) out.push(committed);
-  const staged = runDiffOrThrow(root, ["--cached"], pathspec, "git diff --cached");
-  if (staged) out.push(staged);
+  forEachReviewDiffSource(baseRef, ({ args, label }) => {
+    const text = runDiffOrThrow(root, args, pathspec, label);
+    if (text) out.push(text);
+  });
   return out;
 }
 
@@ -214,27 +250,25 @@ function extractProposalFile(body) {
 /**
  * Collect the set of files touched by the current change set.
  * The "touched" set is the union of:
- *   - files changed in the committed diff against baseBranch (`git diff <base>`)
+ *   - files changed in the committed diff against baseRef (`git diff <baseRef>`)
  *   - files changed in the staged (index) diff (`git diff --cached`)
  * Untracked files that are not staged are intentionally NOT included — this
  * matches the review pipeline's scope, which only considers changes that are
  * either committed on the feature branch or staged for commit.
  * @param {string} root
- * @param {string} baseBranch
+ * @param {string} baseRef - diff starting point (merge-base SHA recommended)
  * @returns {Set<string>}
  */
-function collectTouchedFiles(root, baseBranch) {
+function collectTouchedFiles(root, baseRef) {
   const touched = new Set();
-  const runNames = (diffArgs, label) => {
-    const res = runGit(["-C", root, "diff", "--name-only", ...diffArgs]);
-    if (!res.ok) throw new Error(`git diff --name-only ${label} failed: ${res.stderr}`);
+  forEachReviewDiffSource(baseRef, ({ args, label }) => {
+    const res = runGit(["-C", root, "diff", "--name-only", ...args]);
+    if (!res.ok) throw new Error(`git diff --name-only (${label}) failed: ${res.stderr}`);
     for (const line of res.stdout.split("\n")) {
       const p = line.trim();
       if (p) touched.add(p);
     }
-  };
-  runNames([baseBranch], baseBranch);
-  runNames(["--cached"], "--cached");
+  });
   return touched;
 }
 
@@ -972,8 +1006,13 @@ async function runReview(rawArgs) {
     return;
   }
 
+  // Resolve merge-base once and use it as the single diff starting point.
+  // Failure here intentionally propagates — there is no silent fallback to
+  // baseBranch tip (spec 223).
+  const mergeBase = resolveMergeBase(root, flow.baseBranch);
+
   // Resolve target diff
-  const diff = resolveReviewTarget(root, flow);
+  const diff = resolveReviewTarget(root, flow, mergeBase);
   if (!diff) {
     console.log("No changes detected. Skipping review.");
     return;
@@ -997,7 +1036,7 @@ async function runReview(rawArgs) {
     return;
   }
 
-  const touchedFiles = collectTouchedFiles(root, flow.baseBranch);
+  const touchedFiles = collectTouchedFiles(root, mergeBase);
   const { kept: proposals, excluded } = filterProposalsByScope(rawProposals, touchedFiles);
   if (excluded.outOfScope > 0 || excluded.missingFile > 0) {
     console.error(
@@ -1086,6 +1125,7 @@ function isValidSpecOutput(text) {
 
 export {
   parseProposals, mergeVerdicts, formatReviewMd, resolveReviewTarget,
+  resolveMergeBase,
   buildDraftSystemPrompt, buildFinalSystemPrompt, buildFinalValidationPrompt,
   NO_PROPOSALS_MARKER,
   collectTouchedFiles, filterProposalsByScope, extractProposalFile,
