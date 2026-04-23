@@ -244,7 +244,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       // during the flow do not retroactively un-skip them — the skip
       // state reflects "no tasks declared up-front".
       const steps = buildInitialSteps({ tasks: [] });
-      for (const id of ["branch", "spec"]) {
+      for (const id of ["branch", "prepare-spec"]) {
         const step = steps.find((s) => s.id === id);
         if (step) step.status = "done";
       }
