@@ -61,12 +61,12 @@ describe("validatePresetChain", () => {
   // Project-local templates directory satisfies the requirement
   // ---------------------------------------------------------------------
 
-  it("accepts a template provided under .sdd-forge/templates/<lang>/<chapter>", () => {
+  it("accepts a template provided under .sdd-forge/templates/<lang>/docs/<chapter>", () => {
     writeJson(tmp, ".sdd-forge/presets/myext/preset.json", {
       label: "My Extension",
       chapters: [{ chapter: "custom.md" }],
     });
-    writeFile(tmp, ".sdd-forge/templates/ja/custom.md", "# Custom (ja)\n");
+    writeFile(tmp, ".sdd-forge/templates/ja/docs/custom.md", "# Custom (ja)\n");
 
     assert.doesNotThrow(() => {
       validatePresetChain("myext", tmp, { languages: ["ja"] });

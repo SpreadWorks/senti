@@ -240,21 +240,34 @@ function resolveEffectiveChapters(typeList, projectRoot, configChapters) {
 }
 
 /**
- * Return the list of template directories to search for a given (type, lang),
- * ordered by precedence (project-local first, then chain leaf → root) —
- * matching template-merger.buildLayers() so validator PASS ≡ build can resolve.
+ * Return the list of template directories to search for the given (types, lang),
+ * ordered by precedence (project-local first, then union of chain leaf → root
+ * across all types) — matching template-merger.resolveTemplates(), which
+ * searches across all type chains for each chapter. Validator PASS ≡ build
+ * can resolve the chapter via some chain.
  */
-function templateSearchDirs(typeKey, projectRoot, lang) {
+function templateSearchDirs(typeList, projectRoot, lang) {
   const dirs = [];
+  const seen = new Set();
+  const push = (d) => {
+    if (!seen.has(d)) {
+      seen.add(d);
+      dirs.push(d);
+    }
+  };
   if (projectRoot) {
-    dirs.push(path.join(projectRoot, ".sdd-forge", "templates", lang));
+    // init.js uses `<root>/.sdd-forge/templates/<lang>/docs` as the project-local
+    // dir — mirror that path so validator PASS implies build can resolve.
+    push(path.join(projectRoot, ".sdd-forge", "templates", lang, "docs"));
   }
-  const chain = resolveChainSafe(typeKey, projectRoot);
-  if (chain.length > MAX_CHAIN_DEPTH) {
-    throw new Error(`validatePresetChain: chain depth exceeds MAX_CHAIN_DEPTH (${chain.length} > ${MAX_CHAIN_DEPTH}) for type=${typeKey}`);
-  }
-  for (let i = chain.length - 1; i >= 0; i--) {
-    dirs.push(path.join(chain[i].dir, "templates", lang));
+  for (const typeKey of typeList) {
+    const chain = resolveChainSafe(typeKey, projectRoot);
+    if (chain.length > MAX_CHAIN_DEPTH) {
+      throw new Error(`validatePresetChain: chain depth exceeds MAX_CHAIN_DEPTH (${chain.length} > ${MAX_CHAIN_DEPTH}) for type=${typeKey}`);
+    }
+    for (let i = chain.length - 1; i >= 0; i--) {
+      push(path.join(chain[i].dir, "templates", lang));
+    }
   }
   return dirs;
 }
@@ -290,18 +303,16 @@ export function validatePresetChain(types, projectRoot, { languages, configChapt
   }
 
   // CLI startup path (not a request hot path): one-shot existsSync iteration
-  // bounded by MAX_CHAPTERS × MAX_LANGUAGES × MAX_CHAIN_DEPTH per type.
+  // bounded by MAX_CHAPTERS × MAX_LANGUAGES × (types × MAX_CHAIN_DEPTH).
   const missing = [];
   const searchedPaths = new Set();
 
-  for (const key of typeList) {
-    for (const chapter of effectiveChapters) {
-      for (const lang of languages) {
-        const dirs = templateSearchDirs(key, projectRoot, lang);
-        dirs.forEach((d) => searchedPaths.add(d));
-        const found = dirs.some((d) => fs.existsSync(path.join(d, chapter)));
-        if (!found) missing.push({ chapter, lang, type: key });
-      }
+  for (const chapter of effectiveChapters) {
+    for (const lang of languages) {
+      const dirs = templateSearchDirs(typeList, projectRoot, lang);
+      dirs.forEach((d) => searchedPaths.add(d));
+      const found = dirs.some((d) => fs.existsSync(path.join(d, chapter)));
+      if (!found) missing.push({ chapter, lang });
     }
   }
 
@@ -310,7 +321,7 @@ export function validatePresetChain(types, projectRoot, { languages, configChapt
       `preset chapter-template validation failed (${missing.length} missing)`,
     ];
     for (const m of missing) {
-      lines.push(`  - type=${m.type} chapter=${m.chapter} lang=${m.lang}`);
+      lines.push(`  - chapter=${m.chapter} lang=${m.lang}`);
     }
     lines.push("searched:");
     for (const p of searchedPaths) {
@@ -319,25 +330,25 @@ export function validatePresetChain(types, projectRoot, { languages, configChapt
     throw new Error(lines.join("\n"));
   }
 
-  // Reverse direction: warn on templates present but not in effective chapters.
+  // Reverse direction: warn on project-local templates present but not in
+  // effective chapters. Chain templates are intentionally shared and may be
+  // excluded by a leaf preset's chapter override — those are not noise-worthy.
+  if (!projectRoot) return;
   const effectiveSet = new Set(effectiveChapters);
   const reported = new Set();
-  for (const key of typeList) {
-    for (const lang of languages) {
-      for (const dir of templateSearchDirs(key, projectRoot, lang)) {
-        if (!fs.existsSync(dir)) continue;
-        for (const file of fs.readdirSync(dir)) {
-          if (!file.endsWith(".md")) continue;
-          if (SPECIAL_TEMPLATES.has(file)) continue;
-          if (effectiveSet.has(file)) continue;
-          const k = `${lang}:${file}`;
-          if (reported.has(k)) continue;
-          reported.add(k);
-          process.stderr.write(
-            `[preset] WARN: template ${path.join(dir, file)} not listed in chapters (lang=${lang}).\n`,
-          );
-        }
-      }
+  for (const lang of languages) {
+    const dir = path.join(projectRoot, ".sdd-forge", "templates", lang, "docs");
+    if (!fs.existsSync(dir)) continue;
+    for (const file of fs.readdirSync(dir)) {
+      if (!file.endsWith(".md")) continue;
+      if (SPECIAL_TEMPLATES.has(file)) continue;
+      if (effectiveSet.has(file)) continue;
+      const k = `${lang}:${file}`;
+      if (reported.has(k)) continue;
+      reported.add(k);
+      process.stderr.write(
+        `[preset] WARN: project-local template ${path.join(dir, file)} not listed in chapters (lang=${lang}).\n`,
+      );
     }
   }
 }
