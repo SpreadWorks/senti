@@ -1,0 +1,380 @@
+{
+  "spec": "specs/219-finalize-preflight-no-commits/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/219-finalize-preflight-no-commits",
+  "runId": "00764104-5110-4013-9240-d8d8bd11cf71",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 232,
+  "autoCheck": {
+    "eligible": false,
+    "score": 17,
+    "maxScore": 24,
+    "threshold": 18,
+    "breakdown": {
+      "specBuildability": 1,
+      "ambiguity": 1,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 1,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "score 17/24 below threshold 18"
+  },
+  "worktree": true,
+  "test": {
+    "baseline": {
+      "unit": 2082,
+      "integration": 259,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 10
+    }
+  },
+  "request": "Issue #232: finalize preflight no-commits branch rejects before commit step runs. Fix runPreflightChecks to allow no-commits when hasUncommitted is true (or delay the check until after commit step). Handle consistently with abe0 dirty-worktree branch.",
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:09:09.507Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:14:47.766Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:31:06.955Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:32:41.932Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T04:33:24.787Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1458,
+      "durationMs": 31408,
+      "tokens": {
+        "input": 9449,
+        "output": 1323,
+        "cacheRead": 15744,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:34:27.112Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2400,
+      "durationMs": 27181,
+      "tokens": {
+        "input": 6239,
+        "output": 1006,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:35:29.914Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2187,
+      "durationMs": 23064,
+      "tokens": {
+        "input": 6249,
+        "output": 912,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:36:13.697Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2187,
+      "durationMs": 26470,
+      "tokens": {
+        "input": 5449,
+        "output": 1121,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:40:27.588Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2718,
+      "durationMs": 35813,
+      "tokens": {
+        "input": 8411,
+        "output": 1507,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:43:43.267Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2811,
+      "durationMs": 31489,
+      "tokens": {
+        "input": 8612,
+        "output": 1212,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:44:38.185Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2766,
+      "durationMs": 31411,
+      "tokens": {
+        "input": 24090,
+        "output": 1073,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T04:45:24.953Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 346,
+      "durationMs": 17264,
+      "tokens": {
+        "input": 26722,
+        "output": 583,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:05:39.873Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1701,
+      "durationMs": 19136,
+      "tokens": {
+        "input": 7786,
+        "output": 803,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:05:59.026Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-23T05:05:59.049Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2580,
+      "durationMs": 37881,
+      "tokens": {
+        "input": 96428,
+        "output": 1763,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:07:43.281Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1500,
+      "durationMs": 42714,
+      "tokens": {
+        "input": 81562,
+        "output": 1285,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T05:08:26.106Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft Q1: include abe0 dirty-worktree fix in same spec (unified preflight predicate)",
+      "taskId": null,
+      "ts": "2026-04-23T04:14:51.394Z"
+    },
+    {
+      "text": "draft Q2: conditional preflight — when commit step is active allow dirty/no-commits (commit step handles), when commit step NOT active fail dirty-worktree",
+      "taskId": null,
+      "ts": "2026-04-23T04:31:11.402Z"
+    },
+    {
+      "text": "draft Q3: rewrite existing tests for new behavior + add commitStepActive arg to runPreflightChecks",
+      "taskId": null,
+      "ts": "2026-04-23T04:32:45.725Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-23T05:12:41.154Z"
+  }
+}

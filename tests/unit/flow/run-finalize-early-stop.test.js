@@ -1,9 +1,8 @@
 /**
- * Tests for spec 211 finalize preflight additions:
- *   - no-commits early stop (R2)
- *   - dirty-worktree early stop (R4)
- *
- * These extend the existing preflight (git write access) without replacing it.
+ * Tests for spec 219 finalize preflight refinement (supersedes spec 211 R2/R4):
+ *   - commitStepActive=true: only fail when ahead==0 AND uncommitted==0 (no-commits)
+ *   - commitStepActive=false: fail when ahead==0 (no-commits) OR uncommitted>0 (dirty-worktree)
+ *   - spec-only mode (feature == base) bypasses all checks
  */
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
@@ -24,58 +23,112 @@ function init(dir) {
   runCmd("git", ["-C", dir, "commit", "-q", "-m", "init"]);
 }
 
-describe("runPreflightChecks — no-commits", () => {
+function checkoutFeature(dir) {
+  runCmd("git", ["-C", dir, "checkout", "-q", "-b", "feature"]);
+}
+
+function addFeatureCommit(dir, file = "b.txt") {
+  fs.writeFileSync(path.join(dir, file), "b");
+  runCmd("git", ["-C", dir, "add", "."]);
+  runCmd("git", ["-C", dir, "commit", "-q", "-m", "feat"]);
+}
+
+function dirtyWorktree(dir, file = "a.txt") {
+  fs.writeFileSync(path.join(dir, file), "modified");
+}
+
+describe("runPreflightChecks — commitStepActive=true (commit step in active steps)", () => {
   let dir;
-  beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), "fin-nc-")); init(dir); });
+  beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), "fin-ca-")); init(dir); });
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-  it("returns { ok: false, reason: 'no-commits' } when feature has no commits beyond base", () => {
-    runCmd("git", ["-C", dir, "checkout", "-b", "feature"]);
-    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature" });
+  it("returns { ok: true } when ahead==0 and uncommitted>0 (commit step will create first commit)", () => {
+    checkoutFeature(dir);
+    dirtyWorktree(dir);
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature", commitStepActive: true });
+    assert.equal(result.ok, true);
+  });
+
+  it("returns { ok: true } when ahead>0 and uncommitted>0 (commit step will absorb dirty)", () => {
+    checkoutFeature(dir);
+    addFeatureCommit(dir);
+    dirtyWorktree(dir);
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature", commitStepActive: true });
+    assert.equal(result.ok, true);
+  });
+
+  it("returns { ok: true } when ahead>0 and uncommitted==0 (normal case)", () => {
+    checkoutFeature(dir);
+    addFeatureCommit(dir);
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature", commitStepActive: true });
+    assert.equal(result.ok, true);
+  });
+
+  it("returns { ok: false, reason: 'no-commits' } when ahead==0 AND uncommitted==0 (truly nothing to do)", () => {
+    checkoutFeature(dir);
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature", commitStepActive: true });
     assert.equal(result.ok, false);
     assert.equal(result.reason, "no-commits");
     assert.equal(result.baseBranch, "main");
     assert.equal(result.featureBranch, "feature");
-    assert.equal(typeof result.hasUncommitted, "boolean");
-  });
-
-  it("returns { ok: true } when feature has commits beyond base", () => {
-    runCmd("git", ["-C", dir, "checkout", "-b", "feature"]);
-    fs.writeFileSync(path.join(dir, "b.txt"), "b");
-    runCmd("git", ["-C", dir, "add", "."]);
-    runCmd("git", ["-C", dir, "commit", "-q", "-m", "feat"]);
-    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature" });
-    assert.equal(result.ok, true);
+    assert.equal(result.hasUncommitted, false);
   });
 });
 
-describe("runPreflightChecks — dirty-worktree", () => {
+describe("runPreflightChecks — commitStepActive=false (commit step NOT in active steps)", () => {
   let dir;
-  beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), "fin-dw-")); init(dir); });
+  beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), "fin-ci-")); init(dir); });
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-  it("returns { ok: false, reason: 'dirty-worktree' } with uncommittedFiles when worktree is dirty", () => {
-    runCmd("git", ["-C", dir, "checkout", "-b", "feature"]);
-    fs.writeFileSync(path.join(dir, "b.txt"), "b");
-    runCmd("git", ["-C", dir, "add", "."]);
-    runCmd("git", ["-C", dir, "commit", "-q", "-m", "feat"]);
-    // Now dirty the worktree with an unstaged change.
-    fs.writeFileSync(path.join(dir, "a.txt"), "a-modified");
-    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature" });
+  it("returns { ok: false, reason: 'dirty-worktree' } when uncommitted>0 (no commit step to absorb)", () => {
+    checkoutFeature(dir);
+    addFeatureCommit(dir);
+    dirtyWorktree(dir);
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature", commitStepActive: false });
     assert.equal(result.ok, false);
     assert.equal(result.reason, "dirty-worktree");
     assert.ok(Array.isArray(result.uncommittedFiles));
     assert.ok(result.uncommittedFiles.includes("a.txt"));
   });
+
+  it("returns { ok: false, reason: 'dirty-worktree' } when ahead==0 and uncommitted>0", () => {
+    checkoutFeature(dir);
+    dirtyWorktree(dir);
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature", commitStepActive: false });
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, "dirty-worktree");
+    assert.ok(result.uncommittedFiles.includes("a.txt"));
+  });
+
+  it("returns { ok: false, reason: 'no-commits' } when ahead==0 AND uncommitted==0", () => {
+    checkoutFeature(dir);
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature", commitStepActive: false });
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, "no-commits");
+    assert.equal(result.hasUncommitted, false);
+  });
+
+  it("returns { ok: true } when ahead>0 and uncommitted==0 (normal case)", () => {
+    checkoutFeature(dir);
+    addFeatureCommit(dir);
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "feature", commitStepActive: false });
+    assert.equal(result.ok, true);
+  });
 });
 
-describe("runPreflightChecks — spec-only mode (R6)", () => {
+describe("runPreflightChecks — spec-only mode", () => {
   let dir;
   beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), "fin-so-")); init(dir); });
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-  it("returns { ok: true } when featureBranch == baseBranch (spec-only mode skips checks)", () => {
-    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "main" });
+  it("returns { ok: true, skipped: 'spec-only' } when featureBranch == baseBranch (commitStepActive=true)", () => {
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "main", commitStepActive: true });
+    assert.equal(result.ok, true);
+    assert.equal(result.skipped, "spec-only");
+  });
+
+  it("returns { ok: true, skipped: 'spec-only' } when featureBranch == baseBranch (commitStepActive=false)", () => {
+    const result = runPreflightChecks({ root: dir, baseBranch: "main", featureBranch: "main", commitStepActive: false });
     assert.equal(result.ok, true);
     assert.equal(result.skipped, "spec-only");
   });

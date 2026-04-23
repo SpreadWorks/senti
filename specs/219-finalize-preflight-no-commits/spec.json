@@ -1,0 +1,167 @@
+{
+  "goal": "`flow run finalize` の preflight が、commit step が処理すべきケース（コミット 0 件 + 未コミット差分あり、および dirty-worktree）まで弾く問題を解消し、commit step が想定通り初コミット作成・dirty 吸収を行えるようにする。",
+  "scope": {
+    "in": [
+      "src/flow/lib/run-finalize.js: preflight 判定関数の入力に commit step 実行可否を加え、判定マトリクスに従って結果を返すよう変更",
+      "src/flow/lib/run-finalize.js: 呼び出し側 (RunFinalizeCommand.execute) から activeSteps の commit 含有可否を渡すよう更新",
+      "tests/unit/flow/run-finalize-early-stop.test.js: 新仕様に合わせて期待値・ケースを書き換え (commit step active / inactive の 2 軸網羅)"
+    ],
+    "out": [
+      "commit / merge / sync / cleanup の各ステップ本体のロジック変更",
+      "commit メッセージのカスタマイズ機能",
+      "finalize の選択実行モードに関する他用途拡張",
+      "spec 211 の文言修正",
+      "tests/unit/flow/run-finalize-preflight.test.js (git write access 系) の変更"
+    ]
+  },
+  "constraints": [
+    "外部依存なし: Node.js 組み込みモジュールのみ使用",
+    "alpha 版ポリシー: 後方互換コードは書かない。旧 preflight シグネチャ・期待値は残さず置き換える",
+    "finalize 結果エンベロープの result / reason 値域は既存と互換: preflight_failed / no-commits / dirty-worktree を維持",
+    "CLI Migration Plan: `sdd-forge flow run finalize` の CLI 表面 (サブコマンド・オプション・引数) は不変。挙動変更は preflight の判定方針のみで、CLI 利用者への移行手順は不要。挙動差分は (1) commit step を含む実行 (mode=all 含む) で従来 preflight_failed (no-commits/dirty-worktree) だったケースが正常完了するようになる、(2) commit step を含まない選択実行 (mode=select かつ steps に 1 を含まない) では従来通り dirty-worktree / no-commits で停止、の 2 点。挙動変更は緩和方向であり、既存スクリプト・呼び出しコードの修正は不要。",
+    "コミットメッセージは英語で書く"
+  ],
+  "design_principles": [
+    "commit step が責任を持つ範囲は preflight で弾かない（責務分担）",
+    "事前検知 vs 事後失敗: commit step を含まない実行で dirty を放置すると merge / sync で原因不明のエラーになるため、事前に preflight で停止する方が原因特定が容易",
+    "真の no-op (ahead==0 かつ uncommitted==0) は引き続き弾く（誤操作防止）",
+    "判定式は 1 関数に集約し、呼び出し側に重複条件分岐を持ち込まない"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-finalize.js: finalize 実行モジュール本体。preflight 判定関数 runPreflightChecks と呼び出し側 RunFinalizeCommand.execute を保持"
+      },
+      {
+        "text": "tests/unit/flow/run-finalize-early-stop.test.js: preflight 判定の単体テスト。commit step active / inactive の 2 軸を網羅"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "RunFinalizeCommand.execute は activeSteps を組み立てた後、commit step (STEP_MAP=1) が含まれるか否かを boolean として preflight 判定関数に渡す"
+      },
+      {
+        "text": "preflight 判定関数は baseBranch / featureBranch / commitStepActive を入力に取り、{ok, reason?, baseBranch?, featureBranch?, hasUncommitted?, uncommittedFiles?, skipped?} を返す"
+      },
+      {
+        "text": "spec-only モード (feature == base) は従来通り最初に判定して { ok: true, skipped: 'spec-only' } を返す"
+      },
+      {
+        "text": "preflight が ok=false を返した場合、呼び出し側は従来通り result=preflight_failed エンベロープを組み立てて早期終了する"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "preflight 判定関数の入力に commitStepActive: boolean を追加して 1 関数で判定式を集約する"
+      },
+      {
+        "text": "判定マトリクス: commit step active のとき (ahead==0 && uncommitted==0) のみ no-commits で停止。それ以外は ok。commit step inactive のとき ahead==0 && uncommitted==0 → no-commits、uncommitted > 0 → dirty-worktree、ahead > 0 && uncommitted==0 → ok"
+      },
+      {
+        "text": "呼び出し側で commitStepActive を確定するタイミングは activeSteps 構築直後とする（dryRun でも同じ判定を通す）"
+      },
+      {
+        "text": "spec 211 で導入された runPreflightChecks の no-commits / dirty-worktree 早期停止は、本 spec で意味的に置き換わる（spec 211 自体の文言修正は out of scope、本 spec の Notes に記録）"
+      }
+    ]
+  },
+  "background": "spec 211 で finalize に preflight を追加し、コミットゼロのまま finalize を呼ばれた場合の空 commit 防止 (R2: no-commits) と dirty worktree 検知 (R4: dirty-worktree) を実装した。しかし commit step (STEP_MAP=1) は git add -A + 自動コミットメッセージで未コミット差分を取り込んで初コミット・追加コミットを作成する設計であるため、preflight が dirty / no-commits を弾くと commit step の仕事を奪うことになる。Issue #232 (board hash 5b26) は no-commits + uncommitted の組み合わせで踏むケース、board item abe0 は ahead>0 + dirty で踏む姉妹ケースであり、両方とも commit step が処理すべき領域を preflight が誤って拒否している。両分岐を一体的に扱うことで判定式を 1 度で正しく書ける。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When `flow run finalize` が commit step を含めて起動され (mode=all または mode=select かつ steps に 1 を含む)、if feature ブランチに未コミット差分が存在する then preflight は通過し commit step が初コミットまたは追加コミットを作成する shall。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "When `flow run finalize` が commit step を含めて起動され、if feature ブランチが ahead==0 かつ未コミット差分も無い then preflight は result=preflight_failed, reason=no-commits で停止する shall。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "When `flow run finalize` が commit step を含めずに起動され (mode=select かつ steps に 1 を含まない)、if feature ブランチに未コミット差分が存在する then preflight は result=preflight_failed, reason=dirty-worktree で停止し uncommittedFiles 配列を返却する shall。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "When `flow run finalize` が commit step を含めずに起動され、if feature ブランチが ahead==0 かつ未コミット差分も無い then preflight は result=preflight_failed, reason=no-commits で停止する shall。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "When preflight 判定関数が呼ばれ、if featureBranch == baseBranch (spec-only モード) then 全 preflight チェックを skip し { ok: true, skipped: 'spec-only' } を返す shall (既存挙動の維持)。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "When preflight 判定関数を実装するとき、入力シグネチャに commit step 実行可否を表す boolean を追加し、呼び出し側から activeSteps の commit 含有可否を渡す shall。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "When 上記挙動を検証するとき、tests/unit/flow/run-finalize-early-stop.test.js に commit step active / inactive の 2 軸を網羅する単体テストを整備し、全テストが PASS する shall。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "When preflight が ok=false (no-commits または dirty-worktree) を返し finalize が result=preflight_failed エンベロープで早期終了するとき、`sdd-forge flow run finalize` プロセスは非 0 の exit code で終了する shall (既存挙動の維持)。preflight が ok=true で finalize が正常完了する場合は exit code 0 とする shall。",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "未コミット差分ありかつ ahead==0 の feature ブランチで preflight 判定関数を commitStepActive=true で呼ぶと { ok: true } を返す (R1)",
+    "未コミット差分ありかつ ahead>0 の feature ブランチで preflight 判定関数を commitStepActive=true で呼ぶと { ok: true } を返す (R1)",
+    "ahead==0 かつ未コミット差分も無い feature ブランチで preflight 判定関数を commitStepActive=true で呼ぶと { ok: false, reason: 'no-commits', baseBranch, featureBranch, hasUncommitted: false } を返す (R2)",
+    "未コミット差分ありの feature ブランチで preflight 判定関数を commitStepActive=false で呼ぶと { ok: false, reason: 'dirty-worktree', uncommittedFiles: [...] } を返し uncommittedFiles に当該ファイルが含まれる (R3)",
+    "ahead==0 かつ未コミット差分も無い feature ブランチで preflight 判定関数を commitStepActive=false で呼ぶと { ok: false, reason: 'no-commits', ... } を返す (R4)",
+    "featureBranch == baseBranch の状態で preflight 判定関数を呼ぶと { ok: true, skipped: 'spec-only' } を返す (R5)",
+    "tests/unit/flow/run-finalize-early-stop.test.js の全テストが PASS する (R7)",
+    "tests/unit/flow/run-finalize-preflight.test.js (git write access 系) は変更なしで PASS する (Out of Scope の確認)"
+  ],
+  "clarifications": [
+    {
+      "q": "abe0 (dirty-worktree 分岐) も本 spec で同時修正するか？",
+      "a": "する。判定条件を一度で正しく書ける。Issue #232 本文も両分岐を一体で扱う方針を明記している。"
+    },
+    {
+      "q": "commit step を含まない実行 (mode=select かつ steps に 1 を含まない) の dirty-worktree 扱いは？",
+      "a": "条件分岐方式。commit step を含む時は緩和、含まない時は dirty-worktree で preflight 停止。事前に弾く方が原因が明確で、merge の事後エラーは状況依存で原因が分かりにくい。"
+    },
+    {
+      "q": "既存テストの扱いは？",
+      "a": "新仕様で書き換える。alpha 版・後方互換コードは書かない方針に従う。runPreflightChecks のシグネチャ変更に伴い既存呼び出しも更新する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "(A) dirty-worktree 分岐を完全撤廃する",
+      "reason": "拒否。シンプルだが commit step を含まない選択実行で merge が状況依存の理由で失敗するため、原因特定が困難になる。"
+    },
+    {
+      "option": "(B) commit step に dirty / no-commits を任せ、preflight は git write access のみに戻す",
+      "reason": "拒否。A と同じ問題。commit step を含まない選択実行で原因不明のエラーになる。"
+    },
+    {
+      "option": "(C) 採用案: commit step 実行有無で分岐",
+      "reason": "採用。責務分担が明確で、preflight の責務（後続ステップが安全に動かない状態を事前に弾く）に純化できる。"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/run-finalize.js"
+  ],
+  "authorized_test_modifications": [
+    {
+      "path": "tests/unit/flow/run-finalize-early-stop.test.js",
+      "reason": "ユーザー明示承認 (draft Q3)。runPreflightChecks のシグネチャ変更 (commitStepActive 引数追加) と判定マトリクス更新に伴い、commit step active / inactive の 2 軸を網羅するよう既存 it ブロックを書き換える。alpha 版方針 (後方互換コード不可) に従い旧期待値は残さない。"
+    }
+  ]
+}

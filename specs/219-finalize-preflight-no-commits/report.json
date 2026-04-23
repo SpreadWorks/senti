@@ -1,0 +1,59 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/219-finalize-preflight-no-commits/draft.md   |  47 +++\n specs/219-finalize-preflight-no-commits/flow.json  | 380 +++++++++++++++++++++\n .../issue-log.json                                 | 106 ++++++\n specs/219-finalize-preflight-no-commits/qa.md      |   9 +\n specs/219-finalize-preflight-no-commits/review.md  |  49 +++\n specs/219-finalize-preflight-no-commits/spec.json  | 167 +++++++++\n specs/219-finalize-preflight-no-commits/spec.md    | 105 ++++++\n .../tests/README.md                                |  21 ++\n src/flow/lib/run-finalize.js                       |  51 ++-\n tests/unit/flow/run-finalize-early-stop.test.js    | 119 +++++--\n 10 files changed, 1009 insertions(+), 45 deletions(-)",
+      "commits": [
+        "feat: feature/219-finalize-preflight-no-commits"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 4,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 280997,
+      "output": 12588,
+      "cacheRead": 161920,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 323831,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 81653
+        },
+        {
+          "phase": "gate",
+          "durationMs": 125183
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 36400
+        },
+        {
+          "phase": "review",
+          "durationMs": 80595
+        }
+      ]
+    },
+    "tests": {
+      "unit": 10,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 10
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/219-finalize-preflight-no-commits\n    10 files changed, 1009 insertions(+), 45 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 4\n    issue-log ................... 0\n    agent calls ................. 11\n    input tokens ................ 280,997\n    output tokens ............... 12,588\n    cache-read tokens ........... 161,920\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 323.8s\n      gate-draft ................ 81.7s\n      gate ...................... 125.2s\n      gate-impl ................. 36.4s\n      review .................... 80.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 10  integration 0  acceptance 0  total 10"
+}

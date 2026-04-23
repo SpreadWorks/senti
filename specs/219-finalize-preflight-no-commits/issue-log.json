@@ -1,0 +1,106 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — preflight判定の不備修正という単一の関心に集中しており、項目は同一問題系に属している。; Unambiguous Requirements — 判定マトリクスと条件分岐が具体的で、ケースごとの期待結果が検証可能。; Complete Context — commit step有無・ahead・uncommittedの条件ごとに期待結果（ok/fail）が対応付けられている。; No Hardcoded Secrets — ドラフト内にAPIキーやパスワード等の秘匿情報記載はない。; Prioritize Requirements — 要求項目が3件を超えるが、優先順位の明示がない。; Impact on Existing Features — 既存機能への影響あり/なしが明示され、影響範囲が列挙されている。; Present Recommendations with Reasoning — 各Qに対して推奨回答を先に示し、Issue方針や運用理由に基づく根拠が付いている。; Explore Before Asking — 未解決質問を残さず、既存コード箇所・テスト名・分岐仕様まで具体化している。; Proactively Raise Related Implications — spec 211文言との関係やテスト/API変更影響など関連含意を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — User Approval欄で最終判断として承認日時を明記している。; Capture Digressions in draft.md — 脱線した議論は示されておらず、この観点は実質的に非該当。; Draft Stays at Requirements Level — 関数名・引数追加・呼び出し実装・テスト書き換えなど実装レベル詳細が含まれている。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更は記載されておらず、移行計画要件は非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:34:27.124Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "要求項目が3件を超えるが、優先順位の明示がない。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "関数名・引数追加・呼び出し実装・テスト書き換えなど実装レベル詳細が含まれている。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: finalize preflight gating behavior and its directly related test updates.; Unambiguous Requirements — Requirements use concrete, testable conditions (commit step included/excluded, ahead state, dirty state, expected stop/pass outcomes).; Complete Context — Each requirement includes trigger context and explicit expected behavior (pass/stop with specific preflight reasons).; No Hardcoded Secrets — No source code secrets or credential values are present; article is inapplicable to this draft text.; Prioritize Requirements — More than three requirements are provided and clearly prioritized (R1-R5 with Must/Should and ordered list).; Impact on Existing Features — A dedicated impact section lists affected existing features and explicitly lists unaffected areas.; Present Recommendations with Reasoning — Q&A gives clear recommended answers and concise rationale (consistency of conditions, clearer failure cause, alpha policy).; Explore Before Asking — Cannot be verified from the draft alone whether docs/code exploration occurred before any user questioning.; Proactively Raise Related Implications — Draft proactively calls out downstream implications, including test expectation updates and spec 211 behavior note.; Confirm Brainstorm vs. Decision Before Critiquing — Document is presented as an approved decision draft, not critique of brainstorming ideas.; Capture Digressions in draft.md — No discussion transcript is provided, so digressions and their capture in draft.md cannot be assessed.; Draft Stays at Requirements Level — Scope section includes implementation-level detail by naming a specific function (`runPreflightChecks`), beyond pure requirements level.; Backward-Compatible CLI Interface — No command or option removal/semantic break is specified; behavior change is internal preflight policy.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:35:29.935Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Scope section includes implementation-level detail by naming a specific function (`runPreflightChecks`), beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec defines no concrete concern, so responsibility cannot be established.; Unambiguous Requirements — No requirements are provided to evaluate clarity or vagueness.; Complete Context — No requirements include trigger conditions and expected behavior.; REQ Diff-Verifiability — No verifiable requirements are present.; No Hardcoded Secrets — No source code or secrets are present in the content.; No Silent Error Swallowing — No implementation/error-handling code is present.; Prioritize Requirements — Fewer than four requirements are specified (none listed).; Impact on Existing Features — Impact on existing features is not stated, including explicit 'no impact'.; Bounded Resource Usage — No recursive/retry/bulk-processing design is specified.; Changes Require Test Coverage — No tests or justification for missing tests are included.; Spec Includes Test Strategy — No test strategy is described.; Synthesize Draft, Do Not Copy — Cannot assess synthesis vs copying without draft source content.; Record Unresolved Points as Open Questions — No fabricated resolutions are present; open questions remain empty.; Include 'Why This Approach' Rationale — No rationale ('why this approach') is provided.; Do Not Modify Existing Tests Without Approval — No test modifications are proposed in the content.; Backward-Compatible CLI Interface — No CLI command/option change is specified.; Exit Code Contract — No command behavior is specified; article is inapplicable to this content.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:40:27.600Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "Spec defines no concrete concern, so responsibility cannot be established."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "No requirements are provided to evaluate clarity or vagueness."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "No requirements include trigger conditions and expected behavior."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "No verifiable requirements are present."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not stated, including explicit 'no impact'."
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "No tests or justification for missing tests are included."
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "No test strategy is described."
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "No rationale ('why this approach') is provided."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: preflight decision logic around finalize commit-step responsibility.; Unambiguous Requirements — Requirements use concrete conditions and explicit expected outcomes/reason codes.; Complete Context — Each requirement pairs trigger/context (When/If) with expected behavior (shall).; REQ Diff-Verifiability — Acceptance criteria and required tests make PASS/FAIL decidable from code diff plus test results.; No Hardcoded Secrets — No secrets or credential literals are specified.; No Silent Error Swallowing — Spec does not introduce silent error-discarding behavior; failures are explicitly surfaced via preflight reasons.; Prioritize Requirements — More than three requirements are present and each includes explicit priority (must/should).; Impact on Existing Features — Impact on existing finalize/preflight behavior is explicitly described, including preserved and replaced behaviors.; Bounded Resource Usage — No recursive/retry/bulk-processing design is introduced in this scope.; Changes Require Test Coverage — Spec requires unit test updates and passing results for the changed behavior.; Spec Includes Test Strategy — Includes what to test (matrix/branches) and how (unit tests with explicit acceptance criteria).; Synthesize Draft, Do Not Copy — Cannot assess synthesis vs direct copying without the source draft text.; Record Unresolved Points as Open Questions — Open questions are explicitly tracked, and clarifications are documented rather than hidden assumptions.; Include 'Why This Approach' Rationale — Design principles and alternatives with rejection/adoption reasons provide clear rationale.; Do Not Modify Existing Tests Without Approval — Test modifications are explicitly authorized with scope and rationale.; Backward-Compatible CLI Interface — Behavior of existing finalize invocation is changed, but no migration guidance is provided.; Exit Code Contract — No change to exit-code semantics is proposed; failure signaling remains via existing failure path.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:43:43.278Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Behavior of existing finalize invocation is changed, but no migration guidance is provided."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: correcting finalize preflight gating around commit-step responsibility.; Unambiguous Requirements — Requirements define concrete conditions and expected outcomes (inputs, branches, reasons, returned fields).; Complete Context — Each requirement provides trigger/context (When/If) and expected behavior with shall.; REQ Diff-Verifiability — Pass/fail is framed through code diff plus unit-test outcomes and explicit acceptance criteria.; No Hardcoded Secrets — No secrets, tokens, or credentials are specified in the content.; No Silent Error Swallowing — No error-swallowing pattern is introduced or required by this spec.; Prioritize Requirements — Requirements are prioritized explicitly via must/should labels across all items.; Impact on Existing Features — Behavioral impact is explicitly described, including unchanged CLI surface and affected execution modes.; Bounded Resource Usage — No recursive/retry/bulk-processing design is introduced; boundedness concerns are not applicable here.; Changes Require Test Coverage — Spec requires updating unit tests and passing test results, including happy-path and branch cases.; Spec Includes Test Strategy — Test strategy is present via targeted test files, matrix coverage, and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot assess synthesis-vs-copying without the original draft source for comparison.; Record Unresolved Points as Open Questions — Open questions are explicitly tracked, and unresolved items are not presented as unknown hidden assumptions.; Include 'Why This Approach' Rationale — Rationale is documented through design principles and alternatives considered with adoption/rejection reasons.; Do Not Modify Existing Tests Without Approval — Test modification scope is explicitly authorized and limited to a named test file with reason.; Backward-Compatible CLI Interface — Spec states CLI command/options/args are unchanged and documents behavior-only change with no migration needed.; Exit Code Contract — Spec does not explicitly state non-zero exit-code behavior for failure outcomes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:44:38.195Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "Spec does not explicitly state non-zero exit-code behavior for failure outcomes."
+        }
+      ]
+    }
+  ]
+}

@@ -142,19 +142,28 @@ export async function runFinalizePreflight(root) {
 }
 
 /**
- * Inspect worktree for conditions that should stop finalize before any step runs:
- *   - no-commits: feature branch has no commits beyond base branch
- *   - dirty-worktree: uncommitted changes exist in the worktree
+ * Inspect worktree for conditions that should stop finalize before any step runs.
  *
- * Spec-only mode (featureBranch == baseBranch) skips these checks.
+ * The decision branches on `commitStepActive` because the commit step
+ * (git add -A + auto commit) is designed to absorb uncommitted changes and to
+ * create the first commit on a fresh feature branch. If the commit step will
+ * run, preflight must not reject states that the commit step is meant to
+ * handle.
  *
- * @param {{root: string, baseBranch: string, featureBranch: string}} opts
+ *   commitStepActive=true:  fail only when ahead==0 AND no uncommitted changes
+ *                           (truly nothing to commit and nothing to merge).
+ *   commitStepActive=false: fail when uncommitted changes exist (no commit
+ *                           step to absorb them) or when ahead==0.
+ *
+ * Spec-only mode (featureBranch == baseBranch) bypasses all checks.
+ *
+ * @param {{root: string, baseBranch: string, featureBranch: string, commitStepActive: boolean}} opts
  * @returns one of:
  *   { ok: true, skipped?: "spec-only" }
  *   { ok: false, reason: "no-commits", baseBranch, featureBranch, hasUncommitted }
  *   { ok: false, reason: "dirty-worktree", uncommittedFiles: string[] }
  */
-export function runPreflightChecks({ root, baseBranch, featureBranch }) {
+export function runPreflightChecks({ root, baseBranch, featureBranch, commitStepActive }) {
   if (featureBranch === baseBranch) {
     return { ok: true, skipped: "spec-only" };
   }
@@ -162,18 +171,31 @@ export function runPreflightChecks({ root, baseBranch, featureBranch }) {
   const uncommittedFiles = listUncommittedFiles({ cwd: root });
   const ahead = countCommitsBetween(baseBranch, featureBranch, { cwd: root });
 
+  if (commitStepActive) {
+    if (ahead === 0 && uncommittedFiles.length === 0) {
+      return {
+        ok: false,
+        reason: "no-commits",
+        baseBranch,
+        featureBranch,
+        hasUncommitted: false,
+      };
+    }
+    return { ok: true };
+  }
+
+  if (uncommittedFiles.length > 0) {
+    return { ok: false, reason: "dirty-worktree", uncommittedFiles };
+  }
+
   if (ahead === 0) {
     return {
       ok: false,
       reason: "no-commits",
       baseBranch,
       featureBranch,
-      hasUncommitted: uncommittedFiles.length > 0,
+      hasUncommitted: false,
     };
-  }
-
-  if (uncommittedFiles.length > 0) {
-    return { ok: false, reason: "dirty-worktree", uncommittedFiles };
   }
 
   return { ok: true };
@@ -346,11 +368,16 @@ export class RunFinalizeCommand extends FlowCommand {
     if (!dryRun) {
       await runFinalizePreflight(root);
 
-      // Early-stop checks: no-commits / dirty-worktree (spec 211).
+      // Early-stop checks: no-commits / dirty-worktree.
+      // commit step (STEP_MAP=1) absorbs uncommitted changes and creates the
+      // first commit, so when it is in the active set, preflight must not
+      // reject states it is designed to handle (spec 219; supersedes
+      // spec 211 R2/R4).
       const preflight = runPreflightChecks({
         root,
         baseBranch: state.baseBranch,
         featureBranch: state.featureBranch,
+        commitStepActive: activeSteps.has(1),
       });
       if (!preflight.ok) {
         const skippedSteps = {};
