@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T03:19:00.333Z",
+  "analyzedAt": "2026-04-23T03:27:46.540Z",
   "package": {
     "entries": [
       {
@@ -3338,9 +3338,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "8818088c0389d44d170cc0a8c7828489",
-        "lines": 1506,
-        "mtime": "2026-04-23T02:44:06.666Z",
+        "hash": "90411f1a335007f39dc30d8065e442d2",
+        "lines": 1584,
+        "mtime": "2026-04-23T03:27:46.253Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3366,7 +3366,10 @@
           "appendIssueLogFromGateError",
           "runGitDiff",
           "sectionAt",
+          "findUnresolvedMatch",
           "checkSpecText",
+          "checkSpecJson",
+          "walkStrings",
           "buildDraftFieldPattern",
           "checkDraftText",
           "buildGuardrailPrompt",
@@ -3433,6 +3436,7 @@
           "default",
           "resolveGateStepId",
           "checkSpecText",
+          "checkSpecJson",
           "checkDraftText",
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
@@ -3445,21 +3449,24 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
+        "summary": "Implements the flow gate execution pipeline that validates specs, diffs, and guardrail evaluations across multiple flow phases. It also defines the `RunGateCommand` CLI command that dispatches phase-specific gate behavior.",
+        "detail": "The module maps gate levels to allowed phases and enforces that combination before running checks, then builds pass/fail envelopes with next-step guidance. It includes rich validation for draft/spec text and spec JSON, unresolved placeholder detection, and AI guardrail response parsing with strict schema validation and explicit error types. For implementation phases, it parses git diffs to detect test-file edits, enforces authorization sections, and reports unused test-modification allowances. It tracks retry metrics and failure history in issue logs, computes git state fingerprints, and blocks repeated or no-progress failures using normalized evaluation signatures. The command class routes to draft/spec/task/integration handlers, loads flow context and target files, and appends gate outcomes or errors back into the flow issue log.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T03:19:55.267Z",
-          "attempts": 2
+          "processedAt": "2026-04-23T03:28:04.873Z",
+          "attempts": 1
         },
-        "summary": "Provides the main gate execution engine for flow phases, including spec/draft checks, guardrail evaluation, and retry controls. It is the central quality gate module for SDD flow transitions.",
-        "detail": "The module validates level-phase compatibility, inspects spec and draft text, and enforces formatting and semantic constraints. It builds guardrail prompts, parses strict JSON evaluation responses, and raises schema-specific errors for malformed AI outputs. It also analyzes diffs for test-change policy enforcement, authorized exceptions, and unused authorization warnings. Additional logic tracks retry history, detects repeated failures or no-progress states, and emits pass/fail reports through command-level orchestration.",
-        "chapter": "internal_design",
-        "role": "controller",
         "keywords": [
-          "quality gate",
+          "gate execution",
+          "flow command",
           "guardrail evaluation",
+          "schema validation",
+          "git diff analysis",
+          "test modification authorization",
           "retry budget",
-          "diff policy",
-          "test authorization",
-          "flow phase checks"
+          "issue log tracking",
+          "failure deduplication"
         ]
       },
       {
@@ -9281,9 +9288,9 @@
     ],
     "summary": {
       "total": 273,
-      "totalMethods": 877
+      "totalMethods": 880
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T03:19:55.267Z"
+  "enrichedAt": "2026-04-23T03:28:04.873Z"
 }
