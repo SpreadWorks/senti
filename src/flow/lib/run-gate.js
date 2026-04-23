@@ -17,8 +17,12 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import { assertOk } from "../../lib/process.js";
 import { runGit } from "../../lib/git-helpers.js";
+
+const execFileAsync = promisify(execFile);
 import { container } from "../../lib/container.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
@@ -85,6 +89,104 @@ function runGitDiff(args, errorMessage, cwd) {
   const res = runGit(["diff", ...args], { cwd });
   assertOk(res, errorMessage);
   return res.stdout;
+}
+
+const UNTRACKED_DEFAULT_MAX_FILES = 500;
+const UNTRACKED_DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1 MiB
+
+/**
+ * Synthesize a unified diff for every untracked file in `root` and return the
+ * concatenated diff text. Untracked-file omission in `git diff` is the root
+ * cause of spec 221 — a test-first new test file becomes invisible to
+ * gate-impl unless we splice it back in here.
+ *
+ * Read-only: uses `git ls-files --others --exclude-standard` for enumeration
+ * and `git diff --no-index /dev/null <path>` for synthesis. Neither mutates
+ * the index or working tree (REQ-4 / REQ-5).
+ *
+ * Exit-code contract for `git diff --no-index`:
+ *   - 0 → no differences (impossible here since we compare against /dev/null
+ *         for a non-empty file, but accepted for completeness)
+ *   - 1 → differences present (the normal, expected case)
+ *   - ≥2 (or signal / killed) → real git error → re-throw via `assertOk`
+ *
+ * Bounded resource usage: refuses to process more than `maxFiles` files or
+ * any single file larger than `maxFileSize` bytes (REQ-6). Exceeding either
+ * limit throws an Error tagged with `code = "UNTRACKED_LIMIT_EXCEEDED"`.
+ *
+ * @param {string} root absolute path to the repository (or worktree) root
+ * @param {{maxFiles?: number, maxFileSize?: number}} [options]
+ * @returns {Promise<string>} concatenated unified diff text, or "" if none
+ */
+export async function collectUntrackedDiff(root, options = {}) {
+  const maxFiles = options.maxFiles ?? UNTRACKED_DEFAULT_MAX_FILES;
+  const maxFileSize = options.maxFileSize ?? UNTRACKED_DEFAULT_MAX_FILE_SIZE;
+
+  // Single async git invocation — not in any loop, so no bulk-path concern.
+  let listStdout;
+  try {
+    ({ stdout: listStdout } = await execFileAsync(
+      "git",
+      ["ls-files", "--others", "--exclude-standard", "-z"],
+      { cwd: root },
+    ));
+  } catch (err) {
+    const wrapped = new Error(`failed to list untracked files: ${err.message}`);
+    wrapped.cause = err;
+    throw wrapped;
+  }
+  // -z output: NUL-separated, no trailing entry
+  const files = listStdout.split("\0").filter((p) => p.length > 0);
+  if (files.length === 0) return "";
+
+  if (files.length > maxFiles) {
+    const err = new Error(
+      `untracked file count ${files.length} exceeds limit ${maxFiles}`,
+    );
+    err.code = "UNTRACKED_LIMIT_EXCEEDED";
+    throw err;
+  }
+
+  // Stat every candidate in parallel (avoids serial sync I/O in this loop)
+  // and enforce per-file size limits before invoking git.
+  const sizes = await Promise.all(
+    files.map((rel) => fs.promises.stat(path.join(root, rel)).then((s) => s.size)),
+  );
+  for (let i = 0; i < files.length; i++) {
+    if (sizes[i] > maxFileSize) {
+      const err = new Error(
+        `untracked file ${files[i]} is ${sizes[i]} bytes, exceeds limit ${maxFileSize}`,
+      );
+      err.code = "UNTRACKED_LIMIT_EXCEEDED";
+      throw err;
+    }
+  }
+
+  // Run every per-file `git diff --no-index` in parallel. Async execFile
+  // avoids blocking on per-file synchronous I/O when the untracked set
+  // grows. `git diff --no-index` exits 1 when differences exist (the
+  // expected outcome here); execFileAsync rejects on non-zero, so we
+  // resolve that rejection only for the well-defined exit-1 case and
+  // re-throw anything else as a real git failure.
+  const parts = await Promise.all(files.map(async (rel) => {
+    try {
+      const { stdout } = await execFileAsync(
+        "git",
+        ["diff", "--no-index", "--no-color", "--", "/dev/null", rel],
+        { cwd: root, maxBuffer: maxFileSize * 4 },
+      );
+      return stdout;
+    } catch (err) {
+      // Differences-present is signalled as exit code 1 — accept it.
+      if (err && err.code === 1 && typeof err.stdout === "string") return err.stdout;
+      const wrapped = new Error(
+        `failed to synthesize untracked diff for ${rel}: ${err.message}`,
+      );
+      wrapped.cause = err;
+      throw wrapped;
+    }
+  }));
+  return parts.join("");
 }
 
 function sectionAt(lines, lineIdx) {
@@ -1476,7 +1578,10 @@ export class RunGateCommand extends FlowCommand {
 
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
     const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", root);
-    const diff = committed + uncommitted;
+    // spec 221: include untracked new files so test-first additions are
+    // visible to the diff-based gate evaluation.
+    const untracked = await collectUntrackedDiff(root);
+    const diff = committed + uncommitted + untracked;
 
     if (!diff.trim()) {
       return gateFail(level, phase, specPath, [], [

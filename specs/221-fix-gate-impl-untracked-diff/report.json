@@ -1,0 +1,70 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/221-fix-gate-impl-untracked-diff/draft.md    |  57 +++\n specs/221-fix-gate-impl-untracked-diff/flow.json   | 447 +++++++++++++++++++++\n .../issue-log.json                                 | 147 +++++++\n specs/221-fix-gate-impl-untracked-diff/qa.md       |   9 +\n specs/221-fix-gate-impl-untracked-diff/review.md   |  41 ++\n specs/221-fix-gate-impl-untracked-diff/spec.json   | 160 ++++++++\n specs/221-fix-gate-impl-untracked-diff/spec.md     | 103 +++++\n .../tests/README.md                                |  45 +++\n src/flow/lib/run-gate.js                           | 107 ++++-\n tests/unit/flow/gate-untracked-diff.test.js        | 224 +++++++++++\n 10 files changed, 1339 insertions(+), 1 deletion(-)",
+      "commits": [
+        "feat: feature/221-fix-gate-impl-untracked-diff"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "実装コードとテストの範囲では REQ-1〜REQ-6 はすべて満たしている。未計画変更は主に specs 配下のドキュメント/運用ログ追加。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 406845,
+      "output": 13269,
+      "cacheRead": 172672,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 15,
+      "durationMs": 477059,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 105590
+        },
+        {
+          "phase": "spec",
+          "durationMs": 14600
+        },
+        {
+          "phase": "gate",
+          "durationMs": 66986
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 218350
+        },
+        {
+          "phase": "review",
+          "durationMs": 71533
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2154,
+      "integration": 261,
+      "acceptance": 0,
+      "total": 2415
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/221-fix-gate-impl-untracked-diff\n    10 files changed, 1339 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 3\n    agent calls ................. 15\n    input tokens ................ 406,845\n    output tokens ............... 13,269\n    cache-read tokens ........... 172,672\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 477.1s\n      gate-draft ................ 105.6s\n      spec ...................... 14.6s\n      gate ...................... 67.0s\n      gate-impl ................. 218.3s\n      review .................... 71.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2154  integration 261  acceptance 0  total 2415"
+}

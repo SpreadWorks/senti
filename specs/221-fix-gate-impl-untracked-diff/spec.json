@@ -1,0 +1,160 @@
+{
+  "goal": "gate-impl / gate-integration の diff ベース評価が untracked な新規ファイルを見落とす不具合を修正し、test-first フローで作成された新規テストファイルが gate に必ず反映されるようにする。",
+  "background": "`src/flow/lib/run-gate.js` の `executeDiffBasedGate` (task-impl, integration から呼ばれる) は、評価用 diff を `git diff baseBranch...HEAD` (committed) と `git diff HEAD` (uncommitted tracked) の合成で構築している。両者とも untracked ファイルを出力しないため、新規追加された test ファイル / src ファイルが diff に現れない。結果として gate-impl は「test 追加が見当たらない」「実装変更しか見えない」状態となり、test-first フローを正しく評価できず FAIL を返す。auto モードでは retry budget を浪費し、AI 側からは原因が見えない (issue #238)。\n\n## Test Strategy\n- Unit: 新規ヘルパー (`src/flow/lib/run-gate.js` 内 export) の純粋関数テスト。tmp dir に git init して untracked test/src/zero/mixed の 4 シナリオを検証 (AI 呼び出し不要)。\n- Regression: 既存 `tests/unit/flow/lib/run-gate.test.js` (もしくは関連 unit) を含む全 unit + integration が PASS することを確認 (baseline 2144 unit + 261 integration を維持)。\n- Agent tests: 変更対象なし (`src/lib/agent.js` 等の AI 経路に変更なし)。\n\n## Migration Plan\n- 破壊的 CLI 変更なし。`flow run gate --phase task-impl` / `--phase integration` の挙動は untracked を取り込むようになるが、外部インターフェース (引数・出力 envelope) は不変。既存スクリプト・skill の変更不要。",
+  "scope": {
+    "in": [
+      "`src/flow/lib/run-gate.js` の diff 収集ロジックに untracked ファイル取り込みを追加",
+      "取り込み処理を純粋関数として切り出し (export して unit test 可能にする)",
+      "新規 unit test の追加"
+    ],
+    "out": [
+      "task-spec フェーズ (diff を使わない)",
+      "preflight 警告 / git add -N の自動実行",
+      ".gitignore ルール変更",
+      "gate 以外のコマンドにおける diff 収集"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールのみ使用 (外部依存禁止)",
+    "alpha 版ポリシーにより後方互換コードは保持しない",
+    "git の index / 作業ツリー / コミット履歴に永続的な変更を加えない (read-only)",
+    "出力 diff は標準 unified diff 形式を維持し、後段の `parseDiffHunks` / `checkTestChanges` を変更しない",
+    "既存テストは変更せず追加で拡張する",
+    "untracked ファイルの取り込みは上限件数 500 / ファイルあたり上限サイズ 1 MiB を超えた場合に gate を FAIL させる (誤って巨大ファイル群が untracked のまま gate を回す事故を防ぐ)"
+  ],
+  "design_principles": [
+    "untracked 取り込みを `executeDiffBasedGate` から分離した純粋関数として表現 (深いモジュール / 単一責務)",
+    "untracked テスト/src を区別せず一様に取り込む (対称性)",
+    "副作用ゼロ: 読み取りのみで完結",
+    "要件優先順位: REQ-1=REQ-2 (must, 主目的の不具合解消) > REQ-3=REQ-4=REQ-5=REQ-6 (should, 非破壊性・副作用ゼロ・純粋性・リソース上限)"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/run-gate.js`: `executeDiffBasedGate` 内の diff 収集箇所 (現行 line 1433-1435) を新規ヘルパー呼び出しに置き換え"
+      },
+      {
+        "text": "`src/flow/lib/run-gate.js` 新規 export ヘルパー: untracked ファイルを列挙し、各ファイルを /dev/null 比較の diff 文字列として合成して返す純粋関数"
+      },
+      {
+        "text": "`tests/unit/flow/gate-untracked-diff.test.js` (新規): ヘルパーの 4 シナリオ unit test"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "`executeDiffBasedGate(ctx, root, level, phase, skipGuardrail)` 開始"
+      },
+      {
+        "text": "committed diff = `git diff baseBranch...HEAD`"
+      },
+      {
+        "text": "uncommitted diff = `git diff HEAD`"
+      },
+      {
+        "text": "NEW: untracked diff = ヘルパー関数呼び出し (`git ls-files --others --exclude-standard -z` で列挙 → 各ファイルを `git diff --no-index --no-color -- /dev/null <path>` で diff 化)"
+      },
+      {
+        "text": "合成 diff = committed + uncommitted + untracked"
+      },
+      {
+        "text": "既存ロジック (`!diff.trim()` チェック、`parseAuthorizedTestModificationsFromJson`、`checkTestChanges`、AI guardrail 評価) にそのまま渡す"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "列挙コマンド: `git ls-files --others --exclude-standard -z` で NUL 区切り (パス内 newline 安全)"
+      },
+      {
+        "text": "各ファイルの diff 化: `git diff --no-index --no-color -- /dev/null <path>` (副作用なし、unified diff 形式、`parseDiffHunks` がそのまま処理可能)"
+      },
+      {
+        "text": "exit code: `git diff --no-index` は差分ありで exit 1 を返すが、これは正常応答として stdout のみ採用する (失敗扱いにしない)"
+      },
+      {
+        "text": "Why this approach: issue #238 の根本原因は diff 収集の不完全性であり、preflight 警告 (代替案 A) は AI auto モードで無視される構造的問題を解決しない。`git add -N` 自動適用 (代替案 B) は共有 git 状態への副作用が発生する。`git diff --no-index` は副作用ゼロで標準 unified diff を返し、後段ロジック変更不要"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "priority": "must",
+      "desc": "When `executeDiffBasedGate` が phase task-impl または integration で呼ばれ、worktree に untracked ファイル (`.gitignore` 除外を除く) が存在する場合, shall 当該ファイルの全行が新規追加 (`+` のみ) として diff 文字列に含まれる。",
+      "status": "done"
+    },
+    {
+      "id": "REQ-2",
+      "priority": "must",
+      "desc": "When 合成 diff が `parseDiffHunks` / `checkTestChanges` に渡される場合, shall 標準 unified diff 形式の解析が正しく完了し、テスト改変検知ルール (multi-line `+` only hunks → PASS) に従って判定される。",
+      "status": "done"
+    },
+    {
+      "id": "REQ-3",
+      "priority": "should",
+      "desc": "When untracked ファイルが 0 件の場合, shall 合成 diff の内容は従来 (committed + uncommitted) と完全一致する。",
+      "status": "done"
+    },
+    {
+      "id": "REQ-4",
+      "priority": "should",
+      "desc": "When 本機能が実行される間, shall git index / 作業ツリー / コミット履歴に永続的な変更が加わらない (`git status --porcelain` 出力が処理前後で同一)。",
+      "status": "done"
+    },
+    {
+      "id": "REQ-5",
+      "priority": "should",
+      "desc": "When untracked 取り込みヘルパーが単独で呼ばれる場合, shall 純粋関数として `(root)` を入力に diff 文字列を返し、ヘルパー内部から外部状態に書き込まない。",
+      "status": "done"
+    },
+    {
+      "id": "REQ-6",
+      "priority": "should",
+      "desc": "When untracked ファイルの件数が 500 を超える、または個別ファイルサイズが 1 MiB を超える場合, shall ヘルパーは gate-impl の FAIL に繋がる Error を throw し (`UNTRACKED_LIMIT_EXCEEDED`)、診断メッセージに該当件数/サイズ/上限値を含める。",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC-1 (REQ-1,REQ-5): 新規 unit test `tests/unit/flow/gate-untracked-diff.test.js` で、tmp dir に git init し untracked テストファイル 1 件を作成 → ヘルパー呼び出しで `+` 行を含む diff 文字列が返ることを確認する。",
+    "AC-2 (REQ-1): 同 unit test で untracked src ファイル 1 件のみのケースも検証し、テスト/src を区別せず取り込まれることを確認する。",
+    "AC-3 (REQ-3): 同 unit test で untracked 0 件のケースを検証し、ヘルパーが空文字列を返すことを確認する。",
+    "AC-4 (REQ-2): 同 unit test で untracked と tracked-modified が混在するケースを検証し、ヘルパー戻り値 + 既存 diff の合成結果が `parseDiffHunks` で正しくパースされることを確認する。",
+    "AC-5 (REQ-4): 同 unit test でヘルパー呼び出し前後の `git status --porcelain` 出力が一致することを assert する。",
+    "AC-6 (REQ-6): 同 unit test で 501 件の untracked ファイルを作成すると `UNTRACKED_LIMIT_EXCEEDED` の Error が throw され、メッセージに件数と上限が含まれることを確認する。",
+    "AC-7 (REQ-6): 同 unit test で 1 MiB + 1 byte サイズの untracked ファイルを作成すると同種 Error が throw され、メッセージにサイズと上限が含まれることを確認する。",
+    "AC-8 (regression): `npm test` が PASS する (baseline 2144 unit + 261 integration を維持)。"
+  ],
+  "authorized_test_modifications": [],
+  "implementationTargets": [
+    "src/flow/lib/run-gate.js",
+    "tests/unit/flow/gate-untracked-diff.test.js"
+  ],
+  "clarifications": [
+    {
+      "q": "既存の committed/uncommitted diff と untracked diff の合成順は？",
+      "a": "committed → uncommitted → untracked の順。既存の前 2 者の出力順を変えず末尾に追加する。"
+    },
+    {
+      "q": "untracked が 1 件もない場合の挙動は？",
+      "a": "ヘルパーは空文字列を返す。合成結果は変化せず、既存の `!diff.trim()` チェックも変わらない。"
+    },
+    {
+      "q": "`git diff --no-index` は exit code 1 を返す (差分あり) が、これを失敗扱いにしないか？",
+      "a": "しない。新規ファイル比較では差分あり = exit 1 が正常応答であり、ヘルパー内で stdout のみを採用する。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "preflight 警告のみ: gate 開始時に untracked の test glob を検出して警告し `git add -N` を促す",
+      "reason": "却下 (draft Q2)。AI auto モードで警告が無視されるリスクが高く、issue の主目的「retry 浪費の防止」に対する確実性が低い"
+    },
+    {
+      "option": "`git add -N` を自動適用: gate 内で intent-to-add を実行し index を変更",
+      "reason": "却下。共有 git 状態を変更する副作用があり、project memory `feedback_no_shared_repo_git_ops.md` の原則に反する。後始末コードも増える"
+    },
+    {
+      "option": "テストファイルのみ untracked 取り込み: glob でフィルタ",
+      "reason": "却下 (draft Q4)。フィルタ条件のメンテが必要、untracked な src 新規ファイルも同じ症状を引き起こすため対称性が崩れる"
+    }
+  ],
+  "open_questions": []
+}

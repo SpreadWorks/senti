@@ -1,0 +1,147 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one bugfix concern: missing untracked files in gate diff evaluation.; Unambiguous Requirements — Scope and decisions are concrete and testable (specific commands, phases, and expected diff behavior).; Complete Context — Several requirement-like statements are not consistently expressed as explicit trigger-condition plus expected behavior pairs.; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are present in the draft content.; Prioritize Requirements — Multiple requirement items are listed, but no explicit priority ordering is provided.; Impact on Existing Features — Draft explicitly lists affected existing features and unaffected areas.; Present Recommendations with Reasoning — Q&A gives recommendations, but basis is not explicitly tied to docs/, guardrail principles, or existing code patterns for each question.; Explore Before Asking — Cannot verify from the draft alone whether docs/code exploration was performed before asking questions.; Proactively Raise Related Implications — Related implications are proactively captured via scope boundaries and feature impact notes.; Confirm Brainstorm vs. Decision Before Critiquing — Content is presented as an approved decision draft, not as critique of brainstorming ideas.; Capture Digressions in draft.md — No visible digression in the provided draft content requiring capture.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific functions/commands and design approach) beyond pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:42:08.173Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirement-like statements are not consistently expressed as explicit trigger-condition plus expected behavior pairs."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Multiple requirement items are listed, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A gives recommendations, but basis is not explicitly tied to docs/, guardrail principles, or existing code patterns for each question."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific functions/commands and design approach) beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays focused on one concern: fixing untracked-file handling in gate diff evaluation.; Unambiguous Requirements — Requirements are mostly written as verifiable conditions (When/shall) with concrete expected outcomes.; Complete Context — Each listed requirement includes both a trigger condition and an expected shall-behavior.; No Hardcoded Secrets — No secrets (keys/tokens/passwords) are present; this is a requirements draft, not credential-bearing code.; Prioritize Requirements — More than three requirements are present and explicit priority is provided (P1/P2 and priority order).; Impact on Existing Features — The draft explicitly lists impacted existing features and explicitly lists unaffected areas.; Present Recommendations with Reasoning — Each Q&A provides a recommended answer first and includes concise rationale tied to issue context, project rules, or existing patterns.; Explore Before Asking — Questions are answered with cited internal context (issue text, project memory, existing code patterns), indicating prior exploration.; Proactively Raise Related Implications — Related implications are proactively captured (side effects, symmetric src handling, and feature impact).; Confirm Brainstorm vs. Decision Before Critiquing — The draft records explicit user approval and decision confirmation, indicating it is treated as a finalized decision context.; Capture Digressions in draft.md — No runtime discussion history is provided to determine whether any digressions occurred and were captured.; Draft Stays at Requirements Level — The draft includes implementation-level detail (e.g., specific git diff method and unit-test extraction strategy), exceeding pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:43:31.694Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft includes implementation-level detail (e.g., specific git diff method and unit-test extraction strategy), exceeding pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; overview.data_flow[2]: must be object, got string; overview.data_flow[3]: must be object, got string; overview.data_flow[4]: must be object, got string; overview.data_flow[5]: must be object, got string; overview.decisions[0]: must be object, got string; overview.decisions[1]: must be object, got string; overview.decisions[2]: must be object, got string; overview.decisions[3]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].priority: must be one of enum [must, should, nice-to-have], got \"P1\"; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].priority: must be one of enum [must, should, nice-to-have], got \"P1\"; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].priority: must be one of enum [must, should, nice-to-have], got \"P2\"; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].priority: must be one of enum [must, should, nice-to-have], got \"P2\"; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].priority: must be one of enum [must, should, nice-to-have], got \"P2\"; requirements[4].text: unknown field; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; alternatives_considered[2]: must be object, got string",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:47:32.128Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: including untracked files in gate diff evaluation.; Unambiguous Requirements — Requirements are written with concrete conditions and expected outcomes, with acceptance criteria to verify them.; Complete Context — Each listed requirement includes a trigger context (When/If) and a shall-behavior.; REQ Diff-Verifiability — PASS/FAIL is framed through code diff plus explicit unit/regression test results, without future extensibility guarantees.; No Hardcoded Secrets — No secrets or credential literals are specified in this content.; No Silent Error Swallowing — This spec does not introduce or require silent error swallowing behavior.; Prioritize Requirements — More than three requirements are present and explicit priority order is provided (must/should and ordering note).; Impact on Existing Features — Impact is explicitly stated: behavior changes to include untracked diffs while CLI interface remains unchanged.; Bounded Resource Usage — Untracked file processing has no explicit upper bound on file count/size, so resource usage is effectively unbounded.; Changes Require Test Coverage — Spec includes new unit tests and regression coverage, including happy-path scenarios.; Spec Includes Test Strategy — A dedicated Test Strategy section defines what to test and how.; Synthesize Draft, Do Not Copy — Cannot determine whether content was synthesized vs copied because the source draft is not provided.; Record Unresolved Points as Open Questions — Open questions are explicitly represented, and unresolved items are not hidden.; Include 'Why This Approach' Rationale — Rationale is included in the 'Why this approach' decision entry.; Do Not Modify Existing Tests Without Approval — Spec explicitly states existing tests will not be modified and only additional tests will be added.; Backward-Compatible CLI Interface — No breaking CLI change is proposed, and a migration-plan section explicitly states interface compatibility.; Exit Code Contract — No CLI failure contract change is introduced; noted exit code 1 case is documented as normal diff-present behavior, not a failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:49:38.102Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Untracked file processing has no explicit upper bound on file count/size, so resource usage is effectively unbounded."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — `collectUntrackedDiff` and diff concatenation were added, but the required new unit test file is absent in the diff, and regression evidence is incomplete (`head` shows only `{\"unit\":10}` vs baseline unit+integration totals), so full spec compliance is not demonstrated.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:02:41.128Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "`collectUntrackedDiff` and diff concatenation were added, but the required new unit test file is absent in the diff, and regression evidence is incomplete (`head` shows only `{\"unit\":10}` vs baseline unit+integration totals), so full spec compliance is not demonstrated."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: test-summary contained only unit count (10), AI gate-impl complained that integration/acceptance evidence was missing relative to baseline",
+      "trigger": "gate-impl AI evaluation flagged 'regression evidence is incomplete'",
+      "resolution": "set --unit 2154 --integration 261 --acceptance 0 to match baseline shape (npm test outputs both unit and integration totals)",
+      "taskId": null,
+      "timestamp": "2026-04-23T08:03:33.916Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff adds exported untracked-diff synthesis (`collectUntrackedDiff`) using `git ls-files --others --exclude-standard -z` and `git diff --no-index /dev/null`, enforces 500-file/1MiB limits with `UNTRACKED_LIMIT_EXCEEDED`, and appends untracked output to committed+uncommitted diff in gate evaluation; test evidence shows baseline-preserving integration count and increased unit coverage with no reported new failures.; No Hardcoded Secrets — Diff adds no API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — `collectUntrackedDiff` accepts any `git diff --no-index` exit status and uses stdout without checking/raising unexpected failures, silently discarding command errors.; Bounded Resource Usage — Added explicit bounds for untracked file count (500) and per-file size (1 MiB), with enforced error on limit exceed.; No Sensitive Data in Logs — No new logging of sensitive data is introduced in added/modified lines.; No Disabling Existing Tests — Diff does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime/test-failure and user-notification evidence not present in the provided diff/content.; Flag Tests That Become Irrelevant — Requires evidence of feature-driven test obsolescence handling outside code diff alone.; Exit Code Contract — New logic treats all `git diff --no-index` non-zero exits as non-failures, which can mask real command failure instead of signaling error.; No Synchronous I/O in Hot Paths — `fs.statSync` is executed inside a loop over potentially many files, introducing synchronous I/O in a bulk-processing path.; Validate User Input at Entry Point — Changes do not introduce new CLI/stdin entry-point handling; article is not implicated by this diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:05:25.574Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "`collectUntrackedDiff` accepts any `git diff --no-index` exit status and uses stdout without checking/raising unexpected failures, silently discarding command errors."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "New logic treats all `git diff --no-index` non-zero exits as non-failures, which can mask real command failure instead of signaling error."
+        },
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "`fs.statSync` is executed inside a loop over potentially many files, introducing synchronous I/O in a bulk-processing path."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: gate-impl flagged silent error swallowing in collectUntrackedDiff and synchronous fs.statSync in loop",
+      "trigger": "gate-impl AI evaluation FAIL on no-silent-error-swallowing, exit-code-contract, no-synchronous-io-in-hot-paths",
+      "resolution": "made collectUntrackedDiff async; replaced fs.statSync loop with parallel fs.promises.stat via Promise.all; added explicit exit-code check (status 0 or 1 = OK, others throw via assertOk). Updated tests to await the async helper. Wired await at the call site.",
+      "taskId": null,
+      "timestamp": "2026-04-23T08:11:39.831Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff adds untracked unified-diff collection to gate (committed+uncommitted+untracked), exports a pure helper, enforces 500 files/1 MiB limits with UNTRACKED_LIMIT_EXCEEDED, and includes new unit coverage; baseline/head test summary shows no indicated regression.; No Hardcoded Secrets — Added lines contain no API keys, passwords, tokens, or other embedded secrets.; No Silent Error Swallowing — Errors are surfaced via throw/assertOk; no empty catch or silent discard was introduced in added lines.; Bounded Resource Usage — Added logic enforces explicit bounds (max 500 files, max 1 MiB per file) and throws on limit exceedance.; No Sensitive Data in Logs — No logging statements were added; only error construction and control flow were introduced.; No Disabling Existing Tests — Diff adds runtime code only; no added/modified lines skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Cannot be evaluated from static diff alone; requires runtime evidence of test-failure handling/escalation behavior.; Flag Tests That Become Irrelevant — Cannot be evaluated from this diff; no runtime/user-communication evidence about obsolete tests is provided.; Exit Code Contract — Added code treats real git errors as failures (assert/throw) and only accepts exit 1 for expected diff-present semantics.; No Synchronous I/O in Hot Paths — Added bulk loop calls synchronous git execution per file (`runGit(...)` inside `for (const rel of files)`), introducing synchronous I/O in a hot/bulk path.; Validate User Input at Entry Point — Inapplicable to this diff scope: added lines do not introduce new CLI/stdin entry-point handling.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:12:27.171Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "Added bulk loop calls synchronous git execution per file (`runGit(...)` inside `for (const rel of files)`), introducing synchronous I/O in a hot/bulk path."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: removed last synchronous I/O — runGit (sync execFileSync) inside loop replaced with parallel execFileAsync",
+      "trigger": "gate-impl AI evaluation FAIL on no-synchronous-io-in-hot-paths (round 2)",
+      "resolution": "imported execFile + util.promisify, ran every per-file git diff --no-index in parallel via Promise.all. exit code 1 (diff present) is decoded from execFile rejection.code; other rejections are wrapped and re-thrown.",
+      "taskId": null,
+      "timestamp": "2026-04-23T08:15:55.004Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: fix: gate-impl flagged silent error swallowing in collectUntrackedDiff and synchronous fs.statSync in loop\n  attempt 2: REQ-SPEC — Diff adds untracked unified-diff collection to gate (committed+uncommitted+untracked), exports a pure helper, enforces 500 files/1 MiB limits with UNTRACKED_LIMIT_EXCEEDED, and includes new unit coverage; baseline/head test summary shows no indicated regression.; No Hardcoded Secrets — Added lines contain no API keys, passwords, tokens, or other embedded secrets.; No Silent Error Swallowing — Errors are surfaced via throw/assertOk; no empty catch or silent discard was introduced in added lines.; Bounded Resource Usage — Added logic enforces explicit bounds (max 500 files, max 1 MiB per file) and throws on limit exceedance.; No Sensitive Data in Logs — No logging statements were added; only error construction and control flow were introduced.; No Disabling Existing Tests — Diff adds runtime code only; no added/modified lines skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Cannot be evaluated from static diff alone; requires runtime evidence of test-failure handling/escalation behavior.; Flag Tests That Become Irrelevant — Cannot be evaluated from this diff; no runtime/user-communication evidence about obsolete tests is provided.; Exit Code Contract — Added code treats real git errors as failures (assert/throw) and only accepts exit 1 for expected diff-present semantics.; No Synchronous I/O in Hot Paths — Added bulk loop calls synchronous git execution per file (`runGit(...)` inside `for (const rel of files)`), introducing synchronous I/O in a hot/bulk path.; Validate User Input at Entry Point — Inapplicable to this diff scope: added lines do not introduce new CLI/stdin entry-point handling.\n  attempt 3: fix: removed last synchronous I/O — runGit (sync execFileSync) inside loop replaced with parallel execFileAsync\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T08:15:59.757Z"
+    }
+  ]
+}

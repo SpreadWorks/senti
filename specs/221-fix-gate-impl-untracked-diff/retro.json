@@ -1,0 +1,78 @@
+{
+  "spec": "specs/221-fix-gate-impl-untracked-diff/spec.json",
+  "date": "2026-04-23T10:12:24.512Z",
+  "requirements": [
+    {
+      "desc": "When `executeDiffBasedGate` が phase task-impl または integration で呼ばれ、worktree に untracked ファイル (`.gitignore` 除外を除く) が存在する場合, shall 当該ファイルの全行が新規追加 (`+` のみ) として diff 文字列に含まれる。",
+      "status": "done",
+      "note": "`executeDiffBasedGate` で `collectUntrackedDiff(root)` を合成し、`git ls-files --others --exclude-standard` + `git diff --no-index /dev/null` で untracked を `+` 行として取り込んでいる。"
+    },
+    {
+      "desc": "When 合成 diff が `parseDiffHunks` / `checkTestChanges` に渡される場合, shall 標準 unified diff 形式の解析が正しく完了し、テスト改変検知ルール (multi-line `+` only hunks → PASS) に従って判定される。",
+      "status": "done",
+      "note": "生成形式は unified diff のままで、追加テストで `checkTestChanges` に対して untracked `+` only hunk と tracked+untracked 合成 diff の判定成功を確認している。"
+    },
+    {
+      "desc": "When untracked ファイルが 0 件の場合, shall 合成 diff の内容は従来 (committed + uncommitted) と完全一致する。",
+      "status": "done",
+      "note": "untracked 0 件時は `collectUntrackedDiff` が `\"\"` を返し、`diff = committed + uncommitted + \"\"` となるため従来値と一致する。"
+    },
+    {
+      "desc": "When 本機能が実行される間, shall git index / 作業ツリー / コミット履歴に永続的な変更が加わらない (`git status --porcelain` 出力が処理前後で同一)。",
+      "status": "done",
+      "note": "読み取り系 git コマンドのみ使用し、テストでも helper 呼び出し前後で `git status --porcelain` 同一を検証している。"
+    },
+    {
+      "desc": "When untracked 取り込みヘルパーが単独で呼ばれる場合, shall 純粋関数として `(root)` を入力に diff 文字列を返し、ヘルパー内部から外部状態に書き込まない。",
+      "status": "done",
+      "note": "`collectUntrackedDiff(root, options?)` は副作用のある書き込みを行わず文字列を返す。`root` 単独呼び出しもテストされている。"
+    },
+    {
+      "desc": "When untracked ファイルの件数が 500 を超える、または個別ファイルサイズが 1 MiB を超える場合, shall ヘルパーは gate-impl の FAIL に繋がる Error を throw し (`UNTRACKED_LIMIT_EXCEEDED`)、診断メッセージに該当件数/サイズ/上限値を含める。",
+      "status": "done",
+      "note": "件数/サイズ上限チェックを実装し、超過時に `err.code = \"UNTRACKED_LIMIT_EXCEEDED\"` を付与して観測値と上限を含むメッセージで throw している（テストあり）。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/221-fix-gate-impl-untracked-diff/draft.md",
+      "change": "仕様ドラフト文書の新規追加（実装要件そのものではなくプロセス文書）。"
+    },
+    {
+      "file": "specs/221-fix-gate-impl-untracked-diff/flow.json",
+      "change": "フロー実行メタデータの新規追加（要件実装外の運用記録）。"
+    },
+    {
+      "file": "specs/221-fix-gate-impl-untracked-diff/issue-log.json",
+      "change": "ゲート失敗/再試行ログの新規追加（要件外の監査情報）。"
+    },
+    {
+      "file": "specs/221-fix-gate-impl-untracked-diff/qa.md",
+      "change": "Q&A テンプレートの新規追加（要件外）。"
+    },
+    {
+      "file": "specs/221-fix-gate-impl-untracked-diff/review.md",
+      "change": "コードレビュー記録の新規追加（要件外）。"
+    },
+    {
+      "file": "specs/221-fix-gate-impl-untracked-diff/spec.json",
+      "change": "仕様JSONの新規追加（要件定義成果物）。"
+    },
+    {
+      "file": "specs/221-fix-gate-impl-untracked-diff/spec.md",
+      "change": "仕様Markdownの新規追加（要件定義成果物）。"
+    },
+    {
+      "file": "specs/221-fix-gate-impl-untracked-diff/tests/README.md",
+      "change": "テスト記録ドキュメントの新規追加（実装要件外の補助資料）。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "実装コードとテストの範囲では REQ-1〜REQ-6 はすべて満たしている。未計画変更は主に specs 配下のドキュメント/運用ログ追加。"
+  }
+}
