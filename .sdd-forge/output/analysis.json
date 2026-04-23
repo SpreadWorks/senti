@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T08:16:29.944Z",
+  "analyzedAt": "2026-04-23T08:16:38.410Z",
   "package": {
     "entries": [
       {
@@ -2482,8 +2482,22 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 4
-        }
+        },
+        "summary": "Implements the `flow review` command, including draft/final/spec/test review phases driven by AI prompts and git diff context. It orchestrates retry loops, proposal parsing, filtering, and markdown report generation.",
+        "detail": "The module resolves review targets from spec and repository paths, then builds scoped diffs while excluding non-essential files. It defines multiple prompt builders for draft review, final validation, spec quality checks, and test gap analysis, then normalizes AI output into structured proposals or issues. A reusable review loop handles detect/fix cycles with retry limits and dry-run support. The command writes artifacts such as `review.md`, `spec-review.md`, and `test-review.md` under spec directories. It also validates output shape and exits with explicit error codes when required inputs are missing or invalid.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "flow review",
+          "ai review loop",
+          "proposal parsing",
+          "git diff scope",
+          "spec review",
+          "test gap analysis",
+          "markdown report"
+        ]
       },
       {
         "file": "src/flow/lib/auto-check-static.js",
@@ -3066,8 +3080,22 @@
         ],
         "id": "9aca938f",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Provides status-report aggregation utilities and a `GetStatusCommand` for flow runs. It summarizes token usage and activity counters into structured totals and report output.",
+        "detail": "The file defines canonical token keys and activity counters, then builds zeroed accumulators for deterministic metric math. It folds log entries into bucketed summaries and computes combined totals for display and automation consumers. The status output builder packages active state, derived phase, requirements progress, and metrics in a stable shape. The command supports run-id lookup and active-context fallback, throwing a clear error when a requested run cannot be found. It returns a minimal inactive envelope when no flow is active.",
+        "chapter": "cli_commands",
+        "role": "lib",
+        "keywords": [
+          "status command",
+          "metrics summary",
+          "token counters",
+          "activity aggregation",
+          "flow state",
+          "run id",
+          "report totals"
+        ]
       },
       {
         "file": "src/flow/lib/get-step-instructions.js",
@@ -3183,8 +3211,21 @@
         ],
         "id": "30a7075c",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 3
-        }
+        },
+        "summary": "Resolves input text for auto-check evaluation and handles skip behavior when approval is already complete. It also exports a shared skip verdict helper used by auto mode commands.",
+        "detail": "The module checks step completion flags from flow task steps, including approval and draft-gate completion. It can read `draft.md` to enrich evaluation input when draft gating has passed, while still producing a fallback base prompt from request metadata. The resolver returns either a `skip` envelope with reason or a normalized text payload for scoring. Logic is intentionally small and deterministic, keeping state checks isolated from AI scoring code. A dedicated `buildSkipVerdict` function standardizes skip response shape across commands.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "auto-check input",
+          "spec approved skip",
+          "draft.md",
+          "step status",
+          "flow state",
+          "eligibility verdict"
+        ]
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
@@ -3214,8 +3255,21 @@
         ],
         "id": "d569f2a6",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Builds a resolved context envelope for flow resume/status-style operations. It combines git metadata, flow state, and parsed spec sections into one runtime context object.",
+        "detail": "The implementation reads flow JSON from spec directories and selects an effective root between worktree and main repository paths. It extracts sections from markdown text to provide concise contextual snippets for downstream commands. Git-derived signals such as branch, ahead count, commit identity, and worktree health are included to support actionable resume guidance. It maps phases to skill names so UI/command layers can suggest next actions consistently. Missing active-flow state is treated as a hard error to prevent ambiguous context generation.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "context envelope",
+          "resume context",
+          "worktree resolution",
+          "git status metadata",
+          "phase mapping",
+          "spec section extraction"
+        ]
       },
       {
         "file": "src/flow/lib/resolve-preparing-run-id.js",
@@ -3239,8 +3293,21 @@
         ],
         "id": "43a24e09",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 3
-        }
+        },
+        "summary": "Resolves which preparing run ID should be used for commands that can operate in preparing mode. It centralizes precedence and fallback behavior for explicit and inferred run IDs.",
+        "detail": "The function wraps run-id resolution outcomes in small structured objects, making caller behavior explicit instead of ad-hoc branching. It handles explicit IDs, manager-derived active preparing runs, and no-run cases with deterministic return shapes. The implementation relies on the shared `Envelope` pattern to align errors and user-facing messaging. This keeps preparing-mode gate checks reusable across multiple commands. The module is intentionally narrow, acting as a focused decision helper.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "keywords": [
+          "preparing run id",
+          "run resolution",
+          "envelope pattern",
+          "flow preparation",
+          "command context",
+          "id fallback"
+        ]
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
@@ -3278,8 +3345,22 @@
         ],
         "id": "62c43842",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 3
-        }
+        },
+        "summary": "Implements AI-assisted auto-check scoring for SDD auto mode, with static gates, weighted scoring, and hard-gate enforcement. It exposes both core scoring utilities and a command entry point.",
+        "detail": "The module defines category weights, threshold logic, and hard-gate keys so eligibility decisions are reproducible. It parses and sanitizes model output into a bounded numeric breakdown, handling malformed responses through repair and safe defaults. Static gates are evaluated separately and then merged with AI results in a composed verdict object. Error handling degrades gracefully when no agent profile exists or calls fail, returning informative reasons rather than crashing. The command integrates preparing-run resolution and skip verdict behavior for approved specs.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "auto mode",
+          "scoring rubric",
+          "hard gate",
+          "ai evaluation",
+          "static gates",
+          "eligibility",
+          "threshold"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize.js",
@@ -3334,9 +3415,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
+        "summary": "Implements the flow finalize pipeline, including preflight checks, commit/merge/report steps, and cleanup of worktree state. It exports reusable helpers for finalize error handling and success envelopes.",
+        "detail": "The file coordinates multiple finalize sub-steps through a step map and shared runner utilities, enabling full or selective execution modes. It performs git write-access preflight checks, branch/worktree hygiene validation, and commit-skip logic when there is nothing to persist. Post-commit behavior includes hooks, report artifacts, and pointer updates to the last finalized spec. Cleanup logic handles spec-only flows and worktree removal safely. The command returns structured status for each step and supports dry-run semantics for non-destructive execution.",
+        "chapter": "cli_commands",
+        "role": "controller",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "finalize pipeline",
+          "preflight checks",
+          "worktree cleanup",
+          "commit orchestration",
+          "merge strategy",
+          "flow finalize",
+          "post-commit hook"
+        ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -3498,8 +3593,21 @@
         "usedBy": null,
         "id": "e6534160",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Implements implementation-confirmation checks that compare requirement progress with changed files. It provides a command that reports readiness in configurable modes.",
+        "detail": "The module collects changed files relative to base branch and summarizes requirement statuses from `spec.json`. It computes counts for done, pending, and in-progress items and includes itemized requirement output. Mode validation is strict and tied to shared constants, preventing unsupported behavior at runtime. Spec path existence is checked and surfaced in output so callers can distinguish missing-doc scenarios from requirement mismatch. The command returns a structured confirmation payload rather than plain text for easier automation.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "impl confirm",
+          "requirement status",
+          "changed files",
+          "base branch diff",
+          "readiness check",
+          "flow command"
+        ]
       },
       {
         "file": "src/flow/lib/run-lint.js",
@@ -3733,8 +3841,20 @@
         "usedBy": null,
         "id": "abe5ac21",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Provides a lightweight `run-resume` command that returns resolved flow context for restarting work. It delegates context construction to a dedicated resolver library.",
+        "detail": "The class extends `FlowCommand` and keeps command logic intentionally thin. It calls `buildResolvedFlowContext` to gather state, git metadata, and guidance payloads in one place. This separation keeps command wiring simple while preserving a rich response contract. The command is suitable for CLI and programmatic consumers that need resume data without side effects.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "run resume",
+          "flow context",
+          "resume command",
+          "state hydration",
+          "command wrapper"
+        ]
       },
       {
         "file": "src/flow/lib/run-retro.js",
@@ -3772,8 +3892,22 @@
         "usedBy": null,
         "id": "862e7d08",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Implements retrospective generation (`retro.json`) from requirements and git diffs using AI output with JSON repair fallback. It enforces idempotency and explicit overwrite behavior.",
+        "detail": "The command loads and normalizes spec requirements, verifies base branch availability, and builds prompt input from high-level and detailed diffs. AI response parsing first attempts strict JSON parsing, then applies repair logic for malformed payloads. Existing `retro.json` is protected unless `--force` is provided, reducing accidental data loss. Errors are wrapped in the flow envelope model to return machine-readable failure metadata. Successful runs persist formatted JSON and return changed path information.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "retro analysis",
+          "retro.json",
+          "ai prompt",
+          "json repair",
+          "requirements mapping",
+          "diff synthesis",
+          "force overwrite"
+        ]
       },
       {
         "file": "src/flow/lib/run-review.js",
@@ -3966,8 +4100,21 @@
         "usedBy": null,
         "id": "2c71e989",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 3
-        }
+        },
+        "summary": "Implements `flow set auto` behavior, toggling auto-approve mode and optionally running auto-check trust evaluation. It supports preparing-mode semantics via run-id resolution.",
+        "detail": "The command validates requested auto values against shared constants before mutating state. When enabling auto mode, it invokes core auto-check scoring and packages trust metadata in the response. It uses preparing-run resolution to scope updates correctly when operating before full flow activation. Failure paths are returned through `Envelope.fail` with stable error codes. The result payload includes both mode state and evaluation detail for downstream tooling.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "set auto",
+          "auto approve",
+          "trust check",
+          "preparing mode",
+          "envelope fail",
+          "flow setting"
+        ]
       },
       {
         "file": "src/flow/lib/set-gate-retry.js",
@@ -4209,8 +4356,20 @@
         "usedBy": null,
         "id": "6dd22e12",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Implements `flow set req` to update a single requirement status by index. It validates usage, status value, and index bounds before applying mutations.",
+        "detail": "The command parses positional args and rejects invalid invocation with structured envelope errors. Allowed statuses are sourced from shared constants to keep validation centralized. Requirement updates are delegated to `updateSpecRequirementStatus`, which handles path resolution and persistence. Error responses include explicit codes for invalid usage and invalid value cases. On success, it returns the updated index and status for auditability.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "set req",
+          "requirement status update",
+          "index validation",
+          "spec.json mutation",
+          "flow set command"
+        ]
       },
       {
         "file": "src/flow/lib/set-request.js",
@@ -4299,8 +4458,20 @@
         "usedBy": null,
         "id": "f62c866f",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Implements `flow set summary` to store task or flow summary text with envelope-based error handling. The command acts as a focused state mutation endpoint.",
+        "detail": "The class extends `FlowCommand` and follows the same structured response model as other set commands. It validates required input and emits `Envelope.fail` on invalid usage. Successful execution updates summary state through underlying flow management APIs. The module keeps logic minimal to preserve consistency across setter commands. This makes summary updates script-friendly and predictable.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "keywords": [
+          "set summary",
+          "flow metadata",
+          "state mutation",
+          "envelope error",
+          "command consistency"
+        ]
       },
       {
         "file": "src/flow/lib/set-test-summary.js",
@@ -4451,9 +4622,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
+        "summary": "Defines the flow command registry, lifecycle hooks, and automatic step/issue-log side effects for command execution. It centralizes command wiring and cross-cutting behavior.",
+        "detail": "The registry maps command names to handlers and metadata while deriving active phase context from current flow state. Pre/post wrappers update step statuses and append issue-log entries with resilient error handling. Some helper operations intentionally log non-fatal failures to stderr instead of aborting command execution. It also integrates gate retry counters and finalize post-processing hooks. This file is the dispatch backbone for flow subcommands and orchestration policy.",
+        "chapter": "project_structure",
+        "role": "config",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "command registry",
+          "dispatcher",
+          "step hooks",
+          "issue log",
+          "flow lifecycle",
+          "command wiring"
+        ]
       },
       {
         "file": "src/help.js",
@@ -5130,8 +5314,22 @@
         ],
         "id": "3d2ed4c0",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Provides `FlowManager`, the high-level service for resolving, scanning, and mutating flow state across main repo and worktrees. It coordinates stores, registries, and preparing flow inputs.",
+        "detail": "The manager composes `FlowStore`, active-flow registry, and preparing-flow store behind a cohesive API. It supports scanning multiple flow locations, including branch/worktree contexts, with truncation safeguards and malformed JSON diagnostics. Resolution methods return both state and location metadata so callers can act correctly in split-root environments. It exposes task/step helpers and metric accumulation passthroughs for command layers. Errors are explicit when referenced flow state is missing or inconsistent across roots.",
+        "chapter": "internal_design",
+        "role": "model",
+        "keywords": [
+          "flow manager",
+          "worktree support",
+          "state resolution",
+          "scan flows",
+          "active registry",
+          "preparing store",
+          "task helpers"
+        ]
       },
       {
         "file": "src/lib/flow-store.js",
@@ -5170,8 +5368,22 @@
         ],
         "id": "5332364e",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Implements `FlowStore`, the persistence and mutation layer for `flow.json` state files with schema assertions and task-scope operations. It also exports helper utilities for task resolution and step promotion.",
+        "detail": "The module enforces state integrity with explicit validation errors for malformed tasks, steps, and requirement entries. It handles loading, read-only access, saving, and path resolution for both standard and worktree contexts. Mutation helpers resolve target task scope, update step status, and maintain current-task invariants. Additional helpers compute worktree directory names, finalized timestamps, and parent-task summary aggregation. Persistence uses deterministic JSON formatting and consistent UTF-8 writes for stable diffs.",
+        "chapter": "internal_design",
+        "role": "model",
+        "keywords": [
+          "flow store",
+          "state persistence",
+          "schema assertions",
+          "task scope",
+          "step transition",
+          "flow.json",
+          "worktree paths"
+        ]
       },
       {
         "file": "src/lib/formatter.js",
@@ -5979,8 +6191,22 @@
         "usedBy": null,
         "id": "e288cfbd",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Implements `spec.json` path resolution, loading/saving, schema validation, and requirement utilities. It is the core library for spec document persistence and prompt conversion.",
+        "detail": "The module resolves spec file paths from file or directory inputs and supports both strict and optional loading flows. Reads and writes pass through schema validation unless explicitly disabled, with informative parse/validation errors. Requirement helpers normalize missing statuses and allow indexed status updates with range checks. `emptySpecStub` provides a canonical starter shape for new specs. A prompt-text renderer converts spec content into deterministic plain-text blocks for agent usage.",
+        "chapter": "configuration",
+        "role": "lib",
+        "keywords": [
+          "spec.json",
+          "schema validation",
+          "path resolution",
+          "requirement normalization",
+          "status update",
+          "spec persistence",
+          "prompt text"
+        ]
       },
       {
         "file": "src/lib/types.js",
@@ -6102,8 +6328,22 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
+          "processedAt": "2026-04-23T08:18:11.489Z",
           "attempts": 5
-        }
+        },
+        "summary": "Implements the `metrics token` command to aggregate per-flow token/activity metrics and render text, JSON, or CSV outputs with caching. It also estimates difficulty-adjusted productivity indicators from spec artifacts.",
+        "detail": "The command scans `specs/*/flow.json` with an upper bound to avoid pathological traversal and rebuilds cache when stale or invalid. It computes grouped rows by date and phase, then finalizes totals, averages, and display-safe values. Additional heuristics derive spec difficulty using requirement counts, test volume, request length, and review activity with clamped normalization. Robust file-reading helpers tolerate missing optional files and malformed cache payloads. Output rendering is format-specific and deterministic, making it suitable for CI reporting and trend analysis.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "keywords": [
+          "token metrics",
+          "csv export",
+          "json report",
+          "cache freshness",
+          "difficulty scoring",
+          "flow analytics",
+          "phase aggregation"
+        ]
       },
       {
         "file": "src/presets-cmd.js",
@@ -9162,5 +9402,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T08:18:06.860Z"
+  "enrichedAt": "2026-04-23T08:18:11.489Z"
 }
