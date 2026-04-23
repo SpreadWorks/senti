@@ -1,0 +1,169 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: making finalize default to mode=all and aligned docs/tests.; Unambiguous Requirements — Scope items are concrete and testable (specific files, exact behavior changes, and preserved error cases).; Complete Context — Requirements include conditions and expected outcomes (e.g., when ctx.mode is omitted, treat as all; invalid values still throw).; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are present in the draft content.; Prioritize Requirements — There are more than three requirement items but no explicit priority order is provided.; Impact on Existing Features — A dedicated impact section explicitly lists affected and unaffected existing behaviors.; Present Recommendations with Reasoning — Each Q has a clear recommended answer and concise rationale tied to usage/consistency context.; Explore Before Asking — The draft answers key decisions via code/doc scope analysis and leaves no unresolved user-facing questions.; Proactively Raise Related Implications — It proactively covers compatibility and related documentation/prompt implications, not just the code tweak.; Confirm Brainstorm vs. Decision Before Critiquing — The document is in decision mode with explicit user approval, not treated as unresolved brainstorming.; Capture Digressions in draft.md — No digression is evident in the provided content; focus remains on the main thread.; Draft Stays at Requirements Level — Content stays at requirements/RFP level without function-level implementation design details.; Backward-Compatible CLI Interface — CLI behavior for existing invocation without --mode changes from error to success, but no migration guidance is described.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:38:18.295Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirement items but no explicit priority order is provided."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "CLI behavior for existing invocation without --mode changes from error to success, but no migration guidance is described."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one coherent concern: defaulting finalize mode to `all` with related tests/docs updates.; Unambiguous Requirements — Requirements are mostly concrete and verifiable, with explicit behaviors for omitted, invalid, and select modes.; Complete Context — Items pair conditions (e.g., omitted or invalid `--mode`) with required outcomes (`default to all` or `throw`).; No Hardcoded Secrets — No secrets or credential-like literals are present in the draft content.; Prioritize Requirements — More than three requirements are listed and explicitly prioritized as P1/P2 in order.; Impact on Existing Features — The draft explicitly lists affected existing features and explicitly states unaffected areas.; Present Recommendations with Reasoning — Each Q has a recommended answer with concise rationale based on usage patterns and issue context.; Explore Before Asking — Whether docs/code were explored before asking cannot be confirmed from the draft text alone.; Proactively Raise Related Implications — Related implications are proactively covered via impact analysis, migration plan, and release-note guidance.; Confirm Brainstorm vs. Decision Before Critiquing — The draft is clearly in decision mode with explicit user approval; no brainstorming critique mismatch is evident.; Capture Digressions in draft.md — No digression is evident in the provided content, so this is inapplicable here.; Draft Stays at Requirements Level — The draft includes implementation-level specifics (exact file paths and code-level behavior), exceeding pure requirements-level scope.; Backward-Compatible CLI Interface — A clear migration/compatibility section is provided, including behavior changes, compatibility classification, and communication plan.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:39:29.446Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft includes implementation-level specifics (exact file paths and code-level behavior), exceeding pure requirements-level scope."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — `finalize --mode` の既定値導入という単一の関心事に集中している。; Unambiguous Requirements — 要件は具体的で検証可能（省略時動作、エラー維持、更新対象）に記述されている。; Complete Context — 一部要件は更新内容のみで、明示的な条件（When/If）と期待結果（shall）の対が不足している。; No Hardcoded Secrets — 本ドラフトに秘密情報やハードコードされた資格情報は含まれていない。; Prioritize Requirements — 要件が3件超で、P1/P2の優先度と順序が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示され、挙動変化も具体化されている。; Present Recommendations with Reasoning — Q&Aで推奨案を先に示し、利用頻度とIssue提案を根拠として簡潔に理由付けしている。; Explore Before Asking — 未解決の問いを残さず、既存情報に基づく回答が提示されている。; Proactively Raise Related Implications — 互換性、エラー挙動、告知方針など関連含意を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — `User Approval` により決定済みであることが明示されている。; Capture Digressions in draft.md — 脱線した議論の形跡がなく、本項目は実質的に問題なし。; Draft Stays at Requirements Level — `registry.js` や `prompts/impl/finalize.md` など実装対象ファイルに踏み込み、要件レベルを超えている。; Backward-Compatible CLI Interface — CLI Migration Plan があり、互換性分類・変更点・移行不要性が明記されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:41:04.149Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "一部要件は更新内容のみで、明示的な条件（When/If）と期待結果（shall）の対が不足している。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "`registry.js` や `prompts/impl/finalize.md` など実装対象ファイルに踏み込み、要件レベルを超えている。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: defaulting finalize `--mode` to `all` and aligning related docs.; Unambiguous Requirements — Most items are testable, but wording like \"説明的なメッセージ\" is subjective and not strictly verifiable.; Complete Context — Not every requirement includes an explicit trigger-condition + expected behavior pair (e.g., test/documentation existence items).; No Hardcoded Secrets — No source code secrets or credentials are present in this draft content.; Prioritize Requirements — There are more than three requirements and they are explicitly prioritized (P1/P2, ordered list).; Impact on Existing Features — Impacts on existing features are explicitly listed, including affected and unaffected paths.; Present Recommendations with Reasoning — Answers provide recommendations, but basis is not explicitly grounded in project docs/guardrails/code patterns as required.; Explore Before Asking — Process-level behavior (whether docs/code were explored before asking) cannot be verified from the draft text alone.; Proactively Raise Related Implications — Related implications are proactively raised (automation/error-behavior impact, docs/prompt/changelog updates).; Confirm Brainstorm vs. Decision Before Critiquing — Draft indicates decision state and approval (`User approved this draft`, proposal adopted).; Capture Digressions in draft.md — No digression is evident; in this draft, there is nothing additional to capture.; Draft Stays at Requirements Level — Content stays at requirements/spec level without implementation or function-level design details.; Backward-Compatible CLI Interface — A CLI migration/compatibility plan is included with behavior-change notes and user communication.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:42:35.438Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Most items are testable, but wording like \"説明的なメッセージ\" is subjective and not strictly verifiable."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Not every requirement includes an explicit trigger-condition + expected behavior pair (e.g., test/documentation existence items)."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Answers provide recommendations, but basis is not explicitly grounded in project docs/guardrails/code patterns as required."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — No changes are specified, so no unrelated concerns are bundled.; Unambiguous Requirements — No requirements are provided to evaluate for clarity or verifiability.; Complete Context — No requirements include trigger conditions and expected behaviors.; REQ Diff-Verifiability — No requirements are defined, so diff+test decidability cannot be established.; No Hardcoded Secrets — No source code or secret material is present in the content.; No Silent Error Swallowing — No implementation/error-handling code is present.; Prioritize Requirements — Requirement count does not exceed three (it is zero).; Impact on Existing Features — Impact on existing features is not stated, including explicit 'no impact'.; Bounded Resource Usage — No recursive/retry/bulk-processing behavior is specified.; Changes Require Test Coverage — No tests or justification for missing tests are documented.; Spec Includes Test Strategy — No test strategy section or content is provided.; Synthesize Draft, Do Not Copy — No draft source is provided to verify synthesis vs direct copying.; Record Unresolved Points as Open Questions — No fabricated claims are present; unresolved points are not asserted as facts.; Include 'Why This Approach' Rationale — No rationale for approach selection is included.; Do Not Modify Existing Tests Without Approval — Requires runtime/diff evidence of test-file modifications, not provided here.; Backward-Compatible CLI Interface — No CLI command/option changes are specified.; Exit Code Contract — No command failure/exit-code behavior is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:46:18.310Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "No requirements are provided to evaluate for clarity or verifiability."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "No requirements include trigger conditions and expected behaviors."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "No requirements are defined, so diff+test decidability cannot be established."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not stated, including explicit 'no impact'."
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "No tests or justification for missing tests are documented."
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "No test strategy section or content is provided."
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "No rationale for approach selection is included."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Default-mode logic, help text, and finalize prompt were updated, but the required new unit test under tests/unit/flow is absent from the diff and full npm test regression pass evidence is not provided.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:05:45.353Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Default-mode logic, help text, and finalize prompt were updated, but the required new unit test under tests/unit/flow is absent from the diff and full npm test regression pass evidence is not provided."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate reported test file absent; new unit test was untracked and not visible in git diff",
+      "trigger": "run-finalize-default-mode.test.js created but not staged",
+      "resolution": "git add the test file and new spec artifacts so they appear in the diff, then re-run gate",
+      "guardrailCandidate": "stage new implementation artifacts before running gate-impl so the diff accurately reflects the change set",
+      "taskId": null,
+      "timestamp": "2026-04-23T08:06:01.721Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Default-mode code, help text, prompt update, and new unit test are present, but required full regression evidence is missing: head test results show only unit=7 (no npm test full pass/integration/exitCode confirmation).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:06:41.156Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Default-mode code, help text, prompt update, and new unit test are present, but required full regression evidence is missing: head test results show only unit=7 (no npm test full pass/integration/exitCode confirmation)."
+        }
+      ]
+    },
+    {
+      "step": "review",
+      "reason": "review proposal #4 targets src/templates/partials/worktree-mode.md which is outside spec 221 scope (unchanged file)",
+      "trigger": "AI reviewer suggested restoring active-flow definition in a partial not modified by this spec",
+      "resolution": "skip #4; apply only #2 (test refactor) which is within diff scope",
+      "guardrailCandidate": "review proposals targeting files not in the current diff should be flagged as out-of-scope and deferred to a dedicated spec",
+      "taskId": null,
+      "timestamp": "2026-04-23T08:13:32.015Z"
+    },
+    {
+      "step": "finalize",
+      "reason": "self-test of spec 221 failed because global sdd-forge CLI symlinks to main repo, not worktree — new default ctx.mode logic not active until merge",
+      "trigger": "ran 'sdd-forge flow run finalize' (no --mode) to self-validate REQ-1 but got the legacy error",
+      "resolution": "fall back to explicit '--mode all' for finalize; new default will take effect on next finalize after this merge lands on main",
+      "guardrailCandidate": "features that alter sdd-forge CLI behavior cannot self-test via global CLI on the same spec — document this chicken-and-egg case",
+      "taskId": null,
+      "timestamp": "2026-04-23T08:14:54.641Z"
+    }
+  ]
+}

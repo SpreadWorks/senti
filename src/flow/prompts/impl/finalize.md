@@ -12,7 +12,7 @@ Use this guidance when the impl phase reaches the finalize action. The full proc
    - The mode was already selected in Step 0.
 
 3. **If "all"** (Option 1):
-   - Run `sdd-forge flow run finalize --mode all`.
+   - Run `sdd-forge flow run finalize` (`--mode` defaults to `all`).
    - Merge strategy is auto-detected: `commands.gh=enable` AND `gh` available → PR, else squash merge.
    - The pipeline executes 4 steps:
      - **Step 1 (commit)**: Commits implementation changes. After commit, retro (AI evaluation) and report (report.json) are automatically generated as post-commit operations.

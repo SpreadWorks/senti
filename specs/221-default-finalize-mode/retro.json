@@ -1,0 +1,78 @@
+{
+  "spec": "specs/221-default-finalize-mode/spec.json",
+  "date": "2026-04-23T08:16:25.262Z",
+  "requirements": [
+    {
+      "desc": "When ユーザーが `sdd-forge flow run finalize` を `--mode` 引数なしで起動したとき、本コマンドは `--mode all` を指定したときと同じ最終化パイプライン（commit, merge, sync, cleanup の順）を実行し、成功時に exit code 0 を返すこと。",
+      "status": "partial",
+      "note": "`ctx.mode` の既定化で all ルートに入る実装は追加されたが、diff内テストはパイプライン順序/CLI exit code 0 まで直接検証していない。"
+    },
+    {
+      "desc": "When `ctx.mode` が未指定（`undefined` または空文字）で `flow run finalize` が呼ばれたとき、`RunFinalizeCommand.execute` は内部的に `mode = \"all\"` を適用してから既存の実行フローに進むこと。",
+      "status": "done",
+      "note": "`src/flow/lib/run-finalize.js` で `const mode = ctx.mode || \"all\";` に変更され、未指定/空文字で all が適用される。"
+    },
+    {
+      "desc": "If `--mode` の値が `all` / `select` 以外、または `--mode select` が `--steps` なしで指定された場合、本コマンドは non-zero の exit code で終了し、従来と同じエラーメッセージ（`--mode must be 'all' or 'select'` または `--steps required when mode is 'select'`）を stderr に出力すること。",
+      "status": "partial",
+      "note": "該当ロジックは変更されておらず、新規ユニットテストで同一メッセージの throw は確認しているが、CLI レベルの stderr/non-zero 終了までは直接確認していない。"
+    },
+    {
+      "desc": "When 上記 REQ-1〜REQ-3 の条件で本コマンドが実行されたとき、その結果を検証する自動テストが `tests/unit/flow/` 以下に存在し、`npm test` 実行時に CI パスとして通過すること。",
+      "status": "partial",
+      "note": "`tests/unit/flow/run-finalize-default-mode.test.js` は追加されているが、REQ-1 の exit code/全パイプライン実行検証は不足。`npm test` のCI通過はdiff単体では確証が弱い。"
+    },
+    {
+      "desc": "When `src/flow/registry.js` の finalize コマンド help 文字列が参照されたとき、`--mode` 説明行に既定値が `all` であることが明記されていること（文字列 `default: all` を含む）。",
+      "status": "done",
+      "note": "`Mode (required)` が `Mode (default: all)` に更新されている。"
+    },
+    {
+      "desc": "When `src/flow/prompts/impl/finalize.md` の finalize 実行例が参照されたとき、通常完了パス（全ステップ実行）の実行例には冗長な `--mode all` 引数が含まれないこと。`--mode select --steps ...` の例示は現状維持。",
+      "status": "done",
+      "note": "通常パスが `sdd-forge flow run finalize` に変更され、`--mode select --steps ...` の例示は維持されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/221-default-finalize-mode/draft.md",
+      "change": "仕様ドラフト文書の新規追加（要件実装そのものではない運用成果物）。"
+    },
+    {
+      "file": "specs/221-default-finalize-mode/flow.json",
+      "change": "フロー実行メタデータの追加（実装要件外の運用ログ）。"
+    },
+    {
+      "file": "specs/221-default-finalize-mode/issue-log.json",
+      "change": "ゲート評価・課題ログの追加（機能要件外）。"
+    },
+    {
+      "file": "specs/221-default-finalize-mode/qa.md",
+      "change": "QAテンプレート文書の追加（機能変更に直接非関連）。"
+    },
+    {
+      "file": "specs/221-default-finalize-mode/review.md",
+      "change": "レビュー記録文書の追加（機能要件外）。"
+    },
+    {
+      "file": "specs/221-default-finalize-mode/spec.json",
+      "change": "仕様JSONの新規追加（実装計画/記録）。"
+    },
+    {
+      "file": "specs/221-default-finalize-mode/spec.md",
+      "change": "仕様Markdownの新規追加（実装計画/記録）。"
+    },
+    {
+      "file": "specs/221-default-finalize-mode/tests/README.md",
+      "change": "specローカルのテスト説明文書追加（要件本体では未要求）。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 3,
+    "partial": 3,
+    "not_done": 0,
+    "rate": 0.75,
+    "notes": "コア変更（mode既定化、help更新、prompt更新）は要件に沿っている。一方で REQ-1/3/4 は CLIレベルの exit code・stderr・全パイプライン実行を直接担保する検証がdiff上では十分に確認できず、部分達成。"
+  }
+}

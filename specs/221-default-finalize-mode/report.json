@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/221-default-finalize-mode/draft.md          |  50 +++\n specs/221-default-finalize-mode/flow.json         | 403 ++++++++++++++++++++++\n specs/221-default-finalize-mode/issue-log.json    | 169 +++++++++\n specs/221-default-finalize-mode/qa.md             |   9 +\n specs/221-default-finalize-mode/review.md         |  41 +++\n specs/221-default-finalize-mode/spec.json         | 142 ++++++++\n specs/221-default-finalize-mode/spec.md           | 109 ++++++\n specs/221-default-finalize-mode/tests/README.md   |  29 ++\n src/flow/lib/run-finalize.js                      |   2 +-\n src/flow/prompts/impl/finalize.md                 |   2 +-\n src/flow/registry.js                              |   2 +-\n tests/unit/flow/run-finalize-default-mode.test.js | 128 +++++++\n 12 files changed, 1083 insertions(+), 3 deletions(-)",
+      "commits": [
+        "feat: feature/221-default-finalize-mode",
+        "chore: add retro and report"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 3,
+      "partial": 3,
+      "not_done": 0,
+      "rate": 0.75,
+      "notes": "コア変更（mode既定化、help更新、prompt更新）は要件に沿っている。一方で REQ-1/3/4 は CLIレベルの exit code・stderr・全パイプライン実行を直接担保する検証がdiff上では十分に確認できず、部分達成。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 2,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 349786,
+      "output": 13151,
+      "cacheRead": 110208,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 446785,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 203095
+        },
+        {
+          "phase": "gate",
+          "durationMs": 79344
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 93651
+        },
+        {
+          "phase": "review",
+          "durationMs": 70695
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2151,
+      "integration": 261,
+      "acceptance": 0,
+      "total": 2412
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/221-default-finalize-mode\n    chore: add retro and report\n    12 files changed, 1083 insertions(+), 3 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ██████░░ 75%  (3 done / 3 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 2\n    issue-log ................... 3\n    agent calls ................. 13\n    input tokens ................ 349,786\n    output tokens ............... 13,151\n    cache-read tokens ........... 110,208\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 446.8s\n      gate-draft ................ 203.1s\n      gate ...................... 79.3s\n      gate-impl ................. 93.7s\n      review .................... 70.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2151  integration 261  acceptance 0  total 2412"
+}

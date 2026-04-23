@@ -340,7 +340,7 @@ function runMigrationHook(root, specRelPath) {
 export class RunFinalizeCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
-    const mode = ctx.mode;
+    const mode = ctx.mode || "all";
     const steps = ctx.steps || "";
     const dryRun = ctx.dryRun || false;
     const message = ctx.message || "";

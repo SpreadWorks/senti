@@ -435,7 +435,7 @@ export const FLOW_COMMANDS = {
         "Execute finalization pipeline: commit(+retro+report) -> merge -> sync -> cleanup.",
         "",
         "Options:",
-        "  --mode <all|select>           Mode (required)",
+        "  --mode <all|select>           Mode (default: all)",
         "  --steps <1,2,3,4>            Comma-separated step numbers (select mode: 1=commit 2=merge 3=sync 4=cleanup)",
         "  --message <msg>               Custom commit message",
         "  --dry-run                     Preview only",
