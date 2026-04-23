@@ -884,7 +884,22 @@ function readGateRetryCount(state, phase) {
   return countGateRetry(state?.metrics, phase);
 }
 
-function formatRetryHistory(root, specPath, limit) {
+// Set of step ids that represent gate evaluations. step === "gate" is used by
+// spec / task-spec; "gate-draft" and "gate-impl" are used by draft and
+// task-impl/integration respectively (see gate-step.js resolveGateStepId).
+// A plain `startsWith("gate-")` would silently exclude the bare "gate" value
+// and mix histories across phases — hence the explicit set + phase filter.
+const GATE_STEP_IDS = new Set(["gate", "gate-draft", "gate-impl"]);
+const GATE_ESCALATION_TRIGGER = "gate onError hook (auto)";
+
+function isRetryHistoryGateEntry(entry, phase) {
+  if (!GATE_STEP_IDS.has(String(entry.step || ""))) return false;
+  if (entry.phase !== phase) return false;
+  if (entry.trigger === GATE_ESCALATION_TRIGGER) return false;
+  return true;
+}
+
+function formatRetryHistory(root, specPath, limit, phase) {
   let log;
   try {
     log = loadIssueLog(root, specPath);
@@ -893,7 +908,7 @@ function formatRetryHistory(root, specPath, limit) {
     return "";
   }
   const gateEntries = (log.entries || [])
-    .filter((e) => String(e.step || "").startsWith("gate-"))
+    .filter((e) => isRetryHistoryGateEntry(e, phase))
     .slice(-limit);
   if (gateEntries.length === 0) return "";
   return gateEntries
@@ -923,7 +938,7 @@ export function checkRetryBelowMax(ctx, phase) {
   const max = resolveRetryMax(ctx.config);
   if (count < max) return null;
 
-  const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max);
+  const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max, phase);
   const messages = [
     `gate retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${phase}".`,
     "Previous FAIL reasons:",

@@ -1,0 +1,59 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/224-fix-gate-retry-history-filter/draft.md   |  55 ++++\n specs/224-fix-gate-retry-history-filter/flow.json  | 357 +++++++++++++++++++++\n .../issue-log.json                                 | 148 +++++++++\n specs/224-fix-gate-retry-history-filter/qa.md      |   9 +\n specs/224-fix-gate-retry-history-filter/review.md  |  25 ++\n specs/224-fix-gate-retry-history-filter/spec.json  | 157 +++++++++\n specs/224-fix-gate-retry-history-filter/spec.md    | 111 +++++++\n .../tests/README.md                                |  44 +++\n src/flow/lib/run-gate.js                           |  21 +-\n tests/e2e/flow/gate-impl-integration.test.js       |  10 +-\n tests/unit/flow/format-retry-history.test.js       | 256 +++++++++++++++\n 11 files changed, 1185 insertions(+), 8 deletions(-)",
+      "commits": [
+        "feat: feature/224-fix-gate-retry-history-filter"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 232789,
+      "output": 8404,
+      "cacheRead": 73472,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 293119,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 54973
+        },
+        {
+          "phase": "spec",
+          "durationMs": 78814
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 124365
+        },
+        {
+          "phase": "review",
+          "durationMs": 34967
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2231,
+      "integration": 261,
+      "acceptance": 0,
+      "total": 2492
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/224-fix-gate-retry-history-filter\n    11 files changed, 1185 insertions(+), 8 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 3\n    agent calls ................. 13\n    input tokens ................ 232,789\n    output tokens ............... 8,404\n    cache-read tokens ........... 73,472\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 293.1s\n      gate-draft ................ 55.0s\n      spec ...................... 78.8s\n      gate-impl ................. 124.4s\n      review .................... 35.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2231  integration 261  acceptance 0  total 2492"
+}

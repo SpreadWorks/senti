@@ -108,11 +108,11 @@ function setupFixture(tmp, { initialTest, modifiedTest, gateRetry = 0, seedIssue
 
   if (seedIssueLog) {
     writeJson(tmp, `specs/${SPEC_ID}/issue-log.json`, {
-      entries: [
-        { step: "gate-impl", reason: "seeded FAIL reason 1" },
-        { step: "gate-impl", reason: "seeded FAIL reason 2" },
-        { step: "gate-impl", reason: "seeded FAIL reason 3" },
-      ],
+      entries: [1, 2, 3].map((n) => ({
+        step: "gate-impl",
+        phase: "task-impl",
+        reason: `seeded FAIL reason ${n}`,
+      })),
     });
   }
 
