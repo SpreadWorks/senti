@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T10:12:28.481Z",
+  "analyzedAt": "2026-04-23T12:16:15.432Z",
   "package": {
     "entries": [
       {
@@ -2592,7 +2592,8 @@
           "src/lib/dispatcher.js",
           "src/flow/lib/run-auto-check.js",
           "src/flow/lib/set-gate-retry.js",
-          "src/flow/lib/run-reopen-draft.js"
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/set-approval.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -3661,9 +3662,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "3f592acc4c00fed15f2733924fd484ee",
+        "hash": "570bac079d989f487555c3b09e205ac7",
         "lines": 350,
-        "mtime": "2026-04-23T00:47:40.262Z",
+        "mtime": "2026-04-23T12:16:14.735Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3696,21 +3697,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "Creates and initializes new spec work items, including directory scaffolding, templates, and optional worktree setup. It prepares `spec.json`, `spec.md`, `qa.md`, and `draft.md` consistently.",
-        "detail": "The command generates stable spec identifiers through slugification and index allocation, then validates base branch and dirty-worktree constraints. It supports local template override loading from `.sdd-forge/templates/...` with fallback built-in QA/draft templates. When files are missing, it writes canonical stubs and renders markdown from `spec.json` using the shared renderer. Flow state is persisted with contextual metadata for subsequent flow commands. This module acts as the entry point for structured spec lifecycle initiation.",
+        "summary": "This module prepares a new flow spec workspace and initializes required spec artifacts for execution. It encapsulates branch detection, naming, template generation, and flow-state persistence in a command class.",
+        "detail": "It defines helper routines for git command execution, slug creation, and numeric spec directory indexing to produce stable spec folder names. The command validates prerequisites such as title presence, config availability, and clean worktree constraints before creating files. It writes `spec.json`, rendered `spec.md`, `qa.md`, and `draft.md` only when missing, using fallback templates and localized content where applicable. It also records flow state metadata, including spec paths and initial step status, so downstream flow commands can continue from a deterministic baseline. Error paths are explicit and fail fast to avoid partially initialized flow state.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
+          "processedAt": "2026-04-23T12:16:40.997Z",
           "attempts": 1
         },
         "keywords": [
-          "prepare spec",
-          "scaffolding",
+          "flow prepare",
+          "spec bootstrap",
           "worktree setup",
+          "slug generation",
+          "branch detection",
+          "state initialization",
           "template fallback",
-          "spec initialization",
-          "flow state"
+          "spec scaffolding"
         ]
       },
       {
@@ -4089,6 +4092,46 @@
           "markdown rendering",
           "size guard",
           "update pipeline"
+        ]
+      },
+      {
+        "file": "src/flow/lib/set-approval.js",
+        "hash": "577bf5b0808ccbf351ed7345625062e1",
+        "lines": 76,
+        "mtime": "2026-04-23T12:16:14.735Z",
+        "className": "set-approval",
+        "methods": [
+          "isValidIso8601"
+        ],
+        "imports": [
+          "node:path",
+          "./base-command.js",
+          "../../lib/flow-envelope.js",
+          "../../lib/spec-json.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "831b8f64",
+        "summary": "This module applies and validates user approval metadata into a spec JSON document. It provides a command-level boundary that enforces required fields and constraints before persistence.",
+        "detail": "It uses envelope-style failure responses to return structured validation errors instead of throwing for expected input issues. The implementation validates approval status, optional notes length, and timestamp format through a focused ISO-8601 check helper. Once inputs pass validation, it resolves the active spec path from flow context and updates only the `user_approval` section. Persistence is delegated to shared spec-json helpers, keeping the command thin and consistent with surrounding flow infrastructure. The result payload returns normalized approval data for subsequent flow stages.",
+        "chapter": "cli_commands",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-23T12:16:40.997Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "approval state",
+          "input validation",
+          "ISO8601 timestamp",
+          "envelope response",
+          "spec.json update",
+          "flow context",
+          "notes length check",
+          "command handler"
         ]
       },
       {
@@ -4613,9 +4656,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "b2eeb7f9cfc51ffec27b114cc320133a",
-        "lines": 596,
-        "mtime": "2026-04-23T08:45:48.741Z",
+        "hash": "3da915d5ef5195548cee9a3acdbd1b2c",
+        "lines": 614,
+        "mtime": "2026-04-23T12:16:14.735Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4635,22 +4678,23 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "This registry module wires flow commands to lifecycle hooks and coordinates step/issue-log side effects around command execution. It acts as the central dispatcher for flow command behavior.",
-        "detail": "It derives active phase context and imports gate-step resolvers so registry-level hooks can align command state with current gating progression. Pre/post hook helpers wrap status and issue-log mutations with fail-safe error handling, logging skipped updates to stderr without crashing unrelated paths. The module defines reusable wrappers (`stepPre`, `stepPost`, append helpers) to standardize command instrumentation. `FLOW_COMMANDS` stores command metadata and execution behavior, including help text and post-execution integrations such as retry-counter updates and commit post-processing. This design keeps command registration declarative while isolating operational side effects in small guard-wrapped helpers.",
+        "summary": "This registry module wires flow commands, lifecycle hooks, and step-state transitions into a centralized execution map. It acts as orchestration glue between phase derivation, metrics, gate behavior, and command invocation.",
+        "detail": "It derives the active phase from flow state and uses guarded helper wrappers to update step status or append issue logs without breaking unrelated command execution. Pre/post hook factories standardize state transitions such as moving steps into `in_progress` and applying completion statuses from command results. The registry also integrates gate-related utilities to resolve gate phase/step semantics and retry counters. Error handling is selective: noncritical telemetry or state-sync failures are logged, while command-level failures still propagate when needed. This pattern keeps command definitions declarative while concentrating cross-cutting flow behavior in one place.",
         "chapter": "internal_design",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-23T08:46:13.432Z",
+          "processedAt": "2026-04-23T12:16:40.997Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "flow dispatcher",
-          "lifecycle hooks",
-          "step status tracking",
-          "issue log append",
+          "flow orchestration",
           "phase derivation",
-          "orchestration layer"
+          "step lifecycle",
+          "gate phase",
+          "retry counter",
+          "issue logging",
+          "hook pipeline"
         ]
       },
       {
@@ -9317,9 +9361,9 @@
       },
       {
         "file": "src/spec/commands/render.js",
-        "hash": "1f20ae05e8f591d7686b2278def4cc7b",
-        "lines": 280,
-        "mtime": "2026-04-23T02:44:06.670Z",
+        "hash": "13340fa946abee78e20f394e3564459a",
+        "lines": 298,
+        "mtime": "2026-04-23T12:16:14.735Z",
         "className": "render",
         "methods": [
           "renderSpecMarkdown",
@@ -9328,6 +9372,7 @@
           "validatePathOption",
           "renderList",
           "renderOverviewSub",
+          "renderUserConfirmation",
           "resolveActiveSpecDir",
           "runSpecRender"
         ],
@@ -9348,21 +9393,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "d63c4335",
-        "enrich": {
-          "processedAt": "2026-04-23T03:19:55.267Z",
-          "attempts": 2
-        },
-        "summary": "Implements `spec render`, a CLI command that validates `spec.json` and renders deterministic Markdown output. It supports active-flow resolution and explicit path options.",
-        "detail": "The command parses arguments, validates path options defensively, and resolves spec directory from either flags or active flow state. It loads a JSON schema, validates spec data via `validateSchema`, and exits with explicit error messages on invalid input. Rendering functions build sectioned Markdown for overview, requirements, and supporting metadata. Output is written to a target path and reported relative to repository root for clear CLI UX.",
+        "summary": "This command renders a validated `spec.json` into human-readable markdown and writes it to `spec.md` or a specified output path. It combines CLI argument handling, schema validation, and markdown section composition.",
+        "detail": "The module validates path options defensively, resolves the active spec directory from flow context when not provided, and checks file-system preconditions before rendering. It loads a JSON schema and runs structured validation, printing detailed error lines and exiting with a command error code on failure. Markdown generation is built from small render helpers that format requirement lists, section blocks, and user confirmation metadata into predictable output structure. Output path resolution supports absolute and root-relative targets, and successful execution reports the rendered file path relative to project root. The command class delegates to an async runner to keep command entry and render logic separated.",
         "chapter": "cli_commands",
         "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-23T12:16:40.997Z",
+          "attempts": 1
+        },
         "keywords": [
           "spec render",
           "markdown generation",
           "schema validation",
-          "cli options",
-          "spec.json",
-          "output path"
+          "CLI options",
+          "path resolution",
+          "error exit code",
+          "flow-aware directory",
+          "requirements formatting"
         ]
       },
       {
@@ -9411,10 +9458,10 @@
       }
     ],
     "summary": {
-      "total": 275,
-      "totalMethods": 897
+      "total": 276,
+      "totalMethods": 899
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T10:12:41.942Z"
+  "enrichedAt": "2026-04-23T12:16:40.997Z"
 }
