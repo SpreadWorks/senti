@@ -1,0 +1,146 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft targets one coherent bugfix concern: spec-phase gate should validate spec.json instead of derived markdown.; Unambiguous Requirements — Scope items are concrete and testable (specific files, function changes, and test additions/removals).; Complete Context — Requirements are mostly listed as actions, not consistently expressed with explicit trigger condition (When/If) plus expected shall behavior.; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are present in the draft content.; Prioritize Requirements — More than three requirements are listed in scope, but no explicit priority order is provided.; Impact on Existing Features — Impact section clearly states affected existing features and explicitly lists unaffected areas.; Present Recommendations with Reasoning — Q&A provides direct recommended answers with basis in existing code/module comments and workflow design rationale.; Explore Before Asking — Draft cites concrete code paths/behavior and has no unresolved questions requiring user input.; Proactively Raise Related Implications — Related implications are proactively covered via scope boundaries and impact analysis across phases/tests.; Confirm Brainstorm vs. Decision Before Critiquing — Content indicates decision mode with explicit user approval and confirmation date/notes.; Capture Digressions in draft.md — No evident digression in the draft; inapplicable in this content.; Draft Stays at Requirements Level — Draft includes implementation-level details (function names, argument removal, validation/scanning internals, specific test edits).; Backward-Compatible CLI Interface — No command/option removal is specified, and compatibility of existing --spec usage is explicitly noted.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:49:40.341Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirements are mostly listed as actions, not consistently expressed with explicit trigger condition (When/If) plus expected shall behavior."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three requirements are listed in scope, but no explicit priority order is provided."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (function names, argument removal, validation/scanning internals, specific test edits)."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: fixing parent spec gate validation source/data path behavior.; Unambiguous Requirements — Requirements are mostly stated as verifiable shall statements with concrete conditions and outcomes.; Complete Context — R4 lacks an explicit trigger condition (When/If), so not all requirements pair context with expected behavior.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in the draft.; Prioritize Requirements — There are four requirements and they are explicitly ordered and prioritized (R1-R4, must/should).; Impact on Existing Features — It explicitly lists affected existing features and explicitly lists unaffected areas.; Present Recommendations with Reasoning — Each Q&A provides a clear recommendation-style answer with concise rationale based on code/docs and design principles.; Explore Before Asking — The draft shows evidence of prior exploration (e.g., citing src/lib/spec-json.js) and has no unresolved ask to the user.; Proactively Raise Related Implications — It proactively raises related implications, including phase boundaries and test impact.; Confirm Brainstorm vs. Decision Before Critiquing — The content indicates a finalized decision with explicit user approval; no critique of tentative brainstorming is present.; Capture Digressions in draft.md — No digression is indicated; inapplicable in this draft context.; Draft Stays at Requirements Level — The draft stays at requirements/spec level and avoids function-level implementation design.; Backward-Compatible CLI Interface — No command/option removal or semantic break is specified; behavior is described as a bug fix without migration need.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:50:39.482Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R4 lacks an explicit trigger condition (When/If), so not all requirements pair context with expected behavior."
+        }
+      ]
+    },
+    {
+      "step": "spec",
+      "reason": "chained two sdd-forge commands with && violating the no-chain rule",
+      "trigger": "sdd-forge flow set step gate-draft done && sdd-forge flow set step spec in_progress",
+      "resolution": "noted; will run each sdd-forge command as a separate Bash invocation going forward",
+      "guardrailCandidate": "always run sdd-forge subcommands in separate Bash calls; never chain with && / || / ; or pipe",
+      "taskId": null,
+      "timestamp": "2026-04-23T02:51:49.263Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 41: unresolved token ({ \"text\": \"未解決トークン scan: spec.json の全 string 値（goal/background/scope.in[]/scope.out[]/constraints[]/design_principles[]/requirements[].desc/acceptance_criteria[]/clarifications[].q/.a/alternatives_considered[].option/.reason/open_questions[]/overview.*[].text）を再帰的に走査し NEEDS CLARIFICATION/TBD/TODO/FIXME を検出\" }); line 54: unresolved token ({ \"id\": \"R3\", \"desc\": \"When parent spec の人間記述部 (string 値) に未解決トークン (`NEEDS CLARIFICATION` / `TBD` / `TODO` / `FIXME`) が残存するとき、parent spec gate は当該箇所をフィールドパス付きで指摘 shall。\", \"priority\": \"should\" },); line 61: unresolved token (\"spec.json の goal フィールドに 'TBD' を含めた状態で parent spec gate を実行すると textCheck が当該 issue を含む issues を返す\",); missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:52:54.087Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:53:36.109Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: fixing parent spec gate to validate spec.json correctly.; Unambiguous Requirements — Requirements are mostly expressed as verifiable conditions with explicit triggers and expected outcomes.; Complete Context — Each listed requirement pairs a trigger condition (When) with a required behavior (shall).; REQ Diff-Verifiability — PASS/FAIL can be decided from code diff plus unit test results and gate output expectations.; No Hardcoded Secrets — No secrets or credential-like literals are specified in the content.; No Silent Error Swallowing — Error handling is specified as surfaced issues on validation failure, not silent discard.; Prioritize Requirements — More than three requirements are present and priority is indicated via must/should levels.; Impact on Existing Features — Impact is explicitly described, including unchanged task-spec behavior and out-of-scope areas.; Bounded Resource Usage — Recursive unresolved-marker scanning is specified without explicit bounds on depth/size/count.; Changes Require Test Coverage — Spec includes concrete test expectations and identifies target test files for coverage.; Spec Includes Test Strategy — Acceptance Criteria and Implementation Targets define what to test and where.; Synthesize Draft, Do Not Copy — No source draft content is provided, so synthesis-vs-copying cannot be verified.; Record Unresolved Points as Open Questions — Unknown future points are not fabricated; unresolved/future concerns are either scoped out or left open.; Include 'Why This Approach' Rationale — Background, decisions, and alternatives with rejection reasons provide clear approach rationale.; Do Not Modify Existing Tests Without Approval — Spec proposes restructuring existing tests but does not record explicit user approval for modifying them.; Backward-Compatible CLI Interface — No command or option removal/semantic break is specified; behavior remains compatible.; Exit Code Contract — Exit code behavior is not stated, and no runtime evidence is provided to evaluate this contract.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:54:58.187Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Recursive unresolved-marker scanning is specified without explicit bounds on depth/size/count."
+        },
+        {
+          "guardrail_id": "impl-test-preservation",
+          "reason": "Spec proposes restructuring existing tests but does not record explicit user approval for modifying them."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: fixing spec-phase gate to validate spec.json correctly.; Unambiguous Requirements — Some requirements use implementation-defined terms (e.g., marker literals, equivalent results) without fully fixed acceptance thresholds.; Complete Context — Requirements consistently pair trigger conditions (When) with expected shall-behavior.; REQ Diff-Verifiability — Outcomes are framed to be decidable from code diff and test results (schema errors, marker detection, phase behavior).; No Hardcoded Secrets — No secrets or credential literals are introduced in the spec content.; No Silent Error Swallowing — Spec does not propose empty catches or silent error discarding; it requires surfacing validation failures as issues.; Prioritize Requirements — There are more than three requirements and they include explicit priority levels ([must]/[should]).; Impact on Existing Features — Impact is described via scope/out-of-scope and explicit preservation of task-spec behavior.; Bounded Resource Usage — Resource bounds are justified via schema limits and constrained recursive traversal over validated structure.; Changes Require Test Coverage — Spec includes concrete test expectations and identifies target test files for the change.; Spec Includes Test Strategy — Test strategy is present through Acceptance Criteria and Implementation Targets.; Synthesize Draft, Do Not Copy — Cannot determine synthesis vs copy without the original draft source for comparison.; Record Unresolved Points as Open Questions — Alternatives and unresolved scope are handled explicitly, and no invented unresolved answers are evident.; Include 'Why This Approach' Rationale — Rationale is provided in Background, Decisions, and Alternatives Considered.; Do Not Modify Existing Tests Without Approval — Existing test modifications are explicitly authorized with quoted user approval.; Backward-Compatible CLI Interface — CLI behavior change is addressed and compatibility path for explicit spec.md input is specified.; Exit Code Contract — Spec does not explicitly define non-zero exit-code behavior for command failure conditions.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:56:03.460Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some requirements use implementation-defined terms (e.g., marker literals, equivalent results) without fully fixed acceptance thresholds."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "Spec does not explicitly define non-zero exit-code behavior for command failure conditions."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — `phase=spec` was switched to `spec.json` and gate split logic is implemented, but parent spec loading does not use `loadSpecJson()` as explicitly required (it re-reads/parses JSON directly in `executeSpec`), so the spec is not fully compliant.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T03:12:01.840Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "`phase=spec` was switched to `spec.json` and gate split logic is implemented, but parent spec loading does not use `loadSpecJson()` as explicitly required (it re-reads/parses JSON directly in `executeSpec`), so the spec is not fully compliant."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T03:17:15.243Z"
+    },
+    {
+      "step": "review",
+      "reason": "review approved 3 proposals (#2 run-draft-task.js, #3 schema-validate.js, #4 run-prepare-spec.js) all targeting files outside this spec's diff scope",
+      "trigger": "sdd-forge flow run review on spec 218",
+      "resolution": "noted — these proposals are out of scope for spec 218 (which only modifies run-gate.js + 2 test files). Not applying. Recommendations remain in review.md for separate follow-up if desired",
+      "guardrailCandidate": "review post-hook should filter proposals to files in current diff scope, or warn when approved proposals reference files outside the diff",
+      "taskId": null,
+      "timestamp": "2026-04-23T03:19:46.616Z"
+    },
+    {
+      "step": "merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-04-23T03:23:46.552Z"
+    },
+    {
+      "step": "finalize",
+      "reason": "rebase conflict in src/flow/lib/run-gate.js — main added tasks-monotonic check inside executeTaskSpec gated on phase==spec; my refactor split execute into executeSpec/executeTaskSpec",
+      "trigger": "git rebase main during finalize",
+      "resolution": "moved tasks-monotonic check into the new executeSpec (parent), removed the now-unreachable phase==spec gate from executeTaskSpec, kept tryLoadSpecJson removed (no longer needed since executeSpec already loads via loadSpecJson)",
+      "guardrailCandidate": "after splitting a function in a refactor, recheck callers' branch logic for now-unreachable conditions and code those branches were guarding",
+      "taskId": null,
+      "timestamp": "2026-04-23T03:27:27.819Z"
+    }
+  ]
+}

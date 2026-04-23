@@ -22,7 +22,7 @@ import { runGit } from "../../lib/git-helpers.js";
 import { container } from "../../lib/container.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
-import { loadSpecJson, tryLoadSpecJson } from "../../lib/spec-json.js";
+import { loadSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
 import { checkTasksMonotonic } from "./check-tasks-monotonic.js";
 import {
   VALID_GATE_PHASES,
@@ -96,41 +96,47 @@ function sectionAt(lines, lineIdx) {
 }
 
 // ---------------------------------------------------------------------------
-// Text checks — spec (parent-level)
+// Unresolved-marker patterns (shared by markdown and JSON checkers)
+// ---------------------------------------------------------------------------
+
+const UNRESOLVED_PATTERNS = Object.freeze([
+  /\[NEEDS CLARIFICATION\]/i,
+  /\bTBD\b/i,
+  /\bTODO\b/i,
+  /\bFIXME\b/i,
+]);
+
+function findUnresolvedMatch(text) {
+  for (const p of UNRESOLVED_PATTERNS) {
+    const m = text.match(p);
+    if (m) return m[0];
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Text checks — task draft markdown (used by phase=task-spec)
 // ---------------------------------------------------------------------------
 
 /**
  * @param {string} text
- * @param {{ strict?: boolean }} [opts] - when strict=true, require User Confirmation approval
  * @returns {string[]} issues
  */
-function checkSpecText(text, opts) {
-  const strict = opts?.strict ?? false;
+function checkSpecText(text) {
   const issues = [];
   const lines = text.split("\n");
 
   const PRE_SKIP_SECTIONS = /^(Status|Acceptance Criteria|User Scenarios\s*&?\s*Testing|User Confirmation)/i;
 
-  const unresolvedPatterns = [
-    /\[NEEDS CLARIFICATION\]/i,
-    /\bTBD\b/i,
-    /\bTODO\b/i,
-    /\bFIXME\b/i,
-  ];
   for (const [idx, line] of lines.entries()) {
     if (/^\s*\|/.test(line)) continue;
 
-    for (const p of unresolvedPatterns) {
-      if (p.test(line)) {
-        issues.push(`line ${idx + 1}: unresolved token (${line.trim()})`);
-        break;
-      }
+    if (findUnresolvedMatch(line)) {
+      issues.push(`line ${idx + 1}: unresolved token (${line.trim()})`);
     }
     if (/^\s*-\s*\[\s\]\s+/.test(line)) {
-      if (!strict) {
-        const section = sectionAt(lines, idx);
-        if (PRE_SKIP_SECTIONS.test(section)) continue;
-      }
+      const section = sectionAt(lines, idx);
+      if (PRE_SKIP_SECTIONS.test(section)) continue;
       issues.push(`line ${idx + 1}: unchecked task/question (${line.trim()})`);
     }
   }
@@ -143,20 +149,6 @@ function checkSpecText(text, opts) {
   }
   if (!/^\s*##\s+User Confirmation\b/im.test(text)) {
     issues.push("missing section: ## User Confirmation");
-  } else if (strict) {
-    const startMatch = text.match(/^\s*##\s+User Confirmation\b/im);
-    const start = startMatch?.index ?? -1;
-    const tail = start >= 0 ? text.slice(start) : "";
-    const nextHeading = tail.slice(1).match(/\n\s*##\s+/m);
-    const end = nextHeading ? start + 1 + (nextHeading.index ?? 0) : text.length;
-    const block = start >= 0 ? text.slice(start, end) : "";
-    const hasApproval =
-      /-\s*\[\s*x\s*\]\s*(?:User approved this spec|この仕様で実装して問題ない)\b/i.test(block);
-    if (!hasApproval) {
-      issues.push(
-        "user confirmation is required: set `- [x] User approved this spec` in ## User Confirmation",
-      );
-    }
   }
   const hasAcceptance =
     /^\s*##\s+Acceptance Criteria\b/im.test(text) ||
@@ -169,6 +161,54 @@ function checkSpecText(text, opts) {
   }
 
   return issues;
+}
+
+// ---------------------------------------------------------------------------
+// JSON checks — parent spec.json (used by phase=spec)
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan a parsed spec.json tree for unresolved markers in human-authored
+ * string values. Schema validation is performed at the caller via
+ * `loadSpecJson()` (the single validated load path); this function operates
+ * on an already-validated spec object.
+ *
+ * @param {object} spec - parsed and schema-validated spec.json
+ * @returns {string[]} issues, each prefixed with the dotted field path
+ */
+function checkSpecJson(spec) {
+  const issues = [];
+  walkStrings(spec, "", (value, path) => {
+    const marker = findUnresolvedMatch(value);
+    if (marker) {
+      issues.push(`${path}: unresolved marker "${marker}" in value (${value.trim()})`);
+    }
+  });
+  return issues;
+}
+
+/**
+ * Recursively visit every string value in a JSON-like tree, invoking the
+ * callback with (value, dotted-path). Bounded by spec.schema.json's
+ * maxItems / maxLength constraints (spec 218).
+ */
+function walkStrings(node, path, fn) {
+  if (typeof node === "string") {
+    fn(node, path || "<root>");
+    return;
+  }
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i++) {
+      walkStrings(node[i], `${path}[${i}]`, fn);
+    }
+    return;
+  }
+  if (node && typeof node === "object") {
+    for (const key of Object.keys(node)) {
+      const next = path ? `${path}.${key}` : key;
+      walkStrings(node[key], next, fn);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1225,8 +1265,11 @@ export class RunGateCommand extends FlowCommand {
     if (phase === "task-impl" || phase === "integration") {
       return this.executeDiffBasedGate(ctx, root, level, phase, skipGuardrail);
     }
-    // "spec" and "task-spec"
-    return this.executeSpec(ctx, root, level, phase, skipGuardrail);
+    if (phase === "task-spec") {
+      return this.executeTaskSpec(ctx, root, level, skipGuardrail);
+    }
+    // "spec" — parent spec.json
+    return this.executeSpec(ctx, root, level, skipGuardrail);
   }
 
   async executeDraft(ctx, root, level, skipGuardrail) {
@@ -1256,11 +1299,63 @@ export class RunGateCommand extends FlowCommand {
     });
   }
 
-  async executeSpec(ctx, root, level, phase, skipGuardrail) {
-    const spec = ctx.spec || "";
-    // "spec" phase uses lenient check (before approval); "task-spec" also lenient for now.
-    const strict = false;
+  async executeSpec(ctx, root, level, skipGuardrail) {
+    let specInput = ctx.spec || "";
+    if (!specInput) {
+      const state = ctx.flowState;
+      if (state?.spec) {
+        specInput = state.spec;
+      } else {
+        throw new Error("no --spec provided and no active flow found");
+      }
+    }
 
+    // Resolve any input form (directory / spec.json / spec.md) to spec.json.
+    const absInput = path.resolve(root, specInput);
+    const jsonPath = resolveSpecJsonPath(absInput);
+    if (!fs.existsSync(jsonPath)) {
+      throw new Error(`spec.json not found: ${jsonPath}`);
+    }
+
+    const targetPath = path.relative(root, jsonPath);
+    const targetText = fs.readFileSync(jsonPath, "utf8");
+
+    let spec;
+    let loadError = null;
+    try {
+      // R1: spec.json is loaded through the single validated load path
+      // (loadSpecJson — performs JSON.parse + spec.schema.json validation).
+      spec = loadSpecJson(jsonPath);
+    } catch (err) {
+      loadError = err.message;
+    }
+
+    // REQ-3 (spec 215): tasks[] monotonic check applies to the parent-level
+    // spec phase only.
+    const flowTasks = ctx.flowState?.tasks || [];
+    const monotonicIssues = checkTasksMonotonic({
+      flowTasks,
+      specTasks: spec?.tasks,
+    });
+
+    return runGateFlow({
+      root,
+      config: ctx.config,
+      level,
+      phase: "spec",
+      targetPath,
+      targetText,
+      textCheck: () =>
+        loadError
+          ? [`schema: ${loadError}`, ...monotonicIssues]
+          : [...checkSpecJson(spec), ...monotonicIssues],
+      checkerRole: undefined,
+      skipGuardrail,
+    });
+  }
+
+  async executeTaskSpec(ctx, root, level, skipGuardrail) {
+    const spec = ctx.spec || "";
     let specPath = spec;
     if (!specPath) {
       const state = ctx.flowState;
@@ -1278,32 +1373,14 @@ export class RunGateCommand extends FlowCommand {
 
     const text = fs.readFileSync(absPath, "utf8");
 
-    // REQ-3 (spec 215): tasks[] monotonic check for parent-level spec phase
-    // only. task-spec phase targets a task's own draft.md and must not
-    // trigger the parent monotonic check.
-    let monotonicIssues = [];
-    if (phase === "spec") {
-      const flowTasks = ctx.flowState?.tasks || [];
-      const specDirForJson = path.resolve(root, specPath);
-      let specJson = null;
-      try {
-        specJson = tryLoadSpecJson(specDirForJson, { validate: false });
-      } catch (err) {
-        process.stderr.write(
-          `[sdd-forge] gate: spec.json load failed (${err.message}); skipping monotonic check\n`,
-        );
-      }
-      monotonicIssues = checkTasksMonotonic({ flowTasks, specTasks: specJson?.tasks });
-    }
-
     return runGateFlow({
       root,
       config: ctx.config,
       level,
-      phase,
+      phase: "task-spec",
       targetPath: specPath,
       targetText: text,
-      textCheck: () => [...checkSpecText(text, { strict }), ...monotonicIssues],
+      textCheck: () => checkSpecText(text),
       checkerRole: undefined,
       skipGuardrail,
     });
@@ -1450,6 +1527,7 @@ export class RunGateCommand extends FlowCommand {
 export default RunGateCommand;
 export {
   checkSpecText,
+  checkSpecJson,
   checkDraftText,
   buildGuardrailPrompt,
   buildImplCheckPrompt,

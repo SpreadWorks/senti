@@ -1,0 +1,65 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/218-spec-gate-json-fix/draft.md        |  43 ++++\n specs/218-spec-gate-json-fix/flow.json       | 358 +++++++++++++++++++++++++++\n specs/218-spec-gate-json-fix/issue-log.json  | 146 +++++++++++\n specs/218-spec-gate-json-fix/qa.md           |   9 +\n specs/218-spec-gate-json-fix/report.json     |  60 +++++\n specs/218-spec-gate-json-fix/review.md       |  49 ++++\n specs/218-spec-gate-json-fix/spec.json       |  88 +++++++\n specs/218-spec-gate-json-fix/spec.md         | 102 ++++++++\n specs/218-spec-gate-json-fix/tests/README.md |  47 ++++\n src/flow/lib/run-gate.js                     | 198 ++++++++++-----\n tests/unit/specs/commands/gate.test.js       | 333 ++++++++++++++++++++-----\n tests/unit/specs/commands/guardrail.test.js  |  28 ++-\n 12 files changed, 1324 insertions(+), 137 deletions(-)",
+      "commits": [
+        "feat: feature/218-spec-gate-json-fix",
+        "chore: update flow.json",
+        "chore: log rebase resolution",
+        "chore: append merge conflict to issue-log",
+        "chore: add retro and report",
+        "feat: feature/218-spec-gate-json-fix",
+        "fix(gate): inspect spec.json directly for parent spec gate"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 2,
+      "question": 1,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 322951,
+      "output": 11654,
+      "cacheRead": 105600,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 282254,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 77283
+        },
+        {
+          "phase": "spec",
+          "durationMs": 89274
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 57875
+        },
+        {
+          "phase": "review",
+          "durationMs": 57822
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2042,
+      "integration": 260,
+      "acceptance": 0,
+      "total": 2302
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/218-spec-gate-json-fix\n    chore: update flow.json\n    chore: log rebase resolution\n    chore: append merge conflict to issue-log\n    chore: add retro and report\n    feat: feature/218-spec-gate-json-fix\n    fix(gate): inspect spec.json directly for parent spec gate\n    12 files changed, 1324 insertions(+), 137 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 2\n    Q&A ......................... 1\n    issue-log ................... 3\n    agent calls ................. 11\n    input tokens ................ 322,951\n    output tokens ............... 11,654\n    cache-read tokens ........... 105,600\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 282.3s\n      draft ..................... 77.3s\n      spec ...................... 89.3s\n      gate-impl ................. 57.9s\n      review .................... 57.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2042  integration 260  acceptance 0  total 2302"
+}

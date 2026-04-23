@@ -1,7 +1,7 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "path";
-import { createTmpDir, removeTmpDir, writeFile, writeJson } from "../../../helpers/tmp-dir.js";
+import { createTmpDir, removeTmpDir, writeJson } from "../../../helpers/tmp-dir.js";
 import { execFileSync } from "child_process";
 import { setupFlow } from "../../../helpers/flow-setup.js";
 
@@ -20,15 +20,19 @@ describe("gate guardrail integration", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  const validSpec = [
-    "# Spec",
-    "## Clarifications (Q&A)",
-    "## Open Questions",
-    "## User Confirmation",
-    "- [x] User approved this spec",
-    "## Acceptance Criteria",
-    "- done",
-  ].join("\n");
+  const validSpec = {
+    goal: "test goal",
+    background: "test background",
+    scope: { in: ["a"], out: ["b"] },
+    constraints: [],
+    design_principles: [],
+    overview: { modules: [], data_flow: [], decisions: [] },
+    requirements: [],
+    acceptance_criteria: [],
+    clarifications: [],
+    alternatives_considered: [],
+    open_questions: [],
+  };
 
   function createGateFixture({ config, guardrails } = {}) {
     tmp = createTmpDir();
@@ -39,7 +43,7 @@ describe("gate guardrail integration", () => {
       lang: "en", type: "node-cli",
       docs: { languages: ["en"], defaultLanguage: "en" },
     });
-    writeFile(tmp, "spec.md", validSpec);
+    writeJson(tmp, "spec.json", validSpec);
     if (guardrails) {
       writeJson(tmp, ".sdd-forge/guardrail.json", { guardrails });
     }
@@ -49,7 +53,7 @@ describe("gate guardrail integration", () => {
   function runGate(dir, extraArgs = []) {
     return execFileSync("node", [
       SDD_FORGE, "flow", "run", "gate",
-      "--spec", join(dir, "spec.md"),
+      "--spec", join(dir, "spec.json"),
       ...extraArgs,
     ], {
       encoding: "utf8",

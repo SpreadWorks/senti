@@ -1,0 +1,358 @@
+{
+  "spec": "specs/218-spec-gate-json-fix/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/218-spec-gate-json-fix",
+  "runId": "31a58b79-774c-44b4-b8c9-e098064d7ce9",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 231,
+  "worktree": true,
+  "request": "Issue #231: spec gate executeSpec が spec.json を markdown として検査して常に FAIL する。原因は commit 36678a0 で state.spec が spec.json に切り替わったが executeSpec/checkSpecText は markdown headings を regex 検出するため。対象 src/flow/lib/run-gate.js executeSpec(1258-1291)/checkSpecText(106-171)。方針候補 A/B/C は spec フェーズで決定。",
+  "test": {
+    "baseline": {
+      "unit": 2033,
+      "integration": 260,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 2042,
+      "integration": 260
+    }
+  },
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T02:35:12.963Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T02:35:35.857Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T02:37:20.443Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2298,
+      "durationMs": 25462,
+      "tokens": {
+        "input": 6362,
+        "output": 1115,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:49:40.328Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2245,
+      "durationMs": 27187,
+      "tokens": {
+        "input": 21508,
+        "output": 1067,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:50:39.472Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2165,
+      "durationMs": 24634,
+      "tokens": {
+        "input": 21518,
+        "output": 1082,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:51:20.354Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T02:51:49.308Z"
+    },
+    {
+      "phase": "spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2768,
+      "durationMs": 30473,
+      "tokens": {
+        "input": 22918,
+        "output": 1328,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:54:58.178Z"
+    },
+    {
+      "phase": "spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2841,
+      "durationMs": 30919,
+      "tokens": {
+        "input": 23166,
+        "output": 1439,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:56:03.447Z"
+    },
+    {
+      "phase": "spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2711,
+      "durationMs": 27882,
+      "tokens": {
+        "input": 1847,
+        "output": 1290,
+        "cacheRead": 24960,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:57:08.545Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 316,
+      "durationMs": 18855,
+      "tokens": {
+        "input": 30533,
+        "output": 510,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:12:01.787Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T03:12:01.838Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 428,
+      "durationMs": 12830,
+      "tokens": {
+        "input": 14876,
+        "output": 377,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:16:39.419Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1818,
+      "durationMs": 26190,
+      "tokens": {
+        "input": 30750,
+        "output": 1036,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:17:05.628Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-23T03:17:05.673Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2698,
+      "durationMs": 33095,
+      "tokens": {
+        "input": 66788,
+        "output": 1429,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:18:31.535Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1508,
+      "durationMs": 24727,
+      "tokens": {
+        "input": 82685,
+        "output": 981,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:18:56.338Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T03:19:46.637Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T03:27:27.843Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-23T03:27:42.948Z"
+  }
+}
