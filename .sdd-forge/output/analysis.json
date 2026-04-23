@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T12:18:47.499Z",
+  "analyzedAt": "2026-04-23T12:24:33.997Z",
   "package": {
     "entries": [
       {
@@ -3444,9 +3444,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "d7e6190cee0dceeb14c11eaf317b4c29",
-        "lines": 1733,
-        "mtime": "2026-04-23T10:12:28.100Z",
+        "hash": "3a7edb536954bdc1a6b2b260fdfcbac8",
+        "lines": 1773,
+        "mtime": "2026-04-23T12:24:33.701Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3461,6 +3461,7 @@
           "countGateRetry",
           "checkRetryBelowMax",
           "updateGateRetryCounter",
+          "checkMissingHeadTestEvidence",
           "computeGitState",
           "findPreviousFailState",
           "checkNoProgressSinceLastFail",
@@ -3534,6 +3535,7 @@
           "countGateRetry",
           "checkRetryBelowMax",
           "updateGateRetryCounter",
+          "checkMissingHeadTestEvidence",
           "computeGitState",
           "findPreviousFailState",
           "checkNoProgressSinceLastFail",
@@ -3560,24 +3562,24 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This module implements the flow gate execution pipeline and the `RunGateCommand` used by the CLI. It validates draft/spec artifacts, evaluates guardrails, and returns normalized pass/fail envelopes with structured diagnostics.",
-        "detail": "The file centralizes phase/level validation and dispatches gate behavior by phase, including draft checks, spec checks, and diff-based implementation checks. It builds and parses AI guardrail evaluation payloads with strict JSON schema enforcement, then converts results into normalized gate reports. It includes policy checks for test-file modifications, authorized exceptions, unresolved placeholder detection, and requirement coverage extraction from spec text. The module also tracks retry budgets and repeated failures using issue-log metrics plus git state fingerprints to detect no-progress loops. `RunGateCommand` orchestrates runtime context resolution, target-file loading, retry/escalation hooks, and consistent Envelope-based outcomes for downstream flow steps.",
+        "summary": "This module implements the flow gate execution engine and the `RunGateCommand` CLI behavior for spec-driven checks. It validates artifacts, evaluates guardrails, and returns pass/fail gate outcomes with structured evidence.",
+        "detail": "The file combines command orchestration with reusable validation helpers for spec text, spec JSON, draft content, test-diff policies, and retry limits. It builds phase-aware guardrail prompts, parses and validates AI evaluation JSON, and normalizes results into strict report structures. The implementation tracks gate retries and failure history through issue-log integration, including no-progress and repeated-fail detection using git state fingerprints. It also enforces test-modification authorization rules, warns on unused authorizations, and differentiates behavior across phases like draft, task implementation, and integration. The command paths resolve active flow context or explicit spec paths, then route execution to phase-specific gate pipelines that produce consistent pass/fail envelopes.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T10:12:41.942Z",
+          "processedAt": "2026-04-23T12:24:48.527Z",
           "attempts": 1
         },
         "keywords": [
           "gate execution",
-          "guardrail evaluation",
           "flow command",
+          "guardrail evaluation",
           "spec validation",
           "retry budget",
           "issue log",
-          "diff analysis",
-          "test modification policy",
-          "envelope result"
+          "diff-based checks",
+          "test authorization",
+          "pass fail report"
         ]
       },
       {
@@ -9462,9 +9464,9 @@
     ],
     "summary": {
       "total": 276,
-      "totalMethods": 899
+      "totalMethods": 900
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T12:19:13.411Z"
+  "enrichedAt": "2026-04-23T12:24:48.527Z"
 }
