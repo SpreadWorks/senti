@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T02:17:10.717Z",
+  "analyzedAt": "2026-04-23T02:24:40.655Z",
   "package": {
     "entries": [
       {
@@ -3242,9 +3242,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "f92fe5dab8a4e7ed02605f2ff9fd0a48",
-        "lines": 501,
-        "mtime": "2026-04-23T00:13:09.700Z",
+        "hash": "97a6018e8d3d6b3f61f86788330f1ea5",
+        "lines": 516,
+        "mtime": "2026-04-23T02:24:38.305Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3256,6 +3256,7 @@
           "runPreflightChecks",
           "executeCommitPost",
           "RunFinalizeCommand",
+          "buildFinalizeSuccessEnvelope",
           "executeCleanupImpl",
           "buildFinalizePreflightError",
           "runSubStep",
@@ -3284,27 +3285,31 @@
           "runPreflightChecks",
           "executeCommitPost",
           "RunFinalizeCommand",
+          "buildFinalizeSuccessEnvelope",
           "default",
+          "REPORT_SHOW_COMMAND",
           "STEP_MAP"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
-          "attempts": 2
-        },
-        "summary": "Implements finalize-phase orchestration for the SDD flow, including preflight checks, commit/merge/docs sync, and cleanup. It also handles pointer updates and failure finalization hooks.",
-        "detail": "The module provides helper functions for error-triggered finalization, last-finalized spec pointer writing, and cleanup behavior across main/worktree contexts. It includes git write-access preflight validation via temporary lock-file creation and wraps IO failures with domain-specific errors. `RunFinalizeCommand` supports full and selective step execution using `STEP_MAP`, with strict argument validation and structured step results. The command integrates migration hooks, merge strategy propagation, and optional docs build metadata in commit post-processing. Overall, it acts as the controller for terminal flow completion and state normalization.",
+        "summary": "Implements the flow finalize command that orchestrates commit, report generation, merge, version update, release, and cleanup steps. It also provides shared helpers for preflight validation, error handling, and finalize state bookkeeping.",
+        "detail": "The module defines a `RunFinalizeCommand` class that validates finalize mode/step arguments and executes selected steps through a step map and sub-step runner. It performs git preflight checks, including common-dir resolution and write-access probing, then enforces branch and dirty-worktree constraints before proceeding. Supporting helpers handle commit-or-skip behavior, cleanup behavior for worktrees, and pointer updates that track the last finalized spec path. The finalize pipeline is extensible via migration hooks (`finalize-migration.js`) and composes success envelopes with step results and dry-run metadata.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-23T02:25:03.090Z",
+          "attempts": 1
+        },
         "keywords": [
-          "finalize flow",
+          "finalize command",
+          "flow orchestration",
           "preflight checks",
-          "cleanup orchestration",
-          "step map",
-          "commit post",
-          "worktree handling"
+          "git write access",
+          "worktree cleanup",
+          "step runner",
+          "commit skip logic",
+          "spec pointer"
         ]
       },
       {
@@ -9177,9 +9182,9 @@
     ],
     "summary": {
       "total": 270,
-      "totalMethods": 877
+      "totalMethods": 878
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T02:17:29.835Z"
+  "enrichedAt": "2026-04-23T02:25:03.090Z"
 }
