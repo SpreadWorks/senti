@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T12:24:33.997Z",
+  "analyzedAt": "2026-04-23T13:02:17.233Z",
   "package": {
     "entries": [
       {
@@ -2396,15 +2396,17 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "21d3ad42147aa63cd12edef95ac49c7b",
-        "lines": 1115,
-        "mtime": "2026-04-23T05:13:42.072Z",
+        "hash": "1d73b0be11fc6e37c9f777d89aab6ad8",
+        "lines": 1155,
+        "mtime": "2026-04-23T13:02:16.773Z",
         "className": "review",
         "methods": [
           "ensureAgent",
+          "resolveMergeBase",
           "resolveReviewTarget",
           "buildReviewPathspec",
           "runDiffOrThrow",
+          "forEachReviewDiffSource",
           "collectCommittedAndStagedDiff",
           "buildDraftSystemPrompt",
           "buildFinalSystemPrompt",
@@ -2456,6 +2458,7 @@
           "mergeVerdicts",
           "formatReviewMd",
           "resolveReviewTarget",
+          "resolveMergeBase",
           "buildDraftSystemPrompt",
           "buildFinalSystemPrompt",
           "buildFinalValidationPrompt",
@@ -2481,22 +2484,25 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 4
-        },
-        "summary": "Implements the `flow review` command, including draft/final/spec/test review phases driven by AI prompts and git diff context. It orchestrates retry loops, proposal parsing, filtering, and markdown report generation.",
-        "detail": "The module resolves review targets from spec and repository paths, then builds scoped diffs while excluding non-essential files. It defines multiple prompt builders for draft review, final validation, spec quality checks, and test gap analysis, then normalizes AI output into structured proposals or issues. A reusable review loop handles detect/fix cycles with retry limits and dry-run support. The command writes artifacts such as `review.md`, `spec-review.md`, and `test-review.md` under spec directories. It also validates output shape and exits with explicit error codes when required inputs are missing or invalid.",
+        "summary": "Implements the `flow review` command that runs AI-assisted reviews for code, spec quality, and test coverage within an SDD flow. It orchestrates diff collection, proposal filtering, iterative fixing, and review artifact generation.",
+        "detail": "The module resolves review scope from flow metadata, merge-base calculations, and path filters so reviews focus on relevant changed files while excluding documentation and generated outputs. It defines prompt builders and parsers for multiple review modes, including draft/final code review, spec review, and test gap analysis, then drives each mode through retry-based detect-and-fix loops. The implementation writes structured outputs such as `review.md`, `spec-review.md`, `test-review.md`, and generated test design artifacts, making results traceable in the spec directory. It enforces validation and failure handling through explicit exit paths, dry-run support, and sanity checks for AI output format before applying modifications. The command is exposed both as a callable function and as a `Command` subclass for integration with the CLI dispatch system.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-23T13:02:31.841Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow review",
-          "ai review loop",
-          "proposal parsing",
-          "git diff scope",
+          "CLI command",
+          "AI review loop",
+          "diff analysis",
           "spec review",
           "test gap analysis",
-          "markdown report"
+          "prompt orchestration",
+          "merge-base",
+          "retry logic",
+          "artifact generation"
         ]
       },
       {
@@ -9464,9 +9470,9 @@
     ],
     "summary": {
       "total": 276,
-      "totalMethods": 900
+      "totalMethods": 902
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T12:24:48.527Z"
+  "enrichedAt": "2026-04-23T13:02:31.841Z"
 }
