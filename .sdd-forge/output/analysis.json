@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T13:05:19.909Z",
+  "analyzedAt": "2026-04-23T13:57:13.417Z",
   "package": {
     "entries": [
       {
@@ -3450,9 +3450,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "3a7edb536954bdc1a6b2b260fdfcbac8",
-        "lines": 1773,
-        "mtime": "2026-04-23T12:24:33.701Z",
+        "hash": "5fa38453a03501cfe1db72b8b285fdc8",
+        "lines": 1788,
+        "mtime": "2026-04-23T13:57:13.145Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3496,6 +3496,7 @@
           "resolveTestGlobs",
           "resolveRetryMax",
           "readGateRetryCount",
+          "isRetryHistoryGateEntry",
           "formatRetryHistory",
           "warnGateRetryBudget",
           "appendGateEscalationIssueLog",
@@ -3567,26 +3568,7 @@
         "usedBy": [
           "src/flow/lib/set-gate-retry.js"
         ],
-        "id": "b4aa4dad",
-        "summary": "This module implements the flow gate execution engine and the `RunGateCommand` CLI behavior for spec-driven checks. It validates artifacts, evaluates guardrails, and returns pass/fail gate outcomes with structured evidence.",
-        "detail": "The file combines command orchestration with reusable validation helpers for spec text, spec JSON, draft content, test-diff policies, and retry limits. It builds phase-aware guardrail prompts, parses and validates AI evaluation JSON, and normalizes results into strict report structures. The implementation tracks gate retries and failure history through issue-log integration, including no-progress and repeated-fail detection using git state fingerprints. It also enforces test-modification authorization rules, warns on unused authorizations, and differentiates behavior across phases like draft, task implementation, and integration. The command paths resolve active flow context or explicit spec paths, then route execution to phase-specific gate pipelines that produce consistent pass/fail envelopes.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "enrich": {
-          "processedAt": "2026-04-23T12:24:48.527Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "gate execution",
-          "flow command",
-          "guardrail evaluation",
-          "spec validation",
-          "retry budget",
-          "issue log",
-          "diff-based checks",
-          "test authorization",
-          "pass fail report"
-        ]
+        "id": "b4aa4dad"
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -9471,7 +9453,7 @@
     ],
     "summary": {
       "total": 276,
-      "totalMethods": 903
+      "totalMethods": 904
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
