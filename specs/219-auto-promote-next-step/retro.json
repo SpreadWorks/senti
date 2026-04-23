@@ -1,0 +1,73 @@
+{
+  "spec": "specs/219-auto-promote-next-step/spec.json",
+  "date": "2026-04-23T04:30:44.753Z",
+  "requirements": [
+    {
+      "desc": "REQ-1: updateStepStatus done 遷移時に同スコープ in_progress 不在 & 先頭 pending ありなら昇格",
+      "status": "done",
+      "note": "src/lib/flow-store.js で status==='done' 時に promoteFirstPending(scope.steps) を実行し、同スコープ内で in_progress 不在なら先頭 pending を in_progress に昇格している。"
+    },
+    {
+      "desc": "REQ-2: done 以外の遷移または既存 in_progress ありのとき promote しない",
+      "status": "done",
+      "note": "promote は status==='done' のときのみ実行され、promoteFirstPending が既存 in_progress を検知した場合は何も変更しない。"
+    },
+    {
+      "desc": "REQ-3: get-next-action で flow/task スコープに in_progress 不在なら先頭 pending を promote してからディスパッチ",
+      "status": "done",
+      "note": "src/flow/lib/get-next-action.js で target 不在時に task→flow 順で promoteFirstPending を試行し、成功時 save/load 後に resolveTarget を再実行、昇格先がない場合のみ NO_IN_PROGRESS_STEP を返す。"
+    },
+    {
+      "desc": "REQ-4: SKILL.md C.1 から NO_IN_PROGRESS_STEP 手動リカバリ節を削除",
+      "status": "done",
+      "note": "src/templates/skills/sdd-forge.flow/SKILL.md の C.1 が手動 set-step 手順から CLI 自動昇格前提の説明へ置換されている。"
+    },
+    {
+      "desc": "REQ-5: REQ-1/REQ-2/REQ-3 のユニットテスト追加",
+      "status": "done",
+      "note": "tests/unit/flow.test.js に REQ-1/2 系、tests/unit/flow/get-next-action.test.js に REQ-3 系のテストが追加され、最小3ケース要件を満たしている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/219-auto-promote-next-step/draft.md",
+      "change": "仕様ドラフト文書の新規追加（要件本体外のプロセス成果物）。"
+    },
+    {
+      "file": "specs/219-auto-promote-next-step/flow.json",
+      "change": "フロー実行メタデータの新規追加（要件で指定されていない管理ファイル）。"
+    },
+    {
+      "file": "specs/219-auto-promote-next-step/issue-log.json",
+      "change": "ゲート評価ログの新規追加（要件外）。"
+    },
+    {
+      "file": "specs/219-auto-promote-next-step/qa.md",
+      "change": "Q&A テンプレート文書の新規追加（要件外）。"
+    },
+    {
+      "file": "specs/219-auto-promote-next-step/review.md",
+      "change": "レビュー結果文書の新規追加（要件外）。"
+    },
+    {
+      "file": "specs/219-auto-promote-next-step/spec.json",
+      "change": "仕様JSONの新規追加（要件外の管理成果物）。"
+    },
+    {
+      "file": "specs/219-auto-promote-next-step/spec.md",
+      "change": "仕様Markdownの新規追加（要件外の管理成果物）。"
+    },
+    {
+      "file": "specs/219-auto-promote-next-step/tests/README.md",
+      "change": "テスト説明ドキュメントの新規追加（要件はテスト追加のみを要求）。"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "要件 REQ-1〜REQ-5 はすべて実装差分で満たされている。加えて、specs 配下に仕様運用用ドキュメント/メタファイルの追加があり、これは要件一覧には明示されていない追加変更。"
+  }
+}

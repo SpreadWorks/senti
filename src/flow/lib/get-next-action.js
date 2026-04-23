@@ -27,6 +27,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { FlowCommand } from "./base-command.js";
 import { getStepInstructions } from "./get-step-instructions.js";
+import { promoteFirstPending } from "../../lib/flow-store.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -81,9 +82,24 @@ export default class GetNextActionCommand extends FlowCommand {
     if (!ctx.flowState) {
       throw new Error("NO_ACTIVE_FLOW: no active flow; run `sdd-forge flow prepare` first");
     }
-    const state = ctx.flowState;
+    let state = ctx.flowState;
 
-    const target = resolveTarget(state);
+    let target = resolveTarget(state);
+    if (!target) {
+      // spec 219: safety-net fallback for flows that ended up with no
+      // in_progress step (e.g. older state created before auto-promote, or
+      // externally edited flow.json). Promote the first pending step in the
+      // task scope if a current task exists, otherwise in the flow scope,
+      // then reload state and redispatch.
+      const task = findCurrentTask(state);
+      const promoted = (task && promoteFirstPending(task.steps))
+        || promoteFirstPending(state.steps);
+      if (promoted) {
+        ctx.flowManager.save(state);
+        state = ctx.flowManager.load();
+        target = resolveTarget(state);
+      }
+    }
     if (!target) {
       throw new Error("NO_IN_PROGRESS_STEP: flow has no in_progress step; update step status before requesting next-action");
     }

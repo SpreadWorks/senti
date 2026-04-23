@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/219-auto-promote-next-step/draft.md        |  62 +++++\n specs/219-auto-promote-next-step/flow.json       | 340 +++++++++++++++++++++++\n specs/219-auto-promote-next-step/issue-log.json  |  72 +++++\n specs/219-auto-promote-next-step/qa.md           |   9 +\n specs/219-auto-promote-next-step/review.md       |  36 +++\n specs/219-auto-promote-next-step/spec.json       | 103 +++++++\n specs/219-auto-promote-next-step/spec.md         | 111 ++++++++\n specs/219-auto-promote-next-step/tests/README.md |  28 ++\n src/flow/lib/get-next-action.js                  |  20 +-\n src/lib/flow-store.js                            |  22 ++\n src/templates/skills/sdd-forge.flow/SKILL.md     |   4 +-\n tests/unit/flow.test.js                          |  73 +++++\n tests/unit/flow/get-next-action.test.js          |  38 +++\n 13 files changed, 914 insertions(+), 4 deletions(-)",
+      "commits": [
+        "feat: feature/219-auto-promote-next-step",
+        "fix(flow): auto-promote next pending step on done transition"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "要件 REQ-1〜REQ-5 はすべて実装差分で満たされている。加えて、specs 配下に仕様運用用ドキュメント/メタファイルの追加があり、これは要件一覧には明示されていない追加変更。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 5,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 109744,
+      "output": 7795,
+      "cacheRead": 105472,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 8,
+      "durationMs": 197301,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 45252
+        },
+        {
+          "phase": "gate",
+          "durationMs": 54315
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 42842
+        },
+        {
+          "phase": "review",
+          "durationMs": 54892
+        }
+      ]
+    },
+    "tests": {
+      "unit": 7,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 7
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/219-auto-promote-next-step\n    fix(flow): auto-promote next pending step on done transition\n    13 files changed, 914 insertions(+), 4 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 5\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 8\n    input tokens ................ 109,744\n    output tokens ............... 7,795\n    cache-read tokens ........... 105,472\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 197.3s\n      gate-draft ................ 45.3s\n      gate ...................... 54.3s\n      gate-impl ................. 42.8s\n      review .................... 54.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 7  integration 0  acceptance 0  total 7"
+}

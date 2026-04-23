@@ -115,6 +115,23 @@ export function resolveTaskIdForEntry(state, opts) {
  *
  * @returns {object} scope object on which to mutate (state or a task)
  */
+/**
+ * Promote the first pending step in `steps` to `in_progress` when no step
+ * is currently `in_progress`. Used by `updateStepStatus` on →done transitions
+ * and by `flow get next-action` as a NO_IN_PROGRESS_STEP fallback (spec 219).
+ *
+ * Returns the promoted step, or null when nothing was promoted (either another
+ * step is already in_progress, or no pending remains).
+ */
+export function promoteFirstPending(steps) {
+  if (!Array.isArray(steps)) return null;
+  if (steps.some((s) => s.status === "in_progress")) return null;
+  const pending = steps.find((s) => s.status === "pending");
+  if (!pending) return null;
+  pending.status = "in_progress";
+  return pending;
+}
+
 export function resolveMutationScope(state, opts = {}) {
   const explicit = Object.prototype.hasOwnProperty.call(opts, "taskId");
   const taskId = explicit ? opts.taskId : (state.currentTaskId ?? null);
@@ -280,6 +297,11 @@ export class FlowStore {
       const step = scope.steps.find((s) => s.id === stepId);
       if (!step) throw new Error(`unknown step: ${stepId}`);
       step.status = status;
+      // spec 219: on a →done transition, auto-promote the first pending step
+      // in the same scope to in_progress when no other step is in_progress.
+      // Keeps the single in_progress invariant; removes the need for skill
+      // callers to manually advance to the next step after gate/set-step done.
+      if (status === "done") promoteFirstPending(scope.steps);
     });
   }
 

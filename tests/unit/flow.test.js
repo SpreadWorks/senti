@@ -197,6 +197,79 @@ describe("flow-state steps and requirements", () => {
     const gate = loaded.steps.find((s) => s.id === "gate");
     assert.equal(gate.status, "done");
   });
+
+  // ── spec 219 / REQ-1, REQ-2: auto-promote next pending on done transition ──
+
+  it("updateStepStatus auto-promotes first pending when transitioning to done (REQ-1)", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp);
+    const fm = makeFlowManager(tmp);
+    fm.updateStepStatus("branch", "in_progress");
+    fm.updateStepStatus("branch", "done");
+    const loaded = fm.load();
+    const branch = loaded.steps.find((s) => s.id === "branch");
+    assert.equal(branch.status, "done");
+    const prepareSpec = loaded.steps.find((s) => s.id === "prepare-spec");
+    assert.equal(prepareSpec.status, "in_progress", "first pending step should be promoted to in_progress");
+  });
+
+  it("updateStepStatus skips over already-done/skipped steps when promoting (REQ-1)", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp);
+    const fm = makeFlowManager(tmp);
+    // Manually set prepare-spec to skipped so the next promotion target is draft.
+    fm.updateStepStatus("prepare-spec", "skipped");
+    fm.updateStepStatus("branch", "in_progress");
+    fm.updateStepStatus("branch", "done");
+    const loaded = fm.load();
+    const prepareSpec = loaded.steps.find((s) => s.id === "prepare-spec");
+    assert.equal(prepareSpec.status, "skipped", "skipped stays skipped");
+    const draft = loaded.steps.find((s) => s.id === "draft");
+    assert.equal(draft.status, "in_progress", "first pending (draft) is promoted, skipped is bypassed");
+  });
+
+  it("updateStepStatus does NOT promote when another step is already in_progress (REQ-2)", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp);
+    const fm = makeFlowManager(tmp);
+    // Put `spec` into in_progress first, then mark `branch` done.
+    fm.updateStepStatus("spec", "in_progress");
+    fm.updateStepStatus("branch", "done");
+    const loaded = fm.load();
+    const spec = loaded.steps.find((s) => s.id === "spec");
+    assert.equal(spec.status, "in_progress", "pre-existing in_progress step is not touched");
+    const prepareSpec = loaded.steps.find((s) => s.id === "prepare-spec");
+    assert.equal(prepareSpec.status, "pending", "no new promotion happens when in_progress already exists");
+    const draft = loaded.steps.find((s) => s.id === "draft");
+    assert.equal(draft.status, "pending", "no downstream promotion happens either");
+  });
+
+  it("updateStepStatus does NOT promote on non-done transitions (REQ-2)", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp);
+    const fm = makeFlowManager(tmp);
+    fm.updateStepStatus("branch", "in_progress");
+    // Move branch back to pending — no promotion should happen.
+    fm.updateStepStatus("branch", "pending");
+    const loaded = fm.load();
+    const prepareSpec = loaded.steps.find((s) => s.id === "prepare-spec");
+    assert.equal(prepareSpec.status, "pending", "pending transition does not trigger promotion");
+  });
+
+  it("updateStepStatus does nothing when no pending steps remain (REQ-1 edge)", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp);
+    const fm = makeFlowManager(tmp);
+    // Mark everything done / skipped except the final step.
+    const state = fm.load();
+    for (const s of state.steps) s.status = "done";
+    fm.save(state);
+    // Transition final step again — no pending left, so nothing to promote.
+    const lastStep = state.steps[state.steps.length - 1];
+    fm.updateStepStatus(lastStep.id, "done");
+    const loaded = fm.load();
+    for (const s of loaded.steps) assert.equal(s.status, "done");
+  });
 });
 
 // ── setIssue ─────────────────────────────────────────────────────────────────

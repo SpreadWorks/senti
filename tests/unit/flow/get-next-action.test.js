@@ -252,6 +252,44 @@ describe("flow get next-action", () => {
     });
   });
 
+  describe("NO_IN_PROGRESS_STEP auto-recovery (spec 219 / REQ-3)", () => {
+    it("promotes first pending step when no in_progress exists, then returns envelope", () => {
+      tmp = createTmpDir();
+      const state = setupActiveFlow(tmp);
+      // Simulate a post-gate state: branch/prepare-spec/draft/gate-draft all done,
+      // next pending step is `spec`. No step is currently in_progress.
+      const prefixDone = ["branch", "prepare-spec", "draft", "gate-draft"];
+      for (const s of state.steps) {
+        s.status = prefixDone.includes(s.id) ? "done" : "pending";
+      }
+      makeFlowManager(tmp).save(state);
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+      assert.equal(exitCode, 0, "exits cleanly via auto-recovery");
+      assert.equal(envelope.ok, true);
+      assert.equal(envelope.data.taskId, null);
+      assert.equal(envelope.data.step, "spec", "first pending step (`spec`) was promoted");
+
+      // State should be persisted: the promoted step now has in_progress status.
+      const reloaded = makeFlowManager(tmp).load();
+      const promoted = reloaded.steps.find((s) => s.id === "spec");
+      assert.equal(promoted.status, "in_progress", "fallback persists the promotion to flow.json");
+    });
+
+    it("still errors NO_IN_PROGRESS_STEP when every step is done/skipped", () => {
+      tmp = createTmpDir();
+      const state = setupActiveFlow(tmp);
+      for (const s of state.steps) s.status = "done";
+      makeFlowManager(tmp).save(state);
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+      assert.equal(envelope.ok, false);
+      assert.notEqual(exitCode, 0);
+      const msgs = envelope.errors.flatMap((e) => e.messages);
+      assert.ok(msgs.some((m) => /NO_IN_PROGRESS_STEP/i.test(m)), "error is NO_IN_PROGRESS_STEP when nothing left");
+    });
+  });
+
   describe("rule missing (REQ-9)", () => {
     it("returns ok:false when in_progress step has no rule entry", () => {
       tmp = createTmpDir();
