@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T03:52:55.363Z",
+  "analyzedAt": "2026-04-23T04:30:48.692Z",
   "package": {
     "entries": [
       {
@@ -2895,9 +2895,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "be5b46642080e791ce7e6f3f59ee99ee",
-        "lines": 115,
-        "mtime": "2026-04-21T03:23:08.707Z",
+        "hash": "30110d4698eb4789258c7ae69c8f2810",
+        "lines": 131,
+        "mtime": "2026-04-23T04:30:48.301Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -2912,7 +2912,8 @@
           "path",
           "url",
           "./base-command.js",
-          "./get-step-instructions.js"
+          "./get-step-instructions.js",
+          "../../lib/flow-store.js"
         ],
         "exports": [
           "default"
@@ -2920,22 +2921,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "enrich": {
-          "processedAt": "2026-04-21T06:12:29.233Z",
-          "attempts": 3
-        },
-        "summary": "Computes the next actionable instruction in an active flow by mapping current step state to rule-based context descriptors. It loads schema-driven rules and step prompts to return structured next-action payloads.",
-        "detail": "The command resolves schema and prompt directories with environment-variable overrides, then reads JSON rules at runtime. It identifies the in-progress step from task state, resolves the active target scope, and builds a context descriptor containing kinds and relevant paths. It validates that a rule exists for the current step and throws explicit errors for missing active flow, missing in-progress step, or missing rule mappings. Step instructions are fetched through a dedicated prompt loader and returned with normalized metadata. This design keeps behavior declarative by externalizing step routing logic into schema files.",
-        "chapter": "internal_design",
+        "summary": "This module implements the flow \"next action\" command that determines what the user should do next in an active SDD flow. It resolves the current step/task context and maps it to instruction rules and schema-backed metadata.",
+        "detail": "The file defines helper functions to load JSON assets from a schema directory, with an environment variable override to support alternative schema roots. It locates the active execution point by finding the in-progress step and current task from flow state, then computes a target scope for instruction lookup. The command enforces strict preconditions, throwing explicit errors when no active flow exists, no in-progress step is set, or no matching rule is defined. It builds a normalized context descriptor from rule kinds and resolved paths so downstream instruction generation stays deterministic. The class extends a shared FlowCommand base, following a controller-style command pattern for CLI flow orchestration.",
+        "chapter": "cli_commands",
         "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-23T04:31:06.065Z",
+          "attempts": 1
+        },
         "keywords": [
           "next action",
-          "flow state",
-          "step routing",
+          "flow command",
+          "step resolution",
           "context rules",
-          "schema-driven",
-          "task orchestration",
-          "instruction loader"
+          "instruction mapping",
+          "schema loader",
+          "in-progress step",
+          "task scope"
         ]
       },
       {
@@ -5241,12 +5243,13 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "8feeaf91676b6720d02f8bc0b84f6c95",
-        "lines": 513,
-        "mtime": "2026-04-22T00:25:28.527Z",
+        "hash": "f772159b4392e199e4b8340aa8793325",
+        "lines": 535,
+        "mtime": "2026-04-23T04:30:48.301Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
+          "promoteFirstPending",
           "resolveMutationScope",
           "FlowStore",
           "specFlowPath",
@@ -5265,6 +5268,7 @@
         ],
         "exports": [
           "resolveTaskIdForEntry",
+          "promoteFirstPending",
           "resolveMutationScope",
           "FlowStore"
         ],
@@ -5273,23 +5277,23 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "Implements persistent flow/task state storage, schema validation, and task-scoped mutation logic. It resolves per-spec state files and enforces strict structural invariants.",
-        "detail": "The module defines path resolution for spec-local flow files, branch-derived spec IDs, and worktree/main-repo location metadata. It validates full flow schema and task shape aggressively, including required fields, allowed enums, and nested step/requirement contracts. Read/write methods support standard, resolved, and read-only access patterns while guarding against malformed JSON and missing state files. It provides mutation-scope resolution helpers to target either global flow state or the current task branch of state data. Additional utilities manage task insertion, duplicate detection, current-task enforcement, parent summary aggregation, and finalized timestamp format checks.",
-        "chapter": "configuration",
-        "role": "model",
+        "summary": "This module is the central persistence and mutation library for flow state, tasks, and step progression. It provides path resolution, strict schema validation, task-scoped mutation utilities, and file-based read/write operations.",
+        "detail": "The implementation manages flow.json locations from repo/worktree context, including spec-path resolution and branch-derived spec identification. It validates state and task structures aggressively with explicit invariant checks for IDs, statuses, requirements, and step shapes to prevent malformed runtime state. Utility functions resolve task IDs, mutation scope, and first pending-step promotion, enabling consistent transition logic across commands. The FlowStore class encapsulates loading, read-only fallback behavior, writing, directory creation, and finalized metadata updates while preserving JSON formatting conventions. It also contains task lifecycle helpers such as duplicate detection, current-task enforcement, and parent summary aggregation, making it the core domain library for flow execution state.",
+        "chapter": "internal_design",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-22T00:26:03.930Z",
+          "processedAt": "2026-04-23T04:31:06.065Z",
           "attempts": 1
         },
         "keywords": [
-          "state store",
-          "schema enforcement",
-          "task model",
-          "flow persistence",
+          "flow store",
+          "state persistence",
+          "task validation",
+          "step promotion",
           "mutation scope",
-          "worktree metadata",
-          "invariant checks",
-          "JSON state"
+          "flow.json",
+          "worktree path",
+          "domain invariants"
         ]
       },
       {
@@ -9296,9 +9300,9 @@
     ],
     "summary": {
       "total": 273,
-      "totalMethods": 883
+      "totalMethods": 884
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T03:53:23.943Z"
+  "enrichedAt": "2026-04-23T04:31:06.065Z"
 }
