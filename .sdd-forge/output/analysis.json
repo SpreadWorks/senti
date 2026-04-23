@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T04:45:33.914Z",
+  "analyzedAt": "2026-04-23T05:13:42.409Z",
   "package": {
     "entries": [
       {
@@ -2396,9 +2396,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "29bb2ebaa9e658dcb522c65bf03f9fd1",
-        "lines": 1094,
-        "mtime": "2026-04-21T09:34:26.440Z",
+        "hash": "21d3ad42147aa63cd12edef95ac49c7b",
+        "lines": 1115,
+        "mtime": "2026-04-23T05:13:42.072Z",
         "className": "review",
         "methods": [
           "ensureAgent",
@@ -2415,6 +2415,7 @@
           "mergeVerdicts",
           "writeReviewMd",
           "formatReviewMd",
+          "buildFinalValidationPrompt",
           "buildApplyPrompt",
           "runReviewLoop",
           "extractRequirements",
@@ -2457,6 +2458,8 @@
           "resolveReviewTarget",
           "buildDraftSystemPrompt",
           "buildFinalSystemPrompt",
+          "buildFinalValidationPrompt",
+          "NO_PROPOSALS_MARKER",
           "collectTouchedFiles",
           "filterProposalsByScope",
           "extractProposalFile",
@@ -2478,22 +2481,9 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Provides the flow review command suite for draft, spec, implementation, and test review stages. It runs AI-assisted detection and optional auto-fix loops with bounded retries.",
-        "detail": "The file contains phase-aware review prompts, diff collection utilities, proposal parsing, and scope filtering against touched files. It writes review artifacts such as `review.md`, `spec-review.md`, `test-review.md`, and generated test design notes under the spec directory. Review loops merge verdicts across retries and can apply accepted fixes, then re-evaluate until pass/fail or retry exhaustion. It includes specialized logic for test gap analysis, proposal extraction, and spec preamble cleanup while enforcing output-shape checks. The command routes by phase, uses configured agents, and sets failure exit codes for CI-safe behavior.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-21T09:35:24.876Z",
           "attempts": 1
-        },
-        "keywords": [
-          "code review loop",
-          "spec review",
-          "test gap analysis",
-          "AI proposals",
-          "phase validation",
-          "review artifacts"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/auto-check-static.js",
@@ -3076,7 +3066,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3190,7 +3180,7 @@
         ],
         "id": "d569f2a6",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3283,9 +3273,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "97a6018e8d3d6b3f61f86788330f1ea5",
-        "lines": 516,
-        "mtime": "2026-04-23T02:24:38.305Z",
+        "hash": "7ac20e0245495b91488c3b22a778bd23",
+        "lines": 543,
+        "mtime": "2026-04-23T05:12:44.259Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3334,24 +3324,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "summary": "Implements the flow finalize command that orchestrates commit, report generation, merge, version update, release, and cleanup steps. It also provides shared helpers for preflight validation, error handling, and finalize state bookkeeping.",
-        "detail": "The module defines a `RunFinalizeCommand` class that validates finalize mode/step arguments and executes selected steps through a step map and sub-step runner. It performs git preflight checks, including common-dir resolution and write-access probing, then enforces branch and dirty-worktree constraints before proceeding. Supporting helpers handle commit-or-skip behavior, cleanup behavior for worktrees, and pointer updates that track the last finalized spec path. The finalize pipeline is extensible via migration hooks (`finalize-migration.js`) and composes success envelopes with step results and dry-run metadata.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T02:25:03.090Z",
           "attempts": 1
-        },
-        "keywords": [
-          "finalize command",
-          "flow orchestration",
-          "preflight checks",
-          "git write access",
-          "worktree cleanup",
-          "step runner",
-          "commit skip logic",
-          "spec pointer"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -3513,7 +3488,7 @@
         "usedBy": null,
         "id": "e6534160",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3748,7 +3723,7 @@
         "usedBy": null,
         "id": "abe5ac21",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3787,7 +3762,7 @@
         "usedBy": null,
         "id": "862e7d08",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4242,7 +4217,7 @@
         "usedBy": null,
         "id": "6dd22e12",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4332,7 +4307,7 @@
         "usedBy": null,
         "id": "f62c866f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5175,7 +5150,7 @@
         ],
         "id": "3d2ed4c0",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5215,7 +5190,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6024,7 +5999,7 @@
         "usedBy": null,
         "id": "e288cfbd",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6147,7 +6122,7 @@
         "usedBy": null,
         "id": "59edeaf2",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -9203,9 +9178,9 @@
     ],
     "summary": {
       "total": 274,
-      "totalMethods": 889
+      "totalMethods": 890
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T04:46:23.769Z"
+  "enrichedAt": "2026-04-23T05:14:38.078Z"
 }
