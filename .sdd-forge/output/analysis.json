@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T02:24:40.655Z",
+  "analyzedAt": "2026-04-23T02:29:29.989Z",
   "package": {
     "entries": [
       {
@@ -3916,9 +3916,9 @@
       },
       {
         "file": "src/flow/lib/set-auto.js",
-        "hash": "2a1e57458ba42b1e5dc95a0e6c920e25",
-        "lines": 169,
-        "mtime": "2026-04-22T14:34:07.553Z",
+        "hash": "5ae91d1eb01ed2d8df8ecc512b966dbc",
+        "lines": 181,
+        "mtime": "2026-04-23T02:29:29.349Z",
         "className": "set-auto",
         "methods": [
           "buildInputText",
@@ -3941,21 +3941,24 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "2c71e989",
-        "summary": "Controls `autoApprove` and optional auto-check execution in flow state. It resolves input sources for checks from request text, draft content, or structured state fields.",
-        "detail": "The command validates requested auto mode against allowed values and updates flow state accordingly. In preparing mode, it resolves and propagates a run identifier so pre-approval checks can be tied to a specific preparation run. For enabling auto mode with checks, it derives input text from available context in priority order and invokes shared auto-check logic. It includes lightweight approval-state inspection and draft-loading helpers to improve check relevance. All outcomes are returned through envelope-based success or failure payloads.",
+        "summary": "This module implements the flow command that updates auto-approval behavior and optionally runs auto-check logic. It centralizes validation, input resolution, and run-id handling for both normal and preparing modes.",
+        "detail": "The file defines helper functions to assemble auto-check input from flow state, detect whether the approval step is completed, and load nearby draft text when available. It distinguishes preparing-mode execution by resolving a run ID from either explicit input or the flow manager context. The command class extends `FlowCommand` and returns structured `Envelope` results for success and failure paths. It validates requested auto values against allowed constants and conditionally invokes `runAutoCheckCore` when enabling auto mode. The returned payload consistently includes `autoApprove`, optional `autoCheck` results, and `runId` when preparing mode is active.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
+          "processedAt": "2026-04-23T02:29:43.778Z",
           "attempts": 1
         },
         "keywords": [
           "auto approve",
-          "auto check",
-          "flow state update",
-          "preparing mode",
-          "run id",
-          "validation"
+          "flow command",
+          "CLI subcommand",
+          "state validation",
+          "run id resolution",
+          "approval gate",
+          "draft loading",
+          "envelope response",
+          "auto check"
         ]
       },
       {
@@ -9186,5 +9189,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T02:25:03.090Z"
+  "enrichedAt": "2026-04-23T02:29:43.778Z"
 }
