@@ -132,22 +132,40 @@ export class PreparingFlowStore {
 
   /** @returns {string[]} deleted runIds */
   cleanStale() {
+    return this._pruneAndList().deleted;
+  }
+
+  /**
+   * Single-pass prune + list. Deletes files older than `PREPARING_TTL_MS`
+   * and returns both the deleted and remaining runIds from the same scan.
+   *
+   * @returns {{ deleted: string[], remaining: string[] }}
+   */
+  pruneStaleAndList() {
+    return this._pruneAndList();
+  }
+
+  _pruneAndList() {
     const dir = sddDir(this._mainRoot);
-    if (!fs.existsSync(dir)) return [];
+    if (!fs.existsSync(dir)) return { deleted: [], remaining: [] };
 
     const now = Date.now();
     const deleted = [];
+    const remaining = [];
     const entries = fs.readdirSync(dir)
       .filter((f) => f.startsWith(PREPARING_PREFIX))
       .slice(0, PREPARING_SCAN_LIMIT);
 
     for (const f of entries) {
       const p = path.join(dir, f);
+      const runId = f.slice(PREPARING_PREFIX.length);
       try {
         const stat = fs.statSync(p);
         if (now - stat.mtimeMs > PREPARING_TTL_MS) {
           fs.unlinkSync(p);
-          deleted.push(f.slice(PREPARING_PREFIX.length));
+          deleted.push(runId);
+        } else {
+          remaining.push(runId);
         }
       } catch (err) {
         if (err.code !== "ENOENT") {
@@ -155,6 +173,6 @@ export class PreparingFlowStore {
         }
       }
     }
-    return deleted;
+    return { deleted, remaining };
   }
 }

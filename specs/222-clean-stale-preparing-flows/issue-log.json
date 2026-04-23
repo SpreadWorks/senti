@@ -1,0 +1,208 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: stale preparing-flow cleanup and related TTL tuning for the same issue.; Unambiguous Requirements — Key changes are stated with concrete, verifiable conditions (where cleanup runs and TTL set to 1h/3600000ms).; Complete Context — Requirements generally include trigger/context and expected behavior (e.g., on `flow set init`, cleanup runs before warning/listing).; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets are present in the draft content.; Prioritize Requirements — In-scope requirements do not exceed three items, so explicit priority ordering is not required.; Impact on Existing Features — Draft explicitly lists affected features and explicitly states unaffected components.; Present Recommendations with Reasoning — Each Q&A item includes a clear recommendation and concise rationale based on behavior/semantics and existing flow assumptions.; Explore Before Asking — Whether docs/code were explored before user questioning cannot be verified from this draft alone.; Proactively Raise Related Implications — Draft proactively covers related implications such as read-only side effects and concurrent-session safety under TTL cleanup.; Confirm Brainstorm vs. Decision Before Critiquing — Draft records explicit user approval and selected scope option, indicating decision mode was confirmed.; Capture Digressions in draft.md — No process evidence is provided to confirm whether any digressions occurred and were captured in `draft.md`.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions/constants and insertion points), exceeding pure requirements level.; Backward-Compatible CLI Interface — No existing CLI command/option is removed or redefined; migration planning is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:13:02.313Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific files/functions/constants and insertion points), exceeding pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — ドラフトは stale な preparing flow 警告の累積解消という単一の関心に集中している。; Unambiguous Requirements — 「数分に見合う」「古い」など閾値が定量化されておらず、検証条件が曖昧。; Complete Context — 要件の一部が設定変更の記述に留まり、When/If と期待動作（shall）の対応が明示されていない。; No Hardcoded Secrets — 内容は要件ドラフトであり、APIキー等のハードコード記載はない。; Prioritize Requirements — In scope の要件は2件で、優先順位付け必須条件（3件超）に該当しない。; Impact on Existing Features — 既存機能への影響あり/なしが明示されている。; Present Recommendations with Reasoning — Q&A は回答はあるが、各質問で推奨案を先頭提示し根拠種別（docs/guardrail/code pattern）を明示していない。; Explore Before Asking — docs/コード探索を実施したかは本文だけでは検証できる実行証跡がない。; Proactively Raise Related Implications — 副作用回避や誤削除リスクなど関連含意が事前に示されている。; Confirm Brainstorm vs. Decision Before Critiquing — 最終承認済みドラフトであり、ブレスト案を最終判断として誤評価している記述はない。; Capture Digressions in draft.md — 脱線した議論は示されておらず、本条項は実質的に問題なし。; Draft Stays at Requirements Level — 内容は要件・スコープ・影響の記述に留まり、実装詳細へ踏み込んでいない。; Backward-Compatible CLI Interface — 既存コマンド/オプションの意味変更や削除は記載されておらず、移行計画要求は発生していない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:13:56.064Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「数分に見合う」「古い」など閾値が定量化されておらず、検証条件が曖昧。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "要件の一部が設定変更の記述に留まり、When/If と期待動作（shall）の対応が明示されていない。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A は回答はあるが、各質問で推奨案を先頭提示し根拠種別（docs/guardrail/code pattern）を明示していない。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: preventing stale preparing-flow warning count inflation during new flow start.; Unambiguous Requirements — Requirements are stated with concrete triggers and measurable conditions (flow set init timing and 1 hour/3,600,000 ms threshold).; Complete Context — Core requirements pair trigger context (When new flow starts) with expected behavior (shall clean stale files before warning).; No Hardcoded Secrets — Inapplicable to this requirements draft; no secrets or credential material are present.; Prioritize Requirements — In-scope requirements do not exceed three items, so explicit priority ordering is not required.; Impact on Existing Features — A dedicated impact section explicitly lists affected features and explicitly states unaffected areas.; Present Recommendations with Reasoning — Each Q&A answer leads with a recommendation and cites a basis (existing code pattern or guardrail principle).; Explore Before Asking — The draft presents code-pattern-based conclusions and leaves no open questions, indicating exploration was done before asking.; Proactively Raise Related Implications — It proactively captures related implications via out-of-scope boundaries and explicit impact statements.; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not explicitly show a prior confirmation of brainstorming vs decision mode before evaluative critique.; Capture Digressions in draft.md — Cannot be evaluated from the draft alone because it depends on runtime conversation digressions not provided.; Draft Stays at Requirements Level — Content remains at requirements/spec level and avoids function-level implementation design.; Backward-Compatible CLI Interface — No existing command/option removal or semantic break is proposed, so a migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:15:17.696Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-confirm-brainstorm-vs-decide",
+          "reason": "The draft does not explicitly show a prior confirmation of brainstorming vs decision mode before evaluative critique."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All changes target one concern: preventing stale preparing-flow warning accumulation during new flow start.; Unambiguous Requirements — Requirements use verifiable conditions (specific trigger, behavior, and threshold value of 1 hour/3,600,000 ms).; Complete Context — Core requirements pair trigger context (e.g., when `flow set init` runs) with explicit expected behavior (`shall`).; No Hardcoded Secrets — No credentials, tokens, or secret material appear in the draft.; Prioritize Requirements — The draft contains more than three requirement statements overall but does not define an explicit priority order.; Impact on Existing Features — It explicitly lists affected features and explicitly states unaffected areas.; Present Recommendations with Reasoning — Each Q&A item leads with a recommendation and cites a basis (existing code pattern or guardrail principle).; Explore Before Asking — It references concrete codebase evidence (`run-prepare-spec.js`) rather than deferring to user clarification.; Proactively Raise Related Implications — It proactively addresses side effects and boundaries (read-only commands, manual cleanup command, concurrency scope).; Confirm Brainstorm vs. Decision Before Critiquing — Decision mode is explicitly confirmed and recorded, including selected option and approval date.; Capture Digressions in draft.md — No digression is indicated in the provided content, so no additional capture is required.; Draft Stays at Requirements Level — The draft stays mostly at requirement/spec level and avoids function-level implementation design.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic break is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:15:53.640Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "The draft contains more than three requirement statements overall but does not define an explicit priority order."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: stale preparing-flow warning accumulation and its cleanup policy.; Unambiguous Requirements — Requirements use concrete, testable conditions (e.g., 1 hour, 3,600,000 ms, specific command trigger).; Complete Context — P2 states what shall change but lacks an explicit When/If trigger condition.; No Hardcoded Secrets — No secrets or credential-like values are included; article is inapplicable to this draft content.; Prioritize Requirements — More than three items are clearly prioritized with P1–P5 ordering.; Impact on Existing Features — Impacted and non-impacted existing features are explicitly listed.; Present Recommendations with Reasoning — Each Q&A leads with a recommendation and cites basis (guardrail/code pattern).; Explore Before Asking — Root-cause rationale references existing code location and there are no unresolved askable questions.; Proactively Raise Related Implications — Related implications are proactively addressed (read-only command side effects, concurrency scope, threshold tradeoff).; Confirm Brainstorm vs. Decision Before Critiquing — Decision mode is explicitly confirmed and recorded as final.; Capture Digressions in draft.md — No digression is indicated in the content, so this is inapplicable.; Draft Stays at Requirements Level — Draft includes implementation-level detail by naming internal file/call-site behavior (`run-prepare-spec.js`).; Backward-Compatible CLI Interface — No command/option removal or semantic break is proposed, so migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:16:35.981Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "P2 states what shall change but lacks an explicit When/If trigger condition."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level detail by naming internal file/call-site behavior (`run-prepare-spec.js`)."
+        }
+      ]
+    },
+    {
+      "step": "draft",
+      "reason": "draft gate iteratively fails on different guardrails across retries (flaky evaluation)",
+      "trigger": "draft phase gate evaluation",
+      "resolution": "continuing to iterate until all PASS",
+      "taskId": null,
+      "timestamp": "2026-04-23T10:16:42.077Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: stale preparing-flow accumulation and its cleanup policy.; Unambiguous Requirements — Requirements use verifiable conditions (trigger, threshold, command) and concrete values like 1 hour/3,600,000 ms.; Complete Context — Each requirement pairs a condition (When) with expected behavior (shall).; No Hardcoded Secrets — No secrets (API keys/passwords/tokens) are present; this is a requirements draft, not secret-bearing source code.; Prioritize Requirements — More than three items are explicitly prioritized (P1–P5, including must/excluded/deferred).; Impact on Existing Features — It explicitly lists affected existing features and explicitly states unaffected areas.; Present Recommendations with Reasoning — Each Q&A answer leads with a recommendation and cites basis (existing code pattern or guardrail principle).; Explore Before Asking — No unresolved questions remain, and rationale references existing code patterns rather than deferring to user input.; Proactively Raise Related Implications — It proactively calls out related implications such as read-only command side effects and concurrent-flow scope separation.; Confirm Brainstorm vs. Decision Before Critiquing — Decision mode is explicitly confirmed and recorded as not brainstorming.; Capture Digressions in draft.md — No digression is indicated in the draft, so there is nothing additional to capture.; Draft Stays at Requirements Level — Content stays at requirements/scope/impact level and does not include function-level implementation design.; Backward-Compatible CLI Interface — Behavior of existing command `flow set init` is changed, but no migration guidance/transition note is provided.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:17:26.202Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Behavior of existing command `flow set init` is changed, but no migration guidance/transition note is provided."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec does not define any concern or change to evaluate.; Unambiguous Requirements — No requirements are specified, so none are verifiable or precise.; Complete Context — No requirements include trigger conditions and expected shall-behavior.; REQ Diff-Verifiability — No requirements are present to verify via diff and test summary.; No Hardcoded Secrets — No source code or secret material is included in the content.; No Silent Error Swallowing — No implementation code is present, so no silent error handling is introduced.; Prioritize Requirements — No requirement list exceeding three items is present.; Impact on Existing Features — Impact on existing features is not listed, and no explicit no-impact statement is provided.; Bounded Resource Usage — No resource-bound constraints are specified for processing/retries/loading.; Changes Require Test Coverage — No test coverage plan or justification for missing tests is provided.; Spec Includes Test Strategy — Spec does not include what to test or how to test it.; Synthesize Draft, Do Not Copy — Cannot assess synthesis-vs-copying because no draft source content is provided.; Record Unresolved Points as Open Questions — Spec is empty and does not record unresolved points despite missing core decisions.; Include 'Why This Approach' Rationale — No rationale ('why this approach') is provided.; Do Not Modify Existing Tests Without Approval — No proposal modifies or deletes existing tests.; Backward-Compatible CLI Interface — No CLI command/option changes are specified.; Exit Code Contract — No requirement defines non-zero exit codes for failures.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:19:47.005Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "Spec does not define any concern or change to evaluate."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "No requirements are specified, so none are verifiable or precise."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "No requirements include trigger conditions and expected shall-behavior."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "No requirements are present to verify via diff and test summary."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not listed, and no explicit no-impact statement is provided."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "No resource-bound constraints are specified for processing/retries/loading."
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "No test coverage plan or justification for missing tests is provided."
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "Spec does not include what to test or how to test it."
+        },
+        {
+          "guardrail_id": "spec-no-fabrication",
+          "reason": "Spec is empty and does not record unresolved points despite missing core decisions."
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "No rationale ('why this approach') is provided."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "No requirement defines non-zero exit codes for failures."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: stale preparing-flow cleanup and warning count correctness during `flow set init`.; Unambiguous Requirements — Requirements use concrete triggers, function names, constants, and verifiable outcomes instead of vague adjectives.; Complete Context — `REQ-P3` is a bare constant constraint without an explicit When/If trigger context.; REQ Diff-Verifiability — Acceptance criteria are framed as diff/test-decidable checks (call placement, constant change, deletion behavior, warning count).; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets are specified.; No Silent Error Swallowing — Spec explicitly requires non-ENOENT I/O errors to be logged and not silently swallowed.; Prioritize Requirements — There are more than three requirements and they are prioritized/labeled as `must` with ordered IDs.; Impact on Existing Features — Impact is explicitly addressed via constraints/out-of-scope items (no CLI surface change, existing cleanup path preserved).; Bounded Resource Usage — Spec states bounded scanning via existing `PREPARING_SCAN_LIMIT` and prohibits unbounded recursion/loops/loading.; Changes Require Test Coverage — Acceptance criteria include happy-path and edge-case validation for new behavior and no-flow case.; Spec Includes Test Strategy — Spec defines what to test and how (scenario-based ACs plus unified-diff assertions).; Synthesize Draft, Do Not Copy — Original draft source is not provided, so copy-vs-synthesis cannot be verified.; Record Unresolved Points as Open Questions — Without source conversation/draft evidence, fabrication vs faithful recording cannot be determined.; Include 'Why This Approach' Rationale — Rationale is provided in design principles, clarifications, and alternatives with rejection reasons.; Do Not Modify Existing Tests Without Approval — No requirement proposes modifying or deleting existing tests.; Backward-Compatible CLI Interface — Spec explicitly keeps existing CLI options/arguments/schema unchanged, so no migration plan is required.; Exit Code Contract — Spec preserves non-zero on failure and explicitly checks successful path with exit code 0.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:21:40.112Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "`REQ-P3` is a bare constant constraint without an explicit When/If trigger context."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: stale preparing-flow cleanup and warning count correctness.; Unambiguous Requirements — Requirements use concrete triggers, functions, constants, and measurable conditions.; Complete Context — Requirements pair context/condition with expected behavior using shall statements.; REQ Diff-Verifiability — Requirements are tied to diff-observable changes and executable acceptance checks.; No Hardcoded Secrets — No secrets or credential-like values are specified.; No Silent Error Swallowing — Spec explicitly requires non-ENOENT I/O errors to be logged, not silently ignored.; Prioritize Requirements — There are more than three requirements, but all are marked only as must without an explicit priority order.; Impact on Existing Features — It states preserved behavior and non-impact areas (read-only commands, CLI interface, existing cleanup path).; Bounded Resource Usage — Spec states bounded scanning via PREPARING_SCAN_LIMIT and prohibits unbounded processing.; Changes Require Test Coverage — Acceptance criteria define testable scenarios for new behavior and edge cases.; Spec Includes Test Strategy — Acceptance criteria describe what to validate and expected outcomes.; Synthesize Draft, Do Not Copy — No source draft is provided, so copy-vs-synthesis cannot be assessed.; Record Unresolved Points as Open Questions — Open questions are explicitly represented and no unresolved items are fabricated as facts.; Include 'Why This Approach' Rationale — Rationale is provided via design principles, clarifications, and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying or deleting existing tests.; Backward-Compatible CLI Interface — Spec explicitly keeps existing CLI options/arguments/schema unchanged, so migration plan is not needed.; Exit Code Contract — Spec explicitly preserves non-zero exit on failure and validates success/failure exit behavior.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:22:21.990Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements, but all are marked only as must without an explicit priority order."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: stale preparing-flow cleanup and warning count accuracy during `flow set init`.; Unambiguous Requirements — Requirements use concrete triggers, functions, file paths, constants, and measurable outcomes (e.g., 1 hour = 3,600,000 ms).; Complete Context — REQ-P5 states a prohibition but lacks an explicit When/If trigger condition paired with the expected behavior.; REQ Diff-Verifiability — PASS/FAIL is largely decidable from unified diff plus test results, with explicit diff checks and executable acceptance criteria.; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets are introduced in the spec content.; No Silent Error Swallowing — Spec explicitly requires non-ENOENT I/O errors to be logged and not silently swallowed.; Prioritize Requirements — A priority order is explicitly defined for requirements exceeding three items.; Impact on Existing Features — The spec does not explicitly enumerate impact on existing features or state explicitly that none are affected.; Bounded Resource Usage — Resource usage is bounded via existing `PREPARING_SCAN_LIMIT` and no unbounded recursion/looping is allowed.; Changes Require Test Coverage — Acceptance criteria include happy-path and boundary scenarios, indicating required test coverage expectations.; Spec Includes Test Strategy — Acceptance criteria provide a concrete test strategy describing what to test and expected observable outcomes.; Synthesize Draft, Do Not Copy — Cannot assess whether content was copied vs synthesized because no source draft is provided for comparison.; Record Unresolved Points as Open Questions — No unresolved items appear fabricated; unresolved points are represented (open questions section present, currently empty).; Include 'Why This Approach' Rationale — Rationale is provided via design principles, clarifications, and alternatives considered with rejection reasons.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying or deleting existing tests; no conflict with this guardrail is indicated.; Backward-Compatible CLI Interface — Spec explicitly constrains changes to avoid existing CLI interface/schema changes, so migration plan is not needed.; Exit Code Contract — Spec explicitly preserves non-zero exit on failure and validates success path exit code behavior.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T10:23:15.210Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "REQ-P5 states a prohibition but lacks an explicit When/If trigger condition paired with the expected behavior."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not explicitly enumerate impact on existing features or state explicitly that none are affected."
+        }
+      ]
+    }
+  ]
+}

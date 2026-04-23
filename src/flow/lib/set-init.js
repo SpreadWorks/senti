@@ -33,11 +33,12 @@ export default class SetInitCommand extends FlowCommand {
     }
     if (ctx.request) extra.request = ctx.request;
 
-    // Conflict guard: warn if existing preparing files exist
-    const existing = flowManager.listPreparingFlows();
-    if (existing.length > 0) {
+    // Single-pass prune + list: delete stale preparing flows and enumerate
+    // the remaining entries in one directory scan (spec 222).
+    const { remaining } = flowManager.pruneStalePreparingFlowsAndList();
+    if (remaining.length > 0) {
       console.error(
-        `[flow] WARN: ${existing.length} preparing flow(s) already exist: ${existing.join(", ")}`
+        `[flow] WARN: ${remaining.length} preparing flow(s) already exist: ${remaining.join(", ")}`
       );
     }
 

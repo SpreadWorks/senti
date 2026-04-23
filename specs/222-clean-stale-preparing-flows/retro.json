@@ -1,0 +1,62 @@
+{
+  "spec": "specs/222-clean-stale-preparing-flows/spec.json",
+  "date": "2026-04-23T12:18:43.587Z",
+  "requirements": [
+    {
+      "desc": "When `flow set init` is invoked, the system shall call `cleanStalePreparingFlows` before listing preparing flows for the warning message.",
+      "status": "partial",
+      "note": "`flow set init` now performs stale cleanup before warning evaluation, but it no longer calls `cleanStalePreparingFlows` + `listPreparingFlows` directly; it uses new combined `pruneStalePreparingFlowsAndList()`."
+    },
+    {
+      "desc": "When `cleanStalePreparingFlows` evaluates each preparing flow file, it shall delete files whose modification timestamp is older than `PREPARING_TTL_MS`.",
+      "status": "done",
+      "note": "`cleanStalePreparingFlows()` still delegates to stale pruning logic that deletes files where `now - mtimeMs > PREPARING_TTL_MS`."
+    },
+    {
+      "desc": "When any caller evaluates preparing-flow staleness via `PREPARING_TTL_MS` (defined in `src/lib/flow-helpers.js`), the constant shall equal `60 * 60 * 1000` (1 hour in milliseconds) so that files older than 1 hour are classified as stale.",
+      "status": "done",
+      "note": "`PREPARING_TTL_MS` was changed from 24h to `60 * 60 * 1000` in `src/lib/flow-helpers.js`."
+    },
+    {
+      "desc": "When `flow set init` emits the `preparing flow(s) already exist` warning, the reported count shall equal the number of preparing flows remaining after the automatic cleanup.",
+      "status": "done",
+      "note": "Warning now uses `remaining.length` from post-prune results and lists only `remaining` runIds."
+    },
+    {
+      "desc": "When a request is handled by any read-only state-observation command handler (e.g. `flow get status`, `flow get next-action`), the handler shall not invoke `cleanStalePreparingFlows` directly or indirectly, so that read-only commands remain free of file-deletion side effects.",
+      "status": "done",
+      "note": "Diff adds no cleanup invocation in read-only handlers (`src/flow/get/*`) and only changes set-init/store/manager paths."
+    },
+    {
+      "desc": "When `flow set init` runs on a `.sdd-forge/` directory that contains no preparing flow files, it shall complete successfully and shall emit no `preparing flow(s) already exist` warning.",
+      "status": "done",
+      "note": "Set-init warns only when `remaining.length > 0`; with no preparing files it emits no warning and continues normal flow creation."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/lib/preparing-flow-store.js",
+      "change": "Introduced new single-pass API (`pruneStaleAndList`/`_pruneAndList`) returning both deleted and remaining runIds, beyond explicit requirement wording."
+    },
+    {
+      "file": "src/lib/flow-manager.js",
+      "change": "Added new facade method `pruneStalePreparingFlowsAndList()` not explicitly required."
+    },
+    {
+      "file": "src/flow/lib/set-init.js",
+      "change": "Refactored to combined prune+list path instead of explicit `cleanStalePreparingFlows` then `listPreparingFlows` sequence."
+    },
+    {
+      "file": "specs/222-clean-stale-preparing-flows/*",
+      "change": "Added spec-process artifacts (`draft.md`, `flow.json`, `issue-log.json`, `qa.md`, `review.md`, `spec.json`, `spec.md`, tests README) not part of functional REQ-P1..P6 behavior."
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 5,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.92,
+    "notes": "Behaviorally, REQ-P2..P6 are satisfied. REQ-P1 is only partial against strict wording because implementation replaced the exact required call sequence with a new combined method that achieves equivalent outcome."
+  }
+}

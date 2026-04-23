@@ -1,0 +1,453 @@
+{
+  "spec": "specs/222-clean-stale-preparing-flows/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/222-clean-stale-preparing-flows",
+  "runId": "ee852944-444a-4145-9143-6be39686e58d",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 245,
+  "autoCheck": {
+    "eligible": true,
+    "skipped": true,
+    "reason": "spec approved"
+  },
+  "worktree": true,
+  "request": "Issue #245: preparing flow (.sdd-forge/.active-flow.<runId>) が累積する問題。flow set init のたびに warning 件数が増え続ける。cleanStalePreparingFlows を flow set init / flow prepare / flow get status でも呼ぶ、または flow clean preparing サブコマンドを追加して自動削除する。",
+  "metrics": [
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T10:07:21.186Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T10:07:24.786Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T10:07:29.803Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T10:07:33.550Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2358,
+      "durationMs": 27512,
+      "tokens": {
+        "input": 6017,
+        "output": 1105,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:13:02.293Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1476,
+      "durationMs": 30319,
+      "tokens": {
+        "input": 21246,
+        "output": 1297,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:13:56.052Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2374,
+      "durationMs": 50372,
+      "tokens": {
+        "input": 21388,
+        "output": 908,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:15:17.680Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2266,
+      "durationMs": 22147,
+      "tokens": {
+        "input": 986,
+        "output": 942,
+        "cacheRead": 23936,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:15:53.631Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2093,
+      "durationMs": 26714,
+      "tokens": {
+        "input": 21562,
+        "output": 1190,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:16:35.971Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T10:16:42.116Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2251,
+      "durationMs": 26484,
+      "tokens": {
+        "input": 21585,
+        "output": 1121,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:17:26.192Z"
+    },
+    {
+      "phase": "draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2186,
+      "durationMs": 21661,
+      "tokens": {
+        "input": 21763,
+        "output": 927,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:18:02.133Z"
+    },
+    {
+      "phase": "spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2318,
+      "durationMs": 26212,
+      "tokens": {
+        "input": 1350,
+        "output": 1103,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:19:46.994Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T10:20:01.903Z"
+    },
+    {
+      "phase": "spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2866,
+      "durationMs": 28586,
+      "tokens": {
+        "input": 23385,
+        "output": 1318,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:21:40.101Z"
+    },
+    {
+      "phase": "spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2656,
+      "durationMs": 28355,
+      "tokens": {
+        "input": 2929,
+        "output": 1322,
+        "cacheRead": 23936,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:22:21.979Z"
+    },
+    {
+      "phase": "spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3045,
+      "durationMs": 31951,
+      "tokens": {
+        "input": 4121,
+        "output": 1395,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:23:15.194Z"
+    },
+    {
+      "phase": "spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2823,
+      "durationMs": 28346,
+      "tokens": {
+        "input": 8616,
+        "output": 1292,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T10:24:22.494Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 356,
+      "durationMs": 13808,
+      "tokens": {
+        "input": 28095,
+        "output": 281,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T12:12:41.463Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1727,
+      "durationMs": 30200,
+      "tokens": {
+        "input": 43975,
+        "output": 890,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T12:13:11.707Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-23T12:13:11.748Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1008,
+      "durationMs": 25663,
+      "tokens": {
+        "input": 44689,
+        "output": 1006,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T12:13:45.560Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 613,
+      "durationMs": 19725,
+      "tokens": {
+        "input": 29489,
+        "output": 512,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T12:14:05.388Z"
+    },
+    {
+      "phase": "finalize",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3505,
+      "durationMs": 34375,
+      "tokens": {
+        "input": 26988,
+        "output": 1407,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T12:18:43.586Z"
+    }
+  ],
+  "test": {
+    "baseline": {
+      "unit": 2166,
+      "integration": 261,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 6
+    }
+  },
+  "notes": [
+    {
+      "text": "draft scope: (A) call cleanStalePreparingFlows in set-init + (B) shorten PREPARING_TTL_MS from 24h. Exclude: flow get status cleanup (read-only violation), flow clean preparing subcommand.",
+      "taskId": null,
+      "ts": "2026-04-23T10:12:11.632Z"
+    }
+  ],
+  "autoApprove": true,
+  "state": {
+    "finalizedAt": "2026-04-23T12:18:09.057Z"
+  }
+}

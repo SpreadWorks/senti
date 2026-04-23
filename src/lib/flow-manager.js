@@ -147,6 +147,7 @@ export class FlowManager {
   deletePreparingFlow(runId) { return this._preparing.delete(runId); }
   listPreparingFlows() { return this._preparing.list(); }
   cleanStalePreparingFlows() { return this._preparing.cleanStale(); }
+  pruneStalePreparingFlowsAndList() { return this._preparing.pruneStaleAndList(); }
 
   // ── cross-cutting ───────────────────────────────────────────────────────────
 

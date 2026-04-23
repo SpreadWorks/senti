@@ -13,7 +13,7 @@ import path from "path";
 export const STATE_FILE = "flow.json";
 export const ACTIVE_FLOW_FILE = ".active-flow";
 export const PREPARING_PREFIX = ".active-flow.";
-export const PREPARING_TTL_MS = 24 * 60 * 60 * 1000;
+export const PREPARING_TTL_MS = 60 * 60 * 1000;
 export const PREPARING_SCAN_LIMIT = 100;
 export const SCAN_FLOWS_LIMIT = 200;
 

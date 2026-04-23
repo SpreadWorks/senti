@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/222-clean-stale-preparing-flows/draft.md     |  45 +++\n specs/222-clean-stale-preparing-flows/flow.json    | 438 +++++++++++++++++++++\n .../222-clean-stale-preparing-flows/issue-log.json | 208 ++++++++++\n specs/222-clean-stale-preparing-flows/qa.md        |   9 +\n specs/222-clean-stale-preparing-flows/review.md    |  17 +\n specs/222-clean-stale-preparing-flows/spec.json    | 155 ++++++++\n specs/222-clean-stale-preparing-flows/spec.md      | 105 +++++\n .../tests/README.md                                |  35 ++\n src/flow/lib/set-init.js                           |   9 +-\n src/lib/flow-helpers.js                            |   2 +-\n src/lib/flow-manager.js                            |   1 +\n src/lib/preparing-flow-store.js                    |  24 +-\n .../unit/flow/clean-stale-preparing-flows.test.js  |  81 ++++\n tests/unit/flow/set-init-cleanup.test.js           | 122 ++++++\n 14 files changed, 1243 insertions(+), 8 deletions(-)",
+      "commits": [
+        "feat: feature/222-clean-stale-preparing-flows"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 5,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.92,
+      "notes": "Behaviorally, REQ-P2..P6 are satisfied. REQ-P1 is only partial against strict wording because implementation replaced the exact required call sequence with a new combined method that achieves equivalent outcome."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 5,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 301196,
+      "output": 16609,
+      "cacheRead": 196608,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 438055,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 205209
+        },
+        {
+          "phase": "spec",
+          "durationMs": 143450
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 44008
+        },
+        {
+          "phase": "review",
+          "durationMs": 45388
+        }
+      ]
+    },
+    "tests": {
+      "unit": 6,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 6
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/222-clean-stale-preparing-flows\n    14 files changed, 1243 insertions(+), 8 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 92%  (5 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 5\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 16\n    input tokens ................ 301,196\n    output tokens ............... 16,609\n    cache-read tokens ........... 196,608\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 438.1s\n      draft ..................... 205.2s\n      spec ...................... 143.4s\n      gate-impl ................. 44.0s\n      review .................... 45.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 6  integration 0  acceptance 0  total 6"
+}
