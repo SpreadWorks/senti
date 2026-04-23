@@ -21,7 +21,6 @@ import {
   countCommitsBetween,
   listUncommittedFiles,
 } from "../../lib/git-helpers.js";
-import { VALID_MERGE_STRATEGIES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { FLOW_COMMANDS } from "../registry.js";
 import { container } from "../../lib/container.js";
@@ -326,11 +325,6 @@ export class RunFinalizeCommand extends FlowCommand {
       throw new Error("--mode must be 'all' or 'select'");
     }
 
-    const mergeStrategyInput = ctx.mergeStrategy || "";
-    if (mergeStrategyInput && !VALID_MERGE_STRATEGIES.includes(mergeStrategyInput)) {
-      throw new Error(`invalid merge strategy: ${mergeStrategyInput} (valid: ${VALID_MERGE_STRATEGIES.join(", ")})`);
-    }
-
     // Determine which steps to execute
     let activeSteps;
     if (mode === "all") {
@@ -389,9 +383,6 @@ export class RunFinalizeCommand extends FlowCommand {
       }
     }
 
-    // Resolve merge strategy: explicit > auto
-    const mergeStrategy = mergeStrategyInput || "auto";
-
     // Resolve paths once
     const { worktreePath, mainRepoPath } = ctx.flowManager.resolveWorktreePaths(state);
     const results = {};
@@ -419,7 +410,9 @@ export class RunFinalizeCommand extends FlowCommand {
     // -- Step 2: merge --
     if (activeSteps.has(2)) {
       if (dryRun) {
-        results.merge = { status: "dry-run", strategy: mergeStrategy };
+        const { resolveMergeStrategy } = await import("../commands/merge.js");
+        const strategy = resolveMergeStrategy(state, container.get("config"));
+        results.merge = { status: "dry-run", strategy };
       } else {
         results.merge = await runSubStep("merge", async () => {
           const { runMerge } = await import("../commands/merge.js");
@@ -428,7 +421,6 @@ export class RunFinalizeCommand extends FlowCommand {
             flowState: state,
             worktreePath,
             mainRepoPath,
-            mergeStrategy,
           });
           return { status: "done", strategy: mergeResult?.strategy || "squash" };
         }, ctx);
@@ -450,7 +442,7 @@ export class RunFinalizeCommand extends FlowCommand {
 
     // -- Step 3: sync (docs generation -- runs on main repo after merge) --
     if (activeSteps.has(3)) {
-      const wasPr = results.merge?.strategy === "pr" || mergeStrategy === "pr";
+      const wasPr = results.merge?.strategy === "pr";
       if (wasPr) {
         results.sync = { status: "skipped", message: "PR route: run sdd-forge build after PR merge" };
       } else if (dryRun) {

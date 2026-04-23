@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/215-remove-merge-strategy-arg/draft.md       |  90 +++++\n specs/215-remove-merge-strategy-arg/flow.json      | 393 +++++++++++++++++++++\n specs/215-remove-merge-strategy-arg/issue-log.json | 134 +++++++\n specs/215-remove-merge-strategy-arg/qa.md          |   9 +\n specs/215-remove-merge-strategy-arg/review.md      |  25 ++\n specs/215-remove-merge-strategy-arg/spec.json      |  85 +++++\n specs/215-remove-merge-strategy-arg/spec.md        | 148 ++++++++\n .../215-remove-merge-strategy-arg/tests/README.md  |  36 ++\n .../tests/no-merge-strategy-arg.test.js            | 117 ++++++\n src/flow/commands/merge.js                         |  50 +--\n src/flow/lib/get-prompt.js                         |  18 -\n src/flow/lib/run-finalize.js                       |  16 +-\n src/flow/prompts/impl/finalize.md                  |   4 +-\n src/flow/registry.js                               |   3 +-\n src/lib/constants.js                               |   9 -\n src/templates/skills/sdd-forge.flow/SKILL.md       |   2 +-\n tests/unit/flow/get-prompt.test.js                 |  21 +-\n 17 files changed, 1094 insertions(+), 66 deletions(-)",
+      "commits": [
+        "feat: feature/215-remove-merge-strategy-arg",
+        "remove --merge-strategy CLI argument from flow finalize"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 4,
+      "partial": 2,
+      "not_done": 0,
+      "rate": 0.83,
+      "notes": "R2/R3/R5/R6 は実装差分で明確に満たしている。R1 は実装意図は達成されているが unknown option 非ゼロ終了の直接検証が不足、R4 は永続化の明示確認が diff だけでは不十分。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 229202,
+      "output": 11924,
+      "cacheRead": 99840,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 12,
+      "durationMs": 286956,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 105918
+        },
+        {
+          "phase": "gate",
+          "durationMs": 51968
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 75382
+        },
+        {
+          "phase": "review",
+          "durationMs": 53688
+        }
+      ]
+    },
+    "tests": {
+      "unit": 3,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 3
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/215-remove-merge-strategy-arg\n    remove --merge-strategy CLI argument from flow finalize\n    17 files changed, 1094 insertions(+), 66 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (4 done / 2 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 12\n    input tokens ................ 229,202\n    output tokens ............... 11,924\n    cache-read tokens ........... 99,840\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 287.0s\n      gate-draft ................ 105.9s\n      gate ...................... 52.0s\n      gate-impl ................. 75.4s\n      review .................... 53.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 3  integration 0  acceptance 0  total 3"
+}

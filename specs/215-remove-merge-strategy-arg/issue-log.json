@@ -1,0 +1,134 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: removing `--merge-strategy` override and aligning finalize behavior to config-based strategy selection.; Unambiguous Requirements — Some expected behavior is ambiguous (e.g., unknown `--merge-strategy` is described as \"error, or ignore\"), which is not strictly verifiable.; Complete Context — Most requirements are listed as change items without explicit trigger-condition plus expected-behavior phrasing (When/If ... shall ...).; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets appear in the draft content.; Prioritize Requirements — There are more than three requirement items, but no explicit priority ordering is provided.; Impact on Existing Features — The draft explicitly lists affected existing features and unaffected areas.; Present Recommendations with Reasoning — Q&A answers provide clear recommendations with concise rationale based on project policy, issue history, and code-structure intent.; Explore Before Asking — The draft resolves questions using code/docs-specific references and leaves no unresolved questions needing user input.; Proactively Raise Related Implications — Related implications are proactively stated (CLI behavior change, skill flow change, PR route gating, and retained `flow.json` behavior).; Confirm Brainstorm vs. Decision Before Critiquing — Cannot verify whether brainstorming-vs-decision confirmation occurred without prior conversation/runtime context.; Capture Digressions in draft.md — No digression is evident in the provided draft content, so there is nothing to capture.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions/constants/prompts) beyond pure requirements-level description.; Backward-Compatible CLI Interface — The draft removes an existing CLI option but does not provide a clear migration plan section with explicit user transition steps.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T23:48:56.263Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some expected behavior is ambiguous (e.g., unknown `--merge-strategy` is described as \"error, or ignore\"), which is not strictly verifiable."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Most requirements are listed as change items without explicit trigger-condition plus expected-behavior phrasing (When/If ... shall ...)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirement items, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific files/functions/constants/prompts) beyond pure requirements-level description."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "The draft removes an existing CLI option but does not provide a clear migration plan section with explicit user transition steps."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 仕様は `--merge-strategy` 廃止と戦略決定の一本化という単一の関心事に集中している。; Unambiguous Requirements — 各要件は実行条件と検証可能な結果（エラー終了、分岐条件、記録内容）で具体化されている。; Complete Context — R1〜R6 が When/ Shall の形でトリガー条件と期待動作を対で定義している。; No Hardcoded Secrets — 本ドラフトに API key やトークン等の秘密情報の直書きはない。; Prioritize Requirements — 要件が3件超であり、P1/P2/P3 で優先度順が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示的に列挙されている。; Present Recommendations with Reasoning — Q&A は回答を示しているが、各回答の根拠を docs/・guardrail・既存コードパターンのいずれかとして明示する形式が徹底されていない。; Explore Before Asking — Open Questions はなしで、ドラフト内で判断を完結させておりユーザーへの追加確認待ちがない。; Proactively Raise Related Implications — CI 破壊影響、運用変更、リリースノート候補まで関連含意を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — ブレストか意思決定かを事前確認した会話ログが提示されておらず本文だけでは判定できない。; Capture Digressions in draft.md — 議論の脱線有無とその記録プロセスは会話経緯がなく評価不能。; Draft Stays at Requirements Level — 要件レベルを超えて具体ファイルパス、定数名、関数名など実装詳細が含まれている。; Backward-Compatible CLI Interface — 既存 CLI オプション削除に対して対象ユーザー、移行手順、非互換の明示を含む migration plan がある。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T23:50:12.188Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A は回答を示しているが、各回答の根拠を docs/・guardrail・既存コードパターンのいずれかとして明示する形式が徹底されていない。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "要件レベルを超えて具体ファイルパス、定数名、関数名など実装詳細が含まれている。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 仕様は `--merge-strategy` 廃止とその直接的影響に集中しており、主題は一貫している。; Unambiguous Requirements — 各要件が具体的な条件と期待結果（エラー終了、ルート選択条件、記録内容）で記述され検証可能。; Complete Context — R1〜R6がいずれも When/ Shall の組でトリガーと期待動作を明示している。; No Hardcoded Secrets — 要件ドラフト本文であり、秘密情報の埋め込みは見当たらない。; Prioritize Requirements — 4件超の要件に対して P1/P2/P3 の優先度が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示されている。; Present Recommendations with Reasoning — Q&Aで各問いに推奨結論を先に示し、根拠として方針文書・Issue原則・既存コード参照を添えている。; Explore Before Asking — Open Questions がなく、疑問点は docs/方針やコード参照で自己解決されている。; Proactively Raise Related Implications — CI破壊影響、運用変更、移行手順、非互換性を先回りして提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 本稿は承認済みドラフトで、ブレスト案への批評フェーズは示されておらず本観点は実質的に非該当。; Capture Digressions in draft.md — 派生論点は Q&A と Impact/Migration に整理され、主スレッドへ戻る構成になっている。; Draft Stays at Requirements Level — Q&Aに具体的コードパスと分岐式（`src/flow/lib/run-finalize.js` / `results.merge?.strategy === \"pr\"`）が含まれ、要件レベルを超える実装詳細が混在している。; Backward-Compatible CLI Interface — 既存CLIオプション廃止に対し、対象ユーザー・移行手順・非互換明示を含む移行計画が定義されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T23:51:32.707Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Q&Aに具体的コードパスと分岐式（`src/flow/lib/run-finalize.js` / `results.merge?.strategy === \"pr\"`）が含まれ、要件レベルを超える実装詳細が混在している。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T23:53:35.372Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T23:55:41.114Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T23:55:50.645Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 130: unchecked task/question (- [ ] なし)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T23:57:58.549Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: removing CLI merge-strategy override and enforcing config-only strategy selection.; Unambiguous Requirements — Requirements and acceptance criteria use concrete, testable conditions and outcomes.; Complete Context — Each listed requirement includes explicit When/shall context and expected behavior.; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus test/command results (CLI behavior, routing logic, prompt removal, grep checks).; No Hardcoded Secrets — No secrets or credential-like literals are specified.; No Silent Error Swallowing — Spec expects explicit error behavior (unknown option with non-zero exit) and does not prescribe swallowing errors.; Prioritize Requirements — Requirements are prioritized with P1/P2/P3 tiers.; Impact on Existing Features — Impact is explicitly described (e.g., CI using old arg will fail; behavior changes documented).; Bounded Resource Usage — No recursive/retry/bulk-loading design is introduced; bounded-resource constraints are not implicated.; Changes Require Test Coverage — Spec includes concrete test coverage expectations and acceptance checks for new behavior.; Spec Includes Test Strategy — Acceptance criteria define what to test and how (commands, conditions, expected outcomes).; Synthesize Draft, Do Not Copy — Cannot determine whether content was synthesized vs copied without the original draft source.; Record Unresolved Points as Open Questions — Open Questions section is present and explicitly states none unresolved.; Include 'Why This Approach' Rationale — Rationale is provided via background, design principles, and alternatives considered.; Do Not Modify Existing Tests Without Approval — Test updates are declared in the spec and user approval is recorded in the User Confirmation section.; Backward-Compatible CLI Interface — Existing CLI option removal is specified, but a concrete migration plan for users is not fully detailed beyond release-note notice.; Exit Code Contract — Spec explicitly requires non-zero exit code on failure for removed/unknown option usage.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-22T23:58:32.666Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Existing CLI option removal is specified, but a concrete migration plan for users is not fully detailed beyond release-note notice."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.modules[3]: must be object, got string; overview.modules[4]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; overview.data_flow[2]: must be object, got string; overview.data_flow[3]: must be object, got string; overview.data_flow[4]: must be object, got string; overview.decisions[0]: must be object, got string; overview.decisions[1]: must be object, got string; overview.decisions[2]: must be object, got string; overview.decisions[3]: must be object, got string; requirements[5].priority: must be one of enum [must, should, nice-to-have], got \"could\"; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; alternatives_considered[2]: must be object, got string",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T00:05:42.192Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "spec.json failed schema validation: alternatives_considered[0].option: required field is missing; alternatives_considered[0].reason: required field is missing; alternatives_considered[0].text: unknown field; alternatives_considered[1].option: required field is missing; alternatives_considered[1].reason: required field is missing; alternatives_considered[1].text: unknown field; alternatives_considered[2].option: required field is missing; alternatives_considered[2].reason: required field is missing; alternatives_considered[2].text: unknown field",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T00:06:19.107Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/get-prompt.test.js:84: existing line modified/deleted in test file (removed=1, added=20)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T00:06:28.983Z"
+    }
+  ]
+}

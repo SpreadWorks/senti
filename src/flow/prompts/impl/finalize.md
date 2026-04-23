@@ -25,8 +25,8 @@ Use this guidance when the impl phase reaches the finalize action. The full proc
 4. **If "select"** (Option 2):
    - Run `sdd-forge flow get prompt finalize.steps` and present the step choices. Wait for user selection.
    - Available steps: 1=commit(+retro+report), 2=merge, 3=sync, 4=cleanup.
-   - If the user selected the merge step (2), run `sdd-forge flow get prompt finalize.merge-strategy` and present the choices.
-   - Run `sdd-forge flow run finalize --mode select --steps <selected> [--merge-strategy <choice>]`.
+   - Merge strategy is determined automatically from `config.commands.gh` and `gh` availability; there is no choice to present.
+   - Run `sdd-forge flow run finalize --mode select --steps <selected>`.
    - Display the JSON result to the user.
 
 5. Post-finalize.

@@ -2,7 +2,12 @@
  * src/flow/commands/merge.js
  *
  * Squash merge or PR creation based on flow state.
- * Called by finalize.js with ctx containing root, flowState, worktreePath, mainRepoPath, mergeStrategy.
+ * Called by finalize.js with ctx containing root, flowState, worktreePath, mainRepoPath.
+ *
+ * Strategy is determined solely from config (`commands.gh`) and `gh` availability:
+ *   commands.gh === "enable" AND gh available  → PR route
+ *   otherwise                                   → squash merge route
+ * No CLI escape hatch exists (spec 215 / issue #223).
  */
 
 import { runCmd, assertOk } from "../../lib/process.js";
@@ -115,41 +120,44 @@ function loadSpec(state, root) {
 }
 
 /**
+ * Resolve the merge strategy from flow state and config alone. Pure function —
+ * used by both the live merge path and finalize's dry-run reporting so that
+ * the dry-run `strategy` value matches what would actually be executed.
+ *
+ * @param {{ baseBranch: string, featureBranch: string }} state
+ * @param {Object} config - SDD config
+ * @param {() => boolean} [ghAvailable=isGhAvailable]
+ * @returns {"skip"|"pr"|"squash"}
+ */
+function resolveMergeStrategy(state, config, ghAvailable = isGhAvailable) {
+  if (state.featureBranch === state.baseBranch) return "skip";
+  const ghEnabled = config?.commands?.gh === "enable";
+  return ghEnabled && ghAvailable() ? "pr" : "squash";
+}
+
+/**
  * Execute merge operation.
  * @param {Object} ctx
  * @param {string} ctx.root - project root (worktree or main repo)
  * @param {Object} ctx.flowState - flow.json state
  * @param {string|null} ctx.worktreePath - worktree path (null if not worktree mode)
  * @param {string|null} ctx.mainRepoPath - main repo path (null if not worktree mode)
- * @param {string} ctx.mergeStrategy - "squash" | "pr" | "auto"
  * @returns {{ strategy: string }} - the resolved strategy
  */
 function runMerge(ctx) {
-  const { flowState: state, mainRepoPath, mergeStrategy } = ctx;
+  const { flowState: state, mainRepoPath } = ctx;
   const root = ctx.root || container.get("root");
   const { baseBranch, featureBranch, worktree } = state;
 
-  // Spec-only: featureBranch == baseBranch
-  if (featureBranch === baseBranch) {
+  const cfg = container.get("config");
+  const strategy = resolveMergeStrategy(state, cfg);
+
+  if (strategy === "skip") {
     return { strategy: "skip" };
   }
 
-  // Resolve strategy
-  let usePr = mergeStrategy === "pr";
-  if (mergeStrategy === "auto") {
-    const cfg = container.get("config");
-    const ghEnabled = cfg?.commands?.gh === "enable";
-    if (ghEnabled && isGhAvailable()) {
-      usePr = true;
-    }
-  }
-
   // PR route
-  if (usePr) {
-    if (!isGhAvailable()) {
-      throw new Error("gh command is not available. Install GitHub CLI to use PR route.");
-    }
-    const cfg = container.get("config");
+  if (strategy === "pr") {
     const remote = resolveRemote(cfg);
     const spec = loadSpec(state, root);
     const fallbackTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.(md|json)$/, "") || featureBranch;
@@ -241,4 +249,4 @@ function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin"
   return { ok: false, conflictFiles: rebaseRes.conflictFiles, recoveryHint };
 }
 
-export { runMerge, parseSpec, buildPrTitle, buildPrBody, runPreSync };
+export { runMerge, resolveMergeStrategy, parseSpec, buildPrTitle, buildPrBody, runPreSync };

@@ -84,11 +84,30 @@ describe("flow get prompt", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
     const result = execFileSync(
-      "node", [FLOW_CMD, "get", "prompt", "finalize.merge-strategy"],
+      "node", [FLOW_CMD, "get", "prompt", "finalize.mode"],
       { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
     );
     const envelope = JSON.parse(result);
     assert.ok(envelope.data.description);
     assert.ok(envelope.data.choices.length >= 2);
+  });
+
+  it("finalize.merge-strategy is removed as a known kind", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    try {
+      execFileSync(
+        "node", [FLOW_CMD, "get", "prompt", "finalize.merge-strategy"],
+        { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+      );
+      assert.fail("finalize.merge-strategy should no longer be a known kind");
+    } catch (err) {
+      const envelope = JSON.parse(err.stdout);
+      assert.equal(envelope.ok, false);
+      assert.ok(
+        envelope.errors[0].messages[0].includes("unknown kind"),
+        `error should mention unknown kind: ${envelope.errors[0].messages[0]}`,
+      );
+    }
   });
 });

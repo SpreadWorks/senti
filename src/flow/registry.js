@@ -419,7 +419,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-finalize.js"),
       args: {
         flags: ["--dry-run"],
-        options: ["--mode", "--steps", "--merge-strategy", "--message"],
+        options: ["--mode", "--steps", "--message"],
       },
       help: [
         "Usage: sdd-forge flow run finalize [options]",
@@ -429,7 +429,6 @@ export const FLOW_COMMANDS = {
         "Options:",
         "  --mode <all|select>           Mode (required)",
         "  --steps <1,2,3,4>            Comma-separated step numbers (select mode: 1=commit 2=merge 3=sync 4=cleanup)",
-        "  --merge-strategy <strategy>   squash or pr (default: auto-detect)",
         "  --message <msg>               Custom commit message",
         "  --dry-run                     Preview only",
       ].join("\n"),

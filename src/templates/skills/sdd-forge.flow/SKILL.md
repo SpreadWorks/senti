@@ -208,7 +208,7 @@ sdd-forge flow prepare --title "..." [--base branch] [--worktree] [--no-branch] 
 sdd-forge flow run gate [--phase <draft|spec|task-impl>]
 sdd-forge flow run review
 sdd-forge flow run impl-confirm --mode <overview|detail>
-sdd-forge flow run finalize [--mode all|select] [--steps 1,2,3,4] [--merge-strategy squash|pr]
+sdd-forge flow run finalize [--mode all|select] [--steps 1,2,3,4]
 sdd-forge flow run draft-task --task-id <id>
 sdd-forge flow run retro [--force] [--dry-run]
 sdd-forge flow run report [--dry-run]

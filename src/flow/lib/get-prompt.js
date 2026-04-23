@@ -135,15 +135,6 @@ const PROMPTS_BY_LANG = {
         { id: 6, label: "作業の記録を保存", description: "", recommended: false },
       ],
     },
-    "finalize.merge-strategy": {
-      phase: "finalize", step: "merge-strategy",
-      description: "マージ方法を選択してください。",
-      recommendation: null,
-      choices: [
-        { id: 1, label: "squash merge", description: "", recommended: false },
-        { id: 2, label: "pull request", description: "", recommended: false },
-      ],
-    },
     "finalize.cleanup": {
       phase: "finalize", step: "cleanup",
       description: "worktree を削除しますか？",
@@ -271,15 +262,6 @@ const PROMPTS_BY_LANG = {
         { id: 4, label: "Documentation sync", description: "", recommended: false },
         { id: 5, label: "Branch cleanup", description: "", recommended: false },
         { id: 6, label: "Save work record", description: "", recommended: false },
-      ],
-    },
-    "finalize.merge-strategy": {
-      phase: "finalize", step: "merge-strategy",
-      description: "Choose merge method.",
-      recommendation: null,
-      choices: [
-        { id: 1, label: "squash merge", description: "", recommended: false },
-        { id: 2, label: "pull request", description: "", recommended: false },
       ],
     },
     "finalize.cleanup": {

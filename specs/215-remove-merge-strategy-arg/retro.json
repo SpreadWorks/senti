@@ -1,0 +1,58 @@
+{
+  "spec": "specs/215-remove-merge-strategy-arg/spec.json",
+  "date": "2026-04-23T00:13:06.541Z",
+  "requirements": [
+    {
+      "desc": "R1: finalize が旧 --merge-strategy 引数を受け付けない（unknown option エラー）",
+      "status": "partial",
+      "note": "finalize の option 定義/ヘルプ/内部受け取りが削除され、引数は未定義化されたが、diff内には unknown option と非ゼロ終了を直接検証するテストはない。"
+    },
+    {
+      "desc": "R2: merge 戦略は config.commands.gh と gh 可用性のみで決定",
+      "status": "done",
+      "note": "mergeStrategy 引数経路が削除され、`resolveMergeStrategy` で `commands.gh === \"enable\"` かつ `gh` 利用可能時のみ `pr`、それ以外は `squash` に統一された。"
+    },
+    {
+      "desc": "R3: 戦略選択ユーザー対話の廃止",
+      "status": "done",
+      "note": "`finalize.merge-strategy` prompt 定義が削除され、finalize 実行ガイドも戦略選択対話なしに更新され、unknown kind テストも追加された。"
+    },
+    {
+      "desc": "R4: 解決戦略値の flow 状態への記録保持",
+      "status": "partial",
+      "note": "merge 結果の `strategy` を後続 sync 判定で参照する流れは維持/整理されているが、flow 状態への永続記録処理そのものをこの diff だけでは明確に確認できない。"
+    },
+    {
+      "desc": "R5: スキル・プロンプトから旧引数記述を削除",
+      "status": "done",
+      "note": "配布スキルテンプレートと finalize プロンプト文書から `--merge-strategy` 記述が削除されている。"
+    },
+    {
+      "desc": "R6: VALID_MERGE_STRATEGIES 定数と import の削除",
+      "status": "done",
+      "note": "`src/lib/constants.js` の定数定義と `run-finalize.js` の import/使用が削除されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-finalize.js",
+      "change": "dry-run 時の merge strategy 表示を固定値 `auto` から実解決値（`resolveMergeStrategy`）へ変更。"
+    },
+    {
+      "file": "src/flow/commands/merge.js",
+      "change": "戦略判定を `resolveMergeStrategy` 純関数へ抽出し export（再利用向けリファクタ）。"
+    },
+    {
+      "file": "specs/215-remove-merge-strategy-arg/*",
+      "change": "仕様運用用の spec/draft/flow/issue-log/review/qa/spec専用テスト文書が新規追加（R1-R6の製品要件外の運用成果物）。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 4,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.83,
+    "notes": "R2/R3/R5/R6 は実装差分で明確に満たしている。R1 は実装意図は達成されているが unknown option 非ゼロ終了の直接検証が不足、R4 は永続化の明示確認が diff だけでは不十分。"
+  }
+}
