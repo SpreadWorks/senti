@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T13:02:17.233Z",
+  "analyzedAt": "2026-04-23T13:05:19.909Z",
   "package": {
     "entries": [
       {
@@ -4540,14 +4540,15 @@
       },
       {
         "file": "src/flow/lib/set-test-summary.js",
-        "hash": "383714d454fde9c7cd60d2a274e9ab2c",
-        "lines": 158,
-        "mtime": "2026-04-23T02:17:09.748Z",
+        "hash": "bdd09337304a1ed08cdde438ee6ab519",
+        "lines": 171,
+        "mtime": "2026-04-23T13:05:19.659Z",
         "className": "set-test-summary",
         "methods": [
           "parseLegacy",
           "failJson",
           "parseJsonPayload",
+          "inheritCountsFromBaseline",
           "validateFailedArray"
         ],
         "imports": [
@@ -4560,23 +4561,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "962cab89",
-        "summary": "This module defines the flow command that writes test summary data into flow state under a typed test target. It supports both legacy argument parsing and structured JSON input for test result updates.",
-        "detail": "The command extends `FlowCommand` and uses `Envelope` helpers to return standardized success and failure payloads for CLI orchestration. It validates test-type keys against a fixed allowlist (`unit`, `integration`, `acceptance`) and builds a target path like `test.<type>`. Input handling is split between legacy parsing logic and `--json` payload parsing, with explicit error reporting for malformed JSON and invalid object shapes. Failed test records are strictly validated as object entries with bounded string fields (`id`, `reason`) and a capped list size to prevent oversized state updates. The implementation centralizes argument and payload validation before returning normalized output objects for downstream persistence.",
+        "summary": "This module implements a flow command that sets or updates test summary data for a specific test type. It normalizes legacy and JSON input modes and emits structured success or failure envelopes.",
+        "detail": "The command extends `FlowCommand` and uses `Envelope` to return consistent error payloads with domain-specific codes such as invalid JSON and invalid argument values. It restricts target keys to known test categories (`unit`, `integration`, `acceptance`) and applies bounded validation rules for failed test entries, including required string fields, non-empty IDs, per-field character limits, and maximum item count. It parses `--json` payloads defensively, rejecting non-object inputs, while also supporting a legacy parsing path for backward-facing CLI shapes. The implementation includes baseline-aware behavior to inherit or merge counts when summary fields are not fully provided. Final output includes normalized summary data, the resolved target path (`test.<type>`), and the selected parsing mode.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T02:17:29.835Z",
+          "processedAt": "2026-04-23T13:05:34.709Z",
           "attempts": 1
         },
         "keywords": [
           "flow command",
           "test summary",
-          "json payload",
-          "legacy parser",
           "argument validation",
+          "JSON payload parsing",
           "error envelope",
-          "failed test cases",
-          "acceptance integration unit"
+          "legacy compatibility",
+          "failure list normalization",
+          "CLI subcommand"
         ]
       },
       {
@@ -9470,9 +9471,9 @@
     ],
     "summary": {
       "total": 276,
-      "totalMethods": 902
+      "totalMethods": 903
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T13:02:31.841Z"
+  "enrichedAt": "2026-04-23T13:05:34.709Z"
 }
