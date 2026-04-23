@@ -9,8 +9,8 @@
  */
 
 import { derivePhase } from "../lib/flow-helpers.js";
-import { VALID_PHASES, VALID_METRIC_COUNTERS } from "../lib/constants.js";
-import { resolveGateStepId } from "./lib/gate-step.js";
+import { VALID_PHASES, VALID_METRIC_COUNTERS, VALID_GATE_PHASES } from "../lib/constants.js";
+import { resolveGateStepId, resolveGatePhaseFromState } from "./lib/gate-step.js";
 
 /**
  * Load flow state and derive the current phase.
@@ -319,6 +319,12 @@ export const FLOW_COMMANDS = {
     gate: {
       helpKey: "flow.run.gate",
       pre(ctx) {
+        // When --phase is omitted, phase resolution and stale-step recovery
+        // happen inside RunGateCommand.execute (which has exclusive ownership
+        // over flow state mutations for the duration of the gate). The
+        // pre-hook's step-status update is only valid when phase is already
+        // known, so skip it otherwise.
+        if (ctx.phase == null) return;
         tryUpdateStepStatus(ctx, resolveGateStepId(ctx.phase), "in_progress");
       },
       command: () => import("./lib/run-gate.js"),
@@ -338,7 +344,8 @@ export const FLOW_COMMANDS = {
       ].join("\n"),
       async post(ctx, result) {
         const status = result?.result === "pass" ? "done" : "in_progress";
-        tryUpdateStepStatus(ctx, resolveGateStepId(ctx.phase), status);
+        const phase = result?.artifacts?.phase || ctx.phase;
+        tryUpdateStepStatus(ctx, resolveGateStepId(phase), status);
 
         const gateMod = await import("./lib/run-gate.js");
         // spec 201 P2-R1: update gateRetry counter for task-impl/integration.

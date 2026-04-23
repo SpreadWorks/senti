@@ -1,0 +1,62 @@
+{
+  "spec": "specs/221-fix-gate-phase-detection/spec.json",
+  "date": "2026-04-23T08:45:45.586Z",
+  "requirements": [
+    {
+      "desc": "When sdd-forge flow run gate が --phase を省略して実行された時、本コマンドは flow state（および active task が存在する場合は当該 task の state）を走査して in_progress の gate 系 step を特定し、そこから gate phase を一意に決定しなければならない。",
+      "status": "done",
+      "note": "run-gate.js now calls resolveGatePhaseFromState(ctx.flowState) when phase is omitted; gate-step.js scans flow/task state and resolves a single phase."
+    },
+    {
+      "desc": "When R1 の推論において gate 系 step が一つも in_progress でない時、本コマンドは gate 評価および pre-hook の副作用を一切走らせず、envelope ok:false で終了しなければならない。このとき標準出力にエラー envelope を出力し、プロセス終了コードは非ゼロ（既存の precondition error と同一）でなければならない。エラー出力には --phase の有効値 (draft / spec / task-spec / task-impl / integration) を列挙しなければならない。",
+      "status": "partial",
+      "note": "No-in-progress path returns Envelope.fail with valid phase list and registry pre-hook now skips when ctx.phase is omitted; non-zero process exit code is not directly evidenced in this diff."
+    },
+    {
+      "desc": "When R1 の推論において gate 系 step が 2 件以上 in_progress である時、本コマンドは FLOW_STEPS 配列順で最も後方の gate 系 step（active task があれば task-level の該当 step を優先）を採用して phase を決定し、採用しなかった gate 系 step は同コマンド実行内で status を done に遷移しなければならない。遷移対象の step id と遷移理由は stderr に 1 行で出力されなければならない。",
+      "status": "done",
+      "note": "gate-step.js selects latest flow gate by FLOW_STEPS (task-level priority), returns staleSteps, and run-gate.js transitions stale steps to done with one stderr line per step including step id and reason."
+    },
+    {
+      "desc": "When --phase が明示指定された時、本コマンドは R1〜R3 の推論・リカバリを行わず、現行の phase 値検証と gate 評価ロジックに従わなければならない（既存の --phase 明示利用の互換性を維持する）。",
+      "status": "done",
+      "note": "Inference/recovery block runs only when phase is null/empty; explicit phase path keeps existing validation and execution flow."
+    },
+    {
+      "desc": "When step → gate phase の逆引きを実装する時、対応する関数は src/flow/lib/gate-step.js に配置され、resolveGateStepId(phase)（phase → step）と同モジュールに並置されなければならない。",
+      "status": "done",
+      "note": "Reverse mapping logic (STEP_TO_PHASE and resolveGatePhaseFromState) was added in src/flow/lib/gate-step.js alongside resolveGateStepId."
+    },
+    {
+      "desc": "When R1〜R4 の振る舞いに対する自動テストを整備する時、そのテストは外部プロセス（AI CLI、git、ネットワーク呼び出し）を起動せずに完結していなければならない。",
+      "status": "partial",
+      "note": "New core tests in tests/unit/flow/gate-phase-inference.test.js are in-process, but modified guardrail integration tests still use execFileSync(\"node\", ...), so coverage related to compatibility still depends on an external process path."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "Added ERR_MISSING_FILE-specific warning/skip behavior in updateStepStatusDuringInference, which is not explicitly required by R1-R6."
+    },
+    {
+      "file": "src/flow/registry.js",
+      "change": "Post-hook now derives step update phase from result.artifacts.phase fallback; this is beyond the stated R1-R6 requirements."
+    },
+    {
+      "file": "tests/unit/specs/commands/guardrail.test.js",
+      "change": "Refactored test helper to force explicit --phase and changed invocation style; this migration/support change is not directly specified in R1-R6."
+    },
+    {
+      "file": "specs/221-fix-gate-phase-detection/*",
+      "change": "Added/updated draft/spec/flow/issue-log/review/qa artifacts, which are process documentation changes rather than direct requirement implementation."
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 4,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.83,
+    "notes": "Implementation substantially matches the feature intent (R1, R3, R4, R5 done). Main uncertainty is R2 exit-code proof in this diff and R6 purity because related compatibility tests still involve external process execution."
+  }
+}

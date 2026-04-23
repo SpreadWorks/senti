@@ -1,0 +1,110 @@
+# Feature Specification: 221-fix-gate-phase-detection
+
+**Feature Branch**: `feature/221-fix-gate-phase-detection`
+**Created**: 2026-04-23
+**Status**: Draft
+**Input**: GitHub Issue #239
+
+## Goal
+sdd-forge flow run gate の --phase 省略時デフォルトを、flow state（および active task の state）に記録された gate 系 step の in_progress 状況から gate phase を決定する形に切り替える。あわせて gate 系 step が複数 in_progress になっている異常状態を検出時に自動収束させ、gate 系 step が一つも in_progress でない状態では phase を黙って仮定せず、明示指定を要求するエラーで停止する。
+
+## Background
+現在の実装では ctx.phase || "spec" により --phase 省略時の gate phase を常に spec に固定している。pre/post hook は resolveGateStepId(ctx.phase) で step を特定するため、gate-impl が in_progress にもかかわらず phase=spec で評価され、gate step を誤って in_progress に戻したり、既に PASS 済みの spec を無駄に再評価する事象が発生する。典型発生経路は2つあり、(1) 多重 in_progress: gate が PASS 済みだが post-hook の done 遷移が走り切らず、gate と gate-impl の両方が in_progress の状態で --phase 省略すると gate step が誤選択される。(2) 単独 in_progress でも誤 phase: implement done / gate-impl in_progress のときに --phase 省略すると phase=spec が評価され missing section: ## Clarifications 等で FAIL する。--phase task-impl を明示すれば正しく通る。
+
+[Impact on Existing Features] 影響ありは sdd-forge flow run gate の --phase 省略時デフォルトのみ（固定値 spec から state 推論へ）。--phase を明示指定する既存の CLI 呼び出し・ドキュメント例・CI スクリプトには影響しない（R4 で保証）。task-less flow の正常系（gate 系 step が 1 件のみ in_progress である限り）、docs / spec / setup / upgrade などの他サブコマンドにも影響しない。
+
+[Migration Plan] --phase 省略呼び出しの挙動が固定値 spec から状態推論に変わるが、従来の固定値挙動は spec phase 以外で省略した場合に誤った評価を受けていた（本 issue の症状そのもの）ため、新挙動は正しい挙動への回帰である。新挙動で壊れるユースケースは想定されない。--phase を明示指定する呼び出しは R4 により一切変わらない。alpha ポリシーに従い互換フラグは導入しない。挙動変更は CHANGELOG に記載する。
+
+## Scope
+- sdd-forge flow run gate の --phase 省略時のデフォルト決定ロジック
+- 多重 in_progress 状態の自動リカバリ（古い方の done 遷移と stderr 警告）
+- gate 系 step が一つも in_progress でない状態での明示指定要求エラー
+- 上記挙動を検証する自動テストの整備
+
+## Out of Scope
+- pre-hook 段階で多重 in_progress をエラー扱いにする代替対応
+- gate 系以外の step 群の遷移ロジック変更
+- flow run review / flow run impl-confirm など他コマンドの phase 推論
+- step 遷移タイムスタンプの導入（本 spec は flow state スキーマを拡張しない）
+
+## Constraints
+- 外部依存を追加しない（Node.js 組み込みモジュールのみ）。
+- 既存 CLI コマンド名・サブコマンド・オプションは変更しない（--phase の引数文法は据え置き）。
+- alpha ポリシーに従い、旧挙動の保持用コードや互換フラグは導入しない。
+- flow state のスキーマ拡張は行わない（タイムスタンプ等の追加をしない）。
+
+## Design Principles
+- --phase 省略時のデフォルトは現在の状態を映す推論結果であるべきで、固定値のフォールバックで動作させない。必須入力が state から一意に特定できない場合はエラーで停止する。
+- 推論は state の step 配列順序と status のみから決定論的に導く。ランダム性や外部依存を持ち込まない。
+- 多重 in_progress は異常状態として扱うが、検出時点で自動収束させて進行可能な状態に戻す（ブロックより回復優先）。収束動作は stderr 警告で透明化する。
+- phase と step の対応（step 逆引きと phase 逆引き）は単一の真実として同一モジュールに並置する。
+
+## Overview
+### Modules
+- src/flow/lib/gate-step.js: 本 spec の主対象。既存 resolveGateStepId(phase) と対になる step → phase の逆引き関数、および state から gate 系 step の in_progress を特定するヘルパを追加する。
+- src/flow/lib/run-gate.js: RunGateCommand.execute の冒頭で ctx.phase 未指定時に推論ヘルパを呼び、解決できない場合は precondition error envelope で停止する。解決できた場合は ctx.phase に設定し以降のロジックは現行どおり動く。
+- src/flow/registry.js: flow run gate の pre/post hook が ctx.phase を参照する順序を、事前解決後の値でそろえる（hook 内部実装の骨組みは据え置き、参照タイミングのみ調整）。
+- tests/unit/flow/ 配下: 新規 unit テストの配置先（既存の gate-phase-validation.test.js 等と同慣習）。
+
+### Data Flow
+- ユーザーが sdd-forge flow run gate を実行する（--phase は省略または明示）。
+- dispatcher が hook ctx を組み立て、ctx.phase を CLI 入力から取得する（省略時は undefined）。
+- pre-hook 実行前に run-gate.js 側で ctx.phase を解決する。明示指定ありの場合はそのまま採用する。省略の場合は推論ヘルパを呼び、state から gate 系 step の in_progress を特定して phase に変換する。
+- 推論ヘルパの結果が null（該当 step なし）なら、precondition error envelope を返して停止する。pre-hook の副作用を走らせない。
+- 推論結果 { phase, staleSteps[] } が返った場合、phase を ctx.phase に設定し、staleSteps[] があればそれらを done に遷移させて stderr に 1 行警告を出す。
+- 以降の pre-hook / 本体 execute / post-hook は従前どおり動作する（ctx.phase は既に確定済み）。
+
+### Decisions
+- step → phase の逆引き関数は resolveGateStepId(phase) と対になる形で gate-step.js に並置する。単一の真実として重複実装を避ける。
+- 逆引きの対応: flow-level steps は gate-draft → draft / gate → spec / gate-impl → task-impl とする。task-level の task.steps に in_progress の gate 系 step (gate) があり、かつ active task が存在する場合は task-spec に逆引きする（task-level 優先）。
+- 「最新」判定: flow state に遷移タイムスタンプが存在しないため、FLOW_STEPS 配列順で後方（インデックスが大きい方）を最新として採用する。task-level の in_progress gate 系 step があれば flow-level より優先する。タイムスタンプ記録の追加は行わない（現行スキーマ据え置き）。
+- 多重 in_progress の古い step は即座に done に遷移する（flow-level / task-level の別を問わず同一ポリシー）。これは gate 評価は PASS 済みだが post-hook の done 遷移が走り切らなかったという実際の発生経路に整合する。
+- precondition error は envelope の ok:false として返す。エラーメッセージには --phase の有効値 (draft / spec / task-spec / task-impl / integration) を列挙する。issue-log への自動記録はしない（gate 評価自体が走っていないため）。
+
+## Clarifications (Q&A)
+- Q: 対応方針は案 A（state からの phase 推論）+ 案 C（古い in_progress の done 自動遷移）でよいか。
+  - A: はい。案 B（pre-hook でエラー）は採用しない。
+- Q: gate 系 step が一つも in_progress でないときの挙動は。
+  - A: エラーで中止。--phase の候補を列挙してユーザーに明示を促す。
+- Q: 多重 in_progress の古い step はどうするか。
+  - A: 最新 1 件を採用し、それ以外は done に自動遷移。stderr に警告を出す。
+- Q: 「最新」の判定根拠は何か。
+  - A: flow state に遷移タイムスタンプが存在しないため、FLOW_STEPS 配列の並び順で後方を最新として採用する。task active 時は task-level の in_progress gate 系 step を優先する。
+- Q: gate-impl step は task-impl と integration のどちらに逆引きするか。
+  - A: task-impl に逆引きする。integration 専用の gate step は flow 構成上 gate-impl と別の integration 系 step で管理されているため、gate-impl 単独の in_progress は task-impl と解釈する。
+
+## Alternatives Considered
+- 案 A 単独（推論のみ、古い in_progress の自動 done 遷移なし） — 推論ロジックで誤 phase は回避できるが、古い gate の in_progress 残留が次回以降も状態表示で混乱を招き、flow get status 観測上も二重 in_progress が残るため却下。
+- 案 B（pre-hook で多重 in_progress をエラー扱い） — ユーザーに明示的な判断を強制するが、発生経路が主に post-hook の done 遷移が走り切らなかったことに起因するため、ユーザーに非がないケースで進行を止めることになり却下。
+- step 遷移タイムスタンプを state に追加して最新判定を厳密化 — state スキーマ拡張は広範囲に影響し、本 bugfix の範囲を超える。FLOW_STEPS の配列順序で十分決定論的に解決できるため採用しない。
+- 採用案: 案 A + 案 C。state スキーマを拡張せず、既存の step 配列順序と task-level state のみで phase を推論し、古い in_progress は検出時に自動収束する。 — 既存スキーマで決定論的に解決でき、発生経路（post-hook 未完）の副作用を回復させるため採用。
+
+## User Confirmation
+- [ ] User approved this spec
+- Confirmed at:
+- Notes:
+
+## Requirements
+- R1 [must]: When sdd-forge flow run gate が --phase を省略して実行された時、本コマンドは flow state（および active task が存在する場合は当該 task の state）を走査して in_progress の gate 系 step を特定し、そこから gate phase を一意に決定しなければならない。
+- R2 [must]: When R1 の推論において gate 系 step が一つも in_progress でない時、本コマンドは gate 評価および pre-hook の副作用を一切走らせず、envelope ok:false で終了しなければならない。このとき標準出力にエラー envelope を出力し、プロセス終了コードは非ゼロ（既存の precondition error と同一）でなければならない。エラー出力には --phase の有効値 (draft / spec / task-spec / task-impl / integration) を列挙しなければならない。
+- R3 [must]: When R1 の推論において gate 系 step が 2 件以上 in_progress である時、本コマンドは FLOW_STEPS 配列順で最も後方の gate 系 step（active task があれば task-level の該当 step を優先）を採用して phase を決定し、採用しなかった gate 系 step は同コマンド実行内で status を done に遷移しなければならない。遷移対象の step id と遷移理由は stderr に 1 行で出力されなければならない。
+- R4 [should]: When --phase が明示指定された時、本コマンドは R1〜R3 の推論・リカバリを行わず、現行の phase 値検証と gate 評価ロジックに従わなければならない（既存の --phase 明示利用の互換性を維持する）。
+- R5 [should]: When step → gate phase の逆引きを実装する時、対応する関数は src/flow/lib/gate-step.js に配置され、resolveGateStepId(phase)（phase → step）と同モジュールに並置されなければならない。
+- R6 [should]: When R1〜R4 の振る舞いに対する自動テストを整備する時、そのテストは外部プロセス（AI CLI、git、ネットワーク呼び出し）を起動せずに完結していなければならない。
+
+## Acceptance Criteria
+- AC1 (R1): active task がない flow で step gate-impl のみが in_progress の状態に対し --phase を省略して flow run gate を実行すると、phase が task-impl として解決され、現行の --phase task-impl 明示実行と同一の evaluation 経路を通ることを unit テストで確認する。
+- AC2 (R2): gate 系 step がすべて pending / done / skipped の flow state に対し --phase を省略して flow run gate を実行すると、envelope が ok:false で返り、gate 評価本体や pre-hook の step 遷移は一切行われないことを unit テストで確認する。エラーメッセージに --phase の有効値 5 つがすべて含まれることを確認する。
+- AC3 (R3): flow-level で gate と gate-impl がいずれも in_progress の状態に対し --phase を省略して実行すると、採用 phase が task-impl（gate-impl に対応）となり、gate step の status が done に遷移することを unit テストで確認する。stderr 警告が 1 行以上出力されることも検証する。
+- AC4 (R3, task-level): active task が存在し task.steps に gate が in_progress かつ flow.steps にも gate が in_progress の状態で、task-level の task-spec phase が優先採用されることを unit テストで確認する。
+- AC5 (R4): --phase task-impl を明示した場合、推論ヘルパは呼ばれず、現行挙動どおり phase=task-impl の評価経路が実行されることを unit テストで確認する。
+- AC6 (R5): src/flow/lib/gate-step.js に phase → step / step → phase の両方向関数が export され、両方向の関数が整合していることを往復変換の unit テストで確認する。
+- AC7 (R6): 上記テストは npm test（デフォルト実行、tests/agent/ を含まない）のスコープ内でパスし、claude / codex を含む外部 CLI を呼び出さない。
+
+## Implementation Targets
+- src/flow/lib/gate-step.js
+- src/flow/lib/run-gate.js
+- src/flow/registry.js
+
+## Open Questions
+- [ ]

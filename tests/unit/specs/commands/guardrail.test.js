@@ -50,9 +50,15 @@ describe("gate guardrail integration", () => {
     return tmp;
   }
 
-  function runGate(dir, extraArgs = []) {
+  function runGate(dir, { phase = "spec", extraArgs = [] } = {}) {
+    // Explicit `phase` is required under the post-spec-221 contract: when no
+    // gate-type step is in_progress in the flow state (the test fixture only
+    // uses `setupFlow` which leaves every step pending), the gate command
+    // errors out unless --phase is passed. The helper centralizes the flag so
+    // callers cannot accidentally pass a conflicting --phase via extraArgs.
     return execFileSync("node", [
       SDD_FORGE, "flow", "run", "gate",
+      "--phase", phase,
       "--spec", join(dir, "spec.json"),
       ...extraArgs,
     ], {
@@ -98,7 +104,7 @@ describe("gate guardrail integration", () => {
         },
       ],
     });
-    const envelope = JSON.parse(runGate(tmp, ["--skip-guardrail"]));
+    const envelope = JSON.parse(runGate(tmp, { extraArgs: ["--skip-guardrail"] }));
     assert.equal(envelope.ok, true);
   });
 });

@@ -31,7 +31,7 @@ import {
 } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
-import { resolveGateStepId } from "./gate-step.js";
+import { resolveGateStepId, resolveGatePhaseFromState } from "./gate-step.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 
 export { resolveGateStepId };
@@ -1244,10 +1244,54 @@ async function runGateFlow(args) {
 // Command
 // ---------------------------------------------------------------------------
 
+/**
+ * Update a step's status during gate phase inference. When flow.json has not
+ * been created yet (ERR_MISSING_FILE), the update is skipped with a warning —
+ * any other error is re-thrown so the dispatcher can surface it to the user.
+ *
+ * Mirrors registry.js's `tryUpdateStepStatus` helper; kept inline here to
+ * avoid exporting internal registry plumbing.
+ */
+function updateStepStatusDuringInference(stepId, status) {
+  try {
+    container.get("flowManager").updateStepStatus(stepId, status);
+  } catch (err) {
+    if (err?.code === "ERR_MISSING_FILE") {
+      process.stderr.write(
+        `[sdd-forge] gate: step-status update skipped (${stepId}=${status}): ${err.message}\n`,
+      );
+      return;
+    }
+    throw err;
+  }
+}
+
 export class RunGateCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
-    const phase = ctx.phase || "spec";
+    let phase = ctx.phase;
+
+    if (phase == null || phase === "") {
+      const resolution = resolveGatePhaseFromState(ctx.flowState);
+      if (!resolution) {
+        return Envelope.fail(
+          "run",
+          "gate",
+          "NO_GATE_STEP_IN_PROGRESS",
+          `no gate-type step is in_progress; specify --phase explicitly. ` +
+            `valid phases: ${VALID_GATE_PHASES.join(", ")}`,
+        );
+      }
+      phase = resolution.phase;
+      for (const staleId of resolution.staleSteps) {
+        updateStepStatusDuringInference(staleId, "done");
+        process.stderr.write(
+          `[sdd-forge] gate: stale in_progress step "${staleId}" ` +
+            `transitioned to done (auto-resolved phase=${phase})\n`,
+        );
+      }
+      updateStepStatusDuringInference(resolveGateStepId(phase), "in_progress");
+    }
 
     if (!VALID_GATE_PHASES.includes(phase)) {
       throw new Error(

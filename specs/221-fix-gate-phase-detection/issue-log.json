@@ -1,0 +1,215 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one concern: phase inference and recovery behavior for `flow run gate` when `--phase` is omitted.; Unambiguous Requirements — Some requirements are not fully testable as written (e.g., \"latest\" in-progress step is not defined by a concrete ordering rule).; Complete Context — Most requirements pair conditions (e.g., omitted `--phase`, multiple/zero in-progress steps) with expected behavior.; No Hardcoded Secrets — No secrets (keys/tokens/passwords) are present; this draft is requirements text only.; Prioritize Requirements — There are more than three requirements, but no explicit priority ordering is provided.; Impact on Existing Features — The draft explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Recommendations are provided, but rationale is not explicitly grounded in project docs, guardrails, or existing code patterns.; Explore Before Asking — Cannot verify from the draft alone whether code/docs exploration was performed before raising questions.; Proactively Raise Related Implications — Related implications are proactively raised (e.g., gateRetry metrics and issue-log side effects).; Confirm Brainstorm vs. Decision Before Critiquing — Content reflects a decided direction with explicit user approval; no critique of brainstorming is present.; Capture Digressions in draft.md — Cannot determine from provided content whether any digressions occurred and were captured in `draft.md`.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/helpers/hook timing/test file references), beyond pure requirements level.; Backward-Compatible CLI Interface — Default behavior for omitted `--phase` changes, but no migration plan is stated for users relying on prior semantics.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:39:05.775Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some requirements are not fully testable as written (e.g., \"latest\" in-progress step is not defined by a concrete ordering rule)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Recommendations are provided, but rationale is not explicitly grounded in project docs, guardrails, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific files/helpers/hook timing/test file references), beyond pure requirements level."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Default behavior for omitted `--phase` changes, but no migration plan is stated for users relying on prior semantics."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: fixing gate phase detection/default behavior and its directly related recovery behavior.; Unambiguous Requirements — Requirements are mostly testable with explicit triggers, outcomes, and constraints (e.g., error on no in_progress, tie-break by latest transition).; Complete Context — Each requirement includes condition/context and expected shall-behavior, including omitted vs explicit --phase paths.; No Hardcoded Secrets — No source secrets, keys, tokens, or credential material appear in this draft.; Prioritize Requirements — Requirements are explicitly prioritized as P1, P2, and P3.; Impact on Existing Features — Impact is explicitly listed for affected and unaffected existing features.; Present Recommendations with Reasoning — Q&A provides recommended answers and cites bases such as user confirmation, guardrails, and project rules/code behavior.; Explore Before Asking — Whether docs/code were actually explored before asking cannot be verified from the draft text alone.; Proactively Raise Related Implications — Related implications are proactively raised in Open Questions (metrics and issue-log side effects, timestamp availability).; Confirm Brainstorm vs. Decision Before Critiquing — Decision context is explicit via User Approval and confirmed final direction, so ideas are treated as decisions appropriately.; Capture Digressions in draft.md — Side discussions and unresolved points are captured in Q&A/Open Questions within the draft artifact.; Draft Stays at Requirements Level — Draft includes implementation-level detail (internal structures/hooks/tests and candidate algorithm choices) beyond pure requirements level.; Backward-Compatible CLI Interface — CLI behavior change is accompanied by an explicit Migration Plan and compatibility rationale.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:40:55.946Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level detail (internal structures/hooks/tests and candidate algorithm choices) beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec defines no concern at all, so responsibility cannot be established.; Unambiguous Requirements — No requirements are provided to evaluate for verifiable wording.; Complete Context — No requirement statements with trigger and expected behavior are present.; REQ Diff-Verifiability — No requirements are defined, so diff+test decidability cannot be assessed.; No Hardcoded Secrets — No source code or secret literals are present in the content.; No Silent Error Swallowing — No implementation code is present, so no silent error swallowing is introduced.; Prioritize Requirements — Requirement count does not exceed three (it is zero), so priority ordering is not required.; Impact on Existing Features — Spec does not state impact on existing features or explicitly state no impact.; Bounded Resource Usage — No recursive/retry/bulk-processing design is specified.; Changes Require Test Coverage — No tests or justification for missing tests are described.; Spec Includes Test Strategy — No test strategy section/content is provided.; Synthesize Draft, Do Not Copy — No draft source content is provided, so copy-vs-synthesis cannot be determined.; Record Unresolved Points as Open Questions — No fabricated answers are evident; open questions section exists and is empty.; Include 'Why This Approach' Rationale — No rationale for approach selection is included.; Do Not Modify Existing Tests Without Approval — No implementation changes to existing tests are described.; Backward-Compatible CLI Interface — No CLI command/option changes are specified.; Exit Code Contract — No command behavior or exit-code changes are specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:45:16.602Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "Spec defines no concern at all, so responsibility cannot be established."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "No requirements are provided to evaluate for verifiable wording."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "No requirement statements with trigger and expected behavior are present."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "No requirements are defined, so diff+test decidability cannot be assessed."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Spec does not state impact on existing features or explicitly state no impact."
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "No tests or justification for missing tests are described."
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "No test strategy section/content is provided."
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "No rationale for approach selection is included."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: gate phase resolution/recovery when --phase is omitted.; Unambiguous Requirements — Requirements and ACs use concrete conditions and verifiable outcomes.; Complete Context — Not all requirements include explicit trigger+outcome form (e.g., R5/R6 are imperative without clear When/If context).; REQ Diff-Verifiability — PASS/FAIL is largely decidable from code diff plus unit-test results defined in acceptance criteria.; No Hardcoded Secrets — No secrets or credential literals appear in the content.; No Silent Error Swallowing — No error-swallowing pattern is specified; failure paths are explicitly surfaced.; Prioritize Requirements — Requirements are prioritized via must/should labels.; Impact on Existing Features — No explicit section listing impact on existing features or stating none affected.; Bounded Resource Usage — Spec does not introduce recursive/retry/bulk-unbounded processing concerns.; Changes Require Test Coverage — Spec includes unit-test coverage expectations for new behavior and failure paths.; Spec Includes Test Strategy — Acceptance criteria define what to test and test execution scope.; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs copied draft without the source draft text.; Record Unresolved Points as Open Questions — Cannot verify whether resolved answers were fabricated without draft/source evidence.; Include 'Why This Approach' Rationale — Rationale is provided via design decisions and alternatives considered with reasons.; Do Not Modify Existing Tests Without Approval — Spec proposes adding tests; it does not propose modifying/deleting existing tests.; Backward-Compatible CLI Interface — Default behavior for omitted --phase changes, but no migration plan is described.; Exit Code Contract — Failure handling mentions envelope ok:false but does not specify non-zero process exit code on failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T07:48:56.600Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Not all requirements include explicit trigger+outcome form (e.g., R5/R6 are imperative without clear When/If context)."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "No explicit section listing impact on existing features or stating none affected."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Default behavior for omitted --phase changes, but no migration plan is described."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "Failure handling mentions envelope ok:false but does not specify non-zero process exit code on failure."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Phase inference/recovery code is implemented, but the diff does not include the required unit test additions/evidence for AC1-AC7 (R6), and it adds unspec'd debug stderr output (`[DEBUG] ...`).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:14:35.234Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Phase inference/recovery code is implemented, but the diff does not include the required unit test additions/evidence for AC1-AC7 (R6), and it adds unspec'd debug stderr output (`[DEBUG] ...`)."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Core phase-inference/recovery logic is added, but required automated test additions for R1–R6/AC1–AC7 are not present in the diff, and provided head test results do not evidence full-scope verification.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:15:41.531Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Core phase-inference/recovery logic is added, but required automated test additions for R1–R6/AC1–AC7 are not present in the diff, and provided head test results do not evidence full-scope verification."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Core phase inference/recovery logic and unit tests were added, but spec compliance is incomplete: AC7/R6 is not satisfied by evidence (head shows only 10 unit tests, not full npm test scope), and added tests invoke external processes (e.g., node CLI and git) despite R6 requiring tests to complete without external process calls.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:17:06.194Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Core phase inference/recovery logic and unit tests were added, but spec compliance is incomplete: AC7/R6 is not satisfied by evidence (head shows only 10 unit tests, not full npm test scope), and added tests invoke external processes (e.g., node CLI and git) despite R6 requiring tests to complete without external process calls."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: Single Responsibility — Draft stays focused on one concern: phase inference and recovery behavior for `flow run gate` when `--phase` is omitted.; Unambiguous Requirements — Some requirements are not fully testable as written (e.g., \"latest\" in-progress step is not defined by a concrete ordering rule).; Complete Context — Most requirements pair conditions (e.g., omitted `--phase`, multiple/zero in-progress steps) with expected behavior.; No Hardcoded Secrets — No secrets (keys/tokens/passwords) are present; this draft is requirements text only.; Prioritize Requirements — There are more than three requirements, but no explicit priority ordering is provided.; Impact on Existing Features — The draft explicitly lists affected and unaffected existing features.; Present Recommendations with Reasoning — Recommendations are provided, but rationale is not explicitly grounded in project docs, guardrails, or existing code patterns.; Explore Before Asking — Cannot verify from the draft alone whether code/docs exploration was performed before raising questions.; Proactively Raise Related Implications — Related implications are proactively raised (e.g., gateRetry metrics and issue-log side effects).; Confirm Brainstorm vs. Decision Before Critiquing — Content reflects a decided direction with explicit user approval; no critique of brainstorming is present.; Capture Digressions in draft.md — Cannot determine from provided content whether any digressions occurred and were captured in `draft.md`.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/helpers/hook timing/test file references), beyond pure requirements level.; Backward-Compatible CLI Interface — Default behavior for omitted `--phase` changes, but no migration plan is stated for users relying on prior semantics.\n  attempt 2: Single Responsibility — Draft focuses on one concern: fixing gate phase detection/default behavior and its directly related recovery behavior.; Unambiguous Requirements — Requirements are mostly testable with explicit triggers, outcomes, and constraints (e.g., error on no in_progress, tie-break by latest transition).; Complete Context — Each requirement includes condition/context and expected shall-behavior, including omitted vs explicit --phase paths.; No Hardcoded Secrets — No source secrets, keys, tokens, or credential material appear in this draft.; Prioritize Requirements — Requirements are explicitly prioritized as P1, P2, and P3.; Impact on Existing Features — Impact is explicitly listed for affected and unaffected existing features.; Present Recommendations with Reasoning — Q&A provides recommended answers and cites bases such as user confirmation, guardrails, and project rules/code behavior.; Explore Before Asking — Whether docs/code were actually explored before asking cannot be verified from the draft text alone.; Proactively Raise Related Implications — Related implications are proactively raised in Open Questions (metrics and issue-log side effects, timestamp availability).; Confirm Brainstorm vs. Decision Before Critiquing — Decision context is explicit via User Approval and confirmed final direction, so ideas are treated as decisions appropriately.; Capture Digressions in draft.md — Side discussions and unresolved points are captured in Q&A/Open Questions within the draft artifact.; Draft Stays at Requirements Level — Draft includes implementation-level detail (internal structures/hooks/tests and candidate algorithm choices) beyond pure requirements level.; Backward-Compatible CLI Interface — CLI behavior change is accompanied by an explicit Migration Plan and compatibility rationale.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T08:20:46.021Z"
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — R1-R5相当の実装差分は確認できるが、R6/AC7の検証証跡が不足。Head Test Resultsはunit=10/integration=0で、baseline(unit=2144/integration=261)に対してnpm testデフォルト範囲の実行・通過を示せていないため、仕様全体としては未達。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:21:32.671Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "R1-R5相当の実装差分は確認できるが、R6/AC7の検証証跡が不足。Head Test Resultsはunit=10/integration=0で、baseline(unit=2144/integration=261)に対してnpm testデフォルト範囲の実行・通過を示せていないため、仕様全体としては未達。"
+        }
+      ]
+    },
+    {
+      "step": "implement",
+      "reason": "3 existing gate guardrail integration tests relied on old implicit --phase spec default",
+      "trigger": "full test suite after implementing spec 221 phase inference",
+      "resolution": "added explicit --phase spec to runGate() helper in tests/unit/specs/commands/guardrail.test.js; migration scenario documented in spec 221 Migration Plan",
+      "taskId": null,
+      "timestamp": "2026-04-23T08:30:48.272Z"
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff adds state-based phase inference and stale-step recovery for omitted --phase, returns precondition envelope when no gate step is in_progress (with valid phase list), preserves explicit --phase behavior, colocates step↔phase mapping in gate-step.js, and head test results pass in default scope (unit 2155/integration 261, exitCode 0) with no new failures vs baseline.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or secret literals.; No Silent Error Swallowing — New catch blocks in run-gate.js suppress ERR_MISSING_FILE without logging or rethrowing, which is silent swallowing.; Bounded Resource Usage — New logic uses bounded array scans/filtering only; no unbounded recursion/retry/bulk pattern introduced.; No Sensitive Data in Logs — New stderr output logs step IDs/phase only; no passwords, tokens, or PII are logged.; No Disabling Existing Tests — Diff adds tests and updates test invocation arguments; no existing tests are skipped/commented out/deleted.; Escalate When New Tests Break Existing Tests — Whether the user was informed and asked how to proceed when new tests impacted existing tests requires runtime/conversation evidence not fully present in this diff.; Flag Tests That Become Irrelevant — Diff explicitly records that existing tests relied on old behavior and updates them accordingly (issue-log/test changes).; Exit Code Contract — Non-zero process exit behavior on failure depends on runtime CLI wiring beyond the added lines shown.; No Synchronous I/O in Hot Paths — No new synchronous I/O is introduced in production hot-path loops/bulk-processing code.; Validate User Input at Entry Point — Gate phase handling still validates against VALID_GATE_PHASES and adds explicit failure when phase cannot be inferred.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:36:40.960Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "New catch blocks in run-gate.js suppress ERR_MISSING_FILE without logging or rethrowing, which is silent swallowing."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements state-based omitted-`--phase` inference with task-level priority, no-in_progress precondition failure with valid phase list, stale in_progress auto-convergence + stderr warning, explicit `--phase` bypass, and colocated step↔phase mapping in `gate-step.js`; unit tests for AC1–AC6 were added and head test results (`unit` 2155, `integration` 261, `exitCode` 0) indicate default-scope tests pass with no baseline regression.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or other secret literals.; No Silent Error Swallowing — Added test code silently discards errors via `await cmd.execute(ctx).catch(() => {})` without logging or rethrowing.; Bounded Resource Usage — New logic uses bounded array scans/filters and simple loops; no unbounded recursion/retry/bulk-loading pattern introduced.; No Sensitive Data in Logs — New stderr logs include step IDs/status/error text but no passwords, tokens, or PII in added lines.; No Disabling Existing Tests — Diff updates and adds tests; no existing tests are skipped, commented out, or deleted.; Escalate When New Tests Break Existing Tests — Whether the user was informed and asked how to proceed requires runtime/conversation evidence not present in this diff alone.; Flag Tests That Become Irrelevant — Diff explicitly flags obsolete test assumptions in `issue-log.json` and updates affected tests accordingly.; Exit Code Contract — Non-zero process exit behavior on Envelope failure depends on CLI runtime wiring not shown in added/modified lines.; No Synchronous I/O in Hot Paths — No new synchronous I/O is introduced in production hot-path loops or bulk-processing code.; Validate User Input at Entry Point — Gate phase is still validated against `VALID_GATE_PHASES` before execution proceeds.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T08:38:17.235Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "Added test code silently discards errors via `await cmd.execute(ctx).catch(() => {})` without logging or rethrowing."
+        }
+      ]
+    }
+  ]
+}

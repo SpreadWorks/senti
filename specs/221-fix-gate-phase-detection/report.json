@@ -1,0 +1,70 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/221-fix-gate-phase-detection/draft.md       |  71 +++\n specs/221-fix-gate-phase-detection/flow.json      | 648 ++++++++++++++++++++++\n specs/221-fix-gate-phase-detection/issue-log.json | 215 +++++++\n specs/221-fix-gate-phase-detection/qa.md          |   9 +\n specs/221-fix-gate-phase-detection/review.md      |  41 ++\n specs/221-fix-gate-phase-detection/spec.json      | 176 ++++++\n specs/221-fix-gate-phase-detection/spec.md        | 110 ++++\n src/flow/lib/gate-step.js                         | 117 +++-\n src/flow/lib/run-gate.js                          |  48 +-\n src/flow/registry.js                              |  13 +-\n tests/unit/flow/gate-phase-inference.test.js      | 333 +++++++++++\n tests/unit/specs/commands/guardrail.test.js       |  10 +-\n 12 files changed, 1779 insertions(+), 12 deletions(-)",
+      "commits": [
+        "feat: feature/221-fix-gate-phase-detection"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 4,
+      "partial": 2,
+      "not_done": 0,
+      "rate": 0.83,
+      "notes": "Implementation substantially matches the feature intent (R1, R3, R4, R5 done). Main uncertainty is R2 exit-code proof in this diff and R6 purity because related compatibility tests still involve external process execution."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 3,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 727073,
+      "output": 29611,
+      "cacheRead": 327040,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 25,
+      "durationMs": 960961,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 86196
+        },
+        {
+          "phase": "spec",
+          "durationMs": 151826
+        },
+        {
+          "phase": "gate",
+          "durationMs": 268597
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 383790
+        },
+        {
+          "phase": "review",
+          "durationMs": 70552
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2155,
+      "integration": 261,
+      "acceptance": 0,
+      "total": 2416
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/221-fix-gate-phase-detection\n    12 files changed, 1779 insertions(+), 12 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (4 done / 2 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 3\n    issue-log ................... 1\n    agent calls ................. 25\n    input tokens ................ 727,073\n    output tokens ............... 29,611\n    cache-read tokens ........... 327,040\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 961.0s\n      draft ..................... 86.2s\n      spec ...................... 151.8s\n      gate ...................... 268.6s\n      gate-impl ................. 383.8s\n      review .................... 70.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2155  integration 261  acceptance 0  total 2416"
+}
