@@ -1,0 +1,60 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/218-preset-chapter-validation/draft.md       |  47 +++\n specs/218-preset-chapter-validation/flow.json      | 441 +++++++++++++++++++++\n specs/218-preset-chapter-validation/issue-log.json | 167 ++++++++\n specs/218-preset-chapter-validation/qa.md          |   9 +\n specs/218-preset-chapter-validation/review.md      |  49 +++\n specs/218-preset-chapter-validation/spec.json      |  26 ++\n specs/218-preset-chapter-validation/spec.md        | 122 ++++++\n .../218-preset-chapter-validation/tests/README.md  |  39 ++\n src/docs/commands/build.js                         |  10 +\n src/lib/presets.js                                 | 152 +++++++\n src/presets/hono/preset.json                       |   8 -\n src/setup.js                                       |   8 +-\n src/upgrade.js                                     |  14 +\n tests/unit/presets/preset-scan-integrity.test.js   |  40 +-\n tests/unit/presets/validate-preset-chain.test.js   | 155 ++++++++\n 15 files changed, 1277 insertions(+), 10 deletions(-)",
+      "commits": [
+        "feat: feature/218-preset-chapter-validation",
+        "add validatePresetChain chapter-template consistency check"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 3,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 452422,
+      "output": 14595,
+      "cacheRead": 130304,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14,
+      "durationMs": 366520,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 135663
+        },
+        {
+          "phase": "gate",
+          "durationMs": 88742
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 74409
+        },
+        {
+          "phase": "review",
+          "durationMs": 67706
+        }
+      ]
+    },
+    "tests": {
+      "unit": 7,
+      "integration": 1,
+      "acceptance": 0,
+      "total": 8
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/218-preset-chapter-validation\n    add validatePresetChain chapter-template consistency check\n    15 files changed, 1277 insertions(+), 10 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 3\n    issue-log ................... 1\n    agent calls ................. 14\n    input tokens ................ 452,422\n    output tokens ............... 14,595\n    cache-read tokens ........... 130,304\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 366.5s\n      gate-draft ................ 135.7s\n      gate ...................... 88.7s\n      gate-impl ................. 74.4s\n      review .................... 67.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 7  integration 1  acceptance 0  total 8"
+}

@@ -1,0 +1,167 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 単一テーマ（preset chaptersとテンプレート整合性検証の追加）に集中しているため。; Unambiguous Requirements — 検証対象・探索パス・失敗条件・呼び出し箇所が具体的で、検証可能な記述になっているため。; Complete Context — 一部要件（例: 呼び出し箇所追加、テスト追加）がWhen/If条件とshall形式の対になっておらず、文脈が暗黙的。; No Hardcoded Secrets — APIキーやトークン等の秘密情報記載はない。; Prioritize Requirements — 要件数が3件を超えるが、優先順位（P1/P2等）が明示されていない。; Impact on Existing Features — 影響あり/なしの既存機能が明示され、影響内容も具体化されている。; Present Recommendations with Reasoning — Q&Aで推奨方針を先に示し、buildLayers/resolveChaptersOrder等の既存パターンを根拠としている。; Explore Before Asking — Open Questionsがなく、コード挙動に基づく回答が先に提示されている。; Proactively Raise Related Implications — fail-fast化や既存コマンドへの影響を事前に整理して提示している。; Confirm Brainstorm vs. Decision Before Critiquing — ブレインストーミングか意思決定かを確認した対話過程は本文だけでは確認できない。; Capture Digressions in draft.md — 脱線の有無やdraft.mdへの記録実施は本文のみでは判定できない。; Draft Stays at Requirements Level — 関数名・ファイルパス・テストブロック追加など実装/設計レベルの詳細が含まれている。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更は示されておらず、移行計画必須条件には該当しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:49:12.601Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "一部要件（例: 呼び出し箇所追加、テスト追加）がWhen/If条件とshall形式の対になっておらず、文脈が暗黙的。"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "要件数が3件を超えるが、優先順位（P1/P2等）が明示されていない。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "関数名・ファイルパス・テストブロック追加など実装/設計レベルの詳細が含まれている。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 章構成とテンプレート整合性検証という単一の主題に集中している。; Unambiguous Requirements — 「人間が読める形」など検証条件が曖昧な表現が一部含まれる。; Complete Context — 多くの要件がWhen/Ifの条件とshall相当の期待動作の対で明示されていない。; No Hardcoded Secrets — 要件ドラフトであり、秘密情報の埋め込みは記載されていない。; Prioritize Requirements — 3件超の要件に対してP1/P2/P3で優先度が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示されている。; Present Recommendations with Reasoning — 各Qに推奨回答があり、生成時ロジック整合などの根拠も簡潔に示されている。; Explore Before Asking — docsやコード探索を実施したかは本文だけでは検証できない。; Proactively Raise Related Implications — 早期失敗化や既存テストへの波及など関連影響を先回りで記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 最終的にUser approvedが明示されており、決定状態として扱われている。; Capture Digressions in draft.md — 脱線した議論の記録が必要な状況は本文上見当たらない。; Draft Stays at Requirements Level — 内容は要件/スコープ/影響中心で、関数レベル設計の詳細は含まれていない。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更は示されておらず、移行計画必須条件に該当しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:50:24.172Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「人間が読める形」など検証条件が曖昧な表現が一部含まれる。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "多くの要件がWhen/Ifの条件とshall相当の期待動作の対で明示されていない。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Spec focuses on one concern: preset chapter-template consistency validation and its related verification coverage.; Unambiguous Requirements — At least one requirement is vague (e.g., reporting in a 'human-readable' form) without concrete acceptance criteria.; Complete Context — Several requirements state expected behavior but do not explicitly pair it with clear When/If trigger conditions.; No Hardcoded Secrets — No source code secrets or credential literals are present in this draft content.; Prioritize Requirements — Requirements are explicitly prioritized with P1/P2/P3 labels.; Impact on Existing Features — The draft includes a dedicated impact section with both affected and unaffected existing features.; Present Recommendations with Reasoning — Q&A provides answers but does not explicitly present recommendations with stated basis (docs, guardrails, or code patterns).; Explore Before Asking — Cannot verify whether docs/code exploration occurred before discussion from the draft text alone.; Proactively Raise Related Implications — Related implications are proactively surfaced via impact analysis and warning policy decisions.; Confirm Brainstorm vs. Decision Before Critiquing — No critique interaction context is provided, so confirmation of brainstorming vs decision cannot be assessed.; Capture Digressions in draft.md — No digression is evidenced; the draft stays on the main topic, so this is inapplicable.; Draft Stays at Requirements Level — Content stays at requirements/spec scope and avoids function-level implementation design details.; Backward-Compatible CLI Interface — No command/option removal or semantic CLI break is specified, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:50:55.347Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "At least one requirement is vague (e.g., reporting in a 'human-readable' form) without concrete acceptance criteria."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirements state expected behavior but do not explicitly pair it with clear When/If trigger conditions."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A provides answers but does not explicitly present recommendations with stated basis (docs, guardrails, or code patterns)."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: static validation of preset chapter/template consistency.; Unambiguous Requirements — Most items are specific, but terms like \"human-readable\" are not fully verifiable as written.; Complete Context — Many requirements are stated as outcomes without explicit trigger-condition phrasing (When/If -> shall).; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are present in the draft content.; Prioritize Requirements — Requirements are explicitly prioritized with P1/P2/P3.; Impact on Existing Features — Impact on existing features is explicitly listed, including affected and unaffected areas.; Present Recommendations with Reasoning — Q&A provides answers but does not explicitly state the basis (docs/guardrails/code patterns) for each recommendation.; Explore Before Asking — This is a process guardrail; the draft artifact alone does not prove whether exploration occurred before asking.; Proactively Raise Related Implications — Related implications are proactively covered via impact analysis and early-fail behavior changes.; Confirm Brainstorm vs. Decision Before Critiquing — Process confirmation timing cannot be validated from the final draft alone.; Capture Digressions in draft.md — No digressions are evident; no missing digression capture is indicated.; Draft Stays at Requirements Level — Content remains at requirements/scope level and avoids function-level implementation design.; Backward-Compatible CLI Interface — No command/option removal or semantic CLI interface change requiring migration is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:51:29.265Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Most items are specific, but terms like \"human-readable\" are not fully verifiable as written."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Many requirements are stated as outcomes without explicit trigger-condition phrasing (When/If -> shall)."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A provides answers but does not explicitly state the basis (docs/guardrails/code patterns) for each recommendation."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "missing section: ## Clarifications; missing section: ## Open Questions; missing section: ## User Confirmation; missing section: ## Acceptance Criteria (or ## User Scenarios & Testing)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:53:54.584Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "line 118: unchecked task/question (- [ ] （なし）)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:57:48.522Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: preset chapter-template static validation and fail-fast integration.; Unambiguous Requirements — Requirements define concrete triggers, behaviors, paths, and outcomes that are testable.; Complete Context — Each requirement pairs a condition (When/If) with expected shall behavior.; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus specified unit/command test results.; No Hardcoded Secrets — No secrets or secret-handling requirements are introduced; article is inapplicable to this spec text.; No Silent Error Swallowing — Failure path explicitly requires throwing Error and failing with non-zero exit.; Prioritize Requirements — Requirements are explicitly prioritized with P1/P2/P3 tags.; Impact on Existing Features — Impact on existing commands is stated, including expected unchanged success behavior for healthy presets.; Bounded Resource Usage — No explicit numeric bounds are specified for chapter/language/chain scanning loops or template enumeration.; Changes Require Test Coverage — Spec includes test additions for happy path and failure scenarios, with explicit targets.; Spec Includes Test Strategy — Test strategy is defined via requirements and acceptance criteria (what to test and expected outcomes).; Synthesize Draft, Do Not Copy — Cannot determine draft synthesis vs direct copying without the source draft content.; Record Unresolved Points as Open Questions — Open Questions section exists and states none; unresolved items are not hidden elsewhere in the spec.; Include 'Why This Approach' Rationale — Background, design principles, and alternatives rejected provide clear rationale for the chosen approach.; Do Not Modify Existing Tests Without Approval — Whether modifying existing tests has user approval requires external process evidence not included here.; Backward-Compatible CLI Interface — No command/option removal or semantic change is proposed; migration plan is not required.; Exit Code Contract — Spec explicitly requires non-zero exit on validation error and zero on normal success.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:58:48.005Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "No explicit numeric bounds are specified for chapter/language/chain scanning loops or template enumeration."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: preset chapter-template static validation and its integration/tests.; Unambiguous Requirements — Requirements are mostly concrete and verifiable (triggers, paths, error/warn behavior, exit codes, test targets).; Complete Context — Requirements consistently pair conditions (When/If) with expected shall behavior.; REQ Diff-Verifiability — Pass/fail conditions are decidable from code diff plus test results and command outcomes.; No Hardcoded Secrets — No secrets or credential material are specified; article is inapplicable to this spec text.; No Silent Error Swallowing — Error paths require throw/non-zero exit, and warning paths are explicitly written to stderr.; Prioritize Requirements — More than three requirements are present and priority is defined via P1/P2/P3.; Impact on Existing Features — Impact on existing commands is described, including unchanged success behavior and new early-fail behavior.; Bounded Resource Usage — Explicit processing bound is defined (chapters × languages × chain length) and recursion/backtracking are excluded.; Changes Require Test Coverage — Spec includes added/new tests for happy path and failure/warning scenarios.; Spec Includes Test Strategy — Test strategy is explicit in requirements and acceptance criteria, with concrete files and scenarios.; Synthesize Draft, Do Not Copy — Cannot assess copy-vs-synthesis without the original draft/source material for comparison.; Record Unresolved Points as Open Questions — Open Questions section is present and explicitly states none unresolved.; Include 'Why This Approach' Rationale — Background and Alternatives Considered explain why this approach was chosen.; Do Not Modify Existing Tests Without Approval — Spec requires modifying an existing test file while user approval is not indicated (User approved unchecked).; Backward-Compatible CLI Interface — No existing command/option meaning is removed or changed; migration plan not needed.; Exit Code Contract — Failure path explicitly requires non-zero exit code and success path keeps zero.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T02:59:41.682Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impl-test-preservation",
+          "reason": "Spec requires modifying an existing test file while user approval is not indicated (User approved unchecked)."
+        }
+      ]
+    },
+    {
+      "step": "implement",
+      "reason": "hono preset.json chapters references api_overview.md and authentication.md but hono's chain (hono → js-webapp → webapp → base) does not include the api preset that provides these templates. Pre-existing integrity bug discovered by new validator.",
+      "trigger": "new validatePresetChain integrity test added in spec 218",
+      "resolution": "removed api_overview.md and authentication.md from hono chapters. Proper fix (linking api preset) is a separate design question.",
+      "guardrailCandidate": "when a preset adds a chapter listing, verify every chapter has a template in the preset chain",
+      "taskId": null,
+      "timestamp": "2026-04-23T03:11:35.343Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/presets/preset-scan-integrity.test.js:13: existing line modified/deleted in test file (removed=1, added=1)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T03:15:06.813Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff introduces chapter-template chain validation via validatePresetChain in setup/build/upgrade, adds integrity unit coverage in the authorized test file, and aligns preset chapters/templates accordingly.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — New catch block logs the error and exits non-zero; no empty or silent error handling was introduced.; Bounded Resource Usage — New validation logic performs filesystem scanning across types/chapters/languages/directories without explicit upper bounds on iteration size.; No Sensitive Data in Logs — New logging outputs template paths and language info only; no passwords, tokens, or PII are logged.; No Disabling Existing Tests — Diff only adds a new test block and import; no existing tests were skipped, removed, or commented out.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of test failures caused by new tests and user-facing escalation, which is not provided in the diff/content.; Flag Tests That Become Irrelevant — Whether older tests became irrelevant and were flagged is process/runtime context not observable from this diff alone.; Exit Code Contract — Introduced failure handling in upgrade path uses process.exit(EXIT_ERROR); no new success-on-failure behavior is evident in added lines.; No Synchronous I/O in Hot Paths — Added production code uses fs.existsSync/fs.readdirSync inside nested loops for chain/language/chapter scanning (bulk path).; Validate User Input at Entry Point — Added lines do not introduce new direct CLI/stdin input paths passed unchecked; they validate derived config/preset state.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T03:16:24.542Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "New validation logic performs filesystem scanning across types/chapters/languages/directories without explicit upper bounds on iteration size."
+        },
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "Added production code uses fs.existsSync/fs.readdirSync inside nested loops for chain/language/chapter scanning (bulk path)."
+        }
+      ]
+    }
+  ]
+}

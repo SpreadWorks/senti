@@ -18,7 +18,7 @@ import { EXIT_ERROR } from "./lib/constants.js";
 import { validate } from "./lib/config.js";
 import { DEFAULT_LANG, sddDir as sddDirFn } from "./lib/config.js";
 import { createI18n } from "./lib/i18n.js";
-import { PRESETS, resolveMultiChains } from "./lib/presets.js";
+import { PRESETS, resolveMultiChains, validatePresetChain } from "./lib/presets.js";
 import { buildTreeItems, select } from "./lib/multi-select.js";
 import { loadSddTemplate } from "./lib/agents-md.js";
 import { resolveWorkDir } from "./lib/config.js";
@@ -524,6 +524,12 @@ async function main() {
   }
 
   validate(config);
+
+  // Fail-fast: chapters ↔ templates static integrity check (spec 218).
+  validatePresetChain(config.type, workRoot, {
+    languages: config.docs?.languages || [],
+    configChapters: config.chapters,
+  });
 
   if (cli.dryRun) {
     console.log("[setup] DRY-RUN: config.json content:");

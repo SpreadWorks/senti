@@ -15,6 +15,7 @@ import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 
+import { validatePresetChain } from "../../lib/presets.js";
 import DocsScanCommand from "./scan.js";
 import DocsEnrichCommand from "./enrich.js";
 import DocsInitCommand from "./init.js";
@@ -66,6 +67,15 @@ async function runBuild(rawArgs, container) {
 
   // Build shared context once
   const baseCtx = resolveDocsContext(container, null);
+
+  // Fail-fast: chapters ↔ templates static integrity check (spec 218).
+  // Runs before any heavy processing (scan/enrich/etc).
+  if (baseCtx.type) {
+    validatePresetChain(baseCtx.type, baseCtx.root, {
+      languages: baseCtx.config.docs?.languages || [],
+      configChapters: baseCtx.config.chapters,
+    });
+  }
 
   const docsCfg = baseCtx.config.docs;
   const docsMode = docsCfg.mode || "translate";

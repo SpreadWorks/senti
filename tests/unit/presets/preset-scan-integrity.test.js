@@ -13,7 +13,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { loadDataSources } from "../../../src/docs/lib/data-source-loader.js";
-import { resolveChainSafe, PRESETS_DIR } from "../../../src/lib/presets.js";
+import { resolveChainSafe, PRESETS_DIR, validatePresetChain } from "../../../src/lib/presets.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -183,6 +183,44 @@ describe("template data directives reference existing DataSource methods", () =>
         );
       });
     }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 4. Every preset's chapters entry has a corresponding template in the
+//    preset chain (or project-local templates layer) for each available
+//    language under the preset's templates/ directory.
+// ---------------------------------------------------------------------------
+
+describe("preset chapters entries resolve to template files in the chain", () => {
+  const allKeys = discoverPresetKeys();
+
+  /** Collect all language directories present under a preset chain */
+  function collectChainLanguages(key) {
+    const chain = resolveChainSafe(key);
+    const langs = new Set();
+    for (const preset of chain) {
+      const templatesDir = path.join(preset.dir, "templates");
+      if (!fs.existsSync(templatesDir)) continue;
+      for (const entry of fs.readdirSync(templatesDir, { withFileTypes: true })) {
+        if (entry.isDirectory()) langs.add(entry.name);
+      }
+    }
+    return [...langs];
+  }
+
+  for (const key of allKeys) {
+    const preset = readPreset(key);
+    if (!preset?.chapters?.length) continue;
+
+    it(`${key}: chapters all have templates in the chain for every language present`, () => {
+      const languages = collectChainLanguages(key);
+      if (languages.length === 0) return; // nothing to validate
+      assert.doesNotThrow(
+        () => validatePresetChain(key, undefined, { languages }),
+        `preset "${key}" declares chapters that do not resolve to any template for one or more languages`,
+      );
+    });
   }
 });
 

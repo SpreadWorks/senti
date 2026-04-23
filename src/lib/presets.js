@@ -191,6 +191,158 @@ export function resolveChainSafe(presetKey, projectRoot) {
 }
 
 /**
+ * Structural template files that are not listed in `chapters` by design —
+ * layout scaffolding and agent/readme sources. Excluded from reverse-direction
+ * warnings in validatePresetChain().
+ */
+const SPECIAL_TEMPLATES = new Set(["README.md", "AGENTS.sdd.md", "layout.md"]);
+
+/**
+ * Upper bounds for validatePresetChain iteration (bounded-resource-usage).
+ * validatePresetChain runs once at CLI startup (upgrade / setup / docs build)
+ * on a finite, user-declared set — it is not a request hot path. The
+ * synchronous fs.existsSync / fs.readdirSync calls it performs are bounded by
+ * (MAX_CHAPTERS × MAX_LANGUAGES × MAX_CHAIN_DEPTH) per type and rejected when
+ * exceeded.
+ */
+const MAX_CHAPTERS_PER_PRESET = 200;
+const MAX_LANGUAGES = 20;
+const MAX_CHAIN_DEPTH = 16;
+
+/**
+ * Resolve the effective chapter list (file names) for a set of preset types.
+ * Mirrors the priority used by template-merger.resolveChaptersOrder():
+ *   configChapters (when non-empty) > union of leaf chapters across type chains.
+ */
+function resolveEffectiveChapters(typeList, projectRoot, configChapters) {
+  if (configChapters?.length) {
+    return configChapters
+      .filter((c) => typeof c === "string" || !c.exclude)
+      .map((c) => (typeof c === "string" ? c : c.chapter));
+  }
+  const seen = new Set();
+  const result = [];
+  for (const key of typeList) {
+    const chain = resolveChainSafe(key, projectRoot);
+    let chainChapters = [];
+    for (const preset of chain) {
+      if (preset.chapters?.length) chainChapters = preset.chapters;
+    }
+    for (const ch of chainChapters) {
+      const name = typeof ch === "string" ? ch : ch.chapter;
+      if (!seen.has(name)) {
+        seen.add(name);
+        result.push(name);
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Return the list of template directories to search for a given (type, lang),
+ * ordered by precedence (project-local first, then chain leaf → root) —
+ * matching template-merger.buildLayers() so validator PASS ≡ build can resolve.
+ */
+function templateSearchDirs(typeKey, projectRoot, lang) {
+  const dirs = [];
+  if (projectRoot) {
+    dirs.push(path.join(projectRoot, ".sdd-forge", "templates", lang));
+  }
+  const chain = resolveChainSafe(typeKey, projectRoot);
+  if (chain.length > MAX_CHAIN_DEPTH) {
+    throw new Error(`validatePresetChain: chain depth exceeds MAX_CHAIN_DEPTH (${chain.length} > ${MAX_CHAIN_DEPTH}) for type=${typeKey}`);
+  }
+  for (let i = chain.length - 1; i >= 0; i--) {
+    dirs.push(path.join(chain[i].dir, "templates", lang));
+  }
+  return dirs;
+}
+
+/**
+ * Validate that every chapter declared by the effective chapter list resolves
+ * to a `.md` template file in the preset chain or the project-local templates
+ * directory, for each configured language.
+ *
+ * Throws `Error` with a structured message (missing pairs + searched paths)
+ * when any (chapter, language) pair cannot be resolved. Returns silently on
+ * success.
+ *
+ * Reverse direction (template present but not in chapters) emits a warning to
+ * stderr without failing — chapters may intentionally exclude a template.
+ *
+ * @param {string|string[]} types - Preset key(s) to validate.
+ * @param {string|undefined} projectRoot - Project root for .sdd-forge/ lookups.
+ * @param {object} options
+ * @param {string[]} options.languages - Languages to validate (from config.docs.languages).
+ * @param {Array} [options.configChapters] - Override chapters (from config.chapters).
+ */
+export function validatePresetChain(types, projectRoot, { languages, configChapters } = {}) {
+  if (!languages?.length) return;
+  if (languages.length > MAX_LANGUAGES) {
+    throw new Error(`validatePresetChain: languages count exceeds MAX_LANGUAGES (${languages.length} > ${MAX_LANGUAGES})`);
+  }
+
+  const typeList = Array.isArray(types) ? types : [types];
+  const effectiveChapters = resolveEffectiveChapters(typeList, projectRoot, configChapters);
+  if (effectiveChapters.length > MAX_CHAPTERS_PER_PRESET) {
+    throw new Error(`validatePresetChain: chapter count exceeds MAX_CHAPTERS_PER_PRESET (${effectiveChapters.length} > ${MAX_CHAPTERS_PER_PRESET})`);
+  }
+
+  // CLI startup path (not a request hot path): one-shot existsSync iteration
+  // bounded by MAX_CHAPTERS × MAX_LANGUAGES × MAX_CHAIN_DEPTH per type.
+  const missing = [];
+  const searchedPaths = new Set();
+
+  for (const key of typeList) {
+    for (const chapter of effectiveChapters) {
+      for (const lang of languages) {
+        const dirs = templateSearchDirs(key, projectRoot, lang);
+        dirs.forEach((d) => searchedPaths.add(d));
+        const found = dirs.some((d) => fs.existsSync(path.join(d, chapter)));
+        if (!found) missing.push({ chapter, lang, type: key });
+      }
+    }
+  }
+
+  if (missing.length > 0) {
+    const lines = [
+      `preset chapter-template validation failed (${missing.length} missing)`,
+    ];
+    for (const m of missing) {
+      lines.push(`  - type=${m.type} chapter=${m.chapter} lang=${m.lang}`);
+    }
+    lines.push("searched:");
+    for (const p of searchedPaths) {
+      lines.push(`  - ${p}`);
+    }
+    throw new Error(lines.join("\n"));
+  }
+
+  // Reverse direction: warn on templates present but not in effective chapters.
+  const effectiveSet = new Set(effectiveChapters);
+  const reported = new Set();
+  for (const key of typeList) {
+    for (const lang of languages) {
+      for (const dir of templateSearchDirs(key, projectRoot, lang)) {
+        if (!fs.existsSync(dir)) continue;
+        for (const file of fs.readdirSync(dir)) {
+          if (!file.endsWith(".md")) continue;
+          if (SPECIAL_TEMPLATES.has(file)) continue;
+          if (effectiveSet.has(file)) continue;
+          const k = `${lang}:${file}`;
+          if (reported.has(k)) continue;
+          reported.add(k);
+          process.stderr.write(
+            `[preset] WARN: template ${path.join(dir, file)} not listed in chapters (lang=${lang}).\n`,
+          );
+        }
+      }
+    }
+  }
+}
+
+/**
  * Look up a preset by its leaf key (e.g. "cakephp2", "laravel").
  *
  * @param {string} leaf

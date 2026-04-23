@@ -18,6 +18,7 @@ import { repoRoot, parseArgs, PKG_DIR } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { loadConfig, sddConfigPath } from "./lib/config.js";
 import { translate } from "./lib/i18n.js";
+import { validatePresetChain } from "./lib/presets.js";
 import { deploySkills, deployProjectSkills, cleanupObsoleteSkills, MAIN_SKILLS_TEMPLATES_DIR } from "./lib/skills.js";
 
 
@@ -59,6 +60,19 @@ async function main() {
   const config = loadConfig(root);
   const t = translate();
   const dryRun = cli.dryRun;
+
+  // Fail-fast: chapters ↔ templates static integrity check (spec 218).
+  if (config.type) {
+    try {
+      validatePresetChain(config.type, root, {
+        languages: config.docs?.languages || [],
+        configChapters: config.chapters,
+      });
+    } catch (e) {
+      console.error(e.message);
+      process.exit(EXIT_ERROR);
+    }
+  }
 
   if (dryRun) {
     console.log(t("ui:upgrade.dryRunHeader"));

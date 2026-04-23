@@ -1,0 +1,441 @@
+{
+  "spec": "specs/218-preset-chapter-validation/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/218-preset-chapter-validation",
+  "runId": "3e11b4ff-b35f-40df-afa0-0a17ab833216",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 229,
+  "worktree": true,
+  "test": {
+    "baseline": {
+      "unit": 2021,
+      "integration": 260,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 7,
+      "integration": 1
+    }
+  },
+  "request": "Add static consistency validation between preset.json chapters and templates (issue #229). Implement validatePresetChain(key, projectRoot) in src/lib/presets.js and invoke at the top of upgrade, setup, and docs build. Validate each chapters entry has a .md template in the parent chain (fail on missing). Reverse direction is warn only. Add test to tests/unit/presets/preset-scan-integrity.test.js.",
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T02:29:01.931Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T02:37:56.002Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T02:41:26.754Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T02:43:10.555Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1499,
+      "durationMs": 33979,
+      "tokens": {
+        "input": 21550,
+        "output": 1213,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:49:12.582Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1393,
+      "durationMs": 26710,
+      "tokens": {
+        "input": 6241,
+        "output": 1215,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:50:24.163Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2256,
+      "durationMs": 25481,
+      "tokens": {
+        "input": 21601,
+        "output": 1027,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:50:55.331Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2139,
+      "durationMs": 27173,
+      "tokens": {
+        "input": 20797,
+        "output": 1082,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:51:29.248Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2219,
+      "durationMs": 22320,
+      "tokens": {
+        "input": 1292,
+        "output": 926,
+        "cacheRead": 23936,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:52:34.382Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2783,
+      "durationMs": 28879,
+      "tokens": {
+        "input": 8270,
+        "output": 1339,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:58:47.971Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2778,
+      "durationMs": 30892,
+      "tokens": {
+        "input": 23744,
+        "output": 1297,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T02:59:41.672Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2703,
+      "durationMs": 28971,
+      "tokens": {
+        "input": 23837,
+        "output": 1213,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:00:34.072Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T03:11:35.398Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T03:15:06.811Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 278,
+      "durationMs": 14528,
+      "tokens": {
+        "input": 23280,
+        "output": 501,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:16:00.750Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1908,
+      "durationMs": 23747,
+      "tokens": {
+        "input": 8436,
+        "output": 1008,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:16:24.517Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-23T03:16:24.541Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 271,
+      "durationMs": 14639,
+      "tokens": {
+        "input": 23607,
+        "output": 416,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:17:39.189Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1790,
+      "durationMs": 21495,
+      "tokens": {
+        "input": 8763,
+        "output": 802,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:18:00.709Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-23T03:18:00.742Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2702,
+      "durationMs": 41251,
+      "tokens": {
+        "input": 129852,
+        "output": 1528,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:18:52.253Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1493,
+      "durationMs": 26455,
+      "tokens": {
+        "input": 131152,
+        "output": 1028,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-23T03:19:18.759Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft Q1: language scope = A (validate against config.docs.languages)",
+      "taskId": null,
+      "ts": "2026-04-23T02:37:56.140Z"
+    },
+    {
+      "text": "draft Q2: template search scope = B (chain + project-local templates dir)",
+      "taskId": null,
+      "ts": "2026-04-23T02:41:26.893Z"
+    },
+    {
+      "text": "draft Q3: validate effective chapters (config.chapters > preset chain)",
+      "taskId": null,
+      "ts": "2026-04-23T02:43:10.756Z"
+    }
+  ],
+  "autoCheck": {
+    "eligible": true,
+    "score": 23,
+    "maxScore": 24,
+    "threshold": 18,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 1,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "目的・範囲・受け入れ条件が具体的で、Q&Aで解釈差も解消済み。既存探索ロジック準拠で検証可能だが、変更対象ファイルの明示はないため1段階減点。"
+  },
+  "autoApprove": true,
+  "state": {
+    "finalizedAt": "2026-04-23T03:44:05.008Z"
+  }
+}
