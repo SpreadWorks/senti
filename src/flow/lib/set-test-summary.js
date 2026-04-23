@@ -68,6 +68,15 @@ function parseJsonPayload(raw) {
   return { payload: parsed };
 }
 
+function inheritCountsFromBaseline(summary, baseline) {
+  if (!baseline || typeof baseline !== "object") return;
+  for (const key of TYPE_KEYS) {
+    if (summary[key] == null && typeof baseline[key] === "number") {
+      summary[key] = baseline[key];
+    }
+  }
+}
+
 function validateFailedArray(failed) {
   if (failed == null) return { failed: null };
   if (!Array.isArray(failed)) {
@@ -148,6 +157,10 @@ export default class SetTestSummaryCommand extends FlowCommand {
         "TEST_SUMMARY_LOCKED",
         `test.${targetKey}.exitCode is tool-recorded; AI-side write rejected (use --mode fallback to write failed[] only, or \`flow run tests\` to re-measure)`,
       );
+    }
+
+    if (!baseline && mode === "replace") {
+      inheritCountsFromBaseline(summary, state?.test?.baseline);
     }
 
     ctx.flowManager.setTestSummary(summary, { baseline, mode });

@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/223-fix-test-summary-shape/draft.md        |  54 ++++\n specs/223-fix-test-summary-shape/flow.json       | 329 +++++++++++++++++++++++\n specs/223-fix-test-summary-shape/issue-log.json  |  99 +++++++\n specs/223-fix-test-summary-shape/qa.md           |   9 +\n specs/223-fix-test-summary-shape/review.md       |  41 +++\n specs/223-fix-test-summary-shape/spec.json       | 148 ++++++++++\n specs/223-fix-test-summary-shape/spec.md         |  97 +++++++\n specs/223-fix-test-summary-shape/tests/README.md |  28 ++\n src/flow/lib/set-test-summary.js                 |  13 +\n tests/unit/flow/set-test-summary.test.js         |  95 +++++++\n 10 files changed, 913 insertions(+)",
+      "commits": [
+        "feat: feature/223-fix-test-summary-shape"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 5,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.92,
+      "notes": "実装コードとunit test追加はREQ-1〜REQ-5を満たしており、REQ-6はテスト追加部分は満たすが`npm test` PASSの実行証跡不足で部分達成。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 3,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 180360,
+      "output": 8659,
+      "cacheRead": 99072,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 225273,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 97527
+        },
+        {
+          "phase": "gate",
+          "durationMs": 56925
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 32895
+        },
+        {
+          "phase": "review",
+          "durationMs": 37926
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2220,
+      "integration": 261,
+      "acceptance": 0,
+      "total": 2481
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/223-fix-test-summary-shape\n    10 files changed, 913 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 92%  (5 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 3\n    issue-log ................... 0\n    agent calls ................. 10\n    input tokens ................ 180,360\n    output tokens ............... 8,659\n    cache-read tokens ........... 99,072\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 225.3s\n      gate-draft ................ 97.5s\n      gate ...................... 56.9s\n      gate-impl ................. 32.9s\n      review .................... 37.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2220  integration 261  acceptance 0  total 2481"
+}

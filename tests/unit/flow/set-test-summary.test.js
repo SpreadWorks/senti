@@ -90,4 +90,99 @@ describe("flow set test-summary", () => {
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "--help"], { encoding: "utf8" });
     assert.match(result, /test-summary/);
   });
+
+  describe("baseline shape inheritance", () => {
+    function seedBaseline(tmp, baseline) {
+      makeFlowManager(tmp).setTestSummary(baseline, { baseline: true });
+    }
+
+    it("inherits unspecified count fields from baseline when legacy flag partial input", () => {
+      tmp = setupFlowEnv(createTmpDir());
+      seedBaseline(tmp, { unit: 100, integration: 20, acceptance: 0, exitCode: 0 });
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "test-summary", "--unit", "10"], {
+        encoding: "utf8",
+        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      });
+      const flow = makeFlowManager(tmp).load();
+      assert.equal(flow.test.summary.unit, 10);
+      assert.equal(flow.test.summary.integration, 20);
+      assert.equal(flow.test.summary.acceptance, 0);
+    });
+
+    it("inherits unspecified count fields from baseline when --json counts partial", () => {
+      tmp = setupFlowEnv(createTmpDir());
+      seedBaseline(tmp, { unit: 100, integration: 20, acceptance: 0, exitCode: 0 });
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "test-summary", "--json", JSON.stringify({ counts: { unit: 10 } })], {
+        encoding: "utf8",
+        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      });
+      const flow = makeFlowManager(tmp).load();
+      assert.equal(flow.test.summary.unit, 10);
+      assert.equal(flow.test.summary.integration, 20);
+      assert.equal(flow.test.summary.acceptance, 0);
+    });
+
+    it("preserves current behavior when baseline is absent", () => {
+      tmp = setupFlowEnv(createTmpDir());
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "test-summary", "--unit", "10"], {
+        encoding: "utf8",
+        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      });
+      const flow = makeFlowManager(tmp).load();
+      assert.deepEqual(flow.test.summary, { unit: 10 });
+      assert.equal(flow.test.summary.integration, undefined);
+      assert.equal(flow.test.summary.acceptance, undefined);
+    });
+
+    it("does not inherit exitCode even if baseline has it", () => {
+      tmp = setupFlowEnv(createTmpDir());
+      seedBaseline(tmp, { unit: 100, exitCode: 0 });
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "test-summary", "--unit", "10"], {
+        encoding: "utf8",
+        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      });
+      const flow = makeFlowManager(tmp).load();
+      assert.equal(flow.test.summary.exitCode, undefined);
+    });
+
+    it("does not apply inheritance in --mode fallback", () => {
+      tmp = setupFlowEnv(createTmpDir());
+      seedBaseline(tmp, { unit: 100, integration: 20, acceptance: 0, exitCode: 0 });
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "test-summary", "--json", JSON.stringify({ failed: [{ id: "t", reason: "r" }] }), "--mode", "fallback"], {
+        encoding: "utf8",
+        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      });
+      const flow = makeFlowManager(tmp).load();
+      assert.deepEqual(flow.test.summary.failed, [{ id: "t", reason: "r" }]);
+      assert.equal(flow.test.summary.unit, undefined);
+      assert.equal(flow.test.summary.integration, undefined);
+      assert.equal(flow.test.summary.acceptance, undefined);
+    });
+
+    it("does not inherit when writing to --baseline target itself", () => {
+      tmp = setupFlowEnv(createTmpDir());
+      seedBaseline(tmp, { unit: 100, integration: 20, acceptance: 0 });
+      // Rewrite baseline with only --unit. Inheritance must NOT apply to baseline writes.
+      // Note: the seeded baseline has no exitCode so TEST_SUMMARY_LOCKED does not trigger.
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "test-summary", "--baseline", "--unit", "10"], {
+        encoding: "utf8",
+        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      });
+      const flow = makeFlowManager(tmp).load();
+      assert.deepEqual(flow.test.baseline, { unit: 10 });
+    });
+
+    it("leaves undefined fields undefined when baseline lacks the same field", () => {
+      tmp = setupFlowEnv(createTmpDir());
+      seedBaseline(tmp, { unit: 100 });
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "set", "test-summary", "--integration", "5"], {
+        encoding: "utf8",
+        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+      });
+      const flow = makeFlowManager(tmp).load();
+      assert.equal(flow.test.summary.integration, 5);
+      assert.equal(flow.test.summary.unit, 100);
+      assert.equal(flow.test.summary.acceptance, undefined);
+    });
+  });
 });

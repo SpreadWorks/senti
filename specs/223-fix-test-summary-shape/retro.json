@@ -1,0 +1,78 @@
+{
+  "spec": "specs/223-fix-test-summary-shape/spec.json",
+  "date": "2026-04-23T13:05:16.398Z",
+  "requirements": [
+    {
+      "desc": "When `flow set test-summary` が `--mode fallback` / `--baseline` 以外で実行され、かつ `flowState.test.baseline` が存在して unit/integration/acceptance のいずれかを含む場合、CLI は head 側で未指定の count フィールドを baseline の同名フィールド値で補完して保存しなければならない。",
+      "status": "done",
+      "note": "`src/flow/lib/set-test-summary.js` で `mode === \"replace\" && !baseline` 時に baseline から未指定 count を補完する処理が追加されている。"
+    },
+    {
+      "desc": "When legacy flag モード (`--unit/--integration/--acceptance`) または `--json` モードの `counts` 経由で入力された場合、REQ-1 の継承ロジックは両経路で等しく適用されなければならない。",
+      "status": "done",
+      "note": "継承処理が入力パース後の共通経路で実行されるため、legacy flags と `--json counts` の両方に同一ロジックが適用される。"
+    },
+    {
+      "desc": "If baseline が未記録の場合、または `test.baseline.<field>` が未定義の場合、CLI は当該フィールドを head でも未定義のまま保存しなければならない。",
+      "status": "done",
+      "note": "baseline 不在時は補完処理が no-op、baseline 側フィールド未定義時も `typeof baseline[key] === \"number\"` 条件で補完されず未定義のまま。"
+    },
+    {
+      "desc": "When shape 継承処理が実行される場合、CLI は `exitCode` を継承対象に含めてはならない。baseline に exitCode があっても head に伝播させない。",
+      "status": "done",
+      "note": "補完対象が `TYPE_KEYS`（unit/integration/acceptance）限定で、`exitCode` はコピーされない。"
+    },
+    {
+      "desc": "When `--mode fallback` または `--baseline` フラグが指定されている場合、CLI は shape 継承を適用してはならない。",
+      "status": "done",
+      "note": "継承は `!baseline && mode === \"replace\"` の場合のみ実行されるため、`--mode fallback` と `--baseline` は除外される。"
+    },
+    {
+      "desc": "REQ-1〜REQ-5 の挙動を検証する unit test が追加され、`npm test` で PASS すること。",
+      "status": "partial",
+      "note": "REQ-1〜REQ-5 をカバーする unit test は追加済みだが、diff内に `npm test` 実行・PASSの証跡はない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/223-fix-test-summary-shape/draft.md",
+      "change": "要件実装とは直接関係しない仕様ドラフト文書を新規追加。"
+    },
+    {
+      "file": "specs/223-fix-test-summary-shape/flow.json",
+      "change": "フロー実行状態・メトリクス等の運用メタデータを新規追加。"
+    },
+    {
+      "file": "specs/223-fix-test-summary-shape/issue-log.json",
+      "change": "ゲート評価ログを新規追加。"
+    },
+    {
+      "file": "specs/223-fix-test-summary-shape/qa.md",
+      "change": "Q&Aテンプレート文書を新規追加。"
+    },
+    {
+      "file": "specs/223-fix-test-summary-shape/review.md",
+      "change": "レビュー記録文書を新規追加。"
+    },
+    {
+      "file": "specs/223-fix-test-summary-shape/spec.json",
+      "change": "仕様定義JSONを新規追加。"
+    },
+    {
+      "file": "specs/223-fix-test-summary-shape/spec.md",
+      "change": "仕様Markdownを新規追加。"
+    },
+    {
+      "file": "specs/223-fix-test-summary-shape/tests/README.md",
+      "change": "spec配下にテスト説明文書を新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 5,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.92,
+    "notes": "実装コードとunit test追加はREQ-1〜REQ-5を満たしており、REQ-6はテスト追加部分は満たすが`npm test` PASSの実行証跡不足で部分達成。"
+  }
+}
