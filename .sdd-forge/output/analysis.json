@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-23T01:13:11.944Z",
+  "analyzedAt": "2026-04-23T02:17:10.717Z",
   "package": {
     "entries": [
       {
@@ -4309,12 +4309,13 @@
       },
       {
         "file": "src/flow/lib/set-test-summary.js",
-        "hash": "22bf2acbe2889cfd9cf8674cc2861401",
-        "lines": 166,
-        "mtime": "2026-04-22T14:34:07.554Z",
+        "hash": "383714d454fde9c7cd60d2a274e9ab2c",
+        "lines": 158,
+        "mtime": "2026-04-23T02:17:09.748Z",
         "className": "set-test-summary",
         "methods": [
           "parseLegacy",
+          "failJson",
           "parseJsonPayload",
           "validateFailedArray"
         ],
@@ -4328,20 +4329,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "962cab89",
-        "summary": "Handles test summary ingestion in both legacy and JSON modes, validating per-test failure detail constraints. It writes normalized summaries to typed test targets.",
-        "detail": "The module supports compatibility parsing paths while converging output into a consistent summary shape. JSON mode validates item structure, bounded field lengths, and maximum failure counts to prevent unbounded state payloads. It distinguishes target channels like unit, integration, and acceptance using fixed key sets. Command execution reports detailed validation failures through envelopes rather than silently coercing data. Successful results include summary content, target path, and mode for downstream traceability.",
+        "summary": "This module defines the flow command that writes test summary data into flow state under a typed test target. It supports both legacy argument parsing and structured JSON input for test result updates.",
+        "detail": "The command extends `FlowCommand` and uses `Envelope` helpers to return standardized success and failure payloads for CLI orchestration. It validates test-type keys against a fixed allowlist (`unit`, `integration`, `acceptance`) and builds a target path like `test.<type>`. Input handling is split between legacy parsing logic and `--json` payload parsing, with explicit error reporting for malformed JSON and invalid object shapes. Failed test records are strictly validated as object entries with bounded string fields (`id`, `reason`) and a capped list size to prevent oversized state updates. The implementation centralizes argument and payload validation before returning normalized output objects for downstream persistence.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
+          "processedAt": "2026-04-23T02:17:29.835Z",
           "attempts": 1
         },
         "keywords": [
+          "flow command",
           "test summary",
-          "legacy mode",
-          "json schema checks",
-          "failure validation",
-          "unit integration acceptance"
+          "json payload",
+          "legacy parser",
+          "argument validation",
+          "error envelope",
+          "failed test cases",
+          "acceptance integration unit"
         ]
       },
       {
@@ -9173,9 +9177,9 @@
     ],
     "summary": {
       "total": 270,
-      "totalMethods": 876
+      "totalMethods": 877
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-23T01:14:19.398Z"
+  "enrichedAt": "2026-04-23T02:17:29.835Z"
 }
