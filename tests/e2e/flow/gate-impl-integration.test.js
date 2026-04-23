@@ -7,7 +7,7 @@
  *   R2: FAIL wiring (mechanical check rejects deletions / single-line +)
  *   R3: ESCALATE end-to-end (retry limit enforcement via CLI exit)
  *   R4: post-hook retry counter transitions (PASS resets, FAIL +1)
- *   R5: ESCALATE error identifier consistency with run-draft-task
+ *   (spec 215) R5 removed: run-draft-task was removed together with addition origin
  *
  * AI is replaced via config.agent.providers stub (see tests/helpers/stub-agent.js).
  */
@@ -245,13 +245,5 @@ describe("gate-impl integration (spec 202)", () => {
     assert.equal(readCounter(tmp), 2, "counter must +1 on FAIL");
   });
 
-  it("R5: ESCALATE error identifier is shared between run-gate and run-draft-task", () => {
-    // Static consistency check — protects against one file being renamed independently.
-    const gateSrc = fs.readFileSync("src/flow/lib/run-gate.js", "utf8");
-    const draftSrc = fs.readFileSync("src/flow/lib/run-draft-task.js", "utf8");
-    const SYMBOL = "ESCALATE_RETRY_EXHAUSTED";
-    assert.ok(gateSrc.includes(SYMBOL), "run-gate.js must use ESCALATE_RETRY_EXHAUSTED");
-    assert.ok(draftSrc.includes(SYMBOL), "run-draft-task.js must use ESCALATE_RETRY_EXHAUSTED");
-  });
 });
 

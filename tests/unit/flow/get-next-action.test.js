@@ -20,7 +20,6 @@ import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
   FLOW_STEPS,
   TASK_STEPS_PLAN,
-  TASK_STEPS_ADDITION,
   buildInitialSteps,
   buildInitialTaskSteps,
 } from "../../../src/lib/flow-helpers.js";
@@ -292,27 +291,6 @@ describe("flow get next-action", () => {
       }
     });
 
-    it("each TASK_STEPS_ADDITION step resolves to a rule", () => {
-      tmp = createTmpDir();
-      const state = setupActiveFlow(tmp, {
-        tasks: [{
-          id: "001",
-          spec: "tasks/001-foo.md",
-          origin: "addition",
-          parent: null,
-          status: "in_progress",
-          steps: buildInitialTaskSteps("addition"),
-          requirements: [],
-        }],
-      });
-      for (const stepId of TASK_STEPS_ADDITION) {
-        setTaskStepInProgress(state, "001", stepId);
-        makeFlowManager(tmp).save(state);
-        const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
-        assert.equal(envelope.ok, true, `task.${stepId} has rule`);
-        assert.equal(envelope.data.step, stepId);
-      }
-    });
   });
 
   describe("data-only extensibility (REQ-11)", () => {

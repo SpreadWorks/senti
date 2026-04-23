@@ -100,23 +100,9 @@
     }
   },
   "task": {
-    "draft": {
-      "action": "write-task-draft",
-      "instructions_key": "task.draft",
-      "context_kinds": ["parent_spec", "related_summary"],
-      "output_schema_ref": "next-action/draft.schema.json",
-      "requires_approval": false
-    },
     "approval": {
       "action": "await-approval",
       "instructions_key": "task.approval",
-      "context_kinds": ["task_spec"],
-      "output_schema_ref": "next-action/approval.schema.json",
-      "requires_approval": false
-    },
-    "approval-2": {
-      "action": "await-approval",
-      "instructions_key": "task.approval-2",
       "context_kinds": ["task_spec"],
       "output_schema_ref": "next-action/approval.schema.json",
       "requires_approval": false

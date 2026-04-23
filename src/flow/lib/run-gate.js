@@ -22,7 +22,8 @@ import { runGit } from "../../lib/git-helpers.js";
 import { container } from "../../lib/container.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
-import { loadSpecJson } from "../../lib/spec-json.js";
+import { loadSpecJson, tryLoadSpecJson } from "../../lib/spec-json.js";
+import { checkTasksMonotonic } from "./check-tasks-monotonic.js";
 import {
   VALID_GATE_PHASES,
   VALID_GATE_LEVELS,
@@ -1277,6 +1278,24 @@ export class RunGateCommand extends FlowCommand {
 
     const text = fs.readFileSync(absPath, "utf8");
 
+    // REQ-3 (spec 215): tasks[] monotonic check for parent-level spec phase
+    // only. task-spec phase targets a task's own draft.md and must not
+    // trigger the parent monotonic check.
+    let monotonicIssues = [];
+    if (phase === "spec") {
+      const flowTasks = ctx.flowState?.tasks || [];
+      const specDirForJson = path.resolve(root, specPath);
+      let specJson = null;
+      try {
+        specJson = tryLoadSpecJson(specDirForJson, { validate: false });
+      } catch (err) {
+        process.stderr.write(
+          `[sdd-forge] gate: spec.json load failed (${err.message}); skipping monotonic check\n`,
+        );
+      }
+      monotonicIssues = checkTasksMonotonic({ flowTasks, specTasks: specJson?.tasks });
+    }
+
     return runGateFlow({
       root,
       config: ctx.config,
@@ -1284,7 +1303,7 @@ export class RunGateCommand extends FlowCommand {
       phase,
       targetPath: specPath,
       targetText: text,
-      textCheck: () => checkSpecText(text, { strict }),
+      textCheck: () => [...checkSpecText(text, { strict }), ...monotonicIssues],
       checkerRole: undefined,
       skipGuardrail,
     });

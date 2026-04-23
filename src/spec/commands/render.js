@@ -162,9 +162,36 @@ export function renderSpecMarkdown(spec, meta) {
   sections.push(renderList(spec.implementationTargets, bullet));
   sections.push("");
 
+  if (Array.isArray(spec.authorized_test_modifications) && spec.authorized_test_modifications.length > 0) {
+    sections.push("## Authorized Existing Test Modifications");
+    for (const entry of spec.authorized_test_modifications) {
+      sections.push(`- **${entry.path}** — ${entry.reason}`);
+    }
+    sections.push("");
+  }
+
   sections.push("## Open Questions");
   sections.push(renderList(spec.open_questions, openCheckbox, "- [ ]"));
   sections.push("");
+
+  if (Array.isArray(spec.tasks) && spec.tasks.length > 0) {
+    sections.push("## Tasks");
+    const byRound = new Map();
+    for (const t of spec.tasks) {
+      const r = t.added_round ?? 0;
+      if (!byRound.has(r)) byRound.set(r, []);
+      byRound.get(r).push(t);
+    }
+    const rounds = [...byRound.keys()].sort((a, b) => a - b);
+    for (const r of rounds) {
+      sections.push(`### Round ${r}`);
+      for (const t of byRound.get(r)) {
+        sections.push(`- **${t.id}** [${t.status}]: ${t.title}`);
+        if (t.description) sections.push(`  - ${t.description}`);
+      }
+      sections.push("");
+    }
+  }
 
   return sections.join("\n");
 }

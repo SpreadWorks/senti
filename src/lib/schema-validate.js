@@ -54,8 +54,8 @@ export function validateSchema(value, schema, path = "") {
     }
   }
 
-  // number constraints
-  if (schema.type === "number") {
+  // number / integer constraints
+  if (schema.type === "number" || schema.type === "integer") {
     if (schema.minimum != null && value < schema.minimum) {
       errors.push(`${path || "(root)"}: minimum ${schema.minimum}, got ${value}`);
     }
@@ -121,6 +121,7 @@ function checkType(value, type) {
   switch (type) {
     case "string": return typeof value === "string";
     case "number": return typeof value === "number";
+    case "integer": return typeof value === "number" && Number.isInteger(value);
     case "boolean": return typeof value === "boolean";
     case "object": return value !== null && typeof value === "object" && !Array.isArray(value);
     case "array": return Array.isArray(value);

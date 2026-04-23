@@ -5,7 +5,6 @@ import {
   buildInitialTaskSteps,
   derivePhase,
   TASK_STEPS_PLAN,
-  TASK_STEPS_ADDITION,
 } from "../../../src/lib/flow-helpers.js";
 
 describe("flow-helpers task-aware APIs", () => {
@@ -23,23 +22,18 @@ describe("flow-helpers task-aware APIs", () => {
       assert.deepEqual(steps.map((s) => s.id), TASK_STEPS_PLAN);
     });
 
-    it("returns TASK_STEPS_ADDITION sequence for origin=addition", () => {
-      const steps = buildInitialTaskSteps("addition");
-      assert.equal(steps.length, TASK_STEPS_ADDITION.length);
-      assert.deepEqual(steps.map((s) => s.id), TASK_STEPS_ADDITION);
-    });
-
     it("throws on unknown origin", () => {
       assert.throws(() => buildInitialTaskSteps("nonsense"), /origin|unknown/i);
     });
 
-    it("TASK_STEPS_PLAN and TASK_STEPS_ADDITION are defined", () => {
+    it("throws on legacy origin=addition (removed in spec 215)", () => {
+      assert.throws(() => buildInitialTaskSteps("addition"), /origin|unknown/i);
+    });
+
+    it("TASK_STEPS_PLAN is defined", () => {
       assert.ok(Array.isArray(TASK_STEPS_PLAN));
-      assert.ok(Array.isArray(TASK_STEPS_ADDITION));
       assert.ok(TASK_STEPS_PLAN.includes("gate"));
       assert.ok(TASK_STEPS_PLAN.includes("update-overview"));
-      assert.ok(TASK_STEPS_ADDITION.includes("draft"));
-      assert.ok(TASK_STEPS_ADDITION.includes("approval-2"));
     });
   });
 

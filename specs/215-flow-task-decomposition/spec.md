@@ -1,0 +1,134 @@
+# Feature Specification: 215-flow-task-decomposition
+
+**Feature Branch**: `feature/215-flow-task-decomposition`
+**Created**: 2026-04-23
+**Status**: Draft
+**Input**: GitHub Issue #222
+
+## Goal
+タスク分解を spec の single source of truth として扱う draft-return 方式を導入する。spec にタスク一覧を持たせ、承認時に進行状態へ差分反映し、実装中に追加タスクが必要になった場合は専用の導線で draft に戻って spec を追記する。cac6 計画で未配線の『誰がタスクを addTask するか』の欠落を、この仕組みで解消する。
+
+## Background
+cac6 計画は 11 タスク構成で、タスク分解モデルの導入を段階実装した。spec 196 (T2) が flow.json schema に tasks[]/currentTaskId を追加し、spec 197/199/203/206/207/208 がそれぞれ guardrail 3 層化・draft-task 経路・next-action CLI・skill 統合・overview 構造化・migration を実装した。しかし『plan フェーズでタスクを追加する経路』と『addition-origin タスクをどう起点化するか』の配線は最後まで残り、結果として flow.json の tasks[] は常に空のまま運用されている。src/flow/prompts/task/draft.md は plan-origin task が既に存在する前提で書かれており、addTask() の production caller は存在しない。Issue #222 はこの欠落配線を埋めることを要求しているが、draft フェーズで掘り下げた結果、動的 CLI + prompt 注入では spec と進行状態の乖離が生じるため、spec を正として draft-return で追加する方針に転換した。
+
+## Migration Plan
+
+本変更は破壊的変更（タスク origin の enum から addition を除去）。alpha 方針に従い後方互換 shim は提供しない。
+
+影響: 既存 active flow で origin === addition のタスクが存在するものは、新 schema 下で読込に失敗する。該当する active flow は本 spec のマージ前に finalize するか、手動で flow.json の当該タスクを削除する。
+
+対応手順:
+1. マージ前に全 active flow を `sdd-forge flow get status` で確認し、origin=addition のタスクを持つものを特定する
+2. 該当 flow は finalize するか、flow.json の tasks[] から当該タスクを手動削除する（alpha のため後方互換ツールは提供しない）
+3. マージ後、sdd-forge upgrade を実行して skill テンプレートを反映する
+4. skill の旧 addition 関連手順は自動的に新 draft-return 手順に置換される
+
+## Scope
+- spec schema にタスク一覧を持たせる
+- 承認時に spec のタスクを進行状態へ差分反映する
+- 実装中に draft へ戻る正式経路を提供する
+- 進行状態のタスク集合に対する変更制約（追加のみ許可、既存タスクの識別属性を不変にする）
+- 使われなくなる addition-origin 関連機構の撤去
+- 上記を検証する自動テストおよび関連ドキュメントの更新
+
+## Out of Scope
+- integration-origin タスクの取り扱い（既存 integration-* step の経路は維持）
+- 並列タスク実行
+- retro.json / report.json への round 情報の追加
+- 旧資産の一括マイグレーション（spec 208 の範囲）
+- spec.md の自由記述でタスクを表現すること（spec.json を正とする）
+
+## Constraints
+- 外部依存禁止 — Node.js 組み込みモジュールのみを使用する（project CLAUDE.md）
+- alpha ポリシー — 後方互換コードを書かない。旧フォーマット・非推奨パスは保持せず削除する
+- src/ にプロジェクト固有情報を埋め込まない（project CLAUDE.md）
+- 過剰な防御コードを書かない。内部インターフェースは信頼する
+- システム境界（CLI 入力・spec.json schema 検証）でのみバリデーションする
+
+## Design Principles
+- Single Source of Truth — spec.json のタスク記述が唯一の正。進行状態（flow.json）は spec から機械的に派生する
+- Append-Only Task History — 承認済みタスクの識別属性（id / origin / added_round）は不変。変更は title / description のみ
+- Linear Flow with Explicit Return — 実装中の追加タスクは暗黙の動的追加ではなく、明示的な draft 復帰経路を通す
+- OOP による型表現 — タスク構造は discriminated union ではなく schema バリデーション済みオブジェクトで invariant を強制する
+- Test removal authorization — 本 spec は REQ-7 で既存 addition-origin 関連テストの削除を要求する。ユーザーは draft フェーズ Q5 で addition 機構の同一 spec 撤去方針に合意済み。対象テストファイルは authorized_test_modifications に列挙している
+
+## Overview
+### Modules
+- spec.json schema: tasks[] フィールド追加。Task は id / title / description / origin / added_round / status を持つ
+- render.js: tasks[] を round 別セクション（Round 0 / Round 1 / ...）で spec.md に出力
+- approval ポストフック: spec.json の tasks[] と flow.json の tasks[] を比較し、新規タスクのみ進行状態へ追加
+- spec gate: tasks[] の単調増加性・識別属性の不変性を検証
+- 新 flow run コマンド: 実装中に draft ステップへ戻すための専用導線。誤操作防止 guard と操作記録を含む
+- 撤去対象: addition-origin enum 値、addition 用 task step 定数、addition 用 draft 生成コマンド、関連 prompt / skill 記述 / テスト
+
+### Data Flow
+- plan フェーズ: AI/ユーザーが spec.json の tasks[] を記述（各 task は added_round=0）
+- approval フェーズ: ポストフックが spec.json tasks[] を読み、flow.json tasks[] に存在しない id を addTask 相当の処理で追加
+- impl フェーズ: 各 task を順次実行。進行状態は flow.json の tasks[] と currentTaskId で追跡
+- 追加タスク判明時: 新 CLI で draft ステップへ復帰 → spec.json tasks[] に追記（added_round = max + 1）→ 再承認 → 新規タスクのみ進行状態へ追加 → impl 再開
+- finalize フェーズ: 全タスク完了確認後、通常の finalize フローへ
+
+### Decisions
+- spec.json を single source of truth とする（Q1）。既存 added_by_task が task id を参照しており、task 本体も同所が自然
+- draft-return 方式を採用（Q2）。guardrail『Draft Stays at Requirements Level』と整合
+- 単一 spec.json に追記（Q3）。ファイル分割は管理コストが高くメリット薄。git history で原状態は復元可能
+- 専用導線（CLI）を新設（Q4）。既存の prepare / finalize と同じく、状態遷移を atomic に扱う
+- 同一 spec で addition 機構を撤去（Q5）。alpha 方針『後方互換コードは書かない』と整合
+- 承認後も title / description は可変、id / origin / added_round は不変（Q6-1）。typo 修正等を許容しつつ、識別の破壊を防ぐ
+- draft 復帰は done タスクが 1 つ以上あり finalize 前のみ許可（Q6-2）。初期 approval やり直しとは明確に区別
+- 復帰後も impl ステップは継続（Q6-3）。既存 in_progress task を巻き戻さず、新規タスクのみ差分反映
+
+## Clarifications (Q&A)
+- Q: タスク分解の記述場所はどこにするか？
+  - A: spec.json に tasks[] を追加する。既存の added_by_task が task id を参照しており、task 本体も同じ場所にあるのが自然。
+- Q: 実装中に追加タスクが必要と判明した場合の処理は？
+  - A: draft フェーズに戻って spec に追記する（draft-return 方式）。guardrail『Draft Stays at Requirements Level』と整合。
+- Q: 永続化形式は単一ファイル追記か、ファイル分割か？
+  - A: 単一 spec.json に追記。Task に added_round 属性でラウンド追跡。分割方式は管理コストに見合うメリットがない。
+- Q: draft 復帰の実装方式は？
+  - A: 専用の状態遷移導線を新設し、誤操作防止 guard と操作記録を伴う。既存 prepare / finalize と同じ扱い。
+- Q: 既存 addition-origin 機構の扱いは？
+  - A: 同一 spec で撤去する。alpha 方針『後方互換コードは書かない』と整合。
+- Q: エッジケース方針は？
+  - A: (1) title / description は承認後も可変、id / origin / added_round は不変。(2) draft 復帰は done task 1 件以上 かつ finalize 前のみ許可。(3) 復帰後も impl ステップは継続し、新規タスクのみ差分反映。
+
+## Alternatives Considered
+- Issue #222 原案（動的 CLI + plan/impl prompt 注入） — 却下。spec と進行状態の乖離を許容し、guardrail『Draft Stays at Requirements Level』と緊張する。機構も肥大する。
+- ファイル分割方式（round ごとに別ファイル） — 却下。ファイル命名・マージロジック・整合チェックが必要で、単一ファイル追記よりコストが大きい。git history で原状態は復元可能。
+- addition-origin と draft-return の共存 — 却下。skill が経路選択を判断する必要があり運用複雑化。alpha 方針『後方互換コードは書かない』にも反する。
+- spec.md の自由記述 + パーサー — 却下。既存 spec.json schema と render.js を活用するほうが一貫性がある。
+
+## User Confirmation
+- [ ] User approved this spec
+- Confirmed at:
+- Notes:
+
+## Requirements
+- REQ-1 [must]: When spec.json を schema バリデータで検証する時、shall tasks[] の各 task は id（string, non-empty）/ title（string, non-empty）/ description（string）/ origin（'plan' のみ許可）/ added_round（integer >= 0）/ status（'pending' | 'in_progress' | 'done' | 'skipped'）のフィールドを持つ。違反時は schema バリデーションが reject する。
+- REQ-2 [must]: When approval ステップのポストフックが呼ばれる時、shall spec.json の tasks[] と flow.json の tasks[] を比較し、flow.json に存在しない id を持つタスクのみが flow.json.tasks[] に追加される。既存タスクは status を含め一切変更されない。
+- REQ-3 [must]: When spec gate が 2 回目以降の approval（flow.json.tasks[] が空でない状態）で spec.json を検証する時、shall flow.json に存在する各 task の id / origin / added_round が spec.json の同 id タスクと一致しなければ FAIL する。title / description の差異は PASS とする。
+- REQ-4 [must]: When 新 CLI コマンド（名称は実装で決定、例: `sdd-forge flow reopen-draft`）をユーザーが実行した時、shall 前提条件（R5）を満たしていれば flow.json の draft ステップを in_progress に戻し、当該操作を issue-log.json に 1 エントリとして追加する。
+- REQ-5 [must]: When R4 の CLI 実行時、flow.json.tasks[] に status='done' のタスクが 0 件、または lifecycle が 'finalizing' 以降である時、shall 当該操作は非ゼロ終了コードで終了し、理由を envelope の errors 配列に記録する。flow.json は変更されない。
+- REQ-6 [must]: When draft 復帰後に新規タスクを追記した spec.json で approval ポストフックが呼ばれる時、shall 新規タスクの added_round は承認時点での flow.json.tasks[] 内 added_round の最大値 + 1 で付与される。既存タスクの status / title / description / added_round は変更されない。
+- REQ-7 [must]: When 本 spec の実装完了後のコードベースを grep で確認する時、shall 以下のシンボル・パスが存在しない: TASK_ORIGINS 内の 'addition' 値 / TASK_STEPS_ADDITION 定数 / buildInitialTaskSteps の 'addition' 分岐 / src/flow/lib/run-draft-task.js / src/flow/prompts/task/draft.md の addition 関連記述 / registry.js の draft-task コマンド登録 / flow 系 skill の 'Addition task draft ownership' セクション。
+- REQ-8 [must]: When 本 spec の実装完了後に npm test を実行した時、shall 残存する全ユニット・integration テストが終了コード 0 で PASS する。
+- REQ-9 [should]: When sdd-forge spec render を tasks[] を含む spec.json に対して実行した時、shall 出力 spec.md には `## Tasks` セクションが存在し、added_round 別に `### Round 0` / `### Round 1` ... の小見出しで各タスクの id / title / description / status が列挙される。
+- REQ-10 [should]: When sdd-forge upgrade を実行した時、shall flow 系 skill テンプレート（sdd-forge.flow 等）の `.claude/skills/` 配下コピーに draft-return 手順が含まれ、'Addition task draft ownership' 関連セクションは存在しない。
+- REQ-11 [should]: When 本 spec のマージコミットのファイル diff を確認する時、shall spec.md の Background セクションに '## Migration Plan' サブセクションが存在し、addition 除去の影響範囲（読込失敗する flow.json の特徴）と、マージ前に各 active flow 保有者が取るべき手順が列挙されている。
+- REQ-12 [should]: When 本 spec の integration テストを実行した時、shall 『plan フェーズで tasks 2 件定義 → approval → 実装で 1 件 done 化 → reopen-draft CLI 実行 → spec.json に 1 件追記 → 再 approval → flow.json.tasks[] が 3 件になり、既存 2 件の status が保持される』シナリオが PASS する。
+
+## Acceptance Criteria
+- npm test が PASS する（既存テスト + 新規テスト全て、撤去されたテストは除く）
+- spec.json schema バリデーションが tasks[] の各 task に id / title / description / origin=plan / added_round / status を要求する
+- sdd-forge spec render が tasks[] を Round 別セクションで spec.md に出力する
+- 承認フック経由で flow.json tasks[] に spec.json tasks[] の新規 id のみが追加される（既存は保持）
+- spec gate が承認済み task の id / origin / added_round 変更を FAIL、title / description 変更を PASS とする
+- 新 draft 復帰 CLI が done task 1 件以上 かつ finalize 前のときのみ draft ステップを in_progress に戻す。それ以外では非ゼロ終了コードで失敗する
+- grep で addition-origin 関連の死んだコード（enum 値 / 定数 / prompt / コマンド登録 / テスト）が本リポジトリに残存しない
+- sdd-forge upgrade 実行後、.claude/skills/ 配下の skill に draft-return 手順が反映され、addition 手順が除去されている
+
+## Implementation Targets
+-
+
+## Open Questions
+- [ ]

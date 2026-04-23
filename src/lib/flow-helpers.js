@@ -45,7 +45,7 @@ export const PHASE_MAP = {
 };
 
 /** Valid values for Task.origin. */
-export const TASK_ORIGINS = ["plan", "addition", "integration"];
+export const TASK_ORIGINS = ["plan", "integration"];
 
 /** Valid values for Task.status. */
 export const TASK_STATUSES = ["pending", "in_progress", "done", "skipped"];
@@ -61,18 +61,10 @@ export const TASK_STEPS_PLAN = [
   "gate", "approval", "write-tests", "impl", "run-tests", "review", "update-overview",
 ];
 
-export const TASK_STEPS_ADDITION = [
-  "draft", "approval", "gate", "approval-2",
-  "write-tests", "impl", "run-tests",
-  "review", "update-overview",
-];
-
 /** Task-level step → phase mapping. */
 export const TASK_PHASE_MAP = {
-  draft: "task-plan",
   gate: "task-plan",
   approval: "task-plan",
-  "approval-2": "task-plan",
   "write-tests": "task-impl",
   impl: "task-impl",
   "run-tests": "task-impl",
@@ -172,15 +164,14 @@ export function buildInitialSteps(opts) {
 /**
  * Build initial task-level steps array based on the task's origin.
  *
- * @param {"plan"|"addition"|"integration"} origin
+ * @param {"plan"|"integration"} origin
  * @returns {Array<{id:string, status:"pending"}>}
  */
 export function buildInitialTaskSteps(origin) {
-  let ids;
-  if (origin === "plan" || origin === "integration") ids = TASK_STEPS_PLAN;
-  else if (origin === "addition") ids = TASK_STEPS_ADDITION;
-  else throw new Error(`unknown task origin: ${origin}`);
-  return ids.map((id) => ({ id, status: "pending" }));
+  if (origin !== "plan" && origin !== "integration") {
+    throw new Error(`unknown task origin: ${origin}`);
+  }
+  return TASK_STEPS_PLAN.map((id) => ({ id, status: "pending" }));
 }
 
 /**

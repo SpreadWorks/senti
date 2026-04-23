@@ -477,16 +477,19 @@ export const FLOW_COMMANDS = {
         "  --dry-run   Preview only",
       ].join("\n"),
     },
-    "draft-task": {
-      helpKey: "flow.run.draft-task",
-      command: () => import("./lib/run-draft-task.js"),
-      args: { options: ["--task-id"] },
+    "reopen-draft": {
+      helpKey: "flow.run.reopen-draft",
+      command: () => import("./lib/run-reopen-draft.js"),
+      args: { options: ["--reason"] },
       help: [
-        "Usage: sdd-forge flow run draft-task --task-id <id>",
+        "Usage: sdd-forge flow run reopen-draft [--reason <text>]",
         "",
-        "Generate an addition task's draft via tool-driven agent call,",
-        "gate it, retry on FAIL up to config.flow.retry.max, and (when",
-        "autoApprove is on) auto-approve on PASS.",
+        "Rewind the flow's draft step to in_progress so the user can add",
+        "new tasks to the approved spec (draft-return). Preconditions:",
+        "  - flow.json.tasks[] has at least one done task",
+        "  - flow.json.lifecycle is still 'active'",
+        "",
+        "Records the event in specs/<spec>/issue-log.json.",
       ].join("\n"),
     },
     tests: {

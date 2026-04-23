@@ -10,4 +10,4 @@ Use this guidance when a task enters its `write-tests` step. The AI writes tests
   ```
   node tests/run.js --filter <task-test-pattern> > <workDir>/logs/task-test.log 2>&1
   ```
-- On complete, the next-action CLI advances to `task.approval-2` (or directly to `task.impl` depending on the configured task workflow shape).
+- On complete, the next-action CLI advances to `task.impl`.

@@ -160,10 +160,13 @@ When a task step `write-tests` is in progress:
 - **MUST: Do not reference implementation diffs or implementation target files.** Writing tests from the implementation shape breaks test-first.
 - `flow get context` enforces this at the tool level (files listed in the spec's `implementationTargets` are blocked in path mode and silently excluded from list / search results during `write-tests`).
 
-### Addition-task draft ownership
+### Draft-return for mid-implementation task additions
 
-When an addition task's `draft` step is in progress:
-- Use `sdd-forge flow run draft-task --task-id <id>` — the CLI owns the draft → gate → retry loop. Do not generate the draft directly from this skill.
+When implementation reveals that the spec needs additional tasks:
+- **MUST: Do not add tasks dynamically via any CLI during impl.** The only legitimate path is to return to the draft phase, append new tasks to `spec.json.tasks[]`, and re-approve.
+- Use `sdd-forge flow run reopen-draft [--reason "<text>"]` to rewind the draft step. Preconditions: at least one done task exists and the flow lifecycle is still `active`.
+- After `reopen-draft` succeeds: edit `spec.json.tasks[]` to append new tasks (new entries must have `added_round = max(existing) + 1`). Existing tasks' `id` / `origin` / `added_round` are invariant — the spec gate rejects any changes to those fields. `title` / `description` of existing tasks may be corrected.
+- Re-run `sdd-forge spec render` to refresh `spec.md`, then proceed through `gate-draft → spec → gate → approval` again. The approval post-hook reflects only the new tasks into `flow.json.tasks[]`; existing tasks keep their status and steps.
 
 ### Command execution discipline
 
@@ -209,8 +212,8 @@ sdd-forge flow prepare --title "..." [--base branch] [--worktree] [--no-branch] 
 sdd-forge flow run gate [--phase <draft|spec|task-impl>]
 sdd-forge flow run review
 sdd-forge flow run impl-confirm --mode <overview|detail>
-sdd-forge flow run finalize [--mode all|select] [--steps 1,2,3,4]
-sdd-forge flow run draft-task --task-id <id>
+sdd-forge flow run finalize [--mode all|select] [--steps 1,2,3,4] [--merge-strategy squash|pr]
+sdd-forge flow run reopen-draft [--reason "<text>"]
 sdd-forge flow run retro [--force] [--dry-run]
 sdd-forge flow run report [--dry-run]
 sdd-forge snapshot check

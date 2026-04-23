@@ -1,0 +1,59 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/215-flow-task-decomposition/draft.md         | 114 ++++\n specs/215-flow-task-decomposition/flow.json        | 635 +++++++++++++++++++++\n specs/215-flow-task-decomposition/issue-log.json   | 305 ++++++++++\n specs/215-flow-task-decomposition/qa.md            |   9 +\n specs/215-flow-task-decomposition/report.json      |  56 ++\n specs/215-flow-task-decomposition/review.md        |  41 ++\n specs/215-flow-task-decomposition/spec.json        | 114 ++++\n specs/215-flow-task-decomposition/spec.md          | 134 +++++\n specs/215-flow-task-decomposition/tests/README.md  |  19 +\n .../tests/scenario-reopen-flow.test.js             | 143 +++++\n src/flow/lib/check-tasks-monotonic.js              |  52 ++\n src/flow/lib/run-draft-task.js                     | 271 ---------\n src/flow/lib/run-gate.js                           |  23 +-\n src/flow/lib/run-reopen-draft.js                   | 109 ++++\n src/flow/lib/set-step.js                           |  23 +-\n src/flow/lib/sync-spec-tasks.js                    |  87 +++\n src/flow/prompts/task/approval-2.md                |  16 -\n src/flow/prompts/task/draft.md                     |  16 -\n src/flow/prompts/task/write-tests.md               |   2 +-\n src/flow/registry.js                               |  19 +-\n src/flow/schemas/context-rules.json                |  14 -\n src/flow/schemas/spec.schema.json                  |  17 +\n src/lib/flow-helpers.js                            |  21 +-\n src/lib/schema-validate.js                         |   5 +-\n src/spec/commands/render.js                        |  27 +\n src/templates/skills/sdd-forge.flow/SKILL.md       |  13 +-\n tests/e2e/flow/gate-impl-integration.test.js       |  10 +-\n tests/unit/flow/approval-task-sync.test.js         | 131 +++++\n tests/unit/flow/flow-run-draft-task-prompt.test.js |  75 ---\n .../flow-run-draft-task-reasons-feedback.test.js   | 113 ----\n tests/unit/flow/flow-run-draft-task.test.js        | 146 -----\n tests/unit/flow/get-next-action.test.js            |  22 -\n tests/unit/flow/instructions-coverage.test.js      |   4 +-\n tests/unit/flow/run-reopen-draft.test.js           | 114 ++++\n tests/unit/flow/spec-gate-tasks-monotonic.test.js  |  90 +++\n tests/unit/lib/flow-helpers-task-steps-v2.test.js  | 177 ------\n tests/unit/lib/flow-helpers-tasks.test.js          |  16 +-\n tests/unit/spec/render-tasks-section.test.js       |  65 +++\n tests/unit/spec/schema.test.js                     |   3 +-\n tests/unit/spec/spec-tasks-schema.test.js          | 149 +++++\n 40 files changed, 2493 insertions(+), 907 deletions(-)",
+      "commits": [
+        "feat: feature/215-flow-task-decomposition",
+        "chore(215): record finalize merge conflict in issue-log",
+        "chore: add retro and report",
+        "feat: feature/215-flow-task-decomposition",
+        "chore(215): record flow state + review.md from finalize prep",
+        "feat(215): approval post-hook + strict schema + input validation",
+        "refactor(215): remove addition-origin task infrastructure",
+        "feat(215): spec gate monotonic check + reopen-draft CLI",
+        "feat(215): spec.json tasks[] schema + approval sync + render (partial)"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 5,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 1121315,
+      "output": 28061,
+      "cacheRead": 217984,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 21,
+      "durationMs": 718273,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 102777
+        },
+        {
+          "phase": "gate",
+          "durationMs": 615496
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2022,
+      "integration": 259,
+      "acceptance": 0,
+      "total": 2281
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/215-flow-task-decomposition\n    chore(215): record finalize merge conflict in issue-log\n    chore: add retro and report\n    feat: feature/215-flow-task-decomposition\n    chore(215): record flow state + review.md from finalize prep\n    feat(215): approval post-hook + strict schema + input validation\n    refactor(215): remove addition-origin task infrastructure\n    feat(215): spec gate monotonic check + reopen-draft CLI\n    feat(215): spec.json tasks[] schema + approval sync + render (partial)\n    40 files changed, 2493 insertions(+), 907 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 5\n    issue-log ................... 0\n    agent calls ................. 21\n    input tokens ................ 1,121,315\n    output tokens ............... 28,061\n    cache-read tokens ........... 217,984\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 718.3s\n      draft ..................... 102.8s\n      gate ...................... 615.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2022  integration 259  acceptance 0  total 2281"
+}
