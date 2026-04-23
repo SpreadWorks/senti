@@ -1,0 +1,67 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/219-fix-resolve-context-main-repo/draft.md   |  44 ++\n specs/219-fix-resolve-context-main-repo/flow.json  | 508 +++++++++++++++++++++\n .../issue-log.json                                 | 209 +++++++++\n specs/219-fix-resolve-context-main-repo/qa.md      |   9 +\n specs/219-fix-resolve-context-main-repo/review.md  |  41 ++\n specs/219-fix-resolve-context-main-repo/spec.json  |  96 ++++\n specs/219-fix-resolve-context-main-repo/spec.md    |  92 ++++\n .../tests/README.md                                |  27 ++\n src/flow/lib/get-resolve-context.js                |  88 +---\n src/flow/lib/resolve-context-envelope.js           | 106 +++++\n src/flow/lib/run-resume.js                         |  87 +---\n .../resolve-context-worktree-main-repo.test.js     | 114 +++++\n 12 files changed, 1252 insertions(+), 169 deletions(-)",
+      "commits": [
+        "feat: feature/219-fix-resolve-context-main-repo",
+        "fix(resolve-context): return main repo path when running inside a worktree"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "All four listed requirements are satisfied by the code diff and added regression tests. Main extra work is a structural refactor (shared envelope builder) plus spec bookkeeping files not required by the stated requirement set."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 356168,
+      "output": 17916,
+      "cacheRead": 278272,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 18,
+      "durationMs": 468013,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 89004
+        },
+        {
+          "phase": "gate",
+          "durationMs": 177053
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 148063
+        },
+        {
+          "phase": "review",
+          "durationMs": 53893
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2,
+      "integration": 0,
+      "acceptance": 0,
+      "total": 2
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/219-fix-resolve-context-main-repo\n    fix(resolve-context): return main repo path when running inside a worktree\n    12 files changed, 1252 insertions(+), 169 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 3\n    agent calls ................. 18\n    input tokens ................ 356,168\n    output tokens ............... 17,916\n    cache-read tokens ........... 278,272\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 468.0s\n      gate-draft ................ 89.0s\n      gate ...................... 177.1s\n      gate-impl ................. 148.1s\n      review .................... 53.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2  integration 0  acceptance 0  total 2"
+}

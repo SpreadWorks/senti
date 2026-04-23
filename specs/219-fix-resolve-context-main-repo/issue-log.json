@@ -1,0 +1,209 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft targets one bug concern: resolving correct main repository path in worktree context across related commands.; Unambiguous Requirements — Most requirements are concrete and verifiable (specific files, fields, and expected path inequality in tests).; Complete Context — Several scope requirements are stated as actions without explicit When/If trigger plus shall-style expected outcome pairing.; No Hardcoded Secrets — No secrets, tokens, passwords, or hardcoded credentials are present in the draft.; Prioritize Requirements — In-scope requirement count is three, so explicit priority ordering is not required.; Impact on Existing Features — Draft explicitly lists affected existing features and unaffected areas.; Present Recommendations with Reasoning — Q&A provides clear recommended answers with rationale based on existing code paths and design consistency.; Explore Before Asking — Draft answers key questions via code references and leaves no unresolved exploratory questions.; Proactively Raise Related Implications — Related implications are proactively raised (paired fix in run-resume, skill behavior, schema non-impact).; Confirm Brainstorm vs. Decision Before Critiquing — Cannot verify whether brainstorming vs decision mode was explicitly confirmed from the draft content alone.; Capture Digressions in draft.md — Cannot determine from provided content whether any digressions occurred and were captured.; Draft Stays at Requirements Level — Draft includes implementation-level detail (specific code expressions, file-level mechanics, concrete test implementation options).; Backward-Compatible CLI Interface — CLI output semantics are changed for existing commands, but no migration or compatibility guidance is documented.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:08:38.406Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several scope requirements are stated as actions without explicit When/If trigger plus shall-style expected outcome pairing."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level detail (specific code expressions, file-level mechanics, concrete test implementation options)."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "CLI output semantics are changed for existing commands, but no migration or compatibility guidance is documented."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate FAIL: complete-context, draft-scope-boundary, backward-compatible-cli-interface",
+      "trigger": "initial draft contained implementation-level details and missing shall-style requirements",
+      "resolution": "rewrite scope in When/If shall form, remove file-path mechanics, document CLI semantic change as intentional bugfix",
+      "guardrailCandidate": "bugfix drafts still need requirements-level framing even when fix location is obvious",
+      "taskId": null,
+      "timestamp": "2026-04-23T04:08:48.351Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft is focused on one bugfix concern: correcting main repo path resolution in worktree context.; Unambiguous Requirements — Requirements use concrete, testable conditions (e.g., distinct paths, consistent outputs, regression assertion).; Complete Context — In-scope requirements pair trigger/context with expected behavior using explicit When/shall structure.; No Hardcoded Secrets — No source code secrets or credential-like literals are present in this draft content.; Prioritize Requirements — There are more than three in-scope requirements, but no priority order is specified.; Impact on Existing Features — Impact is explicitly documented for affected and unaffected existing features.; Present Recommendations with Reasoning — Each Q&A gives a clear recommendation and concise rationale tied to contract consistency and existing behavior.; Explore Before Asking — Whether docs/code were explored before asking cannot be verified from draft text alone.; Proactively Raise Related Implications — Related implications are proactively raised, including envelope drift risk, finalize behavior, and compatibility impact.; Confirm Brainstorm vs. Decision Before Critiquing — No evidence in the draft shows whether brainstorming-vs-decision confirmation occurred before critique.; Capture Digressions in draft.md — No discussion digression is evident; nothing indicates missed capture requirements.; Draft Stays at Requirements Level — Content remains at requirements/spec level without function-level or implementation design details.; Backward-Compatible CLI Interface — Draft states no CLI interface/meaning change and includes an explicit backward-compatibility note with no migration needed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:09:41.030Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three in-scope requirements, but no priority order is specified."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec does not define any concern or goal.; Unambiguous Requirements — No requirements are provided, so verifiable wording is absent.; Complete Context — No requirements include trigger context and expected behavior.; REQ Diff-Verifiability — No requirements are present to verify via diff and test summary.; No Hardcoded Secrets — No source code or embedded credentials appear in the content.; No Silent Error Swallowing — No error-handling code is included.; Prioritize Requirements — There are fewer than four requirements, so priority ordering is not required.; Impact on Existing Features — Impact on existing features is not stated.; Bounded Resource Usage — No recursive, retry, or bulk-loading behavior is specified.; Changes Require Test Coverage — No test coverage or reason for missing tests is provided.; Spec Includes Test Strategy — No test strategy is included.; Synthesize Draft, Do Not Copy — Spec contains no synthesized draft content.; Record Unresolved Points as Open Questions — No fabricated resolutions are present; open questions remain empty.; Include 'Why This Approach' Rationale — No rationale for the chosen approach is provided.; Do Not Modify Existing Tests Without Approval — No modifications to existing tests are proposed.; Backward-Compatible CLI Interface — No CLI command or option changes are specified.; Exit Code Contract — No command failure behavior is specified in this content.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:12:21.249Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "single-responsibility",
+          "reason": "Spec does not define any concern or goal."
+        },
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "No requirements are provided, so verifiable wording is absent."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "No requirements include trigger context and expected behavior."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "No requirements are present to verify via diff and test summary."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not stated."
+        },
+        {
+          "guardrail_id": "changes-require-test-coverage",
+          "reason": "No test coverage or reason for missing tests is provided."
+        },
+        {
+          "guardrail_id": "spec-includes-test-strategy",
+          "reason": "No test strategy is included."
+        },
+        {
+          "guardrail_id": "spec-synthesize-not-copy",
+          "reason": "Spec contains no synthesized draft content."
+        },
+        {
+          "guardrail_id": "spec-include-rationale",
+          "reason": "No rationale for the chosen approach is provided."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: correcting mainRepoPath resolution in worktree mode (plus regression coverage).; Unambiguous Requirements — Requirements use concrete, testable path invariants and explicit command contexts.; Complete Context — Each REQ provides trigger context (When/in worktree or not) and expected shall behavior.; REQ Diff-Verifiability — Pass/fail is decidable from code diff and unit-test outcomes asserting path equality/inequality invariants.; No Hardcoded Secrets — No secrets, credentials, or secret-handling changes are specified.; No Silent Error Swallowing — Inapplicable to this spec; no error-handling behavior or catch logic changes are proposed.; Prioritize Requirements — There are four requirements but no priority order; all are marked equally as must.; Impact on Existing Features — Impact is explicitly stated, including unchanged non-worktree behavior and no envelope/schema changes.; Bounded Resource Usage — Inapplicable; spec introduces no recursion, retry loops, or bulk-loading logic.; Changes Require Test Coverage — Spec explicitly requires adding a regression unit test for the bug fix.; Spec Includes Test Strategy — Includes verification method per requirement and acceptance criteria with test execution expectations.; Synthesize Draft, Do Not Copy — Cannot determine synthesis vs direct copying without the source draft for comparison.; Record Unresolved Points as Open Questions — Open questions are explicitly represented and unresolved items are not invented.; Include 'Why This Approach' Rationale — Rationale is provided via design principles, decisions, and rejected alternatives with reasons.; Do Not Modify Existing Tests Without Approval — Spec explicitly avoids modifying existing tests except adding a new regression test file.; Backward-Compatible CLI Interface — No command/option removals or meaning changes are introduced; output shape is preserved.; Exit Code Contract — Inapplicable to this change scope; no exit-code behavior changes are specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:14:19.021Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are four requirements but no priority order; all are marked equally as must."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T04:20:40.897Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: correcting mainRepoPath resolution in worktree mode across paired commands.; Unambiguous Requirements — Requirements use concrete conditions and verifiable path invariants instead of vague adjectives.; Complete Context — Each requirement includes trigger context (When...) and expected behavior (shall...).; REQ Diff-Verifiability — Some checks rely on manual runtime environment assertions (existing directories, pre-fix vs post-fix behavior), not strictly decidable from diff + a single test summary alone.; No Hardcoded Secrets — No secrets or credential material are specified.; No Silent Error Swallowing — Inapplicable to this spec; it does not introduce or describe error-swallowing behavior.; Prioritize Requirements — More than three requirements are present and each has explicit priority (must/should).; Impact on Existing Features — Impact is explicitly addressed, including unchanged areas and non-worktree behavior expectations.; Bounded Resource Usage — Inapplicable; no recursive/retry/bulk-processing design is introduced.; Changes Require Test Coverage — Spec requires a new regression unit test and states test execution expectations.; Spec Includes Test Strategy — Includes what to test and how via requirement verifiability and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot evaluate copy-vs-synthesis without the original draft source for comparison.; Record Unresolved Points as Open Questions — Unresolved points are not fabricated; open questions are explicitly empty and clarifications are bounded to provided context.; Include 'Why This Approach' Rationale — Rationale is provided through design principles, decisions, and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec explicitly avoids modifying existing tests except adding a new regression test.; Backward-Compatible CLI Interface — No command/option removal or semantic CLI break is proposed; behavior is framed as bug fix without interface change.; Exit Code Contract — Inapplicable to described change; no failure-exit-code behavior is altered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:21:29.133Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Some checks rely on manual runtime environment assertions (existing directories, pre-fix vs post-fix behavior), not strictly decidable from diff + a single test summary alone."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff correctly switches both commands to use `ctx.mainRoot`, but it does not include the required worktree regression test additions/assertions; provided head test summary is insufficient to demonstrate those new test requirements were implemented and passing.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:23:09.025Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Diff correctly switches both commands to use `ctx.mainRoot`, but it does not include the required worktree regression test additions/assertions; provided head test summary is insufficient to demonstrate those new test requirements were implemented and passing."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate FAIL: diff missed untracked test file (regression test not visible to git diff HEAD)",
+      "trigger": "gate-impl ran before intent-to-add of new test file",
+      "resolution": "ran git add -N to mark new test/spec files as tracked so git diff HEAD surfaces them in gate evaluation",
+      "taskId": null,
+      "timestamp": "2026-04-23T04:23:38.038Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff updates both target commands to use `ctx.mainRoot` (not `ctx.root`) and adds a regression unit test covering worktree-mode invariants for both `resolve-context` and `run-resume` (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) without changing envelope shape.; No Hardcoded Secrets — Added/modified lines contain no API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — New test adds an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — No added/modified code introduces unbounded recursion, retry loops, or bulk loading without limits.; No Sensitive Data in Logs — Added/modified lines do not log passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, delete, or comment out existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests breaking existing tests and user escalation, which is not provided in the diff.; Flag Tests That Become Irrelevant — Requires runtime/project-context evidence that prior tests became irrelevant, not inferable from this diff alone.; Exit Code Contract — No added/modified command error-path logic indicates returning success (0) on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in newly added unit-test setup/teardown, not in production hot/bulk paths.; Validate User Input at Entry Point — Diff does not add or change CLI entry-point input handling; no new unvalidated user-input path is introduced.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:24:27.668Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "New test adds an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — The diff switches both `get-resolve-context` and `run-resume` from `ctx.root` to `ctx.mainRoot`, and adds a regression unit test covering worktree invariants (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) for both commands without changing envelope keys.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added test code includes an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — Diff introduces no unbounded recursion, retry loops, or bulk-loading logic.; No Sensitive Data in Logs — No added/modified log statements expose passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence that new tests broke existing tests and that escalation occurred; not present in provided content.; Flag Tests That Become Irrelevant — Whether prior tests became irrelevant cannot be determined from the diff alone.; Exit Code Contract — No added/modified command failure-path logic indicates returning exit code 0 on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in test setup/teardown, not in production hot or bulk-processing paths.; Validate User Input at Entry Point — Diff does not add or modify CLI entry-point input handling.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-23T04:25:08.919Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "Added test code includes an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: gate FAIL: diff missed untracked test file (regression test not visible to git diff HEAD)\n  attempt 2: REQ-SPEC — Diff updates both target commands to use `ctx.mainRoot` (not `ctx.root`) and adds a regression unit test covering worktree-mode invariants for both `resolve-context` and `run-resume` (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) without changing envelope shape.; No Hardcoded Secrets — Added/modified lines contain no API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — New test adds an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — No added/modified code introduces unbounded recursion, retry loops, or bulk loading without limits.; No Sensitive Data in Logs — Added/modified lines do not log passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, delete, or comment out existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests breaking existing tests and user escalation, which is not provided in the diff.; Flag Tests That Become Irrelevant — Requires runtime/project-context evidence that prior tests became irrelevant, not inferable from this diff alone.; Exit Code Contract — No added/modified command error-path logic indicates returning success (0) on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in newly added unit-test setup/teardown, not in production hot/bulk paths.; Validate User Input at Entry Point — Diff does not add or change CLI entry-point input handling; no new unvalidated user-input path is introduced.\n  attempt 3: REQ-SPEC — The diff switches both `get-resolve-context` and `run-resume` from `ctx.root` to `ctx.mainRoot`, and adds a regression unit test covering worktree invariants (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) for both commands without changing envelope keys.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added test code includes an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — Diff introduces no unbounded recursion, retry loops, or bulk-loading logic.; No Sensitive Data in Logs — No added/modified log statements expose passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence that new tests broke existing tests and that escalation occurred; not present in provided content.; Flag Tests That Become Irrelevant — Whether prior tests became irrelevant cannot be determined from the diff alone.; Exit Code Contract — No added/modified command failure-path logic indicates returning exit code 0 on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in test setup/teardown, not in production hot or bulk-processing paths.; Validate User Input at Entry Point — Diff does not add or modify CLI entry-point input handling.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T04:25:11.957Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: REQ-SPEC — Diff updates both target commands to use `ctx.mainRoot` (not `ctx.root`) and adds a regression unit test covering worktree-mode invariants for both `resolve-context` and `run-resume` (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) without changing envelope shape.; No Hardcoded Secrets — Added/modified lines contain no API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — New test adds an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — No added/modified code introduces unbounded recursion, retry loops, or bulk loading without limits.; No Sensitive Data in Logs — Added/modified lines do not log passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, delete, or comment out existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests breaking existing tests and user escalation, which is not provided in the diff.; Flag Tests That Become Irrelevant — Requires runtime/project-context evidence that prior tests became irrelevant, not inferable from this diff alone.; Exit Code Contract — No added/modified command error-path logic indicates returning success (0) on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in newly added unit-test setup/teardown, not in production hot/bulk paths.; Validate User Input at Entry Point — Diff does not add or change CLI entry-point input handling; no new unvalidated user-input path is introduced.\n  attempt 2: REQ-SPEC — The diff switches both `get-resolve-context` and `run-resume` from `ctx.root` to `ctx.mainRoot`, and adds a regression unit test covering worktree invariants (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) for both commands without changing envelope keys.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added test code includes an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — Diff introduces no unbounded recursion, retry loops, or bulk-loading logic.; No Sensitive Data in Logs — No added/modified log statements expose passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence that new tests broke existing tests and that escalation occurred; not present in provided content.; Flag Tests That Become Irrelevant — Whether prior tests became irrelevant cannot be determined from the diff alone.; Exit Code Contract — No added/modified command failure-path logic indicates returning exit code 0 on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in test setup/teardown, not in production hot or bulk-processing paths.; Validate User Input at Entry Point — Diff does not add or modify CLI entry-point input handling.\n  attempt 3: gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: gate FAIL: diff missed untracked test file (regression test not visible to git diff HEAD)\n  attempt 2: REQ-SPEC — Diff updates both target commands to use `ctx.mainRoot` (not `ctx.root`) and adds a regression unit test covering worktree-mode invariants for both `resolve-context` and `run-resume` (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) without changing envelope shape.; No Hardcoded Secrets — Added/modified lines contain no API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — New test adds an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — No added/modified code introduces unbounded recursion, retry loops, or bulk loading without limits.; No Sensitive Data in Logs — Added/modified lines do not log passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, delete, or comment out existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests breaking existing tests and user escalation, which is not provided in the diff.; Flag Tests That Become Irrelevant — Requires runtime/project-context evidence that prior tests became irrelevant, not inferable from this diff alone.; Exit Code Contract — No added/modified command error-path logic indicates returning success (0) on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in newly added unit-test setup/teardown, not in production hot/bulk paths.; Validate User Input at Entry Point — Diff does not add or change CLI entry-point input handling; no new unvalidated user-input path is introduced.\n  attempt 3: REQ-SPEC — The diff switches both `get-resolve-context` and `run-resume` from `ctx.root` to `ctx.mainRoot`, and adds a regression unit test covering worktree invariants (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) for both commands without changing envelope keys.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added test code includes an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — Diff introduces no unbounded recursion, retry loops, or bulk-loading logic.; No Sensitive Data in Logs — No added/modified log statements expose passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence that new tests broke existing tests and that escalation occurred; not present in provided content.; Flag Tests That Become Irrelevant — Whether prior tests became irrelevant cannot be determined from the diff alone.; Exit Code Contract — No added/modified command failure-path logic indicates returning exit code 0 on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in test setup/teardown, not in production hot or bulk-processing paths.; Validate User Input at Entry Point — Diff does not add or modify CLI entry-point input handling.\n\nStop the automatic retry loop and return control to the user.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T04:25:23.585Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate-impl FAIL: No Silent Error Swallowing — test cleanup had empty catch that suppressed errors without logging",
+      "trigger": "afterEach block used catch (_) {} to ignore worktree cleanup failures",
+      "resolution": "replaced empty catch with process.stderr.write logging the cleanup error while still continuing to tmp dir removal",
+      "taskId": null,
+      "timestamp": "2026-04-23T04:25:52.406Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: gate FAIL: diff missed untracked test file (regression test not visible to git diff HEAD)\n  attempt 2: REQ-SPEC — Diff updates both target commands to use `ctx.mainRoot` (not `ctx.root`) and adds a regression unit test covering worktree-mode invariants for both `resolve-context` and `run-resume` (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) without changing envelope shape.; No Hardcoded Secrets — Added/modified lines contain no API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — New test adds an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — No added/modified code introduces unbounded recursion, retry loops, or bulk loading without limits.; No Sensitive Data in Logs — Added/modified lines do not log passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, delete, or comment out existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests breaking existing tests and user escalation, which is not provided in the diff.; Flag Tests That Become Irrelevant — Requires runtime/project-context evidence that prior tests became irrelevant, not inferable from this diff alone.; Exit Code Contract — No added/modified command error-path logic indicates returning success (0) on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in newly added unit-test setup/teardown, not in production hot/bulk paths.; Validate User Input at Entry Point — Diff does not add or change CLI entry-point input handling; no new unvalidated user-input path is introduced.\n  attempt 3: REQ-SPEC — The diff switches both `get-resolve-context` and `run-resume` from `ctx.root` to `ctx.mainRoot`, and adds a regression unit test covering worktree invariants (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) for both commands without changing envelope keys.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added test code includes an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — Diff introduces no unbounded recursion, retry loops, or bulk-loading logic.; No Sensitive Data in Logs — No added/modified log statements expose passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence that new tests broke existing tests and that escalation occurred; not present in provided content.; Flag Tests That Become Irrelevant — Whether prior tests became irrelevant cannot be determined from the diff alone.; Exit Code Contract — No added/modified command failure-path logic indicates returning exit code 0 on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in test setup/teardown, not in production hot or bulk-processing paths.; Validate User Input at Entry Point — Diff does not add or modify CLI entry-point input handling.\n\nStop the automatic retry loop and return control to the user.\n  attempt 2: gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: REQ-SPEC — Diff updates both target commands to use `ctx.mainRoot` (not `ctx.root`) and adds a regression unit test covering worktree-mode invariants for both `resolve-context` and `run-resume` (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) without changing envelope shape.; No Hardcoded Secrets — Added/modified lines contain no API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — New test adds an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — No added/modified code introduces unbounded recursion, retry loops, or bulk loading without limits.; No Sensitive Data in Logs — Added/modified lines do not log passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, delete, or comment out existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests breaking existing tests and user escalation, which is not provided in the diff.; Flag Tests That Become Irrelevant — Requires runtime/project-context evidence that prior tests became irrelevant, not inferable from this diff alone.; Exit Code Contract — No added/modified command error-path logic indicates returning success (0) on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in newly added unit-test setup/teardown, not in production hot/bulk paths.; Validate User Input at Entry Point — Diff does not add or change CLI entry-point input handling; no new unvalidated user-input path is introduced.\n  attempt 2: REQ-SPEC — The diff switches both `get-resolve-context` and `run-resume` from `ctx.root` to `ctx.mainRoot`, and adds a regression unit test covering worktree invariants (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) for both commands without changing envelope keys.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added test code includes an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — Diff introduces no unbounded recursion, retry loops, or bulk-loading logic.; No Sensitive Data in Logs — No added/modified log statements expose passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence that new tests broke existing tests and that escalation occurred; not present in provided content.; Flag Tests That Become Irrelevant — Whether prior tests became irrelevant cannot be determined from the diff alone.; Exit Code Contract — No added/modified command failure-path logic indicates returning exit code 0 on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in test setup/teardown, not in production hot or bulk-processing paths.; Validate User Input at Entry Point — Diff does not add or modify CLI entry-point input handling.\n  attempt 3: gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"task-impl\".\nPrevious FAIL reasons:\n  attempt 1: gate FAIL: diff missed untracked test file (regression test not visible to git diff HEAD)\n  attempt 2: REQ-SPEC — Diff updates both target commands to use `ctx.mainRoot` (not `ctx.root`) and adds a regression unit test covering worktree-mode invariants for both `resolve-context` and `run-resume` (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) without changing envelope shape.; No Hardcoded Secrets — Added/modified lines contain no API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — New test adds an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — No added/modified code introduces unbounded recursion, retry loops, or bulk loading without limits.; No Sensitive Data in Logs — Added/modified lines do not log passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, delete, or comment out existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests breaking existing tests and user escalation, which is not provided in the diff.; Flag Tests That Become Irrelevant — Requires runtime/project-context evidence that prior tests became irrelevant, not inferable from this diff alone.; Exit Code Contract — No added/modified command error-path logic indicates returning success (0) on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in newly added unit-test setup/teardown, not in production hot/bulk paths.; Validate User Input at Entry Point — Diff does not add or change CLI entry-point input handling; no new unvalidated user-input path is introduced.\n  attempt 3: REQ-SPEC — The diff switches both `get-resolve-context` and `run-resume` from `ctx.root` to `ctx.mainRoot`, and adds a regression unit test covering worktree invariants (`mainRepoPath === mainRoot` and `mainRepoPath !== worktreePath`) for both commands without changing envelope keys.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added test code includes an empty catch (`catch (_) { /* best effort */ }`) that suppresses errors without logging or rethrowing.; Bounded Resource Usage — Diff introduces no unbounded recursion, retry loops, or bulk-loading logic.; No Sensitive Data in Logs — No added/modified log statements expose passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence that new tests broke existing tests and that escalation occurred; not present in provided content.; Flag Tests That Become Irrelevant — Whether prior tests became irrelevant cannot be determined from the diff alone.; Exit Code Contract — No added/modified command failure-path logic indicates returning exit code 0 on failure.; No Synchronous I/O in Hot Paths — Synchronous I/O appears only in test setup/teardown, not in production hot or bulk-processing paths.; Validate User Input at Entry Point — Diff does not add or modify CLI entry-point input handling.\n\nStop the automatic retry loop and return control to the user.\n\nStop the automatic retry loop and return control to the user.\n  attempt 3: gate-impl FAIL: No Silent Error Swallowing — test cleanup had empty catch that suppressed errors without logging\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-23T04:25:56.019Z"
+    }
+  ]
+}

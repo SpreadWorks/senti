@@ -1,0 +1,52 @@
+{
+  "spec": "specs/219-fix-resolve-context-main-repo/spec.json",
+  "date": "2026-04-23T04:39:56.184Z",
+  "requirements": [
+    {
+      "desc": "When flow get resolve-context runs with state.worktree=true, data.mainRepoPath shall equal the primary repo path and not equal data.worktreePath",
+      "status": "done",
+      "note": "Implemented via shared builder using `mainRepoPath = ctx.mainRoot`; worktree regression test asserts `mainRepoPath !== worktreePath` and equals main root."
+    },
+    {
+      "desc": "When flow run resume runs under the same condition, data.mainRepoPath shall satisfy the same invariant",
+      "status": "done",
+      "note": "`run-resume` now reuses the same shared envelope builder, so it returns the same corrected `mainRepoPath` invariant; test added for resume path too."
+    },
+    {
+      "desc": "When flow get resolve-context runs outside a worktree, data.mainRepoPath shall equal the repository root as before",
+      "status": "done",
+      "note": "Behavior is preserved by switching to `ctx.mainRoot`, which equals repo root in non-worktree mode; no contrary diff indicates a non-worktree regression."
+    },
+    {
+      "desc": "A regression unit test shall fail whenever mainRepoPath === worktreePath in worktree mode",
+      "status": "done",
+      "note": "New unit test file asserts `mainRepoPath !== worktreePath` and `mainRepoPath === mainRoot` for both `get-resolve-context` and `run-resume`."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/resolve-context-envelope.js",
+      "change": "New shared envelope-construction module added (refactor/DRY change) beyond the minimum invariant fix requirement."
+    },
+    {
+      "file": "src/flow/lib/get-resolve-context.js",
+      "change": "Large refactor to delegate full payload assembly to shared helper, not just changing `mainRepoPath` source."
+    },
+    {
+      "file": "src/flow/lib/run-resume.js",
+      "change": "Large refactor to delegate payload assembly to shared helper and then append resume-specific fields."
+    },
+    {
+      "file": "specs/219-fix-resolve-context-main-repo/*",
+      "change": "Multiple spec-process artifacts (draft/spec/qa/review/flow/issue-log/tests docs) were added, which are not part of the runtime behavior requirements."
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All four listed requirements are satisfied by the code diff and added regression tests. Main extra work is a structural refactor (shared envelope builder) plus spec bookkeeping files not required by the stated requirement set."
+  }
+}
