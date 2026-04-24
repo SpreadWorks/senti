@@ -50,7 +50,15 @@ function findCurrentTask(state) {
   return state.tasks.find((t) => t.id === state.currentTaskId) || null;
 }
 
+function allTasksDone(tasks) {
+  if (!Array.isArray(tasks) || tasks.length === 0) return false;
+  return tasks.every((t) => t.status === "done" || t.status === "skipped");
+}
+
 function resolveTarget(state) {
+  // Spec 226: forest-aware target resolution. Priority:
+  //   (1) current task's in_progress step (task scope)
+  //   (2) flow-scope in_progress step (incl. finalize when all tasks done)
   const task = findCurrentTask(state);
   if (task) {
     const step = findInProgress(task.steps);

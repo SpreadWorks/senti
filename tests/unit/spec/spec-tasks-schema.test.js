@@ -40,7 +40,7 @@ describe("spec.json tasks[] schema (REQ-1)", () => {
   it("accepts a valid plan-origin task", () => {
     const spec = minSpec({
       tasks: [
-        { id: "T-1", title: "First task", description: "", origin: "plan", added_round: 0, status: "pending" },
+        { id: "T-1", title: "First task", goal: "g", origin: "plan", added_round: 0, status: "pending" },
       ],
     });
     const errors = validateSchema(spec, schema);
@@ -138,9 +138,9 @@ describe("spec.json tasks[] schema (REQ-1)", () => {
   it("accepts multiple tasks with different added_round", () => {
     const spec = minSpec({
       tasks: [
-        { id: "T-1", title: "a", description: "", origin: "plan", added_round: 0, status: "done" },
-        { id: "T-2", title: "b", description: "", origin: "plan", added_round: 0, status: "in_progress" },
-        { id: "T-3", title: "c", description: "", origin: "plan", added_round: 1, status: "pending" },
+        { id: "T-1", title: "a", goal: "g", origin: "plan", added_round: 0, status: "done" },
+        { id: "T-2", title: "b", goal: "g", origin: "plan", added_round: 0, status: "in_progress" },
+        { id: "T-3", title: "c", goal: "g", origin: "plan", added_round: 1, status: "pending" },
       ],
     });
     const errors = validateSchema(spec, schema);

@@ -378,6 +378,23 @@ export const FLOW_COMMANDS = {
         if (result?.result !== "pass") {
           tryAppendIssueLog(() => gateMod.appendIssueLogFromGateResult(ctx, result));
         }
+
+        // Spec 226: task-impl PASS triggers task completion + auto-promote.
+        // This is call site (2) of the single promoteNextPending caller
+        // boundary. completeTask handles parent propagation internally.
+        if (result?.result === "pass" && phase === "task-impl") {
+          try {
+            const fm = ctx.flowManager;
+            const state = fm.load();
+            if (state?.currentTaskId != null) {
+              fm.completeTask(state.currentTaskId);
+              const { promoteNextPending } = await import("../lib/flow-helpers.js");
+              fm.mutate((s) => { promoteNextPending(s); });
+            }
+          } catch (err) {
+            process.stderr.write(`[sdd-forge] task completion post-hook failed: ${err.message}\n`);
+          }
+        }
       },
       async onError(ctx, err) {
         const { appendIssueLogFromGateError } = await import("./lib/run-gate.js");
@@ -523,6 +540,45 @@ export const FLOW_COMMANDS = {
         "  - flow.json.lifecycle is still 'active'",
         "",
         "Records the event in specs/<spec>/issue-log.json.",
+      ].join("\n"),
+    },
+    "start-task": {
+      helpKey: "flow.run.start-task",
+      command: () => import("./lib/run-start-task.js"),
+      args: { options: ["--task-id"] },
+      help: [
+        "Usage: sdd-forge flow run start-task --task-id <id>",
+        "",
+        "Manually promote a pending task to currentTaskId and transition",
+        "it to in_progress. Useful for recovery or manual ordering when",
+        "auto-promote is not desired.",
+      ].join("\n"),
+    },
+    "complete-task": {
+      helpKey: "flow.run.complete-task",
+      command: () => import("./lib/run-complete-task.js"),
+      args: { options: ["--task-id"] },
+      help: [
+        "Usage: sdd-forge flow run complete-task [--task-id <id>]",
+        "",
+        "Complete currentTaskId (or --task-id if specified), apply parent",
+        "propagation, and auto-promote the next pending task. Useful for",
+        "recovery when gate-impl post-hook did not fire.",
+      ].join("\n"),
+    },
+    "update-overview": {
+      helpKey: "flow.run.update-overview",
+      command: () => import("./lib/run-update-overview.js"),
+      args: { options: ["--json"] },
+      help: [
+        "Usage: sdd-forge flow run update-overview --json '<additions>'",
+        "",
+        "Append this task's overview contribution to the parent spec.json.",
+        "Additions JSON shape:",
+        "  {modules?:[{text}], data_flow?:[{text}], decisions?:[{text}]}",
+        "The current task id is auto-stamped as added_by_task. spec.md is",
+        "re-rendered after the merge. Spec 226 moves this from a dedicated",
+        "step to an impl-step production caller.",
       ].join("\n"),
     },
     tests: {

@@ -29,6 +29,10 @@ function validSpecJson(overrides = {}) {
     clarifications: [],
     alternatives_considered: [],
     open_questions: [],
+    // spec 226: tasks[] is required to be non-empty for spec gate to pass
+    tasks: [
+      { id: "T-1", title: "placeholder", goal: "placeholder", origin: "plan", added_round: 0, status: "pending" },
+    ],
     ...overrides,
   };
 }
@@ -386,6 +390,10 @@ describe("gate CLI", () => {
       clarifications: [],
       alternatives_considered: [],
       open_questions: [],
+      // spec 226: tasks[] required for spec gate to pass
+      tasks: [
+        { id: "T-1", title: "placeholder", goal: "placeholder", origin: "plan", added_round: 0, status: "pending" },
+      ],
     };
     writeJson(tmp, "specs/001-test/spec.json", validSpec);
 

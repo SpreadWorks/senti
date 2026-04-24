@@ -1,0 +1,132 @@
+{
+  "spec": "specs/226-complete-task-decomp-wiring/spec.json",
+  "date": "2026-04-24T08:12:47.359Z",
+  "requirements": [
+    {
+      "desc": "[P1] When 新規 spec の spec.json にタスク定義が空配列または未定義の状態で spec gate が実行される時、shall spec gate は FAIL verdict を返し、non-zero exit code で終了する",
+      "status": "done",
+      "note": "run-gate の spec 検証に tasks 未定義/空配列の FAIL 条件が追加され、gate FAIL 経路に乗る実装になっている。"
+    },
+    {
+      "desc": "[P1] When AI が plan フェーズで spec.json のタスク定義を記入する時、shall 各タスクは構造化されたフィールド群 (goal, acceptance, implementation_notes, test_strategy, parent) で記述される",
+      "status": "done",
+      "note": "plan/spec.md に Task Decomposition Rules が追加され、当該フィールドの記入指示が明示された。"
+    },
+    {
+      "desc": "[P1] When spec.json のタスク定義スキーマが検証される時、shall goal フィールドは必須であり、acceptance / implementation_notes / test_strategy / parent は optional として受け入れられる",
+      "status": "done",
+      "note": "spec.schema.json で required が goal ベースに更新され、各 optional フィールドが追加された。"
+    },
+    {
+      "desc": "[P2] When spec の approval post-hook が実行された時、shall 最初に実行すべき pending タスク (forest 構造の leaf を優先) が currentTaskId として自動的に設定される",
+      "status": "done",
+      "note": "sync-spec-tasks の末尾で promoteNextPending を呼ぶ実装が入り、leaf 優先の自動 promote が配線された。"
+    },
+    {
+      "desc": "[P2] When 実行中のタスクが完了判定の契機 (task-scope の gate-impl step が PASS) に達した時、shall 次の pending タスクが currentTaskId として自動的に設定される",
+      "status": "done",
+      "note": "registry の gate post-hook に task-impl PASS 時の completeTask + promoteNextPending が追加された。"
+    },
+    {
+      "desc": "[P2] When 親タスクを持つ子タスク群の全てが done 状態になった時、shall 親タスクも done 状態に自動遷移する",
+      "status": "done",
+      "note": "flow-store.completeTask に親方向の再帰 propagation（全子 done/skipped で親 done）が追加された。"
+    },
+    {
+      "desc": "[P2] When 全てのタスクが done 状態になった時、shall currentTaskId は null になり、後続の flow-scope step (finalize) へ遷移する",
+      "status": "partial",
+      "note": "currentTaskId を null にする配線はあるが、finalize への遷移保証は get-next-action 側の差分証跡が限定的で、完全性の直接証拠が弱い。"
+    },
+    {
+      "desc": "[P3] When spec.json のタスク定義スキーマが検証される時、shall parent フィールドは string または null を受け入れる (optional)",
+      "status": "done",
+      "note": "spec.schema.json で parent が anyOf(string|null) として追加された。"
+    },
+    {
+      "desc": "[P3] When spec 承認時に spec.json のタスク定義が flow.json に差分反映される時、shall spec.json 側の parent が flow.json 側のタスク定義にそのまま転写される",
+      "status": "done",
+      "note": "sync-spec-tasks の buildFlowTask が parent 固定 null から specTask.parent 転写に変更された。"
+    },
+    {
+      "desc": "[P3] When sdd-forge spec render が実行された時、shall 各タスクごとの仕様 markdown (specs/<spec-dir>/tasks/<task-id>.md) が spec.json のタスク定義から自動生成される",
+      "status": "done",
+      "note": "render.js に task 単位 markdown 生成と tasks ディレクトリ書き込み処理が追加された。"
+    },
+    {
+      "desc": "[P3] When タスク個別の仕様 markdown が生成された時、shall 生成物は手動編集禁止であり (spec.md と同じ SSOT 原則)、再生成で上書きされる",
+      "status": "done",
+      "note": "生成ファイルに自動生成コメントを埋め込み、render 実行時に再書き込みする実装が入っている。"
+    },
+    {
+      "desc": "[P4] When spec gate または task-spec gate が実行された時、shall task-single-responsibility guardrail が各タスクの concern 単一性を評価し、違反時は FAIL verdict を返す",
+      "status": "done",
+      "note": "guardrail.json に task-single-responsibility が追加され、phase=[spec, task-spec] で定義された。"
+    },
+    {
+      "desc": "[P4] When plan/spec 系 prompt の内容が検証される時、shall プロンプト内に以下の要素が明示的に記述されている: タスク分解の 1 concern 原則、title は 1 verb phrase で表現可能であること、無関係な actions を 1 task に束ねない制約、各タスクの必須フィールド (goal) と任意フィールド (acceptance / implementation_notes / test_strategy) の役割",
+      "status": "done",
+      "note": "plan/spec.md に該当ルールと必須/任意フィールドの役割説明が追記された。"
+    },
+    {
+      "desc": "[P4] When plan/draft 系 prompt の内容が検証される時、shall プロンプト内に以下が記述されている: 要件を concern 単位に整理すべき旨、後続の spec 段階で concern 単位にタスク分解する前提で要件整理すべき旨",
+      "status": "done",
+      "note": "plan/draft.md に concern 単位整理と後続 spec での分解前提を明示する注記が追加された。"
+    },
+    {
+      "desc": "[P5] When task-scope の step 構成が検証される時、shall 現行の 7 step 構成が 5 step 構成 (write-tests, impl, run-tests, review, gate-impl) に再編されている",
+      "status": "done",
+      "note": "TASK_STEPS_PLAN と context-rules.task が 5 step 構成へ更新された。"
+    },
+    {
+      "desc": "[P5] When 既存の task 単位の再承認 (approval) / task 仕様書の gate (task-spec) / 独立した overview 更新 step (update-overview) が検索される時、shall それらは task-scope の step 構成から削除されている",
+      "status": "done",
+      "note": "task scope から該当 step が除去され、対応 prompt ファイルも削除された。"
+    },
+    {
+      "desc": "[P5] When task 実装が完了した時、shall 当該タスクによる parent spec の overview への貢献追記を行うための CLI (`sdd-forge flow run update-overview --json <additions>`) が production caller として提供され、persistOverviewUpdate helper を経由して spec.json.overview に append-only で merge できる。impl step 実行パスへの自動統合 (run-impl.js post-hook) は本 spec の scope 外とし board draft 3f91 に委ねる",
+      "status": "done",
+      "note": "run-update-overview に FlowCommand が実装され registry に登録、persistOverviewUpdate 呼び出しで反映する構成になっている。"
+    },
+    {
+      "desc": "[P6] When ユーザーが sdd-forge flow run start-task --task-id <id> を実行した時、shall 指定タスクが currentTaskId として設定され、当該タスクが in_progress 状態に遷移する",
+      "status": "done",
+      "note": "run-start-task コマンドが追加され、currentTaskId 設定と pending→in_progress 遷移を行う。"
+    },
+    {
+      "desc": "[P6] When ユーザーが sdd-forge flow run complete-task [--task-id <id>] を実行した時、shall 現 task または指定タスクが done 状態に遷移し、親子 propagation と次 pending タスクの auto-promote が適用される",
+      "status": "done",
+      "note": "run-complete-task が completeTask 実行後に promoteNextPending を呼び、親子伝播と次タスク昇格を適用している。"
+    },
+    {
+      "desc": "[P7] When 本 spec の実装完了後に npm test を実行した時、shall 既存テストを含む全ユニット・integration テストが終了コード 0 で PASS する",
+      "status": "partial",
+      "note": "flow.json に exitCode 0 の記録はあるが、追加された 226 系テストは it.todo 中心で、要求の実質的検証網羅は限定的。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "tasks forest 深さ上限（10）の追加検証を導入（REQ一覧には明示なし）。"
+    },
+    {
+      "file": "src/flow/lib/run-update-overview.js",
+      "change": "update-overview CLI に詳細な JSON shape バリデーションを追加（REQは CLI 提供と merge 経路中心）。"
+    },
+    {
+      "file": "tests/unit/226-task-decomp-wiring/t1-entry-enforcement.test.js",
+      "change": "新規 226 テスト群を it.todo ベースのプレースホルダーとして追加（REQで明示された成果物ではない）。"
+    },
+    {
+      "file": "specs/226-complete-task-decomp-wiring/issue-log.json",
+      "change": "実装評価ログ・運用メタ情報の追加（機能要件外の運用ドキュメント更新）。"
+    }
+  ],
+  "summary": {
+    "total": 20,
+    "done": 18,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.95,
+    "notes": "中核機能（スキーマ構造化、prompt強化、sync/complete の配線、task CLI、task-scope再編、task md生成）は概ね要件通り実装されている。未確実点は REQ-7 の finalize 遷移の直接証拠と、REQ-20 の実質テスト充足性。"
+  }
+}

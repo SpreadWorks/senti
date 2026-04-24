@@ -156,12 +156,25 @@
       "maxItems": 200,
       "items": {
         "type": "object",
-        "required": ["id", "title", "description", "origin", "added_round", "status"],
+        "required": ["id", "title", "goal", "origin", "added_round", "status"],
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string", "minLength": 1, "maxLength": 100 },
           "title": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "description": { "type": "string", "maxLength": 2000 },
+          "goal": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "acceptance": {
+            "type": "array",
+            "maxItems": 50,
+            "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+          },
+          "implementation_notes": { "type": "string", "maxLength": 5000 },
+          "test_strategy": { "type": "string", "maxLength": 2000 },
+          "parent": {
+            "anyOf": [
+              { "type": "string", "minLength": 1, "maxLength": 100 },
+              { "type": "null" }
+            ]
+          },
           "origin": { "type": "string", "enum": ["plan"] },
           "added_round": { "type": "integer", "minimum": 0 },
           "status": { "type": "string", "enum": ["pending", "in_progress", "done", "skipped"] }

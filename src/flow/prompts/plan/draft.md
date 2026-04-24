@@ -1,5 +1,7 @@
    - **On start**: `sdd-forge flow set step draft in_progress`
 
+   **Note on subsequent task decomposition:** 後続の spec 段階で要件を **concern 単位** にタスク分解する前提で要件整理せよ。draft は要件レベルの議論に留めるが、各要件群が単一 concern に収まるよう意識すること。タスク分解の粒度制約は後続の `task-single-responsibility` guardrail (phase=[spec, task-spec]) で評価される。
+
    **autoApprove mode — self-Q&A draft:**
    When `autoApprove: true`, the AI conducts the draft phase autonomously:
    - Do NOT ask the user questions. Instead, answer them yourself.

@@ -1,0 +1,168 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Main scope is consistently centered on completing task-decomposition wiring, with unrelated work explicitly split to other drafts.; Unambiguous Requirements — Most requirements are specific and testable (files, schema fields, step changes, gate behavior) rather than vague adjectives.; Complete Context — Many requirement statements list changes but do not consistently express explicit When/If trigger + shall outcome pairs.; No Hardcoded Secrets — No API keys, tokens, passwords, or similar secrets are present in the draft content.; Prioritize Requirements — There are more than three requirements, but no explicit priority ordering is defined across them.; Impact on Existing Features — The draft includes a dedicated impact section with affected and unaffected existing features explicitly listed.; Present Recommendations with Reasoning — Q&A entries provide explicit recommended answers, often supported by code/doc fact checks or guardrail rationale.; Explore Before Asking — The draft repeatedly records prior exploration/verification (facts from schema, code paths, test inventory) before decisions.; Proactively Raise Related Implications — Related implications are proactively surfaced, including migration effects, consumer impact, and spin-off drafts.; Confirm Brainstorm vs. Decision Before Critiquing — The discussion is structured as explicit decision questions with selected answers and final approval, indicating decision-mode handling.; Capture Digressions in draft.md — Digressions and side topics are captured and tracked via explicit spin-off board drafts and notes.; Draft Stays at Requirements Level — The draft includes implementation-level details (specific files, functions, hooks, traversal logic), exceeding pure requirements-level scope.; Backward-Compatible CLI Interface — No removal or semantic break of existing CLI commands/options is finalized here; new commands are added and migration concerns are documented for split follow-up work.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T02:15:32.335Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Many requirement statements list changes but do not consistently express explicit When/If trigger + shall outcome pairs."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements, but no explicit priority ordering is defined across them."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft includes implementation-level details (specific files, functions, hooks, traversal logic), exceeding pure requirements-level scope."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft is centered on one concern: completing task-decomposition wiring, with related items split into out-of-scope drafts.; Unambiguous Requirements — Some requirements use non-verifiable wording (e.g., quality-oriented or relative terms) without measurable criteria.; Complete Context — Several requirement statements are declarative but do not consistently pair explicit trigger conditions with expected shall-behavior.; No Hardcoded Secrets — No source code secrets or credential-like values are present; this draft is requirements text.; Prioritize Requirements — There are more than three requirements in scope, but no explicit priority ordering is defined.; Impact on Existing Features — A dedicated impact section explicitly lists both affected and unaffected existing features.; Present Recommendations with Reasoning — Each Q item includes a recommended answer, often with explicit factual basis or policy rationale.; Explore Before Asking — The draft records multiple fact-check notes indicating prior investigation of current behavior before decisions.; Proactively Raise Related Implications — Related implications were proactively raised and split into follow-up board drafts with clear boundaries.; Confirm Brainstorm vs. Decision Before Critiquing — The draft includes an explicit proceed/approval checkpoint (Q1 and User Approval), indicating decision-mode confirmation.; Capture Digressions in draft.md — Side topics were captured as scoped-out items and related board drafts rather than left implicit.; Draft Stays at Requirements Level — Content remains mostly at requirements/RFP level; implementation specifics are deferred to spec phase/reference material.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI commands/options is specified; new CLI controls are additive.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T02:22:31.369Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some requirements use non-verifiable wording (e.g., quality-oriented or relative terms) without measurable criteria."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirement statements are declarative but do not consistently pair explicit trigger conditions with expected shall-behavior."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements in scope, but no explicit priority ordering is defined."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Spec 226 is centered on one concern: completing task-decomposition wiring end-to-end, with related changes scoped to that objective.; Unambiguous Requirements — Several requirements remain partly non-verifiable/subjective (e.g., 'abstract notice', prompt wording expectations) without concrete acceptance criteria.; Complete Context — Requirements are consistently written with trigger context (When) and expected behavior (shall).; No Hardcoded Secrets — No source code secrets or credential literals are present in the draft content.; Prioritize Requirements — Requirements are explicitly prioritized as P1 through P6.; Impact on Existing Features — A dedicated impact section clearly states both affected and unaffected existing features.; Present Recommendations with Reasoning — Each Q&A provides a recommended answer, usually with supporting rationale from project facts/policies/scope decisions.; Explore Before Asking — The draft includes multiple 'fact check' statements indicating code/docs exploration was done before decisions.; Proactively Raise Related Implications — Related implications are proactively raised via impact analysis, scope splits, and follow-up board drafts.; Confirm Brainstorm vs. Decision Before Critiquing — Decision intent is explicitly confirmed (Q1 and final approval), so content is treated as finalized decisions.; Capture Digressions in draft.md — Digressive topics are captured in Q&A and tracked as separate board drafts instead of being dropped.; Draft Stays at Requirements Level — Content stays at requirements/RFP level; implementation specifics are deferred to reference/spec phase.; Backward-Compatible CLI Interface — The draft includes breaking behavioral changes but does not provide a concrete migration plan for changed existing CLI/flow behavior within this spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T02:24:19.155Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Several requirements remain partly non-verifiable/subjective (e.g., 'abstract notice', prompt wording expectations) without concrete acceptance criteria."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "The draft includes breaking behavioral changes but does not provide a concrete migration plan for changed existing CLI/flow behavior within this spec."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Spec 226は「未配線のタスク分解機能を本番経路で動作させる」という単一テーマに収束している。; Unambiguous Requirements — REQ-1〜19はWhen/shall形式で判定可能条件が明示され、曖昧語への依存が小さい。; Complete Context — 要件はトリガー条件（When）と期待動作（shall）の対で記述されている。; No Hardcoded Secrets — 本内容は要件ドラフトであり、APIキー等の秘密情報の記載はない。; Prioritize Requirements — 要件が3件超で、P1〜P6の優先度順が明示されている。; Impact on Existing Features — 既存機能への影響あり/なしが明示的に整理されている。; Present Recommendations with Reasoning — Q1〜Q20で推奨回答（A）が先に示され、事実確認や既存方針を根拠にした説明が添えられている。; Explore Before Asking — 複数Qで「事実確認」を先行し、コード/現状前提を調べたうえで結論化している。; Proactively Raise Related Implications — スコープ分割、影響範囲、移行計画、関連Issueを先回りで提示している。; Confirm Brainstorm vs. Decision Before Critiquing — 議論開始時に『ブレストか意思決定か』を明示確認した記録が本文中にない。; Capture Digressions in draft.md — 派生論点はOut of scope・関連Board Draftとして記録され、主線へ戻す整理ができている。; Draft Stays at Requirements Level — 本文は要件・スコープ・移行方針中心で、詳細設計はreference.mdへ分離している。; Backward-Compatible CLI Interface — CLI変更を含む破壊的影響についてMigration Planが明示されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T02:25:43.100Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-confirm-brainstorm-vs-decide",
+          "reason": "議論開始時に『ブレストか意思決定か』を明示確認した記録が本文中にない。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — タスク分解機能の未配線解消という単一の主題に集中し、別 concern は後続 spec に分離している; Unambiguous Requirements — 要求は REQ ごとに条件と期待動作が具体化され、検証対象ファイルや挙動も明示されている; Complete Context — 要求はほぼ全て When/shall 形式でトリガー条件と期待結果の対になっている; REQ Diff-Verifiability — 要求は主に差分確認とテスト結果で判定可能な形で記述されている; No Hardcoded Secrets — 記載内容に秘密情報の埋め込みはなく、本件では該当コード記述もない; No Silent Error Swallowing — 仕様文中にエラー握り潰しを許容する記述はない; Prioritize Requirements — 要求数が3件超で、P1〜P7の優先度が明示されている; Impact on Existing Features — 既存 spec/flow への影響と非影響、後続移行対象が明示されている; Bounded Resource Usage — 再帰的な親子 propagation や forest traversal に深さ・件数などの明示上限が定義されていない; Changes Require Test Coverage — 新機能/修正ごとに unit/integration テスト計画があり、一部除外理由も記載されている; Spec Includes Test Strategy — 全体および各タスクで何をどう検証するかの Test Strategy が明示されている; Synthesize Draft, Do Not Copy — 元 draft 本文が提示されておらず、要約再構成か単純転記かを判定できない; Record Unresolved Points as Open Questions — 未確定事項は Open Questions に分離され、未解決のまま扱う方針が明示されている; Include 'Why This Approach' Rationale — 背景、決定事項、代替案と却下理由が記載され、採用理由が示されている; Do Not Modify Existing Tests Without Approval — 既存テスト改変禁止を制約として明記し、削除系変更は scope 外へ分離している; Backward-Compatible CLI Interface — 既存 CLI の意味変更/削除は示されず、新規コマンド追加中心のため migration plan 要件は実質非該当; Exit Code Contract — spec gate 失敗時に non-zero exit code を返す要求が明示されている",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T02:37:31.700Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "再帰的な親子 propagation や forest traversal に深さ・件数などの明示上限が定義されていない"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff covers many wiring changes, but key spec items are missing/incomplete (e.g., no task-single-responsibility addition in src/presets/base/guardrail.json, and no concrete impl-step code integration for applyOverviewAdditions beyond prompt text).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T03:42:36.355Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Diff covers many wiring changes, but key spec items are missing/incomplete (e.g., no task-single-responsibility addition in src/presets/base/guardrail.json, and no concrete impl-step code integration for applyOverviewAdditions beyond prompt text)."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements many wiring pieces, but key spec commitments are incomplete: no concrete impl-path code integration of applyOverviewAdditions (only prompt guidance), and forest-aware get-next-action/flow-finalize transition wiring is not fully evidenced in the shown changes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T03:45:54.174Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Diff implements many wiring pieces, but key spec commitments are incomplete: no concrete impl-path code integration of applyOverviewAdditions (only prompt guidance), and forest-aware get-next-action/flow-finalize transition wiring is not fully evidenced in the shown changes."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Spec wiring is incomplete in the diff: forest-aware get-next-action/finalize transition is not fully implemented, overview merge is not actually wired into the impl execution path (mostly prompt/CLI scaffolding), and added spec tests are it.todo placeholders rather than validating behavior.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T03:50:24.720Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Spec wiring is incomplete in the diff: forest-aware get-next-action/finalize transition is not fully implemented, overview merge is not actually wired into the impl execution path (mostly prompt/CLI scaffolding), and added spec tests are it.todo placeholders rather than validating behavior."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements the specified wiring and schema/prompt/CLI/task-flow changes, and tests show no regressions (baseline and head both exitCode 0 with no new failures).; No Hardcoded Secrets — No added or modified lines contain API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — New catch blocks return structured failures or write to stderr; no empty/silent swallowing was introduced.; Bounded Resource Usage — Added logic includes explicit bounds (forest depth check <=10, hop limits based on tasks.length, schema maxItems=200).; No Sensitive Data in Logs — New logging only emits generic error messages; no passwords, tokens, or clear PII were added to logs.; No Disabling Existing Tests — No existing tests were skipped/commented out/deleted in the diff; updates adjust fixtures/expectations and add new placeholder tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of new tests breaking existing tests and user notification, which is not present in the diff.; Flag Tests That Become Irrelevant — Whether previously valid tests became irrelevant and were flagged cannot be determined from code diff alone.; Exit Code Contract — Diff shows Envelope-based failures but not definitive process exit behavior mapping to non-zero codes at runtime.; No Synchronous I/O in Hot Paths — Added `runSpecRender` loop writes each task file with `fs.writeFileSync` inside a bulk-processing loop.; Validate User Input at Entry Point — `run-update-overview` parses `--json` but forwards `additions` without explicit shape/schema validation at the CLI entry point.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T04:25:22.029Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "Added `runSpecRender` loop writes each task file with `fs.writeFileSync` inside a bulk-processing loop."
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "`run-update-overview` parses `--json` but forwards `additions` without explicit shape/schema validation at the CLI entry point."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements the specified task-decomposition wiring changes end-to-end, and baseline vs head test results show no new failures (both exitCode 0).; No Hardcoded Secrets — No added/modified lines contain API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — New catch blocks return structured failures or write explicit error output; no empty/silent catches were added.; Bounded Resource Usage — Added traversal/propagation logic uses explicit bounds (e.g., hop limits by tasks.length, depth check, schema maxItems context).; No Sensitive Data in Logs — New logging emits generic error messages and does not log passwords, tokens, or clear PII.; No Disabling Existing Tests — No existing tests were skipped/commented out/deleted in added lines; test edits are fixture/expectation updates and new placeholders.; Escalate When New Tests Break Existing Tests — Cannot determine from diff alone whether new tests broke existing tests and whether escalation to the user occurred.; Flag Tests That Become Irrelevant — Whether previously relevant tests became obsolete and were flagged to the user is not verifiable from the provided diff alone.; Exit Code Contract — Added code returns failure envelopes, but process-level non-zero exit behavior is framework/runtime dependent and not proven in the diff.; No Synchronous I/O in Hot Paths — Added code performs synchronous file writes (`fs.writeFileSync`) inside a per-task loop in render processing.; Validate User Input at Entry Point — New CLI entry points validate required args and JSON shape at the boundary before internal operations.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-24T04:29:15.559Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "Added code performs synchronous file writes (`fs.writeFileSync`) inside a per-task loop in render processing."
+        }
+      ]
+    }
+  ]
+}

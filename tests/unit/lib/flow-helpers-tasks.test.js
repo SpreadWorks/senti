@@ -30,10 +30,15 @@ describe("flow-helpers task-aware APIs", () => {
       assert.throws(() => buildInitialTaskSteps("addition"), /origin|unknown/i);
     });
 
-    it("TASK_STEPS_PLAN is defined", () => {
+    it("TASK_STEPS_PLAN is defined (spec 226: 5-step redesign)", () => {
       assert.ok(Array.isArray(TASK_STEPS_PLAN));
-      assert.ok(TASK_STEPS_PLAN.includes("gate"));
-      assert.ok(TASK_STEPS_PLAN.includes("update-overview"));
+      assert.deepEqual(TASK_STEPS_PLAN, [
+        "write-tests", "impl", "run-tests", "review", "gate-impl",
+      ]);
+      // Removed in spec 226: approval, gate (task-spec), update-overview
+      assert.ok(!TASK_STEPS_PLAN.includes("approval"));
+      assert.ok(!TASK_STEPS_PLAN.includes("gate"));
+      assert.ok(!TASK_STEPS_PLAN.includes("update-overview"));
     });
   });
 
@@ -80,7 +85,7 @@ describe("flow-helpers task-aware APIs", () => {
       assert.equal(derivePhase(state), "task-impl");
     });
 
-    it("returns 'task-plan' when current task has gate in_progress", () => {
+    it("returns 'task-impl' when current task has gate-impl in_progress (spec 226: replaces task-plan gate step)", () => {
       const state = makeState({
         currentTaskId: "001",
         tasks: [
@@ -96,8 +101,8 @@ describe("flow-helpers task-aware APIs", () => {
           },
         ],
       });
-      state.tasks[0].steps.find((s) => s.id === "gate").status = "in_progress";
-      assert.equal(derivePhase(state), "task-plan");
+      state.tasks[0].steps.find((s) => s.id === "gate-impl").status = "in_progress";
+      assert.equal(derivePhase(state), "task-impl");
     });
 
     it("falls back to flow-level phase when current task has no in_progress step", () => {

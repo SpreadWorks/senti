@@ -89,9 +89,9 @@ describe("instructions-coverage (registry ↔ prompt files)", () => {
       "orphan prompt files exist (file present but no instructions_key references it)");
   });
 
-  it("registry contains 21 instructions_key entries (spec 215: removed task.draft + task.approval-2)", () => {
+  it("registry contains 19 instructions_key entries (spec 226: task-scope reduced to 5 steps)", () => {
     const rules = loadRules();
     const keys = collectInstructionKeys(rules);
-    assert.equal(keys.length, 21, "expected 21 instructions_keys (14 flow + 7 task)");
+    assert.equal(keys.length, 19, "expected 19 instructions_keys (14 flow + 5 task)");
   });
 });

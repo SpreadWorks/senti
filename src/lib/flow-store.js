@@ -21,6 +21,7 @@ import {
   TASK_STATUSES,
   TASK_STEP_STATUSES,
   TASK_REQUIREMENT_STATUSES,
+  isTaskTerminalStatus,
 } from "./flow-helpers.js";
 
 function specFlowPath(root, specId) {
@@ -404,6 +405,44 @@ export class FlowStore {
       task.status = "done";
       if (state.currentTaskId === taskId) state.currentTaskId = null;
       aggregateTaskSummaryIntoParent(state, task);
+
+      // Spec 226: forest propagation. When all children of a parent are
+      // done/skipped, the parent becomes done as well. Walk upward from this
+      // task's parent chain. Bounded by tasks.length to guard against cycles
+      // (schema prevents cycles; defensive bound).
+      //
+      // Build lookup maps once and reuse during the upward walk to avoid
+      // O(n) find/filter on each hop.
+      const tasks = state.tasks || [];
+      const byId = new Map();
+      const childrenByParent = new Map();
+      for (const t of tasks) {
+        byId.set(t.id, t);
+        if (t.parent != null) {
+          if (!childrenByParent.has(t.parent)) childrenByParent.set(t.parent, []);
+          childrenByParent.get(t.parent).push(t);
+        }
+      }
+
+      let parentId = task.parent;
+      let hops = 0;
+      while (parentId != null && hops <= tasks.length) {
+        const parent = byId.get(parentId);
+        if (!parent) break;
+        const siblings = childrenByParent.get(parentId) || [];
+        const allDone = siblings.every((s) => isTaskTerminalStatus(s.status));
+        if (allDone && parent.status !== "done") {
+          parent.status = "done";
+          if (state.currentTaskId === parent.id) state.currentTaskId = null;
+          aggregateTaskSummaryIntoParent(state, parent);
+        } else {
+          break;
+        }
+        parentId = parent.parent;
+        hops++;
+      }
+      // NOTE: promoteNextPending is intentionally NOT called here.
+      // Callers (gate-impl post-hook, CLI) must invoke it explicitly.
     });
   }
 

@@ -56,20 +56,29 @@ export const TASK_STEP_STATUSES = ["pending", "in_progress", "done", "skipped"];
 /** Valid values for Task.requirements[].status. */
 export const TASK_REQUIREMENT_STATUSES = ["pending", "done"];
 
-/** Task-level step sequences (cac6/T2 + T4 test-first decomposition). */
+/**
+ * Task-level step sequence (spec 226: reduced from 7 to 5 steps).
+ *
+ * Removed:
+ *  - "approval" — spec-level approval already covers task granularity (no per-task re-approval)
+ *  - "gate" (task-spec) — tasks/<id>.md is a render output; gating it breaks SSOT
+ *  - "update-overview" — merged into impl step via applyOverviewAdditions helper (spec 207)
+ *
+ * Added:
+ *  - "gate-impl" — per-task objective gate. PASS triggers completeTask + promoteNextPending
+ *    post-hook (call site 2 of auto-promote single-caller boundary).
+ */
 export const TASK_STEPS_PLAN = [
-  "gate", "approval", "write-tests", "impl", "run-tests", "review", "update-overview",
+  "write-tests", "impl", "run-tests", "review", "gate-impl",
 ];
 
 /** Task-level step → phase mapping. */
 export const TASK_PHASE_MAP = {
-  gate: "task-plan",
-  approval: "task-plan",
   "write-tests": "task-impl",
   impl: "task-impl",
   "run-tests": "task-impl",
   review: "task-impl",
-  "update-overview": "task-impl",
+  "gate-impl": "task-impl",
 };
 
 /**
@@ -172,6 +181,94 @@ export function buildInitialTaskSteps(origin) {
     throw new Error(`unknown task origin: ${origin}`);
   }
   return TASK_STEPS_PLAN.map((id) => ({ id, status: "pending" }));
+}
+
+/**
+ * Return true if a task is in a terminal state (done or skipped).
+ *
+ * Spec 226: centralizing this predicate avoids drift between call sites
+ * that check completion status (completeTask parent propagation,
+ * findNextPendingTask leaf preference, etc.).
+ *
+ * @param {string | undefined | null} status
+ * @returns {boolean}
+ */
+export function isTaskTerminalStatus(status) {
+  return status === "done" || status === "skipped";
+}
+
+/**
+ * Forest-aware lookup of the next task to run.
+ *
+ * Spec 226: Walks `tasks[]` in DFS pre-order, respecting the array order for
+ * siblings (deterministic per spec.json.tasks[] order), and returns the first
+ * pending task whose children (if any) are all done or skipped. That is,
+ * returns the deepest pending leaf in document order.
+ *
+ * For a flat list (all parent=null), returns the first pending task in array
+ * order. For an empty list, returns null.
+ *
+ * @param {Array<{id:string, parent?:string|null, status:string}>} tasks
+ * @returns {object|null} the task entry, or null if no pending task exists
+ */
+export function findNextPendingTask(tasks) {
+  if (!Array.isArray(tasks) || tasks.length === 0) return null;
+
+  const childrenOf = new Map();
+  for (const t of tasks) childrenOf.set(t.id, []);
+  for (const t of tasks) {
+    if (t.parent != null && childrenOf.has(t.parent)) {
+      childrenOf.get(t.parent).push(t);
+    }
+  }
+
+  const roots = tasks.filter((t) => t.parent == null);
+
+  function visit(task) {
+    const kids = childrenOf.get(task.id) || [];
+    for (const c of kids) {
+      const found = visit(c);
+      if (found) return found;
+    }
+    // Leaf-preference: pick this task only if all children are done/skipped.
+    if (task.status === "pending") {
+      const allKidsDone = kids.every((c) => isTaskTerminalStatus(c.status));
+      if (allKidsDone) return task;
+    }
+    return null;
+  }
+
+  for (const root of roots) {
+    const found = visit(root);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * Promote the next pending task's id into `state.currentTaskId` (no-op if
+ * currentTaskId is already set or no pending tasks remain).
+ *
+ * Spec 226: single caller boundary — call sites are (1) sync-spec-tasks at end
+ * of sync, (2) gate-impl PASS post-hook after completeTask. completeTask itself
+ * must NOT call this (responsibility separation).
+ *
+ * Mutates `state` in place. Returns the promoted task id or null.
+ *
+ * @param {object} state - flow state with tasks[] and currentTaskId
+ * @returns {string|null}
+ */
+export function promoteNextPending(state) {
+  if (!state || typeof state !== "object") return null;
+  if (state.currentTaskId != null) return null;
+  if (!Array.isArray(state.tasks) || state.tasks.length === 0) return null;
+
+  const next = findNextPendingTask(state.tasks);
+  if (!next) return null;
+
+  state.currentTaskId = next.id;
+  if (next.status === "pending") next.status = "in_progress";
+  return next.id;
 }
 
 /**

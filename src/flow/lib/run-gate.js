@@ -286,7 +286,49 @@ function checkSpecJson(spec) {
       issues.push(`${path}: unresolved marker "${marker}" in value (${value.trim()})`);
     }
   });
+
+  // spec 226: tasks[] must be present and non-empty for new specs.
+  // Existing merged specs are not gated (flow.json is cleanup'd on finalize),
+  // so this check naturally applies only to active flows.
+  if (spec.tasks === undefined) {
+    issues.push("tasks: missing field (task decomposition required per spec 226)");
+  } else if (Array.isArray(spec.tasks) && spec.tasks.length === 0) {
+    issues.push("tasks: empty array (task decomposition required for all new specs per spec 226)");
+  }
+
+  // spec 226: forest depth upper bound = 10.
+  if (Array.isArray(spec.tasks) && spec.tasks.length > 0) {
+    const depth = computeForestDepth(spec.tasks);
+    if (depth > 10) {
+      issues.push(`tasks: forest depth ${depth} exceeds maximum of 10`);
+    }
+  }
+
   return issues;
+}
+
+/**
+ * Compute the deepest parent-chain length in a task forest.
+ * Returns 0 for a flat (all parent=null) list. Bounded by tasks.length to
+ * guard against cycles (schema prevents cycles but defensive).
+ *
+ * @param {Array<{id: string, parent?: string|null}>} tasks
+ * @returns {number}
+ */
+function computeForestDepth(tasks) {
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  let maxDepth = 0;
+  for (const t of tasks) {
+    let depth = 0;
+    let cur = t;
+    const maxHops = tasks.length;
+    while (cur && cur.parent != null && byId.has(cur.parent) && depth <= maxHops) {
+      cur = byId.get(cur.parent);
+      depth++;
+    }
+    if (depth > maxDepth) maxDepth = depth;
+  }
+  return maxDepth;
 }
 
 /**

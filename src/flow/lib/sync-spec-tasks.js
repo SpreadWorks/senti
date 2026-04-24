@@ -15,7 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { tryLoadSpecJson } from "../../lib/spec-json.js";
-import { buildInitialTaskSteps } from "../../lib/flow-helpers.js";
+import { buildInitialTaskSteps, promoteNextPending } from "../../lib/flow-helpers.js";
 
 /**
  * Synchronize spec.json tasks[] into flow.json tasks[] (append-only).
@@ -59,6 +59,9 @@ export function syncSpecTasksToFlow({ root }) {
   const assignedRound = isFirstApproval ? 0 : maxExisting + 1;
 
   // Use low-level mutate to append without touching currentTaskId on each insert.
+  // Spec 226: at the end of the batch, call promoteNextPending to auto-promote
+  // the first pending task (forest leaf priority) into currentTaskId if it was
+  // null. This is call site (1) of the single-caller boundary.
   const added = [];
   fm._store.mutate((s) => {
     for (const sTask of newTasks) {
@@ -66,6 +69,7 @@ export function syncSpecTasksToFlow({ root }) {
       s.tasks.push(fTask);
       added.push(sTask.id);
     }
+    promoteNextPending(s);
   });
 
   return { added };
@@ -77,7 +81,9 @@ function buildFlowTask(specTask, flowSpecPath, assignedRound) {
     id: specTask.id,
     spec: `${specDir}/tasks/${specTask.id}.md`,
     origin: specTask.origin,
-    parent: null,
+    // Spec 226: transcribe parent from spec.json (was: always null).
+    // Null/undefined stays null (flat list compatibility).
+    parent: specTask.parent == null ? null : specTask.parent,
     status: specTask.status || "pending",
     steps: buildInitialTaskSteps(specTask.origin).map((id) => ({ id, status: "pending" })),
     requirements: [],

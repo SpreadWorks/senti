@@ -46,8 +46,8 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
     tmp = createTmpDir();
     setupFlow(tmp, { spec: "specs/215-flow-task-decomposition/spec.json" });
     writeSpecJson(tmp, "specs/215-flow-task-decomposition/spec.json", baseSpec([
-      { id: "T-1", title: "A", description: "desc A", origin: "plan", added_round: 0, status: "pending" },
-      { id: "T-2", title: "B", description: "desc B", origin: "plan", added_round: 0, status: "pending" },
+      { id: "T-1", title: "A", goal: "goal A", origin: "plan", added_round: 0, status: "pending" },
+      { id: "T-2", title: "B", goal: "goal B", origin: "plan", added_round: 0, status: "pending" },
     ]));
     const result = syncSpecTasksToFlow({ root: tmp });
     assert.equal(result.added.length, 2);
@@ -71,8 +71,8 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
       currentTaskId: null,
     });
     writeSpecJson(tmp, "specs/215-flow-task-decomposition/spec.json", baseSpec([
-      { id: "T-1", title: "A", description: "desc A", origin: "plan", added_round: 0, status: "done" },
-      { id: "T-2", title: "B", description: "desc B", origin: "plan", added_round: 1, status: "pending" },
+      { id: "T-1", title: "A", goal: "goal A", origin: "plan", added_round: 0, status: "done" },
+      { id: "T-2", title: "B", goal: "goal B", origin: "plan", added_round: 1, status: "pending" },
     ]));
     const result = syncSpecTasksToFlow({ root: tmp });
     assert.equal(result.added.length, 1);
@@ -99,8 +99,8 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
     });
     // spec.json doesn't pre-commit added_round; our sync uses what spec says
     writeSpecJson(tmp, "specs/215-flow-task-decomposition/spec.json", baseSpec([
-      { id: "T-1", title: "a", description: "", origin: "plan", added_round: 0, status: "done" },
-      { id: "T-2", title: "b", description: "", origin: "plan", added_round: 1, status: "pending" },
+      { id: "T-1", title: "a", goal: "g", origin: "plan", added_round: 0, status: "done" },
+      { id: "T-2", title: "b", goal: "g", origin: "plan", added_round: 1, status: "pending" },
     ]));
     syncSpecTasksToFlow({ root: tmp });
     const flow = JSON.parse(fs.readFileSync(path.join(tmp, "specs/215-flow-task-decomposition/flow.json"), "utf8"));

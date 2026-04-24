@@ -35,8 +35,8 @@ describe("render.js Tasks section (REQ-9)", () => {
 
   it("renders Round 0 when all tasks are round 0", () => {
     const md = renderSpecMarkdown(minSpec([
-      { id: "T-1", title: "First", description: "", origin: "plan", added_round: 0, status: "pending" },
-      { id: "T-2", title: "Second", description: "", origin: "plan", added_round: 0, status: "done" },
+      { id: "T-1", title: "First", goal: "g", origin: "plan", added_round: 0, status: "pending" },
+      { id: "T-2", title: "Second", goal: "g", origin: "plan", added_round: 0, status: "done" },
     ]), meta);
     assert.ok(md.includes("## Tasks"));
     assert.ok(md.includes("### Round 0"));
@@ -56,10 +56,10 @@ describe("render.js Tasks section (REQ-9)", () => {
     assert.ok(r0 > 0 && r1 > r0 && r2 > r1, "rounds should be in ascending order");
   });
 
-  it("includes description when present", () => {
+  it("includes goal when present", () => {
     const md = renderSpecMarkdown(minSpec([
-      { id: "T-1", title: "x", description: "long desc", origin: "plan", added_round: 0, status: "pending" },
+      { id: "T-1", title: "x", goal: "g-long", origin: "plan", added_round: 0, status: "pending" },
     ]), meta);
-    assert.ok(md.includes("long desc"));
+    assert.ok(md.includes("g-long"));
   });
 });
