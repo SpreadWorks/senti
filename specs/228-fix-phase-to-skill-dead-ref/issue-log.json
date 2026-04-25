@@ -1,0 +1,88 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one bugfix concern: correcting `phaseToSkill()` dead references and aligned mapping updates.; Unambiguous Requirements — Target behavior is mostly verifiable with explicit phase-to-skill mapping outcomes.; Complete Context — Requirements are not consistently written with explicit trigger condition plus expected `shall` behavior pairs.; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets are present in the draft.; Prioritize Requirements — More than three required mapping changes are listed without explicit priority ordering.; Impact on Existing Features — Impact on existing commands/features is explicitly described, including expected value changes and test impact.; Present Recommendations with Reasoning — Q&A provides recommendations but does not consistently state concise basis from docs, guardrails, or existing code patterns for each answer.; Explore Before Asking — Draft includes concrete code/test references and has no unresolved questions, indicating prior exploration.; Proactively Raise Related Implications — Related implications were proactively raised via impact and out-of-scope notes.; Confirm Brainstorm vs. Decision Before Critiquing — Draft records explicit user approval, indicating decision mode rather than unconfirmed brainstorming.; Capture Digressions in draft.md — No digression is evident in the provided content, so no capture action is required.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific file, function, and case changes) beyond pure requirements level.; Backward-Compatible CLI Interface — No command or option removal/meaning change is specified; migration plan requirement is inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:34:55.638Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirements are not consistently written with explicit trigger condition plus expected `shall` behavior pairs."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three required mapping changes are listed without explicit priority ordering."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A provides recommendations but does not consistently state concise basis from docs, guardrails, or existing code patterns for each answer."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific file, function, and case changes) beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: fixing phase-to-skill mapping so recommendedSkill matches current skills.; Unambiguous Requirements — Requirements are framed as verifiable conditions (commands, phase set, field retention) with explicit expected outcomes.; Complete Context — Each requirement includes a concrete condition/scope and a corresponding shall-style expected behavior.; No Hardcoded Secrets — No secrets (keys/tokens/passwords) are present; this draft is requirements text only.; Prioritize Requirements — Requirements are explicitly prioritized as P1, P2, and P3.; Impact on Existing Features — Impact section explicitly states affected behavior and clarifies expected non-breaking effect on existing tests.; Present Recommendations with Reasoning — Each Q&A gives a direct recommendation and concise basis from existing tests/code patterns/skill structure.; Explore Before Asking — No unresolved user questions remain; answers reference existing artifacts, indicating exploration was performed.; Proactively Raise Related Implications — Related implications are proactively documented in scope boundaries and impact notes.; Confirm Brainstorm vs. Decision Before Critiquing — Draft records decision state with explicit user approval, so it is treated as a decided direction.; Capture Digressions in draft.md — No digression is evident; nothing indicates missed capture of side discussions.; Draft Stays at Requirements Level — Requirement/Q&A references specific implementation internals (e.g., derivePhase and dispatcher mapping), exceeding pure requirements-level scope.; Backward-Compatible CLI Interface — No command/option removal or semantic change is proposed; migration-plan requirement is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:35:56.988Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Requirement/Q&A references specific implementation internals (e.g., derivePhase and dispatcher mapping), exceeding pure requirements-level scope."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: fixing phase→skill mapping and keeping recommendedSkill aligned.; Unambiguous Requirements — Requirements are stated as testable conditions (specific commands, phases, and field behavior).; Complete Context — Not all requirements include an explicit trigger-condition pair; items 2 and 3 are outcome-only statements.; No Hardcoded Secrets — No secrets or credential-like values are present in the draft.; Prioritize Requirements — Priorities are explicitly provided (P1-P3), satisfying ordering needs.; Impact on Existing Features — Impact on existing CLI behavior and tests is explicitly documented.; Present Recommendations with Reasoning — Each Q&A answer gives a clear recommendation and concise basis from tests/templates/code patterns.; Explore Before Asking — Draft cites existing tests and template behavior, indicating code/docs exploration before conclusions.; Proactively Raise Related Implications — Related implications are proactively covered in Scope Verification and Impact sections.; Confirm Brainstorm vs. Decision Before Critiquing — This is a conversation-process check; the draft alone does not show whether mode confirmation occurred before critique.; Capture Digressions in draft.md — No digression is indicated; draft remains on the main thread.; Draft Stays at Requirements Level — Content stays at requirements/scope/impact level without function-level implementation design.; Backward-Compatible CLI Interface — No command or option removal/semantic change is proposed, so migration-plan requirement is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:36:52.802Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Not all requirements include an explicit trigger-condition pair; items 2 and 3 are outcome-only statements."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.decisions[0]: must be object, got string; overview.decisions[1]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].priority: must be one of enum [must, should, nice-to-have], got \"P1\"; requirements[0].description: unknown field; requirements[1].desc: required field is missing; requirements[1].priority: must be one of enum [must, should, nice-to-have], got \"P2\"; requirements[1].description: unknown field; requirements[2].desc: required field is missing; requirements[2].priority: must be one of enum [must, should, nice-to-have], got \"P3\"; requirements[2].description: unknown field; clarifications[0].q: required field is missing; clarifications[0].a: required field is missing; clarifications[0].question: unknown field; clarifications[0].answer: unknown field; alternatives_considered[0]: must be object, got string; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:39:01.854Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:40:04.229Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: correcting phase-to-skill mapping for recommendedSkill.; Task Single Responsibility — Main implementation task is limited to mapping fixes in one function; no unrelated actions are bundled.; Unambiguous Requirements — Requirements are concretized by explicit phase-to-skill acceptance criteria.; Complete Context — Each requirement states a trigger condition and expected behavior.; REQ Diff-Verifiability — Pass/fail is decidable from code diff plus unit/regression test results.; No Hardcoded Secrets — No secrets, credentials, or secret-handling requirements appear in the content.; No Silent Error Swallowing — No error-handling change is specified; article is not implicated by this spec.; Prioritize Requirements — There are only three requirements; priority ordering is not mandatory beyond this threshold.; Impact on Existing Features — Impact on existing features is not explicitly listed as a dedicated impact statement.; Bounded Resource Usage — No recursion, retry loops, or bulk loading behaviors are introduced.; Changes Require Test Coverage — Spec includes test coverage expectations, including unit checks and regression confirmation.; Spec Includes Test Strategy — A concrete test strategy is provided in task test_strategy and acceptance criteria.; Synthesize Draft, Do Not Copy — No source draft is provided, so synthesis-vs-copying cannot be assessed.; Record Unresolved Points as Open Questions — No unresolved points are silently answered; unresolved section is present and explicitly empty.; Include 'Why This Approach' Rationale — Rationale is provided via clarifications and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec preserves existing tests and calls for regression pass rather than test modification.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed.; Exit Code Contract — No command failure-path or exit-code behavior change is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:40:45.884Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not explicitly listed as a dedicated impact statement."
+        }
+      ]
+    }
+  ]
+}

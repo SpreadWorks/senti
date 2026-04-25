@@ -27,14 +27,11 @@ function extractSection(text, heading) {
   return result.join("\n").trim();
 }
 
+const SKILL_BY_PHASE = { sync: "sdd-forge.flow-sync" };
+const DEFAULT_SKILL = "sdd-forge.flow";
+
 function phaseToSkill(phase) {
-  switch (phase) {
-    case "plan": return "flow-plan";
-    case "impl": return "flow-impl";
-    case "finalize": return "flow-finalize";
-    case "sync": return "flow-sync";
-    default: return "flow-finalize";
-  }
+  return SKILL_BY_PHASE[phase] ?? DEFAULT_SKILL;
 }
 
 /**

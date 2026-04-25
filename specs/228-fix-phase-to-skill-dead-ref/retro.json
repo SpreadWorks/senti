@@ -1,0 +1,71 @@
+{
+  "spec": "specs/228-fix-phase-to-skill-dead-ref/spec.json",
+  "date": "2026-04-25T06:04:43.099Z",
+  "requirements": [
+    {
+      "desc": "flow get resolve-context または flow run resume を実行したとき、返される recommendedSkill は現行の skill 名でなければならない",
+      "status": "done",
+      "note": "`phaseToSkill()` が `sdd-forge.flow`（例外は `sync` で `sdd-forge.flow-sync`）を返す実装に更新され、撤去済み skill 名は返さなくなった。"
+    },
+    {
+      "desc": "フローがいずれかの phase にあるとき、その phase に対する skill マッピングが明示的に定義されていなければならない",
+      "status": "partial",
+      "note": "挙動上は全 phase で現行 skill を返せるが、実装は `sync` のみ明示マップ＋その他はデフォルトで、phaseごとの明示定義にはなっていない。"
+    },
+    {
+      "desc": "flow get resolve-context または flow run resume を実行したとき、recommendedSkill フィールドが envelope に含まれていなければならない",
+      "status": "done",
+      "note": "`recommendedSkill` フィールドの生成は削除されておらず、関連テストも追加されて存在を確認している。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/draft.md",
+      "change": "要件評価対象の実装変更に直接必要ないドラフト文書を新規追加。"
+    },
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/flow.json",
+      "change": "フロー実行状態・メトリクスなどの運用メタデータを新規追加。"
+    },
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/issue-log.json",
+      "change": "ゲート評価ログを新規追加（機能要件そのものではない）。"
+    },
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/issue.md",
+      "change": "背景説明用の issue 文書を新規追加。"
+    },
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/qa.md",
+      "change": "確認用 Q&A テンプレートを新規追加。"
+    },
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/review.md",
+      "change": "レビュー記録文書を新規追加。"
+    },
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/spec.json",
+      "change": "仕様管理データを新規追加。"
+    },
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/spec.md",
+      "change": "仕様ドキュメントを新規追加。"
+    },
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/tests/README.md",
+      "change": "spec配下のテスト説明文書を新規追加。"
+    },
+    {
+      "file": "specs/228-fix-phase-to-skill-dead-ref/tests/phase-to-skill.test.js",
+      "change": "要件の実装本体ではなく検証用テストを新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "done": 2,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.83,
+    "notes": "主要な不具合修正（撤去済み skill 名の返却解消）と recommendedSkill 維持は達成。要件R2の『phaseごとの明示マッピング』は、現在の default 依存実装では厳密には未充足で部分達成。"
+  }
+}

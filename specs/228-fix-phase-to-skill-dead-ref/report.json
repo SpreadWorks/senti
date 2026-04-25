@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/228-fix-phase-to-skill-dead-ref/draft.md     |  36 +++\n specs/228-fix-phase-to-skill-dead-ref/flow.json    | 353 +++++++++++++++++++++\n .../228-fix-phase-to-skill-dead-ref/issue-log.json |  88 +++++\n specs/228-fix-phase-to-skill-dead-ref/issue.md     |  90 ++++++\n specs/228-fix-phase-to-skill-dead-ref/qa.md        |   9 +\n specs/228-fix-phase-to-skill-dead-ref/review.md    |  28 ++\n specs/228-fix-phase-to-skill-dead-ref/spec.json    | 114 +++++++\n specs/228-fix-phase-to-skill-dead-ref/spec.md      |  94 ++++++\n .../tests/README.md                                |  19 ++\n .../tests/phase-to-skill.test.js                   |  97 ++++++\n src/flow/lib/resolve-context-envelope.js           |  11 +-\n 11 files changed, 932 insertions(+), 7 deletions(-)",
+      "commits": [
+        "feat: feature/228-fix-phase-to-skill-dead-ref"
+      ]
+    },
+    "retro": {
+      "total": 3,
+      "done": 2,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.83,
+      "notes": "主要な不具合修正（撤去済み skill 名の返却解消）と recommendedSkill 維持は達成。要件R2の『phaseごとの明示マッピング』は、現在の default 依存実装では厳密には未充足で部分達成。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 2,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 131988,
+      "output": 8887,
+      "cacheRead": 135936,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 214963,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 95088
+        },
+        {
+          "phase": "gate",
+          "durationMs": 55327
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 32373
+        },
+        {
+          "phase": "review",
+          "durationMs": 32175
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2351,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2618
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/228-fix-phase-to-skill-dead-ref\n    11 files changed, 932 insertions(+), 7 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (2 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 2\n    issue-log ................... 0\n    agent calls ................. 10\n    input tokens ................ 131,988\n    output tokens ............... 8,887\n    cache-read tokens ........... 135,936\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 215.0s\n      gate-draft ................ 95.1s\n      gate ...................... 55.3s\n      gate-impl ................. 32.4s\n      review .................... 32.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2351  integration 267  acceptance 0  total 2618"
+}
