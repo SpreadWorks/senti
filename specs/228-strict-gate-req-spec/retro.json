@@ -1,0 +1,68 @@
+{
+  "spec": "specs/228-strict-gate-req-spec/spec.json",
+  "date": "2026-04-25T06:18:26.621Z",
+  "requirements": [
+    {
+      "desc": "When a task declares expected_tests in spec.json, the spec schema shall accept the declaration as an optional array of strings.",
+      "status": "done",
+      "note": "Added tasks[].expected_tests to spec schema as optional array of strings, with passing schema tests."
+    },
+    {
+      "desc": "When gate evaluates a task-impl or integration phase and the current task has expected_tests, it shall verify that each declared path exists in the diff or worktree before invoking the AI evaluation.",
+      "status": "partial",
+      "note": "checkExpectedTests is invoked before AI evaluation, but it validates against worktree existence only (not explicit diff existence)."
+    },
+    {
+      "desc": "If a declared expected test file is missing from both the diff and the worktree, gate shall FAIL with a reason identifying the missing file path.",
+      "status": "partial",
+      "note": "Gate fails with clear path-specific reasons, but the implementation does not explicitly evaluate 'missing from diff and worktree' as a combined condition."
+    },
+    {
+      "desc": "When expected_tests is undefined, null, or empty for the current task, gate shall skip the verification and proceed to the existing AI evaluation.",
+      "status": "done",
+      "note": "checkExpectedTests returns no issues for undefined/null/empty and gate proceeds normally."
+    },
+    {
+      "desc": "When expected_tests contains glob patterns, the check shall expand globs against the worktree and verify that at least one file matches each pattern.",
+      "status": "done",
+      "note": "Glob-like entries are expanded via worktree scan + regex matching, and zero-match patterns are reported as issues."
+    },
+    {
+      "desc": "When checkExpectedTests is invoked, it shall operate as a pure mechanical check with no AI invocation, consistent with the existing checkTestChanges and checkMissingHeadTestEvidence patterns.",
+      "status": "done",
+      "note": "checkExpectedTests is purely filesystem/diff-independent mechanical logic and does not call the AI agent."
+    },
+    {
+      "desc": "When checkExpectedTests detects missing files, the gate command shall return a gateFail envelope (which the existing gate dispatcher surfaces as a non-zero exit code).",
+      "status": "done",
+      "note": "executeDiffBasedGate returns gateFail when expected test issues are found."
+    },
+    {
+      "desc": "When expected_tests contains more than 50 entries, or glob expansion yields more than 500 matches, checkExpectedTests shall throw an Error to prevent unbounded resource usage.",
+      "status": "done",
+      "note": "Throws Error for >50 entries and for per-glob matches >500."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "Introduced additional traversal guardrails (WALK_MAX_DEPTH=20, WALK_MAX_FILES=50000) and async recursive walk implementation, which are not explicitly required by REQ-1..REQ-8."
+    },
+    {
+      "file": "src/flow/schemas/spec.schema.json",
+      "change": "Added extra string constraints for expected_tests items (minLength/maxLength), beyond the requirement of optional array of strings."
+    },
+    {
+      "file": "specs/228-strict-gate-req-spec/*",
+      "change": "Added extensive spec workflow artifacts (draft/flow/issue/review/qa/tests docs) not directly part of REQ-1..REQ-8 implementation behavior."
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "done": 6,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.88,
+    "notes": "Implementation largely matches the spec and covers all major behaviors, with the main gap being explicit diff-based existence handling in REQ-2/REQ-3 (current logic relies on worktree checks)."
+  }
+}

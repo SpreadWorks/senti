@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/228-strict-gate-req-spec/draft.md            |  41 ++\n specs/228-strict-gate-req-spec/flow.json           | 481 +++++++++++++++++++++\n specs/228-strict-gate-req-spec/issue-log.json      | 157 +++++++\n specs/228-strict-gate-req-spec/issue.md            |  60 +++\n specs/228-strict-gate-req-spec/qa.md               |   9 +\n specs/228-strict-gate-req-spec/review.md           |  41 ++\n specs/228-strict-gate-req-spec/spec.json           | 188 ++++++++\n specs/228-strict-gate-req-spec/spec.md             |  85 ++++\n specs/228-strict-gate-req-spec/tests/README.md     |  30 ++\n src/flow/lib/run-gate.js                           | 110 +++++\n src/flow/schemas/spec.schema.json                  |   5 +\n tests/unit/flow/gate-expected-tests.test.js        | 147 +++++++\n tests/unit/flow/spec-schema-expected-tests.test.js | 105 +++++\n 13 files changed, 1459 insertions(+)",
+      "commits": [
+        "feat: feature/228-strict-gate-req-spec"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 6,
+      "partial": 2,
+      "not_done": 0,
+      "rate": 0.88,
+      "notes": "Implementation largely matches the spec and covers all major behaviors, with the main gap being explicit diff-based existence handling in REQ-2/REQ-3 (current logic relies on worktree checks)."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 3,
+      "question": 5,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 174715,
+      "output": 14471,
+      "cacheRead": 268544,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 14,
+      "durationMs": 341368,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 98869
+        },
+        {
+          "phase": "gate",
+          "durationMs": 92797
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 107930
+        },
+        {
+          "phase": "review",
+          "durationMs": 41772
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2367,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2634
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/228-strict-gate-req-spec\n    13 files changed, 1459 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 88%  (6 done / 2 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 3\n    Q&A ......................... 5\n    issue-log ................... 2\n    agent calls ................. 14\n    input tokens ................ 174,715\n    output tokens ............... 14,471\n    cache-read tokens ........... 268,544\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 341.4s\n      gate-draft ................ 98.9s\n      gate ...................... 92.8s\n      gate-impl ................. 107.9s\n      review .................... 41.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2367  integration 267  acceptance 0  total 2634"
+}

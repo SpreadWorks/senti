@@ -780,6 +780,101 @@ export function checkTestChanges(diff, testGlobs, authorizedFiles) {
 }
 
 // ---------------------------------------------------------------------------
+// Expected test file verification (spec 228)
+// ---------------------------------------------------------------------------
+
+const EXPECTED_TESTS_MAX_ENTRIES = 50;
+const EXPECTED_TESTS_MAX_GLOB_MATCHES = 500;
+const WALK_MAX_DEPTH = 20;
+const WALK_MAX_FILES = 50000;
+
+async function walkDir(dir, depth = 0, counter = { count: 0 }) {
+  if (depth > WALK_MAX_DEPTH) return [];
+  const results = [];
+  const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+  for (const e of entries) {
+    if (counter.count >= WALK_MAX_FILES) break;
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) {
+      const sub = await walkDir(full, depth + 1, counter);
+      results.push(...sub);
+    } else {
+      results.push(full);
+      counter.count++;
+    }
+  }
+  return results;
+}
+
+function hasWildcard(entry) {
+  return entry.includes("*") || entry.includes("?");
+}
+
+/**
+ * Verify that each expected test entry exists in the worktree.
+ *
+ * - Literal paths: check via `fs.promises.access`.
+ * - Glob patterns (`*` or `?`): expand against the worktree using
+ *   `globToRegExp` and verify at least one file matches.
+ *
+ * @param {string} root - repository or worktree root
+ * @param {string[]|undefined|null} expectedTests
+ * @returns {Promise<{ issues: string[] }>}
+ */
+export async function checkExpectedTests(root, expectedTests) {
+  if (!Array.isArray(expectedTests) || expectedTests.length === 0) {
+    return { issues: [] };
+  }
+
+  if (expectedTests.length > EXPECTED_TESTS_MAX_ENTRIES) {
+    const err = new Error(
+      `expected_tests count ${expectedTests.length} exceeds limit ${EXPECTED_TESTS_MAX_ENTRIES}`,
+    );
+    err.code = "EXPECTED_TESTS_LIMIT_EXCEEDED";
+    throw err;
+  }
+
+  const issues = [];
+  const hasGlobs = expectedTests.some(hasWildcard);
+  let relFiles = null;
+
+  if (hasGlobs) {
+    const allFiles = await walkDir(root);
+    relFiles = allFiles.map((f) => path.relative(root, f));
+  }
+
+  for (const entry of expectedTests) {
+    if (hasWildcard(entry)) {
+      const re = globToRegExp(entry);
+      const matchedFiles = relFiles.filter((rel) => re.test(rel));
+      if (matchedFiles.length > EXPECTED_TESTS_MAX_GLOB_MATCHES) {
+        const err = new Error(
+          `glob expansion for "${entry}" matched ${matchedFiles.length} files, exceeds limit ${EXPECTED_TESTS_MAX_GLOB_MATCHES}`,
+        );
+        err.code = "EXPECTED_TESTS_LIMIT_EXCEEDED";
+        throw err;
+      }
+      if (matchedFiles.length === 0) {
+        issues.push(
+          `expected test not found: "${entry}" — no files in the worktree match this glob pattern`,
+        );
+      }
+    } else {
+      const abs = path.resolve(root, entry);
+      try {
+        await fs.promises.access(abs);
+      } catch {
+        issues.push(
+          `expected test not found: "${entry}" — file does not exist in the worktree`,
+        );
+      }
+    }
+  }
+
+  return { issues };
+}
+
+// ---------------------------------------------------------------------------
 // Authorized test modifications (spec 205)
 // ---------------------------------------------------------------------------
 
@@ -1801,6 +1896,21 @@ export class RunGateCommand extends FlowCommand {
     if (testIssues.length > 0) {
       return gateFail(level, phase, specPath, [], testIssues);
     }
+
+    // spec 228: verify that expected test files declared in the current task
+    // actually exist in the worktree. Runs before AI evaluation so missing
+    // tests cannot be masked by a passing overall test suite.
+    const currentTaskId = state.currentTaskId ?? null;
+    if (currentTaskId && Array.isArray(spec.tasks)) {
+      const task = spec.tasks.find((t) => t.id === currentTaskId);
+      if (task) {
+        const expectedTestIssues = (await checkExpectedTests(root, task.expected_tests)).issues;
+        if (expectedTestIssues.length > 0) {
+          return gateFail(level, phase, specPath, [], expectedTestIssues);
+        }
+      }
+    }
+
     const unusedWarnings = findUnusedAuthorizations(diff, authResult.files);
 
     const agent = container.get("agent");

@@ -1,0 +1,157 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft is focused on one concern: adding mechanical pre-checks for REQ-SPEC gate validation.; Unambiguous Requirements — Scope items are concrete and testable (schema field addition, file-existence checks, phase targets, skip condition).; Complete Context — Requirements are listed as scope bullets but mostly do not use explicit trigger/context (When/If) paired with explicit expected behavior (shall).; No Hardcoded Secrets — No API keys, tokens, passwords, or other secrets appear in the draft.; Prioritize Requirements — The draft indicates five requirements were approved, but no priority order is specified.; Impact on Existing Features — Impact section explicitly describes affected areas and states compatibility/no-impact conditions.; Present Recommendations with Reasoning — Each Q has a recommended answer and concise rationale grounded in problem context/guardrail intent.; Explore Before Asking — Draft references concrete existing files/flows and resolves questions without deferring answerable items to the user.; Proactively Raise Related Implications — Related implications are proactively covered via scope boundaries and explicit existing-feature impact notes.; Confirm Brainstorm vs. Decision Before Critiquing — Content shows decision mode (user approval confirmed) rather than treating tentative brainstorming as final.; Capture Digressions in draft.md — No digression is evident in the provided content, so no capture action was required.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific function names/where checks are added), exceeding pure requirements-level framing.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:39:29.385Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirements are listed as scope bullets but mostly do not use explicit trigger/context (When/If) paired with explicit expected behavior (shall)."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "The draft indicates five requirements were approved, but no priority order is specified."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific function names/where checks are added), exceeding pure requirements-level framing."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: adding mechanical pre-checks for REQ-SPEC gate evaluation.; Unambiguous Requirements — Scope items are mostly concrete and testable (schema field addition, pre-check timing, skip condition, fail reason output).; Complete Context — Several requirements state actions but omit explicit trigger-condition wording (When/If) paired with expected behavior.; No Hardcoded Secrets — No secrets, credentials, or hardcoded tokens are present in the draft content.; Prioritize Requirements — More than three requirements are prioritized via P1-P5 and must/should labels.; Impact on Existing Features — A dedicated impact section explicitly states effects and no-impact compatibility cases.; Present Recommendations with Reasoning — Each Q has a recommended answer and concise rationale, with recommendations stated first.; Explore Before Asking — Cannot verify whether docs/code exploration occurred before questions from draft text alone.; Proactively Raise Related Implications — Related implications are proactively surfaced via scope boundaries and existing-feature impact notes.; Confirm Brainstorm vs. Decision Before Critiquing — Content is presented as a decided/approved draft, not as critiqued brainstorming output.; Capture Digressions in draft.md — No digression is shown; no missing digression capture is evident.; Draft Stays at Requirements Level — Q3 includes implementation-level detail ('file existence + exit code 0') beyond pure requirements-level drafting.; Backward-Compatible CLI Interface — No existing CLI command/option removal or semantic change is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:40:36.900Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirements state actions but omit explicit trigger-condition wording (When/If) paired with expected behavior."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Q3 includes implementation-level detail ('file existence + exit code 0') beyond pure requirements-level drafting."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: adding mechanical pre-checks for expected test files in gate REQ-SPEC evaluation.; Unambiguous Requirements — Requirements are mostly stated as verifiable conditions with clear pass/fail behavior and file-existence checks.; Complete Context — Each scoped requirement includes trigger context (When/If) and expected behavior (shall/FAIL/skip).; No Hardcoded Secrets — No source code secrets or credential-like literals are present in the draft.; Prioritize Requirements — There are more than three requirements and they are ordered (P1-P5) with must/should priority markers.; Impact on Existing Features — A dedicated impact section lists effects on existing features and explicitly states no impact where applicable.; Present Recommendations with Reasoning — Q&A provides recommendations, but the reasoning basis is not consistently tied explicitly to project docs, guardrail principles, or existing code patterns for each question.; Explore Before Asking — Cannot determine from the draft alone whether docs/code exploration was performed before asking questions.; Proactively Raise Related Implications — Related implications are proactively addressed via scope boundaries and explicit impact analysis.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of tentative ideas is present; the draft records finalized, user-approved decisions.; Capture Digressions in draft.md — No digression is evident in the content, so no additional draft.md capture was needed.; Draft Stays at Requirements Level — Content stays at requirements/spec level and avoids implementation/function-level design detail.; Backward-Compatible CLI Interface — No existing CLI command/option removal or semantic change is proposed, so migration planning is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:41:30.949Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A provides recommendations, but the reasoning basis is not consistently tied explicitly to project docs, guardrail principles, or existing code patterns for each question."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:44:35.098Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: adding mechanical expected_tests pre-checks to gate-impl REQ-SPEC evaluation.; Task Single Responsibility — Each concrete task is scoped to a single concern (schema field addition vs gate pre-check implementation).; Unambiguous Requirements — Requirements are mostly stated with verifiable conditions (specific fields, phases, pass/fail behavior, glob matching).; Complete Context — Requirements generally include trigger context (When/If) and expected shall behavior.; REQ Diff-Verifiability — Pass/fail can be determined from code diff plus tests for schema support, pre-check behavior, and skip/fail conditions.; No Hardcoded Secrets — No secrets or credential material are present in the spec content.; No Silent Error Swallowing — No silent error swallowing pattern is specified; failures are explicitly required to return FAIL reasons.; Prioritize Requirements — More than three requirements are present and each has an explicit priority (must/should).; Impact on Existing Features — Impact is addressed via explicit backward-compatibility statements for existing specs without expected_tests.; Bounded Resource Usage — Glob expansion/worktree scanning is required, but explicit upper bounds on traversal/size are not defined.; Changes Require Test Coverage — The spec includes unit/integration test expectations and per-task test strategy for new behavior.; Spec Includes Test Strategy — Test strategy is explicitly described in task-level test_strategy fields and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot assess synthesis vs direct copying without the original draft source for comparison.; Record Unresolved Points as Open Questions — Unresolved points are not fabricated; alternatives and clarifications are documented and open_questions is explicitly empty.; Include 'Why This Approach' Rationale — Rationale is provided in background, clarifications, and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying or deleting existing tests without approval.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed; compatibility is preserved.; Exit Code Contract — Spec states FAIL/PASS outcomes but does not explicitly require non-zero process exit code on failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:46:04.631Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Glob expansion/worktree scanning is required, but explicit upper bounds on traversal/size are not defined."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "Spec states FAIL/PASS outcomes but does not explicitly require non-zero process exit code on failure."
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: mechanical pre-check for task expected test files in gate-impl.; Task Single Responsibility — Each concrete task has a single concern (schema update vs gate check implementation).; Unambiguous Requirements — Requirements are mostly concrete and verifiable (conditions, expected behavior, limits, fail modes).; Complete Context — REQ-6 lacks an explicit trigger condition (When/If), so not all requirements pair context with outcome.; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus test results (schema, checks, fail paths, limits).; No Hardcoded Secrets — No secrets, tokens, or credentials are present in the spec content.; No Silent Error Swallowing — No silent error swallowing is specified; failures are explicitly surfaced as FAIL/Error.; Prioritize Requirements — More than three requirements are present and each includes priority (must/should).; Impact on Existing Features — Impact is addressed via backward-compatibility statements for existing specs without expected_tests.; Bounded Resource Usage — Explicit upper bounds are defined (50 expected_tests, 500 glob matches) with error on overflow.; Changes Require Test Coverage — Tasks include unit/integration test coverage for happy paths and failure/skip cases.; Spec Includes Test Strategy — Test strategy is explicitly described in task-level test_strategy fields.; Synthesize Draft, Do Not Copy — Cannot determine whether source draft was synthesized or copied because draft input is not provided.; Record Unresolved Points as Open Questions — Cannot verify whether any claims are fabricated without the underlying evidence or source discussions.; Include 'Why This Approach' Rationale — Rationale is provided in background, clarifications, and alternatives considered.; Do Not Modify Existing Tests Without Approval — No modification/deletion of existing tests is required by this spec; focus is adding coverage/checks.; Backward-Compatible CLI Interface — No command/option semantic change is proposed; compatibility is explicitly noted.; Exit Code Contract — Spec explicitly requires gate failure surfacing as non-zero exit via existing dispatcher.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:47:04.054Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "REQ-6 lacks an explicit trigger condition (When/If), so not all requirements pair context with outcome."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — REQ-8 is not implemented as specified: the 500-file limit is enforced on total worktree files (`allFiles.length`) per glob entry, not on glob expansion match count (`matched files > 500`).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T06:06:05.844Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "REQ-8 is not implemented as specified: the 500-file limit is enforced on total worktree files (`allFiles.length`) per glob entry, not on glob expansion match count (`matched files > 500`)."
+        }
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "REQ-8: 500-file limit was applied to total worktree files instead of glob match count",
+      "resolution": "Changed to count matched files only, not total worktree files",
+      "taskId": null,
+      "timestamp": "2026-04-25T06:06:32.262Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff adds optional tasks[].expected_tests schema support and a pre-AI mechanical check in gate that skips on undefined/null/empty, fails with concrete missing-path reasons, supports glob matching, and enforces 50-entry/500-match limits; baseline/head test results show no new failures.; No Hardcoded Secrets — Added lines contain no API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added `walkDir` uses `catch { return results; }` and silently discards filesystem errors without logging or rethrowing.; Bounded Resource Usage — Added recursive `walkDir` traverses the entire tree with no explicit traversal/depth/file-count bound, so recursive/bulk processing remains unbounded.; No Sensitive Data in Logs — Added messages only report expected test paths; no passwords, tokens, or clear PII are logged.; No Disabling Existing Tests — Diff adds new tests and does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence that new tests broke existing tests; such execution evidence is not provided.; Flag Tests That Become Irrelevant — No added changes indicate prior tests became irrelevant or were superseded.; Exit Code Contract — Added failure paths use `gateFail` or throw `Error`; no added behavior forces success exit on failure.; No Synchronous I/O in Hot Paths — Added logic performs synchronous I/O (`readdirSync`, `existsSync`) in traversal/loop-based bulk-check paths.; Validate User Input at Entry Point — Diff does not introduce new CLI/stdin entry-point handling or pass-through of unvalidated user input.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T06:09:44.303Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "Added `walkDir` uses `catch { return results; }` and silently discards filesystem errors without logging or rethrowing."
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Added recursive `walkDir` traverses the entire tree with no explicit traversal/depth/file-count bound, so recursive/bulk processing remains unbounded."
+        },
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "Added logic performs synchronous I/O (`readdirSync`, `existsSync`) in traversal/loop-based bulk-check paths."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "impl-flag-obsolete-tests",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "guardrail violations: silent error swallowing in walkDir, unbounded traversal, synchronous I/O",
+      "resolution": "walkDir made async with depth/file-count bounds, checkExpectedTests made async, fs.existsSync replaced with fs.promises.access",
+      "taskId": null,
+      "timestamp": "2026-04-25T06:11:06.202Z"
+    }
+  ]
+}
