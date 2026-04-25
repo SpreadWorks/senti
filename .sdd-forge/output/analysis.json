@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T05:57:04.396Z",
+  "analyzedAt": "2026-04-25T06:04:46.787Z",
   "package": {
     "entries": [
       {
@@ -3367,9 +3367,9 @@
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
-        "hash": "8f686dfb8c94ba300e93c629caf4da7c",
-        "lines": 108,
-        "mtime": "2026-04-23T04:45:33.474Z",
+        "hash": "3d313b95dde6470114075eec223882ab",
+        "lines": 105,
+        "mtime": "2026-04-25T06:04:46.289Z",
         "className": "resolve-context-envelope",
         "methods": [
           "buildResolvedFlowContext",
@@ -3392,21 +3392,24 @@
           "src/flow/lib/run-resume.js"
         ],
         "id": "d569f2a6",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 5
-        },
-        "summary": "Builds a resolved context envelope for flow resume/status-style operations. It combines git metadata, flow state, and parsed spec sections into one runtime context object.",
-        "detail": "The implementation reads flow JSON from spec directories and selects an effective root between worktree and main repository paths. It extracts sections from markdown text to provide concise contextual snippets for downstream commands. Git-derived signals such as branch, ahead count, commit identity, and worktree health are included to support actionable resume guidance. It maps phases to skill names so UI/command layers can suggest next actions consistently. Missing active-flow state is treated as a hard error to prevent ambiguous context generation.",
-        "chapter": "internal_design",
+        "summary": "This module resolves and normalizes the runtime context envelope for an active SDD flow. It consolidates flow state, repository state, and spec-derived data into a single object consumed by downstream flow logic.",
+        "detail": "The implementation maps flow phases to skills through a small lookup table with a default fallback, so phase-specific behavior stays explicit and extensible. It resolves key paths such as `flow.json` and spec files relative to either the current worktree or the main repository, selecting the effective root based on existence checks. It loads and parses spec content when present, then enriches the returned context with Git metadata via helper functions (branch, ahead count, last commit, worktree status, and GitHub CLI availability). The module also includes section-extraction utility logic for parsing text by heading, enabling targeted retrieval of structured content from spec-like markdown. It fails fast when no active flow is found, enforcing strict flow-state preconditions before any command continues.",
+        "chapter": "cli_commands",
         "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-25T06:05:00.437Z",
+          "attempts": 1
+        },
         "keywords": [
+          "flow context resolution",
           "context envelope",
-          "resume context",
-          "worktree resolution",
-          "git status metadata",
-          "phase mapping",
-          "spec section extraction"
+          "phase-to-skill mapping",
+          "worktree detection",
+          "spec loading",
+          "git status helpers",
+          "repository metadata",
+          "path resolution",
+          "flow state validation"
         ]
       },
       {
@@ -9691,5 +9694,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T05:57:24.718Z"
+  "enrichedAt": "2026-04-25T06:05:00.437Z"
 }
