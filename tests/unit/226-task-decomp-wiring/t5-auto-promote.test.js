@@ -190,7 +190,7 @@ describe("T-5: auto-promote function and callers", () => {
     assert.equal(t2.status, "in_progress");
   });
 
-  it("auto-promote is called from exactly 2 production sites (grep verification)", () => {
+  it("auto-promote is called from exactly 3 production sites (grep verification)", () => {
     // Grep src/ for actual invocations of promoteNextPending(
     // excluding: definition, imports, comments, test files.
     const srcRoot = path.join(process.cwd(), "src");
@@ -210,16 +210,18 @@ describe("T-5: auto-promote function and callers", () => {
       return true;
     });
 
-    // There should be exactly 3 invocation lines across 2 logical sites:
+    // There should be exactly 4 invocation lines across 3 logical sites:
     //   Site 1: sync-spec-tasks.js (1 line)
     //   Site 2: registry.js + run-complete-task.js (2 lines, both gate-impl PASS)
-    assert.equal(lines.length, 3, `expected 3 invocation lines, got:\n${lines.join("\n")}`);
+    //   Site 3: get-next-action.js (1 line, spec 229 safety-net fallback)
+    assert.equal(lines.length, 4, `expected 4 invocation lines, got:\n${lines.join("\n")}`);
 
     // Verify the files match the expected call sites.
     const files = lines.map((l) => path.basename(l.split(":")[0]));
     assert.ok(files.includes("sync-spec-tasks.js"), "site 1: sync-spec-tasks");
     assert.ok(files.includes("registry.js"), "site 2a: registry gate-impl post-hook");
     assert.ok(files.includes("run-complete-task.js"), "site 2b: run-complete-task CLI");
+    assert.ok(files.includes("get-next-action.js"), "site 3: safety-net fallback (spec 229)");
   });
 
   it("completeTask does NOT call promoteNextPending (separation of concerns)", () => {

@@ -28,6 +28,7 @@ import { fileURLToPath } from "url";
 import { FlowCommand } from "./base-command.js";
 import { getStepInstructions } from "./get-step-instructions.js";
 import { promoteFirstPending } from "../../lib/flow-store.js";
+import { promoteNextPending } from "../../lib/flow-helpers.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -93,14 +94,29 @@ export default class GetNextActionCommand extends FlowCommand {
 
     let target = resolveTarget(state);
     if (!target) {
-      // spec 219: safety-net fallback for flows that ended up with no
-      // in_progress step (e.g. older state created before auto-promote, or
-      // externally edited flow.json). Promote the first pending step in the
-      // task scope if a current task exists, otherwise in the flow scope,
-      // then reload state and redispatch.
+      // Spec 229 (supersedes spec 219): forest-aware safety-net fallback.
+      // When no in_progress step exists (e.g. externally edited flow.json,
+      // post-hook not fired):
+      //   1. Current task step promotion (if currentTask exists)
+      //   2. Flow-level step promotion (pending flow steps)
+      //   3. Forest DFS task promotion (when all flow steps are done)
+      let promoted = false;
       const task = findCurrentTask(state);
-      const promoted = (task && promoteFirstPending(task.steps))
-        || promoteFirstPending(state.steps);
+      if (task) {
+        promoted = !!promoteFirstPending(task.steps);
+      }
+      if (!promoted && promoteFirstPending(state.steps)) {
+        promoted = true;
+      }
+      if (!promoted) {
+        state.currentTaskId = null;
+        const taskId = promoteNextPending(state);
+        if (taskId) {
+          const promotedTask = findCurrentTask(state);
+          if (promotedTask) promoteFirstPending(promotedTask.steps);
+          promoted = true;
+        }
+      }
       if (promoted) {
         ctx.flowManager.save(state);
         state = ctx.flowManager.load();

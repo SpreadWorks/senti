@@ -1,0 +1,43 @@
+{
+  "spec": "specs/229-forest-aware-safety-net/spec.json",
+  "date": "2026-04-25T08:57:00.363Z",
+  "requirements": [
+    {
+      "desc": "When safety-net fallback が発動した場合、タスク promotion は promoteNextPending（forest DFS 順）を使用するものとする",
+      "status": "done",
+      "note": "src/flow/lib/get-next-action.js で fallback 時のタスク promotion が promoteNextPending(state) に変更され、forest-aware 選択に置換されている。"
+    },
+    {
+      "desc": "When タスクが promote された場合、そのタスク内のステップ promotion は promoteFirstPending（配列順）を使用するものとする",
+      "status": "done",
+      "note": "promoteNextPending でタスク昇格後に findCurrentTask(state) を取得し、promoteFirstPending(promotedTask.steps) を実行している。"
+    },
+    {
+      "desc": "正常パス（in_progress ステップが既に存在する場合）の動作は変更しないものとする",
+      "status": "done",
+      "note": "変更は if (!target) の safety-net 分岐内に限定され、既存 in_progress がある通常経路の分岐条件・処理は維持されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/get-next-action.js",
+      "change": "fallback 内で currentTaskId を null にクリアしてから promoteNextPending を呼ぶ挙動が追加されている（要件文には明示なし）。"
+    },
+    {
+      "file": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js",
+      "change": "promoteNextPending 呼び出しサイト数の期待値を更新（2サイト→3サイト、3行→4行）しており、要件自体では直接要求されていない保守更新。"
+    },
+    {
+      "file": "specs/229-forest-aware-safety-net/*",
+      "change": "spec/draft/flow/issue-log/review などの仕様運用ファイルが新規追加されているが、機能要件 REQ-1〜3 の直接実装対象外。"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "done": 3,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "REQ-1〜REQ-3 は実装差分上すべて満たしている。未計画扱いは主にプロセス生成物と補助的な保守変更で、主機能の要件充足を阻害するものは見当たらない。"
+  }
+}

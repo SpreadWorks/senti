@@ -1,0 +1,58 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/229-forest-aware-safety-net/draft.md         |  41 +++\n specs/229-forest-aware-safety-net/flow.json        | 329 +++++++++++++++++++++\n specs/229-forest-aware-safety-net/issue-log.json   | 167 +++++++++++\n specs/229-forest-aware-safety-net/issue.md         |  10 +\n specs/229-forest-aware-safety-net/qa.md            |   9 +\n specs/229-forest-aware-safety-net/review.md        |  28 ++\n specs/229-forest-aware-safety-net/spec.json        | 140 +++++++++\n specs/229-forest-aware-safety-net/spec.md          |  82 +++++\n specs/229-forest-aware-safety-net/tests/README.md  |  19 ++\n .../tests/safety-net-forest-aware.test.js          | 182 ++++++++++++\n src/flow/lib/get-next-action.js                    |  30 +-\n .../226-task-decomp-wiring/t5-auto-promote.test.js |   8 +-\n 12 files changed, 1035 insertions(+), 10 deletions(-)",
+      "commits": [
+        "feat: feature/229-forest-aware-safety-net"
+      ]
+    },
+    "retro": {
+      "total": 3,
+      "done": 3,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "REQ-1〜REQ-3 は実装差分上すべて満たしている。未計画扱いは主にプロセス生成物と補助的な保守変更で、主機能の要件充足を阻害するものは見当たらない。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 40927,
+      "output": 4572,
+      "cacheRead": 82816,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 5,
+      "durationMs": 110167,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 80363
+        },
+        {
+          "phase": "review",
+          "durationMs": 29804
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2385,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2652
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/229-forest-aware-safety-net\n    12 files changed, 1035 insertions(+), 10 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (3 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 3\n    agent calls ................. 5\n    input tokens ................ 40,927\n    output tokens ............... 4,572\n    cache-read tokens ........... 82,816\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 110.2s\n      gate-draft ................ 80.4s\n      review .................... 29.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2385  integration 267  acceptance 0  total 2652"
+}

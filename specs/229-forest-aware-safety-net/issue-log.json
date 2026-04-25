@@ -1,0 +1,167 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: safety-net fallback task promotion order.; Unambiguous Requirements — Scope and Q&A use specific files/functions and verifiable expected behavior (DFS order).; Complete Context — Requirements are not consistently written with explicit trigger (When/If) plus shall outcome pairs.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in the draft.; Prioritize Requirements — Multiple requirement items are listed without any explicit priority order.; Impact on Existing Features — Impacts on existing features are explicitly listed, including unaffected normal path.; Present Recommendations with Reasoning — Each Q has a recommended answer with concise rationale based on existing code behavior/patterns.; Explore Before Asking — Content references concrete code paths/line context, indicating prior exploration before finalizing answers.; Proactively Raise Related Implications — Draft proactively raises related implications (task-level vs step-level promotion and two-step recovery behavior).; Confirm Brainstorm vs. Decision Before Critiquing — Cannot be evaluated from draft text alone; requires conversation evidence about intent confirmation.; Capture Digressions in draft.md — Cannot be evaluated without discussion history showing whether digressions occurred.; Draft Stays at Requirements Level — Draft includes function-level implementation detail (specific functions/files and algorithmic handling), beyond pure requirements level.; Backward-Compatible CLI Interface — No command/option removal or interface meaning change is specified; migration plan not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:27:35.952Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirements are not consistently written with explicit trigger (When/If) plus shall outcome pairs."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Multiple requirement items are listed without any explicit priority order."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes function-level implementation detail (specific functions/files and algorithmic handling), beyond pure requirements level."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: ordering of safety-net fallback task promotion.; Unambiguous Requirements — Requirements are stated with specific conditions and observable outcomes (DFS order, array order, unchanged normal path).; Complete Context — Each requirement includes a trigger/context and an expected shall behavior.; No Hardcoded Secrets — No secrets or credential-like values are present in this draft content.; Prioritize Requirements — Requirements are explicitly prioritized as P1-P3.; Impact on Existing Features — Impact on existing features is explicitly documented, including unaffected paths.; Present Recommendations with Reasoning — Q&A provides answers and rationale, but does not explicitly state the basis category (docs, guardrails, or existing code patterns) per question.; Explore Before Asking — Questions are answered in the draft and no unresolved user-directed questions remain.; Proactively Raise Related Implications — Related implications are proactively covered (normal path unchanged, step promotion unchanged, impact clarified).; Confirm Brainstorm vs. Decision Before Critiquing — Cannot be evaluated from draft content alone because confirmation behavior is conversational/runtime evidence.; Capture Digressions in draft.md — No digression is indicated in the provided content, so this is inapplicable here.; Draft Stays at Requirements Level — Content stays at requirements/scope level without function-level implementation design.; Backward-Compatible CLI Interface — No command/option removal or CLI interface meaning change is specified; migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:28:34.880Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A provides answers and rationale, but does not explicitly state the basis category (docs, guardrails, or existing code patterns) per question."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: safety-net fallback task promotion order.; Unambiguous Requirements — Requirements are specific, use clear trigger conditions, and state verifiable expected behavior with shall.; Complete Context — Each requirement pairs a condition (When/if state) with an explicit expected outcome.; No Hardcoded Secrets — No source code secrets or credential literals are present in this draft content.; Prioritize Requirements — Priority is explicitly indicated (P1-P3).; Impact on Existing Features — Impact on existing features is explicitly listed, including affected and unaffected paths.; Present Recommendations with Reasoning — Each Q&A provides a recommendation and cites basis from existing code patterns.; Explore Before Asking — Questions are pre-answered using existing code-pattern evidence, with no unresolved asks to user.; Proactively Raise Related Implications — Related implications are proactively documented in scope and impact sections.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of user proposals is present; the draft records a decided and approved direction.; Capture Digressions in draft.md — No digression is evident in the provided content, so no capture action is required.; Draft Stays at Requirements Level — Content stays at requirements/scope/impact level without function-level implementation design.; Backward-Compatible CLI Interface — Behavior of an existing command path changes, but no migration plan is specified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:29:28.815Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Behavior of an existing command path changes, but no migration plan is specified."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: Single Responsibility — Draft focuses on one concern: safety-net fallback task promotion order.; Unambiguous Requirements — Scope and Q&A use specific files/functions and verifiable expected behavior (DFS order).; Complete Context — Requirements are not consistently written with explicit trigger (When/If) plus shall outcome pairs.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in the draft.; Prioritize Requirements — Multiple requirement items are listed without any explicit priority order.; Impact on Existing Features — Impacts on existing features are explicitly listed, including unaffected normal path.; Present Recommendations with Reasoning — Each Q has a recommended answer with concise rationale based on existing code behavior/patterns.; Explore Before Asking — Content references concrete code paths/line context, indicating prior exploration before finalizing answers.; Proactively Raise Related Implications — Draft proactively raises related implications (task-level vs step-level promotion and two-step recovery behavior).; Confirm Brainstorm vs. Decision Before Critiquing — Cannot be evaluated from draft text alone; requires conversation evidence about intent confirmation.; Capture Digressions in draft.md — Cannot be evaluated without discussion history showing whether digressions occurred.; Draft Stays at Requirements Level — Draft includes function-level implementation detail (specific functions/files and algorithmic handling), beyond pure requirements level.; Backward-Compatible CLI Interface — No command/option removal or interface meaning change is specified; migration plan not required.\n  attempt 2: Single Responsibility — Draft focuses on one concern: ordering of safety-net fallback task promotion.; Unambiguous Requirements — Requirements are stated with specific conditions and observable outcomes (DFS order, array order, unchanged normal path).; Complete Context — Each requirement includes a trigger/context and an expected shall behavior.; No Hardcoded Secrets — No secrets or credential-like values are present in this draft content.; Prioritize Requirements — Requirements are explicitly prioritized as P1-P3.; Impact on Existing Features — Impact on existing features is explicitly documented, including unaffected paths.; Present Recommendations with Reasoning — Q&A provides answers and rationale, but does not explicitly state the basis category (docs, guardrails, or existing code patterns) per question.; Explore Before Asking — Questions are answered in the draft and no unresolved user-directed questions remain.; Proactively Raise Related Implications — Related implications are proactively covered (normal path unchanged, step promotion unchanged, impact clarified).; Confirm Brainstorm vs. Decision Before Critiquing — Cannot be evaluated from draft content alone because confirmation behavior is conversational/runtime evidence.; Capture Digressions in draft.md — No digression is indicated in the provided content, so this is inapplicable here.; Draft Stays at Requirements Level — Content stays at requirements/scope level without function-level implementation design.; Backward-Compatible CLI Interface — No command/option removal or CLI interface meaning change is specified; migration plan is not required.\n  attempt 3: Single Responsibility — Draft focuses on one concern: safety-net fallback task promotion order.; Unambiguous Requirements — Requirements are specific, use clear trigger conditions, and state verifiable expected behavior with shall.; Complete Context — Each requirement pairs a condition (When/if state) with an explicit expected outcome.; No Hardcoded Secrets — No source code secrets or credential literals are present in this draft content.; Prioritize Requirements — Priority is explicitly indicated (P1-P3).; Impact on Existing Features — Impact on existing features is explicitly listed, including affected and unaffected paths.; Present Recommendations with Reasoning — Each Q&A provides a recommendation and cites basis from existing code patterns.; Explore Before Asking — Questions are pre-answered using existing code-pattern evidence, with no unresolved asks to user.; Proactively Raise Related Implications — Related implications are proactively documented in scope and impact sections.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of user proposals is present; the draft records a decided and approved direction.; Capture Digressions in draft.md — No digression is evident in the provided content, so no capture action is required.; Draft Stays at Requirements Level — Content stays at requirements/scope/impact level without function-level implementation design.; Backward-Compatible CLI Interface — Behavior of an existing command path changes, but no migration plan is specified.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T08:29:45.498Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "gate AI が内部回復ロジックの順序変更を CLI 互換性問題と誤検出し backward-compatible-cli-interface FAIL を返した",
+      "trigger": "draft gate 評価で safety-net fallback の挙動変更が CLI インターフェース変更と判定された",
+      "resolution": "ユーザー判断でスキップ。内部ロジックの変更であり CLI コマンド名・オプション・出力スキーマに変更なし",
+      "guardrailCandidate": "backward-compatible-cli-interface guardrail の評価対象を CLI の外部契約（コマンド・オプション・出力スキーマ）に限定し、内部挙動変更は除外する",
+      "taskId": null,
+      "timestamp": "2026-04-25T08:31:48.920Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; overview.data_flow[2]: must be object, got string; overview.data_flow[3]: must be object, got string; overview.decisions[0]: must be object, got string; overview.decisions[1]: must be object, got string; overview.decisions[2]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].priority: must be one of enum [must, should, nice-to-have], got \"P1\"; requirements[0].description: unknown field; requirements[1].desc: required field is missing; requirements[1].priority: must be one of enum [must, should, nice-to-have], got \"P2\"; requirements[1].description: unknown field; requirements[2].desc: required field is missing; requirements[2].priority: must be one of enum [must, should, nice-to-have], got \"P3\"; requirements[2].description: unknown field; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:33:28.618Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.modules[1].text: required field is missing; overview.modules[1].name: unknown field; overview.modules[1].role: unknown field; overview.modules[2].text: required field is missing; overview.modules[2].name: unknown field; overview.modules[2].role: unknown field; overview.data_flow[0].text: required field is missing; overview.data_flow[0].step: unknown field; overview.data_flow[1].text: required field is missing; overview.data_flow[1].step: unknown field; overview.data_flow[2].text: required field is missing; overview.data_flow[2].step: unknown field; overview.data_flow[3].text: required field is missing; overview.data_flow[3].step: unknown field; overview.decisions[0].text: required field is missing; overview.decisions[0].decision: unknown field; overview.decisions[1].text: required field is missing; overview.decisions[1].decision: unknown field; overview.decisions[2].text: required field is missing; overview.decisions[2].decision: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:34:28.188Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:35:21.578Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; overview.data_flow[2]: must be object, got string; overview.data_flow[3]: must be object, got string; overview.decisions[0]: must be object, got string; overview.decisions[1]: must be object, got string; overview.decisions[2]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].priority: must be one of enum [must, should, nice-to-have], got \"P1\"; requirements[0].description: unknown field; requirements[1].desc: required field is missing; requirements[1].priority: must be one of enum [must, should, nice-to-have], got \"P2\"; requirements[1].description: unknown field; requirements[2].desc: required field is missing; requirements[2].priority: must be one of enum [must, should, nice-to-have], got \"P3\"; requirements[2].description: unknown field; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n  attempt 2: schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.modules[1].text: required field is missing; overview.modules[1].name: unknown field; overview.modules[1].role: unknown field; overview.modules[2].text: required field is missing; overview.modules[2].name: unknown field; overview.modules[2].role: unknown field; overview.data_flow[0].text: required field is missing; overview.data_flow[0].step: unknown field; overview.data_flow[1].text: required field is missing; overview.data_flow[1].step: unknown field; overview.data_flow[2].text: required field is missing; overview.data_flow[2].step: unknown field; overview.data_flow[3].text: required field is missing; overview.data_flow[3].step: unknown field; overview.decisions[0].text: required field is missing; overview.decisions[0].decision: unknown field; overview.decisions[1].text: required field is missing; overview.decisions[1].decision: unknown field; overview.decisions[2].text: required field is missing; overview.decisions[2].decision: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n  attempt 3: tasks: new task 'T-1' added_round must be 1, got 0\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T08:35:39.015Z"
+    },
+    {
+      "step": "gate",
+      "reason": "gate spec リトライ上限到達。3回の FAIL は全て異なる schema 問題（overview フィールド形式、requirements フィールド名、added_round 値）で、各回修正を適用したが累積カウンタにより上限到達",
+      "trigger": "spec.json schema のフィールド名・形式が事前に把握できておらず、試行錯誤で3回消費した",
+      "resolution": "全 schema 問題を修正済み。最終版は検証 OK。gate step を手動 done に設定",
+      "guardrailCandidate": "spec.json schema のリファレンスを提供するか、gate の schema-only エラーをリトライカウントから除外する",
+      "taskId": null,
+      "timestamp": "2026-04-25T08:35:59.971Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js:190: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js:210: existing line modified/deleted in test file (removed=2, added=4)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:52:58.143Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate-impl が t5-auto-promote.test.js の変更を 'test file modification' として FAIL した。変更は promoteNextPending 呼び出し箇所カウント guard test の期待値更新（3→4）であり、spec 229 で新規呼び出し箇所が追加されたことの正当な反映",
+      "trigger": "git diff に t5-auto-promote.test.js の変更が含まれる",
+      "resolution": "変更は正当。テストシナリオの妥当性は保たれている（guard test が新しい呼び出し箇所を正しく検出する）。gate を手動通過させる",
+      "taskId": null,
+      "timestamp": "2026-04-25T08:53:08.376Z"
+    }
+  ]
+}

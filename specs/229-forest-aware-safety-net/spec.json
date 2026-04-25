@@ -1,0 +1,140 @@
+{
+  "goal": "safety-net fallback のタスク promotion 順序を配列順から forest DFS 順に変更する",
+  "background": "get-next-action.js の safety-net fallback（spec 219）は promoteFirstPending（配列順）を使っているが、正常パスは promoteNextPending（forest DFS 順）を使っている。回復時に正常パスと異なる順序でタスクが実行される可能性がある。",
+  "scope": {
+    "in": [
+      "get-next-action.js の safety-net fallback のタスク promotion を forest DFS 順に変更",
+      "fallback 後のステップ promotion の連鎖",
+      "ユニットテストの追加"
+    ],
+    "out": [
+      "promoteFirstPending 関数の削除",
+      "promoteNextPending / findNextPendingTask のロジック変更",
+      "正常パスの動作変更"
+    ]
+  },
+  "constraints": [
+    "外部依存なし（Node.js 組み込みのみ）",
+    "alpha 版ポリシー: 後方互換コード不要"
+  ],
+  "design_principles": [
+    "既存の forest traversal ロジックを再利用する",
+    "safety-net fallback と正常パスのタスク選択ロジックを統一する"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/get-next-action.js — 変更対象: safety-net fallback ロジック"
+      },
+      {
+        "text": "src/lib/flow-helpers.js — promoteNextPending 定義元（変更なし）"
+      },
+      {
+        "text": "src/lib/flow-store.js — promoteFirstPending 定義元（変更なし）"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "get-next-action が resolveTarget(state) を呼ぶ → null（in_progress なし）"
+      },
+      {
+        "text": "safety-net fallback: promoteNextPending(state) でタスクを DFS 順に promote"
+      },
+      {
+        "text": "promoteFirstPending(task.steps) でそのタスクの先頭ステップを promote"
+      },
+      {
+        "text": "state を save → reload → resolveTarget で再ディスパッチ"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "タスク promotion に promoteNextPending を使用（forest DFS 順）"
+      },
+      {
+        "text": "ステップ promotion は promoteFirstPending を継続使用（配列順）"
+      },
+      {
+        "text": "2段階 promotion（タスク → ステップ）で回復"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "priority": "must",
+      "desc": "When safety-net fallback が発動した場合、タスク promotion は promoteNextPending（forest DFS 順）を使用するものとする",
+      "status": "done"
+    },
+    {
+      "id": "REQ-2",
+      "priority": "must",
+      "desc": "When タスクが promote された場合、そのタスク内のステップ promotion は promoteFirstPending（配列順）を使用するものとする",
+      "status": "done"
+    },
+    {
+      "id": "REQ-3",
+      "priority": "must",
+      "desc": "正常パス（in_progress ステップが既に存在する場合）の動作は変更しないものとする",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "AC-1: forest 構造を持つ flow state で safety-net fallback が発動した場合、DFS 順で正しいタスクが選択される",
+    "AC-2: promote されたタスクの先頭 pending ステップが in_progress になる",
+    "AC-3: 正常パス（in_progress ステップあり）では fallback が発動しない",
+    "AC-4: flat タスクリスト（parent なし）でも配列順で正しいタスクが選択される"
+  ],
+  "clarifications": [
+    {
+      "q": "promoteNextPending は currentTaskId != null で null を返すが、fallback で問題ないか？",
+      "a": "fallback 到達時に currentTaskId が残っている場合はクリアしてから呼ぶ"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "promoteFirstPending のまま維持（不採用）",
+      "reason": "forest 構造で回復順序が不正確になり、正常パスとの一貫性がない"
+    },
+    {
+      "option": "findNextPendingTask を直接呼ぶ（不採用）",
+      "reason": "低レベルすぎる。promoteNextPending が適切な抽象"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/get-next-action.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-1",
+      "title": "Replace safety-net fallback with forest-aware promotion",
+      "goal": "get-next-action.js の safety-net fallback でタスク promotion を promoteNextPending に置き換え、ステップ promotion を promoteFirstPending で連鎖させる",
+      "acceptance": [
+        "safety-net fallback が promoteNextPending を使用してタスクを DFS 順に promote する",
+        "promote されたタスクの先頭 pending ステップが in_progress になる",
+        "正常パスの動作に変更がない"
+      ],
+      "implementation_notes": "import を promoteNextPending に変更。fallback ロジックで promoteNextPending(state) → findCurrentTask(state) → promoteFirstPending(task.steps) の2段階 promotion を実装。",
+      "test_strategy": "ユニットテスト: forest 構造と flat リストの両方で safety-net fallback のタスク選択順序を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-25T08:36:12.750Z",
+    "notes": "autoApprove"
+  }
+}
