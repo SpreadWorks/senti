@@ -1,0 +1,188 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: re-evaluating and promoting auto mode after more phase information is available.; Unambiguous Requirements — R1-R6 are mostly testable and specify concrete conditions/actions instead of vague adjectives.; Complete Context — Requirements include trigger conditions (e.g., draft/spec completion, flags) and expected behaviors (re-run, signal, prompt choices).; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in the content.; Prioritize Requirements — There are more than three requirements (R1-R6) but no must/should/nice-to-have priority labels are assigned.; Impact on Existing Features — An explicit impact list on existing modules/files is provided under impactOnExisting.; Present Recommendations with Reasoning — Each QA item gives a recommended answer plus rationale and evidence from existing code paths.; Explore Before Asking — Questions are answered using code references and evidence; no unresolved user-askable questions remain.; Proactively Raise Related Implications — The draft proactively addresses related implications such as trust-path behavior, async execution, and preparing-mode carryover.; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation of brainstorming vs decision mode is shown before evaluative critique.; Capture Digressions in draft.md — Whether digressions occurred and were captured in draft.md cannot be determined from the provided artifact alone.; Draft Stays at Requirements Level — The draft goes beyond requirements level by detailing internal implementation/control-flow decisions in specific files/functions.; Backward-Compatible CLI Interface — No explicit removal or semantic change of CLI commands/options is specified, so migration planning is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:58:10.925Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements (R1-R6) but no must/should/nice-to-have priority labels are assigned."
+        },
+        {
+          "guardrail_id": "draft-confirm-brainstorm-vs-decide",
+          "reason": "No explicit confirmation of brainstorming vs decision mode is shown before evaluative critique."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft goes beyond requirements level by detailing internal implementation/control-flow decisions in specific files/functions."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 単一の目的（auto-check再評価による昇格提案）に集中しており、無関係な変更は含んでいない。; Unambiguous Requirements — R1-R6 は条件と期待動作が具体的で、検証可能な表現になっている。; Complete Context — 各要件にトリガー条件（例: draft done/spec approved, autoDesired=true 等）と期待動作が明示されている。; No Hardcoded Secrets — APIキーやトークン等の機密情報の直書きは含まれていない。; Prioritize Requirements — 4件超の要件に対して各項目へ must/should の優先度が付与されている。; Impact on Existing Features — 既存コマンド・スキーマ・テンプレートへの影響が明示的に列挙されている。; Present Recommendations with Reasoning — 各QAで推奨結論を示し、evidence/why/considered で根拠が添えられている。; Explore Before Asking — openQuestions が空で、質問は既存実装・既存契約の確認に基づいて自己解決されている。; Proactively Raise Related Implications — 再評価タイミング、非同期化、preparing継承、既存拡張契約への影響など関連含意を先回りして扱っている。; Confirm Brainstorm vs. Decision Before Critiquing — brainstorm vs decision について明示的に確認・整理し、本件を決定フェーズとして扱っている。; Capture Digressions in draft.md — 本筋外の検討事項や代替案がQA/consideredに記録され、議論の脱線内容が残されている。; Draft Stays at Requirements Level — 要件レベルを超えて内部設計・制御フロー（post-hook実行方式、trust path、fire-and-forget比較等）の実装詳細に踏み込んでいる。; Backward-Compatible CLI Interface — 既存CLIのコマンド/オプション削除や互換性破壊的変更は示されておらず、移行計画要求は実質的に非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T13:01:21.759Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "要件レベルを超えて内部設計・制御フロー（post-hook実行方式、trust path、fire-and-forget比較等）の実装詳細に踏み込んでいる。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 全体が『auto reject後の再評価と昇格提案』という単一の関心事に集中している。; Unambiguous Requirements — R1-R6 は条件・対象・動作が具体的で、曖昧語に依存していない。; Complete Context — 主要要件にトリガー条件（例: draft done/spec approved）と期待動作が併記されている。; No Hardcoded Secrets — APIキーやトークン等の秘密情報は含まれていない。; Prioritize Requirements — 要件が3件超で、各要件に must/should の優先度が付与されている。; Impact on Existing Features — 既存コマンド/スキーマ/テンプレートへの影響が明示列挙されている。; Present Recommendations with Reasoning — 各QAで推奨結論を先に示し、evidence/why/considered で根拠を提示している。; Explore Before Asking — openQuestions が空で、既存実装・仕様を根拠に自己解決している。; Proactively Raise Related Implications — 遅延、拒否後挙動、preparing継承など関連含意を先回りで扱っている。; Confirm Brainstorm vs. Decision Before Critiquing — brainstorm vs decision について明示的に判断し、decision前提を確認している。; Capture Digressions in draft.md — 主題外の論点はQAとして整理されており、未整理の脱線は見当たらない。; Draft Stays at Requirements Level — flow.jsonフィールド追加、envelopeシグナル、コマンド別変更など実装/設計詳細まで踏み込み、要件レベルを超えている。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更は示されず、移行計画が必要な破壊的変更は見当たらない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T13:02:56.072Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "flow.jsonフィールド追加、envelopeシグナル、コマンド別変更など実装/設計詳細まで踏み込み、要件レベルを超えている。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: Single Responsibility — The draft focuses on one concern: re-evaluating and promoting auto mode after more phase information is available.; Unambiguous Requirements — R1-R6 are mostly testable and specify concrete conditions/actions instead of vague adjectives.; Complete Context — Requirements include trigger conditions (e.g., draft/spec completion, flags) and expected behaviors (re-run, signal, prompt choices).; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in the content.; Prioritize Requirements — There are more than three requirements (R1-R6) but no must/should/nice-to-have priority labels are assigned.; Impact on Existing Features — An explicit impact list on existing modules/files is provided under impactOnExisting.; Present Recommendations with Reasoning — Each QA item gives a recommended answer plus rationale and evidence from existing code paths.; Explore Before Asking — Questions are answered using code references and evidence; no unresolved user-askable questions remain.; Proactively Raise Related Implications — The draft proactively addresses related implications such as trust-path behavior, async execution, and preparing-mode carryover.; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation of brainstorming vs decision mode is shown before evaluative critique.; Capture Digressions in draft.md — Whether digressions occurred and were captured in draft.md cannot be determined from the provided artifact alone.; Draft Stays at Requirements Level — The draft goes beyond requirements level by detailing internal implementation/control-flow decisions in specific files/functions.; Backward-Compatible CLI Interface — No explicit removal or semantic change of CLI commands/options is specified, so migration planning is not triggered.\n  attempt 2: Single Responsibility — 単一の目的（auto-check再評価による昇格提案）に集中しており、無関係な変更は含んでいない。; Unambiguous Requirements — R1-R6 は条件と期待動作が具体的で、検証可能な表現になっている。; Complete Context — 各要件にトリガー条件（例: draft done/spec approved, autoDesired=true 等）と期待動作が明示されている。; No Hardcoded Secrets — APIキーやトークン等の機密情報の直書きは含まれていない。; Prioritize Requirements — 4件超の要件に対して各項目へ must/should の優先度が付与されている。; Impact on Existing Features — 既存コマンド・スキーマ・テンプレートへの影響が明示的に列挙されている。; Present Recommendations with Reasoning — 各QAで推奨結論を示し、evidence/why/considered で根拠が添えられている。; Explore Before Asking — openQuestions が空で、質問は既存実装・既存契約の確認に基づいて自己解決されている。; Proactively Raise Related Implications — 再評価タイミング、非同期化、preparing継承、既存拡張契約への影響など関連含意を先回りして扱っている。; Confirm Brainstorm vs. Decision Before Critiquing — brainstorm vs decision について明示的に確認・整理し、本件を決定フェーズとして扱っている。; Capture Digressions in draft.md — 本筋外の検討事項や代替案がQA/consideredに記録され、議論の脱線内容が残されている。; Draft Stays at Requirements Level — 要件レベルを超えて内部設計・制御フロー（post-hook実行方式、trust path、fire-and-forget比較等）の実装詳細に踏み込んでいる。; Backward-Compatible CLI Interface — 既存CLIのコマンド/オプション削除や互換性破壊的変更は示されておらず、移行計画要求は実質的に非該当。\n  attempt 3: Single Responsibility — 全体が『auto reject後の再評価と昇格提案』という単一の関心事に集中している。; Unambiguous Requirements — R1-R6 は条件・対象・動作が具体的で、曖昧語に依存していない。; Complete Context — 主要要件にトリガー条件（例: draft done/spec approved）と期待動作が併記されている。; No Hardcoded Secrets — APIキーやトークン等の秘密情報は含まれていない。; Prioritize Requirements — 要件が3件超で、各要件に must/should の優先度が付与されている。; Impact on Existing Features — 既存コマンド/スキーマ/テンプレートへの影響が明示列挙されている。; Present Recommendations with Reasoning — 各QAで推奨結論を先に示し、evidence/why/considered で根拠を提示している。; Explore Before Asking — openQuestions が空で、既存実装・仕様を根拠に自己解決している。; Proactively Raise Related Implications — 遅延、拒否後挙動、preparing継承など関連含意を先回りで扱っている。; Confirm Brainstorm vs. Decision Before Critiquing — brainstorm vs decision について明示的に判断し、decision前提を確認している。; Capture Digressions in draft.md — 主題外の論点はQAとして整理されており、未整理の脱線は見当たらない。; Draft Stays at Requirements Level — flow.jsonフィールド追加、envelopeシグナル、コマンド別変更など実装/設計詳細まで踏み込み、要件レベルを超えている。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更は示されず、移行計画が必要な破壊的変更は見当たらない。\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T13:04:01.699Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: Single Responsibility — The draft focuses on one concern: re-evaluating and promoting auto mode after more phase information is available.; Unambiguous Requirements — R1-R6 are mostly testable and specify concrete conditions/actions instead of vague adjectives.; Complete Context — Requirements include trigger conditions (e.g., draft/spec completion, flags) and expected behaviors (re-run, signal, prompt choices).; No Hardcoded Secrets — No API keys, passwords, tokens, or secret literals are present in the content.; Prioritize Requirements — There are more than three requirements (R1-R6) but no must/should/nice-to-have priority labels are assigned.; Impact on Existing Features — An explicit impact list on existing modules/files is provided under impactOnExisting.; Present Recommendations with Reasoning — Each QA item gives a recommended answer plus rationale and evidence from existing code paths.; Explore Before Asking — Questions are answered using code references and evidence; no unresolved user-askable questions remain.; Proactively Raise Related Implications — The draft proactively addresses related implications such as trust-path behavior, async execution, and preparing-mode carryover.; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation of brainstorming vs decision mode is shown before evaluative critique.; Capture Digressions in draft.md — Whether digressions occurred and were captured in draft.md cannot be determined from the provided artifact alone.; Draft Stays at Requirements Level — The draft goes beyond requirements level by detailing internal implementation/control-flow decisions in specific files/functions.; Backward-Compatible CLI Interface — No explicit removal or semantic change of CLI commands/options is specified, so migration planning is not triggered.\n  attempt 2: Single Responsibility — 単一の目的（auto-check再評価による昇格提案）に集中しており、無関係な変更は含んでいない。; Unambiguous Requirements — R1-R6 は条件と期待動作が具体的で、検証可能な表現になっている。; Complete Context — 各要件にトリガー条件（例: draft done/spec approved, autoDesired=true 等）と期待動作が明示されている。; No Hardcoded Secrets — APIキーやトークン等の機密情報の直書きは含まれていない。; Prioritize Requirements — 4件超の要件に対して各項目へ must/should の優先度が付与されている。; Impact on Existing Features — 既存コマンド・スキーマ・テンプレートへの影響が明示的に列挙されている。; Present Recommendations with Reasoning — 各QAで推奨結論を示し、evidence/why/considered で根拠が添えられている。; Explore Before Asking — openQuestions が空で、質問は既存実装・既存契約の確認に基づいて自己解決されている。; Proactively Raise Related Implications — 再評価タイミング、非同期化、preparing継承、既存拡張契約への影響など関連含意を先回りして扱っている。; Confirm Brainstorm vs. Decision Before Critiquing — brainstorm vs decision について明示的に確認・整理し、本件を決定フェーズとして扱っている。; Capture Digressions in draft.md — 本筋外の検討事項や代替案がQA/consideredに記録され、議論の脱線内容が残されている。; Draft Stays at Requirements Level — 要件レベルを超えて内部設計・制御フロー（post-hook実行方式、trust path、fire-and-forget比較等）の実装詳細に踏み込んでいる。; Backward-Compatible CLI Interface — 既存CLIのコマンド/オプション削除や互換性破壊的変更は示されておらず、移行計画要求は実質的に非該当。\n  attempt 3: Single Responsibility — 全体が『auto reject後の再評価と昇格提案』という単一の関心事に集中している。; Unambiguous Requirements — R1-R6 は条件・対象・動作が具体的で、曖昧語に依存していない。; Complete Context — 主要要件にトリガー条件（例: draft done/spec approved）と期待動作が併記されている。; No Hardcoded Secrets — APIキーやトークン等の秘密情報は含まれていない。; Prioritize Requirements — 要件が3件超で、各要件に must/should の優先度が付与されている。; Impact on Existing Features — 既存コマンド/スキーマ/テンプレートへの影響が明示列挙されている。; Present Recommendations with Reasoning — 各QAで推奨結論を先に示し、evidence/why/considered で根拠を提示している。; Explore Before Asking — openQuestions が空で、既存実装・仕様を根拠に自己解決している。; Proactively Raise Related Implications — 遅延、拒否後挙動、preparing継承など関連含意を先回りで扱っている。; Confirm Brainstorm vs. Decision Before Critiquing — brainstorm vs decision について明示的に判断し、decision前提を確認している。; Capture Digressions in draft.md — 主題外の論点はQAとして整理されており、未整理の脱線は見当たらない。; Draft Stays at Requirements Level — flow.jsonフィールド追加、envelopeシグナル、コマンド別変更など実装/設計詳細まで踏み込み、要件レベルを超えている。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更は示されず、移行計画が必要な破壊的変更は見当たらない。\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T13:38:42.058Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.modules[3]: must be object, got string; overview.modules[4]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; overview.data_flow[2]: must be object, got string; overview.data_flow[3]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].text: unknown field; requirements[5].desc: required field is missing; requirements[5].text: unknown field; requirements[6].desc: required field is missing; requirements[6].text: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T13:42:54.965Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0; tasks: new task 'T-5' added_round must be 1, got 0; tasks: new task 'T-6' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T13:44:43.040Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: failed to parse spec.json at /home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-232-auto-check-phase-promotion/specs/232-auto-check-phase-promotion/spec.json: Unexpected end of JSON input; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T13:53:54.594Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.modules[3]: must be object, got string; overview.modules[4]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; overview.data_flow[2]: must be object, got string; overview.data_flow[3]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].text: unknown field; requirements[5].desc: required field is missing; requirements[5].text: unknown field; requirements[6].desc: required field is missing; requirements[6].text: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n  attempt 2: tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0; tasks: new task 'T-5' added_round must be 1, got 0; tasks: new task 'T-6' added_round must be 1, got 0\n  attempt 3: schema: failed to parse spec.json at /home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-232-auto-check-phase-promotion/specs/232-auto-check-phase-promotion/spec.json: Unexpected end of JSON input; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T13:55:21.558Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: remembering auto preference and re-evaluating for promotion.; Task Single Responsibility — Each task targets a single coherent change area tied to the same feature.; Unambiguous Requirements — Requirements are mostly stated with concrete conditions and expected state changes.; Complete Context — Requirements include both trigger conditions and expected behavior.; REQ Diff-Verifiability — PASS/FAIL can be judged from code diffs plus unit/command test outcomes.; No Hardcoded Secrets — No secrets or credential literals are present in the spec content.; No Silent Error Swallowing — Spec does not introduce silent error-discard patterns; no conflicting guidance is present.; Prioritize Requirements — More than three requirements are present and each has must/should priority.; Impact on Existing Features — Impact on existing features is not explicitly listed, and no explicit 'no impact' statement is provided.; Bounded Resource Usage — Re-evaluation calls are explicitly bounded to at most two invocations.; Changes Require Test Coverage — Tasks include test strategies covering happy paths and key conditions.; Spec Includes Test Strategy — The spec includes concrete test strategy sections per task.; Synthesize Draft, Do Not Copy — Cannot determine copy-vs-synthesis quality without the original draft source.; Record Unresolved Points as Open Questions — Open questions are tracked, and unresolved points are not fabricated in the provided content.; Include 'Why This Approach' Rationale — Rationale is provided via decisions/evidence and alternatives considered.; Do Not Modify Existing Tests Without Approval — No plan to modify/delete existing tests is stated; guardrail is not violated by this spec text.; Backward-Compatible CLI Interface — Spec explicitly constrains changes to non-breaking additions only.; Exit Code Contract — CLI command success/failure and non-zero exit conditions are not explicitly defined.; Validate User Input at Entry Point — User-facing arguments and entry-point validation rules are not enumerated for modified CLI commands.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T13:56:14.769Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not explicitly listed, and no explicit 'no impact' statement is provided."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "CLI command success/failure and non-zero exit conditions are not explicitly defined."
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "User-facing arguments and entry-point validation rules are not enumerated for modified CLI commands."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "impl-test-preservation",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "implement",
+      "reason": "sdd-forge flow run tests returns exit 1 despite npm test succeeding with exit 0. All 2455 unit + 267 integration tests pass. The issue is in the flow run tests wrapper, not in actual test failures.",
+      "trigger": "full test suite execution via flow run tests",
+      "resolution": "verified npm test exits 0 directly; treated as pre-existing wrapper issue, not a regression from this spec",
+      "taskId": null,
+      "timestamp": "2026-04-25T14:57:39.581Z"
+    }
+  ]
+}

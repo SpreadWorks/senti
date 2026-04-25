@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/232-auto-check-phase-promotion/draft.json    |  79 ++++\n specs/232-auto-check-phase-promotion/flow.json     | 461 +++++++++++++++++++++\n .../232-auto-check-phase-promotion/issue-log.json  | 188 +++++++++\n specs/232-auto-check-phase-promotion/issue.md      |  56 +++\n specs/232-auto-check-phase-promotion/qa.md         |   9 +\n specs/232-auto-check-phase-promotion/review.md     |  41 ++\n specs/232-auto-check-phase-promotion/spec.json     | 279 +++++++++++++\n specs/232-auto-check-phase-promotion/spec.md       | 109 +++++\n .../232-auto-check-phase-promotion/tests/README.md |  34 ++\n src/flow/lib/get-next-action.js                    |   6 +-\n src/flow/lib/run-auto-check.js                     |  22 +-\n src/flow/lib/run-prepare-spec.js                   |   1 +\n src/flow/lib/set-auto.js                           |  33 +-\n src/flow/lib/set-step.js                           |  34 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |  15 +\n tests/unit/flow/auto-desired-persistence.test.js   | 121 ++++++\n tests/unit/flow/auto-upgrade-next-action.test.js   |  71 ++++\n .../flow/failed-verdict-non-persistence.test.js    | 119 ++++++\n 18 files changed, 1654 insertions(+), 24 deletions(-)",
+      "commits": [
+        "feat: feature/232-auto-check-phase-promotion"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 8,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.94,
+      "notes": "R1, R3, R4, R5, R6, R7, R8, R9 は実装差分で満たされている。R2 は再評価フック自体は実装済みだが、approval→done で skip 経路により runAutoCheckCore を常に呼ぶ形ではないため partial と判定。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 163094,
+      "output": 11689,
+      "cacheRead": 158464,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 263228,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 104066
+        },
+        {
+          "phase": "gate",
+          "durationMs": 66626
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 46057
+        },
+        {
+          "phase": "review",
+          "durationMs": 46479
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2455,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2722
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/232-auto-check-phase-promotion\n    18 files changed, 1654 insertions(+), 24 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 94%  (8 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 10\n    input tokens ................ 163,094\n    output tokens ............... 11,689\n    cache-read tokens ........... 158,464\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 263.2s\n      gate-draft ................ 104.1s\n      gate ...................... 66.6s\n      gate-impl ................. 46.1s\n      review .................... 46.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2455  integration 267  acceptance 0  total 2722"
+}

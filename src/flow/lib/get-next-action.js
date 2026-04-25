@@ -137,7 +137,7 @@ export default class GetNextActionCommand extends FlowCommand {
     const output_schema = loadJson(rule.output_schema_ref);
     const context = buildContextDescriptor(rule.context_kinds, target, state);
 
-    return {
+    const result = {
       taskId: target.taskId,
       step: target.stepId,
       action: rule.action,
@@ -149,5 +149,9 @@ export default class GetNextActionCommand extends FlowCommand {
       output_schema,
       requires_approval: rule.requires_approval === true,
     };
+    if (state.autoUpgrade?.available === true) {
+      result.autoUpgrade = state.autoUpgrade;
+    }
+    return result;
   }
 }

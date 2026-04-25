@@ -268,6 +268,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         ...(request ? { request } : {}),
         ...(preparingState?.autoApprove ? { autoApprove: true } : {}),
         ...(preparingState?.autoCheck ? { autoCheck: preparingState.autoCheck } : {}),
+        ...(preparingState?.autoDesired != null ? { autoDesired: preparingState.autoDesired } : {}),
         ...extra,
       };
       flowManager.forRoot(specRoot).save(state);

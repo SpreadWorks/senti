@@ -111,6 +111,21 @@ C.1. **Ask the CLI for the next action**
    - If all mainline steps are `done` or `skipped` → loop exit (CLI returns `NO_IN_PROGRESS_STEP`).
    - Otherwise, consume the returned envelope: `action`, `instructions.content`, `context`, `output_schema`, `requires_approval`.
 
+C.1.5. **Auto-upgrade check (spec 232)**
+   - If the envelope contains `autoUpgrade` with `available === true`, present the following choice **before** executing step instructions:
+     ```
+     ──────────────────────────────────────────────────────────
+       Auto モードに昇格可能です。切り替えますか？
+     ──────────────────────────────────────────────────────────
+
+       [1] auto に切り替え — 以降は確認なしで進めます
+       [2] 手動のまま — 通常通り各ステップで確認します
+
+     ```
+   - If `[1]`: run `sdd-forge flow set auto on`. On success, update `autoApprove` to `true` for subsequent steps.
+   - If `[2]`: run `sdd-forge flow set auto off`. The `autoDesired` flag is cleared and no further upgrade prompts will appear.
+   - This check runs at most once per flow (the CLI clears `autoUpgrade` after `set auto on/off` via the trust path).
+
 C.2. **Execute instructions**
    - Treat `instructions.content` as the authoritative procedure for this step. Follow it exactly.
    - Fetch any additional context the instructions request via `sdd-forge flow get context ...` / `sdd-forge flow get guardrail <phase>`.

@@ -223,7 +223,14 @@ export default class RunAutoCheckCommand extends FlowCommand {
         return verdict;
       }
       const result = await runAutoCheckCore(this.container, resolved.text);
-      ctx.flowManager.mutate((state) => { state.autoCheck = result; });
+      if (result.eligible) {
+        ctx.flowManager.mutate((state) => { state.autoCheck = result; });
+      } else {
+        ctx.flowManager.mutate((state) => {
+          delete state.autoCheck;
+          delete state.autoUpgrade;
+        });
+      }
       return result;
     }
 
@@ -257,9 +264,16 @@ export default class RunAutoCheckCommand extends FlowCommand {
         return verdict;
       }
       const result = await runAutoCheckCore(this.container, resolvedInput.text);
-      ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
-        s.autoCheck = result;
-      });
+      if (result.eligible) {
+        ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
+          s.autoCheck = result;
+        });
+      } else {
+        ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
+          delete s.autoCheck;
+          delete s.autoUpgrade;
+        });
+      }
       return result;
     }
 
