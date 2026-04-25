@@ -1,0 +1,62 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/231-show-report-step/draft.json              |  59 ++++\n specs/231-show-report-step/flow.json               | 350 +++++++++++++++++++++\n specs/231-show-report-step/issue-log.json          | 143 +++++++++\n specs/231-show-report-step/issue.md                |  86 +++++\n specs/231-show-report-step/qa.md                   |   9 +\n specs/231-show-report-step/review.md               |  25 ++\n specs/231-show-report-step/spec.json               | 191 +++++++++++\n specs/231-show-report-step/spec.md                 | 102 ++++++\n specs/231-show-report-step/tasks/T-1.md            |  19 ++\n specs/231-show-report-step/tasks/T-2.md            |  20 ++\n specs/231-show-report-step/tasks/T-3.md            |  19 ++\n specs/231-show-report-step/tasks/T-pending-spec.md |   9 +\n specs/231-show-report-step/tests/README.md         |  20 ++\n .../tests/show-report-step.test.js                 |  67 ++++\n src/flow/lib/run-finalize.js                       |   9 +\n src/flow/prompts/sync/show-report.md               |   6 +\n src/flow/schemas/context-rules.json                |   7 +\n .../schemas/next-action/show-report.schema.json    |   9 +\n src/lib/flow-helpers.js                            |   2 +\n tests/unit/flow/instructions-coverage.test.js      |   4 +-\n 20 files changed, 1154 insertions(+), 2 deletions(-)",
+      "commits": [
+        "feat: feature/231-show-report-step"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 5,
+      "partial": 1,
+      "not_done": 1,
+      "rate": 0.79,
+      "notes": "7件中5件は満たされ、R4は実装はあるが保証・検証が弱く partial、R7（finalize結果エンベロープのテスト）は未実装。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 36302,
+      "output": 6402,
+      "cacheRead": 116224,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 6,
+      "durationMs": 148983,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 79329
+        },
+        {
+          "phase": "gate",
+          "durationMs": 23894
+        },
+        {
+          "phase": "review",
+          "durationMs": 45760
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2448,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2715
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/231-show-report-step\n    20 files changed, 1154 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ██████░░ 79%  (5 done / 1 partial / 1 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 6\n    input tokens ................ 36,302\n    output tokens ............... 6,402\n    cache-read tokens ........... 116,224\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 149.0s\n      gate-draft ................ 79.3s\n      gate ...................... 23.9s\n      review .................... 45.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2448  integration 267  acceptance 0  total 2715"
+}

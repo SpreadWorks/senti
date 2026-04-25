@@ -497,6 +497,15 @@ export class RunFinalizeCommand extends FlowCommand {
       }
     }
 
+    // Transition show-report to done before cleanup deletes flow.json (spec 231).
+    try {
+      ctx.flowManager.updateStepStatus("show-report", "done");
+    } catch (err) {
+      if (err?.code !== "ERR_MISSING_FILE") {
+        process.stderr.write(`[sdd-forge] show-report step-status update warning: ${err.message}\n`);
+      }
+    }
+
     // -- Step 4: cleanup --
     if (activeSteps.has(4)) {
       if (dryRun) {
