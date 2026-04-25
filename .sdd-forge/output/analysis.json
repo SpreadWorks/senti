@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T12:46:46.056Z",
+  "analyzedAt": "2026-04-25T12:51:23.706Z",
   "package": {
     "entries": [
       {
@@ -3552,9 +3552,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "9c7649eb31a50c1d7242a7a016c9f01d",
-        "lines": 543,
-        "mtime": "2026-04-23T08:16:29.609Z",
+        "hash": "1b54992c26240a507b911f8dd1d1a04e",
+        "lines": 552,
+        "mtime": "2026-04-25T12:51:23.064Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3603,22 +3603,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "summary": "Implements the flow finalize pipeline, including preflight checks, commit/merge/report steps, and cleanup of worktree state. It exports reusable helpers for finalize error handling and success envelopes.",
-        "detail": "The file coordinates multiple finalize sub-steps through a step map and shared runner utilities, enabling full or selective execution modes. It performs git write-access preflight checks, branch/worktree hygiene validation, and commit-skip logic when there is nothing to persist. Post-commit behavior includes hooks, report artifacts, and pointer updates to the last finalized spec. Cleanup logic handles spec-only flows and worktree removal safely. The command returns structured status for each step and supports dry-run semantics for non-destructive execution.",
+        "summary": "This module implements the finalize stage of the flow pipeline and orchestrates commit, report, migration hook, and cleanup behavior. It provides the `RunFinalizeCommand` class and utility functions for preflight checks, step execution, and finalize result envelopes.",
+        "detail": "The file coordinates finalize substeps through a step map and a shared substep runner so each action returns structured status data. It performs Git preflight validation, including write-access checks in the Git common directory and branch/worktree cleanliness checks before executing sensitive operations. It supports conditional commit behavior, skip paths such as spec-only mode, and post-commit processing like report pointer updates and optional migration hooks. Cleanup logic is centralized to handle worktree and state transitions consistently for both success and error paths. The command class validates mode/step options, executes selected finalize steps, and returns a normalized success payload with optional diff metadata.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
+          "processedAt": "2026-04-25T12:51:45.161Z",
           "attempts": 1
         },
         "keywords": [
-          "finalize pipeline",
+          "finalize command",
+          "flow orchestration",
           "preflight checks",
-          "worktree cleanup",
-          "commit orchestration",
-          "merge strategy",
-          "flow finalize",
-          "post-commit hook"
+          "git write access",
+          "cleanup routine",
+          "step runner",
+          "post-commit hook",
+          "report pointer"
         ]
       },
       {
@@ -5526,9 +5527,9 @@
       },
       {
         "file": "src/lib/flow-helpers.js",
-        "hash": "d7727995b19fdc08972ad6ba11423381",
-        "lines": 286,
-        "mtime": "2026-04-24T08:12:50.735Z",
+        "hash": "7928bdfc2a46c8e9f055ee30ab08e555",
+        "lines": 288,
+        "mtime": "2026-04-25T12:51:23.067Z",
         "className": "flow-helpers",
         "methods": [
           "getSpecName",
@@ -5578,20 +5579,23 @@
           "src/lib/preparing-flow-store.js"
         ],
         "id": "09ff0ab4",
-        "summary": "This module provides shared flow constants and utility functions for phase/task progression. It defines canonical status sets and transition helpers.",
-        "detail": "It exports step/task enums, phase maps, and integration-step constants used across flow commands. Helpers compute spec names/directories, derive current phase, and build initial step/task structures. It includes task traversal and promotion logic for next-pending resolution. These utilities form the common semantic backbone of flow state handling.",
+        "summary": "This helper module defines core flow/task constants and utility functions for state progression and spec path handling. It centralizes step lists, phase mappings, task status models, and traversal logic for pending task promotion.",
+        "detail": "The module declares canonical file names, scan limits, and lifecycle constants used across flow state management. It maps flow steps to phases and provides task-specific plans and status enums, giving a single source of truth for orchestration rules. Path helpers derive spec names and directories from absolute or relative state values, while `specIdFromPath` extracts the spec identifier from the path structure. Task traversal functions locate the next pending task in nested structures and promote it to in-progress, enabling deterministic queue progression. These utilities keep command layers thin by encapsulating shared state and transition logic.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
+          "processedAt": "2026-04-25T12:51:45.161Z",
           "attempts": 1
         },
         "keywords": [
-          "flow constants",
-          "phase map",
-          "task statuses",
-          "step promotion",
-          "shared helpers"
+          "flow helpers",
+          "state constants",
+          "phase mapping",
+          "task lifecycle",
+          "pending promotion",
+          "spec path parsing",
+          "state transition",
+          "workflow utilities"
         ]
       },
       {
@@ -9718,5 +9722,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T12:46:58.278Z"
+  "enrichedAt": "2026-04-25T12:51:45.161Z"
 }
