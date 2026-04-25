@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T06:04:46.787Z",
+  "analyzedAt": "2026-04-25T06:08:12.595Z",
   "package": {
     "entries": [
       {
@@ -3616,9 +3616,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "46c3e78e62b112d1552ba640c586c8a1",
-        "lines": 1837,
-        "mtime": "2026-04-25T05:57:02.256Z",
+        "hash": "ee763f027d8a21188e6035c5beff4403",
+        "lines": 1931,
+        "mtime": "2026-04-25T06:08:12.045Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3642,6 +3642,9 @@
           "buildFailedEvaluations",
           "findPreviousFailedEvaluations",
           "assertNoRepeatedFail",
+          "buildPassedGuardrails",
+          "findPreviousPassedGuardrails",
+          "applyFlipOverride",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
@@ -3718,6 +3721,9 @@
           "buildFailedEvaluations",
           "findPreviousFailedEvaluations",
           "assertNoRepeatedFail",
+          "buildPassedGuardrails",
+          "findPreviousPassedGuardrails",
+          "applyFlipOverride",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
@@ -3737,25 +3743,24 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the flow gate execution pipeline for spec, draft, and diff-based phases, including AI guardrail evaluation and deterministic validation checks. It also defines the `RunGateCommand` entrypoint used by flow-related CLI execution.",
-        "detail": "This module combines command orchestration and reusable gate utilities: phase/level validation, target loading, prompt construction, evaluation parsing, and result shaping. It enforces quality controls through unresolved-text checks, spec/draft schema checks, test-diff policy checks, and authorized test-modification parsing for implementation phases. The AI evaluation path is strongly schema-validated, with explicit JSON extraction and strict field/type checks to prevent malformed model output from silently passing. It tracks retry and failure history using flow state and issue logs, compares git state fingerprints to detect no-progress retries, and can escalate repeated failures with structured logging. The command class routes behavior by phase and level, returning normalized pass/fail envelopes and appending execution outcomes to issue-log history.",
+        "summary": "This file implements the flow gate execution pipeline and the `RunGateCommand` used to validate draft/spec/implementation phases. It centralizes guardrail evaluation, retry control, diff/test-policy checks, and issue-log integration for gate outcomes.",
+        "detail": "The module maps phases to gate levels, validates phase-level consistency, and routes execution by flow state or explicit spec path. It performs layered checks, including unresolved marker detection, spec JSON structure checks, draft field validation, monotonic task checks, and implementation diff constraints. Guardrail evaluation is AI-response driven with strict JSON schema parsing, normalized result handling, and report builders for pass/fail envelopes. It tracks retry budgets and repeated failures using issue-log history, git state fingerprints, and previous evaluation comparisons to detect no-progress cycles. It also enforces test-modification policy through authorized-file parsing, glob-based test file detection, and unused-authorization warnings before returning structured gate results.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T05:57:24.718Z",
+          "processedAt": "2026-04-25T06:08:26.628Z",
           "attempts": 1
         },
         "keywords": [
-          "flow gate",
-          "RunGateCommand",
+          "gate runner",
+          "flow command",
           "guardrail evaluation",
           "spec validation",
-          "draft linting",
-          "diff policy",
-          "test change authorization",
           "retry budget",
           "issue log",
-          "envelope result"
+          "diff policy",
+          "test authorization",
+          "JSON schema parsing"
         ]
       },
       {
@@ -9690,9 +9695,9 @@
     ],
     "summary": {
       "total": 281,
-      "totalMethods": 920
+      "totalMethods": 923
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T06:05:00.437Z"
+  "enrichedAt": "2026-04-25T06:08:26.628Z"
 }
