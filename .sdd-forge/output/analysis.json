@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T08:06:00.330Z",
+  "analyzedAt": "2026-04-25T08:49:26.050Z",
   "package": {
     "entries": [
       {
@@ -4234,9 +4234,9 @@
       },
       {
         "file": "src/flow/lib/run-tests.js",
-        "hash": "aa6842876b8a97aae4886cbbf365ed67",
-        "lines": 163,
-        "mtime": "2026-04-22T00:25:28.527Z",
+        "hash": "38c2c55e7d78e3b2f8ff4c9fd216b3ff",
+        "lines": 180,
+        "mtime": "2026-04-25T08:49:25.454Z",
         "className": "run-tests",
         "methods": [
           "RunTestsCommand",
@@ -4259,23 +4259,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c016d8e6",
-        "summary": "Runs project tests for flow phases and persists test logs with structured metadata. It resolves commands from config or package scripts and returns parsed count summaries.",
-        "detail": "The command supports unit, integration, and acceptance scopes and maps each run to a fixed log destination, including baseline mode output paths. It executes tests synchronously in the configured work directory, captures combined stdout/stderr, and writes logs to disk before returning structured results. Command resolution follows a fallback order from explicit flow config to `package.json` scripts, then to `npm test` when available. It parses test counts from raw logs to provide machine-readable metrics for downstream gate logic. Errors preserve execution context by attaching `logPath` and parsed `counts` before rethrowing.",
+        "summary": "Implements a flow command that runs project tests, captures output logs, and reports structured results for the SDD workflow. It also supports baseline log handling and test summary extraction.",
+        "detail": "The module defines a `RunTestsCommand` class on top of `FlowCommand`, using synchronous process execution to run the resolved test command in the correct working directory. It normalizes paths relative to the repository root, ensures log directories exist, and persists combined stdout/stderr into dedicated log files. The implementation includes helper logic to choose a test command from configuration or package scripts, with graceful fallbacks when scripts are missing. It parses test-result signals from log text and feeds output into a summarization step so downstream flow stages can consume compact diagnostics. Error paths are surfaced explicitly by rethrowing command failures after collecting available execution context.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T00:26:03.930Z",
+          "processedAt": "2026-04-25T08:49:41.088Z",
           "attempts": 1
         },
         "keywords": [
           "test runner",
-          "baseline tests",
+          "flow command",
           "log capture",
-          "command resolution",
-          "test counts",
-          "flow automation",
-          "npm scripts",
-          "execution context"
+          "baseline comparison",
+          "npm test",
+          "process spawn",
+          "result parsing",
+          "test summary"
         ]
       },
       {
@@ -9708,5 +9708,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T08:06:17.117Z"
+  "enrichedAt": "2026-04-25T08:49:41.088Z"
 }
