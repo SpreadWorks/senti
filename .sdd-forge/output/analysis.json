@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T08:57:03.732Z",
+  "analyzedAt": "2026-04-25T09:15:32.709Z",
   "package": {
     "entries": [
       {
@@ -3618,9 +3618,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "3dff5a7777937f27d553eff648d315c4",
-        "lines": 2053,
-        "mtime": "2026-04-25T07:59:52.413Z",
+        "hash": "f868e7ec56c71eade1c14c6cfca64806",
+        "lines": 2073,
+        "mtime": "2026-04-25T09:15:32.346Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3749,23 +3749,24 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This module implements the flow gate execution pipeline for draft, spec, task-impl, and integration phases. It validates artifacts, evaluates guardrails, and returns structured pass/fail envelopes for downstream flow control.",
-        "detail": "The file combines command orchestration (`RunGateCommand`) with reusable gate utilities, including phase-level validation, retry-budget tracking, and issue-log integration. It performs static checks over spec text and spec.json, analyzes git diff scope, verifies expected test coverage, and detects unauthorized or unused test modifications. For AI-backed guardrail evaluation, it builds strict JSON prompts, parses responses with schema validation, and normalizes results into deterministic gate reports. It also enforces anti-regression behavior by comparing current failures against previous issue-log entries, handling repeated-fail escalation, and applying flip overrides when identical content previously passed.",
+        "summary": "This file implements the flow gate execution pipeline and the `RunGateCommand` used to validate draft, spec, and implementation phases. It centralizes policy checks, guardrail evaluation, retry handling, and gate result reporting.",
+        "detail": "The module combines static checks (spec text/json validation, unresolved markers, task tree depth, test-diff rules, and expected test glob checks) with AI guardrail evaluation and strict JSON schema parsing. It builds phase-aware prompts, parses evaluation responses defensively, and normalizes gate outputs into pass/fail envelopes with structured reasons, warnings, and next-step hints. It tracks retry and failure history using issue logs and flow state fingerprints (HEAD SHA and worktree hash) to detect repeated failures, no-progress loops, and optional flip overrides from previously passed guardrails. It also validates authorized test modifications, detects unused authorizations, and enforces evidence requirements for implementation phases. At the command layer, `RunGateCommand` resolves active flow/spec context, chooses the appropriate gate path by phase/level, and appends gate outcomes or errors into the issue log for downstream flow automation.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T08:00:06.057Z",
+          "processedAt": "2026-04-25T09:15:45.121Z",
           "attempts": 1
         },
         "keywords": [
-          "flow gate",
+          "gate runner",
+          "flow command",
           "guardrail evaluation",
           "spec validation",
           "retry budget",
           "issue log",
-          "diff analysis",
-          "test authorization",
-          "regression detection"
+          "test diff checks",
+          "phase gating",
+          "envelope result"
         ]
       },
       {
@@ -9710,5 +9711,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T08:57:16.873Z"
+  "enrichedAt": "2026-04-25T09:15:45.121Z"
 }
