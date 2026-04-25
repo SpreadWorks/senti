@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T10:41:38.496Z",
+  "analyzedAt": "2026-04-25T11:12:16.070Z",
   "package": {
     "entries": [
       {
@@ -3323,9 +3323,9 @@
       },
       {
         "file": "src/flow/lib/resolve-auto-check-input.js",
-        "hash": "23174f3beb7e7ebce69c6d7d8103e13e",
+        "hash": "5ffd64b37ebb2a74b1e5d60d7161987e",
         "lines": 101,
-        "mtime": "2026-04-23T15:43:43.303Z",
+        "mtime": "2026-04-25T11:12:15.756Z",
         "className": "resolve-auto-check-input",
         "methods": [
           "isSpecApproved",
@@ -3351,20 +3351,22 @@
           "src/flow/lib/set-auto.js"
         ],
         "id": "30a7075c",
-        "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
-          "attempts": 2
-        },
-        "summary": "This module builds auto-check input text from flow state and spec-adjacent files. It decides when checks should be skipped after approval.",
-        "detail": "It inspects step completion status to detect approved or draft-gated states. It reads sibling spec files defensively and emits warnings on read failures when requested. `resolveAutoCheckInput` returns a structured `{ skip, reason/text }` envelope for downstream checks. `buildSkipVerdict` exports a shared skip result shape for command-level consistency.",
+        "summary": "This module resolves the effective input for automatic flow checks and determines when checks can be skipped. It centralizes approval-state detection and spec-adjacent text loading for downstream gate logic.",
+        "detail": "It uses step-status helpers to detect whether specific flow milestones, especially approval-related steps, are completed. The implementation reads sibling files near the active spec path and gracefully falls back to null when files are missing or unreadable. A base input builder composes normalized text fragments into a single trimmed payload for auto-check execution. The skip path returns a consistent envelope-style object that is explicitly shared with other modules, which keeps cross-command behavior aligned.",
         "chapter": "internal_design",
         "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-25T11:12:41.613Z",
+          "attempts": 1
+        },
         "keywords": [
-          "auto-check input",
+          "auto check input",
+          "flow step status",
           "spec approval",
-          "flow steps",
           "skip verdict",
-          "state-derived text"
+          "input resolution",
+          "sibling file loading",
+          "envelope response"
         ]
       },
       {
@@ -3618,9 +3620,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "f868e7ec56c71eade1c14c6cfca64806",
-        "lines": 2073,
-        "mtime": "2026-04-25T09:15:32.346Z",
+        "hash": "15061de61b3354acb42f067bf85a5ae7",
+        "lines": 2094,
+        "mtime": "2026-04-25T11:12:15.756Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3658,8 +3660,8 @@
           "checkSpecJson",
           "computeForestDepth",
           "walkStrings",
-          "buildDraftFieldPattern",
-          "checkDraftText",
+          "isNonEmptyString",
+          "checkDraftJson",
           "buildGuardrailPrompt",
           "buildGuardrailPromptFromFiltered",
           "extractJsonCandidate",
@@ -3737,7 +3739,7 @@
           "resolveGateStepId",
           "checkSpecText",
           "checkSpecJson",
-          "checkDraftText",
+          "checkDraftJson",
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
           "checkGuardrail",
@@ -3749,24 +3751,24 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This file implements the flow gate execution pipeline and the `RunGateCommand` used to validate draft, spec, and implementation phases. It centralizes policy checks, guardrail evaluation, retry handling, and gate result reporting.",
-        "detail": "The module combines static checks (spec text/json validation, unresolved markers, task tree depth, test-diff rules, and expected test glob checks) with AI guardrail evaluation and strict JSON schema parsing. It builds phase-aware prompts, parses evaluation responses defensively, and normalizes gate outputs into pass/fail envelopes with structured reasons, warnings, and next-step hints. It tracks retry and failure history using issue logs and flow state fingerprints (HEAD SHA and worktree hash) to detect repeated failures, no-progress loops, and optional flip overrides from previously passed guardrails. It also validates authorized test modifications, detects unused authorizations, and enforces evidence requirements for implementation phases. At the command layer, `RunGateCommand` resolves active flow/spec context, chooses the appropriate gate path by phase/level, and appends gate outcomes or errors into the issue log for downstream flow automation.",
+        "summary": "This module implements the core gate execution pipeline for flow phases, including guardrail evaluation, retry control, and issue-log integration. It also exports the gate command entrypoint and many validation/utilities used by gate checks.",
+        "detail": "It combines Git-based state inspection, diff collection, and phase-aware scope selection to evaluate implementation quality across draft, spec, and integration checkpoints. Guardrail logic is built around strict JSON-only AI responses, with explicit schema validation and dedicated error types to prevent ambiguous parsing. The module enforces test-related constraints, including expected test coverage, authorized test-file modifications, and detection of unresolved markers or repeated failures. It tracks retry history and prior pass/fail evidence to support escalation, flip overrides, and no-progress detection based on content identity. The `RunGateCommand` class orchestrates phase routing and target loading, while helper exports keep lower-level checks reusable across the flow subsystem.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T09:15:45.121Z",
+          "processedAt": "2026-04-25T11:12:41.613Z",
           "attempts": 1
         },
         "keywords": [
-          "gate runner",
-          "flow command",
+          "gate command",
           "guardrail evaluation",
-          "spec validation",
+          "flow phase validation",
           "retry budget",
           "issue log",
-          "test diff checks",
-          "phase gating",
-          "envelope result"
+          "diff analysis",
+          "test authorization",
+          "schema parsing",
+          "quality gate"
         ]
       },
       {
@@ -3851,9 +3853,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "05393f058825106c620c254b62bf6033",
-        "lines": 365,
-        "mtime": "2026-04-25T05:14:13.540Z",
+        "hash": "00bf3bbd306002b7f2da655e624c70c2",
+        "lines": 356,
+        "mtime": "2026-04-25T11:12:15.757Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3887,23 +3889,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "This module prepares a new spec workspace for the flow by scaffolding files, selecting branch/worktree context, and initializing flow state. It encapsulates slug generation, base-branch detection, and template fallback behavior.",
-        "detail": "The command validates required inputs, checks repository cleanliness, and can isolate work using worktree-aware paths when requested. It derives spec directory naming using slugification and sequence indexing, then creates spec assets such as spec.json, spec.md, qa.md, draft.md, and cached issue content. Rendering of spec markdown is driven from structured JSON stubs, while localized QA template loading prefers project-local overrides and falls back to built-in templates. It captures git context, initializes step/task structures, and writes a persisted flow state payload with extra metadata. Supporting helpers centralize git invocation, branch validation, and deterministic path construction for repeatable initialization.",
+        "summary": "This module provides the flow command that prepares a new spec workspace and initializes required spec artifacts. It handles naming, branch/base resolution, template provisioning, and flow-state bootstrap.",
+        "detail": "It derives deterministic spec directory names via slugification and indexed allocation, then validates repository readiness including base-branch existence and dirty-worktree constraints. The command supports worktree-aware preparation and computes destination paths for `spec.md`, `qa.md`, `draft.json`, and `spec.json`. File creation is idempotent: missing files are generated from stubs, rendered markdown, and local-or-default templates without overwriting existing content. It also writes issue body cache content and initializes flow state with baseline metadata to connect the new spec into the broader SDD execution lifecycle.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T05:14:42.832Z",
+          "processedAt": "2026-04-25T11:12:41.613Z",
           "attempts": 1
         },
         "keywords": [
           "prepare spec",
-          "worktree",
-          "slugify",
-          "scaffolding",
-          "spec markdown",
-          "flow initialization",
-          "git branch detection",
-          "template fallback"
+          "flow bootstrap",
+          "worktree setup",
+          "spec scaffolding",
+          "branch detection",
+          "slug generation",
+          "template loading",
+          "state initialization"
         ]
       },
       {
@@ -9711,5 +9713,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T09:15:45.121Z"
+  "enrichedAt": "2026-04-25T11:12:41.613Z"
 }
