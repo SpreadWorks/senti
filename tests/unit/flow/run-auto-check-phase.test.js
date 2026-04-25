@@ -56,6 +56,8 @@ function seedActiveFlow(tmp, { steps, issue, request, draftBody } = {}) {
     issue: issue ?? 100,
     request: request ?? "add a progress bar",
     steps: steps ?? buildInitialSteps(),
+    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+    currentTaskId: null,
   });
   makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 }

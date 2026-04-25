@@ -63,6 +63,8 @@ function createFlowState(tmp, request = "add a progress bar") {
     featureBranch: "feature/001-test",
     request,
     steps: buildInitialSteps(),
+    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+    currentTaskId: null,
   };
   makeFlowManager(tmp).save(state);
   makeFlowManager(tmp).addActiveFlow("001-test", "branch");
@@ -221,6 +223,8 @@ describe("flow set auto", () => {
       featureBranch: "feature/001-test",
       request: "reset password and run migration", // also hits static gate
       steps,
+      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
     };
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "branch");
@@ -279,6 +283,8 @@ describe("flow set auto", () => {
       featureBranch: "feature/001-test",
       request: REQUEST_MARKER,
       steps,
+      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
     };
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "branch");
@@ -330,6 +336,8 @@ describe("flow set auto", () => {
       featureBranch: "feature/001-test",
       request: `add a progress bar ${REQUEST_MARKER}`,
       steps: buildInitialSteps(),
+      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
     };
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "branch");
@@ -546,6 +554,8 @@ describe("flow set auto", () => {
       featureBranch: "feature/001-test",
       request: "add a progress bar",
       steps: buildInitialSteps(),
+      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
       autoCheck: {
         eligible: true,
         score: 20,

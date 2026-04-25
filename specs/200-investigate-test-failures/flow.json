@@ -128,8 +128,32 @@
       "status": "done"
     }
   ],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "pending"
+        },
+        {
+          "id": "gate-impl",
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 191,
   "worktree": true,
   "request": "issue #191: main ブランチで既発生の4テスト失敗を調査する",

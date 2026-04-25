@@ -111,8 +111,32 @@
     }
   ],
   "requirements": [],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 202,
   "worktree": true,
   "request": "Issue #202 (bea4): cac6 decomposition task 9/11. Determinization of update-overview step. Structure spec.json overview into modules/data_flow/decisions. AI outputs only diffs; CLI performs mechanical merge. Record added_by_task on each entry for reverse application on task deletion. Constrain update-overview output_schema via T5.",

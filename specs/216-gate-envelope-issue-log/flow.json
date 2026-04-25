@@ -128,8 +128,32 @@
       "status": "pending"
     }
   ],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 224,
   "request": "[BUG] gate 判定結果 envelope で issue-log 記録が抜ける。spec 213 で assertRetryBelowMax / assertNoProgressSinceLastFail が throw から Envelope.fail return に変わった結果、dispatcher の成功パスを通り skipPost=true となり onError が呼ばれず、ESCALATE_RETRY_EXHAUSTED と NO_PROGRESS_SINCE_LAST_FAIL で issue-log エントリが書かれなくなっている。ESCALATE_REPEATED_FAIL は throw 経由で記録されるため挙動が非対称。対象: src/lib/dispatcher.js:213-233 / src/flow/lib/run-gate.js の check* ヘルパー。方針: checkRetryBelowMax / checkNoProgressSinceLastFail 内で envelope return する前に appendIssueLogFromGateError を呼ぶ。retry counter 非加算 (skipPost) の意図は維持する。",
   "autoApprove": true,

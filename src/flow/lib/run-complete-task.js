@@ -70,3 +70,5 @@ export class RunCompleteTaskCommand extends FlowCommand {
     });
   }
 }
+
+export default RunCompleteTaskCommand;

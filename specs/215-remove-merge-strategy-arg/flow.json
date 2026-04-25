@@ -136,7 +136,31 @@
       "status": "pending"
     }
   ],
-  "tasks": [],
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
   "currentTaskId": null,
   "issue": 223,
   "request": "Issue #223: Remove --merge-strategy argument from sdd-forge flow run finalize. Determine merge strategy solely from config.commands.gh: when commands.gh=='enable' and gh is available use PR route, otherwise squash merge. Affected files: src/flow/commands/merge.js (remove arg handling and auto branch), src/flow/registry.js (remove arg definition), skill docs (remove mentions), tests (update invocations).",

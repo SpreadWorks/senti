@@ -111,8 +111,32 @@
     }
   ],
   "requirements": [],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 214,
   "worktree": true,
   "request": "spec phase の gate に req-diff-verifiability guardrail を追加。各 REQ が diff + test execution summary だけで PASS/FAIL 判定可能かを問い、不可能な REQ (拡張性契約・将来挙動・diff 外制約) を spec 段階で弾く。existing spec の REQ 書き換えは行わない。",

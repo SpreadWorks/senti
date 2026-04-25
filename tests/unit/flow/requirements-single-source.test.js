@@ -49,6 +49,8 @@ function setupFlow(tmp, specId) {
     featureBranch: `feature/${specId}`,
     steps: buildInitialSteps(),
     requirements: [],
+    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+    currentTaskId: null,
   };
   makeFlowManager(tmp).save(state);
   makeFlowManager(tmp).addActiveFlow(specId, "branch");

@@ -50,6 +50,8 @@ function writeFlowState(worktreePath) {
     worktree: true,
     steps: buildInitialSteps(),
     requirements: [],
+    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+    currentTaskId: null,
   };
   fs.writeFileSync(path.join(specDir, "flow.json"), JSON.stringify(state, null, 2));
   return state;

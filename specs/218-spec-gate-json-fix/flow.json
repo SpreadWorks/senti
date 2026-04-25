@@ -111,8 +111,32 @@
     }
   ],
   "requirements": [],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 231,
   "worktree": true,
   "request": "Issue #231: spec gate executeSpec が spec.json を markdown として検査して常に FAIL する。原因は commit 36678a0 で state.spec が spec.json に切り替わったが executeSpec/checkSpecText は markdown headings を regex 検出するため。対象 src/flow/lib/run-gate.js executeSpec(1258-1291)/checkSpecText(106-171)。方針候補 A/B/C は spec フェーズで決定。",

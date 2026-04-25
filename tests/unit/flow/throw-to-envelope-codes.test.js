@@ -56,6 +56,8 @@ function createFlowState(tmp, extra = {}) {
     featureBranch: "feature/001-test",
     request: "add a progress bar",
     steps: buildInitialSteps(),
+    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+    currentTaskId: null,
     ...extra,
   };
   makeFlowManager(tmp).save(state);

@@ -93,7 +93,7 @@ function setupFixture(tmp, { initialTest, modifiedTest, gateRetry = 0, seedIssue
     featureBranch: `feature/${SPEC_ID}`,
     steps: FLOW_STEPS.map((id) => ({ id, status: "pending" })),
     requirements: [],
-    tasks: [],
+    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
     currentTaskId: null,
     metrics,
     // spec 222: gate-impl requires tool-recorded head test evidence

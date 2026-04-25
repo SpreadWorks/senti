@@ -20,6 +20,8 @@ function setupFlowEnv(tmp) {
     baseBranch: "main",
     featureBranch: "feature/test",
     steps: buildInitialSteps(),
+    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+    currentTaskId: null,
   });
   makeFlowManager(tmp).addActiveFlow(specIdFromPath(specPath), "branch");
   return tmp;

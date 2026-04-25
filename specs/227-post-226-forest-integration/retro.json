@@ -1,0 +1,73 @@
+{
+  "spec": "specs/227-post-226-forest-integration/spec.json",
+  "date": "2026-04-25T05:01:37.226Z",
+  "requirements": [
+    {
+      "desc": "migration を実行したとき、全既存 flow state が tasks 非空状態に変換されること（dry-run + idempotent）",
+      "status": "done",
+      "note": "多数の specs/*/flow.json が tasks 非空へ更新され、specs/227-post-226-forest-integration/migrate.js に --dry-run と再実行時 no-op の実装がある。"
+    },
+    {
+      "desc": "flow state の読み込み時に tasks が空の場合、エラーとして拒否されること",
+      "status": "done",
+      "note": "src/lib/flow-store.js で tasks.length===0 を明示的に reject するチェックが追加された。"
+    },
+    {
+      "desc": "next-action 解決が tasks 非空を前提とし、tasks 空時の互換経路が存在しないこと",
+      "status": "done",
+      "note": "src/flow/lib/get-next-action.js から tasks 配列/空配列の互換ガードが削除され、非空前提化されている。"
+    },
+    {
+      "desc": "production path を経由しない旧テスト（reopen-draft 関連）が削除されること",
+      "status": "done",
+      "note": "tests/unit/flow/run-reopen-draft.test.js が削除されている。"
+    },
+    {
+      "desc": "impl step が完了したとき、overview merge が自動実行されること",
+      "status": "done",
+      "note": "src/flow/registry.js の post-hook に RunUpdateOverviewCommand 実行が追加された。"
+    },
+    {
+      "desc": "next-action が target を解決するとき、forest 構造に基づいて task 順序を決定すること",
+      "status": "partial",
+      "note": "forest 順序関連テストは大幅に追加されたが、resolveTarget 自体の明確な本体変更はこの diff で限定的にしか確認できない。"
+    },
+    {
+      "desc": "spec 226 の placeholder tests を実テストに展開したとき、全件が PASS すること",
+      "status": "done",
+      "note": "tests/unit/226-task-decomp-wiring/t1〜t6 が it.todo から実テストへ展開され、flow.json の test summary でも成功記録がある。"
+    },
+    {
+      "desc": "tasks 2 件の flow を CLI 経由のみで開始したとき、flow state の直接編集なしで全 step が遷移し完了すること",
+      "status": "partial",
+      "note": "tests/e2e/227-forest-e2e.test.js は追加されたが、fixture/途中状態で flow.json 直接編集を行う箇所があり、要件文の『直接編集なし』を完全には満たしていない。"
+    },
+    {
+      "desc": "本 spec のタスク構造が forest 形式（親 task = concern 境界、子 task = 作業単位）で分解されていること",
+      "status": "done",
+      "note": "specs/227-post-226-forest-integration/spec.json に親子関係付きタスク（T-A 配下に T-A1... など）が定義されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-complete-task.js",
+      "change": "default export が追加されており、要件一覧に直接対応する項目がない。"
+    },
+    {
+      "file": "src/flow/lib/run-prepare-spec.js",
+      "change": "prepare-spec 時に T-pending-spec のプレースホルダ task を自動生成する変更が入っている。"
+    },
+    {
+      "file": "specs/227-post-226-forest-integration/migrate.js",
+      "change": "MAX_SPEC_DIRS=10000 の上限制約が追加されている（要件本文には未記載）。"
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "done": 7,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.89,
+    "notes": "A系・B1・B3・D1 は概ね実装済み。B2 と C1 は意図に近い変更はあるが、diff上は要件文どおりの満額達成を断定しにくく partial。"
+  }
+}

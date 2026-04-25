@@ -124,8 +124,32 @@
       "status": "done"
     }
   ],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 227,
   "request": "[BUG] internal_design.md の mermaid が literal \\n で壊れる。docs/internal_design.md の Module Dependencies mermaid 図 (64-90 付近) で、ノードラベル [...] の外側にリテラル \\n が置かれている。mermaid は \\n をラベル内クオート文字列でしか改行として解釈しないため GitHub 上で図が壊れる。docs/ja/internal_design.md は <br/> で正しく書かれている。対象: docs/internal_design.md および docs 生成パイプライン（enrich / text のプロンプトやテンプレート）。方針: \\n を <br/> に置き換え、trailing の括弧表現はノードラベルの [...] 内に取り込む。生成側で同種パターンが再発しないか確認する。出典: ultrareview bug_008",
   "autoApprove": true,

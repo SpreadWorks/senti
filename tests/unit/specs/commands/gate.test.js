@@ -390,9 +390,10 @@ describe("gate CLI", () => {
       clarifications: [],
       alternatives_considered: [],
       open_questions: [],
-      // spec 226: tasks[] required for spec gate to pass
+      // spec 226: tasks[] required for spec gate to pass.
+      // T-default matches the seed task in flow.json (monotonic check).
       tasks: [
-        { id: "T-1", title: "placeholder", goal: "placeholder", origin: "plan", added_round: 0, status: "pending" },
+        { id: "T-default", title: "Default test task", goal: "Placeholder task for test fixtures.", origin: "plan", added_round: 0, status: "pending" },
       ],
     };
     writeJson(tmp, "specs/001-test/spec.json", validSpec);

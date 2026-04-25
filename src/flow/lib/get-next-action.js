@@ -46,12 +46,11 @@ function findInProgress(steps) {
 }
 
 function findCurrentTask(state) {
-  if (state.currentTaskId == null || !Array.isArray(state.tasks)) return null;
+  if (state.currentTaskId == null) return null;
   return state.tasks.find((t) => t.id === state.currentTaskId) || null;
 }
 
 function allTasksDone(tasks) {
-  if (!Array.isArray(tasks) || tasks.length === 0) return false;
   return tasks.every((t) => t.status === "done" || t.status === "skipped");
 }
 

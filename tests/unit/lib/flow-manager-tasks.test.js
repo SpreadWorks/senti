@@ -14,7 +14,7 @@ function makeState(overrides = {}) {
     worktree: false,
     steps: buildInitialSteps(),
     requirements: [],
-    tasks: [],
+    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
     currentTaskId: null,
     ...overrides,
   };
@@ -57,10 +57,11 @@ describe("FlowManager task API", () => {
     it("adds task to state.tasks and sets currentTaskId", () => {
       tmp = createTmpDir();
       const fm = setupFlow(tmp);
+      const before = fm.load("001-test").tasks.length;
       fm.addTask(makeTask());
       const loaded = fm.load("001-test");
-      assert.equal(loaded.tasks.length, 1);
-      assert.equal(loaded.tasks[0].id, "001");
+      assert.equal(loaded.tasks.length, before + 1);
+      assert.equal(loaded.tasks[loaded.tasks.length - 1].id, "001");
       assert.equal(loaded.currentTaskId, "001");
     });
 
@@ -85,7 +86,7 @@ describe("FlowManager task API", () => {
       fm.addTask(makeTask({ id: "001" }));
       fm.completeTask("001");
       const loaded = fm.load("001-test");
-      assert.equal(loaded.tasks[0].status, "done");
+      assert.equal(loaded.tasks.find((t) => t.id === "001").status, "done");
       assert.equal(loaded.currentTaskId, null);
     });
 

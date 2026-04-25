@@ -114,7 +114,7 @@ describe("flow-state (specs-based storage)", () => {
       spec: `specs/${specId}/spec.md`,
       baseBranch: "main",
       featureBranch: "feature/001-test",
-      tasks: [],
+      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
       currentTaskId: null,
     };
     // Manually set up: write flow.json + .active-flow
@@ -171,6 +171,8 @@ describe("flow-state steps and requirements", () => {
       featureBranch: "feature/001-test",
       steps: buildInitialSteps(),
       requirements: [],
+      tasks: [{ id: "T-default", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
     };
     makeFlowManager(dir).save(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
@@ -286,6 +288,8 @@ describe("setIssue", () => {
       featureBranch: "feature/001-test",
       steps: buildInitialSteps(),
       requirements: [],
+      tasks: [{ id: "T-default", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
     };
     makeFlowManager(dir).save(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");

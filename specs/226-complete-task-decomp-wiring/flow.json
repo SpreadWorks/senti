@@ -111,8 +111,32 @@
     }
   ],
   "requirements": [],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 256,
   "request": "このバグは実装漏れですが、何度も指摘しており、サブタスクの実装がいっこうに完了しません。ドラフトでとことんやりとりをして、完全に実装しきるようにしたいです。",
   "autoCheck": {

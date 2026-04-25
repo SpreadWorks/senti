@@ -184,8 +184,32 @@
       "status": "pending"
     }
   ],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 204,
   "worktree": true,
   "request": "Issue #204: Implement migrate-flow-to-tasks.js (placed at specs/<spec>/ instead of src/scripts/). Converts legacy specs/*/flow.json to new task-based format (single task id=001 origin=plan), remaps steps, carries legacy finalize sub-steps to flow-level finalize, discards unmapped steps with log, assigns REQ-NNN, maps gate history, handles spec.md → spec.json, creates .bak backups, supports --dry-run, smoke tests all specs/* in this project.",

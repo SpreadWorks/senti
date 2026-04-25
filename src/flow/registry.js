@@ -394,6 +394,15 @@ export const FLOW_COMMANDS = {
           } catch (err) {
             process.stderr.write(`[sdd-forge] task completion post-hook failed: ${err.message}\n`);
           }
+
+          // Spec 227: auto-merge overview additions after task-impl PASS.
+          try {
+            const { default: RunUpdateOverviewCommand } = await import("./lib/run-update-overview.js");
+            const cmd = new RunUpdateOverviewCommand();
+            await cmd.execute({ ...ctx, args: { json: "[]" } });
+          } catch (err) {
+            process.stderr.write(`[sdd-forge] overview merge post-hook warning: ${err.message}\n`);
+          }
         }
       },
       async onError(ctx, err) {

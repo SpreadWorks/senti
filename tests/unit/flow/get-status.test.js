@@ -26,6 +26,8 @@ describe("flow get status", () => {
       featureBranch: "feature/001-test",
       steps: buildInitialSteps(),
       requirements: [],
+      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
     };
     makeFlowManager(dir).save(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");

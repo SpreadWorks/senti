@@ -44,7 +44,11 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
 
   it("REQ-2: adds new tasks to flow.json.tasks[] on first approval", () => {
     tmp = createTmpDir();
-    setupFlow(tmp, { spec: "specs/215-flow-task-decomposition/spec.json" });
+    // Start with a single seed task; spec.json adds T-1 and T-2.
+    setupFlow(tmp, {
+      spec: "specs/215-flow-task-decomposition/spec.json",
+      tasks: [{ id: "T-seed", title: "seed", goal: "seed", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+    });
     writeSpecJson(tmp, "specs/215-flow-task-decomposition/spec.json", baseSpec([
       { id: "T-1", title: "A", goal: "goal A", origin: "plan", added_round: 0, status: "pending" },
       { id: "T-2", title: "B", goal: "goal B", origin: "plan", added_round: 0, status: "pending" },
@@ -55,9 +59,10 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
     assert.equal(result.added[1], "T-2");
     const flowPath = path.join(tmp, "specs/215-flow-task-decomposition/flow.json");
     const flow = JSON.parse(fs.readFileSync(flowPath, "utf8"));
-    assert.equal(flow.tasks.length, 2);
-    assert.equal(flow.tasks[0].id, "T-1");
-    assert.equal(flow.tasks[1].id, "T-2");
+    // T-seed + T-1 + T-2
+    assert.equal(flow.tasks.length, 3);
+    assert.equal(flow.tasks[1].id, "T-1");
+    assert.equal(flow.tasks[2].id, "T-2");
   });
 
   it("REQ-2: preserves existing tasks on second approval (differential sync)", () => {
@@ -120,7 +125,8 @@ describe("syncSpecTasksToFlow (REQ-2, REQ-6)", () => {
     const result = syncSpecTasksToFlow({ root: tmp });
     assert.equal(result.added.length, 0);
     const flow = JSON.parse(fs.readFileSync(path.join(tmp, "specs/215-flow-task-decomposition/flow.json"), "utf8"));
-    assert.equal(flow.tasks.length, 0);
+    // The seed task from setupFlow remains; no spec tasks were added.
+    assert.equal(flow.tasks.length, 1);
   });
 
   it("returns skipped=true when no active flow", () => {

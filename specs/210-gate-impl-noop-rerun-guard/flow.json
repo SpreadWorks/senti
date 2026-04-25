@@ -144,8 +144,32 @@
       "status": "pending"
     }
   ],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 210,
   "request": "gate-impl の「修正せず再実行」を物理的に防止する。src/flow/prompts/impl/gate-impl.md に MUST を追加（再実行前に issue-log に fix_note を記録、前回 FAIL から worktree diff に変化がなければ再実行禁止）。src/flow/lib/run-gate.js に機械的ガードを追加（gate-impl FAIL 記録時に HEAD SHA と worktree hash を issue-log entry に含め、次回 gate-impl の pre-hook で直前 FAIL と同じ hash なら NO_PROGRESS_SINCE_LAST_FAIL で拒否）。",
   "worktree": true,

@@ -53,6 +53,8 @@ function seedFlowState(tmp, { request = "add a progress bar with bounded scope" 
     featureBranch: "feature/001-test",
     request,
     steps: buildInitialSteps(),
+    tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+    currentTaskId: null,
   });
   makeFlowManager(tmp).addActiveFlow("001-test", "branch");
 }

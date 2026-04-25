@@ -136,8 +136,32 @@
       "status": "done"
     }
   ],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 218,
   "request": "auto-check 入力ロジック変更。現状 set auto on は state.request + state.issue のみで採点するため、spec 承認後も元の request で hard-gate 落ちする。対応: (1) spec 承認済なら auto-check スキップして即 autoApprove=true (2) draft がある場合は draft 本文を入力に切替 (3) pre-prepare 段階は従来通り request+issue 採点。対象 src/flow/lib/set-auto.js の buildInputText/execute。",
   "autoApprove": true,

@@ -110,6 +110,8 @@ describe("e2e — phase-aware auto-check flow (spec 220)", () => {
       issue: 50,
       request: "implement feature X",
       steps,
+      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
     });
     makeFlowManager(tmp).addActiveFlow("050-approved", "branch");
 

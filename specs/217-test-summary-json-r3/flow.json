@@ -132,8 +132,32 @@
       "status": "pending"
     }
   ],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 226,
   "request": "[BUG] set test-summary --json ブランチが spec 213 R3 移行漏れ\n\nsrc/flow/lib/set-test-summary.js の parseJsonPayload (54-69) と validateFailedArray (71-111) が throw ベースのまま残っており、8 種類の失敗原因すべてが共通コード TEST_SUMMARY_INVALID になっている。同ファイル内の parseLegacy や tool-monopoly 分岐は既に Envelope.fail 化済みで、R3 (per-cause SCREAMING_SNAKE_CASE code) の対象ファイルとして明記されているのに抜けている。\n\n対象: src/flow/lib/set-test-summary.js:54-161\n方針: parseJsonPayload / validateFailedArray を { fail: Envelope.fail(...) } | { payload } の形に変え、INVALID_JSON / INVALID_ARG_VALUE など原因別コードを割り当てる。execute() 側で fail を短絡 return。tests/unit/flow/throw-to-envelope-codes.test.js に set test-summary --json の R3 ケースを追加。\n出典: ultrareview bug_002",
   "autoApprove": true,

@@ -23,6 +23,25 @@ export function makeFlowManager(root) {
   return makeContainer(root).get("flowManager");
 }
 
+const DEFAULT_TASK = {
+  id: "T-default",
+  title: "Default test task",
+  goal: "Placeholder task for test fixtures.",
+  parent: null,
+  origin: "plan",
+  added_round: 0,
+  status: "pending",
+  steps: [
+    { id: "write-tests", status: "pending" },
+    { id: "implement", status: "pending" },
+    { id: "gate-impl", status: "pending" },
+  ],
+};
+
+export function makeDefaultTask(overrides = {}) {
+  return { ...DEFAULT_TASK, ...overrides };
+}
+
 export function makeFlowState(overrides = {}) {
   const steps = FLOW_STEPS.map((id) => ({ id, status: "pending" }));
   return {
@@ -31,7 +50,7 @@ export function makeFlowState(overrides = {}) {
     featureBranch: "feature/001-test",
     steps,
     requirements: [],
-    tasks: [],
+    tasks: [{ ...DEFAULT_TASK }],
     currentTaskId: null,
     ...overrides,
   };

@@ -43,9 +43,16 @@ function assertTaskSchema(state, sourcePath) {
   }
   if (!Array.isArray(state.tasks)) {
     throw new Error(
-      `flow-store: legacy flow.json without 'tasks' field rejected. ` +
+      `flow-store: flow.json without 'tasks' array rejected. ` +
       `Path: ${sourcePath || "<unknown>"}. ` +
-      `cac6/T2 requires 'tasks: []' and 'currentTaskId: null' on every flow.json.`,
+      `Requires a non-empty 'tasks' array and a 'currentTaskId' field (string or null).`,
+    );
+  }
+  if (state.tasks.length === 0) {
+    throw new Error(
+      `flow-store: flow.json with empty 'tasks' array rejected. ` +
+      `Path: ${sourcePath || "<unknown>"}. ` +
+      `Requires at least one task. Run migrate.js to populate legacy flows.`,
     );
   }
   if (!("currentTaskId" in state)) {

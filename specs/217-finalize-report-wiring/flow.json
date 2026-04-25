@@ -128,8 +128,32 @@
       "status": "done"
     }
   ],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 225,
   "request": "Issue #225: Report not displayed after finalize. Root cause: flow report show instruction exists only in finalize.md prompt; skill SKILL.md has no mention and finalize envelope has no nextCommand hint. Scope: add MUST statement to SKILL.md Worktree boundary section; add nextCommand field to run-finalize.js success envelope data; add tests grepping skill template wording and validating envelope field.",
   "autoApprove": true,

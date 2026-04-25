@@ -111,8 +111,32 @@
     }
   ],
   "requirements": [],
-  "tasks": [],
-  "currentTaskId": null,
+  "tasks": [
+    {
+      "id": "T-legacy",
+      "title": "Legacy flow (migrated)",
+      "goal": "Pre-forest flow migrated to single-task format by spec 227.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "implement",
+          "status": "done"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done"
+        }
+      ]
+    }
+  ],
+  "currentTaskId": "T-legacy",
   "issue": 203,
   "worktree": true,
   "request": "Issue #203: cac6 分解タスク 10/11。metrics / issue-log / prompt logs の各エントリに taskId フィールドを追加し、CLI 側で scope 推論（active task あり → task scope、なし → 親 scope）を行う。",
