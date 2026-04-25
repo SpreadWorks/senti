@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/228-fix-baseline-exit-code/draft.md        |  35 ++\n specs/228-fix-baseline-exit-code/flow.json       | 465 +++++++++++++++++++++++\n specs/228-fix-baseline-exit-code/issue-log.json  | 166 ++++++++\n specs/228-fix-baseline-exit-code/issue.md        |  72 ++++\n specs/228-fix-baseline-exit-code/qa.md           |   9 +\n specs/228-fix-baseline-exit-code/review.md       |  17 +\n specs/228-fix-baseline-exit-code/spec.json       | 120 ++++++\n specs/228-fix-baseline-exit-code/spec.md         |  67 ++++\n specs/228-fix-baseline-exit-code/tests/README.md |  20 +\n src/flow/lib/run-tests.js                        |  17 +\n src/templates/skills/sdd-forge.flow/SKILL.md     |   1 +\n 11 files changed, 989 insertions(+)",
+      "commits": [
+        "feat: feature/228-fix-baseline-exit-code"
+      ]
+    },
+    "retro": {
+      "total": 2,
+      "done": 2,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "R1/R2はいずれも満たされている。実装対象2ファイルへの変更は要件に整合し、目的の誤解防止に十分。加えて、spec運用ファイル群の追加とJSDocの説明拡張が要件外変更として含まれる。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 3,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 180357,
+      "output": 9899,
+      "cacheRead": 149632,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 235398,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 46795
+        },
+        {
+          "phase": "gate",
+          "durationMs": 93973
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 69167
+        },
+        {
+          "phase": "review",
+          "durationMs": 25463
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2350,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2617
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/228-fix-baseline-exit-code\n    11 files changed, 989 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (2 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 3\n    issue-log ................... 1\n    agent calls ................. 11\n    input tokens ................ 180,357\n    output tokens ............... 9,899\n    cache-read tokens ........... 149,632\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 235.4s\n      gate-draft ................ 46.8s\n      gate ...................... 94.0s\n      gate-impl ................. 69.2s\n      review .................... 25.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2350  integration 267  acceptance 0  total 2617"
+}

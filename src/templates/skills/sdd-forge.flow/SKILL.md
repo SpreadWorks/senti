@@ -103,6 +103,7 @@ B.5. **Capture test baseline (silent, best-effort, spec 209)**
    - On `summarized == "failed"`: agent-side summarization failed. Read the baseline log file at `result.logPath` with Bash/Read, extract failed test identifiers into JSON `{ failed: [{id, reason}, ...] }`, then persist via `sdd-forge flow set test-summary --baseline --mode fallback --json @-` (or `--json '<payload>'`).
    - On any other error (`NO_TEST_COMMAND`, missing test script, etc.): skip baseline capture, print a short warning to the user, and continue to C. Gate-impl will fall back to head-only evaluation with a "baseline not captured" warning.
    - Never fail the flow on baseline issues — this step is strictly best-effort.
+   - **Exit code semantics:** The command's responsibility in baseline mode is to capture and persist a test measurement snapshot. The CLI exit code reflects whether that capture succeeded (exit 0) or failed (non-zero) — it does not reflect test pass/fail. To determine actual test health, read `data.exitCode` (the subprocess exit code, mapped from the internal `result.exitCode`) or `data.summary.exitCode` from the JSON envelope.
 
 Proceed to **C. Dispatcher loop**.
 

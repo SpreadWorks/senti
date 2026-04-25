@@ -20,6 +20,23 @@
  *   acceptance). Individual failed test identification is delegated to the
  *   external summarizer agent (spec 209). Framework-specific log parsing
  *   presets have been removed — the agent handles the ambiguous portion.
+ *
+ * Exit code semantics:
+ *   This command has two distinct responsibilities depending on mode, and
+ *   the CLI exit code reflects the success/failure of that responsibility
+ *   (consistent with exit-code-contract: non-zero on command failure):
+ *
+ *   - baseline mode (--baseline): the command's job is to capture and
+ *     persist a test measurement snapshot. The command succeeds (exit 0)
+ *     when the snapshot is written, and fails (non-zero) when the write
+ *     itself fails. Test pass/fail is data, not a command outcome.
+ *   - head mode (no --baseline): the command's job is to run tests and
+ *     report the result. The command fails (non-zero) when tests fail
+ *     (throws TESTS_FAILED).
+ *
+ *   The returned `result.exitCode` always carries the subprocess exit code
+ *   (npm test, etc.) regardless of mode. Callers must read this field (or
+ *   `result.summary.exitCode`) to determine actual test health.
  */
 
 import { spawnSync } from "child_process";

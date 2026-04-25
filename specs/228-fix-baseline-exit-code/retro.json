@@ -1,0 +1,66 @@
+{
+  "spec": "specs/228-fix-baseline-exit-code/spec.json",
+  "date": "2026-04-25T08:49:21.959Z",
+  "requirements": [
+    {
+      "desc": "SDD flow skill テンプレートの B.5 セクションにおいて、flow run tests --baseline の CLI exit code は baseline 書き込みの成否を表すこと、テスト結果の pass/fail は data.exitCode を参照すべきことを明記する",
+      "status": "done",
+      "note": "`src/templates/skills/sdd-forge.flow/SKILL.md` の B.5 に Exit code semantics が追加され、CLI exit code は baseline capture 成否、テスト健全性は `data.exitCode` / `data.summary.exitCode` を参照する旨が明記されている。"
+    },
+    {
+      "desc": "src/flow/lib/run-tests.js の JSDoc において、戻り値オブジェクトの exitCode フィールドが subprocess の exit code であり、CLI コマンド自体の exit code（baseline モードでは常に 0）とは独立であることを記述する",
+      "status": "done",
+      "note": "`src/flow/lib/run-tests.js` の JSDoc に exit code semantics が追加され、baseline モードの CLI exit code と `result.exitCode`（subprocess exit code）の独立性が明確に記述されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/228-fix-baseline-exit-code/draft.md",
+      "change": "新規 spec ドラフト文書の追加（要件R1/R2の実装対象外）。"
+    },
+    {
+      "file": "specs/228-fix-baseline-exit-code/flow.json",
+      "change": "フロー実行状態・メトリクス・ノート等の管理データ追加（要件R1/R2の実装対象外）。"
+    },
+    {
+      "file": "specs/228-fix-baseline-exit-code/issue-log.json",
+      "change": "ゲート評価ログの追加（要件R1/R2の実装対象外）。"
+    },
+    {
+      "file": "specs/228-fix-baseline-exit-code/issue.md",
+      "change": "課題説明ドキュメントの追加（要件R1/R2の実装対象外）。"
+    },
+    {
+      "file": "specs/228-fix-baseline-exit-code/qa.md",
+      "change": "Q&A テンプレート文書の追加（要件R1/R2の実装対象外）。"
+    },
+    {
+      "file": "specs/228-fix-baseline-exit-code/review.md",
+      "change": "レビュー結果文書の追加（要件R1/R2の実装対象外）。"
+    },
+    {
+      "file": "specs/228-fix-baseline-exit-code/spec.json",
+      "change": "仕様定義JSONの追加（要件R1/R2の実装対象外）。"
+    },
+    {
+      "file": "specs/228-fix-baseline-exit-code/spec.md",
+      "change": "仕様Markdownの追加（要件R1/R2の実装対象外）。"
+    },
+    {
+      "file": "specs/228-fix-baseline-exit-code/tests/README.md",
+      "change": "テスト方針READMEの追加（要件R1/R2の実装対象外）。"
+    },
+    {
+      "file": "src/flow/lib/run-tests.js",
+      "change": "R2範囲を超えて、head mode の失敗条件や exit-code-contract 整合性まで含む広い説明がJSDocに追加されている。"
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "done": 2,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "R1/R2はいずれも満たされている。実装対象2ファイルへの変更は要件に整合し、目的の誤解防止に十分。加えて、spec運用ファイル群の追加とJSDocの説明拡張が要件外変更として含まれる。"
+  }
+}
