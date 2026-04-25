@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T11:12:16.070Z",
+  "analyzedAt": "2026-04-25T12:08:33.880Z",
   "package": {
     "entries": [
       {
@@ -3620,11 +3620,12 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "15061de61b3354acb42f067bf85a5ae7",
-        "lines": 2094,
-        "mtime": "2026-04-25T11:12:15.756Z",
+        "hash": "44187d1585638a7acdc0e2fad9ab75e0",
+        "lines": 2112,
+        "mtime": "2026-04-25T12:08:33.496Z",
         "className": "run-gate",
         "methods": [
+          "filterPendingSpecPlaceholder",
           "validateLevelPhase",
           "collectUntrackedDiff",
           "EvaluationSchemaError",
@@ -3707,6 +3708,7 @@
           "../../lib/flow-envelope.js"
         ],
         "exports": [
+          "filterPendingSpecPlaceholder",
           "validateLevelPhase",
           "collectUntrackedDiff",
           "EvaluationSchemaError",
@@ -3751,24 +3753,24 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This module implements the core gate execution pipeline for flow phases, including guardrail evaluation, retry control, and issue-log integration. It also exports the gate command entrypoint and many validation/utilities used by gate checks.",
-        "detail": "It combines Git-based state inspection, diff collection, and phase-aware scope selection to evaluate implementation quality across draft, spec, and integration checkpoints. Guardrail logic is built around strict JSON-only AI responses, with explicit schema validation and dedicated error types to prevent ambiguous parsing. The module enforces test-related constraints, including expected test coverage, authorized test-file modifications, and detection of unresolved markers or repeated failures. It tracks retry history and prior pass/fail evidence to support escalation, flip overrides, and no-progress detection based on content identity. The `RunGateCommand` class orchestrates phase routing and target loading, while helper exports keep lower-level checks reusable across the flow subsystem.",
+        "summary": "This module implements the flow gate engine and the `RunGateCommand` execution path for draft, spec, task-impl, and integration phases. It validates artifacts, evaluates guardrails, and determines pass/fail outcomes with structured reports.",
+        "detail": "The file combines command orchestration and reusable gate utilities, including phase-level validation, diff/scoped checks, and parsing/normalizing AI evaluation JSON with strict schema errors. It performs multiple policy checks such as unresolved spec placeholders, test modification authorization, expected test coverage patterns, retry budget limits, and monotonic task constraints. The implementation tracks retry and fail history in issue logs, computes git state fingerprints, and detects repeated failures or no-progress states to trigger escalation paths. It also supports guardrail pass-state reuse via flip override when content is unchanged, and emits envelope-based pass/fail responses with next-step hints. The command class routes behavior by phase and input source, resolving spec/draft paths from active flow state or explicit flags before running gate evaluation.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T11:12:41.613Z",
+          "processedAt": "2026-04-25T12:08:47.163Z",
           "attempts": 1
         },
         "keywords": [
-          "gate command",
+          "gate runner",
+          "flow command",
           "guardrail evaluation",
-          "flow phase validation",
+          "spec validation",
           "retry budget",
           "issue log",
-          "diff analysis",
+          "diff-based checks",
           "test authorization",
-          "schema parsing",
-          "quality gate"
+          "envelope response"
         ]
       },
       {
@@ -9709,9 +9711,9 @@
     ],
     "summary": {
       "total": 281,
-      "totalMethods": 927
+      "totalMethods": 928
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T11:12:41.613Z"
+  "enrichedAt": "2026-04-25T12:08:47.163Z"
 }
