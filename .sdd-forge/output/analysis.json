@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T12:08:33.880Z",
+  "analyzedAt": "2026-04-25T12:46:46.056Z",
   "package": {
     "entries": [
       {
@@ -3456,15 +3456,16 @@
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
-        "hash": "251ce72c64b4ef448349f20a5681a074",
-        "lines": 265,
-        "mtime": "2026-04-23T05:53:32.265Z",
+        "hash": "80c8d1ea5a3cb29be12c9670ce202a61",
+        "lines": 270,
+        "mtime": "2026-04-25T12:46:45.569Z",
         "className": "run-auto-check",
         "methods": [
           "computeScore",
           "hardGateFailed",
           "composeAutoCheck",
           "runAutoCheckCore",
+          "computeHardGateSum",
           "parseAiResponse",
           "emptyBreakdown",
           "sanitizeBreakdown",
@@ -3489,22 +3490,24 @@
           "src/flow/lib/set-auto.js"
         ],
         "id": "62c43842",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 3
-        },
-        "summary": "Implements AI-assisted auto-check scoring for SDD auto mode, with static gates, weighted scoring, and hard-gate enforcement. It exposes both core scoring utilities and a command entry point.",
-        "detail": "The module defines category weights, threshold logic, and hard-gate keys so eligibility decisions are reproducible. It parses and sanitizes model output into a bounded numeric breakdown, handling malformed responses through repair and safe defaults. Static gates are evaluated separately and then merged with AI results in a composed verdict object. Error handling degrades gracefully when no agent profile exists or calls fail, returning informative reasons rather than crashing. The command integrates preparing-run resolution and skip verdict behavior for approved specs.",
+        "summary": "This module implements the SDD flow auto-check pipeline and a command wrapper that decides whether auto mode should proceed. It combines static gate evaluation with AI-based scoring and returns normalized pass/fail envelopes.",
+        "detail": "The file defines weighted scoring constants, hard-gate constraints, and helper functions to compute totals and detect mandatory-gate failures. It sanitizes and normalizes AI output by parsing JSON-like responses, clamping category values, and falling back to empty breakdowns on parse or agent errors. The AI scoring path is defensive: it handles unavailable agent profiles, invocation failures, and malformed responses while preserving a structured verdict reason. `composeAutoCheck` merges static gate results and AI breakdown into a single decision object with score, threshold checks, and diagnostics. `runAutoCheckCore` and `RunAutoCheckCommand` provide reusable core logic plus CLI-facing command behavior that returns success/failure through `Envelope` semantics.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-25T12:46:58.278Z",
+          "attempts": 1
+        },
         "keywords": [
-          "auto mode",
-          "scoring rubric",
-          "hard gate",
-          "ai evaluation",
+          "auto check",
+          "SDD flow",
+          "command handler",
           "static gates",
-          "eligibility",
-          "threshold"
+          "AI scoring",
+          "weighted score",
+          "hard gate",
+          "verdict composition",
+          "envelope response"
         ]
       },
       {
@@ -9711,9 +9714,9 @@
     ],
     "summary": {
       "total": 281,
-      "totalMethods": 928
+      "totalMethods": 929
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T12:08:47.163Z"
+  "enrichedAt": "2026-04-25T12:46:58.278Z"
 }
