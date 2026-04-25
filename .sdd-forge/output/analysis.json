@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T07:59:52.918Z",
+  "analyzedAt": "2026-04-25T08:06:00.330Z",
   "package": {
     "entries": [
       {
@@ -6243,15 +6243,16 @@
       },
       {
         "file": "src/lib/process.js",
-        "hash": "1fd23200f1314bce3e48ddf9a28fe3e5",
-        "lines": 130,
-        "mtime": "2026-04-14T11:37:06.524Z",
+        "hash": "668c131e8a8293d0ccdac6a3cfd4ecf5",
+        "lines": 123,
+        "mtime": "2026-04-25T08:06:00.021Z",
         "className": "process",
         "methods": [
           "runCmd",
           "runCmdAsync",
           "formatError",
-          "assertOk"
+          "assertOk",
+          "buildProcessOptions"
         ],
         "imports": [
           "child_process"
@@ -6269,20 +6270,25 @@
           "src/lib/lint.js"
         ],
         "id": "6196b26c",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 8
-        },
-        "summary": "This process utility wraps synchronous and asynchronous command execution with normalized result objects. It also provides shared error formatting and assertion helpers.",
-        "detail": "`runCmd` and `runCmdAsync` standardize stdout/stderr/status capture and failure handling across modules. `formatError` builds concise diagnostic strings from process outcomes. `assertOk` throws contextual errors to enforce command success in callers. The module reduces duplicated child-process handling logic in CLI workflows.",
+        "summary": "This module provides a small process-execution utility layer for running external commands in both synchronous and asynchronous modes. It standardizes process options and error handling so callers can use a consistent result shape.",
+        "detail": "The file imports `spawnSync` and `execFile` from Node.js `child_process` and centralizes shared option normalization in `buildProcessOptions(opts)`. `runCmd(cmd, args, opts)` executes commands synchronously and returns a structured result object, while `runCmdAsync(cmd, args, opts)` wraps callback-based execution in a Promise for async workflows. Error reporting is normalized through `formatError(res)`, which composes key failure fields into a compact diagnostic string. `assertOk(res, context)` enforces success by throwing with contextual information when a process exits unsuccessfully. This pattern reduces duplicated subprocess boilerplate across the codebase and keeps command orchestration predictable.",
         "chapter": "stack_and_ops",
         "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-25T08:06:17.117Z",
+          "attempts": 1
+        },
         "keywords": [
-          "process wrapper",
-          "child process",
-          "assert ok",
-          "command execution",
-          "error formatting"
+          "process execution",
+          "child_process",
+          "spawnSync",
+          "execFile",
+          "command runner",
+          "subprocess wrapper",
+          "error formatting",
+          "exit status",
+          "async command",
+          "sync command"
         ]
       },
       {
@@ -9698,9 +9704,9 @@
     ],
     "summary": {
       "total": 281,
-      "totalMethods": 926
+      "totalMethods": 927
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T08:00:06.057Z"
+  "enrichedAt": "2026-04-25T08:06:17.117Z"
 }
