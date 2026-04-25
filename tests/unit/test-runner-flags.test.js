@@ -55,33 +55,47 @@ describe("buildSearchDirs", () => {
 });
 
 describe("validateFlags", () => {
-  it("accepts no flags", () => {
-    assert.equal(validateFlags({}).error, null);
-  });
+  const accepted = [
+    ["no flags", {}],
+    ["--agent alone", { agent: true }],
+    ["--all alone", { all: true }],
+    ["--file alone", { hasFile: true }],
+    ["--pattern alone", { hasPattern: true }],
+    ["positional alone", { hasPositional: true }],
+    ["--file + --pattern", { hasFile: true, hasPattern: true }],
+    ["--file + positional", { hasFile: true, hasPositional: true }],
+    ["--pattern + positional", { hasPattern: true, hasPositional: true }],
+    ["all file-spec flags", { hasFile: true, hasPattern: true, hasPositional: true }],
+  ];
 
-  it("accepts --agent alone", () => {
-    assert.equal(validateFlags({ agent: true }).error, null);
-  });
+  for (const [name, input] of accepted) {
+    it(`accepts ${name}`, () => {
+      assert.equal(validateFlags(input).error, null);
+    });
+  }
 
-  it("accepts --all alone", () => {
-    assert.equal(validateFlags({ all: true }).error, null);
-  });
+  const rejected = [
+    ["--agent + --preset", { agent: true, preset: "hono" }],
+    ["--agent + --scope", { agent: true, scope: "unit" }],
+    ["--agent + --all", { agent: true, all: true }],
+    ["--file + --preset", { hasFile: true, preset: "hono" }],
+    ["--file + --scope", { hasFile: true, scope: "unit" }],
+    ["--file + --agent", { hasFile: true, agent: true }],
+    ["--file + --all", { hasFile: true, all: true }],
+    ["--pattern + --preset", { hasPattern: true, preset: "hono" }],
+    ["--pattern + --agent", { hasPattern: true, agent: true }],
+    ["positional + --scope", { hasPositional: true, scope: "unit" }],
+    ["positional + --all", { hasPositional: true, all: true }],
+  ];
 
-  it("rejects --agent with --preset", () => {
-    const res = validateFlags({ agent: true, preset: "hono" });
-    assert.ok(res.error);
-    assert.match(res.error, /--agent/);
-  });
+  for (const [name, input] of rejected) {
+    it(`rejects ${name}`, () => {
+      assert.ok(validateFlags(input).error);
+    });
+  }
 
-  it("rejects --agent with --scope", () => {
-    const res = validateFlags({ agent: true, scope: "unit" });
-    assert.ok(res.error);
-    assert.match(res.error, /--agent/);
-  });
-
-  it("rejects --agent with --all", () => {
-    const res = validateFlags({ agent: true, all: true });
-    assert.ok(res.error);
+  it("--agent error message mentions --agent", () => {
+    assert.match(validateFlags({ agent: true, preset: "hono" }).error, /--agent/);
   });
 });
 
