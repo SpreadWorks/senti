@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/230-lazy-test-baseline/draft.json            |  76 ++++\n specs/230-lazy-test-baseline/flow.json             | 441 +++++++++++++++++++++\n specs/230-lazy-test-baseline/issue-log.json        | 140 +++++++\n specs/230-lazy-test-baseline/issue.md              |  10 +\n specs/230-lazy-test-baseline/qa.md                 |   9 +\n specs/230-lazy-test-baseline/review.md             |  41 ++\n specs/230-lazy-test-baseline/spec.json             | 180 +++++++++\n specs/230-lazy-test-baseline/spec.md               |  97 +++++\n specs/230-lazy-test-baseline/tasks/T-1.md          |  22 +\n specs/230-lazy-test-baseline/tasks/T-2.md          |  19 +\n .../230-lazy-test-baseline/tasks/T-pending-spec.md |   9 +\n specs/230-lazy-test-baseline/tests/README.md       |  24 ++\n .../tests/lazy-baseline.test.js                    | 107 +++++\n src/flow/lib/run-tests.js                          | 162 +++++---\n src/templates/skills/sdd-forge.flow/SKILL.md       |  10 +-\n 15 files changed, 1291 insertions(+), 56 deletions(-)",
+      "commits": [
+        "feat: feature/230-lazy-test-baseline"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 7,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.94,
+      "notes": "must 要件（REQ-1,2,3,4,6,7,8）は満たされている。REQ-5 は要約失敗時の `summarized` 値が `'skipped'` ではなく `'failed'` になっており部分充足。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 181780,
+      "output": 11386,
+      "cacheRead": 164992,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 273139,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 79484
+        },
+        {
+          "phase": "gate",
+          "durationMs": 55596
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 89319
+        },
+        {
+          "phase": "review",
+          "durationMs": 48740
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2447,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2714
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/230-lazy-test-baseline\n    15 files changed, 1291 insertions(+), 56 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 94%  (7 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 11\n    input tokens ................ 181,780\n    output tokens ............... 11,386\n    cache-read tokens ........... 164,992\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 273.1s\n      gate-draft ................ 79.5s\n      gate ...................... 55.6s\n      gate-impl ................. 89.3s\n      review .................... 48.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2447  integration 267  acceptance 0  total 2714"
+}

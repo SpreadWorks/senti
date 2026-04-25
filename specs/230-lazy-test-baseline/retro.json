@@ -1,0 +1,76 @@
+{
+  "spec": "specs/230-lazy-test-baseline/spec.json",
+  "date": "2026-04-25T12:54:46.874Z",
+  "requirements": [
+    {
+      "desc": "flow run tests（--baseline なし）実行時に flow.json の test.baseline が未記録なら、base commit の detached worktree を一時作成してテストを実行し、結果を test.baseline に記録する。",
+      "status": "done",
+      "note": "`RunTestsCommand.execute()` で baseline 未記録時に `captureBaselineInWorktree()` を呼び、detached worktree 上で実行し `setTestSummary(..., { baseline: true })` で保存している。"
+    },
+    {
+      "desc": "flow run tests（--baseline なし）実行時に flow.json の test.baseline が既に記録済みなら、baseline 自動取得をスキップして head テストのみ実行する。",
+      "status": "done",
+      "note": "自動取得は `if (!baseline && !flowState?.test?.baseline)` 条件のみで実行されるため、baseline 既存時は head 実行のみ。"
+    },
+    {
+      "desc": "baseline 自動取得で作成した detached worktree は、テスト実行後（成功・失敗を問わず）に確実に削除する。",
+      "status": "done",
+      "note": "`withDetachedWorktree()` で `try/finally` により常に `removeWorktreeSafe()` を呼ぶ実装になっている。"
+    },
+    {
+      "desc": "baseline 自動取得が失敗した場合（worktree 作成失敗、テストコマンド未定義等）、警告を出力して head テストの実行を続行する。フローを中断しない。",
+      "status": "done",
+      "note": "auto-capture 全体を `try/catch` し、stderr 警告出力後に head テスト処理を継続する。"
+    },
+    {
+      "desc": "baseline 自動取得時も、既存の --baseline モードと同様に agent による要約（summarizeTestLog）を実行する。要約失敗時は summarized: 'skipped' として続行する。",
+      "status": "partial",
+      "note": "auto-capture でも `runTestPipeline()` 経由で要約を試行しているが、要約失敗時の `summarized` は `'skipped'` ではなく `'failed'` に設定される。"
+    },
+    {
+      "desc": "SKILL.md の B.5（Capture test baseline）ステップを廃止する。prepare 完了後の自動 baseline テスト実行を行わない。",
+      "status": "done",
+      "note": "`src/templates/skills/sdd-forge.flow/SKILL.md` から B.5 セクションが削除され、lazy capture の注記に置換されている。"
+    },
+    {
+      "desc": "既存の --baseline フラグの動作は変更しない。--baseline 指定時は従来通り baseline のみを記録する。",
+      "status": "done",
+      "note": "`--baseline` 時は auto-capture 分岐に入らず、baseline 実行のみ。`exitCode` の扱いも baseline では失敗で throw しない既存方針を維持している。"
+    },
+    {
+      "desc": "base commit の特定には flow.json の baseBranch フィールドを使用する。",
+      "status": "done",
+      "note": "`captureBaselineInWorktree()` で `flowState.baseBranch` を取得し、`git worktree add --detach ... <baseBranch>` に使用している。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/230-lazy-test-baseline/draft.json",
+      "change": "仕様ドラフト管理ファイルを新規追加（要件実装そのものではない）。"
+    },
+    {
+      "file": "specs/230-lazy-test-baseline/flow.json",
+      "change": "フロー実行状態・メトリクス記録ファイルを新規追加（要件外の運用メタデータ）。"
+    },
+    {
+      "file": "specs/230-lazy-test-baseline/issue-log.json",
+      "change": "ゲート評価ログを新規追加（要件外の監査ログ）。"
+    },
+    {
+      "file": "specs/230-lazy-test-baseline/review.md",
+      "change": "レビュー記録ドキュメントを新規追加（要件外）。"
+    },
+    {
+      "file": "specs/230-lazy-test-baseline/tests/lazy-baseline.test.js",
+      "change": "仕様検証用テストを追加（要件本文にはテスト追加は明示されていない）。"
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "done": 7,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.94,
+    "notes": "must 要件（REQ-1,2,3,4,6,7,8）は満たされている。REQ-5 は要約失敗時の `summarized` 値が `'skipped'` ではなく `'failed'` になっており部分充足。"
+  }
+}

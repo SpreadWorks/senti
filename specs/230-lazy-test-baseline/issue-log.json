@@ -1,0 +1,140 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 仕様は baseline 取得タイミング変更と B.5 廃止という同一目的に集中している。; Unambiguous Requirements — must/should で条件と期待動作が具体化され、検証可能な記述になっている。; Complete Context — 一部要件（例: 「テスト更新」）はトリガー条件や期待結果の対が明示されておらず不完全。; No Hardcoded Secrets — 記載内容に秘密情報のハードコードは含まれていない。; Prioritize Requirements — 要件が3件超だが各項目に must/should の優先度が付与されている。; Impact on Existing Features — 既存機能への影響が列挙され、影響なし項目（gate）も明示されている。; Present Recommendations with Reasoning — 各質問で推奨回答を先に示し、evidence/why/considered で根拠を添えている。; Explore Before Asking — openQuestions が空で、各判断に「確認済み」の根拠が付いている。; Proactively Raise Related Implications — 実行時間増加、失敗時継続、要約実行など関連含意を先回りで扱っている。; Confirm Brainstorm vs. Decision Before Critiquing — QA 冒頭で意思決定段階であることを明確に確認している。; Capture Digressions in draft.md — 議論の脱線有無や draft.md 追記の実施は提示内容だけでは確認できない。; Draft Stays at Requirements Level — 内容は要件・振る舞いレベルに留まり、関数設計や実装詳細には踏み込んでいない。; Backward-Compatible CLI Interface — 既存オプション（--baseline）を維持しており、削除や意味変更に伴う移行計画が必要なケースに該当しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:05:41.937Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "一部要件（例: 「テスト更新」）はトリガー条件や期待結果の対が明示されておらず不完全。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Baseline取得タイミング変更とB.5廃止は同一関心（テスト実行フロー最適化）に収まっている。; Unambiguous Requirements — must/shouldで優先度付きかつ検証条件（未取得時取得、取得済み時スキップ等）が具体化されている。; Complete Context — 一部要件（例:「skill B.5 ステップを廃止する」）はWhen/If条件と期待動作の対が明示されていない。; No Hardcoded Secrets — 秘密情報やハードコードされた認証情報は含まれていない。; Prioritize Requirements — 4件の要件にmust/shouldの優先度が付与されている。; Impact on Existing Features — 既存機能への影響（実行時間、prepare後自動実行廃止、gate影響なし）を明示している。; Present Recommendations with Reasoning — 各QAで推奨回答を先に示し、evidence/why/consideredで根拠を添えている。; Explore Before Asking — 既存CLI・prepare記録・gate経路の確認結果を根拠化し、未調査前提の質問を残していない。; Proactively Raise Related Implications — 性能影響、失敗時継続方針、AI要約実行可否など関連含意を先回りで記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 冒頭QAで意思決定段階であることを明示し、証拠も提示している。; Capture Digressions in draft.md — 本文上で主要論点は本筋内に整理され、逸脱議論の未記録は確認できない。; Draft Stays at Requirements Level — 要件・方針・挙動レベルに留まり、関数設計や実装詳細へ踏み込んでいない。; Backward-Compatible CLI Interface — 既存の--baselineフラグを維持する方針を明記しており、破壊的変更はない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:06:22.416Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "一部要件（例:「skill B.5 ステップを廃止する」）はWhen/If条件と期待動作の対が明示されていない。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:10:00.196Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: moving baseline acquisition to test execution time and related workflow cleanup.; Task Single Responsibility — Both tasks are individually scoped to a single concern (lazy baseline logic, B.5 removal).; Unambiguous Requirements — Requirements are mostly concrete and testable, with specific conditions and expected outcomes.; Complete Context — Requirements generally include both trigger conditions and expected behavior.; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus test outcomes for the stated requirements.; No Hardcoded Secrets — No secrets or credential embedding is specified.; No Silent Error Swallowing — Failure paths require warning output and continuation, not silent discard.; Prioritize Requirements — More than three requirements are present and each has a priority (must/should).; Impact on Existing Features — Impacts are stated (B.5 removal, lazy baseline behavior, --baseline unchanged).; Bounded Resource Usage — Design describes a single baseline acquisition flow per run and cleanup via try/finally; no unbounded processing is introduced.; Changes Require Test Coverage — Spec includes test additions/updates and task-level test coverage for key paths.; Spec Includes Test Strategy — Test strategy is explicitly described in tasks (unit tests and manual check for template change).; Synthesize Draft, Do Not Copy — Cannot determine whether draft content was synthesized vs copied without the source draft.; Record Unresolved Points as Open Questions — No unresolved assumptions are hidden; open questions section is present and currently empty.; Include 'Why This Approach' Rationale — Background and decisions clearly explain why this approach was chosen.; Do Not Modify Existing Tests Without Approval — Spec allows 'test add/update' but does not state user approval before modifying existing tests.; Backward-Compatible CLI Interface — No CLI breaking change is proposed; existing --baseline behavior is explicitly preserved.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:11:26.934Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impl-test-preservation",
+          "reason": "Spec allows 'test add/update' but does not state user approval before modifying existing tests."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "implement",
+      "reason": "buildLayers test failure is pre-existing (present in baseline). Test counts unchanged: unit=2447, integration=267.",
+      "trigger": "npm test exit code 1",
+      "resolution": "pre-existing failure, not caused by spec 230 changes",
+      "taskId": null,
+      "timestamp": "2026-04-25T12:42:33.953Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements lazy baseline capture in head mode with baseBranch detached worktree, skip when baseline exists, best-effort warning/continue behavior, cleanup in finally, preserves --baseline path, removes SKILL B.5, and adds new spec tests without modifying existing tests; baseline/head failures are identical (no new regression IDs).; No Hardcoded Secrets — Added/modified lines do not include hardcoded API keys, passwords, tokens, or similar secrets.; No Silent Error Swallowing — Added code introduces empty/silent catches in `removeWorktreeSafe` (`catch { ... }` and nested `catch { /* best-effort */ }`) without logging or rethrowing.; Bounded Resource Usage — Diff introduces no unbounded recursion/retry/bulk loops; subprocess buffer is explicitly bounded (`maxBuffer`).; No Sensitive Data in Logs — New logging only emits a generic warning with error message; no passwords/tokens/PII are added to logs in diff lines.; No Disabling Existing Tests — Diff adds new tests and docs but does not skip/comment out/delete existing tests.; Escalate When New Tests Break Existing Tests — No evidence in added/modified diff lines that new tests caused existing tests to fail, so escalation requirement was not triggered.; Flag Tests That Become Irrelevant — No added/modified diff lines show existing tests becoming irrelevant or being superseded.; Exit Code Contract — No added/modified line shows explicit success exit codes being returned on command failure paths.; No Synchronous I/O in Hot Paths — Synchronous I/O was added, but not inside loops or bulk-processing hot paths in the diff.; Validate User Input at Entry Point — Diff does not introduce new CLI/stdin entry-point inputs; this guardrail is inapplicable to the added changes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:43:42.638Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "Added code introduces empty/silent catches in `removeWorktreeSafe` (`catch { ... }` and nested `catch { /* best-effort */ }`) without logging or rethrowing."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "bounded-resource-usage",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "impl-test-conflict-escalation",
+        "impl-flag-obsolete-tests",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: removeWorktreeSafe had empty catch blocks flagged by no-silent-error-swallowing guardrail",
+      "resolution": "added stderr warning in fallback rmSync catch",
+      "taskId": null,
+      "timestamp": "2026-04-25T12:43:57.990Z"
+    }
+  ]
+}

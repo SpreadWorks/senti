@@ -39,7 +39,7 @@
  *   `result.summary.exitCode`) to determine actual test health.
  */
 
-import { spawnSync } from "child_process";
+import { spawnSync, execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { FlowCommand } from "./base-command.js";
@@ -50,6 +50,7 @@ const TYPES = ["unit", "integration", "acceptance"];
 
 const LOG_REL = "logs/test-output.log";
 const BASELINE_LOG_REL = "logs/baseline-test-output.log";
+const BASELINE_WORKTREE_DIR = "baseline-worktree";
 
 function parseCountsFromLog(text) {
   const out = {};
@@ -68,10 +69,109 @@ function parseCountsFromLog(text) {
   return out;
 }
 
+async function runTestPipeline({ command, cwd, logPath, baseline, flowManager, container }) {
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+
+  const child = spawnSync(command, {
+    cwd,
+    shell: true,
+    stdio: ["ignore", "pipe", "pipe"],
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const combined = (child.stdout || "") + (child.stderr || "");
+  fs.writeFileSync(logPath, combined);
+
+  const exitCode = child.status ?? 1;
+  const counts = parseCountsFromLog(combined);
+  flowManager.setTestSummary({ ...counts, exitCode }, { baseline });
+
+  let summarized = "skipped";
+  let summarizeError = null;
+  let failed = [];
+  const agent = container?.get?.("agent");
+  if (agent && typeof agent.call === "function") {
+    const res = await summarizeTestLog({ agent, log: combined, exitCode, counts });
+    if (res.ok) {
+      summarized = "ok";
+      failed = res.failed;
+      flowManager.setTestSummary({ failed }, { baseline, mode: "fallback" });
+    } else {
+      summarized = "failed";
+      summarizeError = res.reason;
+    }
+  }
+
+  return { exitCode, counts, combined, summarized, summarizeError, failed };
+}
+
+function removeWorktreeSafe(wtPath) {
+  try {
+    execFileSync("git", ["worktree", "remove", "--force", wtPath], { stdio: "ignore" });
+  } catch (gitErr) {
+    try {
+      fs.rmSync(wtPath, { recursive: true, force: true });
+    } catch (rmErr) {
+      process.stderr.write(`[sdd-forge] warning: failed to clean up baseline worktree at ${wtPath}: ${rmErr.message}\n`);
+    }
+  }
+}
+
+async function withDetachedWorktree(root, baseBranch, workDir, fn) {
+  const absWork = path.isAbsolute(workDir) ? workDir : path.join(root, workDir);
+  const wtPath = path.join(absWork, BASELINE_WORKTREE_DIR);
+
+  if (fs.existsSync(wtPath)) removeWorktreeSafe(wtPath);
+
+  execFileSync("git", ["worktree", "add", "--detach", wtPath, baseBranch], {
+    cwd: root,
+    stdio: "ignore",
+  });
+
+  try {
+    return await fn(wtPath);
+  } finally {
+    removeWorktreeSafe(wtPath);
+  }
+}
+
+async function captureBaselineInWorktree(ctx) {
+  const { root, flowState, flowManager, config, container } = ctx;
+  const baseBranch = flowState?.baseBranch;
+  if (!baseBranch) throw new Error("baseBranch not available in flow state");
+
+  const scope = flowState?.currentTaskId != null ? "task" : "parent";
+  const command = resolveTestCommand({ root, config, scope });
+  if (!command) throw new Error("no test command resolvable for baseline");
+
+  const workDir = resolveWorkDir(root, config);
+  const absWork = path.isAbsolute(workDir) ? workDir : path.join(root, workDir);
+  const logPath = path.join(absWork, BASELINE_LOG_REL);
+
+  await withDetachedWorktree(root, baseBranch, workDir, async (wtPath) => {
+    await runTestPipeline({
+      command,
+      cwd: wtPath,
+      logPath,
+      baseline: true,
+      flowManager,
+      container,
+    });
+  });
+}
+
 export class RunTestsCommand extends FlowCommand {
   async execute(ctx) {
     const { root, flowState, flowManager, config, container } = ctx;
     const baseline = Boolean(ctx.baseline);
+
+    if (!baseline && !flowState?.test?.baseline) {
+      try {
+        await captureBaselineInWorktree(ctx);
+      } catch (err) {
+        process.stderr.write(`[sdd-forge] warning: baseline auto-capture failed: ${err.message}\n`);
+      }
+    }
 
     const scope = flowState?.currentTaskId != null ? "task" : "parent";
     const command = resolveTestCommand({ root, config, scope });
@@ -87,66 +187,32 @@ export class RunTestsCommand extends FlowCommand {
     const absWork = path.isAbsolute(workDir) ? workDir : path.join(root, workDir);
     const logRel = baseline ? BASELINE_LOG_REL : LOG_REL;
     const logPath = path.join(absWork, logRel);
-    fs.mkdirSync(path.dirname(logPath), { recursive: true });
 
-    const child = spawnSync(command, {
+    const pipeResult = await runTestPipeline({
+      command,
       cwd: root,
-      shell: true,
-      stdio: ["ignore", "pipe", "pipe"],
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
+      logPath,
+      baseline,
+      flowManager,
+      container,
     });
-    const combined = (child.stdout || "") + (child.stderr || "");
-    fs.writeFileSync(logPath, combined);
-
-    const exitCode = child.status ?? 1;
-    const counts = parseCountsFromLog(combined);
-
-    // Tool-measured write (spec 198 tool monopoly: exitCode signals tool origin)
-    flowManager.setTestSummary({ ...counts, exitCode }, { baseline });
-
-    // Spec 209: delegate log summarization to external agent
-    let summarized = "skipped";
-    let summarizeError = null;
-    let failed = [];
-    const agent = container?.get?.("agent");
-    if (agent && typeof agent.call === "function") {
-      const res = await summarizeTestLog({
-        agent,
-        log: combined,
-        exitCode,
-        counts,
-      });
-      if (res.ok) {
-        summarized = "ok";
-        failed = res.failed;
-        // Merge failed[] into the tool-recorded entry
-        flowManager.setTestSummary({ failed }, { baseline, mode: "fallback" });
-      } else {
-        summarized = "failed";
-        summarizeError = res.reason;
-      }
-    }
 
     const result = {
       scope,
       command,
-      exitCode,
+      exitCode: pipeResult.exitCode,
       logPath: path.relative(root, logPath),
-      summary: { ...counts, exitCode, ...(failed.length ? { failed } : {}) },
-      summarized,
+      summary: { ...pipeResult.counts, exitCode: pipeResult.exitCode, ...(pipeResult.failed.length ? { failed: pipeResult.failed } : {}) },
+      summarized: pipeResult.summarized,
       baseline,
     };
-    if (summarizeError) result.summarizeError = summarizeError;
+    if (pipeResult.summarizeError) result.summarizeError = pipeResult.summarizeError;
 
-    // REQ-11: baseline mode treats non-zero exitCode as a normal baseline recording
-    // (we explicitly want to capture pre-existing failures). Only the head-mode
-    // `flow run tests` surfaces TESTS_FAILED as an error to the caller.
-    if (exitCode !== 0 && !baseline) {
-      const err = new Error(`tests failed with exit code ${exitCode}`);
+    if (pipeResult.exitCode !== 0 && !baseline) {
+      const err = new Error(`tests failed with exit code ${pipeResult.exitCode}`);
       err.code = "TESTS_FAILED";
       err.data = result;
-      err.exitCode = exitCode;
+      err.exitCode = pipeResult.exitCode;
       throw err;
     }
     return result;
