@@ -1,0 +1,72 @@
+{
+  "devType": "bugfix",
+  "goal": "直近12 specのissue-logで繰り返し発生しているガードレール評価の false positive 5件を修正し、不要なリトライコストを削減する",
+  "analysis": {
+    "problem": "gate 評価で5つのガードレールが構造的に false positive を起こしている。draft-scope-boundary (23回) はバグ修正ドラフトでファイル名・関数名に言及するだけでFAIL。complete-context (22回) は when/if 構文でなければ trigger→behavior があってもFAIL。task-single-responsibility (8回) は prepare-spec が生成する T-pending-spec プレースホルダーを実タスクとして評価してしまう。prioritize-requirements (10回) は要件が全て同一優先度でも priority 表記を要求。exit-code-contract (6回) は spec/draft フェーズで gate の内部結果表現まで検査してしまう。",
+    "proposedApproach": "ガードレール定義の body テキストを緩和し、exit-code-contract の phase を task-impl のみに限定する。T-pending-spec はゲート評価時にタスクリストからフィルタリングする。",
+    "validation": "各修正は issue-log の具体的な failure reason に直接対応している。body の緩和は正当な違反の検出力を下げないよう、禁止事項を明確化する形にする。"
+  },
+  "scopeVerification": {
+    "in": [
+      "When gate-draft evaluates a bugfix draft that mentions file paths or function names, it shall pass draft-scope-boundary unless the draft describes internal algorithms or design decisions",
+      "When gate evaluates complete-context, it shall pass if each requirement conveys a trigger condition and expected behavior, regardless of whether when/if/shall syntax is used",
+      "When gate-spec evaluates task-single-responsibility, it shall exclude placeholder tasks (T-pending-spec) from the evaluation input",
+      "When requirements number three or fewer, prioritize-requirements shall pass without requiring explicit priority labels",
+      "exit-code-contract shall be evaluated only in the task-impl phase, not in spec or draft phases"
+    ],
+    "out": [
+      "ガードレールの追加・削除",
+      "AI プロンプト構築ロジックの変更",
+      "flow lifecycle の不整合修正（issue #268 で別対応）"
+    ]
+  },
+  "impactOnExisting": [
+    "gate-draft: draft-scope-boundary, complete-context のFAIL率が低下する",
+    "gate-spec: task-single-responsibility, prioritize-requirements のFAIL率が低下する",
+    "gate-impl (task-impl): exit-code-contract は引き続き評価される。spec/draft フェーズでのみ除外",
+    "既存のPASS判定には影響なし（body を緩和する方向のみ）"
+  ],
+  "qa": [
+    {
+      "question": "draft-scope-boundary の緩和範囲はどこまでか",
+      "answer": "ファイルパスや関数名への「言及」は許容し、「実装アルゴリズムや内部設計の詳細記述」のみ禁止する",
+      "evidence": "issue-log の23件全てが 'Draft includes implementation-level details (specific files/functions)' というパターン。バグ修正ドラフトで具体ファイル名を挙げるのは要件レベルの情報として妥当",
+      "why": "バグ修正は対象コードを特定しないと要件が曖昧になる。問題は言及自体ではなく、アルゴリズム設計の記述",
+      "considered": "phase から draft を除外する案 → draft でも実装設計の記述は防ぎたいので body 緩和が適切"
+    },
+    {
+      "question": "complete-context の when/if 構文強制を緩和してよいか",
+      "answer": "trigger condition と expected behavior の対応が明確であれば、文法形式は問わない",
+      "evidence": "22件の failure reason は 'requirements are not consistently written with explicit trigger condition plus expected shall-behavior format' であり、内容の不足ではなく形式の不一致が原因",
+      "why": "要件の完全性は意味的に判断すべきで、構文的な when/if/shall パターンの有無で判断すべきではない",
+      "considered": "guardrail を削除する案 → 本来の目的（不完全な要件の検出）は有用なので body 緩和が適切"
+    },
+    {
+      "question": "T-pending-spec のフィルタリングはどこで行うか",
+      "answer": "ゲート評価時にタスクリストからプレースホルダータスク T-pending-spec を除外する",
+      "evidence": "prepare-spec でプレースホルダーが生成され、spec 段階で実タスクに置換される設計。gate-spec が実行される時点ではまだ置換前",
+      "why": "プレースホルダーを評価対象に含めるのは設計上の不整合。gate 評価の入力を正規化するのが正しい",
+      "considered": "prepare-spec でプレースホルダーを生成しない案 → flow.json の tasks が空配列だと他の箇所に影響する可能性があり、フィルタリングの方が安全"
+    },
+    {
+      "question": "prioritize-requirements の条件追加は妥当か",
+      "answer": "要件が3件以下の場合は priority 表記を不要とする（既存の body にある 'exceed three items' の閾値を明確化）",
+      "evidence": "現在の body は 'When requirements exceed three items, assign each requirement one priority' だが、AI が 'exceed' を '>=' と解釈して3件丁度でもFAILにするケースが多い",
+      "why": "3件以下は優先度が自明なことが多い。body の表現を 'more than three' に明確化する",
+      "considered": "閾値を5件に上げる案 → 3件は妥当な閾値。問題は曖昧な表現であって閾値自体ではない"
+    },
+    {
+      "question": "exit-code-contract の phase 変更の影響",
+      "answer": "spec/draft フェーズでの評価を除外し、task-impl のみにする",
+      "evidence": "6件の failure はすべて spec/gate フェーズで 'Spec says gate should FAIL but does not explicitly require non-zero process exit code on failure' というパターン。gate の内部結果（FAIL/PASS）と process exit code は異なる概念",
+      "why": "gate コマンドは正常完了（exit 0）で結果データに pass/fail を含む設計。これは exit-code-contract の対象外",
+      "considered": "body にゲート結果の除外を明記する案 → phase 限定の方がシンプルで確実"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-25T10:00:00Z",
+    "notes": "autoApprove"
+  }
+}
