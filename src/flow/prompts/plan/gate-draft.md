@@ -1,5 +1,5 @@
    - `sdd-forge flow run gate --phase draft` (step status is automatically managed by hooks: pre sets gate-draft to in_progress, post sets done on PASS)
-   - Checks draft.md for: Q&A section, user approval, development type, goal + guardrail AI compliance.
-   - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.issues` and `data.artifacts.reasons`. AI fixes draft.md and re-runs gate.
+   - Checks draft.json for: devType enum, goal, analysis (problem/proposedApproach/validation), Q&A evidence on decision entries, approval + guardrail AI compliance.
+   - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.issues` and `data.artifacts.reasons`. AI fixes draft.json and re-runs gate.
    - **Retry limit: 10 attempts.** If gate does not PASS after 10 fix-and-rerun cycles, STOP and return control to the user.
    - Do not proceed until PASS (`data.result === "pass"`).

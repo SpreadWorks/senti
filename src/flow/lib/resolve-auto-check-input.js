@@ -2,7 +2,7 @@
  * src/flow/lib/resolve-auto-check-input.js
  *
  * Phase-aware input resolution for `flow run auto-check` and `flow set auto on`
- * (spec 220). Pure functions only — no CLI, no I/O beyond reading draft.md.
+ * (spec 220). Pure functions only — no CLI, no I/O beyond reading draft.json.
  *
  * Phase mapping (completion markers read from flow state `steps[]`):
  *   - approval done            → skip AI evaluation (spec-approved)
@@ -83,7 +83,7 @@ export function resolveAutoCheckInput(state, paths = {}) {
   }
   const base = buildBaseInput(state, paths);
   if (isDraftGateDone(state)) {
-    const draft = loadSpecSiblingText(paths.root, paths.specPath, "draft.md");
+    const draft = loadSpecSiblingText(paths.root, paths.specPath, "draft.json");
     if (draft) {
       const text = base ? `${base}\n\n${draft}` : draft;
       return { skip: false, text };

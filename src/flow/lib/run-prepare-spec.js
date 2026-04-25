@@ -90,37 +90,28 @@ function buildQaTemplate() {
   ].join("\n");
 }
 
-function buildDraftTemplate(specDirName) {
-  return [
-    `# Draft: ${specDirName}`,
-    "",
-    "**開発種別:** <feature | bugfix | refactor | docs | chore | test | other>",
-    "**目的:** <この変更で達成したいことを 1-2 文で>",
-    "",
-    "## Scope Verification",
-    "- In scope:",
-    "  -",
-    "- Out of scope:",
-    "  -",
-    "",
-    "## Impact on Existing Features",
-    "- 影響ありの既存機能:",
-    "  -",
-    "- 影響なし: （該当する場合は「影響なし」と明記）",
-    "",
-    "## Q&A",
-    "- Q:",
-    "  - A:",
-    "",
-    "## Open Questions",
-    "-",
-    "",
-    "## User Approval",
-    "- [ ] User approved this draft",
-    "- Confirmed at:",
-    "- Notes:",
-    "",
-  ].join("\n");
+function buildDraftTemplate() {
+  return JSON.stringify({
+    devType: "",
+    goal: "",
+    analysis: {
+      problem: "",
+      proposedApproach: "",
+      validation: "",
+    },
+    scopeVerification: {
+      in: [],
+      out: [],
+    },
+    impactOnExisting: [],
+    qa: [],
+    openQuestions: [],
+    approval: {
+      approved: false,
+      confirmedAt: "",
+      notes: "",
+    },
+  }, null, 2) + "\n";
 }
 
 function loadLocalQaTemplate(root, lang) {
@@ -189,7 +180,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     const specDir = path.join(specRoot, "specs", specDirName);
     const specPath = path.join(specDir, "spec.md");
     const qaPath = path.join(specDir, "qa.md");
-    const draftPath = path.join(specDir, "draft.md");
+    const draftPath = path.join(specDir, "draft.json");
 
     if (dryRun) {
       const mode = useWorktree ? "worktree" : skipBranch ? "spec-only" : "branch";
@@ -233,7 +224,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
         fs.writeFileSync(qaPath, loadLocalQaTemplate(root, lang));
       }
       if (!fs.existsSync(draftPath)) {
-        fs.writeFileSync(draftPath, buildDraftTemplate(specDirName));
+        fs.writeFileSync(draftPath, buildDraftTemplate());
       }
       if (preparingState?.issueBody && typeof preparingState.issueBody === "string") {
         if (!fs.existsSync(path.join(specDir, "issue.md"))) {
@@ -294,12 +285,12 @@ export class RunPrepareSpecCommand extends FlowCommand {
     const changed = [
       `specs/${specDirName}/spec.md`,
       `specs/${specDirName}/qa.md`,
-      `specs/${specDirName}/draft.md`,
+      `specs/${specDirName}/draft.json`,
     ];
     const createdFileLines = [
       `created spec: specs/${specDirName}/spec.md`,
       `created qa: specs/${specDirName}/qa.md`,
-      `created draft: specs/${specDirName}/draft.md`,
+      `created draft: specs/${specDirName}/draft.json`,
     ];
     const fillAndGateNext = [
       `fill specs/${specDirName}/spec.md`,

@@ -368,12 +368,8 @@ function walkStrings(node, path, fn) {
 }
 
 // ---------------------------------------------------------------------------
-// Text checks — draft
+// JSON checks — draft (spec 229: draft.md → draft.json)
 // ---------------------------------------------------------------------------
-
-function buildDraftFieldPattern(labels) {
-  return new RegExp(`(?:^\\s*##\\s+(?:${labels})|\\*{0,2}(?:${labels})\\*{0,2}\\s*[:：])`, "im");
-}
 
 const DRAFT_DEV_TYPE_ENUM = Object.freeze([
   "feature",
@@ -385,48 +381,54 @@ const DRAFT_DEV_TYPE_ENUM = Object.freeze([
   "other",
 ]);
 
-// Case-sensitive: only lowercase letters are accepted. Uppercase / mixed case
-// values are intentionally rejected so the enum remains a single canonical form.
-// Tolerant to `**LABEL:**` (colon inside bold) and `**LABEL**:` (colon outside).
-// Line-anchored so stray inline mentions elsewhere are not parsed as the field.
-const DRAFT_DEV_TYPE_VALUE_RE =
-  /^\s*\*{0,2}(?:開発種別|Development\s*Type)\*{0,2}\s*[:：]\s*\*{0,2}\s*([A-Za-z]+)/m;
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
 
-function checkDraftText(text) {
+function checkDraftJson(draft) {
   const issues = [];
-
-  if (!/##\s+Q&A/i.test(text)) {
-    issues.push("missing Q&A section");
+  if (!draft || typeof draft !== "object") {
+    issues.push("draft must be a non-null object");
+    return issues;
   }
 
-  const hasApproval =
-    /-\s*\[\s*x\s*\]\s*(?:User approved this draft|ユーザーがこの draft を承認した)/i.test(text);
-  if (!hasApproval) {
-    issues.push("draft approval is required: set `- [x] User approved this draft`");
+  if (!isNonEmptyString(draft.devType) || !DRAFT_DEV_TYPE_ENUM.includes(draft.devType)) {
+    issues.push(
+      `invalid devType "${draft.devType || ""}" (expected one of: ${DRAFT_DEV_TYPE_ENUM.join(", ")})`,
+    );
   }
 
-  if (!buildDraftFieldPattern("開発種別|dev(?:elopment)?\\s*type").test(text)) {
-    issues.push("missing development type (開発種別)");
+  if (!isNonEmptyString(draft.goal)) {
+    issues.push("missing or empty goal");
+  }
+
+  const a = draft.analysis;
+  if (!a || typeof a !== "object") {
+    issues.push("missing analysis object");
   } else {
-    const match = text.match(DRAFT_DEV_TYPE_VALUE_RE);
-    const value = match ? match[1] : "";
-    if (!DRAFT_DEV_TYPE_ENUM.includes(value)) {
-      issues.push(
-        `invalid development type "${value}" (expected one of: ${DRAFT_DEV_TYPE_ENUM.join(", ")})`,
-      );
+    for (const field of ["problem", "proposedApproach", "validation"]) {
+      if (!isNonEmptyString(a[field])) {
+        issues.push(`missing or empty analysis.${field}`);
+      }
     }
   }
 
-  if (!buildDraftFieldPattern("目的|goal").test(text)) {
-    issues.push("missing goal (目的)");
+  if (!Array.isArray(draft.qa)) {
+    issues.push("missing qa array");
+  } else {
+    for (let i = 0; i < draft.qa.length; i++) {
+      const entry = draft.qa[i];
+      if (!entry || typeof entry !== "object") continue;
+      const isDecision = isNonEmptyString(entry.why) || isNonEmptyString(entry.considered);
+      if (isDecision && !isNonEmptyString(entry.evidence)) {
+        issues.push(`qa[${i}]: decision Q&A requires non-empty evidence`);
+      }
+    }
   }
 
-  if (!/^\s*##\s+Scope Verification\b/im.test(text)) {
-    issues.push("missing section: ## Scope Verification");
-  }
-
-  if (!/^\s*##\s+Impact on Existing Features\b/im.test(text)) {
-    issues.push("missing section: ## Impact on Existing Features");
+  const ap = draft.approval;
+  if (!ap || typeof ap !== "object" || !ap.approved) {
+    issues.push("draft approval is required: set approval.approved = true");
   }
 
   return issues;
@@ -1732,13 +1734,32 @@ export class RunGateCommand extends FlowCommand {
     const specDir = state?.spec ? path.dirname(path.resolve(root, state.spec)) : null;
     if (!specDir) throw new Error("no active flow found");
 
-    const draftPath = path.join(specDir, "draft.md");
+    const draftPath = path.join(specDir, "draft.json");
     if (!fs.existsSync(draftPath)) {
       throw new Error(`draft not found: ${draftPath}`);
     }
 
     const text = fs.readFileSync(draftPath, "utf8");
     const relPath = path.relative(root, draftPath);
+
+    let draftObj;
+    try {
+      draftObj = JSON.parse(text);
+    } catch (e) {
+      return runGateFlow({
+        root,
+        config: ctx.config,
+        level,
+        phase: "draft",
+        targetPath: relPath,
+        targetText: text,
+        textCheck: () => [`draft.json is not valid JSON: ${e.message}`],
+        checkerRole:
+          "You are a draft compliance checker. Check whether the draft considered each guardrail perspective.",
+        skipGuardrail: true,
+        ctx,
+      });
+    }
 
     const gitState = computeGitState(root);
     ctx.gitState = gitState;
@@ -1751,7 +1772,7 @@ export class RunGateCommand extends FlowCommand {
       phase: "draft",
       targetPath: relPath,
       targetText: text,
-      textCheck: () => checkDraftText(text),
+      textCheck: () => checkDraftJson(draftObj),
       checkerRole:
         "You are a draft compliance checker. Check whether the draft considered each guardrail perspective.",
       skipGuardrail,
@@ -2016,7 +2037,7 @@ export default RunGateCommand;
 export {
   checkSpecText,
   checkSpecJson,
-  checkDraftText,
+  checkDraftJson,
   buildGuardrailPrompt,
   buildImplCheckPrompt,
   checkGuardrail,

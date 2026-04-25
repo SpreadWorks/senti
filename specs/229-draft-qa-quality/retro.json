@@ -1,0 +1,75 @@
+{
+  "spec": "specs/229-draft-qa-quality/spec.json",
+  "date": "2026-04-25T11:12:12.367Z",
+  "requirements": [
+    {
+      "desc": "When flow prepare が新しい spec を作成する, draft.json skeleton を生成する（draft.md は生成しない）",
+      "status": "done",
+      "note": "run-prepare-spec で生成先が draft.json に変更され、skeleton も JSON 化。created/changed 出力も draft.json に更新。"
+    },
+    {
+      "desc": "When gate-draft が draft.json を検証する, 判断を伴う Q&A エントリの evidence フィールドが空でないことを検証する",
+      "status": "done",
+      "note": "checkDraftJson が qa 配列を検査し、why/considered がある決定系 Q&A で evidence 非空を必須化。"
+    },
+    {
+      "desc": "When gate-draft が draft.json を検証する, analysis オブジェクト（problem, proposedApproach, validation）の存在を検証する",
+      "status": "done",
+      "note": "checkDraftJson で analysis オブジェクト存在と各必須フィールドの非空チェックを実装。"
+    },
+    {
+      "desc": "When AI が draft Q&A で質問を生成する, コードを調査し前提を検証してから質問する手順を draft プロンプトに規定する",
+      "status": "done",
+      "note": "draft プロンプトに Premise validation と Research→self-verification→question generation の必須手順が追加された。"
+    },
+    {
+      "desc": "When AI が draft Q&A でユーザーに質問する, (a) config.lang の言語で記述し言語混在させない, (b) 専門用語初出時に定義を添える, (c) 前ターン参照なしで質問が理解可能。draft プロンプトに規定する",
+      "status": "done",
+      "note": "draft プロンプトに config.lang 準拠、用語初出定義、質問自己完結性のルールが明記された。"
+    },
+    {
+      "desc": "When AI が spec を作成する, draft.json の Q&A evidence/considered を spec.json の decisions[].evidence, overview.alternatives_considered に転記する。フィールドマッピングを spec プロンプトに定義する",
+      "status": "partial",
+      "note": "spec プロンプトに evidence/considered の転記マッピングは追加されたが、considered の転記先が overview.alternatives_considered ではなく spec.json.alternatives_considered と記載されている。"
+    },
+    {
+      "desc": "When spec.json を生成・検証する, overview.decisions[] は evidence, consideredAlternatives フィールドを受け入れる",
+      "status": "done",
+      "note": "spec.schema.json の overview.decisions.items.properties に evidence と consideredAlternatives が追加され、optional 扱い。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/resolve-auto-check-input.js",
+      "change": "auto-check の入力ソースを draft.md から draft.json に変更（R1-R7 には直接定義なし）。"
+    },
+    {
+      "file": "tests/unit/flow/resolve-auto-check-input.test.js",
+      "change": "auto-check 入力変更に合わせたテスト修正（draft.md→draft.json）。"
+    },
+    {
+      "file": "tests/unit/flow/run-auto-check-phase.test.js",
+      "change": "auto-check フェーズの draft 読み込みテストを draft.json 前提に更新。"
+    },
+    {
+      "file": "tests/unit/flow/set-auto.test.js",
+      "change": "set-auto 系テストのフィクスチャを draft.json 形式に変更。"
+    },
+    {
+      "file": "specs/229-draft-qa-quality/flow.json",
+      "change": "requirements 配列が空のまま保存されている（要求管理メタデータの不整合）。"
+    },
+    {
+      "file": "specs/229-draft-qa-quality/*",
+      "change": "issue-log/draft/spec/review/tests などの運用ドキュメント・検証アーティファクト追加（機能要求 R1-R7 の直接実装対象外）。"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 6,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.93,
+    "notes": "R1-R5, R7 は実装差分上で満たされている。R6 はマッピング指示自体は追加済みだが、considered の転記先フィールド名が要求文と一致せず部分達成。加えて auto-check 連携変更と多くの spec 運用アーティファクト追加が要求外変更として含まれる。"
+  }
+}

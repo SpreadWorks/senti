@@ -47,7 +47,7 @@ function seedActiveFlow(tmp, { steps, issue, request, draftBody } = {}) {
   const specDir = path.join(tmp, "specs", "001-test");
   fs.mkdirSync(specDir, { recursive: true });
   if (draftBody != null) {
-    fs.writeFileSync(path.join(specDir, "draft.md"), draftBody);
+    fs.writeFileSync(path.join(specDir, "draft.json"), draftBody);
   }
   makeFlowManager(tmp).save({
     spec: "specs/001-test/spec.md",
@@ -110,7 +110,7 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
   });
 
   // A2 (R2) — draft body is included after gate-draft done
-  it("includes draft.md body in AI prompt when gate-draft is done", () => {
+  it("includes draft.json body in AI prompt when gate-draft is done", () => {
     const capturePath = path.join(tmp, ".stub-agent-prompt");
     setupProject(tmp, { capturePath });
     const steps = withStepDone(buildInitialSteps(), "gate-draft");

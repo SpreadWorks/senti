@@ -1,0 +1,194 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one coherent concern: improving draft-phase knowledge quality and transfer via structured draft data and related validation/prompt updates.; Unambiguous Requirements — Most scope items are concrete and testable (specific file/format/schema/prompt changes) rather than vague adjectives.; Complete Context — Many requirements are listed as changes without explicit trigger-condition + expected-shall pairing.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret material are present in the draft content.; Prioritize Requirements — There are more than three requirements in scope, but no explicit priority ordering is provided.; Impact on Existing Features — A dedicated impact section explicitly lists affected existing features and files.; Present Recommendations with Reasoning — Recommendations are given, but not every question includes a clear stated basis from docs, guardrails, or code patterns.; Explore Before Asking — The draft includes code-path evidence and root-cause analysis showing exploration was performed before/alongside decisions.; Proactively Raise Related Implications — It proactively captures related implications (gate changes, prompt changes, schema changes, tests, and out-of-scope boundaries).; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation is shown that discussion points were brainstorming vs final decisions before critique.; Capture Digressions in draft.md — No clear digression thread is present; the discussion appears captured within the main draft sections.; Draft Stays at Requirements Level — The draft includes implementation-level details (specific files/functions and technical replacement steps) beyond pure requirements level.; Backward-Compatible CLI Interface — No explicit removal or semantic change of existing CLI commands/options is specified; migration of stored draft format is addressed as scope.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:08:55.407Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Many requirements are listed as changes without explicit trigger-condition + expected-shall pairing."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements in scope, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Recommendations are given, but not every question includes a clear stated basis from docs, guardrails, or code patterns."
+        },
+        {
+          "guardrail_id": "draft-confirm-brainstorm-vs-decide",
+          "reason": "No explicit confirmation is shown that discussion points were brainstorming vs final decisions before critique."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft includes implementation-level details (specific files/functions and technical replacement steps) beyond pure requirements level."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one cohesive concern: improving draft-phase quality and knowledge transfer via structured draft artifacts and related gates.; Unambiguous Requirements — Most requirements are stated as verifiable structural or gate conditions (fields, mappings, generation behavior, validation checks).; Complete Context — Several requirements state what shall happen but omit explicit trigger context (When/If), so condition-outcome pairing is incomplete.; No Hardcoded Secrets — No secrets (API keys, tokens, passwords) appear in the draft content.; Prioritize Requirements — More than three requirements are listed and explicitly prioritized (R1-R7 with must/should and ordered numbering).; Impact on Existing Features — A dedicated section lists affected existing features and concrete impact areas.; Present Recommendations with Reasoning — Not every Q&A item includes both a recommendation and clear basis; some decisions (e.g., Q1, Q7) lack explicit reasoning basis mapping.; Explore Before Asking — The draft cites prior exploration evidence (code pattern checks, grep confirmation, spec comparison) before finalizing decisions.; Proactively Raise Related Implications — Related implications are proactively raised through scope boundaries, rejected alternatives, and impact analysis.; Confirm Brainstorm vs. Decision Before Critiquing — It explicitly states items are final decisions and not brainstorming.; Capture Digressions in draft.md — No digression is indicated in the provided content, so there is nothing to capture.; Draft Stays at Requirements Level — The draft includes implementation-level details (specific component replacements and test-file-level change notes), exceeding pure requirements scope.; Backward-Compatible CLI Interface — No explicit removal or semantic change of existing CLI commands/options is specified in the draft content.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:10:24.971Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirements state what shall happen but omit explicit trigger context (When/If), so condition-outcome pairing is incomplete."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Not every Q&A item includes both a recommendation and clear basis; some decisions (e.g., Q1, Q7) lack explicit reasoning basis mapping."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft includes implementation-level details (specific component replacements and test-file-level change notes), exceeding pure requirements scope."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All proposed changes serve one concern: improving draft knowledge capture/transfer quality.; Unambiguous Requirements — R5 includes non-verifiable wording (e.g., consistent language use) without clear measurable criteria.; Complete Context — Each requirement pairs a trigger condition (When) with expected behavior (must/should).; No Hardcoded Secrets — No source code secrets or credential literals are present in this draft content.; Prioritize Requirements — More than three requirements are listed with explicit order and priority labels (must/should).; Impact on Existing Features — A dedicated section explicitly lists affected existing features.; Present Recommendations with Reasoning — Each Q&A item includes a decision/recommendation and concise basis from issue context, code patterns, or guardrail logic.; Explore Before Asking — The draft cites prior code/doc exploration (comparisons, grep-based confirmation) before concluding decisions.; Proactively Raise Related Implications — Related implications are proactively covered via scope boundaries, impact list, and rejected alternatives.; Confirm Brainstorm vs. Decision Before Critiquing — It explicitly states items are final decisions, not brainstorming.; Capture Digressions in draft.md — No digression is evident; the draft remains focused and captures decisions in the draft artifact.; Draft Stays at Requirements Level — Content stays at requirements/spec level without function-level implementation design.; Backward-Compatible CLI Interface — No command/option semantic change is specified; changes are framed as draft artifact/schema workflow updates.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:11:57.365Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R5 includes non-verifiable wording (e.g., consistent language use) without clear measurable criteria."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: Single Responsibility — The draft focuses on one coherent concern: improving draft-phase knowledge quality and transfer via structured draft data and related validation/prompt updates.; Unambiguous Requirements — Most scope items are concrete and testable (specific file/format/schema/prompt changes) rather than vague adjectives.; Complete Context — Many requirements are listed as changes without explicit trigger-condition + expected-shall pairing.; No Hardcoded Secrets — No API keys, passwords, tokens, or secret material are present in the draft content.; Prioritize Requirements — There are more than three requirements in scope, but no explicit priority ordering is provided.; Impact on Existing Features — A dedicated impact section explicitly lists affected existing features and files.; Present Recommendations with Reasoning — Recommendations are given, but not every question includes a clear stated basis from docs, guardrails, or code patterns.; Explore Before Asking — The draft includes code-path evidence and root-cause analysis showing exploration was performed before/alongside decisions.; Proactively Raise Related Implications — It proactively captures related implications (gate changes, prompt changes, schema changes, tests, and out-of-scope boundaries).; Confirm Brainstorm vs. Decision Before Critiquing — No explicit confirmation is shown that discussion points were brainstorming vs final decisions before critique.; Capture Digressions in draft.md — No clear digression thread is present; the discussion appears captured within the main draft sections.; Draft Stays at Requirements Level — The draft includes implementation-level details (specific files/functions and technical replacement steps) beyond pure requirements level.; Backward-Compatible CLI Interface — No explicit removal or semantic change of existing CLI commands/options is specified; migration of stored draft format is addressed as scope.\n  attempt 2: Single Responsibility — Draft focuses on one cohesive concern: improving draft-phase quality and knowledge transfer via structured draft artifacts and related gates.; Unambiguous Requirements — Most requirements are stated as verifiable structural or gate conditions (fields, mappings, generation behavior, validation checks).; Complete Context — Several requirements state what shall happen but omit explicit trigger context (When/If), so condition-outcome pairing is incomplete.; No Hardcoded Secrets — No secrets (API keys, tokens, passwords) appear in the draft content.; Prioritize Requirements — More than three requirements are listed and explicitly prioritized (R1-R7 with must/should and ordered numbering).; Impact on Existing Features — A dedicated section lists affected existing features and concrete impact areas.; Present Recommendations with Reasoning — Not every Q&A item includes both a recommendation and clear basis; some decisions (e.g., Q1, Q7) lack explicit reasoning basis mapping.; Explore Before Asking — The draft cites prior exploration evidence (code pattern checks, grep confirmation, spec comparison) before finalizing decisions.; Proactively Raise Related Implications — Related implications are proactively raised through scope boundaries, rejected alternatives, and impact analysis.; Confirm Brainstorm vs. Decision Before Critiquing — It explicitly states items are final decisions and not brainstorming.; Capture Digressions in draft.md — No digression is indicated in the provided content, so there is nothing to capture.; Draft Stays at Requirements Level — The draft includes implementation-level details (specific component replacements and test-file-level change notes), exceeding pure requirements scope.; Backward-Compatible CLI Interface — No explicit removal or semantic change of existing CLI commands/options is specified in the draft content.\n  attempt 3: Single Responsibility — All proposed changes serve one concern: improving draft knowledge capture/transfer quality.; Unambiguous Requirements — R5 includes non-verifiable wording (e.g., consistent language use) without clear measurable criteria.; Complete Context — Each requirement pairs a trigger condition (When) with expected behavior (must/should).; No Hardcoded Secrets — No source code secrets or credential literals are present in this draft content.; Prioritize Requirements — More than three requirements are listed with explicit order and priority labels (must/should).; Impact on Existing Features — A dedicated section explicitly lists affected existing features.; Present Recommendations with Reasoning — Each Q&A item includes a decision/recommendation and concise basis from issue context, code patterns, or guardrail logic.; Explore Before Asking — The draft cites prior code/doc exploration (comparisons, grep-based confirmation) before concluding decisions.; Proactively Raise Related Implications — Related implications are proactively covered via scope boundaries, impact list, and rejected alternatives.; Confirm Brainstorm vs. Decision Before Critiquing — It explicitly states items are final decisions, not brainstorming.; Capture Digressions in draft.md — No digression is evident; the draft remains focused and captures decisions in the draft artifact.; Draft Stays at Requirements Level — Content stays at requirements/spec level without function-level implementation design.; Backward-Compatible CLI Interface — No command/option semantic change is specified; changes are framed as draft artifact/schema workflow updates.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T09:12:14.569Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "gate-draft retry limit exhausted (3/3). Last FAIL was R5 unambiguous-requirements, fixed after 3rd eval but counter already exhausted. draft phase gate-retry reset not supported by CLI (only task-impl/integration).",
+      "trigger": "R5 contained non-verifiable wording that was fixed between 3rd eval and retry-exhausted error",
+      "resolution": "User approved skip based on 12/13 PASS in last eval + R5 fix applied",
+      "guardrailCandidate": "gate-retry reset should support all phases including draft",
+      "taskId": null,
+      "timestamp": "2026-04-25T09:13:58.065Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.modules[3]: must be object, got string; overview.modules[4]: must be object, got string; overview.modules[5]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; overview.data_flow[2]: must be object, got string; overview.data_flow[3]: must be object, got string; overview.data_flow[4]: must be object, got string; overview.decisions[0].evidence: unknown field; overview.decisions[0].consideredAlternatives: unknown field; overview.decisions[1].evidence: unknown field; overview.decisions[2].evidence: unknown field; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].text: unknown field; requirements[5].desc: required field is missing; requirements[5].text: unknown field; requirements[6].desc: required field is missing; requirements[6].text: unknown field; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:17:44.235Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0; tasks: new task 'T-5' added_round must be 1, got 0; tasks: new task 'T-6' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:19:59.836Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is centered on one concern: eliminating knowledge loss by migrating draft artifacts to structured JSON flow.; Task Single Responsibility — Tasks are grouped by single implementation concerns (prepare, gate, auto-check, prompts, schema) without unrelated bundling.; Unambiguous Requirements — Requirements are mostly stated as concrete, verifiable conditions (file existence, field checks, mapping rules).; Complete Context — Each requirement includes a trigger condition (When) and expected behavior.; REQ Diff-Verifiability — Pass/fail can be judged from prompt/schema/code diffs plus test outcomes; no unverifiable future extensibility guarantees are required.; No Hardcoded Secrets — No secrets or credential literals are present in the provided spec content.; No Silent Error Swallowing — No silent error swallowing pattern is specified; error handling behavior is not indicating prohibited empty-discard logic.; Prioritize Requirements — More than three requirements are present and each includes explicit priority (must/should).; Impact on Existing Features — Impact on existing features is not explicitly summarized, and there is no explicit 'no impact' statement.; Bounded Resource Usage — The spec does not introduce recursive/retry/bulk-loading mechanisms requiring explicit bounds.; Changes Require Test Coverage — Tasks include test strategies and acceptance criteria include passing updated tests.; Spec Includes Test Strategy — Test strategy is included per task (unit targets and validation points).; Synthesize Draft, Do Not Copy — Cannot verify synthesis-vs-copying without the original draft source content for comparison.; Record Unresolved Points as Open Questions — No unresolved items are hidden; Open Questions is present and currently empty.; Include 'Why This Approach' Rationale — Rationale is explicitly documented in decisions with grounds and rejected alternatives.; Do Not Modify Existing Tests Without Approval — The plan includes replacing existing tests but does not record explicit user approval for modifying them.; Backward-Compatible CLI Interface — Behavioral change (draft.md removal) is specified without a migration plan for existing users/workflows.; Exit Code Contract — No change is specified that would alter failure signaling or imply exit code 0 on failure.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:22:57.735Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not explicitly summarized, and there is no explicit 'no impact' statement."
+        },
+        {
+          "guardrail_id": "impl-test-preservation",
+          "reason": "The plan includes replacing existing tests but does not record explicit user approval for modifying them."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Behavioral change (draft.md removal) is specified without a migration plan for existing users/workflows."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "exit-code-contract"
+      ]
+    },
+    {
+      "step": "gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.modules[3]: must be object, got string; overview.modules[4]: must be object, got string; overview.modules[5]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; overview.data_flow[2]: must be object, got string; overview.data_flow[3]: must be object, got string; overview.data_flow[4]: must be object, got string; overview.decisions[0].evidence: unknown field; overview.decisions[0].consideredAlternatives: unknown field; overview.decisions[1].evidence: unknown field; overview.decisions[2].evidence: unknown field; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].text: unknown field; requirements[5].desc: required field is missing; requirements[5].text: unknown field; requirements[6].desc: required field is missing; requirements[6].text: unknown field; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n  attempt 2: tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0; tasks: new task 'T-5' added_round must be 1, got 0; tasks: new task 'T-6' added_round must be 1, got 0\n  attempt 3: Single Responsibility — Spec is centered on one concern: eliminating knowledge loss by migrating draft artifacts to structured JSON flow.; Task Single Responsibility — Tasks are grouped by single implementation concerns (prepare, gate, auto-check, prompts, schema) without unrelated bundling.; Unambiguous Requirements — Requirements are mostly stated as concrete, verifiable conditions (file existence, field checks, mapping rules).; Complete Context — Each requirement includes a trigger condition (When) and expected behavior.; REQ Diff-Verifiability — Pass/fail can be judged from prompt/schema/code diffs plus test outcomes; no unverifiable future extensibility guarantees are required.; No Hardcoded Secrets — No secrets or credential literals are present in the provided spec content.; No Silent Error Swallowing — No silent error swallowing pattern is specified; error handling behavior is not indicating prohibited empty-discard logic.; Prioritize Requirements — More than three requirements are present and each includes explicit priority (must/should).; Impact on Existing Features — Impact on existing features is not explicitly summarized, and there is no explicit 'no impact' statement.; Bounded Resource Usage — The spec does not introduce recursive/retry/bulk-loading mechanisms requiring explicit bounds.; Changes Require Test Coverage — Tasks include test strategies and acceptance criteria include passing updated tests.; Spec Includes Test Strategy — Test strategy is included per task (unit targets and validation points).; Synthesize Draft, Do Not Copy — Cannot verify synthesis-vs-copying without the original draft source content for comparison.; Record Unresolved Points as Open Questions — No unresolved items are hidden; Open Questions is present and currently empty.; Include 'Why This Approach' Rationale — Rationale is explicitly documented in decisions with grounds and rejected alternatives.; Do Not Modify Existing Tests Without Approval — The plan includes replacing existing tests but does not record explicit user approval for modifying them.; Backward-Compatible CLI Interface — Behavioral change (draft.md removal) is specified without a migration plan for existing users/workflows.; Exit Code Contract — No change is specified that would alter failure signaling or imply exit code 0 on failure.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T09:23:37.903Z"
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate retry limit exhausted (3/3). Attempt 1: schema format errors (strings vs objects). Attempt 2: added_round must be 1 not 0. Attempt 3: 3 AI FAILs (impact, test-preservation, backward-compat) all fixed after eval.",
+      "trigger": "Schema format mismatches and AI guardrail checks on content not yet in spec.json/spec.md",
+      "resolution": "All 3 issues fixed: impact section added to spec.md, authorized_test_modifications added to spec.json, migration plan added. User-approved skip.",
+      "guardrailCandidate": "gate-retry reset should support draft and spec phases, not only task-impl and integration",
+      "taskId": null,
+      "timestamp": "2026-04-25T09:25:38.146Z"
+    }
+  ]
+}

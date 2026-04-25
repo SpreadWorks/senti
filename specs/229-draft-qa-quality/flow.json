@@ -1,0 +1,473 @@
+{
+  "spec": "specs/229-draft-qa-quality/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/229-draft-qa-quality",
+  "runId": "d4c5ee5e-bf3f-4caf-b311-3e77c98495dc",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "steps": []
+    }
+  ],
+  "currentTaskId": null,
+  "issue": 260,
+  "request": "#260 Draft Q&Aの品質改善: エビデンスベースの質問生成とフォーマット拡張",
+  "autoCheck": {
+    "eligible": false,
+    "score": 14,
+    "maxScore": 24,
+    "threshold": 18,
+    "breakdown": {
+      "specBuildability": 1,
+      "ambiguity": 1,
+      "verifiability": 1,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 1,
+      "precedent": 1
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "score 14/24 below threshold 18"
+  },
+  "worktree": true,
+  "test": {
+    "baseline": {
+      "unit": 2385,
+      "integration": 267,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 2408,
+      "integration": 267,
+      "acceptance": 0,
+      "exitCode": 0
+    }
+  },
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T08:17:09.624Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T08:17:13.362Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T08:17:56.963Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T08:18:26.463Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T08:30:17.877Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T08:37:56.609Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T08:40:11.947Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:06:46.957Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:07:14.727Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2465,
+      "durationMs": 24802,
+      "tokens": {
+        "input": 22140,
+        "output": 1058,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T09:08:55.338Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:08:55.404Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2418,
+      "durationMs": 24508,
+      "tokens": {
+        "input": 6795,
+        "output": 1061,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T09:10:24.947Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:10:24.970Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2177,
+      "durationMs": 34012,
+      "tokens": {
+        "input": 6865,
+        "output": 1027,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T09:11:57.336Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:11:57.364Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:13:58.091Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:17:44.233Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:19:59.836Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3060,
+      "durationMs": 37935,
+      "tokens": {
+        "input": 8915,
+        "output": 1699,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T09:22:57.700Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:22:57.734Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T09:25:38.187Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 480,
+      "durationMs": 15528,
+      "tokens": {
+        "input": 57940,
+        "output": 460,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T11:02:12.505Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1805,
+      "durationMs": 27596,
+      "tokens": {
+        "input": 58445,
+        "output": 1229,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T11:02:40.117Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-25T11:02:40.139Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2460,
+      "durationMs": 38181,
+      "tokens": {
+        "input": 15562,
+        "output": 1872,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T11:07:34.541Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1382,
+      "durationMs": 21626,
+      "tokens": {
+        "input": 16023,
+        "output": 905,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T11:07:56.200Z"
+    },
+    {
+      "phase": "finalize",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2891,
+      "durationMs": 42553,
+      "tokens": {
+        "input": 56242,
+        "output": 2039,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T11:12:12.366Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft Q2: gate-draft に Evidence 構造チェック追加 → [1] 承認",
+      "taskId": null,
+      "ts": "2026-04-25T08:30:23.187Z"
+    },
+    {
+      "text": "draft Q3: 前提検証・Root Cause Analysis を5項目目として追加 + gate-draft チェック → [1] 承認",
+      "taskId": null,
+      "ts": "2026-04-25T08:30:27.913Z"
+    },
+    {
+      "text": "draft Q4: draft.json 導入（draft.md レンダリングなし）→ [1] 承認。spec.json decisions スキーマも拡張",
+      "taskId": null,
+      "ts": "2026-04-25T08:39:07.758Z"
+    },
+    {
+      "text": "draft Q5: draft.json のみ（draft.md レンダリングなし）→ [1] 承認",
+      "taskId": null,
+      "ts": "2026-04-25T09:06:51.560Z"
+    },
+    {
+      "text": "draft Q6: 前提検証フィールド 全開発種別で必須 → [1] 承認",
+      "taskId": null,
+      "ts": "2026-04-25T09:06:55.375Z"
+    },
+    {
+      "text": "draft Q7: テスト戦略承認 — checkDraftJson, buildDraftTemplate, resolve-auto-check-input, spec decisions schema, prompt 内容テスト",
+      "taskId": null,
+      "ts": "2026-04-25T09:07:18.462Z"
+    },
+    {
+      "text": "gate-draft: retry上限到達(3/3)。最終FAILはR5のunambiguous-requirements（修正済み）。他12項目PASS。ユーザー判断でspec進行",
+      "taskId": null,
+      "ts": "2026-04-25T09:13:47.452Z"
+    },
+    {
+      "text": "implement: 実装方針承認。T-6→T-1→T-2→T-3→T-4→T-5の順で実装",
+      "taskId": null,
+      "ts": "2026-04-25T10:50:33.235Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-25T11:11:29.670Z"
+  }
+}
