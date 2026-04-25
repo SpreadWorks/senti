@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T06:08:12.595Z",
+  "analyzedAt": "2026-04-25T06:18:30.032Z",
   "package": {
     "entries": [
       {
@@ -3616,9 +3616,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "ee763f027d8a21188e6035c5beff4403",
-        "lines": 1931,
-        "mtime": "2026-04-25T06:08:12.045Z",
+        "hash": "98f8291eb829394547f803ec0adeee2a",
+        "lines": 2041,
+        "mtime": "2026-04-25T06:18:29.707Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3627,6 +3627,7 @@
           "parseEvaluationResponse",
           "buildGateReport",
           "checkTestChanges",
+          "checkExpectedTests",
           "parseAuthorizedTestModificationsFromJson",
           "parseAuthorizedTestModifications",
           "findUnusedAuthorizations",
@@ -3664,6 +3665,8 @@
           "globToRegExp",
           "isTestFile",
           "parseDiffHunks",
+          "walkDir",
+          "hasWildcard",
           "resolveTestGlobs",
           "resolveRetryMax",
           "readGateRetryCount",
@@ -3706,6 +3709,7 @@
           "parseEvaluationResponse",
           "buildGateReport",
           "checkTestChanges",
+          "checkExpectedTests",
           "parseAuthorizedTestModificationsFromJson",
           "parseAuthorizedTestModifications",
           "findUnusedAuthorizations",
@@ -3743,24 +3747,24 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This file implements the flow gate execution pipeline and the `RunGateCommand` used to validate draft/spec/implementation phases. It centralizes guardrail evaluation, retry control, diff/test-policy checks, and issue-log integration for gate outcomes.",
-        "detail": "The module maps phases to gate levels, validates phase-level consistency, and routes execution by flow state or explicit spec path. It performs layered checks, including unresolved marker detection, spec JSON structure checks, draft field validation, monotonic task checks, and implementation diff constraints. Guardrail evaluation is AI-response driven with strict JSON schema parsing, normalized result handling, and report builders for pass/fail envelopes. It tracks retry budgets and repeated failures using issue-log history, git state fingerprints, and previous evaluation comparisons to detect no-progress cycles. It also enforces test-modification policy through authorized-file parsing, glob-based test file detection, and unused-authorization warnings before returning structured gate results.",
+        "summary": "This module implements the gate execution pipeline for SDD flow, including phase/level validation, guardrail evaluation, and pass/fail report construction. It also provides the `RunGateCommand` CLI-facing command logic that routes behavior by flow phase.",
+        "detail": "The file combines low-level helpers (git diff collection, untracked file handling, pattern checks, and JSON response parsing) with phase-aware gate orchestration. It validates draft/spec/spec.json/task-implementation artifacts through dedicated checkers, then normalizes outputs into structured evaluations and gate reports. Guardrail handling includes prompt construction, strict evaluation schema validation, retry budget tracking, and repeated-failure/no-progress detection using issue log history and git state fingerprints. It also enforces testing constraints such as modified test authorization, expected test existence, and head/baseline evidence checks before producing final envelope-style outcomes for flow control.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-25T06:08:26.628Z",
+          "processedAt": "2026-04-25T06:18:43.791Z",
           "attempts": 1
         },
         "keywords": [
           "gate runner",
-          "flow command",
+          "flow validation",
           "guardrail evaluation",
-          "spec validation",
           "retry budget",
-          "issue log",
-          "diff policy",
+          "issue log tracking",
+          "diff-based checks",
           "test authorization",
-          "JSON schema parsing"
+          "CLI command orchestration",
+          "spec compliance"
         ]
       },
       {
@@ -9695,9 +9699,9 @@
     ],
     "summary": {
       "total": 281,
-      "totalMethods": 923
+      "totalMethods": 926
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T06:08:26.628Z"
+  "enrichedAt": "2026-04-25T06:18:43.791Z"
 }
