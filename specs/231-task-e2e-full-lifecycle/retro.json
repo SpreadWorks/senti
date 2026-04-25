@@ -1,0 +1,82 @@
+{
+  "spec": "specs/231-task-e2e-full-lifecycle/spec.json",
+  "date": "2026-04-25T13:47:22.017Z",
+  "requirements": [
+    {
+      "desc": "tests/e2e/ に E2E テストファイルを追加し、フラット構造タスク（2 タスク、parent: null）で prepare → approval → タスクステップ全完了 → complete-task → 全タスク完了 → finalize 到達の通しシナリオを CLI のみで遷移すること",
+      "status": "partial",
+      "note": "tests/e2e/231-task-e2e-full-lifecycle.test.js は追加されたが、prepare/approval を CLI で実行せず flow.json を直接編集しており、finalize 到達も未検証（finalize-eligible のみ）。"
+    },
+    {
+      "desc": "親子構造タスク（親 1 + 子 2）のシナリオで、子タスク完了 → 親タスク自動完了 → finalize 到達の通しを CLI のみで遷移し、currentTaskId が各時点で正しいタスクを指すことをアサートすること",
+      "status": "partial",
+      "note": "子完了→親自動完了と currentTaskId の一部アサートはあるが、CLI のみではなく flow.json 直接編集を使用し、finalize 到達は未検証。"
+    },
+    {
+      "desc": "各ステップ完了後の flow get next-action が返す step と taskId が期待値と一致することをアサートすること",
+      "status": "partial",
+      "note": "next-action の確認はあるが、各ステップ完了後ではなく一部ポイントのみ。タスク内ステップは一括で done 化されている。"
+    },
+    {
+      "desc": "approval done 後に flow.json.tasks[] が spec.json.tasks[] と一致する数だけ生成されていることをアサートすること",
+      "status": "not_done",
+      "note": "approval done を CLI 実行して同期結果を検証しておらず、初期 fixture の tasks 件数確認に留まっている。"
+    },
+    {
+      "desc": "complete-task 後に currentTaskId が次の pending タスクに切り替わること（最後のタスクの場合は null）をアサートすること",
+      "status": "done",
+      "note": "flat/parent-child の両シナリオで complete-task 後の currentTaskId（次タスク/最後は null）を明示的に検証している。"
+    },
+    {
+      "desc": "npm test で既存テストと合わせてパスすること。テスト実行時間は 10 秒以内であること",
+      "status": "partial",
+      "note": "diff 上に実行時間 10 秒以内を確認する仕組みや記録はない。flow.json に exitCode 情報はあるが、要件を十分に裏付ける証跡としては不十分。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/sync-spec-tasks.js",
+      "change": "buildFlowTask の steps 生成ロジックを修正（buildInitialTaskSteps の二重ラップ解消）。"
+    },
+    {
+      "file": "specs/231-task-e2e-full-lifecycle/draft.json",
+      "change": "仕様ドラフト管理ファイルを新規追加。"
+    },
+    {
+      "file": "specs/231-task-e2e-full-lifecycle/flow.json",
+      "change": "flow 状態管理ファイルを新規追加・更新。"
+    },
+    {
+      "file": "specs/231-task-e2e-full-lifecycle/issue-log.json",
+      "change": "実装中の issue ログを新規追加。"
+    },
+    {
+      "file": "specs/231-task-e2e-full-lifecycle/issue.md",
+      "change": "issue 記述ファイルを新規追加。"
+    },
+    {
+      "file": "specs/231-task-e2e-full-lifecycle/qa.md",
+      "change": "QA テンプレートファイルを新規追加。"
+    },
+    {
+      "file": "specs/231-task-e2e-full-lifecycle/spec.json",
+      "change": "仕様定義 JSON を新規追加。"
+    },
+    {
+      "file": "specs/231-task-e2e-full-lifecycle/spec.md",
+      "change": "仕様ドキュメント Markdown を新規追加。"
+    },
+    {
+      "file": "specs/231-task-e2e-full-lifecycle/tests/README.md",
+      "change": "spec 配下のテスト説明 README を新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 1,
+    "partial": 4,
+    "not_done": 1,
+    "rate": 0.5,
+    "notes": "主要テストファイルは追加され、complete-task 昇格と親子自動完了の一部は検証できているが、CLIのみ遷移・approval同期検証・各ステップごとの next-action 検証・finalize 到達検証が不足しており、must 要件の充足は全体として不十分。"
+  }
+}

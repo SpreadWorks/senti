@@ -1,0 +1,58 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/231-task-e2e-full-lifecycle/draft.json      |  71 ++++\n specs/231-task-e2e-full-lifecycle/flow.json       | 407 ++++++++++++++++++++++\n specs/231-task-e2e-full-lifecycle/issue-log.json  | 117 +++++++\n specs/231-task-e2e-full-lifecycle/issue.md        |  10 +\n specs/231-task-e2e-full-lifecycle/qa.md           |   9 +\n specs/231-task-e2e-full-lifecycle/spec.json       | 157 +++++++++\n specs/231-task-e2e-full-lifecycle/spec.md         |  78 +++++\n specs/231-task-e2e-full-lifecycle/tests/README.md |  15 +\n src/flow/lib/sync-spec-tasks.js                   |   2 +-\n tests/e2e/231-task-e2e-full-lifecycle.test.js     | 244 +++++++++++++\n 10 files changed, 1109 insertions(+), 1 deletion(-)",
+      "commits": [
+        "feat: feature/231-task-e2e-full-lifecycle"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 1,
+      "partial": 4,
+      "not_done": 1,
+      "rate": 0.5,
+      "notes": "主要テストファイルは追加され、complete-task 昇格と親子自動完了の一部は検証できているが、CLIのみ遷移・approval同期検証・各ステップごとの next-action 検証・finalize 到達検証が不足しており、must 要件の充足は全体として不十分。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 3,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 25494,
+      "output": 4444,
+      "cacheRead": 79360,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 4,
+      "durationMs": 101143,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 46855
+        },
+        {
+          "phase": "gate",
+          "durationMs": 54288
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2448,
+      "integration": 269,
+      "acceptance": 0,
+      "total": 2717
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/231-task-e2e-full-lifecycle\n    10 files changed, 1109 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████░░░░ 50%  (1 done / 4 partial / 1 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 3\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 4\n    input tokens ................ 25,494\n    output tokens ............... 4,444\n    cache-read tokens ........... 79,360\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 101.1s\n      gate-draft ................ 46.9s\n      gate ...................... 54.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2448  integration 269  acceptance 0  total 2717"
+}

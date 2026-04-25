@@ -1,0 +1,407 @@
+{
+  "spec": "specs/231-task-e2e-full-lifecycle/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/231-task-e2e-full-lifecycle",
+  "runId": "03b19464-d7ba-4a56-bf2c-1663229b6c6b",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "skipped"
+    },
+    {
+      "id": "gate-impl",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "skipped"
+    },
+    {
+      "id": "finalize",
+      "status": "pending"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "steps": []
+    },
+    {
+      "id": "T-1",
+      "spec": "specs/231-task-e2e-full-lifecycle/tasks/T-1.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "pending",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "impl",
+          "status": "pending"
+        },
+        {
+          "id": "run-tests",
+          "status": "pending"
+        },
+        {
+          "id": "review",
+          "status": "pending"
+        },
+        {
+          "id": "gate-impl",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 1
+    },
+    {
+      "id": "T-2",
+      "spec": "specs/231-task-e2e-full-lifecycle/tasks/T-2.md",
+      "origin": "plan",
+      "parent": null,
+      "status": "pending",
+      "steps": [
+        {
+          "id": "write-tests",
+          "status": "pending"
+        },
+        {
+          "id": "impl",
+          "status": "pending"
+        },
+        {
+          "id": "run-tests",
+          "status": "pending"
+        },
+        {
+          "id": "review",
+          "status": "pending"
+        },
+        {
+          "id": "gate-impl",
+          "status": "pending"
+        }
+      ],
+      "requirements": [],
+      "summary": null,
+      "added_round": 1
+    }
+  ],
+  "currentTaskId": null,
+  "issue": 270,
+  "request": "#270 task decomposition 通し E2E テスト",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 18,
+    "maxScore": 24,
+    "threshold": 18,
+    "breakdown": {
+      "specBuildability": 1,
+      "ambiguity": 1,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "既存E2Eとspec 227を土台に要件は概ね導出可能だが、通しシナリオの具体的受入条件（各stepの厳密アサーション）は一部推論が必要。"
+  },
+  "worktree": true,
+  "test": {
+    "baseline": {
+      "unit": 2448,
+      "integration": 267,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 2448,
+      "integration": 269,
+      "acceptance": 0,
+      "exitCode": 0
+    }
+  },
+  "notes": [
+    {
+      "text": "draft: [1] auto 承認（autoApprove=true）",
+      "taskId": null,
+      "ts": "2026-04-25T12:11:40.999Z"
+    },
+    {
+      "text": "approval: [1] auto 承認",
+      "taskId": null,
+      "ts": "2026-04-25T12:54:13.881Z"
+    }
+  ],
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T12:11:49.040Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T12:12:07.882Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T12:12:10.521Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T12:12:41.696Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T12:12:58.905Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2351,
+      "durationMs": 23043,
+      "tokens": {
+        "input": 7229,
+        "output": 1030,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T12:15:23.598Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T12:15:23.622Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2259,
+      "durationMs": 23812,
+      "tokens": {
+        "input": 7098,
+        "output": 1057,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T12:17:10.251Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-25T12:17:10.311Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T12:20:09.246Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T12:45:40.418Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2732,
+      "durationMs": 25860,
+      "tokens": {
+        "input": 3455,
+        "output": 1186,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T12:46:21.920Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T12:46:21.956Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-25T12:50:00.000Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2669,
+      "durationMs": 28428,
+      "tokens": {
+        "input": 7712,
+        "output": 1171,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T12:53:26.717Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-25T12:53:26.753Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T13:03:58.399Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T13:12:45.108Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-25T13:46:39.855Z"
+  }
+}

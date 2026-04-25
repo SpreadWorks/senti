@@ -1,0 +1,71 @@
+{
+  "devType": "test",
+  "goal": "flow prepare から finalize まで CLI 経由のみ（flow.json 直接編集なし）で全 step を遷移する通し E2E テストを実装し、task decomposition ライフサイクル全体の回帰検知を可能にする。",
+  "analysis": {
+    "problem": "既存 E2E テストは個別遷移（タスク同期、next-action 取得、タスク完了、finalize 遷移）を検証しているが、prepare から finalize まで全ステップを一貫して CLI のみで遷移するテストが存在しない。個別テストでは遷移間の副作用の結合不整合を検出できない。",
+    "proposedApproach": "tests/e2e/ にテストファイルを追加し、fixture プロジェクトに対して CLI コマンドのみで全ステップを遷移する。AI 関与ステップは flow set step で完了扱いにし、AI 呼び出しは行わない。",
+    "validation": "CLI のみの通しシナリオにより、step 完了後の自動昇格、タスク切り替え、全タスク完了後の flow-scope 遷移の結合動作を回帰テストとして検出可能にする。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] 通し E2E テスト: flow prepare → 全ステップ → finalize 到達を CLI コマンドのみで遷移",
+      "[must] フラット構造タスク（2 タスク、parent: null）の完了・昇格の検証",
+      "[must] 親子構造タスク（親 1 + 子 2）の子完了→親自動完了の連鎖検証",
+      "[must] next-action: 各ステップ完了後に返る step/taskId が期待値と一致すること",
+      "[should] complete-task 後の次タスク昇格: currentTaskId が次の pending タスクに切り替わること"
+    ],
+    "out": [
+      "AI 呼び出しの実テスト（gate, review, draft の AI 品質検証）",
+      "worktree モードの E2E テスト（local モードで十分）",
+      "finalize の実行（merge, cleanup 等は別テストで検証済み）",
+      "既存テストの修正・リファクタ"
+    ]
+  },
+  "impactOnExisting": [
+    "tests/e2e/ にテストファイルが追加される。既存テストへの変更なし",
+    "tests/helpers/ のヘルパーを共有利用。ヘルパーの変更は不要な見込み"
+  ],
+  "qa": [
+    {
+      "question": "AI を呼ぶステップ（draft, gate, spec, review）はどう扱うか？",
+      "answer": "AI を実際に呼ばない。draft/spec は fixture ファイルを直接書き込み、flow set step <id> done で完了マークする。gate は AI 呼び出しが必須のため、gate ステップ自体は flow set step gate-draft done / flow set step gate done でスキップ扱い。review も同様。",
+      "evidence": "既存の 227-forest-e2e.test.js が同パターン（flow.json を直接編集してステップを done にし、遷移のみ検証）を採用している。",
+      "why": "AI 呼び出しは tests/agent/ に分離される方針（CLAUDE.md テストルール）。E2E テストの目的はフロー遷移の正確性であり、AI の出力品質ではない。",
+      "considered": "stub-agent.js による AI スタブ案。AI スタブはコスト高（プロンプト生成・パース全体をスタブ化する必要がある）かつ gate/review の内部実装に依存するため、step 手動完了のほうが保守性が高い。"
+    },
+    {
+      "question": "テストするタスク構造は？",
+      "answer": "2 つのシナリオ: (1) フラット構造（T-1, T-2 の 2 タスク、parent: null）、(2) 親子構造（T-A が親、T-A1, T-A2 が子）。フラットはリーフ優先探索の基本パス、親子は子タスク完了→親タスク自動完了の連鎖を検証する。",
+      "evidence": "spec 226 で親子タスク構造が導入され、next-action がリーフ優先でタスクを選択する仕様。フラットと親子の両方を通しで遷移するテストは未実装。",
+      "why": "spec 226 で導入された森構造タスクの回帰テストが目的であるため、両構造をカバーする必要がある。",
+      "considered": "フラット構造のみでの簡易テスト。親子構造の検証を省くと spec 226 の主要機能をカバーできない。"
+    },
+    {
+      "question": "各タスクの内部ステップ（write-tests → implement → gate-impl）はどう遷移するか？",
+      "answer": "タスクスコープの全ステップ（write-tests → impl → run-tests → review → gate-impl）を順に done にし、各完了後の next-action が正しい次ステップを返すことをアサートする。全ステップ完了後に complete-task を呼び、次タスクの昇格を検証する。",
+      "evidence": "タスクスコープのステップ順序は context-rules.json で定義されており、next-action がタスク内 in_progress ステップを優先的に返す仕様。",
+      "why": "タスク内ステップの遷移順序と自動昇格の正確性が通し E2E の核心。",
+      "considered": ""
+    },
+    {
+      "question": "テストの実行時間への影響は？",
+      "answer": "AI を呼ばず、ファイル I/O と CLI の spawnSync のみ。既存 E2E テスト群と同等の実行時間（1 秒未満）。",
+      "evidence": "既存 E2E テスト（227-forest-e2e.test.js）が同パターンで 1 秒未満で完了している。",
+      "why": "",
+      "considered": ""
+    },
+    {
+      "question": "approval ステップの sync-spec-tasks はどう検証するか？",
+      "answer": "approval ステップ完了時に spec.json の tasks が flow.json の tasks に同期される仕様。テストでは approval done 後に flow.json を読み、tasks が正しく生成されていることをアサートする。",
+      "evidence": "approval done のポストフックでタスク同期が実行される仕様（既存テストでも同パターンで検証済み）。",
+      "why": "sync-spec-tasks は flow 遷移の重要なポストフック。通しテストで前後の状態遷移と合わせて検証する。",
+      "considered": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-25T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}
