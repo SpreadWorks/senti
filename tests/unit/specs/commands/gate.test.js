@@ -24,8 +24,8 @@ function validSpecJson(overrides = {}) {
     constraints: [],
     design_principles: [],
     overview: { modules: [], data_flow: [], decisions: [] },
-    requirements: [],
-    acceptance_criteria: [],
+    requirements: [{ id: "REQ-1", desc: "placeholder requirement" }],
+    acceptance_criteria: ["placeholder acceptance criterion"],
     clarifications: [],
     alternatives_considered: [],
     open_questions: [],
@@ -378,24 +378,12 @@ describe("gate CLI", () => {
     tmp = createTmpDir();
     initGateProject(tmp);
     const specDir = join(tmp, "specs", "001-test");
-    const validSpec ={
-      goal: "test goal",
-      background: "test background",
-      scope: { in: ["a"], out: ["b"] },
-      constraints: [],
-      design_principles: [],
-      overview: { modules: [], data_flow: [], decisions: [] },
-      requirements: [],
-      acceptance_criteria: [],
-      clarifications: [],
-      alternatives_considered: [],
-      open_questions: [],
-      // spec 226: tasks[] required for spec gate to pass.
+    const validSpec = validSpecJson({
       // T-default matches the seed task in flow.json (monotonic check).
       tasks: [
         { id: "T-default", title: "Default test task", goal: "Placeholder task for test fixtures.", origin: "plan", added_round: 0, status: "pending" },
       ],
-    };
+    });
     writeJson(tmp, "specs/001-test/spec.json", validSpec);
 
     // Pass spec.md path; resolveSpecJsonPath should resolve to spec.json (R5).

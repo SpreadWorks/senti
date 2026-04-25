@@ -287,6 +287,18 @@ function checkSpecJson(spec) {
     }
   });
 
+  // spec 228: minimum-content sanity checks — catch empty stubs before AI guardrails.
+  const requiredNonEmpty = [
+    ["goal", (v) => typeof v === "string" && v.trim() === "", "spec must have a non-empty goal"],
+    ["requirements", (v) => Array.isArray(v) && v.length === 0, "spec must have at least one requirement"],
+    ["acceptance_criteria", (v) => Array.isArray(v) && v.length === 0, "spec must have at least one acceptance criterion"],
+  ];
+  for (const [field, isEmpty, msg] of requiredNonEmpty) {
+    if (isEmpty(spec[field])) {
+      issues.push(`${field}: empty (${msg})`);
+    }
+  }
+
   // spec 226: tasks[] must be present and non-empty for new specs.
   // Existing merged specs are not gated (flow.json is cleanup'd on finalize),
   // so this check naturally applies only to active flows.

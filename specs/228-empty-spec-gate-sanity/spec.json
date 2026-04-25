@@ -1,0 +1,146 @@
+{
+  "goal": "空の spec.json が spec gate (phase=spec) を PASS するバグを修正。checkSpecJson に goal / requirements / acceptance_criteria の非空チェックを追加する",
+  "scope": {
+    "in": [
+      "checkSpecJson() に goal 非空（trim 後）チェックを追加",
+      "checkSpecJson() に requirements 非空チェ��クを追加",
+      "checkSpecJson() に acceptance_criteria 非空チェックを追加",
+      "上記を検証するユニットテスト"
+    ],
+    "out": [
+      "spec.schema.json への minLength/minItems 追加",
+      "scope.in 等その他フィールドの非空チェック",
+      "AI guardrail プロンプトの修正"
+    ]
+  },
+  "constraints": [
+    "flow prepare が生成する空 stub は loadSpecJson を通過しなければならない。制約は gate の checkSpecJson でのみ��加する",
+    "既存�� checkSpecJson が返す issues 配列に追加する形で実装する"
+  ],
+  "design_principles": [
+    "既���パターンとの一貫性: tasks[] 非空チェック（spec 226）と同じ場所・同じ形式",
+    "最小変更: Issue が特定した3フィールドのみ",
+    "既存機能への影響: 正しく記入された spec.json の gate 動作に変更なし。空 stub 生成にも影響なし（スキーマ変更なし）。空内容のまま gate 通過しようとするケースのみ PASS→FAIL に変更（本修正の目的）"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-gate.js の checkSpecJson(): spec.json の静的チェック関数。3つの非空チェックを追加"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "executeSpec() → runGateFlow({ textCheck: checkSpecJson }) → 静的チェック → AI guardrail"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "スキーマではなく gate レベルで制約する。空 stub が loadSpecJson を通過する必要があるため"
+      }
+    ]
+  },
+  "background": "spec 221 実装中に発見。flow prepare が生成する空 stub のまま flow run gate --phase spec を実行すると、AI guardrail が空配列を該当なしと解釈して PASS を返す",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "desc": "spec.goal が空（trim 後）の場合、spec gate (phase=spec) は AI guardrail を呼ばず FAIL を返す",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-2",
+      "desc": "spec.requirements が空配列の場���、spec gate (phase=spec) は AI guardrail を呼ばず FAIL を返��",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-3",
+      "desc": "spec.acceptance_criteria が空配列の場合���spec gate (phase=spec) は AI guardrail を呼ばず FAIL を返す",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-4",
+      "desc": "3フィールドが全て非空の場合、従来���り AI guardrail 評価に進む（回帰なし）",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-5",
+      "desc": "When checkSpecJson is called with specs matching REQ-1 through REQ-4 conditions, unit tests shall verify the expected issues array contents",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "REQ-6",
+      "desc": "When static sanity checks fail, the gate command shall exit with non-zero status (existing gate FAIL exit-code behavior; no new code needed, but requirement makes the contract explicit)",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "空の spec.json で flow run gate --phase spec が FAIL を返す",
+    "goal のみ空、requirements のみ空、acceptance_criteria のみ空でそれぞれ FAIL",
+    "全フィールド非空の spec.json では既存通り AI guardrail 評価に進む",
+    "既存テストが壊れない"
+  ],
+  "clarifications": [
+    {
+      "q": "goal の空判定基準は？",
+      "a": "trim 後の空文字で判定。空白のみは実質空"
+    },
+    {
+      "q": "requirements エントリの desc も非空チェックすべきか？",
+      "a": "不要。配列レベルの空のみがスコープ。エントリ品質は AI guardrail が担当"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "spec.schema.json に minLength/minItems 追加",
+      "reason": "flow prepare の空 stub がスキーマバリデーションを通過できなくなるため却下"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/run-gate.js"
+  ],
+  "authorized_test_modifications": [
+    {
+      "path": "tests/unit/specs/commands/gate.test.js",
+      "reason": "Updated validSpecJson fixture to include non-empty requirements and acceptance_criteria arrays, reflecting the new minimum-content sanity checks added by this spec"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "skipped"
+    },
+    {
+      "id": "T-1",
+      "title": "Add sanity checks to checkSpecJson",
+      "goal": "checkSpecJson 関数に goal / requirements / acceptance_criteria の非空チェックを追加し、空の spec.json で spec gate が FAIL を返すようにする",
+      "acceptance": [
+        "goal が空文字（trim 後）の場合、issues に追加される",
+        "requirements が空配列の場合、issues に追加される",
+        "acceptance_criteria が空配列の場合、issues に追加される",
+        "全フィールド非空の場合は既存動作と同じ"
+      ],
+      "implementation_notes": "既存の tasks[] 非空チェック（spec 226）の直前に同パターンで追加する。issues.push() で文字列を追加する形式",
+      "test_strategy": "checkSpecJson を直接呼び出すユニットテストで各条件を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-25T05:46:37.792Z",
+    "notes": "autoApprove"
+  }
+}

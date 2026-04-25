@@ -1,0 +1,86 @@
+{
+  "spec": "specs/228-empty-spec-gate-sanity/spec.json",
+  "date": "2026-04-25T07:59:48.725Z",
+  "requirements": [
+    {
+      "desc": "REQ-1 [must]: spec.goal が空（trim 後）の場合、spec gate (phase=spec) は AI guardrail を呼ばず FAIL を返す",
+      "status": "done",
+      "note": "checkSpecJson に goal の trim 後空文字チェックを追加し issue を返す実装が入っているため、既存ゲート挙動で FAIL 側に倒れる。"
+    },
+    {
+      "desc": "REQ-2 [must]: spec.requirements が空配列の場合、spec gate (phase=spec) は AI guardrail を呼ばず FAIL を返す",
+      "status": "done",
+      "note": "checkSpecJson に requirements 空配列チェックが追加され、issue 生成により静的チェック失敗となる。"
+    },
+    {
+      "desc": "REQ-3 [must]: spec.acceptance_criteria が空配列の場合、spec gate (phase=spec) は AI guardrail を呼ばず FAIL を返す",
+      "status": "done",
+      "note": "checkSpecJson に acceptance_criteria 空配列チェックが追加され、issue 生成により静的チェック失敗となる。"
+    },
+    {
+      "desc": "REQ-4 [must]: 3フィールドが全て非空の場合、従来通り AI guardrail 評価に進む（回帰なし）",
+      "status": "done",
+      "note": "非空時は新規 sanity issue が出ないテストを追加し、既存 gate CLI テスト fixture も非空値に更新されて回帰を回避している。"
+    },
+    {
+      "desc": "REQ-5 [should]: When checkSpecJson is called with specs matching REQ-1 through REQ-4 conditions, unit tests shall verify the expected issues array contents",
+      "status": "partial",
+      "note": "新規 unit test で REQ-1〜REQ-4 条件は網羅しているが、issues の厳密な配列内容（完全一致）ではなく部分一致/正規表現中心の検証。"
+    },
+    {
+      "desc": "REQ-6 [must]: When static sanity checks fail, the gate command shall exit with non-zero status (existing gate FAIL exit-code behavior; no new code needed, but requirement makes the contract explicit)",
+      "status": "partial",
+      "note": "実装追加は不要という前提に沿ってコード変更はないが、今回の差分内でこの契約を直接検証する新規テスト追加は確認できない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/228-empty-spec-gate-sanity/draft.md",
+      "change": "仕様運用用ドキュメントの新規追加（実装要件そのものではない）。"
+    },
+    {
+      "file": "specs/228-empty-spec-gate-sanity/flow.json",
+      "change": "フロー実行メタデータの新規追加（要件実装外の管理情報）。"
+    },
+    {
+      "file": "specs/228-empty-spec-gate-sanity/issue-log.json",
+      "change": "ゲート実行ログの新規追加（要件実装外の履歴情報）。"
+    },
+    {
+      "file": "specs/228-empty-spec-gate-sanity/issue.md",
+      "change": "課題説明ドキュメントの新規追加（コード要件外）。"
+    },
+    {
+      "file": "specs/228-empty-spec-gate-sanity/qa.md",
+      "change": "Q&A テンプレートの新規追加（コード要件外）。"
+    },
+    {
+      "file": "specs/228-empty-spec-gate-sanity/review.md",
+      "change": "レビュー記録の新規追加（コード要件外）。"
+    },
+    {
+      "file": "specs/228-empty-spec-gate-sanity/spec.json",
+      "change": "仕様定義ファイルの新規追加（実装コードではなくプロセス成果物）。"
+    },
+    {
+      "file": "specs/228-empty-spec-gate-sanity/spec.md",
+      "change": "仕様書の新規追加（実装コードではなくプロセス成果物）。"
+    },
+    {
+      "file": "specs/228-empty-spec-gate-sanity/tests/README.md",
+      "change": "テスト説明ドキュメントの新規追加（要件実装外）。"
+    },
+    {
+      "file": "tests/unit/specs/commands/gate.test.js",
+      "change": "既存 fixture の非空デフォルト化と inline spec の builder 化リファクタ（REQ-5 の checkSpecJson 直接検証とは別の調整）。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 4,
+    "partial": 2,
+    "not_done": 0,
+    "rate": 0.83,
+    "notes": "中核実装（REQ-1〜REQ-4）は満たしている。テスト追加も十分に近いが、REQ-5 の『issues 配列内容』の厳密性と REQ-6 の非ゼロ終了契約の明示的検証は差分上では弱く、部分達成。"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/228-empty-spec-gate-sanity/draft.md        |  35 ++\n specs/228-empty-spec-gate-sanity/flow.json       | 389 +++++++++++++++++++++++\n specs/228-empty-spec-gate-sanity/issue-log.json  | 118 +++++++\n specs/228-empty-spec-gate-sanity/issue.md        |  74 +++++\n specs/228-empty-spec-gate-sanity/qa.md           |   9 +\n specs/228-empty-spec-gate-sanity/review.md       |  33 ++\n specs/228-empty-spec-gate-sanity/spec.json       | 146 +++++++++\n specs/228-empty-spec-gate-sanity/spec.md         |  77 +++++\n specs/228-empty-spec-gate-sanity/tests/README.md |  23 ++\n src/flow/lib/run-gate.js                         |  12 +\n tests/unit/flow/gate-spec-sanity.test.js         |  60 ++++\n tests/unit/specs/commands/gate.test.js           |  20 +-\n 12 files changed, 980 insertions(+), 16 deletions(-)",
+      "commits": [
+        "feat: feature/228-empty-spec-gate-sanity"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 4,
+      "partial": 2,
+      "not_done": 0,
+      "rate": 0.83,
+      "notes": "中核実装（REQ-1〜REQ-4）は満たしている。テスト追加も十分に近いが、REQ-5 の『issues 配列内容』の厳密性と REQ-6 の非ゼロ終了契約の明示的検証は差分上では弱く、部分達成。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 129518,
+      "output": 11053,
+      "cacheRead": 170112,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 268656,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 106151
+        },
+        {
+          "phase": "gate",
+          "durationMs": 90005
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 34650
+        },
+        {
+          "phase": "review",
+          "durationMs": 37850
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2357,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2624
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/228-empty-spec-gate-sanity\n    12 files changed, 980 insertions(+), 16 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (4 done / 2 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 11\n    input tokens ................ 129,518\n    output tokens ............... 11,053\n    cache-read tokens ........... 170,112\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 268.7s\n      gate-draft ................ 106.2s\n      gate ...................... 90.0s\n      gate-impl ................. 34.6s\n      review .................... 37.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2357  integration 267  acceptance 0  total 2624"
+}
