@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T12:54:50.262Z",
+  "analyzedAt": "2026-04-25T13:47:25.449Z",
   "package": {
     "entries": [
       {
@@ -4863,9 +4863,9 @@
       },
       {
         "file": "src/flow/lib/sync-spec-tasks.js",
-        "hash": "7d395524446f7e9790b45893ccebcbdb",
+        "hash": "37111f91f25a2ff188b880427e021573",
         "lines": 94,
-        "mtime": "2026-04-24T08:12:50.734Z",
+        "mtime": "2026-04-25T13:47:25.159Z",
         "className": "sync-spec-tasks",
         "methods": [
           "syncSpecTasksToFlow",
@@ -4886,20 +4886,23 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "5bb691f5",
-        "summary": "This module syncs tasks from spec JSON into flow state. It creates missing flow tasks and assigns task-step scaffolding.",
-        "detail": "It loads the active flow, resolves absolute spec paths, and reads spec task definitions via shared loaders. `buildFlowTask` maps spec task fields into flow task objects with round assignment and origin metadata. When no active flow exists, it returns a skipped result rather than throwing. The function returns added task IDs to support incremental synchronization workflows.",
+        "summary": "This module synchronizes tasks defined in a spec file into the currently active flow state. It maps spec-level task definitions into flow task objects and reports what was added or skipped.",
+        "detail": "The entry point, `syncSpecTasksToFlow`, follows a guard-first pattern and returns an explicit skipped result when no active flow exists. It resolves the spec path to an absolute path, loads spec data, and prepares flow task step structures using shared helpers such as `buildInitialTaskSteps` and `promoteNextPending`. The function appears to batch-create flow tasks and returns structured output containing the added task list for downstream reporting. A dedicated `buildFlowTask` helper encapsulates task object construction, deriving context like the spec directory and attaching round assignment metadata. Overall, the implementation favors deterministic synchronization logic and reusable flow-state helper utilities over inline ad hoc transformations.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
+          "processedAt": "2026-04-25T13:47:52.445Z",
           "attempts": 1
         },
         "keywords": [
-          "task sync",
-          "spec to flow",
-          "task mapping",
-          "incremental import",
-          "flow task scaffold"
+          "task synchronization",
+          "spec to flow mapping",
+          "workflow state",
+          "pending step promotion",
+          "flow task builder",
+          "active flow guard",
+          "spec path resolution",
+          "orchestration helper"
         ]
       },
       {
@@ -9726,5 +9729,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T12:55:07.129Z"
+  "enrichedAt": "2026-04-25T13:47:52.445Z"
 }
