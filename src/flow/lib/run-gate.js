@@ -461,19 +461,22 @@ const DIFF_SCOPED_PHASES = Object.freeze(["task-impl", "integration"]);
  * @param {Array} guardrails - guardrails (unfiltered)
  * @param {string} phase - gate phase
  * @param {string} [role] - checker role override
+ * @param {string[]} [previouslyPassedIds] - guardrail IDs that passed in previous evaluation
  * @returns {string|null} prompt, or null if no guardrails match phase
  */
-function buildGuardrailPrompt(targetText, guardrails, phase, role) {
+function buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPassedIds) {
   const filtered = filterByPhase(guardrails, phase);
-  return buildGuardrailPromptFromFiltered(targetText, filtered, phase, role);
+  return buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds);
 }
 
 /**
  * Variant of {@link buildGuardrailPrompt} that takes pre-filtered guardrails.
  * Used by internal callers (e.g. {@link checkGuardrail}) that have already
  * filtered by phase and want to avoid the redundant pass.
+ *
+ * @param {string[]} [previouslyPassedIds] - guardrail IDs that passed in a prior evaluation (spec 229)
  */
-function buildGuardrailPromptFromFiltered(targetText, filtered, phase, role) {
+function buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds) {
   if (filtered.length === 0) return null;
 
   const articleList = filtered
@@ -497,6 +500,16 @@ function buildGuardrailPromptFromFiltered(targetText, filtered, phase, role) {
     "- Output MUST be valid JSON. No preamble, no trailing commentary, no Markdown prose — JSON only.",
     "",
   ];
+
+  if (Array.isArray(previouslyPassedIds) && previouslyPassedIds.length > 0) {
+    parts.push(
+      "## Previously Passed Guardrails",
+      "The following guardrail IDs passed in a previous evaluation of this content.",
+      "Only FAIL these if the current content specifically introduces a new violation.",
+      "IDs: " + previouslyPassedIds.join(", "),
+      "",
+    );
+  }
 
   if (DIFF_SCOPED_PHASES.includes(phase)) {
     parts.push(...IMPL_DIFF_SCOPE_LINES);
@@ -655,7 +668,7 @@ export function buildGateReport({ level, phase, evaluations }) {
 // Guardrail AI check — shared
 // ---------------------------------------------------------------------------
 
-async function checkGuardrail(root, targetText, _config, phase, role) {
+async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds) {
   const guardrails = loadMergedGuardrails(root);
   if (guardrails.length === 0) return null;
 
@@ -665,7 +678,7 @@ async function checkGuardrail(root, targetText, _config, phase, role) {
   const agent = container.get("agent");
   if (!agent.resolve("flow.spec.gate")) return null;
 
-  const prompt = buildGuardrailPromptFromFiltered(targetText, filtered, phase, role);
+  const prompt = buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds);
   if (!prompt) return { passed: true, evaluations: [] };
 
   const response = await agent.call(prompt, { commandId: "flow.spec.gate" });
@@ -1599,7 +1612,15 @@ async function runGateFlow(args) {
     return gatePass(level, phase, targetPath, []);
   }
 
-  const result = await checkGuardrail(root, targetText, config, phase, checkerRole);
+  let previouslyPassedIds;
+  if (ctx && RETRY_TRACKED_PHASES.includes(phase)) {
+    const prevEntry = findPreviousPassedGuardrails({ issueLog: ctx.issueLog, phase });
+    if (prevEntry) {
+      previouslyPassedIds = prevEntry.passedGuardrails;
+    }
+  }
+
+  const result = await checkGuardrail(root, targetText, phase, checkerRole, previouslyPassedIds);
   if (!result) {
     return gatePass(level, phase, targetPath, []);
   }
@@ -1971,7 +1992,6 @@ export class RunGateCommand extends FlowCommand {
     const grResult = await checkGuardrail(
       root,
       `${specText}\n\n## Git Diff\n${diff}`,
-      ctx.config,
       phase,
       "You are an implementation compliance checker. Check the implementation against each guardrail.",
     );

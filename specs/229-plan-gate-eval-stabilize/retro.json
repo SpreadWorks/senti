@@ -1,0 +1,44 @@
+{
+  "spec": "specs/229-plan-gate-eval-stabilize/spec.json",
+  "date": "2026-04-25T09:15:28.712Z",
+  "requirements": [
+    {
+      "desc": "When pass history from a previous gate evaluation exists in the issue-log, the guardrail evaluation prompt shall include a 'Previously Passed Guardrails' section containing the list of previously-passed guardrail IDs.",
+      "status": "done",
+      "note": "Implemented in `buildGuardrailPromptFromFiltered` by conditionally appending a `Previously Passed Guardrails` section with joined guardrail IDs when `previouslyPassedIds` is non-empty."
+    },
+    {
+      "desc": "When pass history is available, the prompt builder shall accept and incorporate the list of previously-passed guardrail IDs for all retry-tracked phases (draft, spec, task-impl, integration).",
+      "status": "done",
+      "note": "Prompt-builder path now accepts `previouslyPassedIds` (`buildGuardrailPrompt` -> `buildGuardrailPromptFromFiltered`), and `runGateFlow` retrieves prior pass history via `findPreviousPassedGuardrails` for `RETRY_TRACKED_PHASES` and passes it into `checkGuardrail`."
+    },
+    {
+      "desc": "When no pass history exists (first evaluation or no issue-log entries), the prompt shall remain unchanged from the current behavior.",
+      "status": "done",
+      "note": "Prompt injection is guarded by `Array.isArray(previouslyPassedIds) && previouslyPassedIds.length > 0`; tests verify no section for `undefined`/empty and exact prompt equality vs prior behavior."
+    },
+    {
+      "desc": "When the same content is re-evaluated with identical working-tree state, the existing mechanical flip override shall be retained alongside the prompt-based pass history as a fallback safety net.",
+      "status": "done",
+      "note": "No removal or alteration of flip-override behavior is present; pass-history prompt injection was added without replacing existing mechanical override logic."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "Removed unused `_config` parameter from `checkGuardrail` and updated call sites; this interface cleanup is not explicitly required by REQ-1..REQ-4."
+    },
+    {
+      "file": "specs/229-plan-gate-eval-stabilize/*",
+      "change": "Added extensive workflow/spec artifacts (draft, flow, issue-log, review, task docs, QA, test README) beyond the runtime behavior required by REQ-1..REQ-4."
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All four listed requirements are satisfied by the code changes. Core behavior matches spec: pass history is injected into prompts when available, omitted when absent, and existing flip-override fallback remains in place."
+  }
+}
