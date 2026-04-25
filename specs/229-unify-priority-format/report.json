@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/229-unify-priority-format/draft.md           |  32 ++\n specs/229-unify-priority-format/flow.json          | 400 +++++++++++++++++++++\n specs/229-unify-priority-format/issue-log.json     | 150 ++++++++\n specs/229-unify-priority-format/issue.md           |  82 +++++\n specs/229-unify-priority-format/qa.md              |   9 +\n specs/229-unify-priority-format/review.md          |   9 +\n specs/229-unify-priority-format/spec.json          | 112 ++++++\n specs/229-unify-priority-format/spec.md            |  78 ++++\n specs/229-unify-priority-format/tasks/T-1.md       |  20 ++\n .../tasks/T-pending-spec.md                        |   9 +\n specs/229-unify-priority-format/tests/README.md    |  21 ++\n src/presets/base/guardrail.json                    |   2 +-\n 12 files changed, 923 insertions(+), 1 deletion(-)",
+      "commits": [
+        "feat: feature/229-unify-priority-format"
+      ]
+    },
+    "retro": {
+      "total": 2,
+      "done": 2,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "Both required behaviors are implemented in guardrail.json. The rest of the diff is additional spec-process documentation and tracking files outside the two stated requirements."
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 2,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 71680,
+      "output": 7494,
+      "cacheRead": 173440,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 9,
+      "durationMs": 190832,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 77289
+        },
+        {
+          "phase": "gate",
+          "durationMs": 52759
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 36802
+        },
+        {
+          "phase": "review",
+          "durationMs": 23982
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2385,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2652
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/229-unify-priority-format\n    12 files changed, 923 insertions(+), 1 deletion(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (2 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 2\n    issue-log ................... 1\n    agent calls ................. 9\n    input tokens ................ 71,680\n    output tokens ............... 7,494\n    cache-read tokens ........... 173,440\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 190.8s\n      gate-draft ................ 77.3s\n      gate ...................... 52.8s\n      gate-impl ................. 36.8s\n      review .................... 24.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2385  integration 267  acceptance 0  total 2652"
+}

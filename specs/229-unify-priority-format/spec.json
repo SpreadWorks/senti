@@ -1,0 +1,112 @@
+{
+  "goal": "Unify priority notation across the SDD flow so that draft, spec.md, and spec.json all use the same enum: must, should, nice-to-have.",
+  "background": "The prioritize-requirements guardrail instructs authors to specify their priority order without naming the enum that spec.json accepts. AI agents interpret this as P1/P2/P3 notation, which spec.json schema validation rejects. This mismatch caused schema validation failures (documented in spec 227 issue-log).",
+  "scope": {
+    "in": [
+      "Change the prioritize-requirements guardrail body to explicitly name the spec.json priority enum values (must, should, nice-to-have)."
+    ],
+    "out": [
+      "Changing the spec.json schema priority enum.",
+      "Modifying existing spec files.",
+      "Changing render, review, or retro logic."
+    ]
+  },
+  "constraints": [
+    "The guardrail body is plain text evaluated by AI during gate checks. It must be concise and unambiguous.",
+    "Impact on existing features: gate-draft and gate-spec AI evaluation will see updated guardrail text. No impact on spec.json schema, spec render, review, or retro logic."
+  ],
+  "design_principles": [
+    "Single source of truth: the spec.json schema defines the canonical priority values; the guardrail references them."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/presets/base/guardrail.json — contains the prioritize-requirements guardrail definition."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "guardrail.json → gate-draft/gate-spec AI evaluation → draft.md/spec.md authoring → spec.json validation."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "Chose A+C (unify notation + update guardrail wording) over B (auto-normalize) and D (relax schema)."
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When requirements exceed three items, the prioritize-requirements guardrail body shall instruct authors to assign each requirement a priority from the spec.json enum: must, should, or nice-to-have.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "When the prioritize-requirements guardrail body is rendered for AI evaluation, it shall not reference or permit P1/P2/P3 notation as a valid priority format.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "npm test passes with no regressions.",
+    "The prioritize-requirements guardrail body in src/presets/base/guardrail.json contains the values must, should, nice-to-have.",
+    "The guardrail body does not reference P1/P2/P3 notation."
+  ],
+  "clarifications": [
+    {
+      "q": "Why not auto-normalize P1→must at the spec render/gate stage?",
+      "a": "Alpha policy prohibits backward-compatibility layers. A normalization layer adds complexity for a problem solvable at the source."
+    },
+    {
+      "q": "Why not relax the spec.json schema to accept P1/P2/P3?",
+      "a": "Would allow two representations to coexist, causing inconsistency in rendered output and downstream tools."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "B: Auto-normalize P1→must at spec render/gate",
+      "reason": "Rejected — adds conversion layer, alpha policy prohibits backward-compatibility code."
+    },
+    {
+      "option": "D: Relax spec.json schema to accept P1/P2/P3",
+      "reason": "Rejected — two notations coexist, no single source of truth."
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/presets/base/guardrail.json"
+  ],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Placeholder task until spec.json tasks[] is populated",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "skipped"
+    },
+    {
+      "id": "T-1",
+      "title": "Update prioritize-requirements guardrail body",
+      "goal": "Replace the generic priority order instruction with explicit must/should/nice-to-have enum reference in the prioritize-requirements guardrail.",
+      "acceptance": [
+        "The guardrail body names must, should, and nice-to-have as the valid priority values.",
+        "The guardrail body does not reference P1/P2/P3.",
+        "npm test passes."
+      ],
+      "implementation_notes": "Edit the body field of the prioritize-requirements entry in src/presets/base/guardrail.json. Keep the text concise for AI evaluation.",
+      "test_strategy": "Run npm test to verify no regressions. No new tests needed — the change is to static guardrail text.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-25T09:22:52.174Z"
+  }
+}

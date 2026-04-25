@@ -1,0 +1,70 @@
+{
+  "spec": "specs/229-unify-priority-format/spec.json",
+  "date": "2026-04-25T09:32:04.115Z",
+  "requirements": [
+    {
+      "desc": "When requirements exceed three items, the prioritize-requirements guardrail body shall instruct authors to assign each requirement a priority from the spec.json enum: must, should, or nice-to-have.",
+      "status": "done",
+      "note": "src/presets/base/guardrail.json body now says: when requirements exceed three items, assign each requirement one priority: must, should, or nice-to-have."
+    },
+    {
+      "desc": "When the prioritize-requirements guardrail body is rendered for AI evaluation, it shall not reference or permit P1/P2/P3 notation as a valid priority format.",
+      "status": "done",
+      "note": "Updated guardrail body contains only must/should/nice-to-have and does not mention P1/P2/P3."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/229-unify-priority-format/draft.md",
+      "change": "New draft document added; process/spec artifact not required by R1/R2."
+    },
+    {
+      "file": "specs/229-unify-priority-format/flow.json",
+      "change": "New flow state/history file added; workflow metadata not required by R1/R2."
+    },
+    {
+      "file": "specs/229-unify-priority-format/issue-log.json",
+      "change": "New issue/gate evaluation log added; not required by R1/R2."
+    },
+    {
+      "file": "specs/229-unify-priority-format/issue.md",
+      "change": "New issue analysis document added; not required by R1/R2."
+    },
+    {
+      "file": "specs/229-unify-priority-format/qa.md",
+      "change": "New clarification template added; not required by R1/R2."
+    },
+    {
+      "file": "specs/229-unify-priority-format/review.md",
+      "change": "New review notes added; not required by R1/R2."
+    },
+    {
+      "file": "specs/229-unify-priority-format/spec.json",
+      "change": "New feature spec JSON added; planning metadata beyond the two requirements."
+    },
+    {
+      "file": "specs/229-unify-priority-format/spec.md",
+      "change": "New rendered spec markdown added; not required by R1/R2."
+    },
+    {
+      "file": "specs/229-unify-priority-format/tasks/T-1.md",
+      "change": "New task document added; implementation planning artifact not required by R1/R2."
+    },
+    {
+      "file": "specs/229-unify-priority-format/tasks/T-pending-spec.md",
+      "change": "New placeholder task document added; not required by R1/R2."
+    },
+    {
+      "file": "specs/229-unify-priority-format/tests/README.md",
+      "change": "New spec-local test documentation added; not required by R1/R2."
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "done": 2,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "Both required behaviors are implemented in guardrail.json. The rest of the diff is additional spec-process documentation and tracking files outside the two stated requirements."
+  }
+}
