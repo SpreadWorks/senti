@@ -5,7 +5,17 @@
  * All functions return result objects — they never throw.
  */
 
-import { execFileSync, execFile } from "child_process";
+import { spawnSync, execFile } from "child_process";
+
+function buildProcessOptions(opts) {
+  return {
+    cwd: opts.cwd,
+    encoding: opts.encoding || "utf8",
+    timeout: opts.timeout,
+    maxBuffer: opts.maxBuffer,
+    ...(opts.env && { env: opts.env }),
+  };
+}
 
 /**
  * Run a command synchronously.
@@ -24,26 +34,15 @@ import { execFileSync, execFile } from "child_process";
  * @returns {{ ok: boolean, status: number, stdout: string, stderr: string, signal: string|null, killed: boolean }}
  */
 export function runCmd(cmd, args, opts = {}) {
-  try {
-    const stdout = execFileSync(cmd, args, {
-      cwd: opts.cwd,
-      encoding: opts.encoding || "utf8",
-      timeout: opts.timeout,
-      maxBuffer: opts.maxBuffer,
-      stdio: ["pipe", "pipe", "pipe"],
-      ...(opts.env && { env: opts.env }),
-    });
-    return { ok: true, status: 0, stdout: String(stdout || ""), stderr: "", signal: null, killed: false };
-  } catch (e) {
-    return {
-      ok: false,
-      status: e.status ?? 1,
-      stdout: String(e.stdout || ""),
-      stderr: String(e.stderr || ""),
-      signal: e.signal ?? null,
-      killed: e.killed ?? false,
-    };
-  }
+  const res = spawnSync(cmd, args, buildProcessOptions(opts));
+  return {
+    ok: res.status === 0 && !res.signal && !res.error,
+    status: res.status ?? 1,
+    stdout: String(res.stdout || ""),
+    stderr: String(res.stderr || ""),
+    signal: res.signal ?? null,
+    killed: Boolean(res.error && res.error.code === "ETIMEDOUT"),
+  };
 }
 
 /**
@@ -64,13 +63,7 @@ export function runCmdAsync(cmd, args, opts = {}) {
     execFile(
       cmd,
       args,
-      {
-        cwd: opts.cwd,
-        encoding: opts.encoding || "utf8",
-        timeout: opts.timeout,
-        maxBuffer: opts.maxBuffer,
-        ...(opts.env && { env: opts.env }),
-      },
+      buildProcessOptions(opts),
       (err, stdout, stderr) => {
         let result;
         if (err) {

@@ -74,6 +74,13 @@ describe("runCmd", () => {
     assert.ok(result.stdout.includes("café"));
   });
 
+  it("captures stderr on success", () => {
+    const result = runCmd("node", ["-e", "console.error('ERR')"]);
+    assert.equal(result.ok, true);
+    assert.equal(result.status, 0);
+    assert.match(result.stderr, /ERR/);
+  });
+
   it("returns signal=null and killed=false on success", () => {
     const result = runCmd("echo", ["hello"]);
     assert.equal(result.signal, null);

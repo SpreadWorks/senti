@@ -1,0 +1,92 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: fixing successful-run stderr handling in runCmd.; Unambiguous Requirements — Scope and expected behavior are stated with concrete conditions and specific file/test targets.; Complete Context — Requirements are listed as changes but generally do not use explicit When/If trigger plus shall-style expected outcome pairs.; No Hardcoded Secrets — No secrets, keys, tokens, or passwords are present in the draft content.; Prioritize Requirements — In-scope requirements do not exceed three items, so explicit priority ordering is not required.; Impact on Existing Features — Draft includes a dedicated impact section and explicitly describes affected existing features.; Present Recommendations with Reasoning — Each Q&A provides a direct recommendation with concise rationale based on existing code behavior/patterns.; Explore Before Asking — Draft resolves questions using codebase-context assertions and leaves no unresolved user-facing questions.; Proactively Raise Related Implications — Related implications are proactively stated, including downstream parser behavior and feature effects.; Confirm Brainstorm vs. Decision Before Critiquing — Content indicates decision mode via explicit user approval, so this guardrail is satisfied.; Capture Digressions in draft.md — No digression is evident in the provided content, so nothing needed to be captured.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific API replacement and exact predicate logic), beyond requirements level.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed, so migration planning is not applicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:47:26.218Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Requirements are listed as changes but generally do not use explicit When/If trigger plus shall-style expected outcome pairs."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific API replacement and exact predicate logic), beyond requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — runCmd成功時stderr取得という単一の不具合修正に集中しており、関連テスト追加も同一関心内です。; Unambiguous Requirements — R3の「既存と同等」は比較基準が明示されておらず、検証条件が曖昧です。; Complete Context — 各要件で条件（成功時/失敗ケース）と期待動作（返却契約維持・stderr保持）が対応づけられています。; No Hardcoded Secrets — ドラフト本文に秘密情報のハードコードは含まれていません。; Prioritize Requirements — 要件は3件であり、優先順位付け必須条件（3件超）に該当しません。; Impact on Existing Features — 既存機能への影響対象と影響内容が明示されています。; Present Recommendations with Reasoning — Q&Aで推奨回答を先に示し、根拠として既存コード前提（res.stderr参照）を簡潔に述べています。; Explore Before Asking — docs/やコード探索を事前に実施したかは本文だけでは実行証跡を確認できません。; Proactively Raise Related Implications — 呼び出し元全体やflow run review系への波及影響を先回りして記載しています。; Confirm Brainstorm vs. Decision Before Critiquing — 本稿は承認済みドラフトで、ブレスト案の批評を行う文脈ではありません。; Capture Digressions in draft.md — 脱線した議論の記録が必要な状況は本文上確認されず、この観点では問題ありません。; Draft Stays at Requirements Level — 具体的なファイル名・関数名・テストファイルへの修正指示が含まれ、要件レベルを超える実装詳細に踏み込んでいます。; Backward-Compatible CLI Interface — CLIコマンド/オプションの削除や意味変更を伴う変更ではないため適用上の問題はありません。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:48:33.330Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R3の「既存と同等」は比較基準が明示されておらず、検証条件が曖昧です。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "具体的なファイル名・関数名・テストファイルへの修正指示が含まれ、要件レベルを超える実装詳細に踏み込んでいます。"
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 単一の不具合（成功時stderr欠落）に焦点が絞られており、無関係な変更はスコープ外として明示されている。; Unambiguous Requirements — 要件はexit条件・戻り値フィールド・既存テスト通過など検証可能な条件で記述され、曖昧語がほぼない。; Complete Context — R2は期待動作はあるがWhen/Ifのトリガー条件が明示されておらず、記事要件を満たし切れていない。; No Hardcoded Secrets — ドラフト内にAPIキー・トークン・パスワード等の秘匿情報は含まれていない。; Prioritize Requirements — 要件数は3件であり、3件超の場合に必要な優先順位付け要件の対象外。; Impact on Existing Features — 既存機能への影響対象と影響内容（同期呼び出し元、reviewコマンド）が明示されている。; Present Recommendations with Reasoning — Q&Aごとに推奨回答を先に示し、既存コード前提（呼び出し側がstderr参照済み等）を根拠として述べている。; Explore Before Asking — docs/やコード探索を事前実施したかは本文だけでは実行証跡を確認できない。; Proactively Raise Related Implications — 修正の波及として呼び出し元全体とreviewコマンドへの影響を先回りで記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 本内容は確定ドラフトであり、ブレインストーミング案の批評場面が存在しない。; Capture Digressions in draft.md — 議論の脱線が示されておらず、capture対象となるdigressionは見当たらない。; Draft Stays at Requirements Level — 記載は主に要件・スコープ・影響・テスト方針レベルで、関数レベル設計の詳細実装には踏み込んでいない。; Backward-Compatible CLI Interface — CLIコマンドやオプションの削除・意味変更を伴う変更ではないため、移行計画要件は実質的に非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:49:40.380Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R2は期待動作はあるがWhen/Ifのトリガー条件が明示されておらず、記事要件を満たし切れていない。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.decisions[0]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:52:15.210Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: alternatives_considered[0].option: required field is missing; alternatives_considered[0].reason: required field is missing; alternatives_considered[0].text: unknown field; alternatives_considered[0].rejected_reason: unknown field; alternatives_considered[1].option: required field is missing; alternatives_considered[1].reason: required field is missing; alternatives_considered[1].text: unknown field; alternatives_considered[1].rejected_reason: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:53:25.766Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:54:49.234Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: preserving stderr on successful runCmd execution.; Task Single Responsibility — Task list includes a placeholder task (T-pending-spec) that is not an implementation concern of this spec.; Unambiguous Requirements — Requirements use concrete, verifiable conditions (success/failure states, fields, and test outcomes).; Complete Context — Each requirement states a condition and expected behavior or outcome.; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus test results (field mapping and test assertions).; No Hardcoded Secrets — No secrets or credentials are specified in the content.; No Silent Error Swallowing — No empty catch or silent error-discard behavior is proposed.; Prioritize Requirements — There are exactly three requirements, so priority ordering is not mandated.; Impact on Existing Features — Impact is described via scope/outs and clarifications, stating no caller/output-spec changes are needed.; Bounded Resource Usage — Spec does not introduce recursion, retries, or bulk loading patterns requiring explicit bounds.; Changes Require Test Coverage — Includes a new happy-path test for stderr on success and requires existing tests to pass.; Spec Includes Test Strategy — Test strategy is explicitly included in task T-1 and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs direct copy because no source draft content is provided for comparison.; Record Unresolved Points as Open Questions — No unresolved points are fabricated; open questions are empty and assumptions are explicitly stated.; Include 'Why This Approach' Rationale — Rationale is provided through decision notes and alternatives with rejection reasons.; Do Not Modify Existing Tests Without Approval — Spec adds tests and does not propose modifying or deleting existing tests.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is in scope.; Exit Code Contract — Spec does not alter CLI exit-code behavior and keeps failure handling behavior unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:55:40.824Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "task-single-responsibility",
+          "reason": "Task list includes a placeholder task (T-pending-spec) that is not an implementation concern of this spec."
+        }
+      ]
+    }
+  ]
+}

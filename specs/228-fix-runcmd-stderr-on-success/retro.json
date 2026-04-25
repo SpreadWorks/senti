@@ -1,0 +1,39 @@
+{
+  "spec": "specs/228-fix-runcmd-stderr-on-success/spec.json",
+  "date": "2026-04-25T08:05:56.897Z",
+  "requirements": [
+    {
+      "desc": "runCmd がコマンド成功（exit 0）で完了した場合、戻り値の stderr フィールドにサブプロセスの stderr 出力が格納されていること",
+      "status": "done",
+      "note": "runCmd が execFileSync から spawnSync に置換され、成功時も `stderr: String(res.stderr || \"\")` を返す実装になっている。成功時 stderr を検証する単体テストも追加済み。"
+    },
+    {
+      "desc": "コマンドが成功した場合も失敗した場合も、戻り値は ok, status, stdout, stderr, signal, killed の6フィールドを持ち、各フィールドの型は変わらないこと",
+      "status": "done",
+      "note": "runCmd の返却オブジェクトは6フィールドを維持し、`ok:boolean`, `status:number`, `stdout:string`, `stderr:string`, `signal:string|null`, `killed:boolean` の型を保っている。"
+    },
+    {
+      "desc": "コマンド失敗時（非ゼロ終了・タイムアウト・シグナル受信）は、既存テストが全て PASS すること",
+      "status": "done",
+      "note": "diff 上で失敗系テストの削除や緩和はなく、flow.json の test サマリも `exitCode: 0` で既存テスト通過を示している。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/lib/process.js",
+      "change": "`buildProcessOptions(opts)` ヘルパーを新規追加し、runCmdAsync 側もこのヘルパーを使うようにリファクタされた（要件には明示されていない）。"
+    },
+    {
+      "file": "specs/228-fix-runcmd-stderr-on-success/*",
+      "change": "仕様運用用ファイル（draft/flow/issue/qa/review/spec/tests README など）が新規追加されているが、要件R1-R3のプロダクト挙動要件そのものには直接含まれない。"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "done": 3,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "R1-R3 は実装差分とテスト証跡の範囲で満たしている。主な未計画差分は process オプション共通化のリファクタと、仕様管理用ドキュメント群の追加。"
+  }
+}

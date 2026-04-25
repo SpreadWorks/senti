@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/228-fix-runcmd-stderr-on-success/draft.md    |  37 ++\n specs/228-fix-runcmd-stderr-on-success/flow.json   | 374 +++++++++++++++++++++\n .../issue-log.json                                 |  92 +++++\n specs/228-fix-runcmd-stderr-on-success/issue.md    | 192 +++++++++++\n specs/228-fix-runcmd-stderr-on-success/qa.md       |   9 +\n specs/228-fix-runcmd-stderr-on-success/review.md   |  33 ++\n specs/228-fix-runcmd-stderr-on-success/spec.json   | 110 ++++++\n specs/228-fix-runcmd-stderr-on-success/spec.md     |  73 ++++\n .../tests/README.md                                |  16 +\n src/lib/process.js                                 |  49 ++-\n tests/unit/lib/process.test.js                     |   7 +\n 11 files changed, 964 insertions(+), 28 deletions(-)",
+      "commits": [
+        "feat: feature/228-fix-runcmd-stderr-on-success"
+      ]
+    },
+    "retro": {
+      "total": 3,
+      "done": 3,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "R1-R3 は実装差分とテスト証跡の範囲で満たしている。主な未計画差分は process オプション共通化のリファクタと、仕様管理用ドキュメント群の追加。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 3,
+      "question": 3,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 108830,
+      "output": 10485,
+      "cacheRead": 165632,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 260593,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 117141
+        },
+        {
+          "phase": "gate",
+          "durationMs": 66388
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 33093
+        },
+        {
+          "phase": "review",
+          "durationMs": 43971
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2352,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2619
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/228-fix-runcmd-stderr-on-success\n    11 files changed, 964 insertions(+), 28 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (3 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 3\n    Q&A ......................... 3\n    issue-log ................... 0\n    agent calls ................. 10\n    input tokens ................ 108,830\n    output tokens ............... 10,485\n    cache-read tokens ........... 165,632\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 260.6s\n      gate-draft ................ 117.1s\n      gate ...................... 66.4s\n      gate-impl ................. 33.1s\n      review .................... 44.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2352  integration 267  acceptance 0  total 2619"
+}
