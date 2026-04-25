@@ -1,0 +1,53 @@
+{
+  "spec": "specs/228-fix-gate-retry-counter-drift/spec.json",
+  "date": "2026-04-25T05:56:58.056Z",
+  "requirements": [
+    {
+      "desc": "When flow run gate が retry-tracked phase (task-impl / integration) で実行されるとき、stderr のカウンタメッセージに内訳カテゴリ (AI-FAIL=N) を含めて表示する",
+      "status": "done",
+      "note": "src/flow/lib/run-gate.js の warnGateRetryBudget が [AI-FAIL=${used}] を stderr 出力に追加し、対応テストも追加されている。"
+    },
+    {
+      "desc": "When retry 予算が枯渇したとき、checkRetryBelowMax の Envelope.fail メッセージに内訳行 (Counter breakdown: AI-FAIL=N) を含める",
+      "status": "done",
+      "note": "checkRetryBelowMax の messages に \"Counter breakdown: AI-FAIL=${count}\" 行が追加され、メッセージ検証テストもある。"
+    },
+    {
+      "desc": "When 事前拒否 (NO_PROGRESS_SINCE_LAST_FAIL / NO_HEAD_TEST_EVIDENCE) により gate がスキップされたとき、stderr にリトライ予算が消費されなかった旨を表示する",
+      "status": "done",
+      "note": "checkNoProgressSinceLastFail と checkMissingHeadTestEvidence の両方で \"retry budget not consumed\" の stderr 出力が追加され、対応テストもある。"
+    },
+    {
+      "desc": "When テストスイートを実行したとき、issue-log 記録が gateRetry カウンタを増分しないことが検証される",
+      "status": "done",
+      "note": "tests/unit/flow/gate-retry-counter-transparency.test.js に issue-log 記録後も gateRetry が増えないことを検証するテストが追加されている。"
+    },
+    {
+      "desc": "When テストスイートを実行したとき、事前拒否が gateRetry カウンタを増分しないことが検証される",
+      "status": "done",
+      "note": "同テストファイルで pre-rejection (NO_PROGRESS / NO_HEAD_TEST_EVIDENCE) 後に gateRetry が増分しないことを検証している。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "warnGateRetryBudget が export され、モジュール公開API面が拡張された（要件には明示なし）。"
+    },
+    {
+      "file": "specs/228-fix-gate-retry-counter-drift/*",
+      "change": "spec/draft/flow/issue-log/review/tasks/tests README などの仕様運用ドキュメント一式が新規追加された（要件自体は実装・挙動・テスト要件）。"
+    },
+    {
+      "file": "tests/unit/flow/gate-retry-counter-transparency.test.js",
+      "change": "countGateRetry の非対象カウンタ（docsRead/srcRead/question）除外など、要求文に直接は書かれていない追加検証が含まれる。"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "REQ-1〜REQ-5 は実装・テスト差分上すべて満たされている。主な非要求変更は spec 関連生成物の追加と warnGateRetryBudget の export 化。"
+  }
+}

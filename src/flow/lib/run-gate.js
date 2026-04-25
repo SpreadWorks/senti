@@ -958,13 +958,13 @@ function formatRetryHistory(root, specPath, limit, phase) {
     .join("\n");
 }
 
-function warnGateRetryBudget(ctx, phase) {
+export function warnGateRetryBudget(ctx, phase) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) return;
   const used = readGateRetryCount(ctx.flowState, phase);
   const max = resolveRetryMax(ctx.config);
   const remaining = Math.max(0, max - used);
   process.stderr.write(
-    `[sdd-forge] gate retry: ${used}/${max} used (${remaining} remaining) for phase "${phase}"\n`,
+    `[sdd-forge] gate retry: ${used}/${max} used (${remaining} remaining) [AI-FAIL=${used}] for phase "${phase}"\n`,
   );
 }
 
@@ -983,6 +983,7 @@ export function checkRetryBelowMax(ctx, phase) {
   const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max, phase);
   const messages = [
     `gate retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${phase}".`,
+    `Counter breakdown: AI-FAIL=${count}`,
     "Previous FAIL reasons:",
     history || "  (no issue-log entries found)",
     "",
@@ -1056,6 +1057,9 @@ export function checkMissingHeadTestEvidence({ phase, flowState }) {
     "Run: sdd-forge flow run tests",
     "This populates flow.json `test.summary.exitCode` which gate-impl requires to evaluate implementation against the spec's test requirements.",
   ];
+  process.stderr.write(
+    `[sdd-forge] gate pre-check rejected (NO_HEAD_TEST_EVIDENCE) — retry budget not consumed\n`,
+  );
   return Envelope.fail(
     "run",
     "gate",
@@ -1146,6 +1150,9 @@ export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, curre
     "",
     "Modify the spec or implementation before retrying.",
   ];
+  process.stderr.write(
+    `[sdd-forge] gate pre-check rejected (NO_PROGRESS_SINCE_LAST_FAIL) — retry budget not consumed\n`,
+  );
   appendGateEscalationIssueLog(ctx, phase, messages);
   return Envelope.fail(
     "run",
