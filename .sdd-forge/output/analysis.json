@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T12:51:23.706Z",
+  "analyzedAt": "2026-04-25T12:54:50.262Z",
   "package": {
     "entries": [
       {
@@ -4245,13 +4245,17 @@
       },
       {
         "file": "src/flow/lib/run-tests.js",
-        "hash": "38c2c55e7d78e3b2f8ff4c9fd216b3ff",
-        "lines": 180,
-        "mtime": "2026-04-25T08:49:25.454Z",
+        "hash": "d3dfebf1066e2c9e22c39cdddeb8cff6",
+        "lines": 246,
+        "mtime": "2026-04-25T12:54:49.928Z",
         "className": "run-tests",
         "methods": [
           "RunTestsCommand",
           "parseCountsFromLog",
+          "runTestPipeline",
+          "removeWorktreeSafe",
+          "withDetachedWorktree",
+          "captureBaselineInWorktree",
           "resolveTestCommand",
           "readPkgScripts"
         ],
@@ -4270,23 +4274,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c016d8e6",
-        "summary": "Implements a flow command that runs project tests, captures output logs, and reports structured results for the SDD workflow. It also supports baseline log handling and test summary extraction.",
-        "detail": "The module defines a `RunTestsCommand` class on top of `FlowCommand`, using synchronous process execution to run the resolved test command in the correct working directory. It normalizes paths relative to the repository root, ensures log directories exist, and persists combined stdout/stderr into dedicated log files. The implementation includes helper logic to choose a test command from configuration or package scripts, with graceful fallbacks when scripts are missing. It parses test-result signals from log text and feeds output into a summarization step so downstream flow stages can consume compact diagnostics. Error paths are surfaced explicitly by rethrowing command failures after collecting available execution context.",
+        "summary": "This module implements the flow test runner command and its supporting utilities for executing and summarizing test runs. It also supports baseline test capture against a base branch using a detached worktree.",
+        "detail": "The file defines a test execution pipeline that runs shell commands, captures combined stdout/stderr, writes logs to deterministic paths, and derives pass/fail counters from output. It includes guarded worktree lifecycle logic to create and remove an isolated baseline worktree so base-branch measurements do not pollute the active workspace. The baseline capture path is integrated with flow context handling and emits warnings for cleanup or auto-capture failures while preserving error propagation. The command resolves test scripts by scope and package scripts, then returns structured results including exit code, parsed counts, and optional summarized log content.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T08:49:41.088Z",
+          "processedAt": "2026-04-25T12:55:07.129Z",
           "attempts": 1
         },
         "keywords": [
           "test runner",
+          "baseline capture",
+          "detached worktree",
+          "log summarization",
           "flow command",
-          "log capture",
-          "baseline comparison",
-          "npm test",
-          "process spawn",
-          "result parsing",
-          "test summary"
+          "npm scripts",
+          "exit code parsing",
+          "test pipeline"
         ]
       },
       {
@@ -9718,9 +9722,9 @@
     ],
     "summary": {
       "total": 281,
-      "totalMethods": 929
+      "totalMethods": 933
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T12:51:45.161Z"
+  "enrichedAt": "2026-04-25T12:55:07.129Z"
 }
