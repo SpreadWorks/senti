@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T05:14:13.920Z",
+  "analyzedAt": "2026-04-25T05:57:04.396Z",
   "package": {
     "entries": [
       {
@@ -3613,9 +3613,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "eed939d51f5cb3e959ef74a963e672ad",
-        "lines": 1830,
-        "mtime": "2026-04-24T08:12:50.734Z",
+        "hash": "46c3e78e62b112d1552ba640c586c8a1",
+        "lines": 1837,
+        "mtime": "2026-04-25T05:57:02.256Z",
         "className": "run-gate",
         "methods": [
           "validateLevelPhase",
@@ -3628,6 +3628,7 @@
           "parseAuthorizedTestModifications",
           "findUnusedAuthorizations",
           "countGateRetry",
+          "warnGateRetryBudget",
           "checkRetryBelowMax",
           "updateGateRetryCounter",
           "checkMissingHeadTestEvidence",
@@ -3662,7 +3663,6 @@
           "readGateRetryCount",
           "isRetryHistoryGateEntry",
           "formatRetryHistory",
-          "warnGateRetryBudget",
           "appendGateEscalationIssueLog",
           "findPreviousFailEntry",
           "buildFailPairKey",
@@ -3704,6 +3704,7 @@
           "parseAuthorizedTestModifications",
           "findUnusedAuthorizations",
           "countGateRetry",
+          "warnGateRetryBudget",
           "checkRetryBelowMax",
           "updateGateRetryCounter",
           "checkMissingHeadTestEvidence",
@@ -3733,22 +3734,25 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This is the core gate engine for draft/spec/impl/integration quality checks. It aggregates static validation, diff analysis, guardrails, retries, and issue-log bookkeeping.",
-        "detail": "It defines phase-level mappings, validation helpers, and parsers for spec text, spec JSON, unresolved markers, and test-modification authorization blocks. The module builds guardrail prompts, parses strict JSON AI responses, and normalizes gate reports with schema-level checks. It tracks retry counters, repeated-failure detection, baseline/head test evidence, and no-progress gating using git state hashes. `RunGateCommand` routes execution by phase and target, then records outcomes through structured pass/fail envelopes and issue-log appenders.",
-        "chapter": "internal_design",
-        "role": "controller",
+        "summary": "Implements the flow gate execution pipeline for spec, draft, and diff-based phases, including AI guardrail evaluation and deterministic validation checks. It also defines the `RunGateCommand` entrypoint used by flow-related CLI execution.",
+        "detail": "This module combines command orchestration and reusable gate utilities: phase/level validation, target loading, prompt construction, evaluation parsing, and result shaping. It enforces quality controls through unresolved-text checks, spec/draft schema checks, test-diff policy checks, and authorized test-modification parsing for implementation phases. The AI evaluation path is strongly schema-validated, with explicit JSON extraction and strict field/type checks to prevent malformed model output from silently passing. It tracks retry and failure history using flow state and issue logs, compares git state fingerprints to detect no-progress retries, and can escalate repeated failures with structured logging. The command class routes behavior by phase and level, returning normalized pass/fail envelopes and appending execution outcomes to issue-log history.",
+        "chapter": "cli_commands",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
+          "processedAt": "2026-04-25T05:57:24.718Z",
           "attempts": 1
         },
         "keywords": [
-          "gate engine",
+          "flow gate",
+          "RunGateCommand",
           "guardrail evaluation",
+          "spec validation",
+          "draft linting",
+          "diff policy",
+          "test change authorization",
           "retry budget",
-          "diff-based checks",
           "issue log",
-          "quality gate",
-          "phase validation"
+          "envelope result"
         ]
       },
       {
@@ -9687,5 +9691,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T05:14:42.832Z"
+  "enrichedAt": "2026-04-25T05:57:24.718Z"
 }
