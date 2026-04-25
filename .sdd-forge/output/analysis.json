@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T08:49:26.050Z",
+  "analyzedAt": "2026-04-25T08:57:03.732Z",
   "package": {
     "entries": [
       {
@@ -2995,9 +2995,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "31a0c82d372358329c9ef3f6f18659a5",
-        "lines": 138,
-        "mtime": "2026-04-25T05:14:13.540Z",
+        "hash": "7d172cf360b3fdcae912f4ccd23b517b",
+        "lines": 154,
+        "mtime": "2026-04-25T08:57:03.389Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -3014,7 +3014,8 @@
           "url",
           "./base-command.js",
           "./get-step-instructions.js",
-          "../../lib/flow-store.js"
+          "../../lib/flow-store.js",
+          "../../lib/flow-helpers.js"
         ],
         "exports": [
           "default"
@@ -3022,22 +3023,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "This module implements the flow command that computes the next actionable step from the current flow state. It validates active-state prerequisites and builds context descriptors for downstream instruction resolution.",
-        "detail": "The command reads JSON schemas and rule definitions from a schema directory that can be overridden by an environment variable, with a stable default based on module location. It includes helpers to locate the in-progress step, current task, and task completion status to decide target selection boundaries. It resolves action targets against state and rule mappings, then assembles normalized context descriptors with kinds and paths used by instruction generation. The implementation fails fast with explicit domain errors such as no active flow, no in-progress step, or missing step-rule mapping. It also integrates task-step progression via pending-step promotion utilities from the shared flow store.",
-        "chapter": "cli_commands",
-        "role": "controller",
+        "summary": "This module implements the flow engine logic that determines the next actionable instruction in an active SDD flow. It coordinates step/task state inspection with schema-driven rule resolution.",
+        "detail": "The command extends a shared `FlowCommand` base and relies on helper functions to locate the in-progress step, current task, and completion state across tasks. It loads JSON metadata from a schema directory, with an environment-variable override (`SDD_FORGE_NEXT_ACTION_SCHEMA_DIR`) to support custom rule locations. The implementation is designed to fail fast with explicit errors when prerequisites are missing, such as no active flow, no in-progress step, or no matching context rule for the current step. It also integrates flow progression helpers (`promoteFirstPending`, `promoteNextPending`) to advance pending items and build the next actionable context descriptor.",
+        "chapter": "internal_design",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-25T05:14:42.832Z",
+          "processedAt": "2026-04-25T08:57:16.873Z",
           "attempts": 1
         },
         "keywords": [
-          "next action",
-          "flow state",
-          "step resolution",
+          "next action resolution",
+          "flow state machine",
+          "in-progress step",
+          "task promotion",
           "context rules",
-          "in_progress",
-          "command handler",
-          "schema loading"
+          "schema loading",
+          "workflow orchestration",
+          "command handler"
         ]
       },
       {
@@ -9708,5 +9710,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T08:49:41.088Z"
+  "enrichedAt": "2026-04-25T08:57:16.873Z"
 }
