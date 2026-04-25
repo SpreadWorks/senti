@@ -1,0 +1,87 @@
+{
+  "spec": "specs/228-stabilize-plan-phase-gate/spec.json",
+  "date": "2026-04-25T06:08:08.828Z",
+  "requirements": [
+    {
+      "desc": "When a plan phase gate (draft / spec) が FAIL したとき、retry カウンタを metrics に記録する。上限（config.flow.retry.max、デフォルト 3）に達したら ESCALATE_RETRY_EXHAUSTED envelope を返す。",
+      "status": "done",
+      "note": "RETRY_TRACKED_PHASES に draft/spec を追加し、runGateFlow で checkRetryBelowMax を実行。上限時に ESCALATE_RETRY_EXHAUSTED を返す既存経路が plan phase に適用される。"
+    },
+    {
+      "desc": "When plan phase gate を再実行するとき、git state hash（HEAD sha + worktree hash）が前回 FAIL 時と同一なら NO_PROGRESS_SINCE_LAST_FAIL envelope を返し、AI 呼び出しを行わない。",
+      "status": "done",
+      "note": "runGateFlow の AI 評価前に checkNoProgressSinceLastFail を実行し、該当時は即 return。evaluateByAiGuardrails より前で終了するため AI 呼び出しは行われない。"
+    },
+    {
+      "desc": "When plan phase gate で同一の (guardrail_id, reason) ペアが前回 FAIL と今回 FAIL で一致したとき、ESCALATE_REPEATED_FAIL エラーを throw する。",
+      "status": "done",
+      "note": "runGateFlow で FAIL 評価後に assertNoRepeatedFail を呼び、条件一致時に ESCALATE_REPEATED_FAIL を throw する。"
+    },
+    {
+      "desc": "When gate FAIL 結果を issue-log に記録するとき、failedEvaluations に加えて passedGuardrails（PASS した guardrail_id の配列）も記録する。フィールド不在の既存エントリは flip 検出をスキップする。",
+      "status": "done",
+      "note": "appendIssueLogFromGateResult で passedGuardrails を追加。findPreviousPassedGuardrails は passedGuardrails が配列でない既存エントリを無視するため flip 検出はスキップされる。"
+    },
+    {
+      "desc": "When 同一内容（git state hash 同一）で plan phase gate を再実行し、前回の passedGuardrails に含まれる guardrail_id が今回 FAIL になったとき、その guardrail の result を 'pass' に override し、reason に flip override の旨を追記する。override 後に残りの FAIL がなければ gate 全体を PASS にする。",
+      "status": "done",
+      "note": "applyFlipOverride が同一 headSha/worktreeHash 条件で該当 FAIL を pass 化し理由を追記。runGateFlow は override 後の evaluations で全件 pass/skip なら gatePass を返す。"
+    },
+    {
+      "desc": "checkMissingHeadTestEvidence は plan phase (draft / spec) では呼び出さない。既存のガード内の RETRY_TRACKED_PHASES チェックではなく、呼び出し元の executeDiffBasedGate 内にのみ存在するため、RETRY_TRACKED_PHASES 拡張後もこの制約は自動的に満たされる。",
+      "status": "done",
+      "note": "checkMissingHeadTestEvidence は新設の HEAD_TEST_EVIDENCE_PHASES（task-impl/integration のみ）を参照するようになり、draft/spec は対象外のまま維持される。"
+    },
+    {
+      "desc": "gate-impl / integration の既存挙動は変更しない。RETRY_TRACKED_PHASES 拡張による副作用がないことを既存テストで確認する。",
+      "status": "done",
+      "note": "task-impl/integration は RETRY_TRACKED_PHASES/HEAD_TEST_EVIDENCE_PHASES に引き続き含まれ、flow.json に既存 unit/integration テスト成功（baseline/summary 同値, exitCode 0）の記録がある。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/228-stabilize-plan-phase-gate/draft.md",
+      "change": "仕様ドラフト文書の新規追加（機能要件そのものではなくプロセス成果物）。"
+    },
+    {
+      "file": "specs/228-stabilize-plan-phase-gate/flow.json",
+      "change": "フロー実行メタデータ・メトリクスの新規追加（実装ロジック要件外）。"
+    },
+    {
+      "file": "specs/228-stabilize-plan-phase-gate/issue.md",
+      "change": "課題背景ドキュメントの新規追加（要件外の説明資料）。"
+    },
+    {
+      "file": "specs/228-stabilize-plan-phase-gate/qa.md",
+      "change": "Q&A テンプレートの新規追加（実装要件外）。"
+    },
+    {
+      "file": "specs/228-stabilize-plan-phase-gate/review.md",
+      "change": "レビュー記録の新規追加（実装要件外）。"
+    },
+    {
+      "file": "specs/228-stabilize-plan-phase-gate/spec.md",
+      "change": "仕様Markdownの生成追加（実装ロジック要件外）。"
+    },
+    {
+      "file": "specs/228-stabilize-plan-phase-gate/tests/plan-phase-gate-guards.test.js",
+      "change": "spec専用テストの追加（要件で明示されていない追加検証）。"
+    },
+    {
+      "file": "specs/228-stabilize-plan-phase-gate/tests/flip-detection.test.js",
+      "change": "spec専用 flip 検証テストの追加（要件で明示されていない追加検証）。"
+    },
+    {
+      "file": "specs/228-stabilize-plan-phase-gate/tests/README.md",
+      "change": "specテスト説明ドキュメントの追加（要件外）。"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "主要な機能要件（REQ-1〜REQ-7）は src/flow/lib/run-gate.js の変更で満たされている。未計画変更は主に specs 配下のドキュメント/補助テスト追加で、コア実装の逸脱は見当たらない。"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft targets one coherent concern: stabilizing plan-phase gate evaluation behavior.; Unambiguous Requirements — Most requirements are stated with concrete, testable conditions (e.g., specific phases, fields, and hash-based condition).; Complete Context — Several requirement bullets describe changes but do not consistently pair an explicit trigger condition with a clear expected shall-style outcome.; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are present in the draft.; Prioritize Requirements — There are more than three requirements in scope, but no explicit priority ordering is provided.; Impact on Existing Features — The draft includes a dedicated impact section and explicitly states unchanged areas.; Present Recommendations with Reasoning — Q&A provides recommendations but does not state the basis from docs, guardrail principles, or existing code patterns.; Explore Before Asking — Cannot verify whether docs/code exploration happened before user interaction from this draft alone.; Proactively Raise Related Implications — Related implications are proactively raised via scope boundaries and impact notes.; Confirm Brainstorm vs. Decision Before Critiquing — No critique flow is present; the draft is already in decision mode with explicit user approval.; Capture Digressions in draft.md — No digression is evident in the provided content, so this is inapplicable.; Draft Stays at Requirements Level — The draft includes implementation-level details (specific constants/functions and override logic), beyond pure requirements level.; Backward-Compatible CLI Interface — The draft explicitly states no CLI command/argument changes, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:39:17.319Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirement bullets describe changes but do not consistently pair an explicit trigger condition with a clear expected shall-style outcome."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements in scope, but no explicit priority ordering is provided."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A provides recommendations but does not state the basis from docs, guardrail principles, or existing code patterns."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft includes implementation-level details (specific constants/functions and override logic), beyond pure requirements level."
+        }
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 全体が plan phase gate の不安定性解消という単一関心に収束している。; Unambiguous Requirements — retry の『上限』など一部条件が具体値未定で、検証条件として曖昧さが残る。; Complete Context — 各スコープ要件が When 条件と期待動作（〜する）を対で記述している。; No Hardcoded Secrets — ドラフト文書であり、APIキー等の機密ハードコードは含まれていない。; Prioritize Requirements — 要件が3件超だが P1/P2 で優先度が明示されている。; Impact on Existing Features — 既存機能への影響が専用セクションで列挙され、無影響項目も明記されている。; Present Recommendations with Reasoning — 各Qに推奨回答が先に示され、根拠が既存コード実績・計測データ・既存パターンで明示されている。; Explore Before Asking — Open Questions が『なし』で、確認事項は既存情報で解決済みの構成になっている。; Proactively Raise Related Implications — ログ項目追加時の既存エントリ解釈など関連含意を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 最終的に User approved が明記され、決定フェーズとして確定している。; Capture Digressions in draft.md — 文面上で脱線は確認できず、本条項に抵触する記述はない。; Draft Stays at Requirements Level — 内容は要件・スコープ・影響整理に留まり、実装詳細には踏み込んでいない。; Backward-Compatible CLI Interface — CLI コマンド引数の変更なしと明記され、互換性問題は発生しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:40:28.740Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "retry の『上限』など一部条件が具体値未定で、検証条件として曖昧さが残る。"
+        }
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:45:14.281Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on stabilizing plan-phase gate evaluation behavior and related retry/flip logic.; Task Single Responsibility — Task `T-pending-spec` is a placeholder and does not define a concrete single implementation concern.; Unambiguous Requirements — Requirements are stated with specific conditions and expected outcomes (retry limits, hash checks, envelopes/errors).; Complete Context — Requirements consistently pair trigger context (When) with required behavior.; REQ Diff-Verifiability — PASS/FAIL can be decided from code diff plus unit/integration test results and logged outputs.; No Hardcoded Secrets — No secrets or credential-like literals are introduced in the spec content.; No Silent Error Swallowing — No instruction suggests swallowing errors; failures are surfaced via envelopes/throw.; Prioritize Requirements — There are more than three requirements but no explicit priority order beyond all being marked `must`.; Impact on Existing Features — Impact is explicitly addressed (plan phase targeted; gate-impl/integration behavior unchanged).; Bounded Resource Usage — Retry behavior has explicit upper bounds (`config.flow.retry.max`, default 3) and no-progress/repeated-fail guards.; Changes Require Test Coverage — Spec includes test coverage expectations for new behavior and regression checks.; Spec Includes Test Strategy — Test strategy is provided at task level (what to test and how).; Synthesize Draft, Do Not Copy — Cannot verify whether content was synthesized vs copied without the source draft.; Record Unresolved Points as Open Questions — Open questions section exists and unresolved points are not fabricated.; Include 'Why This Approach' Rationale — Rationale is documented via background, decisions, and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec does not propose modifying/deleting existing tests; focuses on adding/validating behavior.; Backward-Compatible CLI Interface — CLI argument/command changes are explicitly out of scope, so migration plan is not needed.; Exit Code Contract — No CLI contract change is introduced; failure handling is specified as explicit error/escalation paths.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T05:46:32.543Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "task-single-responsibility",
+          "reason": "Task `T-pending-spec` is a placeholder and does not define a concrete single implementation concern."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements but no explicit priority order beyond all being marked `must`."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,389 @@
+{
+  "spec": "specs/228-stabilize-plan-phase-gate/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/228-stabilize-plan-phase-gate",
+  "runId": "da74a5db-31a5-4551-8760-9cad76bc1d4f",
+  "lifecycle": "active",
+  "steps": [
+    {
+      "id": "branch",
+      "status": "done"
+    },
+    {
+      "id": "prepare-spec",
+      "status": "done"
+    },
+    {
+      "id": "draft",
+      "status": "done"
+    },
+    {
+      "id": "gate-draft",
+      "status": "done"
+    },
+    {
+      "id": "spec",
+      "status": "done"
+    },
+    {
+      "id": "gate",
+      "status": "done"
+    },
+    {
+      "id": "approval",
+      "status": "done"
+    },
+    {
+      "id": "test",
+      "status": "done"
+    },
+    {
+      "id": "implement",
+      "status": "done"
+    },
+    {
+      "id": "gate-impl",
+      "status": "done"
+    },
+    {
+      "id": "integration-write-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-run-all-tests",
+      "status": "skipped"
+    },
+    {
+      "id": "integration-evaluate",
+      "status": "skipped"
+    },
+    {
+      "id": "review",
+      "status": "done"
+    },
+    {
+      "id": "finalize",
+      "status": "in_progress"
+    },
+    {
+      "id": "commit",
+      "status": "pending"
+    },
+    {
+      "id": "push",
+      "status": "pending"
+    },
+    {
+      "id": "merge",
+      "status": "pending"
+    },
+    {
+      "id": "pr-create",
+      "status": "pending"
+    },
+    {
+      "id": "branch-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "pr-merge",
+      "status": "pending"
+    },
+    {
+      "id": "sync-cleanup",
+      "status": "pending"
+    },
+    {
+      "id": "docs-update",
+      "status": "pending"
+    },
+    {
+      "id": "docs-review",
+      "status": "pending"
+    },
+    {
+      "id": "docs-commit",
+      "status": "pending"
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "steps": []
+    }
+  ],
+  "currentTaskId": null,
+  "issue": 254,
+  "autoCheck": {
+    "eligible": true,
+    "skipped": true,
+    "reason": "spec approved"
+  },
+  "worktree": true,
+  "request": "plan phase gate (gate-draft / gate-spec) の AI 評価が run 毎に不安定で不要なリトライを誘発するバグを修正する。同一 draft.md / spec.json に対して異なる guardrail が FAIL になる whack-a-mole 問題。c612/83b6 で gate-impl には対策済みだが plan phase gate は未対策。",
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T05:26:58.556Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T05:27:17.746Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T05:27:58.693Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T05:29:19.761Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T05:31:45.192Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T05:33:09.109Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "question",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-25T05:34:26.817Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2276,
+      "durationMs": 23356,
+      "tokens": {
+        "input": 5950,
+        "output": 1009,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T05:39:17.306Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1443,
+      "durationMs": 22524,
+      "tokens": {
+        "input": 6065,
+        "output": 1027,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T05:40:28.730Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2286,
+      "durationMs": 25592,
+      "tokens": {
+        "input": 6080,
+        "output": 973,
+        "cacheRead": 18816,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T05:41:14.076Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2918,
+      "durationMs": 30243,
+      "tokens": {
+        "input": 23819,
+        "output": 1375,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T05:46:32.530Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2840,
+      "durationMs": 29559,
+      "tokens": {
+        "input": 4364,
+        "output": 1347,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T05:47:31.549Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 487,
+      "durationMs": 21607,
+      "tokens": {
+        "input": 42030,
+        "output": 552,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T06:05:34.425Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1800,
+      "durationMs": 20620,
+      "tokens": {
+        "input": 43559,
+        "output": 842,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T06:05:55.065Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-25T06:05:55.089Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1580,
+      "durationMs": 29317,
+      "tokens": {
+        "input": 2344,
+        "output": 1160,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T06:06:32.664Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 859,
+      "durationMs": 21490,
+      "tokens": {
+        "input": 2922,
+        "output": 945,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T06:06:54.205Z"
+    },
+    {
+      "phase": "finalize",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3777,
+      "durationMs": 56052,
+      "tokens": {
+        "input": 23082,
+        "output": 2791,
+        "cacheRead": 22912,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-04-25T06:08:08.822Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft Q1: approach #3 (retry limit + escalation) + #4 (PASS→FAIL flip detection) selected",
+      "taskId": null,
+      "ts": "2026-04-25T05:29:13.849Z"
+    },
+    {
+      "text": "draft Q2: flip detection overrides flipped guardrails to PASS, reports only remaining FAILs",
+      "taskId": null,
+      "ts": "2026-04-25T05:31:40.183Z"
+    },
+    {
+      "text": "draft Q3: flip override only when git state hash unchanged — content changes trigger honest re-evaluation",
+      "taskId": null,
+      "ts": "2026-04-25T05:33:05.302Z"
+    },
+    {
+      "text": "draft Q4: scope confirmed — RETRY_TRACKED_PHASES expansion + passedGuardrails field + no CLI changes",
+      "taskId": null,
+      "ts": "2026-04-25T05:34:24.143Z"
+    },
+    {
+      "text": "spec: approved by user",
+      "taskId": null,
+      "ts": "2026-04-25T05:45:02.215Z"
+    }
+  ],
+  "test": {
+    "baseline": {
+      "unit": 2351,
+      "integration": 267,
+      "acceptance": 0,
+      "exitCode": 0
+    },
+    "summary": {
+      "unit": 2351,
+      "integration": 267,
+      "acceptance": 0,
+      "exitCode": 0
+    }
+  },
+  "autoApprove": true,
+  "state": {
+    "finalizedAt": "2026-04-25T06:07:12.613Z"
+  }
+}

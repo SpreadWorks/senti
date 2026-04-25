@@ -894,7 +894,7 @@ function resolveTestGlobs(config) {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_GATE_RETRY_MAX = 3;
-const RETRY_TRACKED_PHASES = Object.freeze(["task-impl", "integration"]);
+const RETRY_TRACKED_PHASES = Object.freeze(["draft", "spec", "task-impl", "integration"]);
 
 function resolveRetryMax(config) {
   const n = Number(config?.flow?.retry?.max);
@@ -1048,8 +1048,10 @@ export function updateGateRetryCounter(ctx, result) {
  * before invoking the AI agent so no retry budget is consumed — the dispatcher
  * skips the post-hook (which increments gateRetry) for ok:false envelopes.
  */
+const HEAD_TEST_EVIDENCE_PHASES = Object.freeze(["task-impl", "integration"]);
+
 export function checkMissingHeadTestEvidence({ phase, flowState }) {
-  if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
+  if (!HEAD_TEST_EVIDENCE_PHASES.includes(phase)) return null;
   const exitCode = flowState?.test?.summary?.exitCode;
   if (typeof exitCode === "number") return null;
   const messages = [
@@ -1248,6 +1250,47 @@ export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations }) {
 }
 
 // ---------------------------------------------------------------------------
+// PASS→FAIL flip detection (spec 228)
+// ---------------------------------------------------------------------------
+
+export function buildPassedGuardrails(evaluations) {
+  if (!Array.isArray(evaluations)) return [];
+  return evaluations
+    .filter((e) => e && e.result === "pass" && typeof e.guardrail_id === "string")
+    .map((e) => e.guardrail_id);
+}
+
+export function findPreviousPassedGuardrails({ issueLog, phase }) {
+  const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i];
+    if (e.phase !== phase) continue;
+    if (!Array.isArray(e.passedGuardrails)) continue;
+    return {
+      passedGuardrails: e.passedGuardrails,
+      headSha: e.headSha,
+      worktreeHash: e.worktreeHash,
+    };
+  }
+  return null;
+}
+
+export function applyFlipOverride({ evaluations, previousEntry, currentState, phase }) {
+  if (!previousEntry) return evaluations;
+  if (!currentState) return evaluations;
+  if (previousEntry.headSha !== currentState.headSha) return evaluations;
+  if (previousEntry.worktreeHash !== currentState.worktreeHash) return evaluations;
+
+  const prevPassed = new Set(previousEntry.passedGuardrails || []);
+  return evaluations.map((e) => {
+    if (e.result === "fail" && prevPassed.has(e.guardrail_id)) {
+      return { ...e, result: "pass", reason: `${e.reason} [flip override: previously passed on identical content]` };
+    }
+    return e;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Task-impl / integration: requirements check
 // ---------------------------------------------------------------------------
 
@@ -1412,14 +1455,33 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
  * @param {() => string[]} args.textCheck - returns structural issues
  * @param {string} args.checkerRole - guardrail checker role
  * @param {boolean} args.skipGuardrail
+ * @param {Object} [args.ctx] - optional context for retry guards (spec 228)
  */
 async function runGateFlow(args) {
   const {
     root, config, level, phase,
     targetPath, targetText, textCheck, checkerRole, skipGuardrail,
+    ctx,
   } = args;
 
   validateLevelPhase(level, phase);
+
+  if (ctx && RETRY_TRACKED_PHASES.includes(phase)) {
+    warnGateRetryBudget(ctx, phase);
+    const retryFail = checkRetryBelowMax(ctx, phase);
+    if (retryFail) return retryFail;
+
+    if (ctx.gitState) {
+      const noProgressFail = checkNoProgressSinceLastFail({
+        flowState: ctx.flowState,
+        issueLog: ctx.issueLog,
+        phase,
+        currentState: ctx.gitState,
+        ctx,
+      });
+      if (noProgressFail) return noProgressFail;
+    }
+  }
 
   const issues = textCheck();
   if (issues.length > 0) {
@@ -1434,10 +1496,31 @@ async function runGateFlow(args) {
   if (!result) {
     return gatePass(level, phase, targetPath, []);
   }
-  if (!result.passed) {
-    return gateFail(level, phase, targetPath, result.evaluations, []);
+
+  let evaluations = result.evaluations;
+
+  if (ctx && RETRY_TRACKED_PHASES.includes(phase) && ctx.gitState) {
+    const prevEntry = findPreviousPassedGuardrails({ issueLog: ctx.issueLog, phase });
+    evaluations = applyFlipOverride({
+      evaluations,
+      previousEntry: prevEntry,
+      currentState: ctx.gitState,
+      phase,
+    });
   }
-  return gatePass(level, phase, targetPath, result.evaluations);
+
+  const passed = evaluations.every((e) => e.result === "pass" || e.result === "skip");
+  if (!passed) {
+    if (ctx && RETRY_TRACKED_PHASES.includes(phase)) {
+      assertNoRepeatedFail({
+        issueLog: ctx.issueLog,
+        phase,
+        currentEvaluations: evaluations,
+      });
+    }
+    return gateFail(level, phase, targetPath, evaluations, []);
+  }
+  return gatePass(level, phase, targetPath, evaluations);
 }
 
 // ---------------------------------------------------------------------------
@@ -1529,6 +1612,10 @@ export class RunGateCommand extends FlowCommand {
     const text = fs.readFileSync(draftPath, "utf8");
     const relPath = path.relative(root, draftPath);
 
+    const gitState = computeGitState(root);
+    ctx.gitState = gitState;
+    const issueLog = state?.spec ? loadIssueLog(root, state.spec) : { entries: [] };
+
     return runGateFlow({
       root,
       config: ctx.config,
@@ -1540,6 +1627,7 @@ export class RunGateCommand extends FlowCommand {
       checkerRole:
         "You are a draft compliance checker. Check whether the draft considered each guardrail perspective.",
       skipGuardrail,
+      ctx: { ...ctx, issueLog, gitState },
     });
   }
 
@@ -1582,6 +1670,10 @@ export class RunGateCommand extends FlowCommand {
       specTasks: spec?.tasks,
     });
 
+    const gitState = computeGitState(root);
+    ctx.gitState = gitState;
+    const issueLog = ctx.flowState?.spec ? loadIssueLog(root, ctx.flowState.spec) : { entries: [] };
+
     return runGateFlow({
       root,
       config: ctx.config,
@@ -1595,6 +1687,7 @@ export class RunGateCommand extends FlowCommand {
           : [...checkSpecJson(spec), ...monotonicIssues],
       checkerRole: undefined,
       skipGuardrail,
+      ctx: { ...ctx, issueLog, gitState },
     });
   }
 
@@ -1819,6 +1912,7 @@ export function appendIssueLogFromGateResult(ctx, result) {
   if (failedEvaluations.length > 0) {
     entry.failedEvaluations = failedEvaluations;
   }
+  entry.passedGuardrails = buildPassedGuardrails(result?.artifacts?.evaluations);
   issueLog.entries.push(entry);
   saveIssueLog(ctx.root, ctx.flowState?.spec, issueLog);
 }

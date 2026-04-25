@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/228-stabilize-plan-phase-gate/draft.md       |  40 +++\n specs/228-stabilize-plan-phase-gate/flow.json      | 374 +++++++++++++++++++++\n specs/228-stabilize-plan-phase-gate/issue-log.json |  70 ++++\n specs/228-stabilize-plan-phase-gate/issue.md       | 104 ++++++\n specs/228-stabilize-plan-phase-gate/qa.md          |   9 +\n specs/228-stabilize-plan-phase-gate/review.md      |  41 +++\n specs/228-stabilize-plan-phase-gate/spec.json      | 185 ++++++++++\n specs/228-stabilize-plan-phase-gate/spec.md        |  85 +++++\n .../228-stabilize-plan-phase-gate/tests/README.md  |  20 ++\n .../tests/flip-detection.test.js                   | 161 +++++++++\n .../tests/plan-phase-gate-guards.test.js           | 300 +++++++++++++++++\n src/flow/lib/run-gate.js                           | 104 +++++-\n 12 files changed, 1488 insertions(+), 5 deletions(-)",
+      "commits": [
+        "feat: feature/228-stabilize-plan-phase-gate"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "主要な機能要件（REQ-1〜REQ-7）は src/flow/lib/run-gate.js の変更で満たされている。未計画変更は主に specs 配下のドキュメント/補助テスト追加で、コア実装の逸脱は見当たらない。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 5,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 137133,
+      "output": 9230,
+      "cacheRead": 136576,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 9,
+      "durationMs": 224308,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 71472
+        },
+        {
+          "phase": "gate",
+          "durationMs": 59802
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 42227
+        },
+        {
+          "phase": "review",
+          "durationMs": 50807
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2351,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2618
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/228-stabilize-plan-phase-gate\n    12 files changed, 1488 insertions(+), 5 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 5\n    issue-log ................... 0\n    agent calls ................. 9\n    input tokens ................ 137,133\n    output tokens ............... 9,230\n    cache-read tokens ........... 136,576\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 224.3s\n      gate-draft ................ 71.5s\n      gate ...................... 59.8s\n      gate-impl ................. 42.2s\n      review .................... 50.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2351  integration 267  acceptance 0  total 2618"
+}
