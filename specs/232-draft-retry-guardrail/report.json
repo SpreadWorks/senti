@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/232-draft-retry-guardrail/draft.json         |  54 +++\n specs/232-draft-retry-guardrail/flow.json          | 434 +++++++++++++++++++++\n specs/232-draft-retry-guardrail/issue-log.json     | 117 ++++++\n specs/232-draft-retry-guardrail/issue.md           |  82 ++++\n specs/232-draft-retry-guardrail/qa.md              |   9 +\n specs/232-draft-retry-guardrail/review.md          |  33 ++\n specs/232-draft-retry-guardrail/spec.json          | 133 +++++++\n specs/232-draft-retry-guardrail/spec.md            |  75 ++++\n specs/232-draft-retry-guardrail/tests/README.md    |  22 ++\n .../232-draft-retry-guardrail/tests/verify.test.js |  59 +++\n src/flow/lib/run-gate.js                           |   2 +-\n src/presets/base/guardrail.json                    |   2 +-\n 12 files changed, 1020 insertions(+), 2 deletions(-)",
+      "commits": [
+        "feat: feature/232-draft-retry-guardrail"
+      ]
+    },
+    "retro": {
+      "total": 3,
+      "done": 2,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.83,
+      "notes": "R-1 と R-2 は差分上で満たされている。R-3 は一部対応（追加検証あり）だが、既存テスト更新と全体テスト完全パスの確証は差分上で不足している。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 5,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 288286,
+      "output": 12820,
+      "cacheRead": 453376,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 9,
+      "durationMs": 295545,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 27510
+        },
+        {
+          "phase": "gate",
+          "durationMs": 60070
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 86671
+        },
+        {
+          "phase": "review",
+          "durationMs": 121294
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2446,
+      "integration": 268,
+      "acceptance": 0,
+      "total": 2714
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/232-draft-retry-guardrail\n    12 files changed, 1020 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (2 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 5\n    issue-log ................... 3\n    agent calls ................. 9\n    input tokens ................ 288,286\n    output tokens ............... 12,820\n    cache-read tokens ........... 453,376\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 295.5s\n      gate-draft ................ 27.5s\n      gate ...................... 60.1s\n      gate-impl ................. 86.7s\n      review .................... 121.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2446  integration 268  acceptance 0  total 2714"
+}

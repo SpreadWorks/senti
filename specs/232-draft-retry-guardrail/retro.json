@@ -1,0 +1,71 @@
+{
+  "spec": "specs/232-draft-retry-guardrail/spec.json",
+  "date": "2026-04-26T23:50:12.272Z",
+  "requirements": [
+    {
+      "desc": "config.flow.retry.max が未設定の場合、gate retry の上限が 5 となること。config.flow.retry.max に値が設定されている場合はその値が優先されること。",
+      "status": "done",
+      "note": "src/flow/lib/run-gate.js で DEFAULT_GATE_RETRY_MAX が 3→5 に変更され、resolveRetryMax の config.flow.retry.max 優先ロジックは維持されている。"
+    },
+    {
+      "desc": "draft phase の gate 評価時に draft-scope-boundary guardrail が適用される場合、QA の evidence/why/considered フィールド内のコード参照は根拠提示として扱われ、実装詳細の記述とは判定されないこと。",
+      "status": "done",
+      "note": "src/presets/base/guardrail.json の draft-scope-boundary body に、evidence/why/considered 内のコード参照は正当化であり実装詳細ではない旨が明記された。"
+    },
+    {
+      "desc": "retry max のデフォルト値を参照している既存テストがある場合、新しいデフォルト値 5 に合わせて更新し、全テストがパスすること。（テスト修正はユーザー承認済み）",
+      "status": "partial",
+      "note": "specs 配下に新規検証テストは追加されたが、既存テスト更新の差分は確認できず、flow/issue-log 上も npm test の exitCode=1 記録があり「全テストがパス」を満たした証跡が不十分。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/232-draft-retry-guardrail/draft.json",
+      "change": "要件本体以外のドラフト仕様メタデータを新規追加。"
+    },
+    {
+      "file": "specs/232-draft-retry-guardrail/flow.json",
+      "change": "フロー進行状態・メトリクス・テストサマリ等の運用メタデータを新規追加。"
+    },
+    {
+      "file": "specs/232-draft-retry-guardrail/issue-log.json",
+      "change": "ゲート失敗履歴と運用上の解決記録を新規追加。"
+    },
+    {
+      "file": "specs/232-draft-retry-guardrail/issue.md",
+      "change": "背景説明ドキュメントを新規追加。"
+    },
+    {
+      "file": "specs/232-draft-retry-guardrail/qa.md",
+      "change": "確認用Q&Aテンプレートを新規追加。"
+    },
+    {
+      "file": "specs/232-draft-retry-guardrail/review.md",
+      "change": "レビュー記録ドキュメントを新規追加。"
+    },
+    {
+      "file": "specs/232-draft-retry-guardrail/spec.json",
+      "change": "仕様定義ファイルを新規追加。"
+    },
+    {
+      "file": "specs/232-draft-retry-guardrail/spec.md",
+      "change": "仕様Markdownを新規追加。"
+    },
+    {
+      "file": "specs/232-draft-retry-guardrail/tests/README.md",
+      "change": "spec専用テスト説明ドキュメントを新規追加。"
+    },
+    {
+      "file": "specs/232-draft-retry-guardrail/tests/verify.test.js",
+      "change": "spec専用の新規検証テストを追加（既存テスト更新とは別）。"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "done": 2,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.83,
+    "notes": "R-1 と R-2 は差分上で満たされている。R-3 は一部対応（追加検証あり）だが、既存テスト更新と全体テスト完全パスの確証は差分上で不足している。"
+  }
+}
