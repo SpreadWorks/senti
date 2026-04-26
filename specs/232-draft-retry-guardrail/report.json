@@ -1,19 +1,15 @@
 {
   "data": {
     "implementation": {
-      "diffStat": "specs/232-draft-retry-guardrail/draft.json         |  54 +++\n specs/232-draft-retry-guardrail/flow.json          | 434 +++++++++++++++++++++\n specs/232-draft-retry-guardrail/issue-log.json     | 117 ++++++\n specs/232-draft-retry-guardrail/issue.md           |  82 ++++\n specs/232-draft-retry-guardrail/qa.md              |   9 +\n specs/232-draft-retry-guardrail/review.md          |  33 ++\n specs/232-draft-retry-guardrail/spec.json          | 133 +++++++\n specs/232-draft-retry-guardrail/spec.md            |  75 ++++\n specs/232-draft-retry-guardrail/tests/README.md    |  22 ++\n .../232-draft-retry-guardrail/tests/verify.test.js |  59 +++\n src/flow/lib/run-gate.js                           |   2 +-\n src/presets/base/guardrail.json                    |   2 +-\n 12 files changed, 1020 insertions(+), 2 deletions(-)",
+      "diffStat": "specs/232-draft-retry-guardrail/draft.json         |  54 +++\n specs/232-draft-retry-guardrail/flow.json          | 449 +++++++++++++++++++++\n specs/232-draft-retry-guardrail/issue-log.json     | 122 ++++++\n specs/232-draft-retry-guardrail/issue.md           |  82 ++++\n specs/232-draft-retry-guardrail/qa.md              |   9 +\n specs/232-draft-retry-guardrail/report.json        |  66 +++\n specs/232-draft-retry-guardrail/retro.json         |  71 ++++\n specs/232-draft-retry-guardrail/review.md          |  33 ++\n specs/232-draft-retry-guardrail/spec.json          | 133 ++++++\n specs/232-draft-retry-guardrail/spec.md            |  75 ++++\n specs/232-draft-retry-guardrail/tests/README.md    |  22 +\n .../232-draft-retry-guardrail/tests/verify.test.js |  59 +++\n src/flow/lib/run-gate.js                           |   2 +-\n src/presets/base/guardrail.json                    |   2 +-\n 14 files changed, 1177 insertions(+), 2 deletions(-)",
       "commits": [
+        "feat: feature/232-draft-retry-guardrail",
+        "update issue-log after finalize merge attempt",
+        "chore: add retro and report",
         "feat: feature/232-draft-retry-guardrail"
       ]
     },
-    "retro": {
-      "total": 3,
-      "done": 2,
-      "partial": 1,
-      "not_done": 0,
-      "rate": 0.83,
-      "notes": "R-1 と R-2 は差分上で満たされている。R-3 は一部対応（追加検証あり）だが、既存テスト更新と全体テスト完全パスの確証は差分上で不足している。"
-    },
+    "retro": null,
     "issueLog": {
       "count": 0,
       "entries": []
@@ -25,13 +21,13 @@
       "issueLog": 3
     },
     "tokenMetrics": {
-      "input": 288286,
-      "output": 12820,
-      "cacheRead": 453376,
+      "input": 323644,
+      "output": 14877,
+      "cacheRead": 456832,
       "cacheCreation": 0,
       "cost": null,
-      "callCount": 9,
-      "durationMs": 295545,
+      "callCount": 10,
+      "durationMs": 336545,
       "phaseDurations": [
         {
           "phase": "gate-draft",
@@ -48,6 +44,10 @@
         {
           "phase": "review",
           "durationMs": 121294
+        },
+        {
+          "phase": "finalize",
+          "durationMs": 41000
         }
       ]
     },
@@ -62,5 +62,5 @@
       "reason": "sync was skipped"
     }
   },
-  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/232-draft-retry-guardrail\n    12 files changed, 1020 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (2 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 5\n    issue-log ................... 3\n    agent calls ................. 9\n    input tokens ................ 288,286\n    output tokens ............... 12,820\n    cache-read tokens ........... 453,376\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 295.5s\n      gate-draft ................ 27.5s\n      gate ...................... 60.1s\n      gate-impl ................. 86.7s\n      review .................... 121.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2446  integration 268  acceptance 0  total 2714"
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/232-draft-retry-guardrail\n    update issue-log after finalize merge attempt\n    chore: add retro and report\n    feat: feature/232-draft-retry-guardrail\n    14 files changed, 1177 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 5\n    issue-log ................... 3\n    agent calls ................. 10\n    input tokens ................ 323,644\n    output tokens ............... 14,877\n    cache-read tokens ........... 456,832\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 336.5s\n      gate-draft ................ 27.5s\n      gate ...................... 60.1s\n      gate-impl ................. 86.7s\n      review .................... 121.3s\n      finalize .................. 41.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2446  integration 268  acceptance 0  total 2714"
 }
