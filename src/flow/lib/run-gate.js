@@ -1033,7 +1033,7 @@ function resolveTestGlobs(config) {
 // Retry counter & escalation (spec 201, P2-R1〜P2-R4)
 // ---------------------------------------------------------------------------
 
-const DEFAULT_GATE_RETRY_MAX = 3;
+const DEFAULT_GATE_RETRY_MAX = 5;
 const RETRY_TRACKED_PHASES = Object.freeze(["draft", "spec", "task-impl", "integration"]);
 
 function resolveRetryMax(config) {
