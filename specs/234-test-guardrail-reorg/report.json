@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/234-test-guardrail-reorg/draft.json          |  87 +++++\n specs/234-test-guardrail-reorg/flow.json           | 410 +++++++++++++++++++++\n specs/234-test-guardrail-reorg/issue-log.json      | 144 ++++++++\n specs/234-test-guardrail-reorg/issue.md            |  66 ++++\n specs/234-test-guardrail-reorg/qa.md               |   9 +\n specs/234-test-guardrail-reorg/review.md           |  33 ++\n specs/234-test-guardrail-reorg/spec.json           | 210 +++++++++++\n specs/234-test-guardrail-reorg/spec.md             |  89 +++++\n specs/234-test-guardrail-reorg/tests/README.md     |  21 ++\n .../tests/guardrail-reorg.test.js                  | 149 ++++++++\n src/presets/base/guardrail.json                    |  49 +--\n 11 files changed, 1233 insertions(+), 34 deletions(-)",
+      "commits": [
+        "feat: feature/234-test-guardrail-reorg"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 6,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.93,
+      "notes": "guardrail.json の主要変更は R1-R6 を満たしている。R7 は値整合性は満たしているが、既存 guardrail-category-integrity テストの PASS 証跡が diff 上で確認できないため partial。加えて、spec運用用ファイル群と spec専用テスト追加は要求一覧外の変更。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 159188,
+      "output": 15253,
+      "cacheRead": 39296,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 9,
+      "durationMs": 334713,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 66987
+        },
+        {
+          "phase": "gate",
+          "durationMs": 136541
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 65433
+        },
+        {
+          "phase": "review",
+          "durationMs": 65752
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2452,
+      "integration": 268,
+      "acceptance": 0,
+      "total": 2720
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/234-test-guardrail-reorg\n    11 files changed, 1233 insertions(+), 34 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 93%  (6 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 9\n    input tokens ................ 159,188\n    output tokens ............... 15,253\n    cache-read tokens ........... 39,296\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 334.7s\n      gate-draft ................ 67.0s\n      gate ...................... 136.5s\n      gate-impl ................. 65.4s\n      review .................... 65.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2452  integration 268  acceptance 0  total 2720"
+}

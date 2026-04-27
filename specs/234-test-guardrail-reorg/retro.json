@@ -1,0 +1,95 @@
+{
+  "spec": "specs/234-test-guardrail-reorg/spec.json",
+  "date": "2026-04-27T08:20:26.103Z",
+  "requirements": [
+    {
+      "desc": "base/guardrail.json から impl-test-preservation, changes-require-test-coverage, test-covers-spec-requirements, impl-flag-obsolete-tests の 4 エントリを削除する",
+      "status": "done",
+      "note": "4 ID は diff 上で削除されている。"
+    },
+    {
+      "desc": "no-disabling-existing-tests の body を拡張する: (a) テスト対象の機能自体が削除された場合、対応するテストの削除は正当であること、(b) テストをスキップ・コメントアウト・削除して通す行為は禁止であることを MUST レベルで記述する",
+      "status": "done",
+      "note": "例外条件（機能削除時のテスト削除可）と、スキップ/コメントアウト/削除禁止および MUST NOT 文言が追加されている。"
+    },
+    {
+      "desc": "impl-test-conflict-escalation を pre-existing-test-failure-escalation にリネームし、body を「実装前から失敗していたテストを発見した場合はユーザーに報告し、対処方針を確認すること。自分の実装が原因でないテストの失敗を自力で修正してはならない」に書き換える。phase は [task-impl] を維持する",
+      "status": "done",
+      "note": "ID がリネームされ、body も指定内容に一致。phase は [task-impl] のまま。"
+    },
+    {
+      "desc": "spec-test-coverage を新設する: id=spec-test-coverage, phase=[spec, task-impl, test], category=testing。body は「要求・仕様通りに実装されているか、specs/<specid>/tests/ に必ずテストコードを実装してテストを通過させること」",
+      "status": "done",
+      "note": "ID/phase/category が一致し、body も specs/<specid>/tests/ と MUST を含む要件に沿っている。"
+    },
+    {
+      "desc": "project-test-integrity を新設する: id=project-test-integrity, phase=[task-impl], category=testing。body は「実装したコードがマージ後もプロジェクトのテストスイートを通過するよう、必要なテストコードの追加・修正を行い、全テストが通過することを確認すること」",
+      "status": "done",
+      "note": "ID/phase/category が一致し、body もプロジェクトテスト追加・修正と全テスト通過確認を要求している。"
+    },
+    {
+      "desc": "spec-includes-test-strategy は変更しない",
+      "status": "done",
+      "note": "当該エントリは diff 上で変更されていない。"
+    },
+    {
+      "desc": "変更後の全 guardrail エントリが VALID_GUARDRAIL_PHASES および VALID_GUARDRAIL_CATEGORIES の制約を満たすこと（既存の guardrail-category-integrity テストが PASS する）",
+      "status": "partial",
+      "note": "変更されたエントリの phase/category は有効値だが、guardrail-category-integrity テスト実行・PASS の直接証跡は diff に含まれない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/presets/base/guardrail.json",
+      "change": "no-disabling-existing-tests に「Modifying or deleting existing tests requires user approval.」が追加されており、R2の明示範囲外の追記。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/tests/guardrail-reorg.test.js",
+      "change": "spec専用の新規テストファイル追加（R1-R7の要求本文には直接含まれていない）。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/tests/README.md",
+      "change": "spec専用テストREADMEを新規追加。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/draft.json",
+      "change": "仕様ドラフト管理ファイルを新規追加。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/flow.json",
+      "change": "フロー状態管理ファイルを新規追加。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/issue-log.json",
+      "change": "ゲート実行ログファイルを新規追加。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/issue.md",
+      "change": "Issue記述ファイルを新規追加。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/qa.md",
+      "change": "QAメモファイルを新規追加。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/review.md",
+      "change": "レビュー記録ファイルを新規追加。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/spec.json",
+      "change": "仕様本体JSONを新規追加。"
+    },
+    {
+      "file": "specs/234-test-guardrail-reorg/spec.md",
+      "change": "仕様Markdownを新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 6,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.93,
+    "notes": "guardrail.json の主要変更は R1-R6 を満たしている。R7 は値整合性は満たしているが、既存 guardrail-category-integrity テストの PASS 証跡が diff 上で確認できないため partial。加えて、spec運用用ファイル群と spec専用テスト追加は要求一覧外の変更。"
+  }
+}

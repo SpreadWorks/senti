@@ -134,34 +134,11 @@
     {
       "id": "no-disabling-existing-tests",
       "title": "No Disabling Existing Tests",
-      "body": "Skipping, commenting out, or deleting existing tests to make them pass is prohibited. When tests fail, fix the product code.",
+      "body": "Skipping, commenting out, or deleting existing tests to make them pass is prohibited. When tests fail, fix the product code. MUST NOT bypass failing tests by disabling them. Modifying or deleting existing tests requires user approval. If the feature under test is itself deleted, deleting the corresponding tests is justified.",
       "meta": {
         "phase": [
           "test",
           "task-impl"
-        ],
-        "category": "testing"
-      }
-    },
-    {
-      "id": "changes-require-test-coverage",
-      "title": "Changes Require Test Coverage",
-      "body": "New features and bug fixes shall include tests covering at least the happy path. Changes without tests shall state the reason in the spec.",
-      "meta": {
-        "phase": [
-          "spec",
-          "test"
-        ],
-        "category": "testing"
-      }
-    },
-    {
-      "id": "test-covers-spec-requirements",
-      "title": "Test Covers Spec Requirements",
-      "body": "Each spec requirement shall have a corresponding test that verifies it.",
-      "meta": {
-        "phase": [
-          "test"
         ],
         "category": "testing"
       }
@@ -277,9 +254,9 @@
       }
     },
     {
-      "id": "impl-test-conflict-escalation",
-      "title": "Escalate When New Tests Break Existing Tests",
-      "body": "If new tests cause existing tests to fail, inform the user and ask how to proceed.",
+      "id": "pre-existing-test-failure-escalation",
+      "title": "Escalate Pre-Existing Test Failures",
+      "body": "If a test that was already failing before implementation is discovered, report it to the user and confirm the remediation policy. Do not independently fix test failures that were not caused by your own implementation.",
       "meta": {
         "phase": [
           "task-impl"
@@ -288,18 +265,22 @@
       }
     },
     {
-      "id": "impl-test-preservation",
-      "title": "Do Not Modify Existing Tests Without Approval",
-      "body": "Do not modify or delete existing tests without user approval.",
+      "id": "spec-test-coverage",
+      "title": "Spec Test Coverage",
+      "body": "Verify that the implementation conforms to requirements and specifications. Test code MUST be written under specs/<specid>/tests/ and all tests MUST pass.",
       "meta": {
-        "phase": [],
+        "phase": [
+          "spec",
+          "task-impl",
+          "test"
+        ],
         "category": "testing"
       }
     },
     {
-      "id": "impl-flag-obsolete-tests",
-      "title": "Flag Tests That Become Irrelevant",
-      "body": "If past tests become irrelevant due to feature changes, flag them to the user.",
+      "id": "project-test-integrity",
+      "title": "Project Test Integrity",
+      "body": "Ensure that implemented code continues to work after merging by adding or updating project test code as needed. All project tests MUST pass.",
       "meta": {
         "phase": [
           "task-impl"

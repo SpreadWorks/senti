@@ -1,0 +1,210 @@
+{
+  "goal": "テスト関連 guardrail を再編し、spec テスト責務と project テスト責務を明確に分離する",
+  "scope": {
+    "in": [
+      "[must] guardrail 削除: impl-test-preservation, changes-require-test-coverage, test-covers-spec-requirements, impl-flag-obsolete-tests の 4 エントリを base/guardrail.json から削除する",
+      "[must] guardrail 強化: no-disabling-existing-tests の body を拡張し、テスト対象機能削除時の正当な削除を明記する",
+      "[must] guardrail リネーム: impl-test-conflict-escalation → pre-existing-test-failure-escalation にリネームし body を書き換える",
+      "[must] guardrail 新設: spec-test-coverage (phase: [spec, task-impl, test]) を追加する",
+      "[must] guardrail 新設: project-test-integrity (phase: [task-impl]) を追加する"
+    ],
+    "out": [
+      "checkTestChanges() 関数の削除（spec B で対応）",
+      "run-gate.js 内コメントの impl-test-preservation 参照更新",
+      "テスト以外カテゴリの guardrail 変更",
+      "guardrail スキーマへの priority フィールド追加"
+    ]
+  },
+  "constraints": [
+    "有効な phase 値は VALID_GUARDRAIL_PHASES (draft, spec, task-spec, task-impl, integration, test, lint, review) のみ",
+    "有効な category 値は VALID_GUARDRAIL_CATEGORIES (requirements, code-quality, testing, security, process) のみ",
+    "alpha 版ポリシーにより後方互換コードは不要"
+  ],
+  "design_principles": [
+    "spec テスト責務（specs/<specid>/tests/ 配下）と project テスト責務（プロジェクト全体のテスト）を明確に分離する",
+    "削除される guardrail の責務は必ず新規・強化後の guardrail でカバーする（責務の欠落を防ぐ）"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/presets/base/guardrail.json — 全プリセットの基底 guardrail 定義。テスト関連エントリを直接編集する"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "guardrail.json → hydrate() → filterByPhase() → gate 評価"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "Issue の phase: impl は task-impl に対応させる。VALID_GUARDRAIL_PHASES に impl は存在せず、hydrate() が Error を throw するため",
+        "evidence": "src/lib/constants.js:80-89 VALID_GUARDRAIL_PHASES 定義"
+      },
+      {
+        "text": "no-disabling-existing-tests の critical/must は body テキストで表現する。guardrail スキーマに priority フィールドがなく、gate 側の対応も必要になるため",
+        "evidence": "src/lib/guardrail.js hydrate() が認識するメタフィールドは phase, category, lint のみ"
+      },
+      {
+        "text": "checkTestChanges() 削除は scope 外。Issue が明示的に spec B に分離している",
+        "evidence": "Issue #274: 「機械的チェック checkTestChanges() は spec B で削除」"
+      }
+    ]
+  },
+  "background": "2c8f の設計レビューにより flow からプロジェクトテスト管理機構を分離する方針が確定。現在の base/guardrail.json のテスト関連 guardrail は 7 件あるが、重複・曖昧さ・無効化状態（impl-test-preservation の phase 空配列）が混在し、spec テスト責務と project テスト責務が未分離。先行して guardrail 定義を整理する。\n\nImpact on existing features: base preset を使う全プロジェクトの gate 評価で、テスト関連 guardrail の ID と文言が変わる。gate 評価の phase フィルタリング結果が変わる（新 guardrail は task-impl, test, spec の各 phase に配置）。既存の guardrail-category-integrity テストは汎用的構造チェックのため、特定 ID への依存はなく影響なし。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "base/guardrail.json から impl-test-preservation, changes-require-test-coverage, test-covers-spec-requirements, impl-flag-obsolete-tests の 4 エントリを削除する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "no-disabling-existing-tests の body を拡張する: (a) テスト対象の機能自体が削除された場合、対応するテストの削除は正当であること、(b) テストをスキップ・コメントアウト・削除して通す行為は禁止であることを MUST レベルで記述する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "impl-test-conflict-escalation を pre-existing-test-failure-escalation にリネームし、body を「実装前から失敗していたテストを発見した場合はユーザーに報告し、対処方針を確認すること。自分の実装が原因でないテストの失敗を自力で修正してはならない」に書き換える。phase は [task-impl] を維持する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "spec-test-coverage を新設する: id=spec-test-coverage, phase=[spec, task-impl, test], category=testing。body は「要求・仕様通りに実装されているか、specs/<specid>/tests/ に必ずテストコードを実装してテストを通過させること」",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "project-test-integrity を新設する: id=project-test-integrity, phase=[task-impl], category=testing。body は「実装したコードがマージ後もプロジェクトのテストスイートを通過するよう、必要なテストコードの追加・修正を行い、全テストが通過することを確認すること」",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "spec-includes-test-strategy は変更しない",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "変更後の全 guardrail エントリが VALID_GUARDRAIL_PHASES および VALID_GUARDRAIL_CATEGORIES の制約を満たすこと（既存の guardrail-category-integrity テストが PASS する）",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "base/guardrail.json から 4 件の削除対象エントリが除去されている",
+    "no-disabling-existing-tests の body が R2 の仕様通りに拡張されている",
+    "impl-test-conflict-escalation が pre-existing-test-failure-escalation にリネームされ body が R3 の仕様通りに書き換えられている",
+    "spec-test-coverage エントリが R4 の仕様通りに追加されている",
+    "project-test-integrity エントリが R5 の仕様通りに追加されている",
+    "spec-includes-test-strategy エントリが変更されていない",
+    "npm test の guardrail-category-integrity テストが PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "Issue の phase: impl は何に対応するか",
+      "a": "task-impl。VALID_GUARDRAIL_PHASES に impl は存在しない"
+    },
+    {
+      "q": "critical/must はどう表現するか",
+      "a": "body テキストに MUST を含める。meta.priority フィールドは存在しない"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "guardrail スキーマに meta.priority フィールドを追加する",
+      "reason": "gate 側の対応も必要になりスコープ拡大。body テキストで十分表現可能"
+    },
+    {
+      "option": "VALID_GUARDRAIL_PHASES に新 phase impl を追加する",
+      "reason": "既存の task-impl と意味が重複する。不要"
+    },
+    {
+      "option": "旧 ID を残して新 ID にエイリアスする",
+      "reason": "alpha 版ポリシーで後方互換不要"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "done"
+    },
+    {
+      "id": "T-1",
+      "title": "Delete obsolete guardrail entries",
+      "goal": "base/guardrail.json から impl-test-preservation, changes-require-test-coverage, test-covers-spec-requirements, impl-flag-obsolete-tests の 4 エントリを削除する",
+      "acceptance": [
+        "4 件のエントリが base/guardrail.json に存在しない",
+        "他の guardrail エントリに影響がない"
+      ],
+      "implementation_notes": "src/presets/base/guardrail.json の guardrails 配列から該当 4 オブジェクトを削除",
+      "test_strategy": "npm test で guardrail-category-integrity テストが PASS することを確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Enhance no-disabling-existing-tests guardrail",
+      "goal": "no-disabling-existing-tests の body を拡張し、テスト対象機能削除時の正当な削除を明記しつつ MUST レベルの文言にする",
+      "acceptance": [
+        "body にテスト対象の機能自体が削除された場合の正当な削除が明記されている",
+        "body にテストのスキップ・コメントアウト・削除禁止が MUST レベルで記述されている"
+      ],
+      "implementation_notes": "既存の body を置き換える。phase と category は現状維持 ([test, task-impl], testing)",
+      "test_strategy": "guardrail-category-integrity テストが PASS することを確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Rename impl-test-conflict-escalation to pre-existing-test-failure-escalation",
+      "goal": "guardrail ID を pre-existing-test-failure-escalation にリネームし、body を実装前から失敗していたテストのエスカレーションルールに書き換える",
+      "acceptance": [
+        "id が pre-existing-test-failure-escalation に変更されている",
+        "body が R3 の仕様通りに書き換えられている",
+        "phase は [task-impl] を維持している"
+      ],
+      "implementation_notes": "既存エントリの id, title, body を書き換える",
+      "test_strategy": "guardrail-category-integrity テストが PASS することを確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Add spec-test-coverage and project-test-integrity guardrails",
+      "goal": "spec テスト責務と project テスト責務を定義する 2 つの新規 guardrail エントリを追加する",
+      "acceptance": [
+        "spec-test-coverage が phase=[spec, task-impl, test], category=testing で追加されている",
+        "project-test-integrity が phase=[task-impl], category=testing で追加されている",
+        "両エントリの body が R4, R5 の仕様通りである"
+      ],
+      "implementation_notes": "guardrails 配列の末尾（spec-includes-test-strategy の後）に追加する",
+      "test_strategy": "guardrail-category-integrity テストが PASS することを確認",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-27T08:08:47.337Z",
+    "notes": "autoApprove"
+  }
+}

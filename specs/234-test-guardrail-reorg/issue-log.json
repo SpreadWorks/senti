@@ -1,0 +1,144 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft focuses on one concern: reorganizing test-related guardrails and separating spec vs project test responsibilities.; Unambiguous Requirements — Most requirements are concrete and verifiable (specific IDs, phases, files, and expected mappings).; Complete Context — Several requirement statements describe what to change but do not consistently pair a trigger condition with expected behavior.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present in the content.; Prioritize Requirements — There are more than three requirement items, but no must/should/nice-to-have priority is assigned per requirement.; Impact on Existing Features — The draft explicitly lists impacts on existing features under impactOnExisting.; Present Recommendations with Reasoning — Each QA item provides a direct recommendation and supporting basis via evidence/why/considered.; Explore Before Asking — Questions appear pre-answered through code/docs exploration, with evidence references and no unresolved open questions.; Proactively Raise Related Implications — Related implications are proactively raised (ID rename safety, phase validity, test updates, scope separation).; Confirm Brainstorm vs. Decision Before Critiquing — The content is framed as an approved decision/design direction rather than critiquing brainstorming ideas.; Capture Digressions in draft.md — Cannot verify whether digressions were captured in draft.md because no discussion history or draft.md evidence is provided.; Draft Stays at Requirements Level — The draft stays at requirements/spec scope; code/file references are used as contextual evidence without implementation design detail.; Backward-Compatible CLI Interface — No CLI command/option semantics are being removed or changed in this draft.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T07:13:48.263Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirement statements describe what to change but do not consistently pair a trigger condition with expected behavior."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirement items, but no must/should/nice-to-have priority is assigned per requirement."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.data_flow[0]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].text: unknown field; requirements[5].desc: required field is missing; requirements[5].text: unknown field; requirements[6].desc: required field is missing; requirements[6].text: unknown field; clarifications[0].q: required field is missing; clarifications[0].a: required field is missing; clarifications[0].question: unknown field; clarifications[0].answer: unknown field; clarifications[1].q: required field is missing; clarifications[1].a: required field is missing; clarifications[1].question: unknown field; clarifications[1].answer: unknown field; tasks[0].implementation_notes: must be string, got array; tasks[1].implementation_notes: must be string, got array; tasks[2].implementation_notes: must be string, got array; tasks[3].implementation_notes: must be string, got array; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T07:16:58.484Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T07:18:24.438Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: reorganizing test-related guardrails and separating responsibilities.; Task Single Responsibility — Each task targets a single related change set (delete, enhance, rename, add).; Unambiguous Requirements — Some requirement wording remains vague (e.g., \"適宜追加・修正\"), reducing strict verifiability.; Complete Context — Requirements generally state both what condition/change applies and what behavior/result is expected.; REQ Diff-Verifiability — Most requirements are directly decidable from guardrail.json diff plus test summary.; No Hardcoded Secrets — No secrets or credential literals are present in the provided content.; No Silent Error Swallowing — No implementation error-handling logic is specified; no silent swallowing is introduced.; Prioritize Requirements — More than three requirements are present and each includes a priority field (must).; Impact on Existing Features — There is no explicit section stating impact on existing features or explicitly stating none are affected.; Bounded Resource Usage — Spec does not introduce recursive/retry/bulk-processing behavior; article is inapplicable here.; Changes Require Test Coverage — Test execution checks are specified (guardrail-category-integrity via npm test) for the changes.; Spec Includes Test Strategy — A concrete test strategy is included in tasks and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot determine synthesis vs direct copying because the source draft is not provided.; Record Unresolved Points as Open Questions — No unresolved items are fabricated; open questions are explicitly listed as none.; Include 'Why This Approach' Rationale — Rationale is provided through decisions with evidence and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec changes guardrail definitions, not existing test files; no test modification is proposed.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is in scope.; Exit Code Contract — No CLI command addition/modification is specified, so this article is inapplicable.; Validate User Input at Entry Point — No CLI argument changes are specified, so this article is inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T07:19:34.895Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some requirement wording remains vague (e.g., \"適宜追加・修正\"), reducing strict verifiability."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "There is no explicit section stating impact on existing features or explicitly stating none are affected."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "impl-test-preservation",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: reorganizing test-related guardrails.; Task Single Responsibility — Each task targets a single coherent change (delete, enhance, rename, add).; Unambiguous Requirements — Requirements are concrete with specific IDs, fields, phases, and expected text changes.; Complete Context — Requirements include both what condition/change applies and what behavior/output is expected.; REQ Diff-Verifiability — Pass/fail can be judged from guardrail.json diff plus stated test results.; No Hardcoded Secrets — No secrets or credential-like values are present.; No Silent Error Swallowing — No implementation error-handling code is introduced in this content.; Prioritize Requirements — More than three requirements are present and each has a priority value.; Impact on Existing Features — Impact on existing features is not explicitly listed as an impact statement.; Bounded Resource Usage — No recursive/retry/bulk-processing design requiring explicit bounds is introduced.; Changes Require Test Coverage — Test verification is specified via guardrail-category-integrity test execution.; Spec Includes Test Strategy — A test strategy is included at task level and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot determine copy-vs-synthesis without the source draft to compare.; Record Unresolved Points as Open Questions — No unresolved items appear fabricated; open questions are explicitly managed.; Include 'Why This Approach' Rationale — Rationale is provided in decisions and alternatives_considered sections.; Do Not Modify Existing Tests Without Approval — This spec does not propose modifying or deleting existing test files.; Backward-Compatible CLI Interface — No CLI command/option behavior change is proposed.; Exit Code Contract — No CLI command addition or modification is in scope.; Validate User Input at Entry Point — No CLI argument changes are introduced, so entry-point validation requirements are inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T07:20:40.789Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not explicitly listed as an impact statement."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "impl-test-preservation",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: impact_on_existing: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T07:20:59.522Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.data_flow[0]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].text: unknown field; requirements[5].desc: required field is missing; requirements[5].text: unknown field; requirements[6].desc: required field is missing; requirements[6].text: unknown field; clarifications[0].q: required field is missing; clarifications[0].a: required field is missing; clarifications[0].question: unknown field; clarifications[0].answer: unknown field; clarifications[1].q: required field is missing; clarifications[1].a: required field is missing; clarifications[1].question: unknown field; clarifications[1].answer: unknown field; tasks[0].implementation_notes: must be string, got array; tasks[1].implementation_notes: must be string, got array; tasks[2].implementation_notes: must be string, got array; tasks[3].implementation_notes: must be string, got array; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n  attempt 2: tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0\n  attempt 3: Single Responsibility — Spec is focused on one concern: reorganizing test-related guardrails and separating responsibilities.; Task Single Responsibility — Each task targets a single related change set (delete, enhance, rename, add).; Unambiguous Requirements — Some requirement wording remains vague (e.g., \"適宜追加・修正\"), reducing strict verifiability.; Complete Context — Requirements generally state both what condition/change applies and what behavior/result is expected.; REQ Diff-Verifiability — Most requirements are directly decidable from guardrail.json diff plus test summary.; No Hardcoded Secrets — No secrets or credential literals are present in the provided content.; No Silent Error Swallowing — No implementation error-handling logic is specified; no silent swallowing is introduced.; Prioritize Requirements — More than three requirements are present and each includes a priority field (must).; Impact on Existing Features — There is no explicit section stating impact on existing features or explicitly stating none are affected.; Bounded Resource Usage — Spec does not introduce recursive/retry/bulk-processing behavior; article is inapplicable here.; Changes Require Test Coverage — Test execution checks are specified (guardrail-category-integrity via npm test) for the changes.; Spec Includes Test Strategy — A concrete test strategy is included in tasks and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot determine synthesis vs direct copying because the source draft is not provided.; Record Unresolved Points as Open Questions — No unresolved items are fabricated; open questions are explicitly listed as none.; Include 'Why This Approach' Rationale — Rationale is provided through decisions with evidence and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec changes guardrail definitions, not existing test files; no test modification is proposed.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is in scope.; Exit Code Contract — No CLI command addition/modification is specified, so this article is inapplicable.; Validate User Input at Entry Point — No CLI argument changes are specified, so this article is inapplicable.\n  attempt 4: Single Responsibility — Spec focuses on one concern: reorganizing test-related guardrails.; Task Single Responsibility — Each task targets a single coherent change (delete, enhance, rename, add).; Unambiguous Requirements — Requirements are concrete with specific IDs, fields, phases, and expected text changes.; Complete Context — Requirements include both what condition/change applies and what behavior/output is expected.; REQ Diff-Verifiability — Pass/fail can be judged from guardrail.json diff plus stated test results.; No Hardcoded Secrets — No secrets or credential-like values are present.; No Silent Error Swallowing — No implementation error-handling code is introduced in this content.; Prioritize Requirements — More than three requirements are present and each has a priority value.; Impact on Existing Features — Impact on existing features is not explicitly listed as an impact statement.; Bounded Resource Usage — No recursive/retry/bulk-processing design requiring explicit bounds is introduced.; Changes Require Test Coverage — Test verification is specified via guardrail-category-integrity test execution.; Spec Includes Test Strategy — A test strategy is included at task level and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot determine copy-vs-synthesis without the source draft to compare.; Record Unresolved Points as Open Questions — No unresolved items appear fabricated; open questions are explicitly managed.; Include 'Why This Approach' Rationale — Rationale is provided in decisions and alternatives_considered sections.; Do Not Modify Existing Tests Without Approval — This spec does not propose modifying or deleting existing test files.; Backward-Compatible CLI Interface — No CLI command/option behavior change is proposed.; Exit Code Contract — No CLI command addition or modification is in scope.; Validate User Input at Entry Point — No CLI argument changes are introduced, so entry-point validation requirements are inapplicable.\n  attempt 5: schema: spec.json failed schema validation: impact_on_existing: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-27T08:06:14.913Z"
+    },
+    {
+      "step": "gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.data_flow[0]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].text: unknown field; requirements[5].desc: required field is missing; requirements[5].text: unknown field; requirements[6].desc: required field is missing; requirements[6].text: unknown field; clarifications[0].q: required field is missing; clarifications[0].a: required field is missing; clarifications[0].question: unknown field; clarifications[0].answer: unknown field; clarifications[1].q: required field is missing; clarifications[1].a: required field is missing; clarifications[1].question: unknown field; clarifications[1].answer: unknown field; tasks[0].implementation_notes: must be string, got array; tasks[1].implementation_notes: must be string, got array; tasks[2].implementation_notes: must be string, got array; tasks[3].implementation_notes: must be string, got array; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n  attempt 2: tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0\n  attempt 3: Single Responsibility — Spec is focused on one concern: reorganizing test-related guardrails and separating responsibilities.; Task Single Responsibility — Each task targets a single related change set (delete, enhance, rename, add).; Unambiguous Requirements — Some requirement wording remains vague (e.g., \"適宜追加・修正\"), reducing strict verifiability.; Complete Context — Requirements generally state both what condition/change applies and what behavior/result is expected.; REQ Diff-Verifiability — Most requirements are directly decidable from guardrail.json diff plus test summary.; No Hardcoded Secrets — No secrets or credential literals are present in the provided content.; No Silent Error Swallowing — No implementation error-handling logic is specified; no silent swallowing is introduced.; Prioritize Requirements — More than three requirements are present and each includes a priority field (must).; Impact on Existing Features — There is no explicit section stating impact on existing features or explicitly stating none are affected.; Bounded Resource Usage — Spec does not introduce recursive/retry/bulk-processing behavior; article is inapplicable here.; Changes Require Test Coverage — Test execution checks are specified (guardrail-category-integrity via npm test) for the changes.; Spec Includes Test Strategy — A concrete test strategy is included in tasks and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot determine synthesis vs direct copying because the source draft is not provided.; Record Unresolved Points as Open Questions — No unresolved items are fabricated; open questions are explicitly listed as none.; Include 'Why This Approach' Rationale — Rationale is provided through decisions with evidence and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec changes guardrail definitions, not existing test files; no test modification is proposed.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is in scope.; Exit Code Contract — No CLI command addition/modification is specified, so this article is inapplicable.; Validate User Input at Entry Point — No CLI argument changes are specified, so this article is inapplicable.\n  attempt 4: Single Responsibility — Spec focuses on one concern: reorganizing test-related guardrails.; Task Single Responsibility — Each task targets a single coherent change (delete, enhance, rename, add).; Unambiguous Requirements — Requirements are concrete with specific IDs, fields, phases, and expected text changes.; Complete Context — Requirements include both what condition/change applies and what behavior/output is expected.; REQ Diff-Verifiability — Pass/fail can be judged from guardrail.json diff plus stated test results.; No Hardcoded Secrets — No secrets or credential-like values are present.; No Silent Error Swallowing — No implementation error-handling code is introduced in this content.; Prioritize Requirements — More than three requirements are present and each has a priority value.; Impact on Existing Features — Impact on existing features is not explicitly listed as an impact statement.; Bounded Resource Usage — No recursive/retry/bulk-processing design requiring explicit bounds is introduced.; Changes Require Test Coverage — Test verification is specified via guardrail-category-integrity test execution.; Spec Includes Test Strategy — A test strategy is included at task level and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot determine copy-vs-synthesis without the source draft to compare.; Record Unresolved Points as Open Questions — No unresolved items appear fabricated; open questions are explicitly managed.; Include 'Why This Approach' Rationale — Rationale is provided in decisions and alternatives_considered sections.; Do Not Modify Existing Tests Without Approval — This spec does not propose modifying or deleting existing test files.; Backward-Compatible CLI Interface — No CLI command/option behavior change is proposed.; Exit Code Contract — No CLI command addition or modification is in scope.; Validate User Input at Entry Point — No CLI argument changes are introduced, so entry-point validation requirements are inapplicable.\n  attempt 5: schema: spec.json failed schema validation: impact_on_existing: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-27T08:07:02.255Z"
+    }
+  ]
+}

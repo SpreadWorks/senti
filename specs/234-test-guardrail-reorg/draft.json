@@ -1,0 +1,87 @@
+{
+  "devType": "refactor",
+  "goal": "テスト関連 guardrail を再編し、spec テスト責務と project テスト責務を明確に分離する。2c8f 設計レビューで確定したプロジェクトテスト管理分離方針の先行整理。",
+  "analysis": {
+    "problem": "現在の base/guardrail.json のテスト関連 guardrail は 7 件あるが、重複・曖昧さ・無効化状態が混在している。impl-test-preservation は phase が空配列で実質無効。changes-require-test-coverage は spec テストと project テストの 2 つの責務を 1 つにまとめている。test-covers-spec-requirements と impl-flag-obsolete-tests は他の guardrail と責務が重なる。",
+    "proposedApproach": "4 件を削除、1 件を強化、1 件をリネーム＋書き換え、2 件を新設。新設する spec-test-coverage（spec テスト責務）と project-test-integrity（project テスト責務）で責務分離を実現する。",
+    "validation": "削除対象の責務は全て新設・強化後の guardrail にカバーされる。impl-test-preservation の責務は no-disabling-existing-tests の強化で吸収。changes-require-test-coverage は spec-test-coverage と project-test-integrity に分割。test-covers-spec-requirements は spec-test-coverage に吸収。impl-flag-obsolete-tests は no-disabling-existing-tests に吸収。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] guardrail 削除: impl-test-preservation, changes-require-test-coverage, test-covers-spec-requirements, impl-flag-obsolete-tests の 4 エントリを base/guardrail.json から削除する。削除後、hydrate() がこれらの ID をロードしなくなる。",
+      "[must] guardrail 強化: no-disabling-existing-tests の body を拡張する。テスト対象の機能自体が削除された場合の正当な削除を明記し、MUST レベルの文言にする。gate 評価時にこの guardrail が強化後の文言で評価される。",
+      "[must] guardrail リネーム: impl-test-conflict-escalation を pre-existing-test-failure-escalation にリネームし body を書き換える。実装前から失敗していたテスト発見時のエスカレーションルールに変更する。",
+      "[must] guardrail 新設: spec-test-coverage（phase: [spec, task-impl, test], category: testing）を追加する。spec テスト責務を定義し、specs/<specid>/tests/ へのテスト実装と通過を要求する。",
+      "[must] guardrail 新設: project-test-integrity（phase: [task-impl], category: testing）を追加する。project テスト責務を定義し、マージ後の動作保証のためのプロジェクトテスト追加・修正と通過を要求する。",
+      "[should] 既存テストの更新: 削除された guardrail ID を参照するテスト（guardrail-category-integrity.test.js 等）があれば更新する。"
+    ],
+    "out": [
+      "checkTestChanges() 関数の削除（spec B で対応）",
+      "run-gate.js 内のコメント中の impl-test-preservation 参照（機能参照ではないため）",
+      "テスト以外のカテゴリの guardrail",
+      "guardrail スキーマへの priority フィールド追加（body テキストで表現）"
+    ]
+  },
+  "impactOnExisting": [
+    "base preset を使う全プロジェクトの gate 評価で、テスト関連 guardrail の ID と文言が変わる",
+    "削除される guardrail ID を参照するテスト（tests/unit/presets/guardrail-category-integrity.test.js 等）に影響する可能性",
+    "gate 評価の phase フィルタリング結果が変わる（新 guardrail は task-impl, test, spec の各 phase に配置）"
+  ],
+  "qa": [
+    {
+      "question": "Issue では phase に impl と記載されているが、有効な phase 値に impl は存在しない（task-impl が該当）。spec-test-coverage の phase を [spec, task-impl, test]、project-test-integrity の phase を [task-impl] とすべきか？",
+      "answer": "はい。VALID_GUARDRAIL_PHASES は draft, spec, task-spec, task-impl, integration, test, lint, review。Issue の impl は task-impl を指す。",
+      "evidence": "src/lib/constants.js:80-89 VALID_GUARDRAIL_PHASES の定義",
+      "why": "無効な phase を指定すると hydrate() が Error を throw する",
+      "considered": "新 phase impl を追加する案 → 既存の task-impl と意味が重複するため不要"
+    },
+    {
+      "question": "Issue では no-disabling-existing-tests に critical/must 付与とあるが、guardrail スキーマに priority フィールドがない。どう表現するか？",
+      "answer": "body テキストに MUST を含める形で表現する。スキーマ拡張はこの spec のスコープ外。",
+      "evidence": "src/presets/base/guardrail.json — 既存の全 guardrail に priority フィールドなし。src/lib/guardrail.js hydrate() が認識するメタフィールドは phase, category, lint のみ。",
+      "why": "priority メタデータは gate 評価で現在使われておらず、スキーマ拡張は別のイニシアティブで行うべき",
+      "considered": "meta.priority フィールド追加 → gate 側の対応も必要になりスコープ拡大。body テキストへの MUST 記述で十分"
+    },
+    {
+      "question": "impl-test-conflict-escalation → pre-existing-test-failure-escalation のリネームにより、既存の gate 評価やスキル内でこの ID をハードコードしている箇所はあるか？",
+      "answer": "なし。grep で impl-test-conflict-escalation の参照は src/presets/base/guardrail.json 内のみ。gate は ID を動的にロードするため影響なし。",
+      "evidence": "grep -rn 'impl-test-conflict-escalation' src/ tests/ の結果: guardrail.json 以外にヒットなし",
+      "why": "ID のリネームが安全であることを確認する必要がある",
+      "considered": "旧 ID を残して新 ID にエイリアスする案 → alpha 版ポリシーで後方互換不要"
+    },
+    {
+      "question": "checkTestChanges() は scope 外（spec B）で正しいか？",
+      "answer": "正しい。Issue に『機械的チェック checkTestChanges() は spec B で削除』と明記されている。この spec では guardrail 定義（JSON エントリ）の再編のみ行う。",
+      "evidence": "Issue #274 body: 「機械的チェック checkTestChanges() は spec B で削除」",
+      "why": "checkTestChanges() は run-gate.js に実装されている機能コードで、guardrail JSON エントリの再編とは独立した変更",
+      "considered": "一緒に削除する案 → Issue が明示的に分離している。単一責務の guardrail に従う"
+    },
+    {
+      "question": "テスト戦略: guardrail JSON エントリの変更に対してどのようなテストが必要か？",
+      "answer": "1. guardrail-category-integrity.test.js で新規 ID が正しいカテゴリ・phase を持つことを検証。2. hydrate() がエラーなく処理できることを検証。3. filterByPhase() で新 guardrail が期待する phase に出現することを検証。",
+      "evidence": "tests/unit/presets/guardrail-category-integrity.test.js — 既存の整合性テストが guardrail エントリの構造を検証している",
+      "why": "JSON 変更が既存の自動検証に引っかからないことを確認する",
+      "considered": "E2E テストで gate 全体を実行する案 → JSON エントリの検証にはユニットテストで十分"
+    },
+    {
+      "question": "run-gate.js のコメント中の impl-test-preservation 参照を更新する必要があるか？",
+      "answer": "スコープ外。コメントは checkTestChanges() の経緯説明であり、checkTestChanges() 自体が spec B で削除される予定。コメントの整合性は spec B で対応すべき。",
+      "evidence": "src/flow/lib/run-gate.js:721, 1957 — コメント内で impl-test-preservation を参照",
+      "why": "コメント修正だけ先行しても checkTestChanges() のコード自体が残るため中途半端",
+      "considered": "コメントだけ先に更新する案 → checkTestChanges() と一緒に削除する方が一貫性がある"
+    },
+    {
+      "question": "pre-existing-test-failure-escalation の phase は何が適切か？ 現在の impl-test-conflict-escalation は [task-impl] のみ。",
+      "answer": "[task-impl] を維持。実装中に既存テスト失敗を発見した場合のエスカレーションルールなので task-impl phase が適切。",
+      "evidence": "Issue #274: 「実装前から失敗していたテストを発見した場合はユーザーに報告し…」 → 実装フェーズでの発見を想定",
+      "why": "phase を変更する理由がない。リネームと文言変更のみ",
+      "considered": "[test] phase も追加する案 → テスト実行フェーズでの発見もありうるが、Issue は task-impl のみを指定"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-27T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}
