@@ -8,5 +8,5 @@ Use this guidance for the per-task code review step. Mirrors the flow-level revi
   2. Apply approved fixes automatically.
   3. Re-run the task tests to confirm no regressions.
 - **If no proposals** (NO_PROPOSALS): Display "レビューの結果、修正の必要はありませんでした。"
-- **Retry limit: 3 rounds.** If review keeps producing new proposals after 3 review-fix-review cycles, STOP and return control to the user.
+- **Retry limit:** If review keeps producing new proposals beyond the definition's maxAttempts limit, STOP and return control to the user.
 - On complete, the next-action CLI advances to `task.update-overview`.

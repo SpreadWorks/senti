@@ -24,6 +24,7 @@ class FlowNode {
     requiresApproval = false,
     skippable = false,
     maxAttempts = 1,
+    fallbacks = null,
     children = null,
     sideEffects = null,
   }) {
@@ -36,6 +37,7 @@ class FlowNode {
     this.requiresApproval = requiresApproval;
     this.skippable = skippable;
     this.maxAttempts = maxAttempts;
+    this.fallbacks = fallbacks ? Object.freeze([...fallbacks]) : null;
     this.children = children ? Object.freeze(children.map((c) => Object.freeze(c))) : null;
     this.sideEffects = sideEffects ? Object.freeze([...sideEffects]) : null;
   }

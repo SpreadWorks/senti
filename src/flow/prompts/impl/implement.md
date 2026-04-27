@@ -40,14 +40,14 @@
          [2] 変更したい（→ 何を変えるか教えてください）
 
        ```
-     - If [2]: incorporate feedback, revise the plan, re-present. **Retry limit: 3 rounds.**
+     - If [2]: incorporate feedback, revise the plan, re-present. **Retry limit:** bounded by the definition's maxAttempts.
      - **If `autoApprove: true`**: present the approach briefly, then auto-select [1] and proceed. Display: "auto: approach confirmed → proceeding to implementation"
    - Code only after confirming gate PASS, test phase completion, and approach approval.
    - Aim to make tests pass.
    - **Update requirements as you go**: `sdd-forge flow set req <index> done` for each completed requirement.
    - Run `npm test` to verify existing tests pass. Run spec tests with `node --test specs/<spec>/tests/*.test.js` to verify spec requirements are met.
    - **MUST: If test failures are caused by pre-existing bugs (not the current spec's changes)**, record them in issue-log (`sdd-forge flow set issue-log --step implement --reason "..."`) before applying a workaround or adjusting the test.
-   - **Retry limit for test fixes: 5 attempts.** If tests do not pass after 5 fix-and-rerun cycles, STOP and return control to the user.
+   - **Retry limit for test fixes:** If tests do not pass within a reasonable number of fix-and-rerun cycles, STOP and return control to the user.
    - **On complete**:
      - Run guardrail lint check: `sdd-forge flow run lint`. If violations are found, fix them before proceeding. If lint passes with no guardrail articles defined, this is normal — proceed.
      - `sdd-forge flow set step implement done`

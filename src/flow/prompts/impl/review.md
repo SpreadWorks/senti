@@ -33,7 +33,7 @@
      3. Re-run tests to confirm no regressions.
    - **If no proposals** (NO_PROPOSALS):
      - Display: "レビューの結果、修正の必要はありませんでした。"
-   - **Retry limit for review: 3 rounds.** If review keeps producing new proposals after 3 review-fix-review cycles, STOP and return control to the user.
+   - **Retry limit:** If review keeps producing new proposals beyond the definition's maxAttempts limit, STOP and return control to the user.
    - Proceed to Step 3.
 
    **Option 2 (review-only):**
