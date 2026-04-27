@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-27T08:20:30.132Z",
+  "analyzedAt": "2026-04-27T10:47:19.846Z",
   "package": {
     "entries": [
       {
@@ -2438,9 +2438,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "1d73b0be11fc6e37c9f777d89aab6ad8",
-        "lines": 1155,
-        "mtime": "2026-04-23T13:02:16.773Z",
+        "hash": "9c9960e16d0ec525c57b5752438c924f",
+        "lines": 1173,
+        "mtime": "2026-04-27T10:47:19.444Z",
         "className": "review",
         "methods": [
           "ensureAgent",
@@ -2492,7 +2492,8 @@
           "../../lib/command.js",
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
-          "../../lib/constants.js"
+          "../../lib/constants.js",
+          "../../lib/guardrail.js"
         ],
         "exports": [
           "default",
@@ -2526,25 +2527,25 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the `flow review` command that runs AI-assisted reviews for code, spec quality, and test coverage within an SDD flow. It orchestrates diff collection, proposal filtering, iterative fixing, and review artifact generation.",
-        "detail": "The module resolves review scope from flow metadata, merge-base calculations, and path filters so reviews focus on relevant changed files while excluding documentation and generated outputs. It defines prompt builders and parsers for multiple review modes, including draft/final code review, spec review, and test gap analysis, then drives each mode through retry-based detect-and-fix loops. The implementation writes structured outputs such as `review.md`, `spec-review.md`, `test-review.md`, and generated test design artifacts, making results traceable in the spec directory. It enforces validation and failure handling through explicit exit paths, dry-run support, and sanity checks for AI output format before applying modifications. The command is exposed both as a callable function and as a `Command` subclass for integration with the CLI dispatch system.",
+        "summary": "This file implements the `flow review` command and orchestrates AI-assisted review workflows for code changes, specs, and tests. It also handles diff collection, proposal validation, retry logic, and result file generation.",
+        "detail": "The command resolves the review target from merge-base, spec-related paths, or staged/committed diffs, while excluding documentation and generated paths from analysis. It builds system and task prompts, parses structured AI proposals, filters them against touched files, and merges final verdict metadata for each proposal. The implementation uses a reusable review loop with detect/fix phases and bounded retries to converge on acceptable output, with dry-run support and explicit error exits. It includes dedicated subflows for test review and spec review, including gap parsing, optional file patch application, and validation of regenerated spec format. Review artifacts are persisted under the spec directory (`review.md`, `test-review.md`, `spec-review.md`) so the flow leaves auditable outputs.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T13:02:31.841Z",
+          "processedAt": "2026-04-27T10:47:34.329Z",
           "attempts": 1
         },
         "keywords": [
           "flow review",
           "CLI command",
-          "AI review loop",
           "diff analysis",
+          "merge-base",
+          "guardrails",
+          "AI proposal parsing",
+          "retry loop",
           "spec review",
           "test gap analysis",
-          "prompt orchestration",
-          "merge-base",
-          "retry logic",
-          "artifact generation"
+          "review report generation"
         ]
       },
       {
@@ -9730,5 +9731,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-27T03:03:14.026Z"
+  "enrichedAt": "2026-04-27T10:47:34.329Z"
 }
