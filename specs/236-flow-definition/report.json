@@ -1,0 +1,61 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/config.json                             |   2 +-\n specs/236-flow-definition/draft.json               | 118 +++++\n specs/236-flow-definition/flow.json                | 559 +++++++++++++++++++++\n specs/236-flow-definition/issue-log.json           | 250 +++++++++\n specs/236-flow-definition/issue.md                 | 435 ++++++++++++++++\n specs/236-flow-definition/qa.md                    |   9 +\n specs/236-flow-definition/spec.json                | 362 +++++++++++++\n specs/236-flow-definition/spec.md                  | 157 ++++++\n specs/236-flow-definition/tasks/T-1.md             |  21 +\n specs/236-flow-definition/tasks/T-2.md             |  22 +\n specs/236-flow-definition/tasks/T-3.md             |  21 +\n specs/236-flow-definition/tasks/T-4.md             |  21 +\n specs/236-flow-definition/tasks/T-5.md             |  22 +\n specs/236-flow-definition/tasks/T-6.md             |  24 +\n specs/236-flow-definition/tasks/T-pending-spec.md  |   9 +\n specs/236-flow-definition/tests/README.md          |  27 +\n specs/236-flow-definition/tests/definition.test.js | 144 ++++++\n src/flow/definition.js                             | 462 +++++++++++++++++\n src/flow/lib/gate-step.js                          |  64 +--\n src/flow/lib/get-check.js                          |  20 +-\n src/flow/lib/get-next-action.js                    | 108 ++--\n src/flow/lib/resolve-auto-check-input.js           |  12 +-\n src/flow/lib/run-gate.js                           |  15 +-\n src/flow/lib/run-prepare-spec.js                   |  15 +-\n src/flow/lib/set-step.js                           |  92 ++--\n src/flow/prompts/impl/gate-impl.md                 |   2 +-\n src/flow/prompts/impl/implement.md                 |   1 -\n src/flow/prompts/impl/integration-evaluate.md      |  20 -\n src/flow/prompts/impl/integration-run-all-tests.md |  15 -\n src/flow/prompts/plan/approval.md                  |   1 -\n src/flow/prompts/plan/draft.md                     |   2 -\n src/flow/prompts/plan/gate-draft.md                |   2 +-\n src/flow/prompts/plan/gate.md                      |   2 +-\n src/flow/prompts/plan/spec.md                      |   1 -\n src/flow/prompts/plan/test.md                      |   1 -\n src/flow/prompts/sync/show-report.md               |   6 -\n src/flow/registry.js                               |  15 +-\n src/flow/schemas/context-rules.json                | 170 -------\n .../next-action/integration-test.schema.json       |   9 -\n .../schemas/next-action/show-report.schema.json    |   9 -\n src/lib/flow-helpers.js                            |  94 +---\n src/lib/flow-store.js                              |  31 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |   2 +-\n tests/e2e/220-auto-check-phase-flow.test.js        |   6 +-\n tests/e2e/flow/commands/status-check.test.js       |  22 +-\n tests/helpers/flow-setup.js                        |   8 +-\n .../226-task-decomp-wiring/t5-auto-promote.test.js |   9 +-\n .../t6-step-redesign-and-cli.test.js               |  32 +-\n .../t-a3-no-flat-fallback.test.js                  |   3 +-\n tests/unit/flow.test.js                            |  39 +-\n tests/unit/flow/auto-upgrade-next-action.test.js   |   5 +-\n tests/unit/flow/format-retry-history.test.js       |  10 +-\n tests/unit/flow/gate-envelope-issue-log.test.js    |   7 +-\n tests/unit/flow/get-next-action.test.js            | 101 +---\n tests/unit/flow/instructions-coverage.test.js      |  66 +--\n tests/unit/flow/resolve-auto-check-input.test.js   |  10 +-\n tests/unit/flow/run-auto-check-phase.test.js       |   6 +-\n tests/unit/flow/set-auto.test.js                   |   8 +-\n tests/unit/flow/set-step.test.js                   |   3 +-\n tests/unit/flow/throw-to-envelope-codes.test.js    |  14 +-\n .../unit/lib/flow-helpers-integration-skip.test.js |  48 --\n tests/unit/lib/flow-helpers-tasks.test.js          |   9 +-\n 62 files changed, 3018 insertions(+), 762 deletions(-)",
+      "commits": [
+        "feat: feature/236-flow-definition"
+      ]
+    },
+    "retro": {
+      "total": 15,
+      "done": 10,
+      "partial": 5,
+      "not_done": 0,
+      "rate": 0.83,
+      "notes": "15 要件のうち 10 件が done、4 件が partial、0 件が not_done。主な未達事項: (1) FlowNode に fallbacks 属性がなく仕様外の sideEffects 属性で代替している(R1)、(2) registry.js の gate PASS 副作用 hook の撤去が diff に現れず R4(a) 完了未確認、(3) gate-step.js の PHASE_TO_STEP_ENTRIES が依然ハードコードで definition 派生になっていない(R8c)、(4) MAX_REVIEW_RETRIES (review.js) 削除がdiff に現れていない(R6)。テストは 2632 件パスしており機能的な動作は確認されているが、仕様上の撤去・置換が一部未達または diff から確認不能。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 9,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 108520,
+      "output": 25423,
+      "cacheRead": 62941,
+      "cacheCreation": 212427,
+      "cost": 1.1679491499999999,
+      "callCount": 18,
+      "durationMs": 710358,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 187347
+        },
+        {
+          "phase": "gate",
+          "durationMs": 237671
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 147110
+        },
+        {
+          "phase": "review",
+          "durationMs": 138230
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/236-flow-definition\n    62 files changed, 3018 insertions(+), 762 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 83%  (10 done / 5 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 9\n    issue-log ................... 1\n    agent calls ................. 18\n    input tokens ................ 108,520\n    output tokens ............... 25,423\n    cache-read tokens ........... 62,941\n    cache-create tokens ......... 212,427\n    cost ........................ $1.1679\n    duration (total) ............ 710.4s\n      gate-draft ................ 187.3s\n      gate ...................... 237.7s\n      gate-impl ................. 147.1s\n      review .................... 138.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

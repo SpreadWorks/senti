@@ -3,5 +3,5 @@
    - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.reasons`. Fix using only the failure reasons and `git diff baseBranch...HEAD` — do NOT re-read the full spec, context, or guardrail. Re-run gate.
    - **MUST: Before re-running gate after a FAIL, record in the issue-log what was fixed (or the rationale for not fixing).** Use `sdd-forge flow set issue-log --step gate-impl --reason "fix: <what changed>" --resolution "<why this addresses the FAIL reasons>"`. This keeps the FAIL → fix → PASS trace auditable.
    - **MUST: Do not re-run gate when the working tree is unchanged since the previous FAIL.** The CLI rejects such no-op re-runs with `NO_PROGRESS_SINCE_LAST_FAIL` before invoking the AI. Always modify spec or implementation before retrying.
-   - **Retry limit: `config.flow.retry.max` (default 3).** If gate does not PASS within that limit, the CLI returns `ESCALATE_RETRY_EXHAUSTED` and the skill STOPs and returns control to the user.
+   - **Retry limit:** If gate does not PASS within the definition's maxAttempts limit, the CLI returns `ESCALATE_RETRY_EXHAUSTED` and the skill STOPs and returns control to the user.
    - Do not proceed until PASS (`data.result === "pass"`).

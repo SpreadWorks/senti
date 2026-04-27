@@ -12,6 +12,7 @@ import {
 } from "../helpers/stub-agent.js";
 import { makeFlowManager } from "../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../src/lib/flow-helpers.js";
+import { findStepById } from "../../src/flow/definition.js";
 
 const CMD = path.join(process.cwd(), "src/sdd-forge.js");
 
@@ -100,9 +101,8 @@ describe("e2e — phase-aware auto-check flow (spec 220)", () => {
     const specDir = path.join(tmp, "specs", "050-approved");
     fs.mkdirSync(specDir, { recursive: true });
     fs.writeFileSync(path.join(specDir, "spec.md"), "# placeholder");
-    const steps = buildInitialSteps().map((s) =>
-      s.id === "approval" ? { ...s, status: "done" } : s,
-    );
+    const steps = buildInitialSteps();
+    findStepById(steps, "approval").status = "done";
     makeFlowManager(tmp).save({
       spec: "specs/050-approved/spec.md",
       baseBranch: "main",

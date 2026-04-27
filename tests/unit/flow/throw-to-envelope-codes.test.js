@@ -225,16 +225,12 @@ describe("R1b: checkRetryBelowMax returns envelope with ESCALATE_RETRY_EXHAUSTED
   it("returns ok:false envelope with phase/attempts/max data when budget exhausted", async () => {
     const { checkRetryBelowMax } = await import("../../../src/flow/lib/run-gate.js");
     const phase = "task-impl";
-    // Simulate 3 FAIL attempts (default max is 3).
+    // gate-impl maxAttempts = 5 (from definition.js); supply 5 deltas to exhaust.
     const ctx = {
       root: process.cwd(),
-      config: { flow: { retry: { max: 3 } } },
+      config: {},
       flowState: {
-        metrics: [
-          { phase, counter: "gateRetry", delta: 1 },
-          { phase, counter: "gateRetry", delta: 1 },
-          { phase, counter: "gateRetry", delta: 1 },
-        ],
+        metrics: Array.from({ length: 5 }, () => ({ phase, counter: "gateRetry", delta: 1 })),
       },
     };
     const result = checkRetryBelowMax(ctx, phase);
@@ -242,8 +238,8 @@ describe("R1b: checkRetryBelowMax returns envelope with ESCALATE_RETRY_EXHAUSTED
     assert.equal(result.ok, false);
     assert.equal(result.errors[0].code, "ESCALATE_RETRY_EXHAUSTED");
     assert.equal(result.data.phase, phase);
-    assert.equal(result.data.attempts, 3);
-    assert.equal(result.data.max, 3);
+    assert.equal(result.data.attempts, 5);
+    assert.equal(result.data.max, 5);
   });
 
   it("returns null when budget is still available", async () => {

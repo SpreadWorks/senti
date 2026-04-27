@@ -11,6 +11,7 @@ import { execFileSync } from "child_process";
 import { join } from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { findStepById } from "../../../src/flow/definition.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 describe("flow set step", () => {
@@ -46,7 +47,7 @@ describe("flow set step", () => {
     assert.equal(envelope.key, "step");
 
     const loaded = makeFlowManager(tmp).load();
-    const branch = loaded.steps.find((s) => s.id === "branch");
+    const branch = findStepById(loaded.steps, "branch");
     assert.equal(branch.status, "done");
   });
 

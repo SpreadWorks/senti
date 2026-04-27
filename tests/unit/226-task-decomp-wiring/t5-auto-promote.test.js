@@ -22,6 +22,7 @@ import {
   buildInitialSteps,
   buildInitialTaskSteps,
 } from "../../../src/lib/flow-helpers.js";
+import { flattenSteps, findStepById } from "../../../src/flow/definition.js";
 import { syncSpecTasksToFlow } from "../../../src/flow/lib/sync-spec-tasks.js";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -260,10 +261,9 @@ describe("T-5: auto-promote function and callers", () => {
     const doneStepIds = [
       "branch", "prepare-spec", "draft", "gate-draft", "spec",
       "gate", "approval", "test", "implement", "gate-impl",
-      "integration-run-all-tests", "integration-evaluate",
       "review",
     ];
-    for (const s of steps) {
+    for (const s of flattenSteps(steps)) {
       if (doneStepIds.includes(s.id)) s.status = "done";
       else if (s.id === "finalize") s.status = "in_progress";
     }
@@ -297,9 +297,8 @@ describe("T-5: auto-promote function and callers", () => {
     const tasks = [t1, makePendingTask("T-2")];
     const steps = buildInitialSteps();
     // implement step at flow level must be in_progress for context
-    for (const s of steps) {
-      if (s.id === "implement") s.status = "in_progress";
-    }
+    const impl = findStepById(steps, "implement");
+    if (impl) impl.status = "in_progress";
     setupFlow(tmp, {
       tasks,
       currentTaskId: "T-1",

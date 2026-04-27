@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { flattenSteps, findStepById } from "../../../src/flow/definition.js";
 import {
   resolveAutoCheckInput,
   isSpecApproved,
@@ -21,9 +22,12 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
   });
 
   function stepsWith(doneIds = []) {
-    return buildInitialSteps().map((s) =>
-      doneIds.includes(s.id) ? { ...s, status: "done" } : s,
-    );
+    const steps = buildInitialSteps();
+    for (const id of doneIds) {
+      const step = findStepById(steps, id);
+      if (step) step.status = "done";
+    }
+    return steps;
   }
 
   // R1 — isSpecApproved detection

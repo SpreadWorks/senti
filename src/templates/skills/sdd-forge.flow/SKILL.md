@@ -107,7 +107,7 @@ Repeat until the loop exit condition is met:
 
 C.1. **Ask the CLI for the next action**
    - Run `sdd-forge flow get next-action`.
-   - The CLI auto-promotes the next pending step on `done` transitions and, as a safety net, when no `in_progress` step exists at call time. Do not manually `flow set step <id> in_progress` to advance the flow.
+   - The CLI auto-promotes the next pending step on `done` transitions via the definition hierarchy. Do not manually `flow set step <id> in_progress` to advance the flow.
    - If all mainline steps are `done` or `skipped` → loop exit (CLI returns `NO_IN_PROGRESS_STEP`).
    - Otherwise, consume the returned envelope: `action`, `instructions.content`, `context`, `output_schema`, `requires_approval`.
 

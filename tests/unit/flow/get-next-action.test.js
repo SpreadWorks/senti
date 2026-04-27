@@ -13,7 +13,6 @@ import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
 import fs from "node:fs";
-import os from "node:os";
 import pathMod from "node:path";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
@@ -23,6 +22,7 @@ import {
   buildInitialSteps,
   buildInitialTaskSteps,
 } from "../../../src/lib/flow-helpers.js";
+import { flattenSteps, findStepById } from "../../../src/flow/definition.js";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
 
 const CLI = join(process.cwd(), "src/sdd-forge.js");
@@ -59,8 +59,8 @@ function setupActiveFlow(tmp, overrides = {}) {
 }
 
 function setFlowStepInProgress(state, stepId) {
-  for (const s of state.steps) s.status = "pending";
-  const step = state.steps.find((x) => x.id === stepId);
+  for (const s of flattenSteps(state.steps)) s.status = "pending";
+  const step = findStepById(state.steps, stepId);
   assert.ok(step, `step ${stepId} must exist in FLOW_STEPS`);
   step.status = "in_progress";
 }
@@ -162,15 +162,6 @@ describe("flow get next-action", () => {
       assert.equal(envelope.data.requires_approval, true);
     });
 
-    it("flow integration-evaluate step has requires_approval: true", () => {
-      tmp = createTmpDir();
-      const state = setupActiveFlow(tmp);
-      setFlowStepInProgress(state, "integration-evaluate");
-      makeFlowManager(tmp).save(state);
-      const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
-      assert.equal(envelope.data.requires_approval, true);
-    });
-
     it("flow finalize step has requires_approval: true", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
@@ -186,7 +177,6 @@ describe("flow get next-action", () => {
       const falsyFlowSteps = [
         "draft", "gate-draft", "spec", "gate", "test",
         "implement", "gate-impl",
-        "integration-run-all-tests",
         "review",
       ];
       for (const id of falsyFlowSteps) {
@@ -259,7 +249,7 @@ describe("flow get next-action", () => {
       // Simulate a post-gate state: branch/prepare-spec/draft/gate-draft all done,
       // next pending step is `spec`. No step is currently in_progress.
       const prefixDone = ["branch", "prepare-spec", "draft", "gate-draft"];
-      for (const s of state.steps) {
+      for (const s of flattenSteps(state.steps)) {
         s.status = prefixDone.includes(s.id) ? "done" : "pending";
       }
       makeFlowManager(tmp).save(state);
@@ -272,14 +262,14 @@ describe("flow get next-action", () => {
 
       // State should be persisted: the promoted step now has in_progress status.
       const reloaded = makeFlowManager(tmp).load();
-      const promoted = reloaded.steps.find((s) => s.id === "spec");
+      const promoted = findStepById(reloaded.steps, "spec");
       assert.equal(promoted.status, "in_progress", "fallback persists the promotion to flow.json");
     });
 
     it("still errors NO_IN_PROGRESS_STEP when every step is done/skipped", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
-      for (const s of state.steps) s.status = "done";
+      for (const s of flattenSteps(state.steps)) s.status = "done";
       makeFlowManager(tmp).save(state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
@@ -291,17 +281,18 @@ describe("flow get next-action", () => {
   });
 
   describe("rule missing (REQ-9)", () => {
-    it("returns ok:false when in_progress step has no rule entry", () => {
+    it("returns ok:false when in_progress step has no definition entry", () => {
       tmp = createTmpDir();
-      // `branch` is a FLOW_STEP but not in context-rules.json (automatic step)
-      const state = setupActiveFlow(tmp);
-      setFlowStepInProgress(state, "branch");
+      // Inject a fabricated step that does not exist in definition.js.
+      const state = setupActiveFlow(tmp, {
+        steps: [{ id: "__unknown-step__", status: "in_progress" }],
+      });
       makeFlowManager(tmp).save(state);
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.ok, false);
       assert.notEqual(exitCode, 0);
       const msgs = envelope.errors.flatMap((e) => e.messages);
-      assert.ok(msgs.some((m) => m.includes("branch")), "error mentions offending step");
+      assert.ok(msgs.some((m) => m.includes("__unknown-step__")), "error mentions offending step");
     });
   });
 
@@ -331,71 +322,9 @@ describe("flow get next-action", () => {
 
   });
 
-  describe("data-only extensibility (REQ-11)", () => {
-    it("new flow step can be added via JSON only, no code change required", () => {
-      tmp = createTmpDir();
-      // Stage a standalone schema dir with a fabricated `__test-new-step__` rule,
-      // proving the resolver is purely data-driven.
-      const stubDir = fs.mkdtempSync(pathMod.join(os.tmpdir(), "next-action-stub-"));
-      fs.mkdirSync(pathMod.join(stubDir, "next-action"));
-      fs.writeFileSync(
-        pathMod.join(stubDir, "context-rules.json"),
-        JSON.stringify({
-          flow: {
-            "__test-new-step__": {
-              action: "test-action",
-              instructions_key: "test.key",
-              context_kinds: ["spec"],
-              output_schema_ref: "next-action/__test__.schema.json",
-              requires_approval: false,
-            },
-          },
-          task: {},
-        }),
-      );
-      fs.writeFileSync(
-        pathMod.join(stubDir, "next-action", "__test__.schema.json"),
-        JSON.stringify({ type: "object", required: ["ok"], properties: { ok: { type: "boolean" } } }),
-      );
-
-      // Stage a prompt markdown for the fabricated step under a separate tmp dir.
-      // After spec 203 / cac6/T6, adding a new step requires both context-rules.json
-      // entry AND a markdown file at <prompts-root>/<phase>/<step>.md.
-      const promptsStubDir = fs.mkdtempSync(pathMod.join(os.tmpdir(), "next-action-prompts-stub-"));
-      fs.mkdirSync(pathMod.join(promptsStubDir, "test"));
-      fs.writeFileSync(
-        pathMod.join(promptsStubDir, "test", "key.md"),
-        "stub prompt content for __test-new-step__",
-      );
-
-      try {
-        const state = setupActiveFlow(tmp, {
-          steps: [{ id: "__test-new-step__", status: "in_progress" }],
-        });
-        makeFlowManager(tmp).save(state);
-
-        const out = execFileSync("node", [CLI, "flow", "get", "next-action"], {
-          encoding: "utf8",
-          env: {
-            ...process.env,
-            SDD_FORGE_WORK_ROOT: tmp,
-            SDD_FORGE_NEXT_ACTION_SCHEMA_DIR: stubDir,
-            // T6 added the prompts-dir override; staging both schema and prompt
-            // dirs is what keeps REQ-11 (data-only extensibility) intact.
-            SDD_FORGE_NEXT_ACTION_PROMPTS_DIR: promptsStubDir,
-          },
-        });
-        const envelope = JSON.parse(out);
-        assert.equal(envelope.ok, true);
-        assert.equal(envelope.data.step, "__test-new-step__");
-        assert.equal(envelope.data.action, "test-action");
-        assert.equal(envelope.data.output_schema.type, "object");
-      } finally {
-        fs.rmSync(stubDir, { recursive: true, force: true });
-        fs.rmSync(promptsStubDir, { recursive: true, force: true });
-      }
-    });
-  });
+  // REQ-11 (data-only extensibility via context-rules.json) was removed:
+  // definition.js is now the single source of truth. Adding a step requires
+  // editing definition.js, which is a code change by design.
 
   describe("instructions identifier (spec 203 scope, not T6)", () => {
     it("instructions is an object with a `key` field (identifier, not body)", () => {

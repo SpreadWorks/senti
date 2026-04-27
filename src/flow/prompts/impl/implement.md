@@ -1,4 +1,3 @@
-   - **On start**: `sdd-forge flow set step implement in_progress`
    - Read the spec to understand requirements.
    - **Test-only spec detection (autoApprove mode):** If the spec's Goal, Scope, and Requirements indicate that only tests are being added (no production code changes), and `autoApprove: true`:
      1. Set `sdd-forge flow set step implement skipped`

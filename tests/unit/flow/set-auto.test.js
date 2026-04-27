@@ -6,6 +6,7 @@ import path from "path";
 import os from "os";
 import { execFileSync, spawnSync } from "node:child_process";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { findStepById } from "../../../src/flow/definition.js";
 import {
   writeStubAgentScript,
   writeCapturingStubAgentScript,
@@ -214,7 +215,7 @@ describe("flow set auto", () => {
   it("skips auto-check when approval step is done (R1/R2)", () => {
     tmp = createTmpProject(lowResponse()); // would reject if auto-check ran
     const steps = buildInitialSteps();
-    const approvalStep = steps.find((s) => s.id === "approval");
+    const approvalStep = findStepById(steps, "approval");
     approvalStep.status = "done";
     const state = {
       spec: "specs/001-test/spec.md",
@@ -273,9 +274,8 @@ describe("flow set auto", () => {
     );
 
     // Mark gate-draft done (phase 2) per spec 220
-    const steps = buildInitialSteps().map((s) =>
-      s.id === "gate-draft" ? { ...s, status: "done" } : s,
-    );
+    const steps = buildInitialSteps();
+    findStepById(steps, "gate-draft").status = "done";
     const state = {
       spec: "specs/001-test/spec.md",
       baseBranch: "main",

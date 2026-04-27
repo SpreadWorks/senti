@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { TASK_STEPS_PLAN, buildInitialTaskSteps } from "../../../src/lib/flow-helpers.js";
+import { TASK_DEFINITION, resolveNodeFor } from "../../../src/flow/definition.js";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { setupFlow, makeFlowManager } from "../../helpers/flow-setup.js";
 
@@ -46,22 +47,16 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
     }
   });
 
-  it("context-rules.json task scope has no approval/gate/update-overview entries", () => {
-    const rulesPath = path.join(SRC_ROOT, "flow/schemas/context-rules.json");
-    const rules = JSON.parse(fs.readFileSync(rulesPath, "utf8"));
-    const taskKeys = Object.keys(rules.task);
-    assert.ok(!taskKeys.includes("approval"), "task scope must not contain approval");
-    assert.ok(!taskKeys.includes("gate"), "task scope must not contain gate (task-spec gate)");
-    assert.ok(!taskKeys.includes("update-overview"), "task scope must not contain update-overview");
+  it("TASK_DEFINITION has no approval/gate/update-overview entries", () => {
+    const taskIds = TASK_DEFINITION.map((n) => n.id);
+    assert.ok(!taskIds.includes("approval"), "task scope must not contain approval");
+    assert.ok(!taskIds.includes("gate"), "task scope must not contain gate (task-spec gate)");
+    assert.ok(!taskIds.includes("update-overview"), "task scope must not contain update-overview");
   });
 
-  it("context-rules.json task scope has gate-impl entry", () => {
-    const rulesPath = path.join(SRC_ROOT, "flow/schemas/context-rules.json");
-    const rules = JSON.parse(fs.readFileSync(rulesPath, "utf8"));
-    assert.ok(
-      Object.keys(rules.task).includes("gate-impl"),
-      "task scope must contain gate-impl",
-    );
+  it("TASK_DEFINITION has gate-impl entry", () => {
+    const node = resolveNodeFor(TASK_DEFINITION, "gate-impl");
+    assert.ok(node, "task scope must contain gate-impl");
   });
 
   // ── deleted prompts ────────────────────────────────────────────────────────
@@ -541,17 +536,16 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
 
   it("impl overview update is performed in impl step (not as separate update-overview step)", () => {
     // Verify that TASK_STEPS_PLAN does not include "update-overview"
-    // and that context-rules.json's task scope has no "update-overview".
+    // and that TASK_DEFINITION has no "update-overview" entry.
     assert.ok(
       !TASK_STEPS_PLAN.includes("update-overview"),
       "TASK_STEPS_PLAN must not include update-overview as a separate step",
     );
 
-    const rulesPath = path.join(SRC_ROOT, "flow/schemas/context-rules.json");
-    const rules = JSON.parse(fs.readFileSync(rulesPath, "utf8"));
+    const taskIds = TASK_DEFINITION.map((n) => n.id);
     assert.ok(
-      !Object.keys(rules.task).includes("update-overview"),
-      "context-rules.json task scope must not include update-overview",
+      !taskIds.includes("update-overview"),
+      "TASK_DEFINITION must not include update-overview",
     );
 
     // Confirm the impl.md prompt contains the overview update directive.

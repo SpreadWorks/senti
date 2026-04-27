@@ -6,6 +6,7 @@ import {
   derivePhase,
   TASK_STEPS_PLAN,
 } from "../../../src/lib/flow-helpers.js";
+import { findStepById, flattenSteps } from "../../../src/flow/definition.js";
 
 describe("flow-helpers task-aware APIs", () => {
   describe("buildInitialTaskSteps", () => {
@@ -64,7 +65,9 @@ describe("flow-helpers task-aware APIs", () => {
 
     it("returns flow-level phase when flow step is in_progress and no current task", () => {
       const state = makeState();
-      state.steps.find((s) => s.id === "implement").status = "in_progress";
+      // Reset auto-promoted first leaf, then set implement to in_progress.
+      for (const s of flattenSteps(state.steps)) s.status = "pending";
+      findStepById(state.steps, "implement").status = "in_progress";
       assert.equal(derivePhase(state), "impl");
     });
 
@@ -124,7 +127,9 @@ describe("flow-helpers task-aware APIs", () => {
           },
         ],
       });
-      state.steps.find((s) => s.id === "spec").status = "in_progress";
+      // Reset auto-promoted first leaf, then set spec to in_progress.
+      for (const s of flattenSteps(state.steps)) s.status = "pending";
+      findStepById(state.steps, "spec").status = "in_progress";
       assert.equal(derivePhase(state), "plan");
     });
   });

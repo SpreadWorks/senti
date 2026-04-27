@@ -1,0 +1,118 @@
+{
+  "devType": "refactor",
+  "goal": "フロー定義 (FLOW_DEFINITION) を宣言的な一次データとして導入し、step 遷移・retry 上限・時刻記録の責任を definition engine に集約する",
+  "analysis": {
+    "problem": "フローの「形」が registry.js (pre/post hook)、get-next-action.js (procedural next-action)、run-finalize.js (STEP_MAP ハードコード) の3箇所に分散しており、step 遷移責任も prompt / registry hook / CLI 安全ネットの3者に散在している。retry 上限は code 定数・config・prompt literal で不一致。step 時刻は未記録。",
+    "proposedApproach": "フロー構造を宣言的に定義するファイルを1つ新設し、context-rules.json を吸収する。step 遷移・retry 上限・時刻記録の責任をこの definition に集約し、既存の分散したロジックを definition 駆動に置換する。",
+    "validation": "definition 導入により「フローの形」の編集が1ファイルに集約され、3箇所の整合を人力で保つ必要がなくなる。retry 値の不一致も definition の maxAttempts で一元化される。step 時刻は engine の enter/exit で自動記録されるため追加実装不要。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] definition ファイルの新設 — flow get next-action が呼ばれたとき、definition ファイルからフロー構造・ノード属性・タスクテンプレートを参照してアクションを決定する",
+      "[must] context-rules.json の統合と廃止 — flow get next-action が step の prompt / schema / コンテキスト種別を取得するとき、context-rules.json ではなく definition のノード属性から取得する。context-rules.json は削除する",
+      "[must] step 遷移責任の一元化 — step が done に遷移したとき、次の pending ノードへの昇格が単一箇所で行われる。現在3箇所に分散している遷移ロジック (registry hook / prompt 指示 / CLI フォールバック) は撤去する",
+      "[must] gate/approval 副作用の一元化 — gate PASS 時の task 完了・次 task 昇格・overview マージ、および approval done 時の task 同期・auto-upgrade 再評価が、definition から駆動される。現在の registry hook からは撤去する",
+      "[must] next-action 導出の簡素化 — flow get next-action が呼ばれたとき、definition から宣言的に次のアクションを導出する。現行の手続的な条件分岐は撤去する",
+      "[must] retry 上限の一元化 — gate/review 実行時に参照される retry 上限が、definition の maxAttempts 属性から取得される。コード定数・config・prompt literal は撤去する。gate-impl=5、その他は現行 prompt 値に準拠",
+      "[must] flow.json の nested 構造化 — flow prepare 実行時に生成される flow.json が、definition のノード階層に対応する nested 構造で初期化される。旧形式のマイグレーションは行わない",
+      "[must] FLOW_STEPS と関連定数の整理 — definition 導入に伴い、integration 4 ステップを撤去し、finalize 以降の使用されていない sub-step を整理する。フェーズ導出やゲート解決は definition のノード階層から導出する",
+      "[must] 前提条件チェックの導出 — flow get check が呼ばれたとき、前提条件を definition のノード順序から導出する。ハードコードされた PREREQS は撤去する",
+      "[must] step 昇格の階層対応 — step が done に遷移したとき、階層化されたノード内で次に実行すべき pending ノードが正しく特定・昇格される",
+      "[should] leaf の開始・終了時刻の自動記録 — step のステータスが変わったとき、開始・終了の絶対時刻が flow.json に自動記録される",
+      "[should] test step の definition 配置 — definition 上で test ノードが approval と implement の間に位置する",
+      "[should] show-report の definition 除外 — show-report は finalize の内部処理であり、definition 上の独立ノードとしては定義しない",
+      "[should] auto-check の対応 — auto-check が step の完了状態を確認するとき、ハードコード ID ではなく definition から step を特定する",
+      "[should] 既存テストの新構造への修正と、definition の導出ロジックに対するテスト新規作成"
+    ],
+    "out": [
+      "finalize の branch 分解 (bf86 で後続対応)",
+      "CLI コマンド体系の変更 (flow run / flow get 等のインターフェースは維持)",
+      "src/lib/agent.js の MAX_RETRY (インフラリトライ)",
+      "旧 flow.json の自動マイグレーション (alpha ポリシーにより切り捨て)",
+      "alternate flow (YAGNI)",
+      "get-prompt.js のリファクタ (context-rules.json とは別系統)"
+    ]
+  },
+  "impactOnExisting": [
+    "flow.json の構造変更により進行中フローは互換性なし (reset 必要)",
+    "context-rules.json 廃止 (全情報が definition.js に集約)",
+    "SKILL.md のフロー進行指示が簡素化 (skill はパススルーに縮退)",
+    "prompt から step 遷移指示 (On start) と retry 数値が消える",
+    "PHASE_MAP / gate-step.js のマッピング定数が definition 派生に",
+    "FLOW_STEPS / TASK_STEPS_PLAN が definition から派生または置換",
+    "constants.js の VALID_PHASES / VALID_GATE_PHASES が definition から派生",
+    "get-check.js の PREREQS ハードコードが definition ノード順序導出に",
+    "flow-store.js の promoteFirstPending がツリー走査に変更"
+  ],
+  "qa": [
+    {
+      "question": "gate post hook 内のビジネスロジック (completeTask + promoteNextPending, mergeOverviewSpecs) は definition 駆動に移すか registry に残すか (決定事項)",
+      "answer": "definition 駆動に移す",
+      "evidence": "registry.js 行318-392 に gate PASS 時の副作用が集中している",
+      "why": "step 遷移だけでなく gate 成功時の副作用も definition の node 属性で表現し、registry から撤去することで責任を一元化する",
+      "considered": "registry に残す案は step 遷移と副作用の責任が分裂するため却下"
+    },
+    {
+      "question": "既存 flow.json / CLI の後方互換性をどうするか (決定事項)",
+      "answer": "alpha ポリシー適用。旧形式サポートなし。進行中フローは reset 必要",
+      "evidence": "CLAUDE.md の alpha 版ポリシー: 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する",
+      "why": "alpha 期間中は後方互換の維持コストを払わない方針",
+      "considered": "flow.json マイグレーションのみ入れる案。alpha ポリシーに反するため却下"
+    },
+    {
+      "question": "integration-run-all-tests と integration-evaluate の扱い (決定事項)",
+      "answer": "この機会に撤去する。definition, context-rules.json, FLOW_STEPS から全て削除",
+      "evidence": "直近の全フローで4つの integration ステップは常に skipped。spec 235 で write-tests / run-tests は既に削除済み",
+      "why": "使われていないものは削除し、必要になったら再追加する (YAGNI)",
+      "considered": "skippable ノードとして残す案。現時点で使われていないため不要"
+    },
+    {
+      "question": "gate-impl の maxAttempts をどちらに揃えるか (prompt: default 3 vs code: 5) (決定事項)",
+      "answer": "コード側 (5) に揃える",
+      "evidence": "src/flow/lib/run-gate.js の DEFAULT_GATE_RETRY_MAX = 5 が実動作。prompt の default 3 は不一致",
+      "why": "現在の実動作はコード側。3 では足りず失敗で止まるケースを減らせる",
+      "considered": "prompt 側 (3) に揃える案。実動作と異なるため却下"
+    },
+    {
+      "question": "テスト戦略 (決定事項)",
+      "answer": "definition.js の純関数テスト中心。findActiveNode, deriveNextAction, normalizeAttempts 等のヘルパーに対する単体テストを新規作成。既存テストは新しい構造に合わせて修正",
+      "evidence": "tests/unit/flow/ 配下に既存テストがあり、flat steps[] 構造を前提としている",
+      "why": "definition の導出ロジックは入出力が明確なため単体テストしやすい。既存テストは構造変更に追従する必要がある",
+      "considered": "E2E テストのみの案。単体テストの方が信頼性が高く、デバッグしやすい"
+    },
+    {
+      "question": "task-level steps の definition 上の扱い (決定事項)",
+      "answer": "definition に task subtree テンプレートを含める。TASK_STEPS_PLAN + context-rules task セクションを definition に統合",
+      "evidence": "現在 get-next-action.js は flow scope と task scope を選び分けている (行56-69)。task steps は TASK_STEPS_PLAN から初期化される",
+      "why": "definition が flow 全体の一次データとなるなら、task テンプレートも含めるべき。task は動的に増減するが、各 task が持つ step の順序定義は静的",
+      "considered": "task を definition スコープ外にする案。flow-level と task-level で一次データが分裂するため却下"
+    },
+    {
+      "question": "test step と show-report step の扱い (決定事項)",
+      "answer": "test は definition に含める (approval と implement の間)。show-report は definition から除外 (finalize 内部処理に吸収)",
+      "evidence": "test step は直近の全フローで status: done。prompt (plan/test.md) が充実しており有効に動作。show-report は finalize の内部で done マーク後 cleanup で flow.json 削除されるため実質 SKILL.md の後処理",
+      "why": "test は有効なステップとして definition に含める必要がある。show-report は finalize の出力の一部であり独立 step としての意義がない",
+      "considered": "両方含める案。show-report は flow.json 削除後に status 更新不可の問題がある"
+    },
+    {
+      "question": "context-rules.json の扱い (決定事項)",
+      "answer": "definition に統合。instructions_key, context_kinds, output_schema_ref も definition の leaf 属性に移し、context-rules.json を廃止",
+      "evidence": "context-rules.json の action と requiresApproval は既に definition のノード属性と重複。instructions_key / context_kinds / output_schema_ref を加えれば完全に吸収できる",
+      "why": "フローの全情報が definition.js 1 ファイルに集約され、編集箇所が最小化される",
+      "considered": "併存案 (definition は構造、context-rules は実行コンテキスト)。重複が残り2ファイルの整合が必要になるため却下"
+    },
+    {
+      "question": "finalize を branch に分解するか単一 leaf にするか (決定事項)",
+      "answer": "単一 leaf にする。branch 分解は後続 (bf86) で対応",
+      "evidence": "run-finalize.js の内部 STEP_MAP が既に堅牢に動作しており、内部の4ステップを順次実行する仕組みが完成している",
+      "why": "finalize 分解は独立した大きなリファクタ。definition 導入と同時に行うとリスクが高い。leaf → branch 変換は definition の構造上いつでも可能",
+      "considered": "同時に分解する案。実装リスクが大きいため後回し"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-27T15:30:00+09:00",
+    "notes": ""
+  }
+}

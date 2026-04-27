@@ -56,16 +56,6 @@ function tryAppendIssueLog(fn) {
   }
 }
 
-function stepPre(stepId) {
-  return (ctx) => tryUpdateStepStatus(ctx, stepId, "in_progress");
-}
-
-function stepPost(stepId, statusFn) {
-  return (ctx, result) => {
-    const status = statusFn ? statusFn(result) : "done";
-    tryUpdateStepStatus(ctx, stepId, status);
-  };
-}
 
 export const FLOW_COMMANDS = {
   resume: {
@@ -393,7 +383,6 @@ export const FLOW_COMMANDS = {
     },
     review: {
       helpKey: "flow.run.review",
-      pre: stepPre("review"),
       command: () => import("./lib/run-review.js"),
       args: {
         flags: ["--dry-run", "--skip-confirm"],
@@ -409,7 +398,9 @@ export const FLOW_COMMANDS = {
         "  --dry-run        Show proposals without applying",
         "  --skip-confirm   Skip initial confirmation prompt",
       ].join("\n"),
-      post: stepPost("review"),
+      post(ctx, result) {
+        tryUpdateStepStatus(ctx, "review", "done");
+      },
     },
     "auto-check": {
       helpKey: "flow.run.auto-check",

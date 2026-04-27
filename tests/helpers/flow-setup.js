@@ -2,7 +2,8 @@ import fs from "fs";
 import path from "path";
 import { Container } from "../../src/lib/container.js";
 import { FlowManager } from "../../src/lib/flow-manager.js";
-import { FLOW_STEPS } from "../../src/lib/flow-helpers.js";
+import { FLOW_STEPS, buildInitialSteps } from "../../src/lib/flow-helpers.js";
+import { findStepById } from "../../src/flow/definition.js";
 
 /**
  * Build a fresh Container instance with `flowManager` registered for a test
@@ -43,12 +44,11 @@ export function makeDefaultTask(overrides = {}) {
 }
 
 export function makeFlowState(overrides = {}) {
-  const steps = FLOW_STEPS.map((id) => ({ id, status: "pending" }));
   return {
     spec: "specs/001-test/spec.md",
     baseBranch: "main",
     featureBranch: "feature/001-test",
-    steps,
+    steps: buildInitialSteps(),
     requirements: [],
     tasks: [{ ...DEFAULT_TASK }],
     currentTaskId: null,
@@ -68,7 +68,7 @@ export function setupFlow(tmp, overrides = {}) {
 
 export function setStepDone(state, ...ids) {
   for (const id of ids) {
-    const step = state.steps.find((s) => s.id === id);
+    const step = findStepById(state.steps, id);
     if (step) step.status = "done";
   }
 }

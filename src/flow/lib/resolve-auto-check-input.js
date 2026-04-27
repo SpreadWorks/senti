@@ -16,19 +16,27 @@
 
 import fs from "fs";
 import path from "path";
+import { findStepById, flattenSteps, resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
 
 function isStepDone(state, stepId) {
   const steps = state?.steps;
   if (!Array.isArray(steps)) return false;
+  const isNested = steps.some((s) => s.children);
+  if (isNested) {
+    const step = findStepById(steps, stepId);
+    return step?.status === "done";
+  }
   return steps.some((s) => s && s.id === stepId && s.status === "done");
 }
 
 export function isSpecApproved(state) {
-  return isStepDone(state, "approval");
+  const node = resolveNodeFor(FLOW_DEFINITION, "approval");
+  return node ? isStepDone(state, node.id) : false;
 }
 
 function isDraftGateDone(state) {
-  return isStepDone(state, "gate-draft");
+  const node = resolveNodeFor(FLOW_DEFINITION, "gate-draft");
+  return node ? isStepDone(state, node.id) : false;
 }
 
 function loadSpecSiblingText(root, specPath, fileName, { warnOnError = false } = {}) {

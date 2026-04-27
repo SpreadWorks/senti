@@ -2,23 +2,22 @@
  * src/flow/lib/get-check.js
  *
  * Check prerequisites for a phase.
- *
- * ctx.target — one of: impl, finalize, dirty, gh
+ * Prerequisites are derived from the definition hierarchy.
  */
 
 import { isGhAvailable, runGit } from "../../lib/git-helpers.js";
 import { VALID_CHECK_TARGETS } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
+import { derivePrereqs, FLOW_DEFINITION, flattenSteps, findStepById } from "../definition.js";
 
-const PREREQS = {
-  impl: ["gate", "test"],
-  finalize: ["implement"],
-};
-
-function checkStepPrereqs(state, required) {
+function checkStepPrereqs(state, targetId) {
+  const required = derivePrereqs(FLOW_DEFINITION, targetId);
+  const flat = Array.isArray(state.steps) && state.steps.some((s) => s.children)
+    ? flattenSteps(state.steps)
+    : (state.steps || []);
   const checks = [];
   for (const id of required) {
-    const step = state.steps?.find((s) => s.id === id);
+    const step = flat.find((s) => s.id === id);
     const pass = step && (step.status === "done" || step.status === "skipped");
     checks.push({ id, pass, message: pass ? `${id}: ${step.status}` : `${id}: not completed` });
   }
@@ -71,12 +70,11 @@ export default class GetCheckCommand extends FlowCommand {
       return checkGh();
     }
 
-    // impl / finalize — need flow state
     const state = ctx.flowState;
     if (!state) {
       throw new Error("no active flow (flow.json not found)");
     }
 
-    return checkStepPrereqs(state, PREREQS[target]);
+    return checkStepPrereqs(state, target === "impl" ? "implement" : target);
   }
 }

@@ -12,6 +12,7 @@ import {
 } from "../../helpers/stub-agent.js";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
+import { findStepById } from "../../../src/flow/definition.js";
 
 const CMD = path.join(process.cwd(), "src/sdd-forge.js");
 
@@ -71,7 +72,10 @@ function runCli(tmp, args) {
 }
 
 function withStepDone(baseSteps, stepId) {
-  return baseSteps.map((s) => (s.id === stepId ? { ...s, status: "done" } : s));
+  // Nested steps: mutate in-place via findStepById (deep lookup).
+  const step = findStepById(baseSteps, stepId);
+  if (step) step.status = "done";
+  return baseSteps;
 }
 
 describe("flow run auto-check — phase-aware input selection (spec 220)", () => {

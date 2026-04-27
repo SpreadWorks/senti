@@ -4,6 +4,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
 import { makeFlowState, setStepDone, makeFlowManager } from "../../../helpers/flow-setup.js";
+import { findStepById } from "../../../../src/flow/definition.js";
 const FLOW_CMD = join(process.cwd(), "src/sdd-forge.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
@@ -28,7 +29,7 @@ describe("flow get check impl", () => {
     tmp = createTmpDir();
     const state = makeFlowState();
     setStepDone(state, "gate");
-    state.steps.find((s) => s.id === "test").status = "skipped";
+    findStepById(state.steps, "test").status = "skipped";
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
@@ -38,23 +39,12 @@ describe("flow get check impl", () => {
     assert.match(result, /pass.*true/is);
   });
 
-  it("FAIL when gate is not done", () => {
+  it("FAIL when test (last plan-branch leaf) is not done", () => {
+    // In the definition-based model, the only cross-branch prerequisite for
+    // `implement` is `test` (the last leaf of the preceding `plan` branch).
     tmp = createTmpDir();
     const state = makeFlowState();
-    setStepDone(state, "test");
-    makeFlowManager(tmp).save(state);
-    makeFlowManager(tmp).addActiveFlow("001-test", "local");
-    const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
-      encoding: "utf8",
-      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
-    });
-    assert.match(result, /pass.*false/is);
-    assert.match(result, /gate/);
-  });
-
-  it("FAIL when test is not done", () => {
-    tmp = createTmpDir();
-    const state = makeFlowState();
+    // gate is done but test is NOT done → prereq not met.
     setStepDone(state, "gate");
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");

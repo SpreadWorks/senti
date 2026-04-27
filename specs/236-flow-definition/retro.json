@@ -1,0 +1,107 @@
+{
+  "spec": "specs/236-flow-definition/spec.json",
+  "date": "2026-04-27T14:56:05.620Z",
+  "requirements": [
+    {
+      "desc": "definition ファイルの新設 — src/flow/definition.js を新設し、FLOW_DEFINITION (flow-level ノード列) と TASK_DEFINITION (task テンプレート) を単一 export する。各ノードは id, label, action, fallbacks, children, requiresApproval, skippable, maxAttempts, instructionsKey, contextKinds, outputSchemaRef の属性を持つ。",
+      "status": "partial",
+      "note": "definition.js は新設され FLOW_DEFINITION/TASK_DEFINITION を export している。ただし FlowNode コンストラクタに fallbacks 属性が存在せず、代わりに仕様外の sideEffects 属性が追加されている。他の必須属性は揃っている。"
+    },
+    {
+      "desc": "context-rules.json の統合と廃止 — flow get next-action が step の prompt / schema / コンテキスト種別を取得するとき、context-rules.json ではなく definition のノード属性から取得する。src/flow/schemas/context-rules.json は削除する。",
+      "status": "done",
+      "note": "context-rules.json 削除済み。get-next-action.js は deriveNextAction()/definition ノード属性から action/instructionsKey/contextKinds/outputSchemaRef を取得するよう変更済み。"
+    },
+    {
+      "desc": "step 遷移責任の一元化 — step が done に遷移したとき、次の pending ノードへの昇格が definition ベースの単一箇所で行われる。registry.js の stepPre() / stepPost() hook、prompt の 'On start: flow set step <id> in_progress' 行、get-next-action.js の promoteFirstPending / promoteNextPending フォールバックは撤去する。",
+      "status": "done",
+      "note": "stepPre()/stepPost() ヘルパー削除、全プロンプトの On start 行削除、get-next-action.js は promoteNextPendingLeaf(definition ベース)を使用。review の post hook は inline 実装に変わったが flow-store 経由で definition 駆動の昇格が行われる。"
+    },
+    {
+      "desc": "gate/approval 副作用の一元化 — (a) gate PASS 時: completeTask / promoteNextPending / mergeOverviewSpecs が definition 駆動で実行される。registry.js gate post hook から撤去する。(b) approval done 時: syncSpecTasksToFlow / auto-upgrade 再評価が definition 駆動で実行される。set-step.js のハードコード副作用から撤去する。",
+      "status": "partial",
+      "note": "(b) set-step.js の approval 副作用は collectSideEffects() 経由で definition 駆動に変更済み。(a) gate PASS 時の completeTask/promoteNextPending/mergeOverviewSpecs については、definition.js の gate-impl に sideEffects 属性は宣言されているが、registry.js の gate post hook からの撤去がdiff に現れておらず、実行側の移行が確認できない。"
+    },
+    {
+      "desc": "next-action 導出の簡素化 — flow get next-action が呼ばれたとき、definition から宣言的に次のアクションを導出する。get-next-action.js の手続的な resolveTarget / fallback promotion ロジックは definition の導出関数に置換する。",
+      "status": "done",
+      "note": "resolveTarget() 削除、findActiveNode()/deriveNextAction() を使用。fallback promotion も promoteNextPendingLeaf() で definition ベースに置換済み。"
+    },
+    {
+      "desc": "retry 上限の maxAttempts 集約 — gate/review 実行時に参照される retry 上限が、definition の maxAttempts 属性から取得される。以下を撤去する: (a) config.flow.retry.max, (b) DEFAULT_GATE_RETRY_MAX (run-gate.js), (c) MAX_REVIEW_RETRIES (review.js), (d) prompt 内の retry limit 数値。maxAttempts の値: gate-draft=10, gate=20, gate-impl=5, review=3, implement=3, draft=1。",
+      "status": "partial",
+      "note": "DEFAULT_GATE_RETRY_MAX 削除・resolveRetryMax が definition.maxAttempts 参照に変更・prompt の数値削除・定義値 10/20/5/3/3/1 は正しい。config は resolveRetryMax で未参照になった(テストで config:{} で正常動作を確認)。ただし review.js の MAX_REVIEW_RETRIES 削除がdiffに現れていない。"
+    },
+    {
+      "desc": "flow.json の nested 構造化 — flow prepare 実行時に生成される flow.json が、definition のノード階層に対応する nested 構造で初期化される。旧フラット形式のマイグレーションは行わない（alpha ポリシー）。",
+      "status": "done",
+      "note": "buildInitialSteps() が buildInitialNestedSteps(FLOW_DEFINITION) を呼ぶよう変更。run-prepare-spec.js も findStepById() で nested 構造に対応。テスト全体で flattenSteps() を使う対応も行われている。"
+    },
+    {
+      "desc": "FLOW_STEPS と関連定数の整理 — (a) FLOW_STEPS / TASK_STEPS_PLAN を definition から派生させるか置換する。(b) PHASE_MAP を definition のノード階層から派生させる。(c) gate-step.js の PHASE_TO_STEP を definition から派生させる。(d) integration-write-tests, integration-run-tests, integration-run-all-tests, integration-evaluate を FLOW_STEPS と context-rules.json から撤去する。(e) finalize 以降の使われていない sub-step を撤去する。",
+      "status": "partial",
+      "note": "(a)(b)(d)(e) は完了。FLOW_STEPS=collectLeafIds(FLOW_DEFINITION)、PHASE_MAP=derivePhaseMap()、integration 4 ステップ・dead sub-step 撤去済み。(c) gate-step.js の PHASE_TO_STEP_ENTRIES は依然ハードコードされており、definition から派生していない。"
+    },
+    {
+      "desc": "前提条件チェックの definition 導出 — flow get check が呼ばれたとき、前提条件を definition のノード順序から導出する。get-check.js の PREREQS ハードコード ({impl: ['gate', 'test'], finalize: ['implement']}) は撤去する。",
+      "status": "done",
+      "note": "PREREQS 削除済み。checkStepPrereqs が derivePrereqs(FLOW_DEFINITION, targetId) を呼ぶよう変更。テストも definition ベースの前提条件(最後のplan-branch leaf=test)を反映して更新済み。"
+    },
+    {
+      "desc": "step 昇格の階層対応 — step が done に遷移したとき、definition の階層構造内で次に実行すべき pending ノードが正しく特定・昇格される。branch 内の children が全て done/skipped の場合、branch の次の兄弟ノードに進む。",
+      "status": "done",
+      "note": "flow-store.js の updateStepStatus が promoteNextPendingLeaf(steps) を使用。definition.js の promoteNextPendingLeaf は findFirstPendingLeaf で depth-first 走査し、branch 境界を自然に越える実装になっている。"
+    },
+    {
+      "desc": "leaf の開始・終了時刻の自動記録 — step が active に遷移したとき startedAt を、done/failed/skipped に遷移したとき finishedAt を flow.json に自動記録する。",
+      "status": "done",
+      "note": "flow-store.js の updateStepStatus に startedAt/finishedAt の自動記録が追加済み。run-prepare-spec.js でも初期化時に startedAt/finishedAt を設定している。"
+    },
+    {
+      "desc": "test step の definition 配置 — definition 上で test ノードが approval と implement の間に位置する。instructionsKey は plan.test、contextKinds は [spec, guardrail]。",
+      "status": "done",
+      "note": "definition.js の plan ブランチで approval の直後に test ノードが配置。instructionsKey='plan.test'、contextKinds=['spec','guardrail'] ✓。impl ブランチに implement が続く。"
+    },
+    {
+      "desc": "show-report の definition 除外 — show-report は definition 上の独立ノードとして定義しない。run-finalize.js 内部で処理する。FLOW_STEPS から show-report を撤去する。",
+      "status": "done",
+      "note": "FLOW_DEFINITION に show-report ノードなし、show-report.md と show-report.schema.json 削除済み。FLOW_STEPS は definition 派生のため show-report を含まない。"
+    },
+    {
+      "desc": "auto-check の definition 対応 — resolve-auto-check-input.js の isSpecApproved / isDraftGateDone がハードコード step ID ではなく definition ベースで step を特定する。",
+      "status": "done",
+      "note": "isSpecApproved/isDraftGateDone がそれぞれ resolveNodeFor(FLOW_DEFINITION, 'approval'/'gate-draft') 経由で step を特定。isStepDone も nested steps 対応済み。"
+    },
+    {
+      "desc": "SKILL.md の簡素化 — step 遷移指示（'flow set step <id> in_progress' の手動呼び出し）と安全ネットフォールバック（NO_IN_PROGRESS_STEP 時の first pending 昇格）の記述を撤去する。skill は flow get next-action の戻り値をそのまま実行するパススルーとする。",
+      "status": "partial",
+      "note": "SKILL.md の diff は1行変更のみ: 安全ネット言及を削除し 'definition hierarchy' に言い換えた。ただし変更箇所が最小限であり、手動 'flow set step <id> in_progress' 指示の全般的な撤去が diff から確認できない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": ".sdd-forge/config.json",
+      "change": "useProfile を 'codex' から 'default' に変更。flow definition 要件と無関係なプロジェクト設定変更。"
+    },
+    {
+      "file": "src/flow/registry.js",
+      "change": "review コマンドの post hook を stepPost() ヘルパー廃止に伴い inline 実装 (tryUpdateStepStatus 直呼び出し) に置換。R3 の stepPost 撤去対応だが、hook 自体は残存しており仕様の明示的な要件ではない。"
+    },
+    {
+      "file": "tests/unit/lib/flow-helpers-integration-skip.test.js",
+      "change": "integration ステップのスキップ初期化テストファイルを削除。integration ステップ撤去(R8d)に伴う自然な削除だが、要件に明示的な記載はない。"
+    },
+    {
+      "file": "tests/unit/flow/get-next-action.test.js",
+      "change": "'data-only extensibility (REQ-11)' テストスイート全体を削除。context-rules.json による data-only 拡張モデルが definition.js ベースのコード変更モデルに移行したことに伴う変更。"
+    }
+  ],
+  "summary": {
+    "total": 15,
+    "done": 10,
+    "partial": 5,
+    "not_done": 0,
+    "rate": 0.83,
+    "notes": "15 要件のうち 10 件が done、4 件が partial、0 件が not_done。主な未達事項: (1) FlowNode に fallbacks 属性がなく仕様外の sideEffects 属性で代替している(R1)、(2) registry.js の gate PASS 副作用 hook の撤去が diff に現れず R4(a) 完了未確認、(3) gate-step.js の PHASE_TO_STEP_ENTRIES が依然ハードコードで definition 派生になっていない(R8c)、(4) MAX_REVIEW_RETRIES (review.js) 削除がdiff に現れていない(R6)。テストは 2632 件パスしており機能的な動作は確認されているが、仕様上の撤去・置換が一部未達または diff から確認不能。"
+  }
+}

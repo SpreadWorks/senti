@@ -1,14 +1,15 @@
 /**
  * tests/unit/flow/instructions-coverage.test.js
  *
- * Coverage check between src/flow/schemas/context-rules.json and the
- * src/flow/prompts/<phase>/<step>.md file tree (spec 203 / cac6/T6).
+ * Coverage check between src/flow/definition.js instructionsKey values and the
+ * src/flow/prompts/<phase>/<step>.md file tree (spec 203 / cac6/T6, updated
+ * for spec 236 which replaced context-rules.json with definition.js).
  *
  * Asserts:
- * - Every instructions_key registered in context-rules.json maps to an
- *   existing file at src/flow/prompts/<phase>/<step>.md.
+ * - Every instructionsKey in the definition maps to an existing file at
+ *   src/flow/prompts/<phase>/<step>.md.
  * - Every *.md file under src/flow/prompts/ is referenced by at least one
- *   instructions_key (no orphan files).
+ *   instructionsKey (no orphan files).
  */
 
 import { describe, it } from "node:test";
@@ -16,23 +17,28 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { FLOW_DEFINITION, TASK_DEFINITION } from "../../../src/flow/definition.js";
 
 const PKG_DIR = path.resolve(fileURLToPath(import.meta.url), "../../../../src");
-const RULES_PATH = path.join(PKG_DIR, "flow", "schemas", "context-rules.json");
 const PROMPTS_DIR = path.join(PKG_DIR, "flow", "prompts");
 
-function loadRules() {
-  return JSON.parse(fs.readFileSync(RULES_PATH, "utf8"));
-}
-
-function collectInstructionKeys(rules) {
+/**
+ * Collect instructionsKey values from leaf nodes that require AI prompts.
+ * Branch nodes (children != null) and automated steps (no outputSchemaRef)
+ * are excluded — they have instructionsKey for metadata but no prompt file.
+ */
+function collectInstructionKeys(definition) {
   const keys = [];
-  for (const scope of Object.keys(rules)) {
-    for (const stepId of Object.keys(rules[scope])) {
-      const key = rules[scope][stepId].instructions_key;
-      if (typeof key === "string") keys.push(key);
+  function walk(nodes) {
+    for (const node of nodes) {
+      if (node.children) {
+        walk(node.children);
+      } else if (node.instructionsKey && node.outputSchemaRef) {
+        keys.push(node.instructionsKey);
+      }
     }
   }
+  walk(definition);
   return keys;
 }
 
@@ -55,17 +61,17 @@ function collectPromptFiles(dir) {
 
 function keyToFilePath(key) {
   const parts = key.split(".");
-  // Last segment = step file name; everything before = phase directories.
   const stepName = parts.pop();
   return path.join(PROMPTS_DIR, ...parts, `${stepName}.md`);
 }
 
-describe("instructions-coverage (registry ↔ prompt files)", () => {
-  it("every instructions_key in context-rules.json has a matching prompt file", () => {
-    const rules = loadRules();
-    const keys = collectInstructionKeys(rules);
+describe("instructions-coverage (definition ↔ prompt files)", () => {
+  it("every instructionsKey in the definition has a matching prompt file", () => {
+    const flowKeys = collectInstructionKeys(FLOW_DEFINITION);
+    const taskKeys = collectInstructionKeys(TASK_DEFINITION);
+    const keys = [...flowKeys, ...taskKeys];
 
-    assert.ok(keys.length > 0, "registry has at least one instructions_key");
+    assert.ok(keys.length > 0, "definition has at least one instructionsKey");
 
     const missing = [];
     for (const key of keys) {
@@ -79,24 +85,26 @@ describe("instructions-coverage (registry ↔ prompt files)", () => {
       `missing prompt files for keys:\n${missing.map((m) => `  ${m.key} -> ${m.expectedPath}`).join("\n")}`);
   });
 
-  it("every prompt file under src/flow/prompts/ is referenced by some instructions_key", () => {
-    const rules = loadRules();
-    const registeredKeys = new Set(collectInstructionKeys(rules));
+  it("every prompt file under src/flow/prompts/ is referenced by some instructionsKey", () => {
+    const flowKeys = collectInstructionKeys(FLOW_DEFINITION);
+    const taskKeys = collectInstructionKeys(TASK_DEFINITION);
+    const registeredKeys = new Set([...flowKeys, ...taskKeys]);
     const files = collectPromptFiles(PROMPTS_DIR);
 
     const orphans = files.filter((f) => !registeredKeys.has(f.key));
     assert.deepEqual(orphans.map((o) => path.relative(PKG_DIR, o.path)), [],
-      "orphan prompt files exist (file present but no instructions_key references it)");
+      "orphan prompt files exist (file present but no instructionsKey references it)");
   });
 
-  it("every instructions_key maps to an existing prompt file", () => {
-    const rules = loadRules();
-    const keys = collectInstructionKeys(rules);
+  it("every instructionsKey maps to an existing prompt file", () => {
+    const flowKeys = collectInstructionKeys(FLOW_DEFINITION);
+    const taskKeys = collectInstructionKeys(TASK_DEFINITION);
+    const keys = [...flowKeys, ...taskKeys];
     const files = collectPromptFiles(PROMPTS_DIR);
     const fileKeys = new Set(files.map((f) => f.key));
 
     const missing = keys.filter((k) => !fileKeys.has(k));
     assert.deepEqual(missing, [],
-      "instructions_keys reference non-existent prompt files");
+      "instructionsKeys reference non-existent prompt files");
   });
 });

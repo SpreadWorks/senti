@@ -6,6 +6,7 @@ import { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../helpers/tmp-dir.js";
 import { buildInitialSteps, FLOW_STEPS } from "../../src/lib/flow-helpers.js";
+import { flattenSteps, findStepById } from "../../src/flow/definition.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
 
 // ── .active-flow pointer tests ──────────────────────────────────────────────
@@ -183,10 +184,13 @@ describe("flow-state steps and requirements", () => {
     assert.ok(!FLOW_STEPS.includes("archive"), "archive step should be removed");
   });
 
-  it("buildInitialSteps creates pending entries for all steps", () => {
+  it("buildInitialSteps creates nested entries covering all leaf step ids", () => {
     const steps = buildInitialSteps();
-    assert.equal(steps.length, FLOW_STEPS.length);
-    for (const step of steps) {
+    const flat = flattenSteps(steps);
+    assert.equal(flat.length, FLOW_STEPS.length);
+    // First leaf is promoted to in_progress by buildInitialNestedSteps;
+    // all others should be pending.
+    for (const step of flat.slice(1)) {
       assert.equal(step.status, "pending");
     }
   });
@@ -196,7 +200,7 @@ describe("flow-state steps and requirements", () => {
     const specId = setupFlow(tmp);
     makeFlowManager(tmp).updateStepStatus("gate", "done");
     const loaded = makeFlowManager(tmp).load();
-    const gate = loaded.steps.find((s) => s.id === "gate");
+    const gate = findStepById(loaded.steps, "gate");
     assert.equal(gate.status, "done");
   });
 
@@ -209,9 +213,9 @@ describe("flow-state steps and requirements", () => {
     fm.updateStepStatus("branch", "in_progress");
     fm.updateStepStatus("branch", "done");
     const loaded = fm.load();
-    const branch = loaded.steps.find((s) => s.id === "branch");
+    const branch = findStepById(loaded.steps, "branch");
     assert.equal(branch.status, "done");
-    const prepareSpec = loaded.steps.find((s) => s.id === "prepare-spec");
+    const prepareSpec = findStepById(loaded.steps, "prepare-spec");
     assert.equal(prepareSpec.status, "in_progress", "first pending step should be promoted to in_progress");
   });
 
@@ -224,9 +228,9 @@ describe("flow-state steps and requirements", () => {
     fm.updateStepStatus("branch", "in_progress");
     fm.updateStepStatus("branch", "done");
     const loaded = fm.load();
-    const prepareSpec = loaded.steps.find((s) => s.id === "prepare-spec");
+    const prepareSpec = findStepById(loaded.steps, "prepare-spec");
     assert.equal(prepareSpec.status, "skipped", "skipped stays skipped");
-    const draft = loaded.steps.find((s) => s.id === "draft");
+    const draft = findStepById(loaded.steps, "draft");
     assert.equal(draft.status, "in_progress", "first pending (draft) is promoted, skipped is bypassed");
   });
 
@@ -238,11 +242,11 @@ describe("flow-state steps and requirements", () => {
     fm.updateStepStatus("spec", "in_progress");
     fm.updateStepStatus("branch", "done");
     const loaded = fm.load();
-    const spec = loaded.steps.find((s) => s.id === "spec");
+    const spec = findStepById(loaded.steps, "spec");
     assert.equal(spec.status, "in_progress", "pre-existing in_progress step is not touched");
-    const prepareSpec = loaded.steps.find((s) => s.id === "prepare-spec");
+    const prepareSpec = findStepById(loaded.steps, "prepare-spec");
     assert.equal(prepareSpec.status, "pending", "no new promotion happens when in_progress already exists");
-    const draft = loaded.steps.find((s) => s.id === "draft");
+    const draft = findStepById(loaded.steps, "draft");
     assert.equal(draft.status, "pending", "no downstream promotion happens either");
   });
 
@@ -254,7 +258,7 @@ describe("flow-state steps and requirements", () => {
     // Move branch back to pending — no promotion should happen.
     fm.updateStepStatus("branch", "pending");
     const loaded = fm.load();
-    const prepareSpec = loaded.steps.find((s) => s.id === "prepare-spec");
+    const prepareSpec = findStepById(loaded.steps, "prepare-spec");
     assert.equal(prepareSpec.status, "pending", "pending transition does not trigger promotion");
   });
 
@@ -262,15 +266,16 @@ describe("flow-state steps and requirements", () => {
     tmp = createTmpDir();
     setupFlow(tmp);
     const fm = makeFlowManager(tmp);
-    // Mark everything done / skipped except the final step.
+    // Mark every leaf done.
     const state = fm.load();
-    for (const s of state.steps) s.status = "done";
+    const flat = flattenSteps(state.steps);
+    for (const s of flat) s.status = "done";
     fm.save(state);
-    // Transition final step again — no pending left, so nothing to promote.
-    const lastStep = state.steps[state.steps.length - 1];
+    // Transition final leaf step again — no pending left, so nothing to promote.
+    const lastStep = flat[flat.length - 1];
     fm.updateStepStatus(lastStep.id, "done");
     const loaded = fm.load();
-    for (const s of loaded.steps) assert.equal(s.status, "done");
+    for (const s of flattenSteps(loaded.steps)) assert.equal(s.status, "done");
   });
 });
 

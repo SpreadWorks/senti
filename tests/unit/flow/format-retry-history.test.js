@@ -34,12 +34,12 @@ function seedIssueLog(specDir, entries) {
   );
 }
 
+/**
+ * Build enough gateRetry deltas to exhaust the budget for the given phase.
+ * Since spec 236, maxAttempts is sourced from definition.js (gate-impl = 5).
+ */
 function exhaustedMetrics(phase) {
-  return [
-    { phase, counter: "gateRetry", delta: 1 },
-    { phase, counter: "gateRetry", delta: 1 },
-    { phase, counter: "gateRetry", delta: 1 },
-  ];
+  return Array.from({ length: 5 }, () => ({ phase, counter: "gateRetry", delta: 1 }));
 }
 
 function extractPreviousFailReasons(envelope) {

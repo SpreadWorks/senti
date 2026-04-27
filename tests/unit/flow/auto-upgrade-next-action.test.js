@@ -6,6 +6,7 @@ import os from "os";
 import { spawnSync } from "node:child_process";
 import { setupFlow, setStepDone } from "../../helpers/flow-setup.js";
 import { makeFlowManager } from "../../helpers/flow-setup.js";
+import { findStepById } from "../../../src/flow/definition.js";
 
 function createTmp() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "auto-upgrade-na-"));
@@ -42,7 +43,7 @@ describe("spec 232: autoUpgrade in next-action envelope (R3, T-4)", () => {
       autoUpgrade: { available: true, reason: "re-eval eligible" },
     });
     setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval");
-    const testStep = state.steps.find((s) => s.id === "test");
+    const testStep = findStepById(state.steps, "test");
     testStep.status = "in_progress";
     makeFlowManager(tmp).save(state);
 
@@ -58,7 +59,7 @@ describe("spec 232: autoUpgrade in next-action envelope (R3, T-4)", () => {
     tmp = createTmp();
     const state = setupFlow(tmp);
     setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval");
-    const testStep = state.steps.find((s) => s.id === "test");
+    const testStep = findStepById(state.steps, "test");
     testStep.status = "in_progress";
     makeFlowManager(tmp).save(state);
 

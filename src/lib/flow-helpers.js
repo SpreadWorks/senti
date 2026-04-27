@@ -9,6 +9,15 @@
  */
 
 import path from "path";
+import {
+  FLOW_DEFINITION,
+  TASK_DEFINITION,
+  collectLeafIds,
+  derivePhaseMap,
+  buildInitialNestedSteps,
+  buildInitialTaskSteps as buildTaskStepsFromDef,
+  flattenSteps,
+} from "../flow/definition.js";
 
 export const STATE_FILE = "flow.json";
 export const ACTIVE_FLOW_FILE = ".active-flow";
@@ -17,34 +26,11 @@ export const PREPARING_TTL_MS = 60 * 60 * 1000;
 export const PREPARING_SCAN_LIMIT = 100;
 export const SCAN_FLOWS_LIMIT = 200;
 
-/** SDD workflow step IDs in order (flow level). */
-export const FLOW_STEPS = [
-  "branch", "prepare-spec", "draft", "gate-draft", "spec",
-  "gate", "approval", "test", "implement", "gate-impl",
-  "integration-write-tests", "integration-run-tests",
-  "integration-run-all-tests", "integration-evaluate",
-  "review", "finalize",
-  "commit", "push", "merge", "pr-create", "branch-cleanup",
-  "pr-merge", "sync-cleanup", "docs-update", "docs-review", "docs-commit",
-  "show-report",
-];
+/** SDD workflow step IDs in order (flow level). Derived from definition. */
+export const FLOW_STEPS = collectLeafIds(FLOW_DEFINITION);
 
-/** Step ID → phase mapping (flow level). */
-export const PHASE_MAP = {
-  branch: "plan", "prepare-spec": "plan", draft: "plan",
-  "gate-draft": "plan", spec: "plan", gate: "plan", approval: "plan", test: "plan",
-  implement: "impl", "gate-impl": "impl",
-  "integration-write-tests": "impl",
-  "integration-run-tests": "impl",
-  "integration-run-all-tests": "impl",
-  "integration-evaluate": "impl",
-  review: "impl", finalize: "impl",
-  commit: "finalize", push: "finalize", merge: "finalize",
-  "pr-create": "finalize", "branch-cleanup": "finalize",
-  "pr-merge": "sync", "sync-cleanup": "sync",
-  "docs-update": "sync", "docs-review": "sync", "docs-commit": "sync",
-  "show-report": "sync",
-};
+/** Step ID → phase mapping (flow level). Derived from definition. */
+export const PHASE_MAP = derivePhaseMap(FLOW_DEFINITION);
 
 /** Valid values for Task.origin. */
 export const TASK_ORIGINS = ["plan", "integration"];
@@ -58,23 +44,13 @@ export const TASK_STEP_STATUSES = ["pending", "in_progress", "done", "skipped"];
 /** Valid values for Task.requirements[].status. */
 export const TASK_REQUIREMENT_STATUSES = ["pending", "done"];
 
-/**
- * Task-level step sequence (spec 235: reduced from 5 to 3 steps).
- *
- * Removed:
- *  - "write-tests" — test responsibility moved to spec level (spec 235)
- *  - "run-tests" — test execution moved to spec level (spec 235)
- */
-export const TASK_STEPS_PLAN = [
-  "impl", "review", "gate-impl",
-];
+/** Task-level step sequence. Derived from TASK_DEFINITION. */
+export const TASK_STEPS_PLAN = TASK_DEFINITION.map((n) => n.id);
 
 /** Task-level step → phase mapping. */
-export const TASK_PHASE_MAP = {
-  impl: "task-impl",
-  review: "task-impl",
-  "gate-impl": "task-impl",
-};
+export const TASK_PHASE_MAP = Object.fromEntries(
+  TASK_DEFINITION.map((n) => [n.id, "task-impl"]),
+);
 
 /**
  * Extract the spec name (e.g. "152-add-logger-to-callsites") from a flow object or state.
@@ -127,42 +103,22 @@ export function derivePhase(state) {
 
   const steps = state.steps;
   if (!steps?.length) return "plan";
-  const inProgress = steps.find((s) => s.status === "in_progress" && PHASE_MAP[s.id]);
+  const flat = Array.isArray(steps[0]?.children) ? flattenSteps(steps) : steps;
+  const inProgress = flat.find((s) => s.status === "in_progress" && PHASE_MAP[s.id]);
   if (inProgress) return PHASE_MAP[inProgress.id];
   let lastDone = null;
-  for (const s of steps) {
+  for (const s of flat) {
     if ((s.status === "done" || s.status === "skipped") && PHASE_MAP[s.id]) lastDone = s;
   }
   if (!lastDone) return "plan";
   return PHASE_MAP[lastDone.id];
 }
 
-/** Integration step IDs that are skipped when a flow has no tasks. */
-export const INTEGRATION_STEP_IDS = [
-  "integration-write-tests",
-  "integration-run-tests",
-  "integration-run-all-tests",
-  "integration-evaluate",
-];
-
 /**
- * Build initial flow-level steps array.
- *
- * When called with `{ tasks: [] }` (no tasks in the spec), integration-*
- * steps are initialized as `skipped` so skill step-scanners naturally jump
- * over them. When tasks are present (or when no argument is passed), all
- * steps start as `pending`.
- *
- * @param {{ tasks?: Array<unknown> }} [opts]
- * @returns {Array<{id:string, status:"pending"|"skipped"}>}
+ * Build initial flow-level steps as a nested structure from the definition.
  */
-export function buildInitialSteps(opts) {
-  const tasks = opts?.tasks;
-  const skipIntegration = Array.isArray(tasks) && tasks.length === 0;
-  return FLOW_STEPS.map((id) => ({
-    id,
-    status: skipIntegration && INTEGRATION_STEP_IDS.includes(id) ? "skipped" : "pending",
-  }));
+export function buildInitialSteps() {
+  return buildInitialNestedSteps(FLOW_DEFINITION);
 }
 
 /**
@@ -175,7 +131,7 @@ export function buildInitialTaskSteps(origin) {
   if (origin !== "plan" && origin !== "integration") {
     throw new Error(`unknown task origin: ${origin}`);
   }
-  return TASK_STEPS_PLAN.map((id) => ({ id, status: "pending" }));
+  return buildTaskStepsFromDef();
 }
 
 /**

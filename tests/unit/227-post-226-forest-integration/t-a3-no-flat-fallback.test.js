@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 import { setupFlow, makeFlowManager, setStepDone, makeFlowState } from "../../helpers/flow-setup.js";
+import { findStepById } from "../../../src/flow/definition.js";
 
 describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
   let tmp;
@@ -41,7 +42,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
       currentTaskId: "T-1",
     });
     setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval", "test", "implement", "gate-impl", "review");
-    const step = state.steps.find((s) => s.id === "finalize");
+    const step = findStepById(state.steps, "finalize");
     if (step) step.status = "in_progress";
     const fm = makeFlowManager(tmp);
     fm.save(state);

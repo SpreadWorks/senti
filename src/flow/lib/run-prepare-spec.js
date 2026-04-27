@@ -12,6 +12,7 @@ import { sddDir, DEFAULT_LANG } from "../../lib/config.js";
 import { assertOk } from "../../lib/process.js";
 import { translate } from "../../lib/i18n.js";
 import { buildInitialSteps } from "../../lib/flow-helpers.js";
+import { findStepById } from "../definition.js";
 import { getWorktreeStatus, runGit } from "../../lib/git-helpers.js";
 import { emptySpecStub } from "../../lib/spec-json.js";
 import { renderSpecMarkdown } from "../../spec/commands/render.js";
@@ -240,10 +241,18 @@ export class RunPrepareSpecCommand extends FlowCommand {
       // initialize as `skipped` (spec 198 REQ-P4-1); tasks added later
       // during the flow do not retroactively un-skip them — the skip
       // state reflects "no tasks declared up-front".
-      const steps = buildInitialSteps({ tasks: [] });
+      const steps = buildInitialSteps();
       for (const id of ["branch", "prepare-spec"]) {
-        const step = steps.find((s) => s.id === id);
-        if (step) step.status = "done";
+        const step = findStepById(steps, id);
+        if (step) {
+          step.status = "done";
+          step.finishedAt = new Date().toISOString();
+        }
+      }
+      const draftStep = findStepById(steps, "draft");
+      if (draftStep) {
+        draftStep.status = "in_progress";
+        draftStep.startedAt = new Date().toISOString();
       }
       const state = {
         spec: `specs/${specDirName}/spec.json`,

@@ -2,9 +2,8 @@
  * src/flow/lib/set-step.js
  *
  * Update a workflow step's status.
- *
- * ctx.id     — step ID
- * ctx.status — new status string
+ * Side effects (syncSpecTasks, autoUpgradeReeval) are driven by
+ * the definition's sideEffects attribute — not hardcoded step IDs.
  */
 
 import { FlowCommand } from "./base-command.js";
@@ -14,6 +13,12 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { syncSpecTasksToFlow } from "./sync-spec-tasks.js";
 import { runAutoCheckCore } from "./run-auto-check.js";
 import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
+import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
+
+function collectSideEffects(stepId) {
+  const node = resolveNodeFor(FLOW_DEFINITION, stepId);
+  return node?.sideEffects || [];
+}
 
 export default class SetStepCommand extends FlowCommand {
   async execute(ctx) {
@@ -37,53 +42,52 @@ export default class SetStepCommand extends FlowCommand {
       container.get("logger").event("flow-step-change", { step: id, status });
     }
 
-    // REQ-2 (spec 215): approval post-hook — when the user marks the
-    // parent-level approval step as done, reflect spec.json tasks[] into
-    // flow.json tasks[] (differential append, preserving existing tasks).
     let extras = null;
-    if (id === "approval" && status === "done") {
-      try {
-        const syncResult = syncSpecTasksToFlow({ root: ctx.root });
-        if (syncResult.added?.length > 0) {
-          extras = { tasksSynced: syncResult.added };
-        }
-      } catch (err) {
-        process.stderr.write(
-          `[sdd-forge] set-step approval: task sync failed (${err.message})\n`,
-        );
-        if (container.has("logger")) {
-          container.get("logger").event("approval-sync-error", { error: err.message });
+    if (status === "done") {
+      const effects = collectSideEffects(id);
+
+      if (effects.includes("syncSpecTasks")) {
+        try {
+          const syncResult = syncSpecTasksToFlow({ root: ctx.root });
+          if (syncResult.added?.length > 0) {
+            extras = { tasksSynced: syncResult.added };
+          }
+        } catch (err) {
+          process.stderr.write(
+            `[sdd-forge] set-step ${id}: task sync failed (${err.message})\n`,
+          );
+          if (container.has("logger")) {
+            container.get("logger").event("approval-sync-error", { error: err.message });
+          }
         }
       }
-    }
 
-    // Spec 232 R2: re-evaluate auto-check on draft→done / approval→done
-    // when the user desired auto mode but was rejected earlier.
-    if (status === "done" && (id === "draft" || id === "approval")) {
-      try {
-        const state = ctx.flowManager.load();
-        if (state?.autoDesired === true && state?.autoApprove !== true) {
-          const paths = { root: ctx.root, specPath: state.spec };
-          const resolved = resolveAutoCheckInput(state, paths);
-          let verdict;
-          if (resolved.skip) {
-            verdict = buildSkipVerdict();
-          } else {
-            verdict = await runAutoCheckCore(this.container, resolved.text);
+      if (effects.includes("autoUpgradeReeval")) {
+        try {
+          const state = ctx.flowManager.load();
+          if (state?.autoDesired === true && state?.autoApprove !== true) {
+            const paths = { root: ctx.root, specPath: state.spec };
+            const resolved = resolveAutoCheckInput(state, paths);
+            let verdict;
+            if (resolved.skip) {
+              verdict = buildSkipVerdict();
+            } else {
+              verdict = await runAutoCheckCore(this.container, resolved.text);
+            }
+            if (verdict.eligible) {
+              ctx.flowManager.mutate((s) => {
+                s.autoCheck = verdict;
+                s.autoUpgrade = { available: true, reason: verdict.reason || "re-evaluation eligible" };
+              });
+              if (!extras) extras = {};
+              extras.autoUpgrade = { available: true };
+            }
           }
-          if (verdict.eligible) {
-            ctx.flowManager.mutate((s) => {
-              s.autoCheck = verdict;
-              s.autoUpgrade = { available: true, reason: verdict.reason || "re-evaluation eligible" };
-            });
-            if (!extras) extras = {};
-            extras.autoUpgrade = { available: true };
-          }
+        } catch (err) {
+          process.stderr.write(
+            `[sdd-forge] set-step auto-upgrade re-eval: ${err.message}\n`,
+          );
         }
-      } catch (err) {
-        process.stderr.write(
-          `[sdd-forge] set-step auto-upgrade re-eval: ${err.message}\n`,
-        );
       }
     }
 

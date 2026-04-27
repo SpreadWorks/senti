@@ -36,13 +36,10 @@ describe("checkRetryBelowMax — REQ-1: writes issue-log on Envelope.fail", () =
   it("appends exactly one issue-log entry when budget is exhausted", () => {
     const tmp = createTmpDir();
     try {
+      // gate-impl maxAttempts = 5 (from definition.js); supply 5 deltas to exhaust.
       const { ctx, specDir } = setupCtx(tmp, {
         phase,
-        metrics: [
-          { phase, counter: "gateRetry", delta: 1 },
-          { phase, counter: "gateRetry", delta: 1 },
-          { phase, counter: "gateRetry", delta: 1 },
-        ],
+        metrics: Array.from({ length: 5 }, () => ({ phase, counter: "gateRetry", delta: 1 })),
       });
       const before = ctx.flowState.metrics.filter(
         (m) => m.phase === phase && m.counter === "gateRetry",

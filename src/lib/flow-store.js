@@ -23,6 +23,7 @@ import {
   TASK_REQUIREMENT_STATUSES,
   isTaskTerminalStatus,
 } from "./flow-helpers.js";
+import { findStepById, promoteNextPendingLeaf, flattenSteps } from "../flow/definition.js";
 
 function specFlowPath(root, specId) {
   return path.join(root, "specs", specId, STATE_FILE);
@@ -302,14 +303,32 @@ export class FlowStore {
       if (!Array.isArray(scope.steps)) {
         throw new Error("flow-store: scope has no steps array");
       }
-      const step = scope.steps.find((s) => s.id === stepId);
+      const isNested = scope.steps.some((s) => s.children);
+      const step = isNested
+        ? findStepById(scope.steps, stepId)
+        : scope.steps.find((s) => s.id === stepId);
       if (!step) throw new Error(`unknown step: ${stepId}`);
       step.status = status;
-      // spec 219: on a →done transition, auto-promote the first pending step
-      // in the same scope to in_progress when no other step is in_progress.
-      // Keeps the single in_progress invariant; removes the need for skill
-      // callers to manually advance to the next step after gate/set-step done.
-      if (status === "done") promoteFirstPending(scope.steps);
+
+      const now = new Date().toISOString();
+      if (status === "in_progress" && !step.startedAt) {
+        step.startedAt = now;
+      }
+      if (status === "done" || status === "skipped" || status === "failed") {
+        step.finishedAt = now;
+      }
+
+      if (status === "done" || status === "skipped") {
+        if (isNested) {
+          const next = promoteNextPendingLeaf(scope.steps);
+          if (next) {
+            next.status = "in_progress";
+            next.startedAt = now;
+          }
+        } else {
+          promoteFirstPending(scope.steps);
+        }
+      }
     });
   }
 
