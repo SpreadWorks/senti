@@ -9,7 +9,6 @@ import {
   countGateRetry,
   checkRetryBelowMax,
   checkNoProgressSinceLastFail,
-  checkMissingHeadTestEvidence,
 } from "../../../src/flow/lib/run-gate.js";
 
 // -----------------------------------------------------------------------------
@@ -92,24 +91,11 @@ describe("pre-rejection does not increment gateRetry (REQ-5)", () => {
       "gateRetry count must remain 1 after pre-rejection");
   });
 
-  it("checkMissingHeadTestEvidence returns Envelope.fail without touching metrics", () => {
-    const flowState = {
-      metrics: [{ phase: "task-impl", counter: "gateRetry", delta: 1 }],
-      test: { summary: null },
-    };
-    const result = checkMissingHeadTestEvidence({
-      phase: "task-impl", flowState,
-    });
-    assert.ok(result, "expected a rejection envelope");
-    assert.equal(result.ok, false);
-    const countAfter = countGateRetry(flowState.metrics, "task-impl");
-    assert.equal(countAfter, 1,
-      "gateRetry count must remain 1 after pre-rejection");
-  });
-
   it("checkRetryBelowMax returns Envelope.fail without incrementing counter", () => {
     const flowState = {
       metrics: [
+        { phase: "task-impl", counter: "gateRetry", delta: 1 },
+        { phase: "task-impl", counter: "gateRetry", delta: 1 },
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
@@ -120,8 +106,8 @@ describe("pre-rejection does not increment gateRetry (REQ-5)", () => {
     assert.ok(result, "expected a rejection envelope");
     assert.equal(result.ok, false);
     const countAfter = countGateRetry(flowState.metrics, "task-impl");
-    assert.equal(countAfter, 3,
-      "gateRetry count must remain 3 after exhaustion check");
+    assert.equal(countAfter, 5,
+      "gateRetry count must remain 5 after exhaustion check");
   });
 });
 
@@ -145,7 +131,7 @@ describe("warnGateRetryBudget includes breakdown (REQ-1)", () => {
       warnGateRetryBudget(ctx, "task-impl");
       assert.match(captured, /AI-FAIL=2/,
         "warnGateRetryBudget must include AI-FAIL count");
-      assert.match(captured, /2\/3/,
+      assert.match(captured, /2\/5/,
         "warnGateRetryBudget must show used/max");
     } finally {
       process.stderr.write = origWrite;
@@ -160,13 +146,15 @@ describe("checkRetryBelowMax includes breakdown in exhaustion message (REQ-2)", 
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
         { phase: "task-impl", counter: "gateRetry", delta: 1 },
+        { phase: "task-impl", counter: "gateRetry", delta: 1 },
+        { phase: "task-impl", counter: "gateRetry", delta: 1 },
       ],
     };
     const ctx = { flowState, config: {}, root: "/tmp", phase: "task-impl" };
     const result = checkRetryBelowMax(ctx, "task-impl");
     assert.ok(result);
     const allMessages = result.errors[0].messages.join("\n");
-    assert.match(allMessages, /Counter breakdown.*AI-FAIL=3/i,
+    assert.match(allMessages, /Counter breakdown.*AI-FAIL=5/i,
       "exhaustion message must include counter breakdown");
   });
 });
@@ -195,19 +183,4 @@ describe("pre-rejection stderr includes budget-not-consumed hint (REQ-3)", () =>
     }
   });
 
-  it("checkMissingHeadTestEvidence includes budget-not-consumed in stderr", () => {
-    const origWrite = process.stderr.write;
-    let captured = "";
-    process.stderr.write = (s) => { captured += s; };
-    try {
-      checkMissingHeadTestEvidence({
-        phase: "task-impl",
-        flowState: { test: { summary: null } },
-      });
-      assert.match(captured, /retry budget not consumed/i,
-        "must output budget-not-consumed hint on pre-rejection");
-    } finally {
-      process.stderr.write = origWrite;
-    }
-  });
 });

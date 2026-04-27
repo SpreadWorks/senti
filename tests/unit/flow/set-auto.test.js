@@ -116,8 +116,7 @@ describe("flow set auto", () => {
     );
     const state = makeFlowManager(tmp).load();
     assert.notEqual(state.autoApprove, true, "autoApprove must not be updated on reject");
-    assert.ok(state.autoCheck);
-    assert.equal(state.autoCheck.eligible, false);
+    assert.equal(state.autoCheck, undefined, "autoCheck must not be persisted for failed verdict (spec 232)");
   });
 
   it("rejects 'on' when static gate hits (no AI needed)", () => {
@@ -127,7 +126,7 @@ describe("flow set auto", () => {
     assert.notEqual(res.status, 0);
     const state = makeFlowManager(tmp).load();
     assert.notEqual(state.autoApprove, true);
-    assert.equal(state.autoCheck.staticGates.G, true);
+    assert.equal(state.autoCheck, undefined, "autoCheck must not be persisted for failed verdict (spec 232)");
   });
 
   it("sets autoApprove to false with 'off' without running auto-check", () => {

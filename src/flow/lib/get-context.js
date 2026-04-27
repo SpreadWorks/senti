@@ -347,88 +347,14 @@ function loadAnalysisEntries(root) {
   return { analysis, entries };
 }
 
-/**
- * Detect whether the flow is currently in a task's write-tests step.
- * Returns an array of implementation-target glob strings to exclude, or null
- * when the hard wall is inactive (wrong phase, no spec.json, or empty list).
- */
-function resolveWriteTestsTargets(ctx) {
-  const state = ctx?.flowState;
-  if (!state) return null;
-  const taskId = state.currentTaskId;
-  if (taskId == null) return null;
-  const task = Array.isArray(state.tasks) ? state.tasks.find((t) => t.id === taskId) : null;
-  if (!task || !Array.isArray(task.steps)) return null;
-  const active = task.steps.find((s) => s.status === "in_progress");
-  if (!active || active.id !== "write-tests") return null;
-
-  const specPath = state.spec;
-  if (!specPath) return null;
-  const specDir = path.dirname(path.isAbsolute(specPath) ? specPath : path.join(ctx.root, specPath));
-  const specJsonPath = path.join(specDir, "spec.json");
-  if (!fs.existsSync(specJsonPath)) return null;
-  let spec;
-  try {
-    spec = JSON.parse(fs.readFileSync(specJsonPath, "utf8"));
-  } catch {
-    return null;
-  }
-  const targets = Array.isArray(spec.implementationTargets) ? spec.implementationTargets : [];
-  if (targets.length === 0) return null;
-  return targets;
-}
-
-/**
- * Minimal glob-to-RegExp for write-tests exclusion.
- * Supports `*`, `**`, `?` and literal path separators — enough for common
- * src-file globs like `src/**\/*.js` without pulling a dependency in.
- */
-function globToRegExp(glob) {
-  let re = "^";
-  for (let i = 0; i < glob.length; i++) {
-    const c = glob[i];
-    if (c === "*") {
-      if (glob[i + 1] === "*") { re += ".*"; i++; }
-      else { re += "[^/]*"; }
-    } else if (c === "?") {
-      re += "[^/]";
-    } else if ("\\^$.|+()[]{}".includes(c)) {
-      re += "\\" + c;
-    } else {
-      re += c;
-    }
-  }
-  re += "$";
-  return new RegExp(re);
-}
-
-function matchesAny(file, compiledRegexes) {
-  const norm = file.replace(/\\/g, "/");
-  return compiledRegexes.some((re) => re.test(norm));
-}
-
-function compileGlobs(globs) {
-  return globs.map((g) => globToRegExp(g));
-}
-
 export default class GetContextCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
     const filePath = ctx.filePath || ctx.path || null;
     const searchQuery = ctx.searchQuery || ctx.search || null;
 
-    const blockedGlobs = resolveWriteTestsTargets(ctx);
-    const blockedMatchers = blockedGlobs ? compileGlobs(blockedGlobs) : null;
-
     // File mode
     if (filePath) {
-      if (blockedMatchers && matchesAny(filePath, blockedMatchers)) {
-        const err = new Error(
-          `context blocked during write-tests phase: ${filePath} is an implementation target`,
-        );
-        err.code = "CONTEXT_BLOCKED_WRITE_TESTS";
-        throw err;
-      }
       const absPath = path.resolve(root, filePath);
       if (!fs.existsSync(absPath)) {
         throw new Error(`file not found: ${filePath}`);
@@ -451,8 +377,7 @@ export default class GetContextCommand extends FlowCommand {
       let config;
       try { config = loadConfig(root); } catch (_e) { config = {}; }
       const searchMode = config?.flow?.commands?.context?.search?.mode ?? "ngram";
-      let results = await contextSearch(allEntries, analysis, searchQuery, root, searchMode);
-      if (blockedMatchers) results = results.filter((e) => !matchesAny(e.file, blockedMatchers));
+      const results = await contextSearch(allEntries, analysis, searchQuery, root, searchMode);
 
       return {
         total: results.length,
@@ -462,10 +387,7 @@ export default class GetContextCommand extends FlowCommand {
 
     // List mode
     const { entries: allEntries } = loadAnalysisEntries(root);
-    const visible = blockedMatchers
-      ? allEntries.filter((e) => !matchesAny(e.file, blockedMatchers))
-      : allEntries;
-    const filtered = visible.map((entry) => filterEntry(entry));
+    const filtered = allEntries.map((entry) => filterEntry(entry));
 
     return {
       total: filtered.length,

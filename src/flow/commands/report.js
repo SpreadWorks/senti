@@ -171,7 +171,7 @@ function formatText(data) {
     const t = data.tests;
     lines.push(`    unit ${t.unit}  integration ${t.integration}  acceptance ${t.acceptance}  total ${t.total}`);
   } else {
-    lines.push("    -");
+    lines.push("    No test data");
   }
 
   // Redo (only if entries exist)

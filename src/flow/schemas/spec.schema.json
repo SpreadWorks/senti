@@ -132,18 +132,6 @@
       "type": "array",
       "items": { "type": "string" }
     },
-    "authorized_test_modifications": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["path", "reason"],
-        "additionalProperties": false,
-        "properties": {
-          "path": { "type": "string" },
-          "reason": { "type": "string" }
-        }
-      }
-    },
     "user_approval": {
       "type": "object",
       "additionalProperties": false,
@@ -176,11 +164,6 @@
               { "type": "string", "minLength": 1, "maxLength": 100 },
               { "type": "null" }
             ]
-          },
-          "expected_tests": {
-            "type": "array",
-            "maxItems": 50,
-            "items": { "type": "string", "minLength": 1, "maxLength": 500 }
           },
           "origin": { "type": "string", "enum": ["plan"] },
           "added_round": { "type": "integer", "minimum": 0 },

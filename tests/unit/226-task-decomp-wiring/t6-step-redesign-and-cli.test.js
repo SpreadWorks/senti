@@ -27,15 +27,15 @@ const SRC_ROOT = path.resolve(
 describe("T-6: task-scope step redesign and manual control CLI", () => {
   // ── step redesign ──────────────────────────────────────────────────────────
 
-  it("TASK_STEPS_PLAN is [write-tests, impl, run-tests, review, gate-impl]", () => {
+  it("TASK_STEPS_PLAN is [impl, review, gate-impl]", () => {
     assert.deepEqual(TASK_STEPS_PLAN, [
-      "write-tests", "impl", "run-tests", "review", "gate-impl",
+      "impl", "review", "gate-impl",
     ]);
   });
 
-  it("buildInitialTaskSteps returns 5 steps matching TASK_STEPS_PLAN", () => {
+  it("buildInitialTaskSteps returns 3 steps matching TASK_STEPS_PLAN", () => {
     const steps = buildInitialTaskSteps("plan");
-    assert.equal(steps.length, 5);
+    assert.equal(steps.length, 3);
     assert.deepEqual(
       steps.map((s) => s.id),
       TASK_STEPS_PLAN,
@@ -113,11 +113,7 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
         origin: "plan",
         added_round: 0,
         status: "pending",
-        steps: [
-          { id: "write-tests", status: "pending" },
-          { id: "impl", status: "pending" },
-          { id: "gate-impl", status: "pending" },
-        ],
+        steps: buildInitialTaskSteps("plan"),
       };
       setupFlow(tmp, { tasks: [task], currentTaskId: null });
 
@@ -151,11 +147,7 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
         origin: "plan",
         added_round: 0,
         status: "pending",
-        steps: [
-          { id: "write-tests", status: "pending" },
-          { id: "impl", status: "pending" },
-          { id: "gate-impl", status: "pending" },
-        ],
+        steps: buildInitialTaskSteps("plan"),
       };
       setupFlow(tmp, { tasks: [task], currentTaskId: null });
 
@@ -186,11 +178,7 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
         origin: "plan",
         added_round: 0,
         status: "pending",
-        steps: [
-          { id: "write-tests", status: "pending" },
-          { id: "impl", status: "pending" },
-          { id: "gate-impl", status: "pending" },
-        ],
+        steps: buildInitialTaskSteps("plan"),
       };
       setupFlow(tmp, { tasks: [task], currentTaskId: null });
 
@@ -220,11 +208,7 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
         origin: "plan",
         added_round: 0,
         status: "pending",
-        steps: [
-          { id: "write-tests", status: "pending" },
-          { id: "impl", status: "pending" },
-          { id: "gate-impl", status: "pending" },
-        ],
+        steps: buildInitialTaskSteps("plan"),
       };
       setupFlow(tmp, { tasks: [task], currentTaskId: null });
 
@@ -267,8 +251,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
         added_round: 0,
         status: "in_progress",
         steps: [
-          { id: "write-tests", status: "done" },
           { id: "impl", status: "done" },
+          { id: "review", status: "done" },
           { id: "gate-impl", status: "done" },
         ],
       };
@@ -307,8 +291,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "write-tests", status: "done" },
             { id: "impl", status: "done" },
+            { id: "review", status: "done" },
             { id: "gate-impl", status: "done" },
           ],
         },
@@ -321,8 +305,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "write-tests", status: "done" },
             { id: "impl", status: "done" },
+            { id: "review", status: "done" },
             { id: "gate-impl", status: "done" },
           ],
         },
@@ -363,8 +347,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "write-tests", status: "done" },
             { id: "impl", status: "done" },
+            { id: "review", status: "done" },
             { id: "gate-impl", status: "done" },
           ],
         },
@@ -377,8 +361,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "pending",
           steps: [
-            { id: "write-tests", status: "pending" },
             { id: "impl", status: "pending" },
+            { id: "review", status: "pending" },
             { id: "gate-impl", status: "pending" },
           ],
         },
@@ -420,8 +404,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "write-tests", status: "pending" },
             { id: "impl", status: "pending" },
+            { id: "review", status: "pending" },
             { id: "gate-impl", status: "pending" },
           ],
         },
@@ -434,8 +418,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "done",
           steps: [
-            { id: "write-tests", status: "done" },
             { id: "impl", status: "done" },
+            { id: "review", status: "done" },
             { id: "gate-impl", status: "done" },
           ],
         },
@@ -448,8 +432,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
           added_round: 0,
           status: "in_progress",
           steps: [
-            { id: "write-tests", status: "done" },
             { id: "impl", status: "done" },
+            { id: "review", status: "done" },
             { id: "gate-impl", status: "done" },
           ],
         },
@@ -490,8 +474,8 @@ describe("T-6: task-scope step redesign and manual control CLI", () => {
         added_round: 0,
         status: "in_progress",
         steps: [
-          { id: "write-tests", status: "done" },
           { id: "impl", status: "done" },
+          { id: "review", status: "done" },
           { id: "gate-impl", status: "done" },
         ],
       };

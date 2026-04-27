@@ -59,26 +59,19 @@ export const TASK_STEP_STATUSES = ["pending", "in_progress", "done", "skipped"];
 export const TASK_REQUIREMENT_STATUSES = ["pending", "done"];
 
 /**
- * Task-level step sequence (spec 226: reduced from 7 to 5 steps).
+ * Task-level step sequence (spec 235: reduced from 5 to 3 steps).
  *
  * Removed:
- *  - "approval" — spec-level approval already covers task granularity (no per-task re-approval)
- *  - "gate" (task-spec) — tasks/<id>.md is a render output; gating it breaks SSOT
- *  - "update-overview" — merged into impl step via applyOverviewAdditions helper (spec 207)
- *
- * Added:
- *  - "gate-impl" — per-task objective gate. PASS triggers completeTask + promoteNextPending
- *    post-hook (call site 2 of auto-promote single-caller boundary).
+ *  - "write-tests" — test responsibility moved to spec level (spec 235)
+ *  - "run-tests" — test execution moved to spec level (spec 235)
  */
 export const TASK_STEPS_PLAN = [
-  "write-tests", "impl", "run-tests", "review", "gate-impl",
+  "impl", "review", "gate-impl",
 ];
 
 /** Task-level step → phase mapping. */
 export const TASK_PHASE_MAP = {
-  "write-tests": "task-impl",
   impl: "task-impl",
-  "run-tests": "task-impl",
   review: "task-impl",
   "gate-impl": "task-impl",
 };

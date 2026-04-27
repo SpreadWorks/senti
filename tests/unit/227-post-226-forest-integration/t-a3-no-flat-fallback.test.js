@@ -15,7 +15,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
     const cmd = new GetNextActionCommand();
 
     tmp = createTmpDir();
-    const task = { id: "T-1", title: "x", goal: "x", status: "in_progress", parent: null, origin: "plan", added_round: 0, steps: [{ id: "write-tests", status: "in_progress" }] };
+    const task = { id: "T-1", title: "x", goal: "x", status: "in_progress", parent: null, origin: "plan", added_round: 0, steps: [{ id: "impl", status: "in_progress" }] };
     const state = setupFlow(tmp, {
       tasks: [task],
       currentTaskId: "T-1",
@@ -35,7 +35,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
     const GetNextActionCommand = mod.default;
 
     tmp = createTmpDir();
-    const task = { id: "T-1", title: "x", goal: "x", status: "done", parent: null, origin: "plan", added_round: 0, steps: [{ id: "write-tests", status: "done" }, { id: "implement", status: "done" }, { id: "gate-impl", status: "done" }] };
+    const task = { id: "T-1", title: "x", goal: "x", status: "done", parent: null, origin: "plan", added_round: 0, steps: [{ id: "impl", status: "done" }, { id: "review", status: "done" }, { id: "gate-impl", status: "done" }] };
     const state = setupFlow(tmp, {
       tasks: [task],
       currentTaskId: "T-1",

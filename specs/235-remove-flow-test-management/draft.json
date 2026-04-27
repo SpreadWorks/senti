@@ -1,0 +1,111 @@
+{
+  "devType": "refactor",
+  "goal": "flow からプロジェクトテスト結果の管理・追跡・制御機構を削除し、gate-impl の品質保証モデルをテスト evidence 依存から spec テスト + 行動規範ベースに変更する",
+  "analysis": {
+    "problem": "flow が run-tests / write-tests / test.baseline / test.summary 等のテスト管理機構を内蔵しており、gate-impl がその evidence に依存している。テストを書く・走らせる責務は spec にあるべきで、flow が管理するのは過剰な責務分担。テスト evidence への依存は gate-impl の判定を複雑化させ、baseline 取得失敗などのエッジケースを増やしている",
+    "proposedApproach": "3段階で進める: (1) flow ステップ・コマンド・スキーマからテスト管理機構を削除、(2) gate-impl の品質保証モデルを rewrite（evidence 依存除去、spec テスト通過を必須条件化、行動規範で回帰リスク抑制）、(3) integration ステップの testlog 依存除去と spec テスト実行ステップへの変更",
+    "validation": "Issue #275 の要件リストと完全に一致する。削除対象は具体的にファイル・関数レベルで列挙されており、前提条件の spec 234（guardrail 再編）も完了済み。alpha 版ポリシーにより後方互換を維持する必要はない"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] flow run tests コマンドを削除する。このコマンドが呼ばれた場合、CLI はコマンド未登録エラーを返す",
+      "[must] flow set test-summary コマンドを削除する。このコマンドが呼ばれた場合、CLI はコマンド未登録エラーを返す",
+      "[must] src/flow/lib/summarize-test-log.js を削除する。このモジュールをインポートしている箇所があればインポートも除去する",
+      "[must] src/flow/lib/run-tests.js を削除する。baseline 取得と summary 書き込みの両機能が不要になるため完全削除",
+      "[must] src/flow/lib/set-test-summary.js を削除する。test.summary への書き込みコマンドが不要になるため",
+      "[must] flow.json の test.baseline スロットを削除する。flow-store で baseline を読み書きしている箇所があれば除去する",
+      "[must] gate-impl のテスト evidence 依存関数を削除する（checkMissingHeadTestEvidence, checkTestChanges, checkExpectedTests, parseAuthorizedTestModificationsFromJson）。gate-impl 実行時にこれらの関数呼び出しをスキップする",
+      "[must] buildImplCheckPrompt() からベースライン vs ヘッド差分評価ロジックを除去する。gate-impl の AI プロンプトにテスト evidence セクションを含めない",
+      "[must] TASK_STEPS_PLAN から write-tests, run-tests を除去する。新規タスク作成時のステップリストが [impl, review, gate-impl] になる",
+      "[must] PHASE_MAP, INTEGRATION_STEP_IDS, PASS_NEXT, FAIL_NEXT から write-tests, run-tests 関連エントリを整理する",
+      "[must] context-rules.json の write-tests, run-tests エントリを削除する。next-action でこれらのステップが参照されなくなる",
+      "[must] src/flow/prompts/task/write-tests.md, run-tests.md を削除する。src/flow/prompts/plan/test.md を spec テストのみの内容に書き換える",
+      "[must] spec.schema.json から authorized_test_modifications, expected_tests フィールドを削除する。spec 作成時にこれらのフィールドが不要になる",
+      "[must] next-action スキーマ test.schema.json, run-tests.schema.json を削除する",
+      "[must] registry.js から run.tests, set.test-summary エントリを削除する",
+      "[should] report の Tests セクションを spec テスト結果のみを表示するよう変更する。test.summary が存在しない場合は「テストデータなし」と表示する",
+      "[should] integration ステップの testlog 依存を除去し、プロンプトを spec テスト実行向けに書き換える"
+    ],
+    "out": [
+      "spec テストの実行機構自体（spec 側の責務は維持）",
+      "flow のテスト以外のステップ・コマンド",
+      "gate-draft / gate-spec の判定ロジック",
+      "config スキーマの大規模変更（commands.test 関連のみ対象）",
+      "スキルファイル（.claude/skills/）の書き換え — sdd-forge upgrade で反映"
+    ]
+  },
+  "impactOnExisting": [
+    "gate-impl: テスト evidence 依存の5関数削除、buildImplCheckPrompt 書き換え。品質保証モデルの根本的変更",
+    "flow ステップ構造: TASK_STEPS_PLAN が [impl, review, gate-impl] に縮小。write-tests / run-tests ステップ消滅",
+    "integration ステップ: integration-write-tests / integration-run-tests の testlog 依存除去",
+    "report: Tests セクションのデータソースが test.summary → spec テスト結果に変更",
+    "flow.json 構造: test.baseline スロット消滅、test.summary の意味変更（spec テスト結果専用）",
+    "spec.schema.json: authorized_test_modifications / expected_tests フィールド削除",
+    "flow prepare --baseline: B.5 ベースライン取得ステップが不要に（スキルファイル側の影響）",
+    "既存の active flow がある場合: 旧形式の flow.json との互換なし（alpha ポリシー）"
+  ],
+  "qa": [
+    {
+      "question": "run-tests.js は完全削除か、それとも spec テスト実行用に縮小して残すか？",
+      "answer": "完全削除。spec テスト実行は integration ステップで直接行う。run-tests.js は baseline 取得ロジックと flow.json への summary 書き込みが主機能であり、これらは全て不要になる",
+      "evidence": "src/flow/lib/run-tests.js は test.summary / test.baseline への書き込みが主目的。baseline 取得は flow prepare 後の B.5 ステップでのみ使用",
+      "why": "テスト実行の責務を spec / integration ステップに集約し、中間レイヤーを排除するため",
+      "considered": "縮小して残す案 — spec テスト実行のヘルパーとして再利用できるが、integration ステップのプロンプトで直接テスト実行を指示する方がシンプル"
+    },
+    {
+      "question": "gate-impl で spec テスト通過を必須条件にするとは具体的にどういう仕組みか？",
+      "answer": "impl → spec テスト実行 → gate-impl の順序で、gate-impl の前に spec テスト（specs/<spec>/tests/ のテスト）を実行させる。テスト結果は test.summary スロットに記録し、gate-impl はそれを参照して通過/不通過を判定する",
+      "evidence": "Issue #275: 「gate-impl は spec テスト通過を必須条件とする（impl → spec-test → gate-impl）」「test.summary スロットを spec テスト結果用に再利用」",
+      "why": "テスト evidence の代わりに、spec が定義したテストの通過を品質保証の基準にする。flow が管理するのは「spec テストが通ったかどうか」のみ",
+      "considered": "test.summary スロットも完全廃止する案 — しかし gate-impl が spec テスト通過を判定するためにはどこかに結果を記録する必要がある"
+    },
+    {
+      "question": "失敗時ループ上限はどこに定義するか？",
+      "answer": "config.flow.retry.max を再利用する（既存の gate リトライと同じ設定）。spec テスト失敗 → impl 修正のループも同じ上限を適用",
+      "evidence": "flow スキルの instructions で config.flow.retry.max (default 3) が gate リトライに使用されている",
+      "why": "新しい設定値を追加する理由がない。既存のリトライ設定で十分",
+      "considered": "専用の config.flow.retry.specTest を追加する案 — 過剰な設定分離"
+    },
+    {
+      "question": "integration ステップの write-tests / run-tests はどう変わるか？",
+      "answer": "integration-write-tests は specs/<spec>/tests/ に結合検証テストを書くステップに変更。integration-run-tests はそのテストを実行するステップに変更。testlog 依存を除去し、プロンプトを書き換える",
+      "evidence": "Issue #275: 「spec 全体の結合検証テストを specs/<spec>/tests/ に書いて実行するステップに変更」",
+      "why": "integration ステップの本質的な役割（結合検証）は維持しつつ、flow のテスト管理機構への依存を断ち切る",
+      "considered": "integration ステップ自体を削除する案 — しかし結合検証は有用なので維持"
+    },
+    {
+      "question": "CLI コマンド削除による後方互換の影響は？",
+      "answer": "alpha 版ポリシーにより後方互換は不要。flow run tests / flow set test-summary は即座に削除可能。移行計画は不要",
+      "evidence": "CLAUDE.md: 「alpha 版ポリシー: 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する」",
+      "why": "alpha 期間中は利用者が限定的であり、破壊的変更のコストが低い",
+      "considered": "deprecation warning を出す案 — alpha ポリシーに反する"
+    },
+    {
+      "question": "flow prepare の B.5 baseline 取得ステップはどうなるか？",
+      "answer": "B.5 は不要になるため、スキルファイル（flow スキル）から該当セクションを削除する。ただし src/ の変更ではなく .claude/skills/ の変更になるため、本 spec のスコープ外（sdd-forge upgrade で反映）",
+      "evidence": "B.5 は flow run tests --baseline を呼んで test.baseline に記録する。test.baseline スロット自体が削除されるため B.5 は機能しなくなる",
+      "why": "test.baseline スロットが消えるので baseline 取得の意味がなくなる",
+      "considered": "B.5 をスコープに含める案 — スキルファイルの変更は sdd-forge upgrade で行うべき"
+    },
+    {
+      "question": "flow-store.js の aggregateTestSummary はどうなるか？",
+      "answer": "test.summary の意味が変わる（プロジェクトテスト結果 → spec テスト結果）が、aggregateTestSummary 自体はタスク完了時に test.summary を集計する汎用関数なので、spec テスト結果の集計にも使える。ただし test.summary の書き込み元が変わるため、呼び出し元の確認が必要",
+      "evidence": "src/lib/flow-store.js:496-507 — aggregateTestSummary は unit/integration/acceptance フィールドを合算する汎用関数",
+      "why": "関数の振る舞い自体は変更不要だが、呼び出しコンテキストの整合性を確認する必要がある",
+      "considered": "aggregateTestSummary も削除する案 — spec テスト結果の集計に使えるなら残す方が合理的"
+    },
+    {
+      "question": "CLI コマンド削除の移行計画はどうするか？",
+      "answer": "alpha 版ポリシーにより deprecation 期間や移行ツールは設けない。削除は即座に行い、削除されたコマンドを呼んだ場合は CLI の標準的なコマンド未登録エラーが返る。スキルファイル（.claude/skills/）は sdd-forge upgrade で自動更新されるため、手動移行作業は不要。CHANGELOG に破壊的変更として記載する",
+      "evidence": "CLAUDE.md: 「alpha 版ポリシー: 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する」",
+      "why": "alpha 期間中は利用者が限定的（開発者自身のみ）であり、破壊的変更の影響が小さい。スキルファイルの自動更新により実質的な移行コストはゼロ",
+      "considered": "deprecation warning を出して 1 バージョン後に削除する案 — alpha ポリシーに反し、不要なコードを残す"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-27T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}

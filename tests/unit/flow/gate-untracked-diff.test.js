@@ -8,7 +8,7 @@
  * diff として連結した文字列を返す純粋関数。
  *
  * - REQ-1/REQ-2: untracked ファイルが標準 unified diff 形式 (`+` のみの hunk)
- *   として返り、`parseDiffHunks` / `checkTestChanges` が正しく解釈できる。
+ *   として返る。
  * - REQ-3: untracked が 0 件なら空文字列を返す。
  * - REQ-4: 呼び出し前後で `git status --porcelain` が変化しない (副作用ゼロ)。
  * - REQ-5: 純粋関数として `(root)` のみを入力に取り、外部状態に書き込まない。
@@ -24,10 +24,7 @@ import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
   collectUntrackedDiff,
-  checkTestChanges,
 } from "../../../src/flow/lib/run-gate.js";
-
-const TEST_GLOBS = ["**/*.test.js", "tests/**"];
 
 function initRepo() {
   const root = createTmpDir("sdd-gate-untracked-");
@@ -88,10 +85,6 @@ describe("collectUntrackedDiff — happy path", () => {
     // every content line of the new file must appear as a `+` line
     assert.match(out, /^\+import \{ describe, it \} from 'node:test';$/m);
     assert.match(out, /^\+describe\('x', \(\) => \{$/m);
-    // and `checkTestChanges` must accept the synthesized diff as a clean
-    // multi-line `+` only hunk → no FAIL issue.
-    const { issues } = checkTestChanges(out, TEST_GLOBS);
-    assert.deepEqual(issues, []);
   });
 
   it("REQ-1: includes a new untracked src file too (no test-only filter)", async () => {
@@ -129,11 +122,6 @@ describe("collectUntrackedDiff — happy path", () => {
     const untracked = await collectUntrackedDiff(root);
     const combined = tracked + untracked;
 
-    // checkTestChanges scans the combined diff: the untracked test addition
-    // is a clean multi-line `+` hunk, and the tracked src change is not a
-    // test file → no issues.
-    const { issues } = checkTestChanges(combined, TEST_GLOBS);
-    assert.deepEqual(issues, []);
     assert.match(combined, /tracked\.js/);
     assert.match(combined, /tests\/bar\.test\.js/);
   });

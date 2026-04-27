@@ -186,7 +186,7 @@ describe("flow get next-action", () => {
       const falsyFlowSteps = [
         "draft", "gate-draft", "spec", "gate", "test",
         "implement", "gate-impl",
-        "integration-write-tests", "integration-run-tests", "integration-run-all-tests",
+        "integration-run-all-tests",
         "review",
       ];
       for (const id of falsyFlowSteps) {

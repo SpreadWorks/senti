@@ -88,7 +88,6 @@ function setupBaseFixture(tmp, specId, specTasks) {
     tasks: flowTasks,
     currentTaskId: null,
     metrics: [],
-    test: { summary: { exitCode: 0 } },
   };
   writeJson(tmp, `specs/${specId}/flow.json`, flowState);
   writeJson(tmp, ".sdd-forge/.active-flow", [{ spec: specId, mode: "local" }]);
@@ -147,10 +146,10 @@ describe("231: E2E full lifecycle — flat tasks", () => {
     // Activate T-1 (simulate AI choosing T-1)
     activateTask(tmp, SPEC_ID, "T-1");
 
-    // R3: next-action returns task-scope write-tests for T-1
+    // R3: next-action returns task-scope impl for T-1
     let na = getNextAction(tmp);
     assert.equal(na.data.taskId, "T-1");
-    assert.equal(na.data.step, "write-tests");
+    assert.equal(na.data.step, "impl");
 
     // Complete all steps of T-1
     markTaskStepsDone(tmp, SPEC_ID, "T-1");

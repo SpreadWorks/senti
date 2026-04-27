@@ -714,320 +714,6 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
   return { passed, evaluations };
 }
 
-// ---------------------------------------------------------------------------
-// Test-file change detection (spec 201, P1-R1〜P1-R6)
-//
-// Deterministic mechanical check that replaces the retired
-// `impl-test-preservation` AI guardrail. Classifies each test-file hunk by
-// pure diff structure (line counts of `+` / `-`) without any language parsing.
-// ---------------------------------------------------------------------------
-
-const DEFAULT_TEST_GLOBS = Object.freeze([
-  "**/*.test.*",
-  "**/*_test.*",
-  "**/*.spec.*",
-  "tests/**",
-]);
-
-function globToRegExp(glob) {
-  const escaped = glob
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\*\*/g, "§§")
-    .replace(/\*/g, "[^/]*")
-    .replace(/§§/g, ".*")
-    .replace(/\?/g, "[^/]");
-  return new RegExp(`^${escaped}$`);
-}
-
-function isTestFile(filePath, testGlobs) {
-  return testGlobs.some((g) => globToRegExp(g).test(filePath));
-}
-
-/**
- * Parse a raw git diff into per-file, per-hunk records.
- * @param {string} diff
- * @returns {Array<{file: string, hunks: Array<{newStart: number, added: number, removed: number}>}>}
- */
-function parseDiffHunks(diff) {
-  const files = [];
-  const lines = diff.split("\n");
-  let curFile = null;
-  let curHunk = null;
-
-  for (const line of lines) {
-    const fileMatch = line.match(/^diff --git a\/(.+) b\/(.+)$/);
-    if (fileMatch) {
-      curFile = { file: fileMatch[2], hunks: [] };
-      files.push(curFile);
-      curHunk = null;
-      continue;
-    }
-    if (!curFile) continue;
-
-    const hunkMatch = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
-    if (hunkMatch) {
-      curHunk = { newStart: Number(hunkMatch[1]), added: 0, removed: 0 };
-      curFile.hunks.push(curHunk);
-      continue;
-    }
-    if (!curHunk) continue;
-
-    if (line.startsWith("+") && !line.startsWith("+++")) curHunk.added += 1;
-    else if (line.startsWith("-") && !line.startsWith("---")) curHunk.removed += 1;
-  }
-
-  return files;
-}
-
-/**
- * Check a git diff for disallowed changes to test files.
- *
- * Rules:
- *   - Any hunk with `removed >= 1` (delete or modify existing line) → FAIL
- *   - Any hunk with `added === 1 && removed === 0`                  → FAIL
- *   - Multi-line `+` only hunks (added >= 2, removed === 0)         → PASS (skip)
- *
- * Language parsing is NOT used (P1-R6).
- *
- * Spec 205: test files listed in `authorizedFiles` are exempted — all hunks
- * in those files are skipped regardless of the rules above. The exemption
- * is opt-in by the spec author via the `## Authorized Existing Test
- * Modifications` section in spec.md (see {@link parseAuthorizedTestModifications}).
- *
- * @param {string} diff               raw unified diff text
- * @param {string[]} [testGlobs]      optional override; defaults to common test patterns
- * @param {string[]} [authorizedFiles] optional list of test file paths to exempt
- * @returns {{ issues: string[] }}
- */
-export function checkTestChanges(diff, testGlobs, authorizedFiles) {
-  const globs = Array.isArray(testGlobs) && testGlobs.length > 0
-    ? testGlobs
-    : DEFAULT_TEST_GLOBS;
-  const authorized = Array.isArray(authorizedFiles) ? new Set(authorizedFiles) : new Set();
-
-  const issues = [];
-  for (const f of parseDiffHunks(diff)) {
-    if (!isTestFile(f.file, globs)) continue;
-    if (authorized.has(f.file)) continue;
-    for (const h of f.hunks) {
-      if (h.removed >= 1) {
-        issues.push(
-          `${f.file}:${h.newStart}: existing line modified/deleted in test file (removed=${h.removed}, added=${h.added})`,
-        );
-      } else if (h.added === 1 && h.removed === 0) {
-        issues.push(
-          `${f.file}:${h.newStart}: single-line addition in test file (likely assertion insertion)`,
-        );
-      }
-    }
-  }
-  return { issues };
-}
-
-// ---------------------------------------------------------------------------
-// Expected test file verification (spec 228)
-// ---------------------------------------------------------------------------
-
-const EXPECTED_TESTS_MAX_ENTRIES = 50;
-const EXPECTED_TESTS_MAX_GLOB_MATCHES = 500;
-const WALK_MAX_DEPTH = 20;
-const WALK_MAX_FILES = 50000;
-
-async function walkDir(dir, depth = 0, counter = { count: 0 }) {
-  if (depth > WALK_MAX_DEPTH) return [];
-  const results = [];
-  const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-  for (const e of entries) {
-    if (counter.count >= WALK_MAX_FILES) break;
-    const full = path.join(dir, e.name);
-    if (e.isDirectory()) {
-      const sub = await walkDir(full, depth + 1, counter);
-      results.push(...sub);
-    } else {
-      results.push(full);
-      counter.count++;
-    }
-  }
-  return results;
-}
-
-function hasWildcard(entry) {
-  return entry.includes("*") || entry.includes("?");
-}
-
-/**
- * Verify that each expected test entry exists in the worktree.
- *
- * - Literal paths: check via `fs.promises.access`.
- * - Glob patterns (`*` or `?`): expand against the worktree using
- *   `globToRegExp` and verify at least one file matches.
- *
- * @param {string} root - repository or worktree root
- * @param {string[]|undefined|null} expectedTests
- * @returns {Promise<{ issues: string[] }>}
- */
-export async function checkExpectedTests(root, expectedTests) {
-  if (!Array.isArray(expectedTests) || expectedTests.length === 0) {
-    return { issues: [] };
-  }
-
-  if (expectedTests.length > EXPECTED_TESTS_MAX_ENTRIES) {
-    const err = new Error(
-      `expected_tests count ${expectedTests.length} exceeds limit ${EXPECTED_TESTS_MAX_ENTRIES}`,
-    );
-    err.code = "EXPECTED_TESTS_LIMIT_EXCEEDED";
-    throw err;
-  }
-
-  const issues = [];
-  const hasGlobs = expectedTests.some(hasWildcard);
-  let relFiles = null;
-
-  if (hasGlobs) {
-    const allFiles = await walkDir(root);
-    relFiles = allFiles.map((f) => path.relative(root, f));
-  }
-
-  for (const entry of expectedTests) {
-    if (hasWildcard(entry)) {
-      const re = globToRegExp(entry);
-      const matchedFiles = relFiles.filter((rel) => re.test(rel));
-      if (matchedFiles.length > EXPECTED_TESTS_MAX_GLOB_MATCHES) {
-        const err = new Error(
-          `glob expansion for "${entry}" matched ${matchedFiles.length} files, exceeds limit ${EXPECTED_TESTS_MAX_GLOB_MATCHES}`,
-        );
-        err.code = "EXPECTED_TESTS_LIMIT_EXCEEDED";
-        throw err;
-      }
-      if (matchedFiles.length === 0) {
-        issues.push(
-          `expected test not found: "${entry}" — no files in the worktree match this glob pattern`,
-        );
-      }
-    } else {
-      const abs = path.resolve(root, entry);
-      try {
-        await fs.promises.access(abs);
-      } catch {
-        issues.push(
-          `expected test not found: "${entry}" — file does not exist in the worktree`,
-        );
-      }
-    }
-  }
-
-  return { issues };
-}
-
-// ---------------------------------------------------------------------------
-// Authorized test modifications (spec 205)
-// ---------------------------------------------------------------------------
-
-const AUTH_SECTION_HEADER = "## Authorized Existing Test Modifications";
-const AUTH_REASON_MIN_CHARS = 40;
-
-// Match a single flat-bullet entry: `- `<path>` — <reason>`.
-// The separator is a literal em dash (U+2014) surrounded by whitespace.
-const AUTH_ENTRY_RE = /^-\s+`([^`]+)`\s+—\s+(.+?)\s*$/;
-
-/**
- * Parse the `## Authorized Existing Test Modifications` section of a spec.md.
- *
- * Entry format: `` - `<path>` — <reason (>=40 chars)> ``
- *
- * @param {string} specText full spec.md content
- * @returns {{ files: string[], errors: string[] }}
- */
-export function parseAuthorizedTestModificationsFromJson(entries) {
-  const files = [];
-  const errors = [];
-  if (!Array.isArray(entries)) return { files, errors };
-  for (const e of entries) {
-    if (!e || typeof e.path !== "string" || typeof e.reason !== "string") {
-      errors.push(`authorized-test entry missing path/reason`);
-      continue;
-    }
-    if (e.reason.length < AUTH_REASON_MIN_CHARS) {
-      errors.push(
-        `authorized-test entry \`${e.path}\`: reason must be at least ${AUTH_REASON_MIN_CHARS} chars (got ${e.reason.length})`,
-      );
-      continue;
-    }
-    files.push(e.path);
-  }
-  return { files, errors };
-}
-
-export function parseAuthorizedTestModifications(specText) {
-  const files = [];
-  const errors = [];
-  if (typeof specText !== "string" || specText.length === 0) {
-    return { files, errors };
-  }
-
-  const lines = specText.split("\n");
-  let inSection = false;
-
-  for (const rawLine of lines) {
-    const line = rawLine.trimEnd();
-    if (!inSection) {
-      if (line === AUTH_SECTION_HEADER) inSection = true;
-      continue;
-    }
-    if (line.startsWith("## ")) break;
-    if (line.trim() === "") continue;
-
-    const match = line.match(AUTH_ENTRY_RE);
-    if (!match) {
-      if (/^-\s+[^`]/.test(line)) {
-        errors.push(`authorized-test entry must wrap the path in backticks: ${line.trim()}`);
-      } else {
-        errors.push(`authorized-test entry syntax invalid (expected \`- \`<path>\` — <reason>\`): ${line.trim()}`);
-      }
-      continue;
-    }
-
-    const path = match[1];
-    const reason = match[2];
-    if (reason.length < AUTH_REASON_MIN_CHARS) {
-      errors.push(
-        `authorized-test entry \`${path}\`: reason must be at least ${AUTH_REASON_MIN_CHARS} chars (got ${reason.length})`,
-      );
-      continue;
-    }
-    files.push(path);
-  }
-
-  return { files, errors };
-}
-
-/**
- * Spec 205 R5: return warning messages for authorized entries whose files do
- * not appear in the diff. Gate itself still PASSes — the caller surfaces the
- * warnings alongside the PASS result.
- *
- * @param {string} diff
- * @param {string[]} authorizedFiles
- * @returns {string[]} human-readable warning messages
- */
-export function findUnusedAuthorizations(diff, authorizedFiles) {
-  if (!Array.isArray(authorizedFiles) || authorizedFiles.length === 0) return [];
-  const diffFiles = new Set(parseDiffHunks(diff).map((f) => f.file));
-  const warnings = [];
-  for (const p of authorizedFiles) {
-    if (!diffFiles.has(p)) {
-      warnings.push(`authorized-test entry \`${p}\` has no matching change in the diff`);
-    }
-  }
-  return warnings;
-}
-
-function resolveTestGlobs(config) {
-  const configured = config?.flow?.gate?.testGlobs;
-  return Array.isArray(configured) && configured.length > 0
-    ? configured
-    : DEFAULT_TEST_GLOBS;
-}
 
 // ---------------------------------------------------------------------------
 // Retry counter & escalation (spec 201, P2-R1〜P2-R4)
@@ -1172,44 +858,6 @@ export function updateGateRetryCounter(ctx, result) {
   mgr.appendMetric(payload);
 }
 
-// ---------------------------------------------------------------------------
-// Missing head test evidence guard (spec 222)
-// ---------------------------------------------------------------------------
-
-/**
- * Returns a failure Envelope with `code="NO_HEAD_TEST_EVIDENCE"` when the gate
- * is running on a retry-tracked phase (task-impl / integration) without
- * tool-recorded head test evidence in flow state. The signal is the presence
- * of `flowState.test.summary.exitCode` — only `flow run tests` writes it
- * (via `flowManager.setTestSummary({ ...counts, exitCode }, ...)`), while
- * AI-side `flow set test-summary --unit N` writes counts without exitCode.
- *
- * Returns null when the command is allowed to proceed. The caller runs this
- * before invoking the AI agent so no retry budget is consumed — the dispatcher
- * skips the post-hook (which increments gateRetry) for ok:false envelopes.
- */
-const HEAD_TEST_EVIDENCE_PHASES = Object.freeze(["task-impl", "integration"]);
-
-export function checkMissingHeadTestEvidence({ phase, flowState }) {
-  if (!HEAD_TEST_EVIDENCE_PHASES.includes(phase)) return null;
-  const exitCode = flowState?.test?.summary?.exitCode;
-  if (typeof exitCode === "number") return null;
-  const messages = [
-    `gate ${phase}: no tool-recorded head test evidence found in flow state.`,
-    "Run: sdd-forge flow run tests",
-    "This populates flow.json `test.summary.exitCode` which gate-impl requires to evaluate implementation against the spec's test requirements.",
-  ];
-  process.stderr.write(
-    `[sdd-forge] gate pre-check rejected (NO_HEAD_TEST_EVIDENCE) — retry budget not consumed\n`,
-  );
-  return Envelope.fail(
-    "run",
-    "gate",
-    "NO_HEAD_TEST_EVIDENCE",
-    messages,
-    { phase },
-  );
-}
 
 // ---------------------------------------------------------------------------
 // No-progress-since-last-fail guard (spec 210)
@@ -1434,12 +1082,8 @@ export function applyFlipOverride({ evaluations, previousEntry, currentState, ph
 // Task-impl / integration: requirements check
 // ---------------------------------------------------------------------------
 
-const BASELINE_MISSING_WARNING = "baseline not captured";
 
-function buildImplCheckPrompt(specText, diff, testEvidence, knownIds) {
-  const baseline = testEvidence?.baseline ?? null;
-  const head = testEvidence?.summary ?? null;
-  const hasAnyEvidence = Boolean(baseline || head);
+function buildImplCheckPrompt(specText, diff, knownIds) {
   const lines = [
     "You are an implementation compliance checker.",
     "Check whether each spec requirement has been implemented in the diff.",
@@ -1454,25 +1098,6 @@ function buildImplCheckPrompt(specText, diff, testEvidence, knownIds) {
     "- Use skip only when the requirement can only be verified by running tests and no execution evidence is provided.",
     "- Output MUST be valid JSON only.",
     "",
-  ];
-
-  if (hasAnyEvidence) {
-    lines.push(
-      "Use the Test Results sections to verify requirements about test execution.",
-      "Baseline-vs-head differential rule:",
-      "- escalate or FAIL only when head.failed contains an id not present in baseline.failed.",
-      "- ids appearing in both baseline.failed and head.failed are pre-existing and must NOT be treated as spec-induced breakage.",
-      "- ids only in baseline.failed (resolved) are a positive side-effect.",
-    );
-    if (!baseline) {
-      lines.push(
-        `WARNING: ${BASELINE_MISSING_WARNING}. Evaluate head-only; do NOT infer pre-existing vs new without baseline data.`,
-      );
-    }
-  }
-
-  lines.push(
-    "",
     "## Requirement IDs",
     knownIds.map((id) => `- ${id}`).join("\n"),
     "",
@@ -1481,14 +1106,7 @@ function buildImplCheckPrompt(specText, diff, testEvidence, knownIds) {
     "",
     "## Git Diff",
     diff,
-  );
-
-  if (baseline) {
-    lines.push("", "## Baseline Test Results", JSON.stringify(baseline));
-  }
-  if (head) {
-    lines.push("", "## Head Test Results", JSON.stringify(head));
-  }
+  ];
 
   return lines.join("\n");
 }
@@ -1901,12 +1519,6 @@ export class RunGateCommand extends FlowCommand {
     const retryFail = checkRetryBelowMax(ctx, phase);
     if (retryFail) return retryFail;
 
-    // spec 222 REQ-1/REQ-2: fail early when head test evidence is missing.
-    // Returns ok:false envelope before AI invocation, so gateRetry is not
-    // incremented (the registry post-hook never runs on an ok:false return).
-    const missingEvidenceFail = checkMissingHeadTestEvidence({ phase, flowState: state });
-    if (missingEvidenceFail) return missingEvidenceFail;
-
     // spec 210 REQ-2/REQ-3: reject re-run when the working tree is unchanged
     // since the previous FAIL. Returns ok:false envelope before AI invocation,
     // so gateRetry is not incremented (the registry post-hook never runs on
@@ -1932,18 +1544,8 @@ export class RunGateCommand extends FlowCommand {
 
     const specText = fs.readFileSync(absSpecPath, "utf8");
 
-    // spec 207 / T8: authorized_test_modifications is sourced from spec.json
-    // via the single validated load path. loadSpecJson throws if spec.json is
-    // missing or invalid — that failure surfaces to the user immediately.
-    const spec = loadSpecJson(path.dirname(absSpecPath));
-    const authEntries = Array.isArray(spec.authorized_test_modifications)
-      ? spec.authorized_test_modifications
-      : [];
-
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
     const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", root);
-    // spec 221: include untracked new files so test-first additions are
-    // visible to the diff-based gate evaluation.
     const untracked = await collectUntrackedDiff(root);
     const diff = committed + uncommitted + untracked;
 
@@ -1953,37 +1555,6 @@ export class RunGateCommand extends FlowCommand {
       ]);
     }
 
-    // spec 201 P1: mechanical check on test-file changes (replaces retired
-    // `impl-test-preservation` AI guardrail). Skips the AI path entirely when
-    // the mechanical check already found a violation.
-    //
-    // spec 205: an optional `## Authorized Existing Test Modifications` section
-    // in spec.md can exempt named files from the check. Parse errors in that
-    // section are themselves a gate FAIL; unused entries surface as warnings.
-    const authResult = parseAuthorizedTestModificationsFromJson(authEntries);
-    if (authResult.errors.length > 0) {
-      return gateFail(level, phase, specPath, [], authResult.errors);
-    }
-    const testIssues = checkTestChanges(diff, resolveTestGlobs(ctx.config), authResult.files).issues;
-    if (testIssues.length > 0) {
-      return gateFail(level, phase, specPath, [], testIssues);
-    }
-
-    // spec 228: verify that expected test files declared in the current task
-    // actually exist in the worktree. Runs before AI evaluation so missing
-    // tests cannot be masked by a passing overall test suite.
-    const currentTaskId = state.currentTaskId ?? null;
-    if (currentTaskId && Array.isArray(spec.tasks)) {
-      const task = spec.tasks.find((t) => t.id === currentTaskId);
-      if (task) {
-        const expectedTestIssues = (await checkExpectedTests(root, task.expected_tests)).issues;
-        if (expectedTestIssues.length > 0) {
-          return gateFail(level, phase, specPath, [], expectedTestIssues);
-        }
-      }
-    }
-
-    const unusedWarnings = findUnusedAuthorizations(diff, authResult.files);
 
     const agent = container.get("agent");
     if (!agent.resolve("flow.spec.gate")) {
@@ -1993,14 +1564,7 @@ export class RunGateCommand extends FlowCommand {
     }
 
     const reqIds = extractRequirementIds(specText);
-    const testEvidence = {
-      baseline: state?.test?.baseline ?? null,
-      summary: state?.test?.summary ?? null,
-    };
-    if (!testEvidence.baseline) {
-      unusedWarnings.push(BASELINE_MISSING_WARNING);
-    }
-    const reqPrompt = buildImplCheckPrompt(specText, diff, testEvidence, reqIds);
+    const reqPrompt = buildImplCheckPrompt(specText, diff, reqIds);
     const reqResponse = await agent.call(reqPrompt, { commandId: "flow.spec.gate" });
     const reqResults = parseEvaluationResponse(reqResponse, reqIds);
     const reqEvaluations = reqResults.map((r) => ({
@@ -2025,7 +1589,7 @@ export class RunGateCommand extends FlowCommand {
     }
 
     if (skipGuardrail) {
-      return gatePass(level, phase, specPath, reqEvaluations, unusedWarnings);
+      return gatePass(level, phase, specPath, reqEvaluations);
     }
 
     const grResult = await checkGuardrail(
@@ -2035,7 +1599,7 @@ export class RunGateCommand extends FlowCommand {
       "You are an implementation compliance checker. Check the implementation against each guardrail.",
     );
     if (!grResult) {
-      return gatePass(level, phase, specPath, reqEvaluations, unusedWarnings);
+      return gatePass(level, phase, specPath, reqEvaluations);
     }
     const combined = [...reqEvaluations, ...grResult.evaluations];
     if (!grResult.passed) {
@@ -2047,7 +1611,7 @@ export class RunGateCommand extends FlowCommand {
       });
       return gateFail(level, phase, specPath, combined, []);
     }
-    return gatePass(level, phase, specPath, combined, unusedWarnings);
+    return gatePass(level, phase, specPath, combined);
   }
 }
 

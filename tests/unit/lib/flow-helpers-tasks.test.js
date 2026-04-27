@@ -30,15 +30,18 @@ describe("flow-helpers task-aware APIs", () => {
       assert.throws(() => buildInitialTaskSteps("addition"), /origin|unknown/i);
     });
 
-    it("TASK_STEPS_PLAN is defined (spec 226: 5-step redesign)", () => {
+    it("TASK_STEPS_PLAN is defined (spec 235: 3-step redesign)", () => {
       assert.ok(Array.isArray(TASK_STEPS_PLAN));
       assert.deepEqual(TASK_STEPS_PLAN, [
-        "write-tests", "impl", "run-tests", "review", "gate-impl",
+        "impl", "review", "gate-impl",
       ]);
       // Removed in spec 226: approval, gate (task-spec), update-overview
       assert.ok(!TASK_STEPS_PLAN.includes("approval"));
       assert.ok(!TASK_STEPS_PLAN.includes("gate"));
       assert.ok(!TASK_STEPS_PLAN.includes("update-overview"));
+      // Removed in spec 235: write-tests, run-tests
+      assert.ok(!TASK_STEPS_PLAN.includes("write-tests"));
+      assert.ok(!TASK_STEPS_PLAN.includes("run-tests"));
     });
   });
 

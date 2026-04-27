@@ -89,9 +89,14 @@ describe("instructions-coverage (registry ↔ prompt files)", () => {
       "orphan prompt files exist (file present but no instructions_key references it)");
   });
 
-  it("registry contains 20 instructions_key entries (spec 231: added show-report)", () => {
+  it("every instructions_key maps to an existing prompt file", () => {
     const rules = loadRules();
     const keys = collectInstructionKeys(rules);
-    assert.equal(keys.length, 20, "expected 20 instructions_keys (15 flow + 5 task)");
+    const files = collectPromptFiles(PROMPTS_DIR);
+    const fileKeys = new Set(files.map((f) => f.key));
+
+    const missing = keys.filter((k) => !fileKeys.has(k));
+    assert.deepEqual(missing, [],
+      "instructions_keys reference non-existent prompt files");
   });
 });

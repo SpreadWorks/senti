@@ -59,8 +59,8 @@ function makePendingTask(id, parent = null) {
     added_round: 0,
     status: "pending",
     steps: [
-      { id: "write-tests", status: "pending" },
       { id: "impl", status: "pending" },
+      { id: "review", status: "pending" },
       { id: "gate-impl", status: "pending" },
     ],
     requirements: [],
@@ -260,7 +260,6 @@ describe("T-5: auto-promote function and callers", () => {
     const doneStepIds = [
       "branch", "prepare-spec", "draft", "gate-draft", "spec",
       "gate", "approval", "test", "implement", "gate-impl",
-      "integration-write-tests", "integration-run-tests",
       "integration-run-all-tests", "integration-evaluate",
       "review",
     ];

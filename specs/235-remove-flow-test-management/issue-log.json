@@ -1,0 +1,232 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Scope is centered on one concern: removing flow-managed test control and aligning gate-impl quality checks accordingly.; Unambiguous Requirements — Most requirements are concrete and verifiable (specific commands, slots, schema fields, and functions to remove/change).; Complete Context — Many requirement items are change statements only and do not consistently include both trigger condition and expected behavior.; No Hardcoded Secrets — No API keys, tokens, passwords, or similar secrets are present in the draft content.; Prioritize Requirements — There are more than three requirements but no must/should/nice-to-have priority labels are assigned.; Impact on Existing Features — Impact on existing features is explicitly listed in a dedicated section.; Present Recommendations with Reasoning — Each QA question includes a clear recommended answer plus evidence/why grounded in docs, issue text, or code references.; Explore Before Asking — Questions are pre-answered with repository/docs evidence, and openQuestions is empty.; Proactively Raise Related Implications — Related implications are proactively called out (compatibility, baseline step removal, integration/test.summary effects).; Confirm Brainstorm vs. Decision Before Critiquing — Requires conversation history to verify whether brainstorming vs decision mode was explicitly confirmed before critique.; Capture Digressions in draft.md — Needs runtime discussion history and draft.md update evidence, which are not provided here.; Draft Stays at Requirements Level — Content stays at requirements/spec level; file/function mentions are contextual and QA evidence-level justification.; Backward-Compatible CLI Interface — Existing CLI commands are removed without a migration plan; draft explicitly states migration is unnecessary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T08:33:28.185Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Many requirement items are change statements only and do not consistently include both trigger condition and expected behavior."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements but no must/should/nice-to-have priority labels are assigned."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Existing CLI commands are removed without a migration plan; draft explicitly states migration is unnecessary."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-scope-boundary"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0; tasks: new task 'T-5' added_round must be 1, got 0; tasks: new task 'T-6' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T08:40:38.213Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one cohesive concern: removing flow-level test management and aligning gate-impl accordingly.; Task Single Responsibility — Each task is centered on a single change area with a shared concern, without unrelated bundled goals.; Unambiguous Requirements — Some requirements are not fully verifiable in wording (e.g., 'spec test execution oriented content' is vague).; Complete Context — Several requirements describe end states only and do not consistently include clear trigger-condition plus expected behavior pairs.; REQ Diff-Verifiability — A few requirements rely on subjective/runtime interpretation (e.g., prompt rewrites and behavior-level assertions) beyond strict diff+test-summary decidability.; No Hardcoded Secrets — No secrets or credential literals are present in the provided content.; No Silent Error Swallowing — Inapplicable to this spec text; no error-handling code pattern is defined that swallows errors.; Prioritize Requirements — More than three requirements are present and each has an explicit priority (must/should).; Impact on Existing Features — Impact is explicitly described, including removed commands and unaffected/out-of-scope areas.; Bounded Resource Usage — No recursive/retry/bulk-processing design requiring explicit bounds is introduced here.; Spec Includes Test Strategy — Test strategy is included via acceptance criteria and per-task test_strategy fields.; Synthesize Draft, Do Not Copy — Content is organized into structured sections with synthesized decisions/rationale rather than obvious raw copy blocks.; Record Unresolved Points as Open Questions — Open questions section exists and is explicitly empty; unresolved points are handled via clarifications without visible fabrication markers.; Include 'Why This Approach' Rationale — Background, decisions, and alternatives provide clear rationale for the chosen approach.; Spec Test Coverage — Cannot be evaluated without runtime evidence of implemented tests under specs/<specid>/tests/ and pass results.; Backward-Compatible CLI Interface — Existing commands are removed but no migration plan is provided; spec explicitly chooses immediate removal.; Exit Code Contract — Failure behavior is defined for removed commands via standard unregistered-command error with non-zero exit code.; Validate User Input at Entry Point — Inapplicable for command removals; no new/modified user-facing arguments requiring validation rules are introduced.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T08:42:47.103Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some requirements are not fully verifiable in wording (e.g., 'spec test execution oriented content' is vague)."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirements describe end states only and do not consistently include clear trigger-condition plus expected behavior pairs."
+        },
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "A few requirements rely on subjective/runtime interpretation (e.g., prompt rewrites and behavior-level assertions) beyond strict diff+test-summary decidability."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Existing commands are removed but no migration plan is provided; spec explicitly chooses immediate removal."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: removing flow-side test management and its gate-impl dependency.; Task Single Responsibility — Each task is scoped to a single related change area (registry, steps, gate, schemas/prompts, report).; Unambiguous Requirements — Requirements are concrete and mostly stated as specific file/key/function-level changes with verifiable outcomes.; Complete Context — Requirements include both what condition/change applies and what behavior/state is expected after change.; REQ Diff-Verifiability — Some requirements rely on checks beyond diff+test summary (e.g., explicit grep-based repository scan and process/migration assertions).; No Hardcoded Secrets — No secrets or credential literals are present in the provided content.; No Silent Error Swallowing — No new silent error-swallowing behavior is specified in this content.; Prioritize Requirements — Requirements exceed three items and each requirement has an explicit must/should priority.; Impact on Existing Features — Impacts and non-impacts are explicitly documented in scope in/out and background sections.; Bounded Resource Usage — No recursive/retry/bulk-loading design requiring explicit bounds is introduced.; Spec Includes Test Strategy — Test strategy is included via per-task test_strategy fields and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot assess synthesis-vs-copying without the original draft source for comparison.; Record Unresolved Points as Open Questions — Open Questions section is present and no unresolved point is forcibly answered without context in this content.; Include 'Why This Approach' Rationale — Rationale is provided in background and decisions with supporting evidence.; Spec Test Coverage — Cannot verify actual test file placement under specs/<specid>/tests/ and all-pass status without runtime/implementation evidence.; Backward-Compatible CLI Interface — CLI removal includes an explicit migration stance (immediate removal under alpha policy) and expected post-removal behavior.; Exit Code Contract — Spec states removed command invocations should return unregistered-command errors with non-zero exit.; Validate User Input at Entry Point — No new or modified user-facing command arguments are introduced; scope is command removal.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T08:44:52.528Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Some requirements rely on checks beyond diff+test summary (e.g., explicit grep-based repository scan and process/migration assertions)."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: removing flow-level test management and aligning gate-impl behavior.; Task Single Responsibility — Tasks are scoped by cohesive concerns; no task combines unrelated objectives.; Unambiguous Requirements — Requirements are concrete, file-specific, and mostly defined with diff-verifiable conditions.; Complete Context — Requirements provide actionable conditions and expected outcomes, including CLI behavior checks.; REQ Diff-Verifiability — Requirements are predominantly decidable via unified diff plus test/command outcomes.; No Hardcoded Secrets — No credentials or secret literals are present in the content.; No Silent Error Swallowing — No error-handling implementation is specified that would swallow errors silently.; Prioritize Requirements — All listed requirements include explicit priorities (must/should).; Impact on Existing Features — Impacts on existing commands, steps, prompts, and report behavior are explicitly described.; Bounded Resource Usage — No recursive/retry/bulk-processing design requiring explicit bounds is introduced.; Spec Includes Test Strategy — Test strategy is included in tasks and acceptance criteria (unit checks and npm test).; Synthesize Draft, Do Not Copy — Cannot assess copy-vs-synthesis without the original draft content for comparison.; Record Unresolved Points as Open Questions — Unresolved items are handled via clarifications/open_questions, with no obvious fabricated answers.; Include 'Why This Approach' Rationale — Background, decisions with evidence, and alternatives provide clear rationale.; Spec Test Coverage — It does not explicitly require this change’s test code to be placed under specs/<specid>/tests/; coverage is mostly described via generic/unit test execution.; Backward-Compatible CLI Interface — CLI removal policy is explicitly documented (immediate removal under alpha policy) as the migration approach.; Exit Code Contract — CLI failure behavior is described as unregistered-command errors, but explicit non-zero exit code contracts are not stated.; Validate User Input at Entry Point — No new or modified user-facing argument schema is introduced; commands are being removed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T08:46:39.711Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "It does not explicitly require this change’s test code to be placed under specs/<specid>/tests/; coverage is mostly described via generic/unit test execution."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "CLI failure behavior is described as unregistered-command errors, but explicit non-zero exit code contracts are not stated."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on removing flow-level test management and related gate-impl dependence as one coherent concern.; Task Single Responsibility — Tasks are separated by concern (registry/files, step plan, gate logic, prompt/schema/report updates) with shared objective.; Unambiguous Requirements — Requirements are concrete and mostly diff-verifiable (specific files, keys, functions, and expected deletions/changes).; Complete Context — Requirements specify target conditions (where to change) and expected outcomes (what must be removed/updated).; REQ Diff-Verifiability — Requirements are written to be decidable from unified diff plus test/CLI execution summaries.; No Hardcoded Secrets — No secrets or credential material are present in the content.; No Silent Error Swallowing — Inapplicable to this spec content; no error-handling implementation pattern is introduced.; Prioritize Requirements — All listed requirements include explicit priorities (must/should).; Impact on Existing Features — Impact is explicitly described via scope in/out and affected modules/behaviors.; Bounded Resource Usage — Inapplicable; no recursive/retry/bulk-processing design requiring explicit bounds is introduced.; Spec Includes Test Strategy — Test strategy is included in tasks and acceptance criteria (npm test, unit checks, CLI behavior checks).; Synthesize Draft, Do Not Copy — Cannot evaluate synthesis-vs-copy without the original draft content for comparison.; Record Unresolved Points as Open Questions — Unresolved points are not fabricated; open_questions section exists and is empty.; Include 'Why This Approach' Rationale — Rationale is documented in background, decisions with evidence, and alternatives considered.; Spec Test Coverage — Spec explicitly requires tests under specs/235-remove-flow-test-management/tests/ and all tests passing.; Backward-Compatible CLI Interface — Existing CLI commands are removed without a migration plan; spec explicitly states immediate removal with no transition period.; Exit Code Contract — Failure contract for removed commands is specified as unregistered-command error with non-zero exit (explicitly exit code 1).; Validate User Input at Entry Point — Inapplicable; spec removes commands and does not add/modify user-facing arguments requiring new validation rules.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T08:47:54.040Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Existing CLI commands are removed without a migration plan; spec explicitly states immediate removal with no transition period."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0; tasks: new task 'T-5' added_round must be 1, got 0; tasks: new task 'T-6' added_round must be 1, got 0\n  attempt 2: Single Responsibility — Spec focuses on one cohesive concern: removing flow-level test management and aligning gate-impl accordingly.; Task Single Responsibility — Each task is centered on a single change area with a shared concern, without unrelated bundled goals.; Unambiguous Requirements — Some requirements are not fully verifiable in wording (e.g., 'spec test execution oriented content' is vague).; Complete Context — Several requirements describe end states only and do not consistently include clear trigger-condition plus expected behavior pairs.; REQ Diff-Verifiability — A few requirements rely on subjective/runtime interpretation (e.g., prompt rewrites and behavior-level assertions) beyond strict diff+test-summary decidability.; No Hardcoded Secrets — No secrets or credential literals are present in the provided content.; No Silent Error Swallowing — Inapplicable to this spec text; no error-handling code pattern is defined that swallows errors.; Prioritize Requirements — More than three requirements are present and each has an explicit priority (must/should).; Impact on Existing Features — Impact is explicitly described, including removed commands and unaffected/out-of-scope areas.; Bounded Resource Usage — No recursive/retry/bulk-processing design requiring explicit bounds is introduced here.; Spec Includes Test Strategy — Test strategy is included via acceptance criteria and per-task test_strategy fields.; Synthesize Draft, Do Not Copy — Content is organized into structured sections with synthesized decisions/rationale rather than obvious raw copy blocks.; Record Unresolved Points as Open Questions — Open questions section exists and is explicitly empty; unresolved points are handled via clarifications without visible fabrication markers.; Include 'Why This Approach' Rationale — Background, decisions, and alternatives provide clear rationale for the chosen approach.; Spec Test Coverage — Cannot be evaluated without runtime evidence of implemented tests under specs/<specid>/tests/ and pass results.; Backward-Compatible CLI Interface — Existing commands are removed but no migration plan is provided; spec explicitly chooses immediate removal.; Exit Code Contract — Failure behavior is defined for removed commands via standard unregistered-command error with non-zero exit code.; Validate User Input at Entry Point — Inapplicable for command removals; no new/modified user-facing arguments requiring validation rules are introduced.\n  attempt 3: Single Responsibility — Spec is focused on one concern: removing flow-side test management and its gate-impl dependency.; Task Single Responsibility — Each task is scoped to a single related change area (registry, steps, gate, schemas/prompts, report).; Unambiguous Requirements — Requirements are concrete and mostly stated as specific file/key/function-level changes with verifiable outcomes.; Complete Context — Requirements include both what condition/change applies and what behavior/state is expected after change.; REQ Diff-Verifiability — Some requirements rely on checks beyond diff+test summary (e.g., explicit grep-based repository scan and process/migration assertions).; No Hardcoded Secrets — No secrets or credential literals are present in the provided content.; No Silent Error Swallowing — No new silent error-swallowing behavior is specified in this content.; Prioritize Requirements — Requirements exceed three items and each requirement has an explicit must/should priority.; Impact on Existing Features — Impacts and non-impacts are explicitly documented in scope in/out and background sections.; Bounded Resource Usage — No recursive/retry/bulk-loading design requiring explicit bounds is introduced.; Spec Includes Test Strategy — Test strategy is included via per-task test_strategy fields and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot assess synthesis-vs-copying without the original draft source for comparison.; Record Unresolved Points as Open Questions — Open Questions section is present and no unresolved point is forcibly answered without context in this content.; Include 'Why This Approach' Rationale — Rationale is provided in background and decisions with supporting evidence.; Spec Test Coverage — Cannot verify actual test file placement under specs/<specid>/tests/ and all-pass status without runtime/implementation evidence.; Backward-Compatible CLI Interface — CLI removal includes an explicit migration stance (immediate removal under alpha policy) and expected post-removal behavior.; Exit Code Contract — Spec states removed command invocations should return unregistered-command errors with non-zero exit.; Validate User Input at Entry Point — No new or modified user-facing command arguments are introduced; scope is command removal.\n  attempt 4: Single Responsibility — Spec is focused on one concern: removing flow-level test management and aligning gate-impl behavior.; Task Single Responsibility — Tasks are scoped by cohesive concerns; no task combines unrelated objectives.; Unambiguous Requirements — Requirements are concrete, file-specific, and mostly defined with diff-verifiable conditions.; Complete Context — Requirements provide actionable conditions and expected outcomes, including CLI behavior checks.; REQ Diff-Verifiability — Requirements are predominantly decidable via unified diff plus test/command outcomes.; No Hardcoded Secrets — No credentials or secret literals are present in the content.; No Silent Error Swallowing — No error-handling implementation is specified that would swallow errors silently.; Prioritize Requirements — All listed requirements include explicit priorities (must/should).; Impact on Existing Features — Impacts on existing commands, steps, prompts, and report behavior are explicitly described.; Bounded Resource Usage — No recursive/retry/bulk-processing design requiring explicit bounds is introduced.; Spec Includes Test Strategy — Test strategy is included in tasks and acceptance criteria (unit checks and npm test).; Synthesize Draft, Do Not Copy — Cannot assess copy-vs-synthesis without the original draft content for comparison.; Record Unresolved Points as Open Questions — Unresolved items are handled via clarifications/open_questions, with no obvious fabricated answers.; Include 'Why This Approach' Rationale — Background, decisions with evidence, and alternatives provide clear rationale.; Spec Test Coverage — It does not explicitly require this change’s test code to be placed under specs/<specid>/tests/; coverage is mostly described via generic/unit test execution.; Backward-Compatible CLI Interface — CLI removal policy is explicitly documented (immediate removal under alpha policy) as the migration approach.; Exit Code Contract — CLI failure behavior is described as unregistered-command errors, but explicit non-zero exit code contracts are not stated.; Validate User Input at Entry Point — No new or modified user-facing argument schema is introduced; commands are being removed.\n  attempt 5: Single Responsibility — Spec is focused on removing flow-level test management and related gate-impl dependence as one coherent concern.; Task Single Responsibility — Tasks are separated by concern (registry/files, step plan, gate logic, prompt/schema/report updates) with shared objective.; Unambiguous Requirements — Requirements are concrete and mostly diff-verifiable (specific files, keys, functions, and expected deletions/changes).; Complete Context — Requirements specify target conditions (where to change) and expected outcomes (what must be removed/updated).; REQ Diff-Verifiability — Requirements are written to be decidable from unified diff plus test/CLI execution summaries.; No Hardcoded Secrets — No secrets or credential material are present in the content.; No Silent Error Swallowing — Inapplicable to this spec content; no error-handling implementation pattern is introduced.; Prioritize Requirements — All listed requirements include explicit priorities (must/should).; Impact on Existing Features — Impact is explicitly described via scope in/out and affected modules/behaviors.; Bounded Resource Usage — Inapplicable; no recursive/retry/bulk-processing design requiring explicit bounds is introduced.; Spec Includes Test Strategy — Test strategy is included in tasks and acceptance criteria (npm test, unit checks, CLI behavior checks).; Synthesize Draft, Do Not Copy — Cannot evaluate synthesis-vs-copy without the original draft content for comparison.; Record Unresolved Points as Open Questions — Unresolved points are not fabricated; open_questions section exists and is empty.; Include 'Why This Approach' Rationale — Rationale is documented in background, decisions with evidence, and alternatives considered.; Spec Test Coverage — Spec explicitly requires tests under specs/235-remove-flow-test-management/tests/ and all tests passing.; Backward-Compatible CLI Interface — Existing CLI commands are removed without a migration plan; spec explicitly states immediate removal with no transition period.; Exit Code Contract — Failure contract for removed commands is specified as unregistered-command error with non-zero exit (explicitly exit code 1).; Validate User Input at Entry Point — Inapplicable; spec removes commands and does not add/modify user-facing arguments requiring new validation rules.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-27T08:48:29.011Z"
+    },
+    {
+      "step": "gate",
+      "reason": "backward-compatible-cli-interface guardrail が alpha 版ポリシーと構造的に矛盾しており、5回のリトライで解決不能。guardrail 定義に alpha 版例外がない",
+      "trigger": "sdd-forge flow run gate --phase spec の AI 評価",
+      "resolution": "ユーザー承認で FAIL を受け入れて先に進んだ",
+      "guardrailCandidate": "backward-compatible-cli-interface guardrail に alpha 版ポリシー例外を追加する",
+      "taskId": null,
+      "timestamp": "2026-04-27T08:51:26.100Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/e2e/227-forest-e2e.test.js:70: existing line modified/deleted in test file (removed=3, added=2); tests/e2e/231-task-e2e-full-lifecycle.test.js:88: existing line modified/deleted in test file (removed=1, added=0); tests/e2e/231-task-e2e-full-lifecycle.test.js:146: existing line modified/deleted in test file (removed=2, added=2); tests/e2e/flow/gate-impl-integration.test.js:96: existing line modified/deleted in test file (removed=3, added=0); tests/e2e/flow/gate-impl-integration.test.js:173: existing line modified/deleted in test file (removed=21, added=2); tests/e2e/flow/gate-impl-integration.test.js:211: existing line modified/deleted in test file (removed=14, added=2); tests/helpers/flow-setup.js:32: existing line modified/deleted in test file (removed=2, added=2); tests/unit/226-task-decomp-wiring/t4-forest-wiring.test.js:62: existing line modified/deleted in test file (removed=2, added=0); tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js:59: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t5-auto-promote.test.js:260: existing line modified/deleted in test file (removed=1, added=0); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:27: existing line modified/deleted in test file (removed=4, added=4); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:113: existing line modified/deleted in test file (removed=5, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:147: existing line modified/deleted in test file (removed=5, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:178: existing line modified/deleted in test file (removed=5, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:208: existing line modified/deleted in test file (removed=5, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:251: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:291: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:305: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:347: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:361: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:404: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:418: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:432: existing line modified/deleted in test file (removed=1, added=1); tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js:474: existing line modified/deleted in test file (removed=1, added=1); tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js:15: existing line modified/deleted in test file (removed=1, added=1); tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js:35: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/flow-run-tests.test.js:0: existing line modified/deleted in test file (removed=123, added=0); tests/unit/flow/gate-expected-tests.test.js:0: existing line modified/deleted in test file (removed=147, added=0); tests/unit/flow/gate-head-test-evidence-guard.test.js:0: existing line modified/deleted in test file (removed=149, added=0); tests/unit/flow/gate-retry-counter-transparency.test.js:9: existing line modified/deleted in test file (removed=1, added=0); tests/unit/flow/gate-retry-counter-transparency.test.js:91: existing line modified/deleted in test file (removed=15, added=2); tests/unit/flow/gate-retry-counter-transparency.test.js:106: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/gate-retry-counter-transparency.test.js:131: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/gate-retry-counter-transparency.test.js:146: existing line modified/deleted in test file (removed=1, added=3); tests/unit/flow/gate-retry-counter-transparency.test.js:183: existing line modified/deleted in test file (removed=15, added=0); tests/unit/flow/gate-test-change-check.test.js:0: existing line modified/deleted in test file (removed=204, added=0); tests/unit/flow/gate-untracked-diff.test.js:8: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/gate-untracked-diff.test.js:24: existing line modified/deleted in test file (removed=3, added=0); tests/unit/flow/gate-untracked-diff.test.js:85: existing line modified/deleted in test file (removed=4, added=0); tests/unit/flow/gate-untracked-diff.test.js:122: existing line modified/deleted in test file (removed=5, added=0); tests/unit/flow/get-context-write-tests-filter.test.js:0: existing line modified/deleted in test file (removed=146, added=0); tests/unit/flow/get-next-action.test.js:186: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/instructions-coverage.test.js:89: existing line modified/deleted in test file (removed=2, added=2); tests/unit/flow/parse-authorized-test-modifications.test.js:0: existing line modified/deleted in test file (removed=130, added=0); tests/unit/flow/run-auto-check.test.js:132: existing line modified/deleted in test file (removed=4, added=2); tests/unit/flow/run-tests-three-keys.test.js:0: existing line modified/deleted in test file (removed=60, added=0); tests/unit/flow/set-auto.test.js:116: existing line modified/deleted in test file (removed=2, added=1); tests/unit/flow/set-auto.test.js:126: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/set-test-summary.test.js:0: existing line modified/deleted in test file (removed=190, added=0); tests/unit/flow/spec-schema-expected-tests.test.js:0: existing line modified/deleted in test file (removed=105, added=0); tests/unit/flow/throw-to-envelope-codes.test.js:193: existing line modified/deleted in test file (removed=2, added=0); tests/unit/lib/flow-helpers-integration-skip.test.js:13: existing line modified/deleted in test file (removed=2, added=0); tests/unit/lib/flow-helpers-tasks.test.js:30: existing line modified/deleted in test file (removed=2, added=5); tests/unit/spec/authorized-test-mods-field.test.js:0: existing line modified/deleted in test file (removed=66, added=0); tests/unit/spec/schema.test.js:36: existing line modified/deleted in test file (removed=1, added=1); tests/unit/spec/schema.test.js:52: existing line modified/deleted in test file (removed=1, added=0)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:38:58.391Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Most required deletions are implemented, but the diff removes `integration-write-tests`/`integration-run-tests` from `FLOW_STEPS` and `PHASE_MAP`, which conflicts with the spec clarification that these step IDs should remain (only context-rules actions should be removed).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:40:54.474Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Most required deletions are implemented, but the diff removes `integration-write-tests`/`integration-run-tests` from `FLOW_STEPS` and `PHASE_MAP`, which conflicts with the spec clarification that these step IDs should remain (only context-rules actions should be removed)."
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "reason": "FLOW_STEPS/PHASE_MAP/INTEGRATION_STEP_IDS から integration-write-tests/integration-run-tests が誤って削除されていた。spec clarification では step ID は残す指示だった",
+      "trigger": "gate-impl AI evaluation caught spec.json clarification vs code mismatch",
+      "resolution": "FLOW_STEPS, PHASE_MAP, INTEGRATION_STEP_IDS に integration-write-tests/integration-run-tests を復元",
+      "taskId": null,
+      "timestamp": "2026-04-27T10:46:06.838Z"
+    }
+  ]
+}

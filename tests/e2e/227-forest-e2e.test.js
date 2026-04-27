@@ -70,12 +70,11 @@ function setupForestFixture(tmp) {
       { id: "R2", desc: "task 2 passes", priority: "must", status: "pending" },
     ],
     tasks: [
-      { id: "T-1", title: "First task", goal: "Do first thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "write-tests", status: "pending" }, { id: "implement", status: "pending" }, { id: "gate-impl", status: "pending" }] },
-      { id: "T-2", title: "Second task", goal: "Do second thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "write-tests", status: "pending" }, { id: "implement", status: "pending" }, { id: "gate-impl", status: "pending" }] },
+      { id: "T-1", title: "First task", goal: "Do first thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "impl", status: "pending" }, { id: "review", status: "pending" }, { id: "gate-impl", status: "pending" }] },
+      { id: "T-2", title: "Second task", goal: "Do second thing", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [{ id: "impl", status: "pending" }, { id: "review", status: "pending" }, { id: "gate-impl", status: "pending" }] },
     ],
     currentTaskId: null,
     metrics: [],
-    test: { summary: { exitCode: 0 } },
   };
   writeJson(tmp, `specs/${SPEC_ID}/flow.json`, flowState);
   writeJson(tmp, ".sdd-forge/.active-flow", [{ spec: SPEC_ID, mode: "local" }]);

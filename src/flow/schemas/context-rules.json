@@ -57,7 +57,7 @@
         "spec",
         "guardrail"
       ],
-      "output_schema_ref": "next-action/test.schema.json",
+      "output_schema_ref": "next-action/spec.schema.json",
       "requires_approval": false
     },
     "implement": {
@@ -80,26 +80,6 @@
         "testlog"
       ],
       "output_schema_ref": "next-action/gate.schema.json",
-      "requires_approval": false
-    },
-    "integration-write-tests": {
-      "action": "integration-write-tests",
-      "instructions_key": "impl.integration-write-tests",
-      "context_kinds": [
-        "all_task_summary",
-        "parent_req"
-      ],
-      "output_schema_ref": "next-action/integration-test.schema.json",
-      "requires_approval": false
-    },
-    "integration-run-tests": {
-      "action": "integration-run-tests",
-      "instructions_key": "impl.integration-run-tests",
-      "context_kinds": [
-        "all_task_summary",
-        "testlog"
-      ],
-      "output_schema_ref": "next-action/integration-test.schema.json",
       "requires_approval": false
     },
     "integration-run-all-tests": {
@@ -154,16 +134,6 @@
     }
   },
   "task": {
-    "write-tests": {
-      "action": "write-tests",
-      "instructions_key": "task.write-tests",
-      "context_kinds": [
-        "task_spec",
-        "related_summary"
-      ],
-      "output_schema_ref": "next-action/test.schema.json",
-      "requires_approval": false
-    },
     "impl": {
       "action": "run-impl",
       "instructions_key": "task.impl",
@@ -173,16 +143,6 @@
         "overview"
       ],
       "output_schema_ref": "next-action/impl.schema.json",
-      "requires_approval": false
-    },
-    "run-tests": {
-      "action": "run-tests",
-      "instructions_key": "task.run-tests",
-      "context_kinds": [
-        "task_spec",
-        "testlog"
-      ],
-      "output_schema_ref": "next-action/run-tests.schema.json",
       "requires_approval": false
     },
     "review": {

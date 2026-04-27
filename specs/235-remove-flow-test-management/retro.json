@@ -1,0 +1,118 @@
+{
+  "spec": "specs/235-remove-flow-test-management/spec.json",
+  "date": "2026-04-27T10:57:16.246Z",
+  "requirements": [
+    {
+      "desc": "registry.js の run サブコマンド定義オブジェクトから 'tests' キーを削除し、set サブコマンド定義オブジェクトから 'test-summary' キーを削除する。diff で該当キーの行が削除されていることで検証する",
+      "status": "done",
+      "note": "src/flow/registry.js で run.tests と set.test-summary 定義が削除されている。"
+    },
+    {
+      "desc": "src/flow/lib/run-tests.js, src/flow/lib/summarize-test-log.js, src/flow/lib/set-test-summary.js の 3 ファイルを削除する。diff でこれらのファイルが全行削除されていること、および他ファイルからこれらへの import 行が削除されていることで検証する",
+      "status": "done",
+      "note": "3ファイルは deleted。registry からの動的 import 参照も削除されている。"
+    },
+    {
+      "desc": "flow-helpers.js の TASK_STEPS_PLAN 配列を [\"impl\", \"review\", \"gate-impl\"] に変更する。diff で write-tests, run-tests の要素が削除されていることで検証する",
+      "status": "done",
+      "note": "src/lib/flow-helpers.js の TASK_STEPS_PLAN が 3要素に変更され、write-tests/run-tests が除去されている。"
+    },
+    {
+      "desc": "flow-helpers.js の TASK_PHASE_MAP オブジェクトから 'write-tests' と 'run-tests' のプロパティを削除する。diff で該当行が削除されていることで検証する",
+      "status": "done",
+      "note": "src/lib/flow-helpers.js の TASK_PHASE_MAP から両キーが削除されている。"
+    },
+    {
+      "desc": "run-gate.js から関数定義 checkMissingHeadTestEvidence, checkTestChanges, checkExpectedTests, parseAuthorizedTestModificationsFromJson, parseAuthorizedTestModifications を削除する。diff でこれらの関数定義が全行削除されていることで検証する。exports オブジェクトからも該当エントリを削除する",
+      "status": "done",
+      "note": "src/flow/lib/run-gate.js で該当関数群の定義が削除され、named export も消えている。"
+    },
+    {
+      "desc": "run-gate.js の buildImplCheckPrompt 関数から testEvidence 引数を削除し、関数本文のテスト evidence セクション生成ロジックを削除する。呼び出し元から testEvidence 引数の渡しを削除する。diff で引数リストの変更と本文のテスト evidence 行の削除が確認できることで検証する",
+      "status": "done",
+      "note": "buildImplCheckPrompt の引数と本文が簡素化され、呼び出し側の testEvidence 構築・引き渡しも削除されている。"
+    },
+    {
+      "desc": "context-rules.json から 'write-tests', 'run-tests', 'integration-write-tests', 'integration-run-tests' のキーとその値オブジェクトを削除する。diff で該当 JSON エントリが削除されていることで検証する",
+      "status": "done",
+      "note": "src/flow/schemas/context-rules.json で該当4エントリが削除されている。"
+    },
+    {
+      "desc": "src/flow/prompts/task/write-tests.md と src/flow/prompts/task/run-tests.md の 2 ファイルを削除する。diff でこれらのファイルが全行削除されていることで検証する",
+      "status": "done",
+      "note": "両ファイルとも deleted file mode で全削除されている。"
+    },
+    {
+      "desc": "src/flow/prompts/plan/test.md の本文から write-tests ステップの説明と run-tests ステップの説明を削除し、specs/<spec>/tests/ 配下のテスト実行手順のみを残す。diff で旧テスト管理手順の行が削除され、specs/<spec>/tests/ を参照する行が残っていることで検証する",
+      "status": "done",
+      "note": "flow run tests / set test-summary 前提の記述が削除され、specs/<spec>/tests を使う手順に置換されている。"
+    },
+    {
+      "desc": "spec.schema.json のトップレベル properties から 'authorized_test_modifications' キーを削除し、tasks[].items.properties から 'expected_tests' キーを削除する。diff で該当 JSON プロパティ定義が削除されていることで検証する",
+      "status": "done",
+      "note": "src/flow/schemas/spec.schema.json で両プロパティ定義が削除されている。"
+    },
+    {
+      "desc": "src/flow/schemas/next-action/test.schema.json と src/flow/schemas/next-action/run-tests.schema.json の 2 ファイルを削除する。diff でこれらのファイルが全行削除されていることで検証する",
+      "status": "done",
+      "note": "両 next-action schema ファイルは全削除されている。"
+    },
+    {
+      "desc": "report.js の Tests セクション生成ロジックで、state.test.summary が falsy の場合に 'No test data' を表示する分岐を追加する。diff で該当条件分岐の追加が確認できることで検証する",
+      "status": "done",
+      "note": "src/flow/commands/report.js の else 表示が \"No test data\" に変更され、falsy 時の表示要件を満たしている。"
+    },
+    {
+      "desc": "integration ステップ関連のプロンプトファイル（存在する場合）から testlog / test.summary / baseline への参照行を削除する。diff で該当参照行の削除が確認できることで検証する",
+      "status": "done",
+      "note": "integration-write-tests.md / integration-run-tests.md が削除され、該当参照は残っていない。"
+    },
+    {
+      "desc": "Migration plan for CLI command removal: (1) flow run tests と flow set test-summary は registry.js から削除する（R1 で実施）。(2) 削除後のコマンド呼び出しは CLI の標準未登録エラー（exit code 1）を返す。(3) deprecation 期間は設けない（alpha 版ポリシーに基づく即座削除）。(4) スキルファイルは sdd-forge upgrade で自動更新される。diff で deprecation warning や互換エイリアスが追加されていないことで検証する",
+      "status": "partial",
+      "note": "R1相当と非互換即時削除（warning/alias未追加）は確認できるが、未登録コマンドの exit code 1 挙動自体はこの diff だけでは直接検証できない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/get-context.js",
+      "change": "write-tests フェーズ中の implementationTargets ブロック機能（resolveWriteTestsTargets, glob マッチ, list/search フィルタ）を全面削除。"
+    },
+    {
+      "file": "src/flow/prompts/impl/implement.md",
+      "change": "実装フェーズのテスト実行指示を flow run tests 前提から npm/node --test 前提へ変更。"
+    },
+    {
+      "file": "src/flow/prompts/impl/gate-impl.md",
+      "change": "head test evidence（test.summary.exitCode）必須の前提説明を削除。"
+    },
+    {
+      "file": "src/flow/schemas/context-rules.json",
+      "change": "plan.test の output_schema_ref を next-action/test.schema.json から next-action/spec.schema.json に変更。"
+    },
+    {
+      "file": "tests/unit/flow/run-auto-check.test.js",
+      "change": "auto-check 不適格時の永続化期待を変更（spec 232 寄りの挙動変更）。"
+    },
+    {
+      "file": "tests/unit/flow/set-auto.test.js",
+      "change": "auto-check 不適格時の state.autoCheck 永続化期待を削除。"
+    },
+    {
+      "file": "tests/unit/flow/instructions-coverage.test.js",
+      "change": "instructions_key 件数の固定値チェックを削除し、存在整合性チェックへ置換。"
+    },
+    {
+      "file": "specs/235-remove-flow-test-management/",
+      "change": "spec/draft/flow/issue-log/review/tasks/tests など仕様運用アーティファクトを新規追加。"
+    }
+  ],
+  "summary": {
+    "total": 14,
+    "done": 13,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.96,
+    "notes": "R1〜R13はdiff上で概ね満たされている。R14はコマンド削除・非互換即時削除方針は満たすが、未登録コマンド時の exit code 1 はこの差分単体では直接確認できず部分達成。加えて、要件外の変更（get-context の write-tests 制約削除、impl/gate-impl プロンプト調整、auto-check系テスト変更、spec運用ファイル追加）が含まれている。"
+  }
+}

@@ -132,14 +132,12 @@ describe("flow run auto-check CLI", () => {
     assert.equal(state.autoCheck.maxScore, 24);
   });
 
-  it("persists autoCheck even when eligible:false (audit-friendly)", () => {
+  it("does not persist autoCheck when eligible:false (spec 232 R5)", () => {
     setupProject(tmp);
     seedFlowState(tmp, { request: "password migration release" });
     runCli(tmp, ["flow", "run", "auto-check"]);
     const state = makeFlowManager(tmp).load();
-    assert.ok(state.autoCheck);
-    assert.equal(state.autoCheck.eligible, false);
-    assert.equal(state.autoCheck.staticGates.G, true);
+    assert.equal(state.autoCheck, undefined, "autoCheck must not be persisted for failed verdict (spec 232)");
   });
 
   // Spec 218: run auto-check must persist the verdict to the preparing flow

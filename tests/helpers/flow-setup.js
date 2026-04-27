@@ -32,8 +32,8 @@ const DEFAULT_TASK = {
   added_round: 0,
   status: "pending",
   steps: [
-    { id: "write-tests", status: "pending" },
-    { id: "implement", status: "pending" },
+    { id: "impl", status: "pending" },
+    { id: "review", status: "pending" },
     { id: "gate-impl", status: "pending" },
   ],
 };
