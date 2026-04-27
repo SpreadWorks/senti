@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T15:01:49.682Z",
+  "analyzedAt": "2026-04-27T03:02:22.086Z",
   "package": {
     "entries": [
       {
@@ -375,9 +375,9 @@
       },
       {
         "file": "src/docs/commands/changelog.js",
-        "hash": "4dec5ed71bb78024c7f162b59a46bb39",
+        "hash": "432bc284090a521a9a013939cbe85f9b",
         "lines": 238,
-        "mtime": "2026-04-21T09:34:26.439Z",
+        "mtime": "2026-04-27T03:02:21.757Z",
         "className": "changelog",
         "methods": [
           "optional",
@@ -406,21 +406,22 @@
           "src/lib/container.js"
         ],
         "id": "d83c89fb",
-        "summary": "Builds a changelog document from spec directories and flow metadata. It scans specs, parses structured files, and writes a consolidated Markdown output.",
-        "detail": "The module defines helpers for optional filesystem operations, text sanitization, and directory-name parsing to keep malformed inputs from breaking execution. It reads `spec.json` and `flow.json` per spec directory and safely skips invalid or incomplete entries with stderr diagnostics. Processing is parallelized with a concurrency mapper to handle many specs efficiently. CLI arguments are parsed to resolve output location and runtime options, then the result is rendered and written as `docs/change_log.md` by default. A command class wraps the runner so it can be dispatched through the shared command framework.",
+        "summary": "Implements the `docs changelog` command that scans spec directories and generates a markdown change log file. It handles optional files and malformed metadata gracefully while preserving CLI usability.",
+        "detail": "The module parses CLI args, resolves source and output paths, and ensures the destination directory exists before writing results. It walks `specs/` entries, reads `spec.json` and `flow.json` when present, and skips invalid or incomplete records instead of failing the whole run. Helper functions sanitize text and normalize directory names for stable output. It uses bounded concurrency for per-spec parsing and writes a single assembled markdown document. The command is exposed through a `Command` subclass that delegates execution to `runChangelog`.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-21T09:35:24.876Z",
+          "processedAt": "2026-04-27T03:03:14.026Z",
           "attempts": 1
         },
         "keywords": [
           "changelog",
-          "spec parsing",
-          "flow metadata",
+          "docs command",
+          "spec scan",
           "markdown generation",
-          "concurrency map",
-          "command handler"
+          "concurrency mapping",
+          "flow metadata",
+          "optional file handling"
         ]
       },
       {
@@ -3148,9 +3149,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "5d7d33d5e144139d3fb00b45b843940c",
-        "lines": 148,
-        "mtime": "2026-04-23T04:45:33.473Z",
+        "hash": "1505f5c959fc986cb645e5b2a5d366aa",
+        "lines": 147,
+        "mtime": "2026-04-27T03:02:21.757Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -3176,22 +3177,22 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 5
-        },
-        "summary": "Provides status-report aggregation utilities and a `GetStatusCommand` for flow runs. It summarizes token usage and activity counters into structured totals and report output.",
-        "detail": "The file defines canonical token keys and activity counters, then builds zeroed accumulators for deterministic metric math. It folds log entries into bucketed summaries and computes combined totals for display and automation consumers. The status output builder packages active state, derived phase, requirements progress, and metrics in a stable shape. The command supports run-id lookup and active-context fallback, throwing a clear error when a requested run cannot be found. It returns a minimal inactive envelope when no flow is active.",
+        "summary": "Provides flow status aggregation logic and the command entrypoint for reporting current or historical run state. It summarizes token usage and activity counters into a normalized status payload.",
+        "detail": "The file defines canonical token and activity keys, plus zero-initialization helpers for predictable metrics output. It folds metric entries into bucketed summaries and computes report totals for display and downstream consumers. Status output includes derived phase information and requirement-aware context from the active flow state. The command supports querying by `runId`, with explicit errors for missing runs, and returns inactive status when no flow is active. The implementation keeps formatting and aggregation logic separated from command orchestration.",
         "chapter": "cli_commands",
-        "role": "lib",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-27T03:03:14.026Z",
+          "attempts": 1
+        },
         "keywords": [
-          "status command",
+          "flow status",
           "metrics summary",
           "token counters",
-          "activity aggregation",
-          "flow state",
-          "run id",
-          "report totals"
+          "activity counters",
+          "run id lookup",
+          "phase derivation",
+          "status reporting"
         ]
       },
       {
@@ -3551,9 +3552,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "1b54992c26240a507b911f8dd1d1a04e",
-        "lines": 552,
-        "mtime": "2026-04-25T12:51:23.064Z",
+        "hash": "2d1f60055d9276a553862a3679a6ad8e",
+        "lines": 554,
+        "mtime": "2026-04-27T03:02:21.757Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3602,30 +3603,29 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "summary": "This module implements the finalize stage of the flow pipeline and orchestrates commit, report, migration hook, and cleanup behavior. It provides the `RunFinalizeCommand` class and utility functions for preflight checks, step execution, and finalize result envelopes.",
-        "detail": "The file coordinates finalize substeps through a step map and a shared substep runner so each action returns structured status data. It performs Git preflight validation, including write-access checks in the Git common directory and branch/worktree cleanliness checks before executing sensitive operations. It supports conditional commit behavior, skip paths such as spec-only mode, and post-commit processing like report pointer updates and optional migration hooks. Cleanup logic is centralized to handle worktree and state transitions consistently for both success and error paths. The command class validates mode/step options, executes selected finalize steps, and returns a normalized success payload with optional diff metadata.",
+        "summary": "Implements the flow finalize pipeline, including preflight checks, commit/merge orchestration, and cleanup behavior. It supports both full and step-select execution with structured result envelopes.",
+        "detail": "The module performs git preflight validation, including write-access probes in the git common dir and detailed preflight error shaping. It defines a step map and reusable step runner so finalize can execute deterministic sub-steps and report per-step outcomes. Commit logic can skip when there are no staged changes, while cleanup handles worktree-aware and spec-only paths safely. It persists a pointer to the last finalized spec and can invoke a per-spec finalize migration hook script when present. The command integrates with flow state, registry hooks, and post-finalize docs/build actions while preserving robust error-handling paths.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T12:51:45.161Z",
+          "processedAt": "2026-04-27T03:03:14.026Z",
           "attempts": 1
         },
         "keywords": [
-          "finalize command",
-          "flow orchestration",
+          "finalize workflow",
           "preflight checks",
           "git write access",
-          "cleanup routine",
-          "step runner",
-          "post-commit hook",
-          "report pointer"
+          "step orchestration",
+          "commit or skip",
+          "worktree cleanup",
+          "merge strategy"
         ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "44187d1585638a7acdc0e2fad9ab75e0",
+        "hash": "0d753e84603b4337daf9c900588c2cad",
         "lines": 2112,
-        "mtime": "2026-04-25T12:08:33.496Z",
+        "mtime": "2026-04-27T00:52:46.282Z",
         "className": "run-gate",
         "methods": [
           "filterPendingSpecPlaceholder",
@@ -3756,24 +3756,22 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This module implements the flow gate engine and the `RunGateCommand` execution path for draft, spec, task-impl, and integration phases. It validates artifacts, evaluates guardrails, and determines pass/fail outcomes with structured reports.",
-        "detail": "The file combines command orchestration and reusable gate utilities, including phase-level validation, diff/scoped checks, and parsing/normalizing AI evaluation JSON with strict schema errors. It performs multiple policy checks such as unresolved spec placeholders, test modification authorization, expected test coverage patterns, retry budget limits, and monotonic task constraints. The implementation tracks retry and fail history in issue logs, computes git state fingerprints, and detects repeated failures or no-progress states to trigger escalation paths. It also supports guardrail pass-state reuse via flip override when content is unchanged, and emits envelope-based pass/fail responses with next-step hints. The command class routes behavior by phase and input source, resolving spec/draft paths from active flow state or explicit flags before running gate evaluation.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Implements the gate engine for draft/spec/implementation phases with guardrail evaluation, diff analysis, and test-policy enforcement. It is the core quality-control layer for flow progression decisions.",
+        "detail": "The module validates level-phase compatibility, prepares target artifacts by phase, and computes scoped diffs including optional untracked content with safety limits. It checks spec and draft structures, detects unresolved markers, validates task trees, and enforces expected test coverage and authorized test-file modifications. Guardrail prompting and response parsing are strongly schema-checked, with explicit error classes for malformed AI output. Retry budgeting, repeated-failure detection, no-progress checks, and flip-override logic prevent unproductive gate loops. Final outcomes are emitted as pass/fail envelopes and mirrored into issue-log history for auditability.",
+        "chapter": "internal_design",
+        "role": "middleware",
         "enrich": {
-          "processedAt": "2026-04-25T12:08:47.163Z",
+          "processedAt": "2026-04-27T03:03:14.026Z",
           "attempts": 1
         },
         "keywords": [
-          "gate runner",
-          "flow command",
+          "gate engine",
           "guardrail evaluation",
-          "spec validation",
-          "retry budget",
-          "issue log",
           "diff-based checks",
+          "schema validation",
+          "retry budget",
           "test authorization",
-          "envelope response"
+          "quality gate"
         ]
       },
       {
@@ -3858,9 +3856,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "0411e63f5f9c2eaec588dac2f5a5c4ba",
-        "lines": 357,
-        "mtime": "2026-04-25T15:01:49.394Z",
+        "hash": "a9426fc17ce625012fa1695003d29e75",
+        "lines": 356,
+        "mtime": "2026-04-27T03:02:21.757Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3894,29 +3892,29 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "This module implements the prepare-spec command that initializes a new spec workspace and flow state. It creates spec artifacts, branch/worktree context, and starter templates in a consistent structure.",
-        "detail": "The command derives branch and spec directory naming from title slugification and incremental indexing under the specs tree. It validates prerequisites such as config presence, base branch availability, and clean working tree requirements unless isolated worktree mode is used. File generation is idempotent, creating spec.json, spec.md, qa.md, draft.json, and issue.md only when missing. It renders spec markdown from structured JSON stubs and supports localized or project-local QA templates. Finally, it writes flow state metadata and caches issue body content to align prepare output with downstream flow steps.",
+        "summary": "Implements `flow prepare spec`, creating a new spec workspace with initial files and flow state. It handles branch/worktree preparation and language-aware template materialization.",
+        "detail": "The command derives a stable spec directory name from index and slugified title, then prepares paths for `spec.md`, `qa.md`, `draft.json`, and supporting files. It validates repository conditions such as base-branch availability and dirty-worktree constraints, with optional worktree isolation. It writes default spec JSON and renders markdown from the stub to keep artifacts consistent from day one. Localized QA templates are loaded from project overrides when available, otherwise fallback templates are generated in code. The module records initialized flow state and issue metadata so downstream flow commands can resume predictably.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T15:02:20.491Z",
+          "processedAt": "2026-04-27T03:03:14.026Z",
           "attempts": 1
         },
         "keywords": [
           "prepare spec",
           "worktree setup",
-          "branch detection",
-          "spec scaffolding",
-          "idempotent file creation",
+          "slugify",
+          "template bootstrap",
           "flow initialization",
-          "template loading"
+          "branch detection",
+          "spec scaffolding"
         ]
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
-        "hash": "01252d3d93d7cbdf5b668dee02bdbb9a",
-        "lines": 110,
-        "mtime": "2026-04-23T02:44:06.666Z",
+        "hash": "d66631fdf83d1ff522fcdcb5f6566a7f",
+        "lines": 99,
+        "mtime": "2026-04-27T03:02:21.757Z",
         "className": "run-reopen-draft",
         "methods": [
           "RunReopenDraftCommand",
@@ -3934,20 +3932,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "82a89eee",
-        "enrich": {
-          "processedAt": "2026-04-23T03:19:55.267Z",
-          "attempts": 2
-        },
-        "summary": "Adds a command to reopen a draft with validated user reason and flow-state checks. It returns envelope-based outcomes for all failure and success paths.",
-        "detail": "The command validates reason input type, disallows NUL bytes, and enforces a maximum length. It verifies active flow presence and state constraints before attempting reopen behavior. Errors are surfaced as structured `Envelope.fail` responses with stable codes. Successful execution returns an `Envelope.ok` payload suitable for CLI and automation consumers.",
+        "summary": "Implements `flow reopen draft` with strict reason validation and envelope-based failure signaling. It updates flow state and issue logs when reopening is allowed.",
+        "detail": "The module enforces reason constraints, including type checks, NUL-byte rejection, and maximum length limits before state mutation. It validates active-flow presence and phase suitability, returning structured fail envelopes for each invalid condition. On success, it records the reopen action through flow manager state transitions and issue-log persistence. Error paths are explicit and machine-readable, which helps CLI and automation callers handle outcomes consistently. The command remains intentionally narrow and deterministic.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-27T03:03:14.026Z",
+          "attempts": 1
+        },
         "keywords": [
           "reopen draft",
-          "reason validation",
-          "flow command",
-          "envelope errors",
-          "state transition"
+          "input validation",
+          "flow state transition",
+          "envelope response",
+          "issue log update",
+          "phase guard"
         ]
       },
       {
@@ -4037,9 +4036,9 @@
       },
       {
         "file": "src/flow/lib/run-resume.js",
-        "hash": "eaa328cf467780125121c1a7c878e627",
-        "lines": 27,
-        "mtime": "2026-04-23T04:45:33.474Z",
+        "hash": "94a776c5bfa12c04ff49691130c7a153",
+        "lines": 26,
+        "mtime": "2026-04-27T03:02:21.757Z",
         "className": "run-resume",
         "methods": [],
         "imports": [
@@ -4052,20 +4051,20 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "abe5ac21",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 5
-        },
-        "summary": "Provides a lightweight `run-resume` command that returns resolved flow context for restarting work. It delegates context construction to a dedicated resolver library.",
-        "detail": "The class extends `FlowCommand` and keeps command logic intentionally thin. It calls `buildResolvedFlowContext` to gather state, git metadata, and guidance payloads in one place. This separation keeps command wiring simple while preserving a rich response contract. The command is suitable for CLI and programmatic consumers that need resume data without side effects.",
+        "summary": "Provides `flow resume` command behavior by resolving and returning the active flow context envelope. It acts as a lightweight bridge to shared context-resolution logic.",
+        "detail": "The command class delegates almost all behavior to `buildResolvedFlowContext`, keeping the command surface minimal. It returns a standardized object payload suitable for downstream automation and user-facing status views. By centralizing resolution in a shared helper, the file avoids duplicating state-loading rules across commands. This pattern improves consistency and keeps command modules thin where orchestration is trivial.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-27T03:03:14.026Z",
+          "attempts": 1
+        },
         "keywords": [
-          "run resume",
-          "flow context",
-          "resume command",
-          "state hydration",
-          "command wrapper"
+          "resume flow",
+          "context envelope",
+          "command delegation",
+          "state resolution",
+          "lightweight command"
         ]
       },
       {
@@ -4910,9 +4909,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "e9163f23eb3507323eec9c9334a8b5d0",
-        "lines": 679,
-        "mtime": "2026-04-25T05:14:13.540Z",
+        "hash": "6c1a6a59910faed1f6c6da0c6f78f03a",
+        "lines": 678,
+        "mtime": "2026-04-27T03:02:21.757Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4932,23 +4931,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "This registry module declares flow command definitions and cross-command hooks for status, metrics, and issue-log side effects. It is the orchestration table that binds command handlers to lifecycle pre/post behaviors.",
-        "detail": "It derives active phase information from current state and exposes hook factories that update step status before and after command execution. Post-hooks are used to append issue logs, increment retry counters, and trigger follow-up operations while keeping command implementations focused. Helper wrappers isolate non-fatal telemetry and logging failures by writing warnings to stderr and rethrowing only where required. The exported FLOW_COMMANDS object centralizes help text, routing metadata, and command-specific lifecycle glue in one place. Gate-related helpers map state to gate step IDs and phases to keep gating semantics consistent across commands.",
+        "summary": "Defines the central flow command registry and cross-cutting pre/post hooks for status and issue-log updates. It is the routing and lifecycle coordination layer for flow subcommands.",
+        "detail": "The module derives active phase context, then applies reusable wrappers that update step status and append issue-log entries with non-fatal warning behavior. It registers flow commands with help text, command handlers, and hook pipelines that standardize lifecycle effects. Gate-specific post-hooks integrate retry counters and failure logging while preserving command-level errors when required. It also coordinates task completion side effects and finalize-related commit-post execution. The registry makes command behavior composable and keeps orchestration policy in one place.",
         "chapter": "project_structure",
-        "role": "middleware",
+        "role": "route",
         "enrich": {
-          "processedAt": "2026-04-25T05:14:42.832Z",
+          "processedAt": "2026-04-27T03:03:14.026Z",
           "attempts": 1
         },
         "keywords": [
           "command registry",
-          "pre hook",
-          "post hook",
+          "flow routing",
+          "lifecycle hooks",
           "step status",
-          "gate phase",
-          "issue log",
-          "orchestration",
-          "flow commands"
+          "issue log hooks",
+          "gate retry counter",
+          "orchestration"
         ]
       },
       {
@@ -9732,5 +9730,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T15:02:20.491Z"
+  "enrichedAt": "2026-04-27T03:03:14.026Z"
 }
