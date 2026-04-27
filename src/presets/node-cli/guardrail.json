@@ -14,9 +14,10 @@
     {
       "id": "validate-user-input-at-entry-point",
       "title": "Validate User Input at Entry Point",
-      "body": "CLI arguments and stdin input shall be validated at the entry point. Do not pass unvalidated input to internal functions.",
+      "body": "When adding or modifying CLI commands, the spec shall list each user-facing argument and its validation requirements (type, format, range). Arguments used only by internal automation shall be marked as internal. The implementation shall validate user-facing arguments at the entry point before passing them to internal functions.",
       "meta": {
         "phase": [
+          "spec",
           "task-impl"
         ],
         "category": "requirements"

@@ -15,9 +15,10 @@
     {
       "id": "exit-code-contract",
       "title": "Exit Code Contract",
-      "body": "Commands shall not return exit code 0 on failure. Errors shall be signaled via non-zero exit codes.",
+      "body": "When adding or modifying CLI commands, the spec shall state what constitutes success and failure for each command. The implementation shall use non-zero exit codes for the defined failure conditions.",
       "meta": {
         "phase": [
+          "spec",
           "task-impl"
         ],
         "category": "code-quality"
