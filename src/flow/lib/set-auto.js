@@ -22,6 +22,7 @@
  *     the AI is NOT invoked again.
  *   - Spec 220: phase-aware input and spec-approved skip share a single
  *     module with run-auto-check via `resolveAutoCheckInput`.
+ *   - Spec 232: autoDesired flag persisted on reject; failed verdict not saved.
  *
  * ctx.value — "on" | "off"
  * ctx.runId — preparing-flow target (required in preparing mode)
@@ -68,16 +69,19 @@ export default class SetAutoCommand extends FlowCommand {
       runId = resolved.runId;
     }
 
-    if (value === "off") {
+    const mutateState = (updater) => {
       if (preparingMode) {
-        flowManager.mutatePreparingFlow(runId, (state) => {
-          state.autoApprove = false;
-        });
+        flowManager.mutatePreparingFlow(runId, updater);
       } else {
-        flowManager.mutate((state) => {
-          state.autoApprove = false;
-        });
+        flowManager.mutate(updater);
       }
+    };
+
+    if (value === "off") {
+      mutateState((s) => {
+        s.autoApprove = false;
+        s.autoDesired = false;
+      });
       return { autoApprove: false, ...(preparingMode ? { runId } : {}) };
     }
 
@@ -110,15 +114,13 @@ export default class SetAutoCommand extends FlowCommand {
       } else {
         autoCheck = await runAutoCheckCore(this.container, resolved.text);
       }
-      const applyCheck = (s) => { s.autoCheck = autoCheck; };
-      if (preparingMode) {
-        flowManager.mutatePreparingFlow(runId, applyCheck);
-      } else {
-        flowManager.mutate(applyCheck);
+      if (autoCheck.eligible) {
+        mutateState((s) => { s.autoCheck = autoCheck; });
       }
     }
 
     if (!autoCheck.eligible) {
+      mutateState((s) => { s.autoDesired = true; });
       return Envelope.fail(
         "set",
         "auto",
@@ -128,12 +130,7 @@ export default class SetAutoCommand extends FlowCommand {
       );
     }
 
-    const applyApprove = (s) => { s.autoApprove = true; };
-    if (preparingMode) {
-      flowManager.mutatePreparingFlow(runId, applyApprove);
-    } else {
-      flowManager.mutate(applyApprove);
-    }
+    mutateState((s) => { s.autoApprove = true; });
     return { autoApprove: true, autoCheck, trusted, ...(preparingMode ? { runId } : {}) };
   }
 }

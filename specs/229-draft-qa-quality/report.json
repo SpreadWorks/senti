@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/229-draft-qa-quality/draft.md                |  67 +++\n specs/229-draft-qa-quality/flow.json               | 458 +++++++++++++++++++++\n specs/229-draft-qa-quality/issue-log.json          | 194 +++++++++\n specs/229-draft-qa-quality/issue.md                |  40 ++\n specs/229-draft-qa-quality/qa.md                   |   9 +\n specs/229-draft-qa-quality/review.md               |  41 ++\n specs/229-draft-qa-quality/spec.json               | 298 ++++++++++++++\n specs/229-draft-qa-quality/spec.md                 | 138 +++++++\n specs/229-draft-qa-quality/tests/README.md         |  35 ++\n .../tests/prompt-content.test.js                   | 105 +++++\n .../tests/schema-decisions.test.js                 |  43 ++\n src/flow/lib/resolve-auto-check-input.js           |   4 +-\n src/flow/lib/run-gate.js                           |  95 +++--\n src/flow/lib/run-prepare-spec.js                   |  61 ++-\n src/flow/prompts/plan/draft.md                     |  89 +++-\n src/flow/prompts/plan/gate-draft.md                |   4 +-\n src/flow/prompts/plan/spec.md                      |  13 +-\n src/flow/schemas/spec.schema.json                  |   2 +\n tests/unit/flow/check-draft-json.test.js           | 221 ++++++++++\n tests/unit/flow/check-draft-text.test.js           | 144 +++----\n tests/unit/flow/resolve-auto-check-input.test.js   |   4 +-\n tests/unit/flow/run-auto-check-phase.test.js       |   4 +-\n tests/unit/flow/set-auto.test.js                   |   8 +-\n tests/unit/specs/commands/gate-draft.test.js       | 113 ++---\n 24 files changed, 1919 insertions(+), 271 deletions(-)",
+      "commits": [
+        "feat: feature/229-draft-qa-quality"
+      ]
+    },
+    "retro": {
+      "total": 7,
+      "done": 6,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.93,
+      "notes": "R1-R5, R7 は実装差分上で満たされている。R6 はマッピング指示自体は追加済みだが、considered の転記先フィールド名が要求文と一致せず部分達成。加えて auto-check 連携変更と多くの spec 運用アーティファクト追加が要求外変更として含まれる。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 6,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 192685,
+      "output": 9311,
+      "cacheRead": 104448,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 8,
+      "durationMs": 224188,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 83322
+        },
+        {
+          "phase": "gate",
+          "durationMs": 37935
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 43124
+        },
+        {
+          "phase": "review",
+          "durationMs": 59807
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2408,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2675
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/229-draft-qa-quality\n    24 files changed, 1919 insertions(+), 271 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 93%  (6 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 6\n    issue-log ................... 2\n    agent calls ................. 8\n    input tokens ................ 192,685\n    output tokens ............... 9,311\n    cache-read tokens ........... 104,448\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 224.2s\n      gate-draft ................ 83.3s\n      gate ...................... 37.9s\n      gate-impl ................. 43.1s\n      review .................... 59.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2408  integration 267  acceptance 0  total 2675"
+}

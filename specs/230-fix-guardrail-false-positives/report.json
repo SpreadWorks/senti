@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/230-fix-guardrail-false-positives/draft.json |  72 ++++\n specs/230-fix-guardrail-false-positives/flow.json  | 411 +++++++++++++++++++++\n .../issue-log.json                                 | 159 ++++++++\n specs/230-fix-guardrail-false-positives/issue.md   |  28 ++\n specs/230-fix-guardrail-false-positives/qa.md      |   9 +\n specs/230-fix-guardrail-false-positives/review.md  |  33 ++\n specs/230-fix-guardrail-false-positives/spec.json  | 152 ++++++++\n specs/230-fix-guardrail-false-positives/spec.md    |  92 +++++\n .../230-fix-guardrail-false-positives/tasks/T-1.md |  21 ++\n .../230-fix-guardrail-false-positives/tasks/T-2.md |  19 +\n .../tasks/T-pending-spec.md                        |   9 +\n .../tests/README.md                                |  19 +\n .../tests/guardrail-false-positive-fix.test.js     | 107 ++++++\n src/flow/lib/run-gate.js                           |  20 +-\n src/presets/base/guardrail.json                    |   6 +-\n src/presets/cli/guardrail.json                     |   1 -\n 16 files changed, 1153 insertions(+), 5 deletions(-)",
+      "commits": [
+        "feat: feature/230-fix-guardrail-false-positives"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 4,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.9,
+      "notes": "REQ-1,2,4,5 は満たしている。REQ-3 は T-pending-spec 除外自体は実装済みだが、要件文どおりの適用範囲（flow.json.tasks を task-single-responsibility 評価時に限定）との一致が diff だけでは断定しづらく partial 判定。加えて、仕様管理ファイル群・追加テスト・stderrログ等の付随変更が含まれる。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 183906,
+      "output": 10235,
+      "cacheRead": 136960,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 10,
+      "durationMs": 251529,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 55257
+        },
+        {
+          "phase": "gate",
+          "durationMs": 73535
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 75193
+        },
+        {
+          "phase": "review",
+          "durationMs": 47544
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2448,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2715
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/230-fix-guardrail-false-positives\n    16 files changed, 1153 insertions(+), 5 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 90%  (4 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 10\n    input tokens ................ 183,906\n    output tokens ............... 10,235\n    cache-read tokens ........... 136,960\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 251.5s\n      gate-draft ................ 55.3s\n      gate ...................... 73.5s\n      gate-impl ................. 75.2s\n      review .................... 47.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2448  integration 267  acceptance 0  total 2715"
+}

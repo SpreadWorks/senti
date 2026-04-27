@@ -1,0 +1,79 @@
+{
+  "devType": "feature",
+  "goal": "auto-check で reject されたユーザーの auto モード希望を記憶し、フェーズ進行で情報が蓄積された時点で再評価して昇格を提案する",
+  "analysis": {
+    "problem": "auto-check はフロー開始時の1点でしか評価されない。request が薄い段階で reject されると、その後 draft/spec で情報が充実しても auto モードに昇格する手段がない。ユーザーは手動モードを強いられ続ける。",
+    "proposedApproach": "ユーザーの auto モード希望を永続化し、フェーズ完了時に自動で再評価する。eligible に転じたら昇格選択肢を提示する。",
+    "validation": "根本原因は「評価タイミングが1回のみ」であること。フェーズが進むにつれ情報が蓄積されるため、再評価のタイミングを増やすことで本来 eligible であるフローを救済できる���"
+  },
+  "scopeVerification": {
+    "in": [
+      "R1 [must]: auto モードの希望を永続化する。reject 時でも希望を記録し、明示的な取消で解除する",
+      "R2 [must]: フェーズ完了時（draft done / spec approved）に auto-check を再実行する。対象は auto 希望ありかつ auto 未承認のフロー",
+      "R3 [must]: 再評価で eligible に転じた場合、skill が検知可能なシグナルを返す",
+      "R4 [must]: skill は昇格シグナルを検知して [1] auto に切り替え [2] 手動のまま の選択肢を提示する",
+      "R5 [must]: 不合格の評価結果を永続化しない。再評価が過去の不合格���果によってブロ���クされないようにする",
+      "R6 [should]: auto 希望のないユーザーには昇格通知しない（オプトイン制）"
+    ],
+    "out": [
+      "hard-gate zero-tolerance 緩和や THRESHOLD 再調整（別 issue）",
+      "reason 文字列の表示改善（昇格提案のコンテキスト���は不要）"
+    ]
+  },
+  "impactOnExisting": [
+    "auto モード制御: reject 時の希望永続化と不合���結果の非保存化",
+    "フロー進行通知: 昇格シ���ナルの応答追加",
+    "フロー状態: 希望フラグの追加",
+    "skill テンプレート: 昇格シグナルのハンドリング追加"
+  ],
+  "qa": [
+    {
+      "question": "R5: 不合格結果を保存しないことで、合格結果の再利用による最適化が影響を受けるか？",
+      "answer": "受けない。合格結果の再利用は引き続き機能する。不合格結果���再評価で上書きされるべき値であり、再利用する必要がない。",
+      "evidence": "Issue #266 R5 で明示: 再評価前に古い verdict が残っていると昇格判定が阻害される",
+      "why": "ユーザーが auto を希望したのに、過去の判定結果のせいで永久に昇格できないのは不合理",
+      "considered": "不合��結果も保存して再評価時にクリアする案。タイミング管理が複雑化するため棄却"
+    },
+    {
+      "question": "再評価のトリガー（draft done / spec approved）は十分か？追加すべきポイントはあるか？",
+      "answer": "十分。フロー情報は3段階で蓄積される: request+issue → +draft → spec approved。draft done が最大の情報増加ポイント。spec approved 時点では自動的に eligible となるため、実質的な AI 再評価は draft done の1回。",
+      "evidence": "Issue #266 R2: 少なくとも draft done / spec approved をトリガーとして指定",
+      "why": "draft 完了でユーザーの意図と要件が明文化され、評価に必要な情報が揃う",
+      "considered": "spec 記入後にも再評価する案。評価に spec 内容は使われないため情報増加なし"
+    },
+    {
+      "question": "再評価には AI 呼び出しが伴う。応答遅延はユーザー体験に影響するか？",
+      "answer": "影響は軽微��再評価は最大2回のみで、条件を満たすフローに��定される。フェーズ遷移時はユーザーの操作間隔があり、数秒の追加遅延は許容範囲。",
+      "evidence": "既存の prelude での auto-check AI 呼び出しは数秒で完了する実績あり",
+      "why": "フェーズ遷移は操作の区切りであり、ユ��ザーが待機を許容しやすいタイミング",
+      "considered": "非同期で再評価してポーリングする案。結果確定前にステップが進むリスクがあり棄却"
+    },
+    {
+      "question": "flow 開始前（preparing mode）で reject された場合の希望フラグの扱いは？",
+      "answer": "preparing state に希望フラグを保存し、flow 開始時に継承する。以降の再評価は active flow 上で動作する。",
+      "evidence": "Issue #266 R1: set auto on で reject 時に autoDesired=true を永続化、と明示",
+      "why": "prelude で reject されたケースが最も典型的な昇格候補。ここを対応しなければ主要ユースケースを取りこぼす",
+      "considered": "preparing mode では希望フラグを無視する案。最も多いユースケースを取りこぼすため棄却"
+    },
+    {
+      "question": "ユーザーが昇格提案を拒否した後の振る舞いは？",
+      "answer": "希望フラグを解除する。以降の再評価は発生しない（R6: オプトイン制）。ユーザーが改めて auto を希望する場合は手動で有効化する。",
+      "evidence": "Issue #266 R6: autoDesired=false のユーザーには昇格通知しない",
+      "why": "拒否したユーザー���繰り返し通知するのはユーザー体験として不適切",
+      "considered": "拒否後も���のマイルストーンで再通知する案。明示的拒否を無視するため棄却"
+    },
+    {
+      "question": "autoApprove モードでのドラフト作成: brainstorm vs decision の確認は必要か？",
+      "answer": "不要。autoApprove モードはユーザーが decision mode を選択した上で有効化される前提。Issue #266 の R1-R6 は具体的な要件であり、探索的な議論ではない。",
+      "evidence": "Issue #266 は要件 R1-R6 とスコープ外を明示的に定義済み",
+      "why": "autoApprove はユーザー��� AI に全権委任した状態",
+      "considered": "N/A"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-25T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}

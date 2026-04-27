@@ -1,0 +1,167 @@
+{
+  "goal": "Gate evaluation AI produces inconsistent FAIL results across runs on the same content. Inject pass history from previous evaluations into the AI prompt to stabilize judgment and reduce unnecessary retries.",
+  "background": "Plan phase gates (gate-draft / gate-spec) produce FAIL on different guardrails across runs. Spec 221 required 12 AI calls (~467 seconds, 254k input tokens). Existing flip override only works on identical content; whack-a-mole occurs when content changes between runs.",
+  "scope": {
+    "in": [
+      "Inject previously-passed guardrail IDs into the AI evaluation prompt",
+      "Retrieve pass history from issue-log in the shared gate flow",
+      "Apply to all retry-tracked phases (draft, spec, task-impl, integration)",
+      "Add unit tests for prompt generation with pass history"
+    ],
+    "out": [
+      "Changes to applyFlipOverride (retained as-is)",
+      "Changes to issue-log recording format (passedGuardrails already recorded)",
+      "Changes to retry limit / no-progress guard / repeated-fail escalation",
+      "Changes to AI output format (JSON schema)"
+    ]
+  },
+  "constraints": [
+    "All existing tests must pass",
+    "First evaluation (no pass history) must produce identical prompt to current behavior"
+  ],
+  "design_principles": [
+    "Prompt injection is soft guidance, not a quality bypass — AI retains independent judgment",
+    "Dual defense: mechanical flip override for identical content + prompt injection for changed content"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-gate.js — prompt builder pass-history parameter, shared gate flow pass-history retrieval"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "runGateFlow → issue-log passedGuardrails retrieval → checkGuardrail → buildGuardrailPromptFromFiltered with pass history injection"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "Prompt injection chosen over exclusion to preserve quality check integrity"
+      },
+      {
+        "text": "Applied to all retry-tracked phases via shared gate flow path"
+      },
+      {
+        "text": "Existing applyFlipOverride retained as fallback safety net"
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "desc": "When pass history from a previous gate evaluation exists in the issue-log, the guardrail evaluation prompt shall include a 'Previously Passed Guardrails' section containing the list of previously-passed guardrail IDs.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-2",
+      "desc": "When pass history is available, the prompt builder shall accept and incorporate the list of previously-passed guardrail IDs for all retry-tracked phases (draft, spec, task-impl, integration).",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-3",
+      "desc": "When no pass history exists (first evaluation or no issue-log entries), the prompt shall remain unchanged from the current behavior.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "REQ-4",
+      "desc": "When the same content is re-evaluated with identical working-tree state, the existing mechanical flip override shall be retained alongside the prompt-based pass history as a fallback safety net.",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "Gate evaluation prompt contains a 'Previously Passed Guardrails' section when pass history is available",
+    "Gate evaluation prompt does not contain the section when no pass history is available",
+    "All retry-tracked phases (draft, spec, task-impl, integration) receive the pass history prompt injection",
+    "Existing applyFlipOverride behavior is unchanged",
+    "All existing tests pass"
+  ],
+  "clarifications": [
+    {
+      "q": "Should pass history be injected into the prompt or should previously-passed guardrails be excluded from evaluation?",
+      "a": "Inject into prompt. Exclusion would bypass quality checks and miss issues when content changes directly affect a previously-passed guardrail."
+    },
+    {
+      "q": "Should this apply only to plan phases or all retry-tracked phases?",
+      "a": "All retry-tracked phases. The shared gate flow path makes phase-specific branching unnecessary."
+    },
+    {
+      "q": "Should applyFlipOverride be removed since prompt injection covers its use case?",
+      "a": "No. Retained as dual defense. Prompt injection is soft guidance; mechanical override is the deterministic fallback for identical content."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Exclude previously-passed guardrails from evaluation entirely",
+      "reason": "Rejected: bypasses quality checks and may miss real violations introduced by content changes"
+    },
+    {
+      "option": "Diff-based re-evaluation for plan phase gates",
+      "reason": "Rejected: plan phase evaluates entire document quality, not just diffs"
+    },
+    {
+      "option": "Set temperature=0 for AI evaluation",
+      "reason": "Rejected: not controllable via CLI-based AI invocation"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/flow/lib/run-gate.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "skipped"
+    },
+    {
+      "id": "T-1",
+      "title": "Add pass history parameter to prompt builder",
+      "goal": "Extend the guardrail evaluation prompt builder to accept a list of previously-passed guardrail IDs and inject a 'Previously Passed Guardrails' section into the prompt when the list is non-empty.",
+      "acceptance": [
+        "buildGuardrailPromptFromFiltered accepts an optional previouslyPassed parameter",
+        "When previouslyPassed is non-empty, prompt contains a 'Previously Passed Guardrails' section with the IDs",
+        "When previouslyPassed is empty or undefined, prompt is identical to current behavior"
+      ],
+      "implementation_notes": "Add a previouslyPassed parameter to buildGuardrailPromptFromFiltered. When non-empty, append a section after the Rules block instructing the AI to consider these guardrails as previously passed. Thread the parameter through checkGuardrail.",
+      "test_strategy": "Unit tests for buildGuardrailPromptFromFiltered with and without previouslyPassed. Verify prompt content contains/omits the section.",
+      "parent": null,
+      "expected_tests": [
+        "tests/unit/flow/run-gate.test.js"
+      ],
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Wire pass history retrieval in shared gate flow",
+      "goal": "Retrieve previously-passed guardrail IDs from the issue-log in runGateFlow and pass them through to the prompt builder for all retry-tracked phases.",
+      "acceptance": [
+        "runGateFlow retrieves pass history from issue-log via findPreviousPassedGuardrails",
+        "Pass history is forwarded to checkGuardrail regardless of content change status",
+        "All retry-tracked phases (draft, spec, task-impl, integration) receive pass history"
+      ],
+      "implementation_notes": "In runGateFlow, call findPreviousPassedGuardrails to get the previous pass list. Pass it to checkGuardrail. The existing applyFlipOverride remains as a post-evaluation fallback.",
+      "test_strategy": "Unit tests verifying that runGateFlow passes previouslyPassed to checkGuardrail when issue-log has pass history. Verify no pass history is passed on first evaluation.",
+      "parent": null,
+      "expected_tests": [
+        "tests/unit/flow/run-gate.test.js"
+      ],
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-25T09:01:23.750Z"
+  }
+}

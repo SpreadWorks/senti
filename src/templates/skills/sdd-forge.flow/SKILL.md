@@ -97,15 +97,9 @@ B.4. **Prepare spec (silent)**
      - No branch: `sdd-forge flow prepare --title "..." --no-branch --run-id <runId>`
    - On `{ok: false, code: "DIRTY_WORKTREE"}` → run `sdd-forge flow get prompt plan.dirty-worktree` and present the choices; do not retry until clean.
 
-B.5. **Capture test baseline (silent, best-effort, spec 209)**
-   - Immediately after B.4 succeeds, run `sdd-forge flow run tests --baseline` to snapshot pre-spec test state. The worktree HEAD is identical to the base branch at this moment, so this measurement is the baseline.
-   - On success (`result.summarized == "ok"|"failed"`): baseline is recorded in `flow.json` at `test.baseline`.
-   - On `summarized == "failed"`: agent-side summarization failed. Read the baseline log file at `result.logPath` with Bash/Read, extract failed test identifiers into JSON `{ failed: [{id, reason}, ...] }`, then persist via `sdd-forge flow set test-summary --baseline --mode fallback --json @-` (or `--json '<payload>'`).
-   - On any other error (`NO_TEST_COMMAND`, missing test script, etc.): skip baseline capture, print a short warning to the user, and continue to C. Gate-impl will fall back to head-only evaluation with a "baseline not captured" warning.
-   - Never fail the flow on baseline issues — this step is strictly best-effort.
-   - **Exit code semantics:** The command's responsibility in baseline mode is to capture and persist a test measurement snapshot. The CLI exit code reflects whether that capture succeeded (exit 0) or failed (non-zero) — it does not reflect test pass/fail. To determine actual test health, read `data.exitCode` (the subprocess exit code, mapped from the internal `result.exitCode`) or `data.summary.exitCode` from the JSON envelope.
-
 Proceed to **C. Dispatcher loop**.
+
+Note: Baseline test capture is handled lazily by `flow run tests` (head mode) — when `test.baseline` is not yet recorded, the CLI automatically captures it via a detached worktree before running head tests. This capture is best-effort: if it fails, head tests proceed normally and gate-impl falls back to head-only evaluation. No explicit baseline step is needed here.
 
 ### C. Dispatcher loop
 
@@ -116,6 +110,21 @@ C.1. **Ask the CLI for the next action**
    - The CLI auto-promotes the next pending step on `done` transitions and, as a safety net, when no `in_progress` step exists at call time. Do not manually `flow set step <id> in_progress` to advance the flow.
    - If all mainline steps are `done` or `skipped` → loop exit (CLI returns `NO_IN_PROGRESS_STEP`).
    - Otherwise, consume the returned envelope: `action`, `instructions.content`, `context`, `output_schema`, `requires_approval`.
+
+C.1.5. **Auto-upgrade check (spec 232)**
+   - If the envelope contains `autoUpgrade` with `available === true`, present the following choice **before** executing step instructions:
+     ```
+     ──────────────────────────────────────────────────────────
+       Auto モードに昇格可能です。切り替えますか？
+     ──────────────────────────────────────────────────────────
+
+       [1] auto に切り替え — 以降は確認なしで進めます
+       [2] 手動のまま — 通常通り各ステップで確認します
+
+     ```
+   - If `[1]`: run `sdd-forge flow set auto on`. On success, update `autoApprove` to `true` for subsequent steps.
+   - If `[2]`: run `sdd-forge flow set auto off`. The `autoDesired` flag is cleared and no further upgrade prompts will appear.
+   - This check runs at most once per flow (the CLI clears `autoUpgrade` after `set auto on/off` via the trust path).
 
 C.2. **Execute instructions**
    - Treat `instructions.content` as the authoritative procedure for this step. Follow it exactly.

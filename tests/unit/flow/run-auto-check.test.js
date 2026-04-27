@@ -67,6 +67,14 @@ function runCli(tmp, args) {
   });
 }
 
+function runAutoCheck(tmp, { aiOverrides, request } = {}) {
+  setupProject(tmp, aiOverrides ? { aiResponse: stubResponse(aiOverrides) } : undefined);
+  seedFlowState(tmp, request ? { request } : undefined);
+  const res = runCli(tmp, ["flow", "run", "auto-check"]);
+  assert.equal(res.status, 0, res.stderr);
+  return JSON.parse(res.stdout.trim());
+}
+
 describe("flow run auto-check CLI", () => {
   let tmp;
 
@@ -79,53 +87,37 @@ describe("flow run auto-check CLI", () => {
   });
 
   it("returns eligible:true with passing scores (input derived from flow state)", () => {
-    setupProject(tmp);
-    seedFlowState(tmp);
-    const res = runCli(tmp, ["flow", "run", "auto-check"]);
-    assert.equal(res.status, 0, res.stderr);
-    const envelope = JSON.parse(res.stdout.trim());
+    const envelope = runAutoCheck(tmp);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.eligible, true);
     assert.equal(envelope.data.maxScore, 24);
-    assert.equal(envelope.data.threshold, 18);
+    assert.equal(envelope.data.threshold, 16);
     assert.ok("specBuildability" in envelope.data.breakdown);
     assert.ok("ambiguity" in envelope.data.breakdown);
     assert.deepEqual(envelope.data.staticGates, { G: false, H: false, I: false });
   });
 
   it("returns eligible:false and skips AI when static gate G hits", () => {
-    setupProject(tmp);
-    seedFlowState(tmp, { request: "reset admin password in migration" });
-    const res = runCli(tmp, ["flow", "run", "auto-check"]);
-    assert.equal(res.status, 0, res.stderr);
-    const envelope = JSON.parse(res.stdout.trim());
+    const envelope = runAutoCheck(tmp, { request: "reset admin password in migration" });
     assert.equal(envelope.data.eligible, false);
     assert.equal(envelope.data.staticGates.G, true);
   });
 
-  it("returns eligible:false with hard-gate when verifiability is 0", () => {
-    setupProject(tmp, { aiResponse: stubResponse({ verifiability: 0 }) });
-    seedFlowState(tmp, { request: "vague idea" });
-    const res = runCli(tmp, ["flow", "run", "auto-check"]);
-    assert.equal(res.status, 0, res.stderr);
-    const envelope = JSON.parse(res.stdout.trim());
+  it("returns eligible:true when single hard-gate key is 0 but sum ≥ 2 (staged gate)", () => {
+    const envelope = runAutoCheck(tmp, { aiOverrides: { verifiability: 0 }, request: "vague idea" });
+    assert.equal(envelope.data.eligible, true);
+  });
+
+  it("returns eligible:false with hard-gate when sum ≤ 1", () => {
+    const envelope = runAutoCheck(tmp, { aiOverrides: { specBuildability: 0, ambiguity: 0, verifiability: 1 }, request: "vague idea" });
     assert.equal(envelope.data.eligible, false);
   });
 
   it("returns eligible:false when total score below threshold", () => {
-    setupProject(tmp, {
-      aiResponse: stubResponse({
-        specBuildability: 1,
-        ambiguity: 1,
-        verifiability: 1,
-        scopeBoundedness: 1,
-        targetSpecificity: 0,
-        precedent: 0,
-      }),
+    const envelope = runAutoCheck(tmp, {
+      aiOverrides: { specBuildability: 1, ambiguity: 1, verifiability: 1, scopeBoundedness: 1, targetSpecificity: 0, precedent: 0 },
+      request: "x",
     });
-    seedFlowState(tmp, { request: "x" });
-    const res = runCli(tmp, ["flow", "run", "auto-check"]);
-    const envelope = JSON.parse(res.stdout.trim());
     assert.equal(envelope.data.eligible, false);
     assert.ok(envelope.data.score < envelope.data.threshold);
   });

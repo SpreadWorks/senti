@@ -1,0 +1,117 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft targets one concern: end-to-end lifecycle regression coverage for flow transitions via CLI.; Unambiguous Requirements — Several requirement statements use non-verifiable wording (e.g., minimal/estimated/sufficient) rather than strictly testable conditions.; Complete Context — Key requirements generally include both trigger and expected behavior (e.g., after step completion, expected next-action/transition assertions).; No Hardcoded Secrets — No source-code secrets or credential literals are present in the draft content.; Prioritize Requirements — There are more than three requirements but no must/should/nice-to-have priority labels are assigned.; Impact on Existing Features — Impact on existing tests/helpers is explicitly stated, including that existing tests are unchanged.; Present Recommendations with Reasoning — Each QA item provides a recommended answer plus rationale/evidence grounded in code patterns and project rules.; Explore Before Asking — Questions are answered using cited code/docs evidence, and openQuestions is empty.; Proactively Raise Related Implications — Related implications are proactively covered (AI-step handling, task-shape coverage, runtime impact, approval sync hook).; Confirm Brainstorm vs. Decision Before Critiquing — Cannot determine whether brainstorming-vs-decision confirmation occurred from this standalone draft artifact.; Capture Digressions in draft.md — Cannot evaluate digression capture in draft.md without conversation/history evidence.; Draft Stays at Requirements Level — Draft includes internal implementation details (specific functions, traversal algorithm, hook behavior) beyond requirements-level scope.; Backward-Compatible CLI Interface — No CLI command/option meaning change is proposed; migration planning is not applicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:15:23.623Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Several requirement statements use non-verifiable wording (e.g., minimal/estimated/sufficient) rather than strictly testable conditions."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirements but no must/should/nice-to-have priority labels are assigned."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes internal implementation details (specific functions, traversal algorithm, hook behavior) beyond requirements-level scope."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.data_flow[0]: must be object, got string; tasks[0].implementation_notes: must be string, got array; tasks[1].implementation_notes: must be string, got array; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:20:09.248Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:45:40.419Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: end-to-end lifecycle test coverage for task decomposition flow.; Task Single Responsibility — Each task targets a single scenario (flat lifecycle vs parent-child lifecycle) within the same concern.; Unambiguous Requirements — Requirements are mostly written as concrete, testable assertions (CLI transitions, IDs, counts, pass/fail conditions).; Complete Context — Requirements provide trigger/condition context (e.g., after approval or step completion) and expected behavior to assert.; REQ Diff-Verifiability — Pass/fail can be judged from added test diff and test execution results.; No Hardcoded Secrets — No secrets, keys, or credentials are present in the spec content.; No Silent Error Swallowing — No error-handling implementation is specified here; nothing indicates silent swallowing.; Prioritize Requirements — More than three requirements are present and each has a priority (must/should).; Impact on Existing Features — Impact on existing features is not explicitly summarized; only indirect statements exist.; Bounded Resource Usage — No recursive/retry/bulk-loading design requiring explicit bounds is introduced.; Changes Require Test Coverage — The change is a test implementation itself and includes concrete coverage expectations.; Spec Includes Test Strategy — Test strategy is explicitly stated in tasks and acceptance criteria (run via npm test).; Synthesize Draft, Do Not Copy — Cannot verify whether this was synthesized vs copied without the original draft source.; Record Unresolved Points as Open Questions — Open questions are recorded as none, and no unresolved point is obviously fabricated in the provided content.; Include 'Why This Approach' Rationale — Rationale is provided in decisions and alternatives considered sections.; Do Not Modify Existing Tests Without Approval — Spec explicitly states existing tests must not be modified.; Backward-Compatible CLI Interface — No CLI command/option behavior change is proposed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:46:21.959Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Impact on existing features is not explicitly summarized; only indirect statements exist."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "impl-test-preservation",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.data_flow[0]: must be object, got string; tasks[0].implementation_notes: must be string, got array; tasks[1].implementation_notes: must be string, got array; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n  attempt 2: tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0\n  attempt 3: Single Responsibility — Spec focuses on one concern: end-to-end lifecycle test coverage for task decomposition flow.; Task Single Responsibility — Each task targets a single scenario (flat lifecycle vs parent-child lifecycle) within the same concern.; Unambiguous Requirements — Requirements are mostly written as concrete, testable assertions (CLI transitions, IDs, counts, pass/fail conditions).; Complete Context — Requirements provide trigger/condition context (e.g., after approval or step completion) and expected behavior to assert.; REQ Diff-Verifiability — Pass/fail can be judged from added test diff and test execution results.; No Hardcoded Secrets — No secrets, keys, or credentials are present in the spec content.; No Silent Error Swallowing — No error-handling implementation is specified here; nothing indicates silent swallowing.; Prioritize Requirements — More than three requirements are present and each has a priority (must/should).; Impact on Existing Features — Impact on existing features is not explicitly summarized; only indirect statements exist.; Bounded Resource Usage — No recursive/retry/bulk-loading design requiring explicit bounds is introduced.; Changes Require Test Coverage — The change is a test implementation itself and includes concrete coverage expectations.; Spec Includes Test Strategy — Test strategy is explicitly stated in tasks and acceptance criteria (run via npm test).; Synthesize Draft, Do Not Copy — Cannot verify whether this was synthesized vs copied without the original draft source.; Record Unresolved Points as Open Questions — Open questions are recorded as none, and no unresolved point is obviously fabricated in the provided content.; Include 'Why This Approach' Rationale — Rationale is provided in decisions and alternatives considered sections.; Do Not Modify Existing Tests Without Approval — Spec explicitly states existing tests must not be modified.; Backward-Compatible CLI Interface — No CLI command/option behavior change is proposed, so migration planning is not required.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T12:50:46.862Z"
+    },
+    {
+      "step": "gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.data_flow[0]: must be object, got string; tasks[0].implementation_notes: must be string, got array; tasks[1].implementation_notes: must be string, got array; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n  attempt 2: tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0\n  attempt 3: Single Responsibility — Spec focuses on one concern: end-to-end lifecycle test coverage for task decomposition flow.; Task Single Responsibility — Each task targets a single scenario (flat lifecycle vs parent-child lifecycle) within the same concern.; Unambiguous Requirements — Requirements are mostly written as concrete, testable assertions (CLI transitions, IDs, counts, pass/fail conditions).; Complete Context — Requirements provide trigger/condition context (e.g., after approval or step completion) and expected behavior to assert.; REQ Diff-Verifiability — Pass/fail can be judged from added test diff and test execution results.; No Hardcoded Secrets — No secrets, keys, or credentials are present in the spec content.; No Silent Error Swallowing — No error-handling implementation is specified here; nothing indicates silent swallowing.; Prioritize Requirements — More than three requirements are present and each has a priority (must/should).; Impact on Existing Features — Impact on existing features is not explicitly summarized; only indirect statements exist.; Bounded Resource Usage — No recursive/retry/bulk-loading design requiring explicit bounds is introduced.; Changes Require Test Coverage — The change is a test implementation itself and includes concrete coverage expectations.; Spec Includes Test Strategy — Test strategy is explicitly stated in tasks and acceptance criteria (run via npm test).; Synthesize Draft, Do Not Copy — Cannot verify whether this was synthesized vs copied without the original draft source.; Record Unresolved Points as Open Questions — Open questions are recorded as none, and no unresolved point is obviously fabricated in the provided content.; Include 'Why This Approach' Rationale — Rationale is provided in decisions and alternatives considered sections.; Do Not Modify Existing Tests Without Approval — Spec explicitly states existing tests must not be modified.; Backward-Compatible CLI Interface — No CLI command/option behavior change is proposed, so migration planning is not required.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T12:51:12.586Z"
+    },
+    {
+      "step": "approval",
+      "reason": "syncSpecTasksToFlow did not sync T-1 and T-2 from spec.json to flow.json in worktree mode — the sync function creates a new FlowManager with inWorktree:false which may prevent it from finding the active flow",
+      "trigger": "approval done post-hook",
+      "resolution": "manually added T-1 and T-2 to flow.json tasks array",
+      "guardrailCandidate": "syncSpecTasksToFlow should respect worktree mode when resolving the active flow",
+      "taskId": null,
+      "timestamp": "2026-04-25T13:03:58.378Z"
+    },
+    {
+      "step": "test",
+      "reason": "sync-spec-tasks.js buildFlowTask() double-wraps task steps: buildInitialTaskSteps() already returns [{id, status}] but the code applies an additional .map((id) => ({id, status: pending})) producing nested objects [{id: {id, status}, status}]",
+      "trigger": "E2E test discovered that synced tasks have malformed steps structure",
+      "resolution": "Fix buildFlowTask in sync-spec-tasks.js to use buildInitialTaskSteps() directly without re-mapping",
+      "guardrailCandidate": "when composing helper return values verify the output shape matches expectations before wrapping",
+      "taskId": null,
+      "timestamp": "2026-04-25T13:12:45.086Z"
+    }
+  ]
+}

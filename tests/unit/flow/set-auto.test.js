@@ -242,7 +242,7 @@ describe("flow set auto", () => {
     assert.equal(saved.autoCheck.eligible, true);
   });
 
-  it("appends draft.md to auto-check input when gate-draft done (spec 220)", () => {
+  it("appends draft.json to auto-check input when gate-draft done (spec 220)", () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-draft-"));
     fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
     fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });
@@ -269,8 +269,8 @@ describe("flow set auto", () => {
     const DRAFT_MARKER = "UNIQUE_DRAFT_CONTENT_MARKER_QWERTY";
     const REQUEST_MARKER = "REQUEST_MARKER_APPENDED_ALONGSIDE_DRAFT";
     fs.writeFileSync(
-      path.join(tmp, "specs", "001-test", "draft.md"),
-      `# Draft\n\n${DRAFT_MARKER}\n\nGoal: build feature X with bounded scope.\n`,
+      path.join(tmp, "specs", "001-test", "draft.json"),
+      JSON.stringify({ devType: "feature", goal: DRAFT_MARKER, analysis: { problem: "p", proposedApproach: "a", validation: "v" }, qa: [], approval: { approved: true } }),
     );
 
     // Mark gate-draft done (phase 2) per spec 220
@@ -305,7 +305,7 @@ describe("flow set auto", () => {
     assert.notEqual(saved.autoCheck.skipped, true, "skipped must NOT be set on draft-input path");
   });
 
-  it("falls back to request+issue input when approval pending and no draft.md (R5)", () => {
+  it("falls back to request+issue input when approval pending and no draft.json (R5)", () => {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), "set-auto-fallback-"));
     fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
     fs.mkdirSync(path.join(tmp, "specs", "001-test"), { recursive: true });

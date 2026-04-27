@@ -1,0 +1,57 @@
+{
+  "spec": "specs/230-fix-guardrail-false-positives/spec.json",
+  "date": "2026-04-25T12:08:30.170Z",
+  "requirements": [
+    {
+      "desc": "draft-scope-boundary の body は「ファイルパスや関数名の言及は許容する。アルゴリズム記述や内部設計の詳細（データ構造、制御フロー、API 設計）のみ禁止する」という判定基準を含む文言に変更する。",
+      "status": "done",
+      "note": "src/presets/base/guardrail.json の draft-scope-boundary が、ファイルパス/関数名の言及許容と内部アルゴリズム・設計詳細の禁止を明記している。"
+    },
+    {
+      "desc": "complete-context の body を変更する。変更後の body は (1) trigger condition と expected behavior の両方が記述されていること、(2) when/if/shall 等の特定構文パターンの使用は判定条件に含めないこと、の2点を明記する。",
+      "status": "done",
+      "note": "src/presets/base/guardrail.json の complete-context が、trigger+expected behavior の両方を要求しつつ、When/If/shall の構文固定を不要と明記している。"
+    },
+    {
+      "desc": "run-gate.js が task-single-responsibility を評価する際、flow.json.tasks から id === 'T-pending-spec' のエントリを除外してから AI 評価に渡す。",
+      "status": "partial",
+      "note": "src/flow/lib/run-gate.js で T-pending-spec 除外処理は追加されたが、実装は読み込んだ target JSON 全体に適用されており、要件文の『task-single-responsibility評価時に flow.json.tasks を除外』という限定条件と完全一致までは確認できない。"
+    },
+    {
+      "desc": "prioritize-requirements の body の 'exceed three items' を 'more than three items' に変更し、3件丁度を含まない表現にする。",
+      "status": "done",
+      "note": "src/presets/base/guardrail.json で 'exceed three items' が削除され、'number more than three items' に変更されており、3件ちょうどを含まない条件になっている。"
+    },
+    {
+      "desc": "cli/guardrail.json の exit-code-contract の meta.phase を ['task-impl'] のみに変更する。spec フェーズでの評価を除外する。",
+      "status": "done",
+      "note": "src/presets/cli/guardrail.json の exit-code-contract から spec が削除され、phase が task-impl のみになっている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "filterPendingSpecPlaceholder を export し、JSON parse失敗時に stderr 出力する処理を追加（要件で明示されていない付随変更）。"
+    },
+    {
+      "file": "specs/230-fix-guardrail-false-positives/*",
+      "change": "draft/flow/spec/issue/review/tasks などの仕様運用ファイルを新規追加（要件 REQ-1〜REQ-5 の実装対象外）。"
+    },
+    {
+      "file": "specs/230-fix-guardrail-false-positives/tests/README.md",
+      "change": "仕様専用テスト説明ドキュメントを追加（要件に明記なし）。"
+    },
+    {
+      "file": "specs/230-fix-guardrail-false-positives/tests/guardrail-false-positive-fix.test.js",
+      "change": "REQ対応確認用の新規テストを追加（要件に明記なし）。"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 4,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.9,
+    "notes": "REQ-1,2,4,5 は満たしている。REQ-3 は T-pending-spec 除外自体は実装済みだが、要件文どおりの適用範囲（flow.json.tasks を task-single-responsibility 評価時に限定）との一致が diff だけでは断定しづらく partial 判定。加えて、仕様管理ファイル群・追加テスト・stderrログ等の付随変更が含まれる。"
+  }
+}

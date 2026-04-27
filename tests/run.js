@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readdirSync } from "node:fs";
+import { readdirSync, existsSync, statSync, globSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { writeSync } from "node:fs";
@@ -9,6 +9,12 @@ import { buildSearchDirs, validateFlags } from "./helpers/test-runner-search-dir
 
 const ROOT = resolve(import.meta.dirname, "..");
 const PRESETS_DIR = join(ROOT, "src", "presets");
+const MAX_COLLECTED = 10000;
+
+function fail(message) {
+  console.error(`Error: ${message}`);
+  process.exit(1);
+}
 
 function findTestFiles(dirs) {
   const files = [];
@@ -42,58 +48,127 @@ function getPresetNames() {
   return [...new Set([...getRealPresetNames(), ...getPresetAliasNames()])];
 }
 
+function collectFromFileSpec({ fileArgs, patternArgs, positionalArgs }) {
+  const collected = [];
+
+  for (const f of fileArgs) {
+    const abs = resolve(f);
+    if (!existsSync(abs)) fail(`file not found: ${f}`);
+    collected.push(abs);
+  }
+
+  for (const pat of patternArgs) {
+    const rawMatches = globSync(pat);
+    if (rawMatches.length > MAX_COLLECTED) {
+      fail(`pattern "${pat}" matched ${rawMatches.length} files (limit: ${MAX_COLLECTED})`);
+    }
+    const matches = rawMatches.filter((m) => m.endsWith(".test.js"));
+    if (matches.length === 0) fail(`no files matched pattern: ${pat}`);
+    for (const m of matches) {
+      if (collected.length >= MAX_COLLECTED) fail(`too many files collected (limit: ${MAX_COLLECTED})`);
+      collected.push(resolve(m));
+    }
+  }
+
+  for (const p of positionalArgs) {
+    const abs = resolve(p);
+    if (!existsSync(abs)) fail(`path not found: ${p}`);
+    if (statSync(abs).isDirectory()) {
+      const dirFiles = [];
+      walk(abs, dirFiles);
+      for (const df of dirFiles) {
+        if (collected.length >= MAX_COLLECTED) fail(`too many files collected (limit: ${MAX_COLLECTED})`);
+        collected.push(df);
+      }
+    } else {
+      collected.push(abs);
+    }
+  }
+
+  return [...new Set(collected)];
+}
+
+function collectFromSearchDirs({ preset, scope, agent, all }) {
+  const searchDirs = buildSearchDirs(
+    { root: ROOT },
+    {
+      preset,
+      scope,
+      agent,
+      all,
+      presetDirName: preset ? resolvePresetTestName(preset) : null,
+      realPresetNames: getRealPresetNames(),
+    },
+  );
+  return findTestFiles(searchDirs);
+}
+
 const args = process.argv.slice(2);
 const presetIdx = args.indexOf("--preset");
 const scopeIdx = args.indexOf("--scope");
 const agent = args.includes("--agent");
 const all = args.includes("--all");
 
+const fileArgs = [];
+const patternArgs = [];
+const positionalArgs = [];
+
+{
+  const knownFlags = new Set(["--preset", "--scope", "--agent", "--all", "--file", "--pattern"]);
+  const valueFlags = new Set(["--preset", "--scope", "--file", "--pattern"]);
+  let i = 0;
+  while (i < args.length) {
+    const arg = args[i];
+    if (arg === "--file") {
+      const val = args[i + 1];
+      if (!val || val.startsWith("--")) fail("--file requires a value");
+      fileArgs.push(val);
+      i += 2;
+    } else if (arg === "--pattern") {
+      const val = args[i + 1];
+      if (!val || val.startsWith("--")) fail("--pattern requires a value");
+      patternArgs.push(val);
+      i += 2;
+    } else if (knownFlags.has(arg)) {
+      i += valueFlags.has(arg) ? 2 : 1;
+    } else if (!arg.startsWith("--")) {
+      positionalArgs.push(arg);
+      i += 1;
+    } else {
+      i += 1;
+    }
+  }
+}
+
+const hasFile = fileArgs.length > 0;
+const hasPattern = patternArgs.length > 0;
+const hasPositional = positionalArgs.length > 0;
+const fileSpecMode = hasFile || hasPattern || hasPositional;
+
 let preset = null;
 if (presetIdx !== -1) {
   preset = args[presetIdx + 1];
-  if (!preset) {
-    console.error("Error: --preset requires a value");
-    process.exit(1);
-  }
+  if (!preset) fail("--preset requires a value");
   const valid = getPresetNames();
   if (!valid.includes(preset)) {
-    console.error(`Error: unknown preset "${preset}". Available: ${valid.join(", ")}`);
-    process.exit(1);
+    fail(`unknown preset "${preset}". Available: ${valid.join(", ")}`);
   }
 }
 
 let scope = null;
 if (scopeIdx !== -1) {
   scope = args[scopeIdx + 1];
-  if (!scope || !["unit", "e2e"].includes(scope)) {
-    console.error("Error: --scope must be 'unit' or 'e2e'");
-    process.exit(1);
-  }
+  if (!scope || !["unit", "e2e"].includes(scope)) fail("--scope must be 'unit' or 'e2e'");
 }
 
-const validation = validateFlags({ agent, all, preset, scope });
-if (validation.error) {
-  console.error(`Error: ${validation.error}`);
-  process.exit(1);
-}
+const validation = validateFlags({ agent, all, preset, scope, hasFile, hasPattern, hasPositional });
+if (validation.error) fail(validation.error);
 
-const searchDirs = buildSearchDirs(
-  { root: ROOT },
-  {
-    preset,
-    scope,
-    agent,
-    all,
-    presetDirName: preset ? resolvePresetTestName(preset) : null,
-    realPresetNames: getRealPresetNames(),
-  },
-);
+const testFiles = fileSpecMode
+  ? collectFromFileSpec({ fileArgs, patternArgs, positionalArgs })
+  : collectFromSearchDirs({ preset, scope, agent, all });
 
-const testFiles = findTestFiles(searchDirs);
-if (testFiles.length === 0) {
-  console.error("No test files found");
-  process.exit(1);
-}
+if (testFiles.length === 0) fail("No test files found");
 
 function runNodeTests(files) {
   const res = spawnSync("node", ["--test", ...files], {

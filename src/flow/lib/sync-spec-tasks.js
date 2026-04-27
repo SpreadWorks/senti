@@ -85,7 +85,7 @@ function buildFlowTask(specTask, flowSpecPath, assignedRound) {
     // Null/undefined stays null (flat list compatibility).
     parent: specTask.parent == null ? null : specTask.parent,
     status: specTask.status || "pending",
-    steps: buildInitialTaskSteps(specTask.origin).map((id) => ({ id, status: "pending" })),
+    steps: buildInitialTaskSteps(specTask.origin),
     requirements: [],
     summary: null,
     added_round: assignedRound,

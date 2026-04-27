@@ -12,9 +12,11 @@ import { VALID_STEP_STATUSES } from "../../lib/constants.js";
 import { container } from "../../lib/container.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { syncSpecTasksToFlow } from "./sync-spec-tasks.js";
+import { runAutoCheckCore } from "./run-auto-check.js";
+import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
 
 export default class SetStepCommand extends FlowCommand {
-  execute(ctx) {
+  async execute(ctx) {
     const { id, status } = ctx;
 
     if (!id || !status) {
@@ -52,6 +54,36 @@ export default class SetStepCommand extends FlowCommand {
         if (container.has("logger")) {
           container.get("logger").event("approval-sync-error", { error: err.message });
         }
+      }
+    }
+
+    // Spec 232 R2: re-evaluate auto-check on draft→done / approval→done
+    // when the user desired auto mode but was rejected earlier.
+    if (status === "done" && (id === "draft" || id === "approval")) {
+      try {
+        const state = ctx.flowManager.load();
+        if (state?.autoDesired === true && state?.autoApprove !== true) {
+          const paths = { root: ctx.root, specPath: state.spec };
+          const resolved = resolveAutoCheckInput(state, paths);
+          let verdict;
+          if (resolved.skip) {
+            verdict = buildSkipVerdict();
+          } else {
+            verdict = await runAutoCheckCore(this.container, resolved.text);
+          }
+          if (verdict.eligible) {
+            ctx.flowManager.mutate((s) => {
+              s.autoCheck = verdict;
+              s.autoUpgrade = { available: true, reason: verdict.reason || "re-evaluation eligible" };
+            });
+            if (!extras) extras = {};
+            extras.autoUpgrade = { available: true };
+          }
+        }
+      } catch (err) {
+        process.stderr.write(
+          `[sdd-forge] set-step auto-upgrade re-eval: ${err.message}\n`,
+        );
       }
     }
 

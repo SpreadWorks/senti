@@ -58,11 +58,19 @@ export function buildSearchDirs({ root, presetsSubdir = "src/presets" }, opts = 
 }
 
 export function validateFlags(opts = {}) {
-  const { agent, all, preset, scope } = opts;
+  const { agent, all, preset, scope, hasFile, hasPattern, hasPositional } = opts;
   if (agent && (all || preset || scope)) {
     return {
       error:
         "--agent cannot be combined with --all / --preset / --scope (exclusive selector)",
+    };
+  }
+  const fileSpec = hasFile || hasPattern || hasPositional;
+  const dirSearch = agent || all || preset || scope;
+  if (fileSpec && dirSearch) {
+    return {
+      error:
+        "--file / --pattern / positional args cannot be combined with --agent / --all / --preset / --scope (exclusive selector)",
     };
   }
   return { error: null };

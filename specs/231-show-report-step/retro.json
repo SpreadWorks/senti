@@ -1,0 +1,63 @@
+{
+  "spec": "specs/231-show-report-step/spec.json",
+  "date": "2026-04-25T12:51:19.435Z",
+  "requirements": [
+    {
+      "desc": "FLOW_STEPS 配列の docs-commit の直後に show-report を追加する。buildInitialSteps() の返り値に show-report エントリ（status: pending）が含まれる。",
+      "status": "done",
+      "note": "src/lib/flow-helpers.js で docs-commit の直後に show-report を追加。specs/231-show-report-step/tests/show-report-step.test.js で buildInitialSteps の pending も検証。"
+    },
+    {
+      "desc": "PHASE_MAP に show-report → sync のマッピングを追加する。derivePhase() が show-report ステップで sync を返す。",
+      "status": "done",
+      "note": "src/lib/flow-helpers.js の PHASE_MAP に \"show-report\": \"sync\" を追加。derivePhase は PHASE_MAP ベースのため要件を満たす。"
+    },
+    {
+      "desc": "context-rules.json の flow セクションに show-report エントリを追加する。instructions_key は sync.show-report とし、対応する prompt ファイルを配置する。",
+      "status": "done",
+      "note": "src/flow/schemas/context-rules.json に flow.show-report を追加し instructions_key を sync.show-report に設定。src/flow/prompts/sync/show-report.md も追加。"
+    },
+    {
+      "desc": "finalize パイプライン内で cleanup サブステップ実行前に show-report ステップを done に遷移させる。finalize 成功時の flow get status で show-report が done と表示される。",
+      "status": "partial",
+      "note": "src/flow/lib/run-finalize.js で cleanup 前に updateStepStatus(\"show-report\", \"done\") を実行しているが、失敗時は警告のみで継続し、flow get status 表示までを担保するテスト変更も見当たらない。"
+    },
+    {
+      "desc": "show-report 用の prompt ファイル（src/flow/prompts/sync/show-report.md）を新規作成する。内容は sdd-forge flow report show の実行と結果表示の指示。",
+      "status": "done",
+      "note": "src/flow/prompts/sync/show-report.md を新規作成し、report show 実行・stdout の fenced code block 表示・失敗時の扱いを記載。"
+    },
+    {
+      "desc": "buildInitialSteps のテストに show-report が含まれることの検証を追加する。",
+      "status": "done",
+      "note": "specs/231-show-report-step/tests/show-report-step.test.js に buildInitialSteps の show-report 検証を追加。"
+    },
+    {
+      "desc": "finalize 成功後の結果エンベロープにおいて show-report ステップの状態が反映されていることのテストを追加する。",
+      "status": "not_done",
+      "note": "diff 内に finalize 結果エンベロープの show-report 状態を検証するテスト追加がない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/schemas/next-action/show-report.schema.json",
+      "change": "show-report 用の next-action 出力スキーマを新規追加（要件で明示されていない追加）。"
+    },
+    {
+      "file": "tests/unit/flow/instructions-coverage.test.js",
+      "change": "instructions_key 件数アサーションを 19→20 に更新（要件で明示された追加対象ではない）。"
+    },
+    {
+      "file": "specs/231-show-report-step/*",
+      "change": "spec 管理用の多数ファイル（draft/flow/spec/review/tests など）を新規追加。要求仕様の実装要件には含まれていない。"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 5,
+    "partial": 1,
+    "not_done": 1,
+    "rate": 0.79,
+    "notes": "7件中5件は満たされ、R4は実装はあるが保証・検証が弱く partial、R7（finalize結果エンベロープのテスト）は未実装。"
+  }
+}

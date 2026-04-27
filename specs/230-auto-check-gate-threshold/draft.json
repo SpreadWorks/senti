@@ -1,0 +1,50 @@
+{
+  "devType": "feature",
+  "goal": "auto-check の判定ロジックを改善し、狭いスコープの bugfix/enhancement が不当に reject されないようにする",
+  "analysis": {
+    "problem": "When AIスコアリングが完了し eligible 判定を行うとき、hard-gate の zero-tolerance（1項目でも0で即fail）と THRESHOLD 18/24（75%）の組み合わせにより、明確なスコープの bugfix/enhancement が false negative として reject される。過去26件のデータで17点の狭いスコープ修正が3件 reject、ambiguity=0 の bugfix が1件 hard-gate で弾かれている",
+    "proposedApproach": "When hard-gate 判定を行うとき、3項目（specBuildability, ambiguity, verifiability）の合計が1以下なら fail とする（現行: いずれか1項目が0で即fail）。When 合格スコア閾値を適用するとき、THRESHOLD を 16/24（67%）とする（現行: 18/24、75%）。When hard-gate fail が発生したとき、reason メッセージは段階化ロジックに合わせた内容を出力する",
+    "validation": "When 上記変更を行ったとき、既存テストを新しい閾値・判定ロジックに合わせて更新し、境界値（hard-gate合計1でfail、合計2でpass、スコア15でfail、スコア16でpass）を検証する"
+  },
+  "scopeVerification": {
+    "in": [
+      "auto-check の合格閾値の引き下げ (THRESHOLD 18 → 16)",
+      "hard-gate 判定の段階化 (zero-tolerance → sum ≤ 1)",
+      "reject 時の reason メッセージの更新",
+      "既存ユニットテストの更新"
+    ],
+    "out": [
+      "static gates (auto-check-static.js) の変更",
+      "AI プロンプトの変更",
+      "各カテゴリの重み (WEIGHTS) の変更"
+    ]
+  },
+  "impactOnExisting": [
+    "auto-check の eligible 判定が緩和される。過去データで17点だった3件が新たに eligible になる。14点の bugfix は hard-gate 段階化で救済される可能性がある（3項合計次第）"
+  ],
+  "qa": [
+    {
+      "question": "#255 関連の前提修正は入っているか？",
+      "answer": "入っている。実データ検証を含むスコープで進める",
+      "evidence": "main ブランチに #255 の修正がマージ済みであることを git log で確認"
+    },
+    {
+      "question": "設計アプローチの選択",
+      "answer": "案A（段階化 + 閾値引き下げ）を採用",
+      "why": "hard-gate 廃止だと ambiguity=0 かつ他が満点のケース（合計18点）が通過するリスクがある。段階化なら致命的な曖昧さ（2項以上が0）を確実にブロックできる",
+      "considered": "案B（hard-gate廃止 + THRESHOLD 16）を検討したが、重みだけでは ambiguity=0 のリスクを十分にカバーできない",
+      "evidence": "過去26件のauto-checkスコア分布を分析。composeAutoCheck()がhard-gateとthresholdを独立段階として扱う既存構造を維持する方針"
+    },
+    {
+      "question": "reason メッセージの形式は？",
+      "answer": "機械可読な形式で現行踏襲。人間の可読性は不要",
+      "evidence": "auto-check の eligible 判定は完全にAIに委ねられており、reasonはflow.jsonへの記録用"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-25",
+    "notes": ""
+  }
+}

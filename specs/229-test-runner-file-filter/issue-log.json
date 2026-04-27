@@ -1,0 +1,323 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft focuses on one concern: adding file-filter inputs to the test runner while preserving existing execution flow.; Unambiguous Requirements — Most requirements are stated as concrete, testable rules (mutual exclusion, allowed combinations, validation behavior).; Complete Context — Several requirements are not consistently written with explicit trigger condition plus expected shall-behavior format.; No Hardcoded Secrets — No secrets or credential-like values appear in the draft content.; Prioritize Requirements — More than three requirements are listed, but no explicit priority order is provided.; Impact on Existing Features — Impact section explicitly lists affected components and states unchanged behavior for existing flows.; Present Recommendations with Reasoning — Q&A provides answers, but recommendations are not consistently led with explicit rationale tied to docs, guardrails, or code patterns.; Explore Before Asking — No unresolved user-facing questions remain; draft records decisions directly.; Proactively Raise Related Implications — Draft proactively notes related implications such as compatibility, validation interactions, and future extensibility.; Confirm Brainstorm vs. Decision Before Critiquing — Cannot verify whether brainstorming-vs-decision confirmation occurred from draft text alone; interaction evidence is missing.; Capture Digressions in draft.md — No digression is evident in the provided draft content.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions and fs.globSync API) beyond pure requirements level.; Backward-Compatible CLI Interface — No existing command/option semantic removal is specified; draft states existing-flag behavior remains unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:35:31.756Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Several requirements are not consistently written with explicit trigger condition plus expected shall-behavior format."
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three requirements are listed, but no explicit priority order is provided."
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&A provides answers, but recommendations are not consistently led with explicit rationale tied to docs, guardrails, or code patterns."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific files/functions and fs.globSync API) beyond pure requirements level."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 全体がテストランナーのファイル指定機能追加という単一の関心事に集中している。; Unambiguous Requirements — 各要件がフラグ条件と期待動作（union、0件時エラー、再帰収集、排他）を具体的に定義している。; Complete Context — 要件ごとに条件（指定時/同時指定時/ディレクトリ時）と結果動作が対になっている。; No Hardcoded Secrets — ドラフト文書であり、APIキー等の秘密情報記載はない。; Prioritize Requirements — 5件の要件にP1/P2の優先度が明示され、優先度順で列挙されている。; Impact on Existing Features — 既存機能への影響が専用セクションで明示され、既存動作維持も記載されている。; Present Recommendations with Reasoning — Q5は推奨表現と根拠の明示がなく、全質問での『推奨+根拠』要件を満たしていない。; Explore Before Asking — Open Questionsが『なし』で、Q&Aは既存ルール/コードパターンを根拠に自力回答されている。; Proactively Raise Related Implications — 排他ルール、既存機能影響、スコープ境界を先回りで明示している。; Confirm Brainstorm vs. Decision Before Critiquing — ブレインストーミング確認の有無は会話プロセス情報が必要で、本文のみでは判定できない。; Capture Digressions in draft.md — 脱線が発生したかどうかとdraft.md反映状況は会話履歴がないと評価できない。; Draft Stays at Requirements Level — 要件・スコープ・影響中心で、実装手順や関数設計の詳細には踏み込んでいない。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更はなく、追加変更のため移行計画は不要。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:36:58.150Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q5は推奨表現と根拠の明示がなく、全質問での『推奨+根拠』要件を満たしていない。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 要件はテストランナーのファイル指定実行という単一関心に集中している。; Unambiguous Requirements — 各要件はフラグ条件と期待動作（収集・エラー終了・併用可否）を検証可能な形で記述している。; Complete Context — 各 requirement は条件（指定時/併用時）と結果（対象追加・終了・維持）を対で示している。; No Hardcoded Secrets — 本ドラフトに秘密情報の直書きはなく、この観点で問題は見当たらない。; Prioritize Requirements — 5件の要件に対して P1/P2 の優先度が明示され、優先度順で列挙されている。; Impact on Existing Features — 既存機能への影響と非影響（動作変更なし）が明示されている。; Present Recommendations with Reasoning — Q&Aごとに推奨案を先に提示し、根拠を docs/ルール/既存コードパターンで示している。; Explore Before Asking — Open Questions は無しで、既存コード・ルール参照を根拠に意思決定しており、先行調査の形になっている。; Proactively Raise Related Implications — 相互排他、既存挙動維持、テスト観点など関連インプリケーションを先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — ブレインストーミングか意思決定段階かを事前確認した対話ログが提示されておらず評価不能。; Capture Digressions in draft.md — 提示内容に脱線した議論は見当たらず、記録漏れは確認できない。; Draft Stays at Requirements Level — Q&Aで `validateFlags`/`buildSearchDirs` など関数レベル言及や実装方式（組み込みモジュール指定）が含まれ、要件レベルを超えている。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更は記載されず、移行計画が必要な破壊的変更は示されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T08:37:40.879Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Q&Aで `validateFlags`/`buildSearchDirs` など関数レベル言及や実装方式（組み込みモジュール指定）が含まれ、要件レベルを超えている。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: Single Responsibility — Draft focuses on one concern: adding file-filter inputs to the test runner while preserving existing execution flow.; Unambiguous Requirements — Most requirements are stated as concrete, testable rules (mutual exclusion, allowed combinations, validation behavior).; Complete Context — Several requirements are not consistently written with explicit trigger condition plus expected shall-behavior format.; No Hardcoded Secrets — No secrets or credential-like values appear in the draft content.; Prioritize Requirements — More than three requirements are listed, but no explicit priority order is provided.; Impact on Existing Features — Impact section explicitly lists affected components and states unchanged behavior for existing flows.; Present Recommendations with Reasoning — Q&A provides answers, but recommendations are not consistently led with explicit rationale tied to docs, guardrails, or code patterns.; Explore Before Asking — No unresolved user-facing questions remain; draft records decisions directly.; Proactively Raise Related Implications — Draft proactively notes related implications such as compatibility, validation interactions, and future extensibility.; Confirm Brainstorm vs. Decision Before Critiquing — Cannot verify whether brainstorming-vs-decision confirmation occurred from draft text alone; interaction evidence is missing.; Capture Digressions in draft.md — No digression is evident in the provided draft content.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific files/functions and fs.globSync API) beyond pure requirements level.; Backward-Compatible CLI Interface — No existing command/option semantic removal is specified; draft states existing-flag behavior remains unchanged.\n  attempt 2: Single Responsibility — 全体がテストランナーのファイル指定機能追加という単一の関心事に集中している。; Unambiguous Requirements — 各要件がフラグ条件と期待動作（union、0件時エラー、再帰収集、排他）を具体的に定義している。; Complete Context — 要件ごとに条件（指定時/同時指定時/ディレクトリ時）と結果動作が対になっている。; No Hardcoded Secrets — ドラフト文書であり、APIキー等の秘密情報記載はない。; Prioritize Requirements — 5件の要件にP1/P2の優先度が明示され、優先度順で列挙されている。; Impact on Existing Features — 既存機能への影響が専用セクションで明示され、既存動作維持も記載されている。; Present Recommendations with Reasoning — Q5は推奨表現と根拠の明示がなく、全質問での『推奨+根拠』要件を満たしていない。; Explore Before Asking — Open Questionsが『なし』で、Q&Aは既存ルール/コードパターンを根拠に自力回答されている。; Proactively Raise Related Implications — 排他ルール、既存機能影響、スコープ境界を先回りで明示している。; Confirm Brainstorm vs. Decision Before Critiquing — ブレインストーミング確認の有無は会話プロセス情報が必要で、本文のみでは判定できない。; Capture Digressions in draft.md — 脱線が発生したかどうかとdraft.md反映状況は会話履歴がないと評価できない。; Draft Stays at Requirements Level — 要件・スコープ・影響中心で、実装手順や関数設計の詳細には踏み込んでいない。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更はなく、追加変更のため移行計画は不要。\n  attempt 3: Single Responsibility — 要件はテストランナーのファイル指定実行という単一関心に集中している。; Unambiguous Requirements — 各要件はフラグ条件と期待動作（収集・エラー終了・併用可否）を検証可能な形で記述している。; Complete Context — 各 requirement は条件（指定時/併用時）と結果（対象追加・終了・維持）を対で示している。; No Hardcoded Secrets — 本ドラフトに秘密情報の直書きはなく、この観点で問題は見当たらない。; Prioritize Requirements — 5件の要件に対して P1/P2 の優先度が明示され、優先度順で列挙されている。; Impact on Existing Features — 既存機能への影響と非影響（動作変更なし）が明示されている。; Present Recommendations with Reasoning — Q&Aごとに推奨案を先に提示し、根拠を docs/ルール/既存コードパターンで示している。; Explore Before Asking — Open Questions は無しで、既存コード・ルール参照を根拠に意思決定しており、先行調査の形になっている。; Proactively Raise Related Implications — 相互排他、既存挙動維持、テスト観点など関連インプリケーションを先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — ブレインストーミングか意思決定段階かを事前確認した対話ログが提示されておらず評価不能。; Capture Digressions in draft.md — 提示内容に脱線した議論は見当たらず、記録漏れは確認できない。; Draft Stays at Requirements Level — Q&Aで `validateFlags`/`buildSearchDirs` など関数レベル言及や実装方式（組み込みモジュール指定）が含まれ、要件レベルを超えている。; Backward-Compatible CLI Interface — 既存コマンド/オプションの削除や意味変更は記載されず、移行計画が必要な破壊的変更は示されていない。\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T08:38:28.723Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.decisions[0]: must be object, got string; overview.decisions[1]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].priority: must be one of enum [must, should, nice-to-have], got \"P1\"; requirements[0].description: unknown field; requirements[1].desc: required field is missing; requirements[1].priority: must be one of enum [must, should, nice-to-have], got \"P1\"; requirements[1].description: unknown field; requirements[2].desc: required field is missing; requirements[2].priority: must be one of enum [must, should, nice-to-have], got \"P1\"; requirements[2].description: unknown field; requirements[3].desc: required field is missing; requirements[3].priority: must be one of enum [must, should, nice-to-have], got \"P1\"; requirements[3].description: unknown field; requirements[4].desc: required field is missing; requirements[4].priority: must be one of enum [must, should, nice-to-have], got \"P2\"; requirements[4].description: unknown field; alternatives_considered[0]: must be object, got string; alternatives_considered[1]: must be object, got string; tasks[0].steps: unknown field; tasks[1].steps: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:10:53.696Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:12:33.494Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec is focused on one concern: direct test-file selection in the test runner.; Task Single Responsibility — Defined tasks are each centered on a single concern (flag validation vs file collection integration).; Unambiguous Requirements — Requirements are mostly stated as concrete, verifiable behaviors with explicit error conditions.; Complete Context — Each requirement includes a trigger condition and expected behavior/outcome.; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus test outcomes for the listed requirements.; No Hardcoded Secrets — No secrets or credential literals appear in the provided content.; No Silent Error Swallowing — No silent error swallowing is specified; errors are explicitly surfaced with messages and exit(1).; Prioritize Requirements — More than three requirements are present and include priority levels (must/should).; Impact on Existing Features — Impact is addressed by explicitly stating existing-flag behavior must remain unchanged.; Bounded Resource Usage — Recursive directory collection is required, but no explicit upper bounds (depth/count/size) are defined.; Changes Require Test Coverage — Test coverage is included via acceptance criteria and per-task test strategies including happy paths.; Spec Includes Test Strategy — Spec includes concrete test strategy sections in tasks and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot assess whether content was synthesized vs copied without the original draft source.; Record Unresolved Points as Open Questions — Cannot verify whether any answered points were fabricated without source-of-truth evidence.; Include 'Why This Approach' Rationale — Rationale is present in background, decisions, and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec does not state modifying or deleting existing tests without approval.; Backward-Compatible CLI Interface — No removal or semantic change of existing CLI options is proposed; only additive flags and validation rules.; Exit Code Contract — Failure cases explicitly require non-zero termination via exit(1).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:13:44.369Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Recursive directory collection is required, but no explicit upper bounds (depth/count/size) are defined."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-include-rationale",
+        "impl-test-preservation",
+        "backward-compatible-cli-interface",
+        "exit-code-contract"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: direct test file selection in the test runner.; Task Single Responsibility — Task `T-pending-spec` is a placeholder and not a concrete concern-aligned implementation task.; Unambiguous Requirements — Requirements are stated with concrete, testable conditions (flags, matching behavior, error cases, exit codes).; Complete Context — Each requirement includes a trigger condition and expected behavior.; REQ Diff-Verifiability — Pass/fail appears decidable from code diff plus test results and CLI outcomes.; No Hardcoded Secrets — No secrets or credential literals are present in the provided content.; No Silent Error Swallowing — No silent error swallowing is specified; error handling is explicitly described for key failures.; Prioritize Requirements — More than three requirements are present and each has explicit priority (`must`/`should`).; Impact on Existing Features — Impact is explicitly addressed via compatibility constraint and AC9 (no behavior change for existing usage).; Bounded Resource Usage — Recursive directory traversal has an explicit depth bound of 20.; Changes Require Test Coverage — Test coverage is included via acceptance criteria and task-level test strategies, including happy paths.; Spec Includes Test Strategy — The spec includes explicit test strategy statements in tasks and concrete acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs direct copy without the original draft source.; Record Unresolved Points as Open Questions — Resolved items are documented, and there are no unresolved points left untracked (open_questions is empty).; Include 'Why This Approach' Rationale — Rationale is provided through background, design principles, decisions, and alternatives considered.; Do Not Modify Existing Tests Without Approval — Whether existing tests were modified cannot be determined from this spec content alone.; Backward-Compatible CLI Interface — The spec adds new options without removing/changing existing command or option meanings.; Exit Code Contract — Failure cases explicitly require non-zero exit (`exit(1)`).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:14:46.603Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "task-single-responsibility",
+          "reason": "Task `T-pending-spec` is a placeholder and not a concrete concern-aligned implementation task."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/helpers/test-runner-search-dirs.js:58: existing line modified/deleted in test file (removed=1, added=9); tests/run.js:1: existing line modified/deleted in test file (removed=1, added=1); tests/run.js:113: existing line modified/deleted in test file (removed=17, added=62)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:22:00.305Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate flags tests/run.js and tests/helpers/test-runner-search-dirs.js as test files, but they are test infrastructure (runner/helper), not test cases",
+      "trigger": "gate structural check treats all files under tests/ as test files",
+      "resolution": "these files are explicitly listed in spec.json implementationTargets — modifications are expected per spec scope",
+      "taskId": null,
+      "timestamp": "2026-04-25T09:22:33.384Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — `--file`/`--pattern`/positional parsing, exclusivity validation, and error handling are implemented, but `--pattern` collection in `tests/run.js` adds all glob matches without the spec’s `.test.js` filtering rule for pattern expansion (D1), so implementation is not fully compliant.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:24:13.511Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "`--file`/`--pattern`/positional parsing, exclusivity validation, and error handling are implemented, but `--pattern` collection in `tests/run.js` adds all glob matches without the spec’s `.test.js` filtering rule for pattern expansion (D1), so implementation is not fully compliant."
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate FAIL: --pattern glob expansion was not filtering to .test.js files per spec decision D1",
+      "resolution": "added .filter(m => m.endsWith('.test.js')) to glob results in run.js",
+      "taskId": null,
+      "timestamp": "2026-04-25T09:24:29.158Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements --file/--pattern/positional collection, mutual-exclusion validation, required error exits, union behavior, and keeps existing execution/label pipeline; head test results show no new regressions versus baseline.; No Hardcoded Secrets — Added/modified lines contain no hardcoded API keys, tokens, passwords, or similar secrets.; No Silent Error Swallowing — No empty catch blocks or silent error discards were introduced; error cases print messages and exit non-zero.; Bounded Resource Usage — New file-collection paths use unbounded glob/result accumulation (`globSync` + array collection) without explicit size/count limits.; No Sensitive Data in Logs — No passwords, tokens, or explicit PII were added to logs in the diff.; No Disabling Existing Tests — Diff adds tests and assertions; it does not skip/comment out/delete existing tests.; Escalate When New Tests Break Existing Tests — Requires runtime evidence of newly introduced test conflicts and user notification, which is not provided in this diff.; Flag Tests That Become Irrelevant — Requires process evidence about identifying/reporting obsolete prior tests, not inferable from code diff alone.; Exit Code Contract — New failure branches use `process.exit(1)` and do not signal failure with exit code 0.; No Synchronous I/O in Hot Paths — Added logic performs synchronous I/O (`existsSync`, `statSync`, `globSync`) in argument/file-processing loops.; Validate User Input at Entry Point — New CLI inputs are validated at entry: required values for `--file/--pattern`, existence checks, and mode exclusivity checks before execution.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:28:03.143Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "New file-collection paths use unbounded glob/result accumulation (`globSync` + array collection) without explicit size/count limits."
+        },
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "Added logic performs synchronous I/O (`existsSync`, `statSync`, `globSync`) in argument/file-processing loops."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate FAIL bounded-resource-usage: glob+array without upper bound. Added MAX_COLLECTED=10000 limit",
+      "resolution": "added explicit MAX_COLLECTED cap with error exit on overflow",
+      "taskId": null,
+      "timestamp": "2026-04-25T09:28:32.611Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate FAIL no-synchronous-io-in-hot-paths: false positive — tests/run.js is a CLI entrypoint, not a hot path",
+      "trigger": "all existing code in run.js uses sync I/O (readdirSync, spawnSync)",
+      "resolution": "existing pattern, not a hot path — CLI argument parsing runs once at startup",
+      "taskId": null,
+      "timestamp": "2026-04-25T09:28:35.547Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements --file/--pattern/positional file selection (including union and error exits), enforces file-spec vs directory-search exclusivity, keeps existing execution/label pipeline, and test results show no regression versus baseline (both exitCode=0).; No Hardcoded Secrets — Added and modified lines contain no API keys, tokens, passwords, or similar secret literals.; No Silent Error Swallowing — No empty catch blocks or silent error discards were introduced; error cases print messages and exit non-zero.; Bounded Resource Usage — Added code uses `globSync(pat)` which bulk-loads matches without an explicit retrieval bound, allowing unbounded pattern expansion.; No Sensitive Data in Logs — New log/error output does not include passwords, tokens, or explicit personally identifiable information.; No Disabling Existing Tests — Diff adds tests and assertions; it does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — No evidence in the diff that newly added tests caused existing tests to fail, so escalation was not required.; Flag Tests That Become Irrelevant — No added or modified lines indicate existing tests became irrelevant due to this change.; Exit Code Contract — New failure paths use `process.exit(1)` and do not return success on failure conditions.; No Synchronous I/O in Hot Paths — Added logic performs synchronous I/O (`existsSync`, `statSync`, `globSync`) inside file-processing loops.; Validate User Input at Entry Point — Entry-point argument validation was added for required flag values, mode exclusivity, and path existence before execution.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:32:36.857Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "Added code uses `globSync(pat)` which bulk-loads matches without an explicit retrieval bound, allowing unbounded pattern expansion."
+        },
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "Added logic performs synchronous I/O (`existsSync`, `statSync`, `globSync`) inside file-processing loops."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "impl-test-conflict-escalation",
+        "impl-flag-obsolete-tests",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate FAIL bounded-resource-usage: globSync return size not capped. Added immediate size check after globSync before processing",
+      "resolution": "check rawMatches.length > MAX_COLLECTED immediately after globSync, exit with error if exceeded",
+      "taskId": null,
+      "timestamp": "2026-04-25T09:33:04.461Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements --file/--pattern/positional collection (including union and required error exits), enforces exclusivity with --preset/--scope/--agent/--all, keeps existing execution/label pipeline, and head tests show no new failures vs baseline.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or other secret literals.; No Silent Error Swallowing — No empty catch or silent discard added; error cases print messages and exit non-zero.; Bounded Resource Usage — Added code introduces explicit file-count bounds (`MAX_COLLECTED`) and exits on overflow; no in-diff unbounded retry/recursion logic was added.; No Sensitive Data in Logs — New logs report file paths/patterns and generic errors only; no passwords, tokens, or PII are logged.; No Disabling Existing Tests — Diff adds tests and assertions; it does not skip, comment out, or delete existing tests.; Escalate When New Tests Break Existing Tests — Provided evidence shows no new-test-induced regression requiring escalation (baseline and summary remain passing).; Flag Tests That Become Irrelevant — No added/modified lines indicate prior tests became irrelevant; article is inapplicable to this diff.; Exit Code Contract — New failure paths explicitly call `process.exit(1)` and do not signal failure with exit code 0.; No Synchronous I/O in Hot Paths — Added logic performs synchronous I/O (`existsSync`, `statSync`, `globSync`) inside file-processing loops/bulk collection paths.; Validate User Input at Entry Point — Entry-point argument validation was added for required flag values, mode exclusivity, and path existence before execution.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T09:36:07.092Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "Added logic performs synchronous I/O (`existsSync`, `statSync`, `globSync`) inside file-processing loops/bulk collection paths."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "bounded-resource-usage",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "impl-test-conflict-escalation",
+        "impl-flag-obsolete-tests",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    }
+  ]
+}

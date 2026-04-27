@@ -26,6 +26,7 @@ export const FLOW_STEPS = [
   "review", "finalize",
   "commit", "push", "merge", "pr-create", "branch-cleanup",
   "pr-merge", "sync-cleanup", "docs-update", "docs-review", "docs-commit",
+  "show-report",
 ];
 
 /** Step ID → phase mapping (flow level). */
@@ -42,6 +43,7 @@ export const PHASE_MAP = {
   "pr-create": "finalize", "branch-cleanup": "finalize",
   "pr-merge": "sync", "sync-cleanup": "sync",
   "docs-update": "sync", "docs-review": "sync", "docs-commit": "sync",
+  "show-report": "sync",
 };
 
 /** Valid values for Task.origin. */

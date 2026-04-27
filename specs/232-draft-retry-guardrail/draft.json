@@ -1,0 +1,54 @@
+{
+  "devType": "bugfix",
+  "goal": "draft gate の retry exhaustion 率を低減する。DEFAULT_GATE_RETRY_MAX の引き上げと draft-scope-boundary guardrail body の修正により、draft phase での gate 収束性を改善する。",
+  "analysis": {
+    "problem": "spec 229 で draft が RETRY_TRACKED_PHASES に追加され 3 回制限が適用された結果、retry exhaustion が 0% → 60% に急増。draft guardrail は 8 個あり相互衝突パターンが 3 回以内に収束しない。また draft-scope-boundary が evidence/why/considered 内のコード参照を実装詳細と誤判定する。",
+    "proposedApproach": "暫定措置として (1) DEFAULT_GATE_RETRY_MAX を 3 → 5 に引き上げ、(2) draft-scope-boundary の body に evidence/why/considered フィールドの除外ルールを追記する。",
+    "validation": "retry 上限引き上げにより衝突パターンの収束余地が増える。scope-boundary の body 修正により evidence 内コード参照の誤判定が解消される。暫定措置のため per-phase 設定は見送り。"
+  },
+  "scopeVerification": {
+    "in": [
+      "DEFAULT_GATE_RETRY_MAX の値変更（3 → 5）",
+      "draft-scope-boundary guardrail body への evidence 除外ルール追記"
+    ],
+    "out": [
+      "per-phase retry 上限の導入",
+      "draft-recommend-with-reasoning の変更・削除",
+      "RETRY_TRACKED_PHASES からの draft 除外"
+    ]
+  },
+  "impactOnExisting": [
+    "retry 上限引き上げは全 RETRY_TRACKED_PHASES（draft, spec, task-impl, integration）に適用される",
+    "draft-scope-boundary の body 修正は draft phase の gate 評価のみに影響",
+    "retry max をハードコードしているテストがあれば修正が必要"
+  ],
+  "qa": [
+    {
+      "question": "retry 上限の対応方針は？ per-phase 設定 / 全体引き上げ / RETRY_TRACKED_PHASES 除外の選択肢がある。",
+      "answer": "暫定措置として全体の DEFAULT_GATE_RETRY_MAX を 3 → 5 に引き上げ。",
+      "evidence": "src/flow/lib/run-gate.js:1036 — DEFAULT_GATE_RETRY_MAX = 3, resolveRetryMax は config.flow.retry.max を参照（per-phase 設定なし）",
+      "why": "暫定対応として最小実装を優先。per-phase 設定は config スキーマ変更が必要で今回のスコープ外。",
+      "considered": "per-phase retry 上限（config スキーマ変更が大きい）、RETRY_TRACKED_PHASES からの除外（無限ループの歯止めがなくなる）"
+    },
+    {
+      "question": "draft-scope-boundary の body をどう修正するか？",
+      "answer": "QA の evidence/why/considered フィールド内のコード参照は根拠提示であり実装詳細に該当しない旨を追記。",
+      "evidence": "src/presets/base/guardrail.json:236-244 — 現在の body は evidence フィールドを想定していない",
+      "why": "draft.json の QA に evidence/why/considered が追加されたが guardrail body が未対応で、根拠としてのコード参照を実装詳細と誤判定する。",
+      "considered": "guardrail 自体の削除（draft phase には他にも品質チェック guardrail があるため過剰）"
+    },
+    {
+      "question": "draft-recommend-with-reasoning はどうするか？",
+      "answer": "変更なし。機械チェック（existence）と AI チェック（quality）はレイヤーが異なるため残す。",
+      "evidence": "gate-draft の checkDraftJson は evidence 非空を検証するのみ。AI guardrail は推薦の質を評価する。",
+      "why": "暫定措置のスコープでは削除判断に十分なデータがない。",
+      "considered": "draft phase から除外する案（データ不足で見送り）"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-26",
+    "notes": ""
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "spec": "specs/232-auto-check-phase-promotion/spec.json",
+  "date": "2026-04-25T15:01:46.388Z",
+  "requirements": [
+    {
+      "desc": "flow set auto on が eligible=false で reject された場合、flow.json の autoDesired フィールドを true に設定する。flow set auto off 実行時は autoDesired を false に設定する。",
+      "status": "done",
+      "note": "set-auto.js で reject 時に autoDesired=true を保存し、off 時に autoDesired=false を保存する実装が追加されている。"
+    },
+    {
+      "desc": "set step コマンドで draft→done または approval→done に遷移した際、autoDesired=true かつ autoApprove=false の場合に runAutoCheckCore を呼び出し再評価する。",
+      "status": "partial",
+      "note": "set-step.js で条件付き再評価は追加されたが、approval→done では skip 判定時に buildSkipVerdict を使い runAutoCheckCore を呼ばない経路がある。"
+    },
+    {
+      "desc": "再評価で eligible=true の場合、flow.json に autoCheck（eligible verdict）と autoUpgrade: { available: true, reason } を保存する。get next-action は autoUpgrade フィールドを envelope に含める。",
+      "status": "done",
+      "note": "set-step.js で eligible 時に autoCheck/autoUpgrade を保存し、get-next-action.js で autoUpgrade.available===true のとき envelope に含める実装がある。"
+    },
+    {
+      "desc": "skill テンプレートは next-action envelope の autoUpgrade.available === true を検知した場合、[1] auto に切り替え [2] 手動のまま の選択肢を提示する。[1] 選択時は flow set auto on を実行。[2] 選択時は flow set auto off を実行。",
+      "status": "done",
+      "note": "src/templates/skills/sdd-forge.flow/SKILL.md に該当選択肢とコマンド実行手順が追加されている。"
+    },
+    {
+      "desc": "set-auto.js と run-auto-check.js は eligible=false の verdict を flow.json / preparing state に永続化しない。autoCheck フィールドは eligible=true の場合と skip verdict の場合のみ書き込む。",
+      "status": "done",
+      "note": "set-auto.js は eligible 時のみ autoCheck 保存、run-auto-check.js も eligible/skip のみ保存し ineligible は保存しない実装になっている。"
+    },
+    {
+      "desc": "autoDesired が false（未設定含む）のフローでは再評価を実行せず、autoUpgrade シグナルも生成しない。",
+      "status": "done",
+      "note": "set-step.js で autoDesired===true かつ autoApprove!==true のときのみ再評価するため、false/未設定では再評価も autoUpgrade 生成も行われない。"
+    },
+    {
+      "desc": "preparing mode で reject された場合、preparing state に autoDesired=true を保存する。flow prepare が preparing state を flow.json に継承する際、autoDesired も継承する。",
+      "status": "done",
+      "note": "set-auto.js の preparing mode reject で autoDesired=true を保存し、run-prepare-spec.js で autoDesired 継承が追加されている。"
+    },
+    {
+      "desc": "set auto on が reject された場合の exit code は既存の AUTO_CHECK_INELIGIBLE と同一（非ゼロ）を維持する。再評価 post-hook の成否は set step コマンドの exit code に影響しない（post-hook 失敗は stderr に警告を出力し、set step 自体は成功として返す）。",
+      "status": "done",
+      "note": "set-auto.js は従来の Envelope.fail(AUTO_CHECK_INELIGIBLE) を維持。set-step.js は再評価を try/catch し stderr 警告のみで処理継続する。"
+    },
+    {
+      "desc": "本 spec で変更される CLI コマンド（set auto, set step, get next-action, run auto-check）は新しいユーザー入力引数を追加しない。autoDesired / autoUpgrade は内部状態フィールドであり、CLI 引数による直接操作は不要。既存の引数バリデーションは変更なし。",
+      "status": "done",
+      "note": "対象コマンドで新規ユーザー引数追加は見当たらず、引数バリデーション変更も含まれていない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-auto-check.js",
+      "change": "ineligible 時に state/preparing state から既存 autoCheck と autoUpgrade を delete するクリーンアップを追加（要件は“非永続化”までで、明示削除は追加挙動）。"
+    },
+    {
+      "file": "src/flow/lib/set-step.js",
+      "change": "set step の戻り値に extras.autoUpgrade を付与する変更を追加（要件は flow.json 保存と get next-action への露出が中心）。"
+    },
+    {
+      "file": "tests/unit/flow/auto-desired-persistence.test.js",
+      "change": "R1/R7 向けの新規ユニットテストを追加（要件本文にはテスト追加は明示されていない）。"
+    },
+    {
+      "file": "tests/unit/flow/failed-verdict-non-persistence.test.js",
+      "change": "R5 向けの新規ユニットテストを追加（要件本文にはテスト追加は明示されていない）。"
+    },
+    {
+      "file": "tests/unit/flow/auto-upgrade-next-action.test.js",
+      "change": "R3 向けの新規ユニットテストを追加（要件本文にはテスト追加は明示されていない）。"
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "done": 8,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.94,
+    "notes": "R1, R3, R4, R5, R6, R7, R8, R9 は実装差分で満たされている。R2 は再評価フック自体は実装済みだが、approval→done で skip 経路により runAutoCheckCore を常に呼ぶ形ではないため partial と判定。"
+  }
+}

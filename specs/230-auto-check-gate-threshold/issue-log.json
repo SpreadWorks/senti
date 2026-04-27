@@ -1,0 +1,207 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 単一の関心事（auto-check判定ロジック調整）に集中しており、無関係な変更の同梱は見当たらない。; Unambiguous Requirements — 閾値や判定条件が数値で明示されており、主要要件は検証可能な形で記述されている。; Complete Context — 要件の多くが変更内容の列挙に留まり、When/If のトリガー条件と shall の期待動作の対が明示されていない。; No Hardcoded Secrets — ドラフト内にAPIキーやトークン等の秘密情報の直書きはない。; Prioritize Requirements — 要件が3件を超えているが、must/should/nice-to-have の優先度付けがない。; Impact on Existing Features — 既存機能への影響を明示的に記載している。; Present Recommendations with Reasoning — Q&Aで推奨案は示しているが、docs/guardrail/code patterns に基づく根拠の明示が不足している。; Explore Before Asking — 未解決のユーザー確認質問はなく、Open Questions もなしのため追加確認を要する状態ではない。; Proactively Raise Related Implications — 既存機能への影響や適格判定の変化を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 最終案とユーザー承認が明示されており、ブレインストーミング案を最終決定として誤って批評していない。; Capture Digressions in draft.md — 議論が脱線したかどうか、および draft.md への記録有無は本文だけでは判断できない。; Draft Stays at Requirements Level — 関数名・定数名・具体的実装変更（例: THRESHOLD 18→16）が含まれ、要件レベルを超えている。; Backward-Compatible CLI Interface — CLIコマンド/オプション変更を伴う内容ではなく、移行計画要件は実質的に非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T11:11:01.379Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "要件の多くが変更内容の列挙に留まり、When/If のトリガー条件と shall の期待動作の対が明示されていない。"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "要件が3件を超えているが、must/should/nice-to-have の優先度付けがない。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&Aで推奨案は示しているが、docs/guardrail/code patterns に基づく根拠の明示が不足している。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "関数名・定数名・具体的実装変更（例: THRESHOLD 18→16）が含まれ、要件レベルを超えている。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 全要件が auto-check 判定ロジック改善という単一関心に収まっている。; Unambiguous Requirements — 閾値・判定条件・更新対象が数値と具体条件で定義され、検証可能。; Complete Context — R1〜R4は期待動作はあるが、When/If の明示的トリガー条件が不足している。; No Hardcoded Secrets — シークレットや資格情報の記載はない。; Prioritize Requirements — 4件の要件すべてに must/should の優先度が付与されている。; Impact on Existing Features — 既存機能への影響を明示し、具体的な影響内容と件数も記載している。; Present Recommendations with Reasoning — Q&Aの一部は推奨と根拠が不十分で、各質問に対する根拠提示が一貫していない。; Explore Before Asking — Open Questions がなく、内容も既存データ検証前提で整理されている。; Proactively Raise Related Implications — 判定緩和の副作用と hard-gate 段階化のリスク含意を先回りで記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 本内容は意思決定済みドラフトであり、ブレスト案の批評プロセスは該当しない。; Capture Digressions in draft.md — 脱線した議論は見当たらず、記録漏れの兆候はない。; Draft Stays at Requirements Level — 要件・方針・検証観点に留まり、関数設計や実装詳細には踏み込んでいない。; Backward-Compatible CLI Interface — CLIコマンド/オプション変更を含む提案ではないため移行計画は不要。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T11:12:11.130Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R1〜R4は期待動作はあるが、When/If の明示的トリガー条件が不足している。"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Q&Aの一部は推奨と根拠が不十分で、各質問に対する根拠提示が一貫していない。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "draft not found: /home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-230-auto-check-gate-threshold/specs/230-auto-check-gate-threshold/draft.json",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T11:12:53.515Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — auto-check判定ロジック改善という単一の関心事に集中している。; Unambiguous Requirements — 閾値や判定条件が数値で具体化され、検証境界も明示されている。; Complete Context — 要件が主に項目列挙で、When/If条件とshall期待結果の対になっていない記述がある。; No Hardcoded Secrets — APIキー等の秘密情報は含まれていない。; Prioritize Requirements — スコープは提示されており、優先順位欠如による新規違反は本内容では確認できない。; Impact on Existing Features — 既存機能への影響（eligible判定緩和）を明示している。; Present Recommendations with Reasoning — 主要な設計問いに推奨案と理由（実データ・既存構造）を併記している。; Explore Before Asking — openQuestionsは空で、git log確認など事前調査の証拠がある。; Proactively Raise Related Implications — hard-gate廃止時のリスクや救済条件など関連含意を先回りして示している。; Confirm Brainstorm vs. Decision Before Critiquing — 本稿は承認済みの決定内容として整理され、ブレスト案を最終判断として誤批評していない。; Capture Digressions in draft.md — 大きな脱線は見当たらず、主要論点はqaに整理されている。; Draft Stays at Requirements Level — 主内容は要件・方針レベルで、実装設計の詳細化は限定的。; Backward-Compatible CLI Interface — CLIコマンド/オプションの変更はスコープ外で移行計画は不要。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T11:45:27.072Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "要件が主に項目列挙で、When/If条件とshall期待結果の対になっていない記述がある。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: Single Responsibility — 単一の関心事（auto-check判定ロジック調整）に集中しており、無関係な変更の同梱は見当たらない。; Unambiguous Requirements — 閾値や判定条件が数値で明示されており、主要要件は検証可能な形で記述されている。; Complete Context — 要件の多くが変更内容の列挙に留まり、When/If のトリガー条件と shall の期待動作の対が明示されていない。; No Hardcoded Secrets — ドラフト内にAPIキーやトークン等の秘密情報の直書きはない。; Prioritize Requirements — 要件が3件を超えているが、must/should/nice-to-have の優先度付けがない。; Impact on Existing Features — 既存機能への影響を明示的に記載している。; Present Recommendations with Reasoning — Q&Aで推奨案は示しているが、docs/guardrail/code patterns に基づく根拠の明示が不足している。; Explore Before Asking — 未解決のユーザー確認質問はなく、Open Questions もなしのため追加確認を要する状態ではない。; Proactively Raise Related Implications — 既存機能への影響や適格判定の変化を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 最終案とユーザー承認が明示されており、ブレインストーミング案を最終決定として誤って批評していない。; Capture Digressions in draft.md — 議論が脱線したかどうか、および draft.md への記録有無は本文だけでは判断できない。; Draft Stays at Requirements Level — 関数名・定数名・具体的実装変更（例: THRESHOLD 18→16）が含まれ、要件レベルを超えている。; Backward-Compatible CLI Interface — CLIコマンド/オプション変更を伴う内容ではなく、移行計画要件は実質的に非該当。\n  attempt 2: Single Responsibility — 全要件が auto-check 判定ロジック改善という単一関心に収まっている。; Unambiguous Requirements — 閾値・判定条件・更新対象が数値と具体条件で定義され、検証可能。; Complete Context — R1〜R4は期待動作はあるが、When/If の明示的トリガー条件が不足している。; No Hardcoded Secrets — シークレットや資格情報の記載はない。; Prioritize Requirements — 4件の要件すべてに must/should の優先度が付与されている。; Impact on Existing Features — 既存機能への影響を明示し、具体的な影響内容と件数も記載している。; Present Recommendations with Reasoning — Q&Aの一部は推奨と根拠が不十分で、各質問に対する根拠提示が一貫していない。; Explore Before Asking — Open Questions がなく、内容も既存データ検証前提で整理されている。; Proactively Raise Related Implications — 判定緩和の副作用と hard-gate 段階化のリスク含意を先回りで記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 本内容は意思決定済みドラフトであり、ブレスト案の批評プロセスは該当しない。; Capture Digressions in draft.md — 脱線した議論は見当たらず、記録漏れの兆候はない。; Draft Stays at Requirements Level — 要件・方針・検証観点に留まり、関数設計や実装詳細には踏み込んでいない。; Backward-Compatible CLI Interface — CLIコマンド/オプション変更を含む提案ではないため移行計画は不要。\n  attempt 3: Single Responsibility — auto-check判定ロジック改善という単一の関心事に集中している。; Unambiguous Requirements — 閾値や判定条件が数値で具体化され、検証境界も明示されている。; Complete Context — 要件が主に項目列挙で、When/If条件とshall期待結果の対になっていない記述がある。; No Hardcoded Secrets — APIキー等の秘密情報は含まれていない。; Prioritize Requirements — スコープは提示されており、優先順位欠如による新規違反は本内容では確認できない。; Impact on Existing Features — 既存機能への影響（eligible判定緩和）を明示している。; Present Recommendations with Reasoning — 主要な設計問いに推奨案と理由（実データ・既存構造）を併記している。; Explore Before Asking — openQuestionsは空で、git log確認など事前調査の証拠がある。; Proactively Raise Related Implications — hard-gate廃止時のリスクや救済条件など関連含意を先回りして示している。; Confirm Brainstorm vs. Decision Before Critiquing — 本稿は承認済みの決定内容として整理され、ブレスト案を最終判断として誤批評していない。; Capture Digressions in draft.md — 大きな脱線は見当たらず、主要論点はqaに整理されている。; Draft Stays at Requirements Level — 主内容は要件・方針レベルで、実装設計の詳細化は限定的。; Backward-Compatible CLI Interface — CLIコマンド/オプションの変更はスコープ外で移行計画は不要。\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T11:45:52.648Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: Single Responsibility — 単一の関心事（auto-check判定ロジック調整）に集中しており、無関係な変更の同梱は見当たらない。; Unambiguous Requirements — 閾値や判定条件が数値で明示されており、主要要件は検証可能な形で記述されている。; Complete Context — 要件の多くが変更内容の列挙に留まり、When/If のトリガー条件と shall の期待動作の対が明示されていない。; No Hardcoded Secrets — ドラフト内にAPIキーやトークン等の秘密情報の直書きはない。; Prioritize Requirements — 要件が3件を超えているが、must/should/nice-to-have の優先度付けがない。; Impact on Existing Features — 既存機能への影響を明示的に記載している。; Present Recommendations with Reasoning — Q&Aで推奨案は示しているが、docs/guardrail/code patterns に基づく根拠の明示が不足している。; Explore Before Asking — 未解決のユーザー確認質問はなく、Open Questions もなしのため追加確認を要する状態ではない。; Proactively Raise Related Implications — 既存機能への影響や適格判定の変化を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 最終案とユーザー承認が明示されており、ブレインストーミング案を最終決定として誤って批評していない。; Capture Digressions in draft.md — 議論が脱線したかどうか、および draft.md への記録有無は本文だけでは判断できない。; Draft Stays at Requirements Level — 関数名・定数名・具体的実装変更（例: THRESHOLD 18→16）が含まれ、要件レベルを超えている。; Backward-Compatible CLI Interface — CLIコマンド/オプション変更を伴う内容ではなく、移行計画要件は実質的に非該当。\n  attempt 2: Single Responsibility — 全要件が auto-check 判定ロジック改善という単一関心に収まっている。; Unambiguous Requirements — 閾値・判定条件・更新対象が数値と具体条件で定義され、検証可能。; Complete Context — R1〜R4は期待動作はあるが、When/If の明示的トリガー条件が不足している。; No Hardcoded Secrets — シークレットや資格情報の記載はない。; Prioritize Requirements — 4件の要件すべてに must/should の優先度が付与されている。; Impact on Existing Features — 既存機能への影響を明示し、具体的な影響内容と件数も記載している。; Present Recommendations with Reasoning — Q&Aの一部は推奨と根拠が不十分で、各質問に対する根拠提示が一貫していない。; Explore Before Asking — Open Questions がなく、内容も既存データ検証前提で整理されている。; Proactively Raise Related Implications — 判定緩和の副作用と hard-gate 段階化のリスク含意を先回りで記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 本内容は意思決定済みドラフトであり、ブレスト案の批評プロセスは該当しない。; Capture Digressions in draft.md — 脱線した議論は見当たらず、記録漏れの兆候はない。; Draft Stays at Requirements Level — 要件・方針・検証観点に留まり、関数設計や実装詳細には踏み込んでいない。; Backward-Compatible CLI Interface — CLIコマンド/オプション変更を含む提案ではないため移行計画は不要。\n  attempt 3: Single Responsibility — auto-check判定ロジック改善という単一の関心事に集中している。; Unambiguous Requirements — 閾値や判定条件が数値で具体化され、検証境界も明示されている。; Complete Context — 要件が主に項目列挙で、When/If条件とshall期待結果の対になっていない記述がある。; No Hardcoded Secrets — APIキー等の秘密情報は含まれていない。; Prioritize Requirements — スコープは提示されており、優先順位欠如による新規違反は本内容では確認できない。; Impact on Existing Features — 既存機能への影響（eligible判定緩和）を明示している。; Present Recommendations with Reasoning — 主要な設計問いに推奨案と理由（実データ・既存構造）を併記している。; Explore Before Asking — openQuestionsは空で、git log確認など事前調査の証拠がある。; Proactively Raise Related Implications — hard-gate廃止時のリスクや救済条件など関連含意を先回りして示している。; Confirm Brainstorm vs. Decision Before Critiquing — 本稿は承認済みの決定内容として整理され、ブレスト案を最終判断として誤批評していない。; Capture Digressions in draft.md — 大きな脱線は見当たらず、主要論点はqaに整理されている。; Draft Stays at Requirements Level — 主内容は要件・方針レベルで、実装設計の詳細化は限定的。; Backward-Compatible CLI Interface — CLIコマンド/オプションの変更はスコープ外で移行計画は不要。\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T11:48:00.647Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: Single Responsibility — 単一の関心事（auto-check判定ロジック調整）に集中しており、無関係な変更の同梱は見当たらない。; Unambiguous Requirements — 閾値や判定条件が数値で明示されており、主要要件は検証可能な形で記述されている。; Complete Context — 要件の多くが変更内容の列挙に留まり、When/If のトリガー条件と shall の期待動作の対が明示されていない。; No Hardcoded Secrets — ドラフト内にAPIキーやトークン等の秘密情報の直書きはない。; Prioritize Requirements — 要件が3件を超えているが、must/should/nice-to-have の優先度付けがない。; Impact on Existing Features — 既存機能への影響を明示的に記載している。; Present Recommendations with Reasoning — Q&Aで推奨案は示しているが、docs/guardrail/code patterns に基づく根拠の明示が不足している。; Explore Before Asking — 未解決のユーザー確認質問はなく、Open Questions もなしのため追加確認を要する状態ではない。; Proactively Raise Related Implications — 既存機能への影響や適格判定の変化を先回りして記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 最終案とユーザー承認が明示されており、ブレインストーミング案を最終決定として誤って批評していない。; Capture Digressions in draft.md — 議論が脱線したかどうか、および draft.md への記録有無は本文だけでは判断できない。; Draft Stays at Requirements Level — 関数名・定数名・具体的実装変更（例: THRESHOLD 18→16）が含まれ、要件レベルを超えている。; Backward-Compatible CLI Interface — CLIコマンド/オプション変更を伴う内容ではなく、移行計画要件は実質的に非該当。\n  attempt 2: Single Responsibility — 全要件が auto-check 判定ロジック改善という単一関心に収まっている。; Unambiguous Requirements — 閾値・判定条件・更新対象が数値と具体条件で定義され、検証可能。; Complete Context — R1〜R4は期待動作はあるが、When/If の明示的トリガー条件が不足している。; No Hardcoded Secrets — シークレットや資格情報の記載はない。; Prioritize Requirements — 4件の要件すべてに must/should の優先度が付与されている。; Impact on Existing Features — 既存機能への影響を明示し、具体的な影響内容と件数も記載している。; Present Recommendations with Reasoning — Q&Aの一部は推奨と根拠が不十分で、各質問に対する根拠提示が一貫していない。; Explore Before Asking — Open Questions がなく、内容も既存データ検証前提で整理されている。; Proactively Raise Related Implications — 判定緩和の副作用と hard-gate 段階化のリスク含意を先回りで記載している。; Confirm Brainstorm vs. Decision Before Critiquing — 本内容は意思決定済みドラフトであり、ブレスト案の批評プロセスは該当しない。; Capture Digressions in draft.md — 脱線した議論は見当たらず、記録漏れの兆候はない。; Draft Stays at Requirements Level — 要件・方針・検証観点に留まり、関数設計や実装詳細には踏み込んでいない。; Backward-Compatible CLI Interface — CLIコマンド/オプション変更を含む提案ではないため移行計画は不要。\n  attempt 3: Single Responsibility — auto-check判定ロジック改善という単一の関心事に集中している。; Unambiguous Requirements — 閾値や判定条件が数値で具体化され、検証境界も明示されている。; Complete Context — 要件が主に項目列挙で、When/If条件とshall期待結果の対になっていない記述がある。; No Hardcoded Secrets — APIキー等の秘密情報は含まれていない。; Prioritize Requirements — スコープは提示されており、優先順位欠如による新規違反は本内容では確認できない。; Impact on Existing Features — 既存機能への影響（eligible判定緩和）を明示している。; Present Recommendations with Reasoning — 主要な設計問いに推奨案と理由（実データ・既存構造）を併記している。; Explore Before Asking — openQuestionsは空で、git log確認など事前調査の証拠がある。; Proactively Raise Related Implications — hard-gate廃止時のリスクや救済条件など関連含意を先回りして示している。; Confirm Brainstorm vs. Decision Before Critiquing — 本稿は承認済みの決定内容として整理され、ブレスト案を最終判断として誤批評していない。; Capture Digressions in draft.md — 大きな脱線は見当たらず、主要論点はqaに整理されている。; Draft Stays at Requirements Level — 主内容は要件・方針レベルで、実装設計の詳細化は限定的。; Backward-Compatible CLI Interface — CLIコマンド/オプションの変更はスコープ外で移行計画は不要。\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T11:50:58.824Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:04:47.085Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: adjusting auto-check eligibility to reduce false negatives.; Task Single Responsibility — Task list includes a generic placeholder task that is not a concrete single concern implementation task.; Unambiguous Requirements — Requirements use concrete, testable numeric conditions and thresholds.; Complete Context — Each requirement states a trigger condition and expected behavior.; REQ Diff-Verifiability — Requirements are decidable from code diff plus unit test results.; No Hardcoded Secrets — No secrets or credential material are specified.; No Silent Error Swallowing — No error-handling changes are proposed; article is inapplicable to this spec content.; Prioritize Requirements — More than three requirements are present and each has a priority (must/should).; Impact on Existing Features — Spec does not explicitly list impact on existing features or explicitly state none.; Bounded Resource Usage — No recursive processing, retries, or bulk-loading behavior is introduced.; Changes Require Test Coverage — Spec includes unit test updates with boundary-case coverage for changed logic.; Spec Includes Test Strategy — A test strategy is included in task details (unit tests and boundary checks).; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs source draft without the original draft material.; Record Unresolved Points as Open Questions — Cannot validate whether claims are fabricated without external/source evidence.; Include 'Why This Approach' Rationale — Rationale is provided via decisions, evidence, and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec plans to update existing tests but does not record user approval for modifying them.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed.; Exit Code Contract — No command failure/exit-code behavior changes are introduced.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:06:11.858Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "task-single-responsibility",
+          "reason": "Task list includes a generic placeholder task that is not a concrete single concern implementation task."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Spec does not explicitly list impact on existing features or explicitly state none."
+        },
+        {
+          "guardrail_id": "impl-test-preservation",
+          "reason": "Spec plans to update existing tests but does not record user approval for modifying them."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:06:48.491Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "phase": "spec",
+      "reason": "gate retry limit exhausted: 3/3 FAIL attempts recorded for phase \"spec\".\nCounter breakdown: AI-FAIL=3\nPrevious FAIL reasons:\n  attempt 1: tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0\n  attempt 2: Single Responsibility — Spec focuses on one concern: adjusting auto-check eligibility to reduce false negatives.; Task Single Responsibility — Task list includes a generic placeholder task that is not a concrete single concern implementation task.; Unambiguous Requirements — Requirements use concrete, testable numeric conditions and thresholds.; Complete Context — Each requirement states a trigger condition and expected behavior.; REQ Diff-Verifiability — Requirements are decidable from code diff plus unit test results.; No Hardcoded Secrets — No secrets or credential material are specified.; No Silent Error Swallowing — No error-handling changes are proposed; article is inapplicable to this spec content.; Prioritize Requirements — More than three requirements are present and each has a priority (must/should).; Impact on Existing Features — Spec does not explicitly list impact on existing features or explicitly state none.; Bounded Resource Usage — No recursive processing, retries, or bulk-loading behavior is introduced.; Changes Require Test Coverage — Spec includes unit test updates with boundary-case coverage for changed logic.; Spec Includes Test Strategy — A test strategy is included in task details (unit tests and boundary checks).; Synthesize Draft, Do Not Copy — Cannot verify synthesis vs source draft without the original draft material.; Record Unresolved Points as Open Questions — Cannot validate whether claims are fabricated without external/source evidence.; Include 'Why This Approach' Rationale — Rationale is provided via decisions, evidence, and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec plans to update existing tests but does not record user approval for modifying them.; Backward-Compatible CLI Interface — No CLI command/option removal or semantic change is proposed.; Exit Code Contract — No command failure/exit-code behavior changes are introduced.\n  attempt 3: tasks: existing task 'T-pending-spec' missing from spec.json (append-only)\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-25T12:07:13.476Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/run-auto-check.test.js:87: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/run-auto-check.test.js:103: existing line modified/deleted in test file (removed=1, added=10)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:26:46.214Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "tests/unit/flow/run-auto-check.test.js:87: existing line modified/deleted in test file (removed=1, added=1); tests/unit/flow/run-auto-check.test.js:103: existing line modified/deleted in test file (removed=1, added=10)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-25T12:26:53.660Z",
+      "passedGuardrails": []
+    }
+  ]
+}

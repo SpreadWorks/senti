@@ -82,7 +82,7 @@ const WEIGHTS = {
   precedent: 1,
 };
 const MAX_SCORE = Object.values(WEIGHTS).reduce((a, b) => a + b, 0) * 2; // 24
-const THRESHOLD = 18;
+const THRESHOLD = 16;
 const HARD_GATE_KEYS = ["specBuildability", "ambiguity", "verifiability"];
 const CATEGORY_KEYS = Object.keys(WEIGHTS);
 
@@ -95,8 +95,14 @@ export function computeScore(breakdown) {
   return total;
 }
 
+const HARD_GATE_MIN_SUM = 2;
+
+function computeHardGateSum(breakdown) {
+  return HARD_GATE_KEYS.reduce((acc, k) => acc + Number(breakdown?.[k] ?? 0), 0);
+}
+
 export function hardGateFailed(breakdown) {
-  return HARD_GATE_KEYS.some((k) => Number(breakdown?.[k] ?? 0) === 0);
+  return computeHardGateSum(breakdown) < HARD_GATE_MIN_SUM;
 }
 
 function parseAiResponse(text) {
@@ -170,8 +176,7 @@ export function composeAutoCheck({ staticGates, aiBreakdown, aiReason, aiOk }) {
   }
   if (!staticFail && !aiOk) reasonParts.push(aiReason || "ai call failed");
   if (!staticFail && aiOk && hardFail) {
-    const zeros = HARD_GATE_KEYS.filter((k) => Number(breakdown[k]) === 0);
-    reasonParts.push(`hard-gate zero: ${zeros.join(", ")}`);
+    reasonParts.push(`hard-gate sum ${computeHardGateSum(breakdown)} below ${HARD_GATE_MIN_SUM}`);
   }
   if (!staticFail && aiOk && !hardFail && score < THRESHOLD) {
     reasonParts.push(`score ${score}/${MAX_SCORE} below threshold ${THRESHOLD}`);
@@ -218,7 +223,14 @@ export default class RunAutoCheckCommand extends FlowCommand {
         return verdict;
       }
       const result = await runAutoCheckCore(this.container, resolved.text);
-      ctx.flowManager.mutate((state) => { state.autoCheck = result; });
+      if (result.eligible) {
+        ctx.flowManager.mutate((state) => { state.autoCheck = result; });
+      } else {
+        ctx.flowManager.mutate((state) => {
+          delete state.autoCheck;
+          delete state.autoUpgrade;
+        });
+      }
       return result;
     }
 
@@ -252,9 +264,16 @@ export default class RunAutoCheckCommand extends FlowCommand {
         return verdict;
       }
       const result = await runAutoCheckCore(this.container, resolvedInput.text);
-      ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
-        s.autoCheck = result;
-      });
+      if (result.eligible) {
+        ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
+          s.autoCheck = result;
+        });
+      } else {
+        ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
+          delete s.autoCheck;
+          delete s.autoUpgrade;
+        });
+      }
       return result;
     }
 

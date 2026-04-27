@@ -1,0 +1,59 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/229-test-runner-file-filter/draft.md        |  50 ++\n specs/229-test-runner-file-filter/flow.json       | 595 ++++++++++++++++++++++\n specs/229-test-runner-file-filter/issue-log.json  | 323 ++++++++++++\n specs/229-test-runner-file-filter/issue.md        |  64 +++\n specs/229-test-runner-file-filter/qa.md           |   9 +\n specs/229-test-runner-file-filter/review.md       |  41 ++\n specs/229-test-runner-file-filter/spec.json       | 176 +++++++\n specs/229-test-runner-file-filter/spec.md         |  92 ++++\n specs/229-test-runner-file-filter/tests/README.md |  24 +\n tests/helpers/test-runner-search-dirs.js          |  10 +-\n tests/run.js                                      | 141 +++--\n tests/unit/test-runner-file-filter.test.js        | 206 ++++++++\n tests/unit/test-runner-flags.test.js              |  60 ++-\n 13 files changed, 1734 insertions(+), 57 deletions(-)",
+      "commits": [
+        "feat: feature/229-test-runner-file-filter"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 5
+    },
+    "tokenMetrics": {
+      "input": 329093,
+      "output": 15514,
+      "cacheRead": 241664,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 16,
+      "durationMs": 375969,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 100070
+        },
+        {
+          "phase": "gate",
+          "durationMs": 86013
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 152378
+        },
+        {
+          "phase": "review",
+          "durationMs": 37508
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2416,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2683
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/229-test-runner-file-filter\n    13 files changed, 1734 insertions(+), 57 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 5\n    agent calls ................. 16\n    input tokens ................ 329,093\n    output tokens ............... 15,514\n    cache-read tokens ........... 241,664\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 376.0s\n      gate-draft ................ 100.1s\n      gate ...................... 86.0s\n      gate-impl ................. 152.4s\n      review .................... 37.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2416  integration 267  acceptance 0  total 2683"
+}

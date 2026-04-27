@@ -1,0 +1,59 @@
+{
+  "devType": "feature",
+  "goal": "finalize 後の Report 表示を flow dispatcher のステップとして追加し、実行有無を flow state から観測可能にする",
+  "analysis": {
+    "problem": "finalize 後の Report 表示は skill 指示と envelope hint に依存しており、実行有無を flow state から観測できない。flow get status で確認しても Report 表示の記録がなく、実行忘れを検知する手段がない。",
+    "proposedApproach": "FLOW_STEPS に show-report ステップを追加し、context-rules.json と prompt ファイルをデータ駆動で拡張する。finalize パイプライン完了時にステップを done に遷移させる。",
+    "validation": "FLOW_STEPS と context-rules.json は REQ-11（データ駆動の拡張）として設計されているため、新ステップの追加は JSON エントリと prompt ファイルの追加で完結する。"
+  },
+  "scopeVerification": {
+    "in": [
+      "(must) FLOW_STEPS 配列に show-report を追加する。buildInitialSteps を呼ぶと、返り値の steps 配列に show-report エントリが含まれる。",
+      "(must) PHASE_MAP に show-report のマッピングを追加する。show-report ステップの phase が sync として解決される。",
+      "(must) context-rules.json に flow.show-report エントリを追加する。get-next-action が show-report ステップで action と instructions を返す。",
+      "(must) prompt ファイルを新規作成する。show-report ステップの指示として report show コマンドの実行を案内する。",
+      "(must) finalize パイプライン完了時に show-report ステップを done に遷移させる。finalize 成功後、flow get status で show-report が done として表示される。",
+      "(must) テスト: buildInitialSteps の返り値に show-report が含まれることを検証する。",
+      "(should) テスト: next-action が show-report ステップで正しいレスポンスを返すことを検証する。"
+    ],
+    "out": [
+      "Report フォーマット自体の変更",
+      "board 6764 の skill/envelope 配線（並行して存在可能）",
+      "既存の finalize サブステップのロジック変更"
+    ]
+  },
+  "impactOnExisting": [
+    "buildInitialSteps の出力配列に show-report エントリが1件追加される",
+    "dispatcher loop の終了条件に show-report が含まれるが、finalize 内で done に遷移させるため通常フローへの影響なし",
+    "instructions-coverage テストが show-report の prompt ファイル存在を自動検証する"
+  ],
+  "qa": [
+    {
+      "question": "show-report ステップはどのフェーズに属すべきか？",
+      "answer": "sync フェーズ。docs-update / docs-review / docs-commit と同じ sync フェーズに所属させる。",
+      "evidence": "PHASE_MAP: docs-update/docs-review/docs-commit は全て sync フェーズ。",
+      "why": "Report 表示はドキュメント同期完了後の確認ステップであり、sync フェーズが自然。",
+      "considered": "impl フェーズは impl ゲートの対象になるため不適切。"
+    },
+    {
+      "question": "show-report ステップは dispatcher が対話的に処理する必要があるか？",
+      "answer": "不要。finalize パイプライン完了時に自動で完了状態にする。AI が report show を実行したかの記録として機能する。",
+      "evidence": "現在の finalize は envelope の nextCommand で report show を案内するのみで、状態記録がない。",
+      "why": "目的は「実行有無の観測」であり、dispatcher による対話的処理は不要。",
+      "considered": "dispatcher に拾わせる案は、finalize 完了後に状態ファイルが削除されるため不可。"
+    },
+    {
+      "question": "テスト戦略は？",
+      "answer": "3種: (1) buildInitialSteps に show-report が含まれること、(2) prompt ファイルの存在（instructions-coverage テストが自動検証）、(3) finalize 結果に show-report の状態が反映されること。",
+      "evidence": "instructions-coverage.test.js が全 instructions_key のファイル存在を自動検証。",
+      "why": "データ駆動の拡張であるため既存カバレッジテストが大部分を自動検証する。",
+      "considered": "E2E テストはセットアップコストが高いため単体テストで十分。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-25T00:00:00.000Z",
+    "notes": "autoApprove"
+  }
+}

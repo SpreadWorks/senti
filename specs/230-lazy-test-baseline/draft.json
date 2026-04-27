@@ -1,0 +1,76 @@
+{
+  "devType": "refactor",
+  "goal": "flow run tests（--baseline なし）実行時に baseline が未取得なら自動的にベースラインを取得し、B.5 の自動実行を廃止する",
+  "analysis": {
+    "problem": "flow prepare 直後に必ず baseline テストを実行するが、ユーザーがテスト実行を選択しなかった場合にこのコストが無駄になる。",
+    "proposedApproach": "テスト実行（head モード）時に baseline が未記録なら自動取得する。prepare 直後の自動実行（B.5）は廃止する。",
+    "validation": "テスト不要 flow ではコストゼロ。テスト実行時は 1 コマンドで baseline + head が揃う。gate の既存動作に影響なし。"
+  },
+  "scopeVerification": {
+    "in": [
+      "(must) head モードのテスト実行時に baseline 未取得なら自動取得する",
+      "(must) flow prepare 完了後に自動実行されていた B.5（baseline テスト自動取得）を廃止する。baseline 取得は head モードのテスト実行時に遅延実行されるため不要になる",
+      "(must) baseline 自動取得の動作を検証するテストを追加する。head モード実行時に baseline 未記録なら自動取得されること、既に記録済みならスキップされることを検証する",
+      "(should) baseline 自動取得失敗時は警告のみで head テストを続行する"
+    ],
+    "out": [
+      "gate の baseline 参照動作（変更不要）",
+      "--baseline フラグ（残す）"
+    ]
+  },
+  "impactOnExisting": [
+    "head モードの実行時間が延びる可能性がある（baseline 自動取得分）",
+    "prepare 直後の自動テスト実行がなくなる",
+    "gate の動作に影響なし"
+  ],
+  "qa": [
+    {
+      "question": "この変更はブレスト段階か意思決定段階か？",
+      "answer": "意思決定段階。ユーザーとの議論で方針が合意され、Issue #269 として起票済み。",
+      "evidence": "Issue #269 に方針が記載されている。",
+      "why": "「テスト実行を選択した場合にのみコストが発生する」設計が合意済み。",
+      "considered": "ブレスト段階として扱う → 既に合意済みのため不適切"
+    },
+    {
+      "question": "base commit はどう決定するか？",
+      "answer": "prepare 時に記録された base branch 情報を使う。",
+      "evidence": "prepare が base branch を記録していることを確認済み。",
+      "why": "head モード実行時にも参照可能な情報として既に存在する。",
+      "considered": "固定オフセット → コミット数が不定のため不適切"
+    },
+    {
+      "question": "baseline 自動取得が失敗した場合の挙動は？",
+      "answer": "best-effort とし、警告を出して head テストのみ実行する。",
+      "evidence": "gate に baseline なしの評価パスが存在することを確認済み。",
+      "why": "baseline 取得失敗でフロー全体を止めるのは過剰。",
+      "considered": "失敗時にエラー停止 → best-effort 方針に反する"
+    },
+    {
+      "question": "--baseline フラグは残すか？",
+      "answer": "残す。手動での baseline 再取得に有用。",
+      "evidence": "既存 CLI に登録済み。",
+      "why": "廃止すると手動再取得手段がなくなる。",
+      "considered": "廃止 → 手動再取得手段を失う"
+    },
+    {
+      "question": "テスト結果の保存形式は変わるか？",
+      "answer": "変わらない。既存と同じ形式で記録する。",
+      "evidence": "既存コマンドで同じ保存方法が使われていることを確認済み。",
+      "why": "gate 側の変更を不要にするため。",
+      "considered": "新形式 → 不要な複雑さ"
+    },
+    {
+      "question": "AI 要約は baseline 自動取得時にも実行するか？",
+      "answer": "はい。既存の --baseline 時と同様に要約を試みる。失敗時は続行。",
+      "evidence": "既存コマンドで同じ要約処理が実行されていることを確認済み。",
+      "why": "失敗テスト情報は gate の差分判定に重要。",
+      "considered": "要約スキップ → 差分判定の精度低下"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-25T00:00:00.000Z",
+    "notes": "autoApprove"
+  }
+}

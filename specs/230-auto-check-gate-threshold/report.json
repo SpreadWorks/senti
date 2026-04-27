@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/230-auto-check-gate-threshold/draft.json     |  50 +++\n specs/230-auto-check-gate-threshold/draft.md       |  44 ++\n specs/230-auto-check-gate-threshold/flow.json      | 474 +++++++++++++++++++++\n specs/230-auto-check-gate-threshold/issue-log.json | 207 +++++++++\n specs/230-auto-check-gate-threshold/issue.md       |  56 +++\n specs/230-auto-check-gate-threshold/qa.md          |   9 +\n specs/230-auto-check-gate-threshold/review.md      |  33 ++\n specs/230-auto-check-gate-threshold/spec.json      | 120 ++++++\n specs/230-auto-check-gate-threshold/spec.md        |  85 ++++\n specs/230-auto-check-gate-threshold/tasks/T-1.md   |  21 +\n .../tasks/T-pending-spec.md                        |   9 +\n .../230-auto-check-gate-threshold/tests/README.md  |  22 +\n .../tests/gate-threshold.test.js                   | 111 +++++\n src/flow/lib/run-auto-check.js                     |  13 +-\n tests/unit/flow/run-auto-check.test.js             |  50 +--\n 15 files changed, 1271 insertions(+), 33 deletions(-)",
+      "commits": [
+        "feat: feature/230-auto-check-gate-threshold"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 3,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.88,
+      "notes": "R1〜R3は実装で満たしている。R4は概ね実施されているが、境界値検証の主戦場が新規specテストに寄っている点と、score境界テストに1件ラベル/内容不整合があり完全達成とは言い切れない。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 5,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 174142,
+      "output": 8516,
+      "cacheRead": 96640,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 9,
+      "durationMs": 215082,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 93083
+        },
+        {
+          "phase": "gate",
+          "durationMs": 51894
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 37762
+        },
+        {
+          "phase": "review",
+          "durationMs": 32343
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2426,
+      "integration": 267,
+      "acceptance": 0,
+      "total": 2693
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/230-auto-check-gate-threshold\n    15 files changed, 1271 insertions(+), 33 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 88%  (3 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 5\n    issue-log ................... 0\n    agent calls ................. 9\n    input tokens ................ 174,142\n    output tokens ............... 8,516\n    cache-read tokens ........... 96,640\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 215.1s\n      gate-draft ................ 93.1s\n      gate ...................... 51.9s\n      gate-impl ................. 37.8s\n      review .................... 32.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2426  integration 267  acceptance 0  total 2693"
+}

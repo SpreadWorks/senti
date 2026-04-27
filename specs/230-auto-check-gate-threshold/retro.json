@@ -1,0 +1,88 @@
+{
+  "spec": "specs/230-auto-check-gate-threshold/spec.json",
+  "date": "2026-04-25T12:46:42.381Z",
+  "requirements": [
+    {
+      "desc": "When AIスコアリング後に合格判定を行うとき、THRESHOLD は 16/24（67%）とする",
+      "status": "done",
+      "note": "`src/flow/lib/run-auto-check.js` の `THRESHOLD` が 18→16 に変更され、unit test でも 16 を期待値として確認されている。"
+    },
+    {
+      "desc": "When hard-gate 判定を行うとき、3項目の合計が1以下なら fail とする。1項目が0でも他2項の合計が2以上なら通過する",
+      "status": "done",
+      "note": "`hardGateFailed()` が `sum < 2` 判定に変更され、sum=1 fail / 単一0かつ合計2以上 pass をテストで確認している。"
+    },
+    {
+      "desc": "When hard-gate fail が発生したとき、reason に段階化ロジックの合計値と閾値を出力する",
+      "status": "done",
+      "note": "hard-gate fail 時の reason が `hard-gate sum <value> below 2` 形式に変更され、合計値と閾値（2）が含まれる。"
+    },
+    {
+      "desc": "When 上記変更を行ったとき、既存テストを更新し境界値（hard-gate合計1でfail・合計2でpass、スコア15でfail・16でpass）を検証する",
+      "status": "partial",
+      "note": "既存 unit test は更新され hard-gate 境界は確認しているが、スコア15/16境界は主に新規 `specs/.../tests/gate-threshold.test.js` 側で検証。さらに同ファイルに「score 16」と記載しつつ実値12を使う不整合テストが1件ある。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/230-auto-check-gate-threshold/draft.json",
+      "change": "要件実装とは直接関係しない spec 管理用ドキュメントを新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/draft.md",
+      "change": "要件実装とは直接関係しない draft 文書を新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/flow.json",
+      "change": "ワークフロー進行管理ファイルを新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/issue-log.json",
+      "change": "ゲート評価ログを新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/issue.md",
+      "change": "issue 背景文書を新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/qa.md",
+      "change": "Q&A テンプレート文書を新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/review.md",
+      "change": "レビュー記録文書を新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/spec.json",
+      "change": "仕様定義ファイルを新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/spec.md",
+      "change": "仕様Markdownを新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/tasks/T-1.md",
+      "change": "タスク文書を新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/tasks/T-pending-spec.md",
+      "change": "プレースホルダタスク文書を新規追加。"
+    },
+    {
+      "file": "specs/230-auto-check-gate-threshold/tests/README.md",
+      "change": "spec配下の追加テスト説明文書を新規追加。"
+    },
+    {
+      "file": "tests/unit/flow/run-auto-check.test.js",
+      "change": "要件必須範囲外のテスト補助関数 `runAutoCheck` 抽出によるリファクタリングを実施。"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 3,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.88,
+    "notes": "R1〜R3は実装で満たしている。R4は概ね実施されているが、境界値検証の主戦場が新規specテストに寄っている点と、score境界テストに1件ラベル/内容不整合があり完全達成とは言い切れない。"
+  }
+}

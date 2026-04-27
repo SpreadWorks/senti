@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-25T08:57:03.732Z",
+  "analyzedAt": "2026-04-25T15:01:49.682Z",
   "package": {
     "entries": [
       {
@@ -2995,9 +2995,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "7d172cf360b3fdcae912f4ccd23b517b",
-        "lines": 154,
-        "mtime": "2026-04-25T08:57:03.389Z",
+        "hash": "cb635d717b17097a846900a3a3e98649",
+        "lines": 158,
+        "mtime": "2026-04-25T15:01:49.394Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -3023,23 +3023,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "This module implements the flow engine logic that determines the next actionable instruction in an active SDD flow. It coordinates step/task state inspection with schema-driven rule resolution.",
-        "detail": "The command extends a shared `FlowCommand` base and relies on helper functions to locate the in-progress step, current task, and completion state across tasks. It loads JSON metadata from a schema directory, with an environment-variable override (`SDD_FORGE_NEXT_ACTION_SCHEMA_DIR`) to support custom rule locations. The implementation is designed to fail fast with explicit errors when prerequisites are missing, such as no active flow, no in-progress step, or no matching context rule for the current step. It also integrates flow progression helpers (`promoteFirstPending`, `promoteNextPending`) to advance pending items and build the next actionable context descriptor.",
-        "chapter": "internal_design",
-        "role": "lib",
+        "summary": "This module implements the flow next-action resolver command. It selects the current actionable step/task and builds a context descriptor from schema-driven rules.",
+        "detail": "The file loads JSON schemas from a default schema directory, with an environment variable override for testability and custom deployments. It includes focused helpers to detect in-progress steps, current tasks, and completion state across task lists. Target resolution gates command behavior by requiring an active flow and a valid in-progress step before producing output. Context assembly is rule-based and fails fast when a step has no rule entry, which prevents ambiguous prompt construction. The command also integrates pending-task promotion utilities so state can advance deterministically.",
+        "chapter": "cli_commands",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-25T08:57:16.873Z",
+          "processedAt": "2026-04-25T15:02:20.491Z",
           "attempts": 1
         },
         "keywords": [
-          "next action resolution",
-          "flow state machine",
-          "in-progress step",
+          "next action",
+          "flow state",
+          "in_progress step",
+          "schema rules",
+          "context resolution",
           "task promotion",
-          "context rules",
-          "schema loading",
-          "workflow orchestration",
-          "command handler"
+          "command orchestration"
         ]
       },
       {
@@ -3323,9 +3322,9 @@
       },
       {
         "file": "src/flow/lib/resolve-auto-check-input.js",
-        "hash": "23174f3beb7e7ebce69c6d7d8103e13e",
+        "hash": "5ffd64b37ebb2a74b1e5d60d7161987e",
         "lines": 101,
-        "mtime": "2026-04-23T15:43:43.303Z",
+        "mtime": "2026-04-25T11:12:15.756Z",
         "className": "resolve-auto-check-input",
         "methods": [
           "isSpecApproved",
@@ -3348,23 +3347,26 @@
         "extends": null,
         "usedBy": [
           "src/flow/lib/run-auto-check.js",
-          "src/flow/lib/set-auto.js"
+          "src/flow/lib/set-auto.js",
+          "src/flow/lib/set-step.js"
         ],
         "id": "30a7075c",
-        "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
-          "attempts": 2
-        },
-        "summary": "This module builds auto-check input text from flow state and spec-adjacent files. It decides when checks should be skipped after approval.",
-        "detail": "It inspects step completion status to detect approved or draft-gated states. It reads sibling spec files defensively and emits warnings on read failures when requested. `resolveAutoCheckInput` returns a structured `{ skip, reason/text }` envelope for downstream checks. `buildSkipVerdict` exports a shared skip result shape for command-level consistency.",
+        "summary": "This module resolves the effective input for automatic flow checks and determines when checks can be skipped. It centralizes approval-state detection and spec-adjacent text loading for downstream gate logic.",
+        "detail": "It uses step-status helpers to detect whether specific flow milestones, especially approval-related steps, are completed. The implementation reads sibling files near the active spec path and gracefully falls back to null when files are missing or unreadable. A base input builder composes normalized text fragments into a single trimmed payload for auto-check execution. The skip path returns a consistent envelope-style object that is explicitly shared with other modules, which keeps cross-command behavior aligned.",
         "chapter": "internal_design",
         "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-25T11:12:41.613Z",
+          "attempts": 1
+        },
         "keywords": [
-          "auto-check input",
+          "auto check input",
+          "flow step status",
           "spec approval",
-          "flow steps",
           "skip verdict",
-          "state-derived text"
+          "input resolution",
+          "sibling file loading",
+          "envelope response"
         ]
       },
       {
@@ -3454,15 +3456,16 @@
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
-        "hash": "251ce72c64b4ef448349f20a5681a074",
-        "lines": 265,
-        "mtime": "2026-04-23T05:53:32.265Z",
+        "hash": "4f253c4d13f79722a152a77b55e01133",
+        "lines": 284,
+        "mtime": "2026-04-25T15:01:49.394Z",
         "className": "run-auto-check",
         "methods": [
           "computeScore",
           "hardGateFailed",
           "composeAutoCheck",
           "runAutoCheckCore",
+          "computeHardGateSum",
           "parseAiResponse",
           "emptyBreakdown",
           "sanitizeBreakdown",
@@ -3484,25 +3487,26 @@
         ],
         "extends": "FlowCommand",
         "usedBy": [
-          "src/flow/lib/set-auto.js"
+          "src/flow/lib/set-auto.js",
+          "src/flow/lib/set-step.js"
         ],
         "id": "62c43842",
+        "summary": "This module provides auto-check scoring logic and a command wrapper for deciding whether auto mode can proceed safely. It combines static gates with AI-evaluated criteria into a single verdict envelope.",
+        "detail": "The implementation defines weighted categories, computes a normalized score, and enforces hard-gate minimums for critical dimensions such as ambiguity and verifiability. AI response parsing is defensive, with cleanup and JSON extraction paths that degrade gracefully when agent calls fail. Breakdown sanitization ensures category keys exist and remain numeric before scoring. The composition layer merges static gate results and AI scoring into a consistent verdict payload with reasons and pass/fail semantics. The command class returns envelope-compatible responses and supports fallback behavior when no agent input is available.",
+        "chapter": "internal_design",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 3
+          "processedAt": "2026-04-25T15:02:20.491Z",
+          "attempts": 1
         },
-        "summary": "Implements AI-assisted auto-check scoring for SDD auto mode, with static gates, weighted scoring, and hard-gate enforcement. It exposes both core scoring utilities and a command entry point.",
-        "detail": "The module defines category weights, threshold logic, and hard-gate keys so eligibility decisions are reproducible. It parses and sanitizes model output into a bounded numeric breakdown, handling malformed responses through repair and safe defaults. Static gates are evaluated separately and then merged with AI results in a composed verdict object. Error handling degrades gracefully when no agent profile exists or calls fail, returning informative reasons rather than crashing. The command integrates preparing-run resolution and skip verdict behavior for approved specs.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "keywords": [
-          "auto mode",
-          "scoring rubric",
-          "hard gate",
-          "ai evaluation",
-          "static gates",
-          "eligibility",
-          "threshold"
+          "auto check",
+          "risk scoring",
+          "weighted rubric",
+          "hard gates",
+          "AI evaluation",
+          "verdict composition",
+          "graceful fallback"
         ]
       },
       {
@@ -3547,9 +3551,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "9c7649eb31a50c1d7242a7a016c9f01d",
-        "lines": 543,
-        "mtime": "2026-04-23T08:16:29.609Z",
+        "hash": "1b54992c26240a507b911f8dd1d1a04e",
+        "lines": 552,
+        "mtime": "2026-04-25T12:51:23.064Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3598,31 +3602,33 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c711309b",
-        "summary": "Implements the flow finalize pipeline, including preflight checks, commit/merge/report steps, and cleanup of worktree state. It exports reusable helpers for finalize error handling and success envelopes.",
-        "detail": "The file coordinates multiple finalize sub-steps through a step map and shared runner utilities, enabling full or selective execution modes. It performs git write-access preflight checks, branch/worktree hygiene validation, and commit-skip logic when there is nothing to persist. Post-commit behavior includes hooks, report artifacts, and pointer updates to the last finalized spec. Cleanup logic handles spec-only flows and worktree removal safely. The command returns structured status for each step and supports dry-run semantics for non-destructive execution.",
+        "summary": "This module implements the finalize stage of the flow pipeline and orchestrates commit, report, migration hook, and cleanup behavior. It provides the `RunFinalizeCommand` class and utility functions for preflight checks, step execution, and finalize result envelopes.",
+        "detail": "The file coordinates finalize substeps through a step map and a shared substep runner so each action returns structured status data. It performs Git preflight validation, including write-access checks in the Git common directory and branch/worktree cleanliness checks before executing sensitive operations. It supports conditional commit behavior, skip paths such as spec-only mode, and post-commit processing like report pointer updates and optional migration hooks. Cleanup logic is centralized to handle worktree and state transitions consistently for both success and error paths. The command class validates mode/step options, executes selected finalize steps, and returns a normalized success payload with optional diff metadata.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
+          "processedAt": "2026-04-25T12:51:45.161Z",
           "attempts": 1
         },
         "keywords": [
-          "finalize pipeline",
+          "finalize command",
+          "flow orchestration",
           "preflight checks",
-          "worktree cleanup",
-          "commit orchestration",
-          "merge strategy",
-          "flow finalize",
-          "post-commit hook"
+          "git write access",
+          "cleanup routine",
+          "step runner",
+          "post-commit hook",
+          "report pointer"
         ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "3dff5a7777937f27d553eff648d315c4",
-        "lines": 2053,
-        "mtime": "2026-04-25T07:59:52.413Z",
+        "hash": "44187d1585638a7acdc0e2fad9ab75e0",
+        "lines": 2112,
+        "mtime": "2026-04-25T12:08:33.496Z",
         "className": "run-gate",
         "methods": [
+          "filterPendingSpecPlaceholder",
           "validateLevelPhase",
           "collectUntrackedDiff",
           "EvaluationSchemaError",
@@ -3658,8 +3664,8 @@
           "checkSpecJson",
           "computeForestDepth",
           "walkStrings",
-          "buildDraftFieldPattern",
-          "checkDraftText",
+          "isNonEmptyString",
+          "checkDraftJson",
           "buildGuardrailPrompt",
           "buildGuardrailPromptFromFiltered",
           "extractJsonCandidate",
@@ -3705,6 +3711,7 @@
           "../../lib/flow-envelope.js"
         ],
         "exports": [
+          "filterPendingSpecPlaceholder",
           "validateLevelPhase",
           "collectUntrackedDiff",
           "EvaluationSchemaError",
@@ -3737,7 +3744,7 @@
           "resolveGateStepId",
           "checkSpecText",
           "checkSpecJson",
-          "checkDraftText",
+          "checkDraftJson",
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
           "checkGuardrail",
@@ -3749,23 +3756,24 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "This module implements the flow gate execution pipeline for draft, spec, task-impl, and integration phases. It validates artifacts, evaluates guardrails, and returns structured pass/fail envelopes for downstream flow control.",
-        "detail": "The file combines command orchestration (`RunGateCommand`) with reusable gate utilities, including phase-level validation, retry-budget tracking, and issue-log integration. It performs static checks over spec text and spec.json, analyzes git diff scope, verifies expected test coverage, and detects unauthorized or unused test modifications. For AI-backed guardrail evaluation, it builds strict JSON prompts, parses responses with schema validation, and normalizes results into deterministic gate reports. It also enforces anti-regression behavior by comparing current failures against previous issue-log entries, handling repeated-fail escalation, and applying flip overrides when identical content previously passed.",
+        "summary": "This module implements the flow gate engine and the `RunGateCommand` execution path for draft, spec, task-impl, and integration phases. It validates artifacts, evaluates guardrails, and determines pass/fail outcomes with structured reports.",
+        "detail": "The file combines command orchestration and reusable gate utilities, including phase-level validation, diff/scoped checks, and parsing/normalizing AI evaluation JSON with strict schema errors. It performs multiple policy checks such as unresolved spec placeholders, test modification authorization, expected test coverage patterns, retry budget limits, and monotonic task constraints. The implementation tracks retry and fail history in issue logs, computes git state fingerprints, and detects repeated failures or no-progress states to trigger escalation paths. It also supports guardrail pass-state reuse via flip override when content is unchanged, and emits envelope-based pass/fail responses with next-step hints. The command class routes behavior by phase and input source, resolving spec/draft paths from active flow state or explicit flags before running gate evaluation.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T08:00:06.057Z",
+          "processedAt": "2026-04-25T12:08:47.163Z",
           "attempts": 1
         },
         "keywords": [
-          "flow gate",
+          "gate runner",
+          "flow command",
           "guardrail evaluation",
           "spec validation",
           "retry budget",
           "issue log",
-          "diff analysis",
+          "diff-based checks",
           "test authorization",
-          "regression detection"
+          "envelope response"
         ]
       },
       {
@@ -3850,9 +3858,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "05393f058825106c620c254b62bf6033",
-        "lines": 365,
-        "mtime": "2026-04-25T05:14:13.540Z",
+        "hash": "0411e63f5f9c2eaec588dac2f5a5c4ba",
+        "lines": 357,
+        "mtime": "2026-04-25T15:01:49.394Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -3886,23 +3894,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "This module prepares a new spec workspace for the flow by scaffolding files, selecting branch/worktree context, and initializing flow state. It encapsulates slug generation, base-branch detection, and template fallback behavior.",
-        "detail": "The command validates required inputs, checks repository cleanliness, and can isolate work using worktree-aware paths when requested. It derives spec directory naming using slugification and sequence indexing, then creates spec assets such as spec.json, spec.md, qa.md, draft.md, and cached issue content. Rendering of spec markdown is driven from structured JSON stubs, while localized QA template loading prefers project-local overrides and falls back to built-in templates. It captures git context, initializes step/task structures, and writes a persisted flow state payload with extra metadata. Supporting helpers centralize git invocation, branch validation, and deterministic path construction for repeatable initialization.",
+        "summary": "This module implements the prepare-spec command that initializes a new spec workspace and flow state. It creates spec artifacts, branch/worktree context, and starter templates in a consistent structure.",
+        "detail": "The command derives branch and spec directory naming from title slugification and incremental indexing under the specs tree. It validates prerequisites such as config presence, base branch availability, and clean working tree requirements unless isolated worktree mode is used. File generation is idempotent, creating spec.json, spec.md, qa.md, draft.json, and issue.md only when missing. It renders spec markdown from structured JSON stubs and supports localized or project-local QA templates. Finally, it writes flow state metadata and caches issue body content to align prepare output with downstream flow steps.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-25T05:14:42.832Z",
+          "processedAt": "2026-04-25T15:02:20.491Z",
           "attempts": 1
         },
         "keywords": [
           "prepare spec",
-          "worktree",
-          "slugify",
-          "scaffolding",
-          "spec markdown",
+          "worktree setup",
+          "branch detection",
+          "spec scaffolding",
+          "idempotent file creation",
           "flow initialization",
-          "git branch detection",
-          "template fallback"
+          "template loading"
         ]
       },
       {
@@ -4236,13 +4243,17 @@
       },
       {
         "file": "src/flow/lib/run-tests.js",
-        "hash": "38c2c55e7d78e3b2f8ff4c9fd216b3ff",
-        "lines": 180,
-        "mtime": "2026-04-25T08:49:25.454Z",
+        "hash": "d3dfebf1066e2c9e22c39cdddeb8cff6",
+        "lines": 246,
+        "mtime": "2026-04-25T12:54:49.928Z",
         "className": "run-tests",
         "methods": [
           "RunTestsCommand",
           "parseCountsFromLog",
+          "runTestPipeline",
+          "removeWorktreeSafe",
+          "withDetachedWorktree",
+          "captureBaselineInWorktree",
           "resolveTestCommand",
           "readPkgScripts"
         ],
@@ -4261,23 +4272,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c016d8e6",
-        "summary": "Implements a flow command that runs project tests, captures output logs, and reports structured results for the SDD workflow. It also supports baseline log handling and test summary extraction.",
-        "detail": "The module defines a `RunTestsCommand` class on top of `FlowCommand`, using synchronous process execution to run the resolved test command in the correct working directory. It normalizes paths relative to the repository root, ensures log directories exist, and persists combined stdout/stderr into dedicated log files. The implementation includes helper logic to choose a test command from configuration or package scripts, with graceful fallbacks when scripts are missing. It parses test-result signals from log text and feeds output into a summarization step so downstream flow stages can consume compact diagnostics. Error paths are surfaced explicitly by rethrowing command failures after collecting available execution context.",
+        "summary": "This module implements the flow test runner command and its supporting utilities for executing and summarizing test runs. It also supports baseline test capture against a base branch using a detached worktree.",
+        "detail": "The file defines a test execution pipeline that runs shell commands, captures combined stdout/stderr, writes logs to deterministic paths, and derives pass/fail counters from output. It includes guarded worktree lifecycle logic to create and remove an isolated baseline worktree so base-branch measurements do not pollute the active workspace. The baseline capture path is integrated with flow context handling and emits warnings for cleanup or auto-capture failures while preserving error propagation. The command resolves test scripts by scope and package scripts, then returns structured results including exit code, parsed counts, and optional summarized log content.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-25T08:49:41.088Z",
+          "processedAt": "2026-04-25T12:55:07.129Z",
           "attempts": 1
         },
         "keywords": [
           "test runner",
+          "baseline capture",
+          "detached worktree",
+          "log summarization",
           "flow command",
-          "log capture",
-          "baseline comparison",
-          "npm test",
-          "process spawn",
-          "result parsing",
-          "test summary"
+          "npm scripts",
+          "exit code parsing",
+          "test pipeline"
         ]
       },
       {
@@ -4367,9 +4378,9 @@
       },
       {
         "file": "src/flow/lib/set-auto.js",
-        "hash": "76dd0a80be01593d0e782ee4896ecf0d",
-        "lines": 140,
-        "mtime": "2026-04-23T05:53:32.265Z",
+        "hash": "4e8a4b6a21db0d4bae1727f70c47b8bd",
+        "lines": 137,
+        "mtime": "2026-04-25T15:01:49.395Z",
         "className": "set-auto",
         "methods": [],
         "imports": [
@@ -4386,21 +4397,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "2c71e989",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 3
-        },
-        "summary": "Implements `flow set auto` behavior, toggling auto-approve mode and optionally running auto-check trust evaluation. It supports preparing-mode semantics via run-id resolution.",
-        "detail": "The command validates requested auto values against shared constants before mutating state. When enabling auto mode, it invokes core auto-check scoring and packages trust metadata in the response. It uses preparing-run resolution to scope updates correctly when operating before full flow activation. Failure paths are returned through `Envelope.fail` with stable error codes. The result payload includes both mode state and evaluation detail for downstream tooling.",
+        "summary": "This module implements the set-auto command for toggling auto-approve behavior in flow runs. It can run auto-check evaluation and return trusted or skipped verdict paths based on mode and input.",
+        "detail": "The command validates allowed auto values and routes responses through a standardized envelope API for consistent CLI error handling. It resolves preparing run context when needed so auto-state changes are tied to the correct run identifier. Enabling auto mode triggers auto-check computation, while disabling mode emits explicit state without ambiguity. The implementation supports trust-related metadata and skip conditions to explain why checks were not executed. Result shaping is compact but extensible, with conditional fields included only when relevant.",
         "chapter": "cli_commands",
         "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-25T15:02:20.491Z",
+          "attempts": 1
+        },
         "keywords": [
           "set auto",
           "auto approve",
-          "trust check",
-          "preparing mode",
-          "envelope fail",
-          "flow setting"
+          "mode toggle",
+          "flow envelope",
+          "run context",
+          "trust flag",
+          "skip verdict"
         ]
       },
       {
@@ -4696,9 +4708,9 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "dcc3e6eb01f438e073cd250e611948fe",
-        "lines": 61,
-        "mtime": "2026-04-23T02:44:06.666Z",
+        "hash": "752796ca71089fc07db345cb842d1b15",
+        "lines": 93,
+        "mtime": "2026-04-25T15:01:49.395Z",
         "className": "set-step",
         "methods": [],
         "imports": [
@@ -4706,7 +4718,9 @@
           "../../lib/constants.js",
           "../../lib/container.js",
           "../../lib/flow-envelope.js",
-          "./sync-spec-tasks.js"
+          "./sync-spec-tasks.js",
+          "./run-auto-check.js",
+          "./resolve-auto-check-input.js"
         ],
         "exports": [
           "default"
@@ -4714,20 +4728,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4cb8d93",
-        "enrich": {
-          "processedAt": "2026-04-23T03:19:55.267Z",
-          "attempts": 2
-        },
-        "summary": "Implements step-status mutation for flow execution and coordinates side effects like task syncing. It is a command-layer bridge between CLI intent and state updates.",
-        "detail": "The command validates usage and step status against canonical constants before applying updates. It uses dependency container services to persist changes and report failures consistently. During updates, it can trigger `syncSpecTasksToFlow` to keep task structures aligned with spec state. It returns minimal normalized step payloads to reduce downstream coupling.",
+        "summary": "This module implements the set-step command to update flow step status with validation and side effects. It enforces legal statuses and coordinates downstream sync and auto-check behavior.",
+        "detail": "The command validates usage and status values against shared constants before mutating state. It emits envelope-based failures for invalid invocations, which keeps CLI contracts uniform across flow commands. When step transitions occur, it can synchronize spec tasks and trigger auto-check logic depending on the new state. It also resolves auto-check input and supports skip-verdict handling for cases where evaluation should not run. Returned payloads include optional extras to keep output explicit without bloating baseline responses.",
         "chapter": "cli_commands",
         "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-25T15:02:20.491Z",
+          "attempts": 1
+        },
         "keywords": [
           "set step",
-          "status transition",
-          "flow state update",
+          "step status",
+          "state transition",
+          "input validation",
           "task synchronization",
-          "command handler"
+          "auto-check trigger",
+          "CLI error envelope"
         ]
       },
       {
@@ -4850,9 +4866,9 @@
       },
       {
         "file": "src/flow/lib/sync-spec-tasks.js",
-        "hash": "7d395524446f7e9790b45893ccebcbdb",
+        "hash": "37111f91f25a2ff188b880427e021573",
         "lines": 94,
-        "mtime": "2026-04-24T08:12:50.734Z",
+        "mtime": "2026-04-25T13:47:25.159Z",
         "className": "sync-spec-tasks",
         "methods": [
           "syncSpecTasksToFlow",
@@ -4873,20 +4889,23 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "5bb691f5",
-        "summary": "This module syncs tasks from spec JSON into flow state. It creates missing flow tasks and assigns task-step scaffolding.",
-        "detail": "It loads the active flow, resolves absolute spec paths, and reads spec task definitions via shared loaders. `buildFlowTask` maps spec task fields into flow task objects with round assignment and origin metadata. When no active flow exists, it returns a skipped result rather than throwing. The function returns added task IDs to support incremental synchronization workflows.",
+        "summary": "This module synchronizes tasks defined in a spec file into the currently active flow state. It maps spec-level task definitions into flow task objects and reports what was added or skipped.",
+        "detail": "The entry point, `syncSpecTasksToFlow`, follows a guard-first pattern and returns an explicit skipped result when no active flow exists. It resolves the spec path to an absolute path, loads spec data, and prepares flow task step structures using shared helpers such as `buildInitialTaskSteps` and `promoteNextPending`. The function appears to batch-create flow tasks and returns structured output containing the added task list for downstream reporting. A dedicated `buildFlowTask` helper encapsulates task object construction, deriving context like the spec directory and attaching round assignment metadata. Overall, the implementation favors deterministic synchronization logic and reusable flow-state helper utilities over inline ad hoc transformations.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
+          "processedAt": "2026-04-25T13:47:52.445Z",
           "attempts": 1
         },
         "keywords": [
-          "task sync",
-          "spec to flow",
-          "task mapping",
-          "incremental import",
-          "flow task scaffold"
+          "task synchronization",
+          "spec to flow mapping",
+          "workflow state",
+          "pending step promotion",
+          "flow task builder",
+          "active flow guard",
+          "spec path resolution",
+          "orchestration helper"
         ]
       },
       {
@@ -5518,9 +5537,9 @@
       },
       {
         "file": "src/lib/flow-helpers.js",
-        "hash": "d7727995b19fdc08972ad6ba11423381",
-        "lines": 286,
-        "mtime": "2026-04-24T08:12:50.735Z",
+        "hash": "7928bdfc2a46c8e9f055ee30ab08e555",
+        "lines": 288,
+        "mtime": "2026-04-25T12:51:23.067Z",
         "className": "flow-helpers",
         "methods": [
           "getSpecName",
@@ -5570,20 +5589,23 @@
           "src/lib/preparing-flow-store.js"
         ],
         "id": "09ff0ab4",
-        "summary": "This module provides shared flow constants and utility functions for phase/task progression. It defines canonical status sets and transition helpers.",
-        "detail": "It exports step/task enums, phase maps, and integration-step constants used across flow commands. Helpers compute spec names/directories, derive current phase, and build initial step/task structures. It includes task traversal and promotion logic for next-pending resolution. These utilities form the common semantic backbone of flow state handling.",
+        "summary": "This helper module defines core flow/task constants and utility functions for state progression and spec path handling. It centralizes step lists, phase mappings, task status models, and traversal logic for pending task promotion.",
+        "detail": "The module declares canonical file names, scan limits, and lifecycle constants used across flow state management. It maps flow steps to phases and provides task-specific plans and status enums, giving a single source of truth for orchestration rules. Path helpers derive spec names and directories from absolute or relative state values, while `specIdFromPath` extracts the spec identifier from the path structure. Task traversal functions locate the next pending task in nested structures and promote it to in-progress, enabling deterministic queue progression. These utilities keep command layers thin by encapsulating shared state and transition logic.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
+          "processedAt": "2026-04-25T12:51:45.161Z",
           "attempts": 1
         },
         "keywords": [
-          "flow constants",
-          "phase map",
-          "task statuses",
-          "step promotion",
-          "shared helpers"
+          "flow helpers",
+          "state constants",
+          "phase mapping",
+          "task lifecycle",
+          "pending promotion",
+          "spec path parsing",
+          "state transition",
+          "workflow utilities"
         ]
       },
       {
@@ -9706,9 +9728,9 @@
     ],
     "summary": {
       "total": 281,
-      "totalMethods": 927
+      "totalMethods": 933
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-25T08:57:16.873Z"
+  "enrichedAt": "2026-04-25T15:02:20.491Z"
 }
