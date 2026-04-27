@@ -1,0 +1,101 @@
+{
+  "spec": "specs/233-fix-flow-lifecycle-update/spec.json",
+  "date": "2026-04-27T03:02:18.505Z",
+  "requirements": [
+    {
+      "desc": "run-prepare-spec.js が flow.json 作成時に lifecycle フィールドを書き込まない",
+      "status": "done",
+      "note": "run-prepare-spec.js の flow 初期化から `lifecycle: \"active\"` が削除されている。"
+    },
+    {
+      "desc": "run-finalize.js の cleanup 実行前に finalize step を done に遷移する。show-report step と同じ位置（cleanup sub-step の直前）で updateStepStatus を呼ぶ",
+      "status": "done",
+      "note": "cleanup 前の既存 show-report 更新箇所をループ化し、`show-report` と `finalize` の両方に `updateStepStatus(..., \"done\")` を実行している。"
+    },
+    {
+      "desc": "changelog.js が state.finalizedAt の有無で status を判定する。finalizedAt が存在すれば \"completed\"、存在しなければ \"active\"",
+      "status": "done",
+      "note": "`flow.lifecycle` 参照が削除され、`flow.state?.finalizedAt ? \"completed\" : \"active\"` に変更されている。"
+    },
+    {
+      "desc": "get-status.js の出力から lifecycle フィールドを削除する",
+      "status": "done",
+      "note": "buildStatusOutput の返却オブジェクトから `lifecycle` 行が削除されている。"
+    },
+    {
+      "desc": "run-reopen-draft.js から lifecycle ガード（lifecycle !== \"active\" チェック）を削除する",
+      "status": "done",
+      "note": "`state.lifecycle` 読み取りと `LIFECYCLE_LOCKED` 返却ブロックが削除されている。"
+    },
+    {
+      "desc": "run-resume.js の出力から lifecycle フィールドを削除する",
+      "status": "done",
+      "note": "run-resume の返却オブジェクトから `lifecycle` が削除されている。"
+    },
+    {
+      "desc": "registry.js の reopen-draft help テキストから lifecycle への言及を削除する",
+      "status": "done",
+      "note": "reopen-draft の help 文言から `flow.json.lifecycle is still 'active'` の行が削除されている。"
+    },
+    {
+      "desc": "flow get status の JSON 出力から lifecycle キーを削除する。alpha 版ポリシーにより migration plan は不要（後方互換コードは書かない）。diff で lifecycle キーの出力行が削除されていることで検証可能",
+      "status": "done",
+      "note": "get-status.js の出力生成コードで lifecycle キー出力行が削除されており、後方互換用分岐の追加もない。"
+    },
+    {
+      "desc": "変更対象の全コマンド（flow get status, flow run finalize, docs changelog）の exit code は変更しない。成功時 0、失敗時 non-zero の既存契約を維持する",
+      "status": "done",
+      "note": "対象3ファイルの差分に exit code 制御（`process.exit*` や成功/失敗返却規約）変更は見当たらない。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/draft.json",
+      "change": "要件一覧に含まれていない仕様ドラフト管理ファイルが新規追加されている。"
+    },
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/flow.json",
+      "change": "要件実装そのものではないフロー実行状態スナップショットが新規追加されている。"
+    },
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/issue-log.json",
+      "change": "要件にないゲート評価ログが新規追加されている。"
+    },
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/issue.md",
+      "change": "要件外の issue 記述ファイルが新規追加されている。"
+    },
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/qa.md",
+      "change": "要件外の QA テンプレートファイルが新規追加されている。"
+    },
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/review.md",
+      "change": "要件外のレビュー結果ドキュメントが新規追加されている。"
+    },
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/spec.json",
+      "change": "要件本文の管理ファイルが新規追加されている（実装対象コードではない）。"
+    },
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/spec.md",
+      "change": "要件外の仕様 Markdown が新規追加されている。"
+    },
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/tests/README.md",
+      "change": "要件一覧に明記されていない spec 専用テスト説明が追加されている。"
+    },
+    {
+      "file": "specs/233-fix-flow-lifecycle-update/tests/verify.test.js",
+      "change": "要件一覧に明記されていない spec 専用検証テストが追加されている。"
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "提示された9要件は、実装差分上はすべて満たされている。未計画変更は主に `specs/233-fix-flow-lifecycle-update/` 配下の運用・記録用アーティファクト追加。"
+  }
+}

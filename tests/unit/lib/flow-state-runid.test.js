@@ -70,15 +70,15 @@ describe("flow-state runId management", () => {
     assert.notEqual(loaded1.runId, loaded2.runId);
   });
 
-  // ── Req 3: lifecycle field ─────────────────────────────────────────────
+  // ── Req 3: lifecycle field (spec 233: removed from flow.json) ──────────
 
-  it("flow.json supports lifecycle field", () => {
+  it("flow.json without lifecycle field loads without error", () => {
     tmp = createTmpDir();
-    const state = makeState({ lifecycle: "active", runId: "test-run" });
+    const state = makeState({ runId: "test-run" });
     makeFlowManager(tmp).save(state);
 
     const loaded = makeFlowManager(tmp).load("001-test");
-    assert.equal(loaded.lifecycle, "active");
+    assert.equal(loaded.lifecycle, undefined);
     assert.equal(loaded.runId, "test-run");
   });
 
@@ -204,7 +204,7 @@ describe("preparing state files (.active-flow.<runId>)", () => {
     assert.ok(fs.existsSync(preparingFile));
 
     // Simulate promotion: save flow.json + add to .active-flow + delete preparing file
-    const state = makeState({ runId, lifecycle: "active" });
+    const state = makeState({ runId });
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     fs.unlinkSync(preparingFile);
@@ -212,7 +212,6 @@ describe("preparing state files (.active-flow.<runId>)", () => {
     // Verify: flow.json exists, .active-flow has entry, preparing file gone
     const loaded = makeFlowManager(tmp).load("001-test");
     assert.equal(loaded.runId, runId);
-    assert.equal(loaded.lifecycle, "active");
     assert.ok(!fs.existsSync(preparingFile));
     const flows = makeFlowManager(tmp).loadActiveFlows();
     assert.equal(flows.length, 1);

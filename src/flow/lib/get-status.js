@@ -105,7 +105,6 @@ function buildStatusOutput(state, root) {
     worktree: state.worktree || false,
     issue: state.issue || null,
     runId: state.runId || null,
-    lifecycle: state.lifecycle || null,
     phase,
     steps: state.steps || [],
     stepsProgress: { done: doneSteps, total: totalSteps },

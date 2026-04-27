@@ -1,0 +1,180 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — All listed changes address one concern: flow lifecycle/finalize state consistency.; Unambiguous Requirements — Requirements are concrete and verifiable (field removal, status source change, finalize-step transition timing).; Complete Context — Requirements include implied triggers and expected behavior (e.g., before cleanup, set finalize step to done).; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present.; Prioritize Requirements — More than three requirement items are listed without must/should/nice-to-have priorities.; Impact on Existing Features — Impact on existing features is explicitly listed in impactOnExisting.; Present Recommendations with Reasoning — Each QA item provides a recommended answer plus evidence, rationale, and considered alternatives.; Explore Before Asking — Draft shows codebase exploration and resolves questions without leaving exploratory asks to the user.; Proactively Raise Related Implications — Related implications are proactively noted (CLI output changes and no bulk repair decision).; Confirm Brainstorm vs. Decision Before Critiquing — The draft indicates decision mode via explicit approval metadata (approved true, dated 2026-04-27).; Capture Digressions in draft.md — Cannot determine from provided artifact alone whether digressions occurred and were captured in draft.md.; Draft Stays at Requirements Level — Content remains at requirements/scope level; file/function mentions are contextual justification.; Backward-Compatible CLI Interface — No command or option removal/semantic change is specified; changes are to output fields/behavior.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T02:18:51.098Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three requirement items are listed without must/should/nice-to-have priorities."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0]: must be object, got string; overview.modules[1]: must be object, got string; overview.modules[2]: must be object, got string; overview.modules[3]: must be object, got string; overview.modules[4]: must be object, got string; overview.modules[5]: must be object, got string; overview.data_flow[0]: must be object, got string; overview.decisions[0].id: unknown field; overview.decisions[1].id: unknown field; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].text: unknown field; requirements[5].desc: required field is missing; requirements[5].text: unknown field; requirements[6].desc: required field is missing; requirements[6].text: unknown field; clarifications[0].q: required field is missing; clarifications[0].a: required field is missing; clarifications[0].question: unknown field; clarifications[0].answer: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T02:21:40.538Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T02:23:46.699Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec focuses on one concern: correcting flow lifecycle/status handling.; Task Single Responsibility — Each task is centered on a single lifecycle-related change; grouped edits share one concern.; Unambiguous Requirements — Requirements are stated in concrete, testable terms without vague adjectives.; Complete Context — Requirements include both conditions/triggers and expected behavior.; REQ Diff-Verifiability — Pass/fail can be decided from code diff plus test results for each requirement.; No Hardcoded Secrets — No secrets or credential literals appear in the provided content.; No Silent Error Swallowing — Implementation notes explicitly say to ignore ERR_MISSING_FILE in try-catch, which is silent discard.; Prioritize Requirements — More than three requirements are present and each has must/should priority.; Impact on Existing Features — Impacts on existing commands/features are explicitly described (status outputs, guards, help text).; Bounded Resource Usage — No recursive/retry/bulk-unbounded design is introduced in this spec.; Changes Require Test Coverage — Test updates are required and task-level test checks are specified.; Spec Includes Test Strategy — The spec includes acceptance criteria and per-task test_strategy entries.; Synthesize Draft, Do Not Copy — Cannot assess copy-vs-synthesis fidelity without the original draft source.; Record Unresolved Points as Open Questions — Open questions are explicitly tracked (empty) and decisions include stated evidence.; Include 'Why This Approach' Rationale — Rationale is provided via decisions and alternatives considered.; Do Not Modify Existing Tests Without Approval — Spec plans to update existing tests but does not record explicit user approval for modifying them.; Backward-Compatible CLI Interface — Existing CLI behavior/output is changed without a documented migration plan.; Exit Code Contract — CLI-related changes are specified but success/failure exit-code conditions are not defined.; Validate User Input at Entry Point — No new or changed user-facing CLI arguments are introduced; validation scope is inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T02:25:11.492Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "Implementation notes explicitly say to ignore ERR_MISSING_FILE in try-catch, which is silent discard."
+        },
+        {
+          "guardrail_id": "impl-test-preservation",
+          "reason": "Spec plans to update existing tests but does not record explicit user approval for modifying them."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Existing CLI behavior/output is changed without a documented migration plan."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "CLI-related changes are specified but success/failure exit-code conditions are not defined."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — All scope items serve one concern: correcting flow lifecycle/state handling.; Task Single Responsibility — Each task is centered on one shared concern, with grouped cleanup scoped to lifecycle-reference removal.; Unambiguous Requirements — Requirements are concrete and specify explicit field/step behaviors.; Complete Context — Requirements state both where the change applies and what behavior/output is expected.; REQ Diff-Verifiability — R8 includes an external-consumer expectation (treat output as optional) that is not decidable from diff + test summary alone.; No Hardcoded Secrets — No secrets or credentials are present in the spec content.; No Silent Error Swallowing — Error handling note explicitly requires warning output for the caught missing-file case.; Prioritize Requirements — Requirements are prioritized with must/should labels.; Impact on Existing Features — Impact is explicitly described, including lifecycle-output removal and no bulk repair of existing files.; Bounded Resource Usage — No recursive, retry, or bulk-loading design introducing unbounded resource use is specified.; Changes Require Test Coverage — Spec mandates test updates and includes concrete affected test files.; Spec Includes Test Strategy — Test strategy is stated per task and in acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot assess copy-vs-synthesis without the original draft source.; Record Unresolved Points as Open Questions — Open questions are explicitly tracked and no unresolved item is presented as settled.; Include 'Why This Approach' Rationale — Rationale is provided via decisions and alternatives considered.; Do Not Modify Existing Tests Without Approval — Existing test changes are explicitly authorized with paths and reasons.; Backward-Compatible CLI Interface — Spec removes an existing CLI JSON field (`lifecycle`) without providing a migration plan.; Exit Code Contract — Spec defines exit-code behavior and states contract preservation (success 0, failure non-zero).; Validate User Input at Entry Point — No new or modified user-facing CLI arguments are introduced, so this requirement is inapplicable.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T02:26:47.471Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "R8 includes an external-consumer expectation (treat output as optional) that is not decidable from diff + test summary alone."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Spec removes an existing CLI JSON field (`lifecycle`) without providing a migration plan."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "changes-require-test-coverage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "impl-test-preservation",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Core lifecycle/finalize code changes are implemented, but the required test updates to `tests/unit/lib/flow-state-runid.test.js` and `tests/e2e/docs/commands/changelog.test.js` are missing from the diff.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T02:51:24.664Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "Core lifecycle/finalize code changes are implemented, but the required test updates to `tests/unit/lib/flow-state-runid.test.js` and `tests/e2e/docs/commands/changelog.test.js` are missing from the diff."
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate-impl FAIL: テスト更新が diff に含まれていなかった。authorized_test_modifications の 2 ファイルを更新。",
+      "resolution": "flow-state-runid.test.js: lifecycle テストを lifecycle なしテストに変更。changelog.test.js: lifecycle fixture を finalizedAt fixture に変更。",
+      "taskId": null,
+      "timestamp": "2026-04-27T02:52:35.612Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff covers the specified lifecycle-removal/finalize-transition changes across target files and includes the required updates to changelog and flow-state tests; baseline and head test summaries show no new regression signal.; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or other secret literals.; No Silent Error Swallowing — In added run-finalize logic, ERR_MISSING_FILE is caught and ignored without logging or re-throw, which silently discards that error path.; No Sensitive Data in Logs — New logging only includes step id and error message; no password/token/PII fields are logged in added lines.; No Disabling Existing Tests — Diff updates existing tests and adds new tests; it does not skip, comment out, or delete existing tests to force passing.; Escalate When New Tests Break Existing Tests — Whether newly added tests broke existing tests and whether escalation to the user occurred cannot be determined from the diff alone.; Flag Tests That Become Irrelevant — Lifecycle-based test expectations were explicitly revised and documented (authorized_test_modifications and test updates), indicating obsolete tests were flagged/updated.; Exit Code Contract — Spec content explicitly preserves success=0/failure=non-zero contract (R9), and diff introduces no exit-code handling changes.; No Synchronous I/O in Hot Paths — No synchronous I/O was added to production hot-path/bulk-processing code; added sync file I/O appears in tests only.; Validate User Input at Entry Point — No new or changed user-facing CLI arguments are introduced in the diff, so additional entry-point validation requirements are not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T02:55:48.743Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "In added run-finalize logic, ERR_MISSING_FILE is caught and ignored without logging or re-throw, which silently discards that error path."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "impl-flag-obsolete-tests",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate-impl FAIL: ERR_MISSING_FILE を silent discard していた。全エラーを stderr に出力するよう修正。",
+      "resolution": "catch ブロックから ERR_MISSING_FILE の条件分岐を削除し、全エラーを stderr に出力するようにした。",
+      "taskId": null,
+      "timestamp": "2026-04-27T02:56:10.997Z"
+    }
+  ]
+}

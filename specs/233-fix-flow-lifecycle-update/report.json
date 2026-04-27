@@ -1,0 +1,70 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/233-fix-flow-lifecycle-update/draft.json     |  66 +++\n specs/233-fix-flow-lifecycle-update/flow.json      | 524 +++++++++++++++++++++\n specs/233-fix-flow-lifecycle-update/issue-log.json | 180 +++++++\n specs/233-fix-flow-lifecycle-update/issue.md       |  14 +\n specs/233-fix-flow-lifecycle-update/qa.md          |   9 +\n specs/233-fix-flow-lifecycle-update/review.md      |  33 ++\n specs/233-fix-flow-lifecycle-update/spec.json      | 240 ++++++++++\n specs/233-fix-flow-lifecycle-update/spec.md        | 102 ++++\n .../233-fix-flow-lifecycle-update/tests/README.md  |  21 +\n .../tests/verify.test.js                           | 140 ++++++\n src/docs/commands/changelog.js                     |   2 +-\n src/flow/lib/get-status.js                         |   1 -\n src/flow/lib/run-finalize.js                       |  14 +-\n src/flow/lib/run-prepare-spec.js                   |   1 -\n src/flow/lib/run-reopen-draft.js                   |  11 -\n src/flow/lib/run-resume.js                         |   1 -\n src/flow/registry.js                               |   1 -\n tests/e2e/docs/commands/changelog.test.js          |  12 +-\n tests/unit/lib/flow-state-runid.test.js            |  11 +-\n 19 files changed, 1350 insertions(+), 33 deletions(-)",
+      "commits": [
+        "feat: feature/233-fix-flow-lifecycle-update"
+      ]
+    },
+    "retro": {
+      "total": 9,
+      "done": 9,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "提示された9要件は、実装差分上はすべて満たされている。未計画変更は主に `specs/233-fix-flow-lifecycle-update/` 配下の運用・記録用アーティファクト追加。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 3,
+      "question": 4,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 253057,
+      "output": 20167,
+      "cacheRead": 67456,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 13,
+      "durationMs": 418252,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 78185
+        },
+        {
+          "phase": "gate",
+          "durationMs": 136580
+        },
+        {
+          "phase": "approval",
+          "durationMs": 10002
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 122046
+        },
+        {
+          "phase": "review",
+          "durationMs": 71439
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2452,
+      "integration": 268,
+      "acceptance": 0,
+      "total": 2720
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/233-fix-flow-lifecycle-update\n    19 files changed, 1350 insertions(+), 33 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (9 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 3\n    Q&A ......................... 4\n    issue-log ................... 2\n    agent calls ................. 13\n    input tokens ................ 253,057\n    output tokens ............... 20,167\n    cache-read tokens ........... 67,456\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 418.3s\n      gate-draft ................ 78.2s\n      gate ...................... 136.6s\n      approval .................. 10.0s\n      gate-impl ................. 122.0s\n      review .................... 71.4s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2452  integration 268  acceptance 0  total 2720"
+}

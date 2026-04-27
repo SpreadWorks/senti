@@ -20,7 +20,6 @@ export default class RunResumeCommand extends FlowCommand {
     return {
       ...base,
       runId: state.runId || null,
-      lifecycle: state.lifecycle || null,
     };
   }
 }

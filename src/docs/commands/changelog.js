@@ -73,7 +73,7 @@ async function parseSpecDir(specDir, dirName) {
   if (flowText) {
     try {
       const flow = JSON.parse(flowText);
-      if (flow.lifecycle) status = flow.lifecycle;
+      status = flow.state?.finalizedAt ? "completed" : "active";
       if (flow.featureBranch) branch = flow.featureBranch;
     } catch (err) {
       process.stderr.write(`changelog: skipping malformed flow.json at ${flowPath}: ${err.message}\n`);

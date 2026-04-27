@@ -250,7 +250,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
         baseBranch: resolvedBase,
         featureBranch: branchName,
         runId: flowRunId,
-        lifecycle: "active",
         steps,
         requirements: [],
         tasks: [{

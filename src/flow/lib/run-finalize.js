@@ -497,12 +497,14 @@ export class RunFinalizeCommand extends FlowCommand {
       }
     }
 
-    // Transition show-report to done before cleanup deletes flow.json (spec 231).
-    try {
-      ctx.flowManager.updateStepStatus("show-report", "done");
-    } catch (err) {
-      if (err?.code !== "ERR_MISSING_FILE") {
-        process.stderr.write(`[sdd-forge] show-report step-status update warning: ${err.message}\n`);
+    // Transition show-report and finalize to done before cleanup deletes flow.json (spec 231, 233).
+    for (const stepId of ["show-report", "finalize"]) {
+      try {
+        ctx.flowManager.updateStepStatus(stepId, "done");
+      } catch (err) {
+        if (err?.code !== "ERR_MISSING_FILE") {
+          process.stderr.write(`[sdd-forge] ${stepId} step-status update warning: ${err.message}\n`);
+        }
       }
     }
 

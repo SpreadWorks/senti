@@ -1,0 +1,240 @@
+{
+  "goal": "flow.json の lifecycle フィールドを廃止し、finalize step の done 遷移漏れを修正する",
+  "scope": {
+    "in": [
+      "[must] run-prepare-spec.js — lifecycle: \"active\" 削除",
+      "[must] run-finalize.js — cleanup 前に finalize step を done に遷移",
+      "[must] changelog.js — state.finalizedAt ベースに変更",
+      "[must] get-status.js — lifecycle 出力削除",
+      "[should] run-reopen-draft.js — lifecycle ガード削除",
+      "[should] run-resume.js — lifecycle 出力削除",
+      "[should] registry.js — help テキスト更新",
+      "[must] テスト更新（flow-state-runid, changelog）"
+    ],
+    "out": [
+      "preparing-flow-store.js の lifecycle: \"preparing\" は変更しない（get-status の preparing 判定で使用中）",
+      "既存 flow.json の一括修復は行わない（読まなくなるため害なし）"
+    ]
+  },
+  "constraints": [
+    "preparing-flow-store.js の lifecycle: \"preparing\" は残す（get-status.js:98 の autoApprove 判定で使用中）",
+    "flow.json の既存 lifecycle フィールドは放置（スキーマバリデーションで拒否しない）",
+    "alpha 版ポリシー: 後方互換コードは書かない。CLI JSON 出力フィールドの削除に migration plan は不要"
+  ],
+  "design_principles": [
+    "冗長な状態フィール��を廃止し、single source of truth (active-flow registry, state.finalizedAt) に統一する"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-finalize.js — finalize step ��� done 遷移追加"
+      },
+      {
+        "text": "src/flow/lib/run-prepare-spec.js — lifecycle フィールド削除"
+      },
+      {
+        "text": "src/docs/commands/changelog.js — status 判定を finalizedAt ベースに変更"
+      },
+      {
+        "text": "src/flow/lib/get-status.js — lifecycle 出力削除"
+      },
+      {
+        "text": "src/flow/lib/run-reopen-draft.js — lifecycle ガード削除"
+      },
+      {
+        "text": "src/flow/lib/run-resume.js — lifecycle 出力削除"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "finalize pipeline: commit → merge → sync → (show-report done) → (finalize done) → cleanup"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "lifecycle フィールドを廃止する。active-flow レジストリと state.finalizedAt が同じ情報を提供しており冗長。全 283 件で一度も正しく遷移していないのに問題が起きなかった事実が裏付け。",
+        "evidence": "全消費者の網羅調査: 判定に使う 2 箇所 (get-status preparing 判定, reopen-draft ガード) はいずれも lifecycle 廃止で壊れない。"
+      },
+      {
+        "text": "finalize step の done 遷移を show-report と同パターン（cleanup 前に updateStepStatus）で実装する。",
+        "evidence": "run-finalize.js:500-507 で show-report が同パターンで done 遷移している。"
+      }
+    ]
+  },
+  "background": "flow.json の lifecycle フィールドは run-prepare-spec.js で \"active\" に設定されるが、finalize 完了後に \"completed\" に更新するコードが存在しない。全 283 件の flow.json で lifecycle: \"completed\" は 0 件。changelog コマンドが lifecycle を status 列に使用しており、全 spec が \"active\" と表示される不具合がある。また finalize step が in_progress のまま残るケースが 89 件ある。",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "run-prepare-spec.js が flow.json 作成時に lifecycle フィー��ドを書き込まない",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "run-finalize.js の cleanup 実行前に finalize step を done に遷移する。show-report step と同じ位置（cleanup sub-step の直前）で updateStepStatus を呼ぶ",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "changelog.js が state.finalizedAt の有無で status を判定する。finalizedAt が存在すれば \"completed\"、存在しなければ \"active\"",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "get-status.js の出力から lifecycle フィールドを削除する",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "priority": "should",
+      "desc": "run-reopen-draft.js から lifecycle ガード（lifecycle !== \"active\" チェック）を削除する",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "priority": "should",
+      "desc": "run-resume.js の出力から lifecycle フィールドを削除する",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "priority": "should",
+      "desc": "registry.js の reopen-draft help テキストから lifecycle への言及を削除する",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "priority": "must",
+      "desc": "flow get status の JSON 出力から lifecycle キーを削除す���。alpha 版ポリシーにより migration plan は不要（後方互換コードは書かない）。diff で lifecycle キーの出力行が削除されていることで検証可能",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "priority": "must",
+      "desc": "変更対象の全コマンド（flow get status, flow run finalize, docs changelog）の exit code は変更しない。成功時 0、失敗時 non-zero の既存契約を維持する",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "flow prepare で作成された flow.json に lifecycle フィールドが存在しない",
+    "flow run finalize 完了後の flow.json で finalize step の status が done である",
+    "sdd-forge docs changelog が state.finalizedAt の有無で status を判定し、finalize 済み spec を completed と表示する",
+    "flow get status の出力に lifecycle フィールドが含まれない",
+    "既存の lifecycle フィールドを持つ flow.json を読み込んでもエラーにならない"
+  ],
+  "clarifications": [
+    {
+      "q": "lifecycle フィールドは判定に使われているか？",
+      "a": "get-status.js:98 の preparing 判定と run-reopen-draft.js:49 のガードの 2 箇所。いずれも廃止で壊れない。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "lifecycle 遷移の実装（\"active\" → \"completed\" への更新コードを追加）",
+      "reason": "冗長フィールドの維持コストが発生するだけなので廃止を選択"
+    },
+    {
+      "option": "既存 flow.json の一括修復コマンド",
+      "reason": "lifecycle を読まなくなるため不要"
+    }
+  ],
+  "open_questions": [],
+  "authorized_test_modifications": [
+    {
+      "path": "tests/unit/lib/flow-state-runid.test.js",
+      "reason": "lifecycle フィールドが flow.json から削除されるため、lifecycle 永続化テストの期待値を更新する必要がある"
+    },
+    {
+      "path": "tests/e2e/docs/commands/changelog.test.js",
+      "reason": "changelog の status 判定が lifecycle から finalizedAt ベースに変更されるため、fixture を更新する必要がある"
+    }
+  ],
+  "implementationTargets": [
+    "src/flow/lib/run-finalize.js",
+    "src/flow/lib/run-prepare-spec.js",
+    "src/docs/commands/changelog.js",
+    "src/flow/lib/get-status.js",
+    "src/flow/lib/run-reopen-draft.js",
+    "src/flow/lib/run-resume.js",
+    "src/flow/registry.js"
+  ],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task for spec definition",
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-1",
+      "title": "Remove lifecycle from flow.json creation",
+      "goal": "run-prepare-spec.js から lifecycle: \"active\" の行を削除し、新規 flow.json に lifecycle フィールドが含まれないようにする",
+      "acceptance": [
+        "flow prepare で作成された flow.json に lifecycle キーが存在しない"
+      ],
+      "implementation_notes": "run-prepare-spec.js:253 の lifecycle: \"active\" 行を削除するだけ",
+      "test_strategy": "既存の prepare テストが lifecycle フィー���ドを検証している場合は更新",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Add finalize step done transition before cleanup",
+      "goal": "run-finalize.js の cleanup 実行前に finalize step を done に遷移する",
+      "acceptance": [
+        "finalize 完了後の flow.json で finalize step の status が done",
+        "show-report step と同じ位置（cleanup の直前��で遷移する"
+      ],
+      "implementation_notes": "run-finalize.js:500-507 の show-report 遷移と同パターンで finalize step も遷移。try-catch で ERR_MISSING_FILE をキャッチした場合は stderr に警告を出力する（show-report の既存パターンと同じ）。",
+      "test_strategy": "unit: finalize pipeline 実行後に finalize step が done であることを検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Update changelog to use finalizedAt for status",
+      "goal": "changelog.js が lifecycle ではなく state.finalizedAt の有無で status を判定するよう変更する",
+      "acceptance": [
+        "state.finalizedAt が存在する flow.json → status: \"completed\"",
+        "state.finalizedAt が存在しない flow.json → status: \"active\"",
+        "flow.json が存在しない spec → status はデ���ォルト値のまま"
+      ],
+      "implementation_notes": "changelog.js:76 の lifecycle 読み込みを state.finalizedAt ベースに変更",
+      "test_strategy": "e2e: changelog.test.js の fixture を更新し finalizedAt ベースの status 判定を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Remove lifecycle from status, resume, reopen-draft, and registry",
+      "goal": "get-status, run-resume, run-reopen-draft, registry.js から lifecycle 参照を削除する",
+      "acceptance": [
+        "flow get status の出力に lifecycle フィールドが含まれない",
+        "run-resume の出力に lifecycle フィールドが含まれない",
+        "run-reopen-draft に lifecycle ガードがない",
+        "registry.js の help テキストに lifecycle への言及がない"
+      ],
+      "implementation_notes": "get-status.js:108 の lifecycle 行削除。run-resume.js:23 の lifecycle 行削除。run-reopen-draft.js:49-55 の lifecycle チェックブロック削除。registry.js:549 の help テキスト更新。get-status.js:98 の preparing 判定はそのまま残す。",
+      "test_strategy": "unit: flow-state-runid.test.js の lifecycle 永続化テストを更新",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-27T02:40:27.994Z"
+  }
+}

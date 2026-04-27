@@ -6,7 +6,6 @@
  *
  * Preconditions (REQ-5 of spec 215):
  *   - flow.json.tasks[] must contain at least one task with status='done'
- *   - flow.json.lifecycle must be 'active' (not 'finalizing' or 'finalized')
  *
  * Side effects (REQ-4):
  *   - mark flow.draft step as in_progress
@@ -44,16 +43,6 @@ export class RunReopenDraftCommand extends FlowCommand {
     const state = ctx.flowState || fm.load();
     if (!state) {
       return Envelope.fail("run", "reopen-draft", "NO_ACTIVE_FLOW", "no active flow found");
-    }
-
-    const lifecycle = state.lifecycle || "active";
-    if (lifecycle !== "active") {
-      return Envelope.fail(
-        "run",
-        "reopen-draft",
-        "LIFECYCLE_LOCKED",
-        `cannot reopen draft: lifecycle is '${lifecycle}' (must be 'active'; reopen is blocked after finalizing)`,
-      );
     }
 
     const tasks = Array.isArray(state.tasks) ? state.tasks : [];

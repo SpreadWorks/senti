@@ -1,0 +1,66 @@
+{
+  "devType": "bugfix",
+  "goal": "flow.json の lifecycle フィールドを廃止し、finalize step の done 遷移漏れを修正する",
+  "analysis": {
+    "problem": "flow.json の lifecycle フィールドが \"active\" から \"completed\" に遷移するコードが存在しない。全 283 件の flow.json で lifecycle: \"completed\" は 0 件。また finalize step が in_progress のまま残るケースがある。lifecycle フィールド自体が active-flow レジストリと state.finalizedAt と冗長であり、独自の判定根拠になっていない。",
+    "proposedApproach": "lifecycle フィールドを flow.json から廃止する。changelog.js は state.finalizedAt ベースに変更。finalize step の done 遷移を cleanup 前に追加する。preparing-flow-store の lifecycle: \"preparing\" は残す（get-status の preparing 判定で使用中）。",
+    "validation": "283 件の flow.json で lifecycle が一度も正しく遷移していないのに何も壊れていなかった事実が、このフィールドの冗長性を裏付ける。廃止により changelog の表示が正しくなり、finalize step の遷移漏れも解消される。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] run-prepare-spec.js — lifecycle: \"active\" 削除",
+      "[must] run-finalize.js — cleanup 前に finalize step を done に遷移",
+      "[must] changelog.js — state.finalizedAt ベースに変更",
+      "[must] get-status.js — lifecycle 出力削除",
+      "[should] run-reopen-draft.js — lifecycle ガード削除",
+      "[should] run-resume.js — lifecycle 出力削除",
+      "[should] registry.js — help テキスト更新",
+      "[must] テスト更新（flow-state-runid, changelog）"
+    ],
+    "out": [
+      "preparing-flow-store.js の lifecycle: \"preparing\" は変更しない",
+      "既存 flow.json の一括修復は行わない（読まなくなるため害なし）"
+    ]
+  },
+  "impactOnExisting": [
+    "changelog コマンドの status 列が lifecycle ではなく finalizedAt ベースになる",
+    "flow get status の出力から lifecycle フィールドが消える",
+    "flow run resume の出力から lifecycle フィールドが消える"
+  ],
+  "qa": [
+    {
+      "question": "修正方針: executeCleanupImpl で clearFlowState 前に flow.json を更新するか？",
+      "answer": "lifecycle 廃止の方針になったため、lifecycle 更新は不要。finalize step の done 遷移のみ追加する。",
+      "evidence": "executeCleanupImpl (run-finalize.js:67) は clearFlowState で active-flow ���インタのみ削除し flow.json の lifecycle は触らない。lifecycle を廃止すれば問題自体が消える。",
+      "why": "lifecycle は active-flow レジストリと state.finalizedAt の冗長コピーであり、独自の判定根拠がない。",
+      "considered": "lifecycle 遷移の実装（方針 B）を検討したが、判定に使っている消費者がいないため不要と判断。"
+    },
+    {
+      "question": "lifecycle フィールドは判定に使われているか？",
+      "answer": "get-status.js:98 の preparing 判定と run-reopen-draft.js:49 のガードの 2 箇所。いずれも lifecycle 廃止で壊れない。",
+      "evidence": "get-status は preparing-flow-store 側の lifecycle: \"preparing\" で動作する。reopen-draft は state.lifecycle || \"active\" でフォールバックするため undefined でも通過。active-flow ポインタがなければそもそも到達しない。",
+      "why": "全消費者を網羅的に調査して安全性を確認した。",
+      "considered": "lifecycle を残して遷移を実装する案。冗長なフィールドの維持コストを避けるため廃止を選択。"
+    },
+    {
+      "question": "既存 flow.json の修復コマンドは必要か？",
+      "answer": "不要。lifecycle フィールドを読まなくなるため、既存ファイルはそのまま放置して害がない。",
+      "evidence": "全 283 件が lifecycle: \"active\" または未設定のまま運用されてきた実績。",
+      "why": "修��コマンドは lifecycle を廃止する方針と矛盾する。",
+      "considered": "一括修復コマンドを提供する案。廃止方針により不要。"
+    },
+    {
+      "question": "finalize step の in_progress 問題も今回のスコープに含めるか？",
+      "answer": "含める。cleanup 前に finalize step を done に遷移する処理を追加する。",
+      "evidence": "registry.js:474 'post hooks cannot update step status. Managed by the skill' — skill 側も更新���ていなかった。show-report step は cleanup 前に done 遷移している (run-finalize.js:500-507) ので同じパターンで対応可能。",
+      "why": "lifecycle 廃止と独立した不整合であり、同じ finalize 処理のバグとして一緒に修正するのが自然。",
+      "considered": "別 Issue で対応する案。同じファイルの同じ箇所の修正なので分離する理由がない。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-27",
+    "notes": ""
+  }
+}

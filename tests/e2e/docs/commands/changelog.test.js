@@ -24,8 +24,10 @@ function fixtureSpecJson({ goal, scopeIn = [] } = {}) {
   });
 }
 
-function fixtureFlowJson({ featureBranch = "feature/001-test-feature", lifecycle = "Draft" } = {}) {
-  return JSON.stringify({ featureBranch, lifecycle, baseBranch: "main", spec: "" });
+function fixtureFlowJson({ featureBranch = "feature/001-test-feature", finalizedAt = null } = {}) {
+  const flow = { featureBranch, baseBranch: "main", spec: "" };
+  if (finalizedAt) flow.state = { finalizedAt };
+  return JSON.stringify(flow);
 }
 
 describe("changelog CLI", () => {
@@ -38,7 +40,7 @@ describe("changelog CLI", () => {
       goal: "Test feature goal.",
       scopeIn: ["Add tests"],
     }));
-    writeFile(tmp, "specs/001-test-feature/flow.json", fixtureFlowJson({ lifecycle: "Draft" }));
+    writeFile(tmp, "specs/001-test-feature/flow.json", fixtureFlowJson({ finalizedAt: "2026-04-27T00:00:00.000Z" }));
     fs.mkdirSync(join(tmp, "docs"), { recursive: true });
 
     execFileSync("node", [CMD, ...CMD_ARGS], {
@@ -51,7 +53,7 @@ describe("changelog CLI", () => {
     const content = fs.readFileSync(outFile, "utf8");
     assert.match(content, /Change Log/);
     assert.match(content, /001-test-feature/);
-    assert.match(content, /Draft/);
+    assert.match(content, /completed/);
   });
 
   it("generates empty changelog when no specs exist", () => {
@@ -74,7 +76,7 @@ describe("changelog CLI", () => {
     writeFile(tmp, "specs/001-test-feature/spec.json", fixtureSpecJson({
       goal: "Test feature goal.",
     }));
-    writeFile(tmp, "specs/001-test-feature/flow.json", fixtureFlowJson({ lifecycle: "Draft" }));
+    writeFile(tmp, "specs/001-test-feature/flow.json", fixtureFlowJson());
     fs.mkdirSync(join(tmp, "docs"), { recursive: true });
 
     const result = execFileSync("node", [CMD, ...CMD_ARGS, "--dry-run"], {

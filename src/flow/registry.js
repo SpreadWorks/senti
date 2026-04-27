@@ -546,7 +546,6 @@ export const FLOW_COMMANDS = {
         "Rewind the flow's draft step to in_progress so the user can add",
         "new tasks to the approved spec (draft-return). Preconditions:",
         "  - flow.json.tasks[] has at least one done task",
-        "  - flow.json.lifecycle is still 'active'",
         "",
         "Records the event in specs/<spec>/issue-log.json.",
       ].join("\n"),
