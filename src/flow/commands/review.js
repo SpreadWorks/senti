@@ -35,6 +35,7 @@ function ensureAgent(commandId) {
 import { runGit } from "../../lib/git-helpers.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { VALID_PHASES } from "../../lib/constants.js";
+import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
 
 /** Maximum retry iterations for review auto-fix loops (test and spec). */
 const MAX_REVIEW_RETRIES = 3;
@@ -170,9 +171,10 @@ function collectCommittedAndStagedDiff(root, baseRef, filePath) {
 
 /**
  * Build system prompt for the draft phase.
+ * @param {Object[]} [guardrails=[]] - Pre-filtered guardrail articles (phase:review)
  */
-function buildDraftSystemPrompt() {
-  return [
+function buildDraftSystemPrompt(guardrails = []) {
+  const lines = [
     "You are a code quality reviewer. Analyze the following code changes and propose improvements.",
     "Focus on:",
     "- Duplicate code elimination",
@@ -193,7 +195,22 @@ function buildDraftSystemPrompt() {
     "**Suggestion:** <concrete improvement>",
     "",
     "If no improvements are needed, output: NO_PROPOSALS",
-  ].join("\n");
+  ];
+
+  if (guardrails.length > 0) {
+    lines.push("");
+    lines.push("## Additional Guardrail Review Perspectives");
+    lines.push("Also check the code against the following project-specific guardrail articles.");
+    lines.push("If a violation is found, report it as a proposal using the same format above.");
+    lines.push("");
+    for (const g of guardrails) {
+      lines.push(`- id: ${g.id}`);
+      lines.push(`  title: ${g.title}`);
+      lines.push(`  body: ${g.body.trim()}`);
+    }
+  }
+
+  return lines.join("\n");
 }
 
 /**
@@ -1020,8 +1037,9 @@ async function runReview(rawArgs) {
 
   // --- Draft phase ---
   console.error("  [draft] Generating proposals...");
+  const reviewGuardrails = filterByPhase(loadMergedGuardrails(root), "review");
   const draftAgent = ensureAgent("flow.impl.review.draft");
-  const draftResult = await callReviewAgent(draftAgent, diff, "flow.impl.review.draft", buildDraftSystemPrompt());
+  const draftResult = await callReviewAgent(draftAgent, diff, "flow.impl.review.draft", buildDraftSystemPrompt(reviewGuardrails));
 
   if (draftResult.includes("NO_PROPOSALS")) {
     console.log("No improvement proposals found. Code looks good.");

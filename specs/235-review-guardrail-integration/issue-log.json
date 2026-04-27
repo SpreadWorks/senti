@@ -1,0 +1,228 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays focused on one concern: enabling review-phase guardrail injection in the review command.; Unambiguous Requirements — Most requirements are stated as verifiable behaviors (e.g., guardrail filtering, zero-guardrail fallback, unchanged output format).; Complete Context — Key requirements include both triggers and expected behavior, such as when guardrails are present or absent.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present; this draft is not introducing secret handling code.; Prioritize Requirements — There are more than three requirement-level items, but no must/should/nice-to-have priorities are assigned.; Impact on Existing Features — Impact on existing behavior is explicitly listed, including prompt length increase and unchanged behavior when guardrails are empty.; Present Recommendations with Reasoning — Each QA item provides a recommendation first, with evidence and rationale grounded in code patterns and existing behavior.; Explore Before Asking — Questions are largely resolved using code references and established patterns; no unresolved user-directed questions remain.; Proactively Raise Related Implications — Related implications are proactively called out, including token cost, test impact, and scope boundaries.; Confirm Brainstorm vs. Decision Before Critiquing — The draft is in decision mode, indicated by explicit approval metadata (approved=true with confirmation timestamp).; Capture Digressions in draft.md — Cannot be verified from the provided draft alone because it requires conversation/runtime evidence of digressions.; Draft Stays at Requirements Level — Content remains at requirements level; file/function references are contextual and do not include algorithm or API design detail.; Backward-Compatible CLI Interface — No existing CLI command or option semantics are being removed or changed, so a migration plan is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:16:36.031Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "There are more than three requirement-level items, but no must/should/nice-to-have priorities are assigned."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft addresses one concern: enabling review-phase guardrails in the review command.; Unambiguous Requirements — Requirements are concrete and verifiable, with explicit expected behaviors.; Complete Context — Requirements include both triggering context (review flow) and expected outcomes.; No Hardcoded Secrets — No API keys, tokens, passwords, or similar secrets are present.; Prioritize Requirements — More than three requirements are present and each in-scope item is prioritized (must/should).; Impact on Existing Features — Impacts on existing behavior are explicitly listed, including unchanged fallback behavior.; Present Recommendations with Reasoning — Each QA question has a clear recommended answer with evidence and rationale.; Explore Before Asking — Draft resolves questions via code/document references instead of deferring to the user.; Proactively Raise Related Implications — Related implications (token increase, fallback, test impact, scope boundaries) are proactively raised.; Confirm Brainstorm vs. Decision Before Critiquing — Content is handled as an approved decision document, not critiqued as brainstorming.; Capture Digressions in draft.md — Whether prior discussion digressed cannot be determined from this draft content alone.; Draft Stays at Requirements Level — Draft includes implementation-level details (specific function signature changes, call placement, and prompt composition) beyond requirements level.; Backward-Compatible CLI Interface — No existing CLI command/option meaning is removed or changed, so migration planning is not required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:17:43.340Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation-level details (specific function signature changes, call placement, and prompt composition) beyond requirements level."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — レビューphaseへのguardrail注入という単一関心に集中している。; Unambiguous Requirements — [must]/[should]付きで期待動作が具体化され、曖昧表現は限定的。; Complete Context — 各要件に実行条件（review実行時/guardrail 0件時など）と期待挙動が含まれる。; No Hardcoded Secrets — シークレット情報の記載・埋め込みはない。; Prioritize Requirements — 4件の要件すべてにmust/shouldの優先度が付与されている。; Impact on Existing Features — impactOnExistingで既存機能への影響と非影響が明示されている。; Present Recommendations with Reasoning — 各QAで推奨回答を先に示し、evidence/whyで根拠を提示している。; Explore Before Asking — openQuestionsが空で、既存コード参照に基づいて判断している。; Proactively Raise Related Implications — トークン増加やテスト影響など関連含意を事前に挙げている。; Confirm Brainstorm vs. Decision Before Critiquing — 本内容は承認済みの意思決定ドラフトで、ブレスト案への批評段階ではない。; Capture Digressions in draft.md — 議論の脱線有無とdraft.mdへの記録有無は会話ログがなく確認できない。; Draft Stays at Requirements Level — 関数シグネチャ変更・呼び出し位置・注入形式など実装/制御フロー設計まで踏み込んでいる。; Backward-Compatible CLI Interface — 既存CLIコマンド/オプションの削除・意味変更は提案されていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:18:52.776Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "関数シグネチャ変更・呼び出し位置・注入形式など実装/制御フロー設計まで踏み込んでいる。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:22:29.415Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: injecting phase:review guardrails into code review prompt.; Task Single Responsibility — Only task T-1 is scoped to the same single concern without unrelated goals.; Unambiguous Requirements — Requirements are concrete and testable (load/filter/inject behavior and fallback behavior).; Complete Context — Each requirement states a condition and expected behavior (e.g., guardrails present/absent, no-arg call).; REQ Diff-Verifiability — Pass/fail can be judged from code diff plus test results for the specified behaviors.; No Hardcoded Secrets — No secrets are specified or embedded in the described changes.; No Silent Error Swallowing — Spec does not introduce or require silent error swallowing; article is inapplicable to stated changes.; Prioritize Requirements — There are 4 requirements and each has an explicit priority (must/should).; Impact on Existing Features — Impact is stated via constraints/scope (no output format change, preserve behavior when guardrails are zero).; Bounded Resource Usage — No recursive/retry/bulk-unbounded design is introduced by this spec.; Spec Includes Test Strategy — Test strategy is provided in task test_strategy and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot evaluate copy-vs-synthesis without the original draft source content.; Record Unresolved Points as Open Questions — Open questions section exists and is empty; no fabricated unresolved answers are evident.; Include 'Why This Approach' Rationale — Rationale is documented in decisions and alternatives_considered.; Spec Test Coverage — Spec does not require tests under specs/<specid>/tests/ as mandated by this guardrail.; Backward-Compatible CLI Interface — No command/option removal or semantic break is proposed; migration plan not required.; Exit Code Contract — CLI behavior is modified but success/failure exit-code contract is not specified.; Validate User Input at Entry Point — Spec does not enumerate user-facing arguments and entry-point validation requirements for the modified CLI command.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:24:06.924Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Spec does not require tests under specs/<specid>/tests/ as mandated by this guardrail."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "CLI behavior is modified but success/failure exit-code contract is not specified."
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "Spec does not enumerate user-facing arguments and entry-point validation requirements for the modified CLI command."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on one concern: injecting review-phase guardrails into code review prompts.; Task Single Responsibility — Only one task is defined and its actions are all part of the same review-guardrail injection concern.; Unambiguous Requirements — Requirements are concrete and testable (specific functions, conditions, and outputs).; Complete Context — Requirements consistently state trigger conditions and expected behavior (e.g., guardrail count, call mode, argument presence).; REQ Diff-Verifiability — Pass/fail can be judged from code diff plus test results for prompt construction and review flow wiring.; No Hardcoded Secrets — No secrets, keys, or credentials are introduced in the provided content.; No Silent Error Swallowing — Content does not propose empty catches or silent error suppression.; Prioritize Requirements — All six requirements include explicit priorities (must/should).; Impact on Existing Features — Impact is documented via in/out scope and explicit non-changes to output format and CLI behavior.; Bounded Resource Usage — No new recursive/retry/bulk-processing design is introduced; article is not materially implicated.; Spec Includes Test Strategy — Test strategy is explicitly included in requirement R5, task test_strategy, and acceptance criteria.; Synthesize Draft, Do Not Copy — Cannot determine copy-vs-synthesis without the original draft source for comparison.; Record Unresolved Points as Open Questions — No unresolved items appear to be hidden; open_questions section is present and explicitly empty.; Include 'Why This Approach' Rationale — Rationale is provided through decisions with evidence and alternatives considered with reasons.; Spec Test Coverage — Spec requires tests under specs/235-review-guardrail-integration/tests/ and requires passing tests.; Backward-Compatible CLI Interface — Spec states no user-facing command/option semantic changes, so migration plan is not required.; Exit Code Contract — R6 defines success/failure behavior and preserves non-zero failure exit behavior (EXIT_ERROR).; Validate User Input at Entry Point — Spec names user-facing args but does not define per-argument entry-point validation rules (type/format/range).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:25:18.959Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "Spec names user-facing args but does not define per-argument entry-point validation rules (type/format/range)."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements review-phase guardrail load/filter and prompt injection (id/title/body), preserves zero/no-arg fallback behavior, adds tests under specs/235-review-guardrail-integration/tests for guardrail present/absent cases, and does not change CLI args or exit-code flow; provided baseline/head test summaries show no new regressions.; No Hardcoded Secrets — No added or modified lines introduce hardcoded secrets.; No Silent Error Swallowing — Diff introduces no empty catch blocks or silent error discards.; No Sensitive Data in Logs — No added logging statements include passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds new tests and does not skip, delete, or comment out existing tests.; Escalate Pre-Existing Test Failures — Pre-existing failures are indicated, but user-reporting/escalation confirmation cannot be verified from diff content alone.; Spec Test Coverage — Tests are added under specs/235-review-guardrail-integration/tests/, but provided flow summary shows test exitCode 1 (not all tests passing).; Project Test Integrity — Provided project test summary indicates exitCode 1, so all project tests are not passing.; Exit Code Contract — Spec additions define unchanged exit behavior (success 0, failure EXIT_ERROR), and diff does not remove non-zero failure handling.; No Synchronous I/O in Hot Paths — No added synchronous I/O is introduced in loops or bulk-processing paths.; Validate User Input at Entry Point — No new CLI args are introduced; spec states existing user-facing args and entry-point validation remain via parseArgs.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:34:38.024Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Tests are added under specs/235-review-guardrail-integration/tests/, but provided flow summary shows test exitCode 1 (not all tests passing)."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "Provided project test summary indicates exitCode 1, so all project tests are not passing."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "npm test exits with code 1 despite all individual tests passing (0 not-ok entries out of 2452 unit + 268 integration). Same behavior observed in baseline test run. This is a pre-existing test runner issue unrelated to spec 235 changes.",
+      "trigger": "gate-impl guardrail spec-test-coverage and project-test-integrity both FAIL on exitCode 1",
+      "resolution": "Pre-existing issue confirmed by identical baseline exitCode. Not caused by this spec's changes. Gate should compare with baseline rather than expecting exitCode 0.",
+      "taskId": null,
+      "timestamp": "2026-04-27T10:35:18.905Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — Diff implements review-phase guardrail loading/filtering and prompt injection (id/title/body), preserves no-guardrail/default behavior, adds spec tests under specs/235-review-guardrail-integration/tests, and baseline/head test summaries are identical (no new regressions).; No Hardcoded Secrets — Added/modified lines contain no API keys, passwords, tokens, or other secrets.; No Silent Error Swallowing — No added/modified code introduces empty catch blocks or silent error discarding.; No Sensitive Data in Logs — Added/modified logging/output lines do not include passwords, tokens, or PII.; No Disabling Existing Tests — Diff adds new tests/spec artifacts and does not skip, delete, or comment out existing tests.; Escalate Pre-Existing Test Failures — Pre-existing failure handling requires runtime/user-communication confirmation; diff shows notes but not definitive user confirmation evidence.; Spec Test Coverage — Tests are added under specs/235-review-guardrail-integration/tests, but provided flow evidence shows test exitCode is 1, so 'all tests MUST pass' is not met.; Project Test Integrity — Provided project test summary in added flow metadata shows exitCode 1, so all project tests are not passing.; Exit Code Contract — Spec additions state unchanged success/failure contract (exit 0 vs EXIT_ERROR), and diff does not remove non-zero failure behavior.; No Synchronous I/O in Hot Paths — No added/modified lines introduce synchronous I/O inside loops or bulk-processing hot paths.; Validate User Input at Entry Point — No new user-facing CLI args were introduced; spec states existing args and entry-point validation remain via parseArgs.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T10:36:37.015Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Tests are added under specs/235-review-guardrail-integration/tests, but provided flow evidence shows test exitCode is 1, so 'all tests MUST pass' is not met."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "Provided project test summary in added flow metadata shows exitCode 1, so all project tests are not passing."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    }
+  ]
+}

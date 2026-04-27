@@ -1,0 +1,55 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/235-review-guardrail-integration/draft.json  |  64 +++\n specs/235-review-guardrail-integration/flow.json   | 464 +++++++++++++++++++++\n .../issue-log.json                                 | 228 ++++++++++\n specs/235-review-guardrail-integration/issue.md    |  34 ++\n specs/235-review-guardrail-integration/qa.md       |   9 +\n specs/235-review-guardrail-integration/spec.json   | 139 ++++++\n specs/235-review-guardrail-integration/spec.md     |  87 ++++\n .../235-review-guardrail-integration/tasks/T-1.md  |  20 +\n .../tasks/T-pending-spec.md                        |   9 +\n .../tests/README.md                                |  23 +\n .../tests/review-guardrail.test.js                 |  63 +++\n src/flow/commands/review.js                        |  26 +-\n 12 files changed, 1162 insertions(+), 4 deletions(-)",
+      "commits": [
+        "feat: feature/235-review-guardrail-integration"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 4,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 200847,
+      "output": 20207,
+      "cacheRead": 52352,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 11,
+      "durationMs": 423081,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 165398
+        },
+        {
+          "phase": "gate",
+          "durationMs": 124122
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 133561
+        }
+      ]
+    },
+    "tests": {
+      "unit": 2452,
+      "integration": 268,
+      "acceptance": 0,
+      "total": 2720
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/235-review-guardrail-integration\n    12 files changed, 1162 insertions(+), 4 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 4\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 11\n    input tokens ................ 200,847\n    output tokens ............... 20,207\n    cache-read tokens ........... 52,352\n    cache-create tokens ......... 0\n    cost ........................ N/A\n    duration (total) ............ 423.1s\n      gate-draft ................ 165.4s\n      gate ...................... 124.1s\n      gate-impl ................. 133.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    unit 2452  integration 268  acceptance 0  total 2720"
+}

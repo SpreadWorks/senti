@@ -1,0 +1,64 @@
+{
+  "devType": "feature",
+  "goal": "review コマンド（code review phase）が guardrail.json を読み込み、phase:review の guardrail を review プロンプトに注入する。現在ハードコードされている 5 項目のみのレビュー観点を、プロジェクト固有の guardrail で拡張可能にする。",
+  "analysis": {
+    "problem": "review.js の buildDraftSystemPrompt() は 5 つのレビュー観点をハードコードしている（duplicate code elimination, naming improvements, dead code removal, design pattern consistency, simplification opportunities）。guardrail.json に phase:review を指定した guardrail が存在しても（nextjs 3件, symfony 8件）、review コマンドはそれらを一切読み込まない。bounded-resource-usage を task-impl から review に移管したが、review コマンドが guardrail を読めないため評価されない。",
+    "proposedApproach": "review コマンドが既存の guardrail 読み込み・フィルタリング基盤（gate や lint で確立済み）を利用して phase:review の guardrail を取得し、review プロンプトに追加のレビュー観点として注入する。guardrail は gate のような構造化 JSON 評価ではなく、review の提案ベースの出力形式に合わせて扱う。",
+    "validation": "gate は pass/fail の構造化評価を行うが、review は「改善提案」を出力する。guardrail を review に注入する際は、gate のような blocker ではなく、追加のレビュー観点として扱う。これにより bounded-resource-usage のような false positive が多い guardrail を指摘ベースで活用できる。既存の gate 評価とは別の経路での guardrail 活用であり、目的に合致する。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] review コマンドが guardrail.json から phase:review の guardrail を読み込む",
+      "[must] 読み込んだ guardrail を review プロンプトに追加のレビュー観点として注入する",
+      "[must] guardrail が 0 件の場合は既存の 5 項目のみで動作する（フォールバック）",
+      "[should] 既存テストが壊れないよう後方互換を維持する"
+    ],
+    "out": [
+      "gate 評価ロジック（run-gate.js）の変更",
+      "guardrail.json のフォーマット変更",
+      "test review / spec review パイプライン（--phase test/spec）への guardrail 注入",
+      "review の出力フォーマット（review.md）の変更"
+    ]
+  },
+  "impactOnExisting": [
+    "buildDraftSystemPrompt のシグネチャが変わる（guardrails 引数追加） — 内部関数のため外部影響なし",
+    "review のプロンプトが長くなる（guardrail 記事追加分） — AI 呼び出しのトークン増",
+    "guardrail が 0 件の場合は現在と同じ挙動を維持（プロンプト変化なし）"
+  ],
+  "qa": [
+    {
+      "question": "guardrail 違反が見つかった場合、review はフローをブロックするか、それとも指摘のみか？",
+      "answer": "指摘のみ。review は改善提案を出力する仕組みであり、guardrail 違反は提案として報告される。フローをブロックしない。",
+      "evidence": "review.js:174-197 は proposals 形式出力。gate は pass/fail 判定（run-gate.js:512-513）。review に gate 相当の blocker 機能はない。",
+      "why": "bounded-resource-usage を review に移管した理由が blocker ではなく指摘ベースで評価するため。",
+      "considered": "gate と同じ blocker 方式 — review の目的と合わず、出力形式の大幅変更が必要。"
+    },
+    {
+      "question": "guardrail が 0 件の場合の挙動は？",
+      "answer": "既存のレビュー観点のみで動作する。追加の観点は表示されない。",
+      "evidence": "filterByPhase は空配列を返す。gate でも guardrail 0 件時はスキップする。",
+      "why": "guardrail が未定義のプロジェクトでも review は正常に動作する必要がある。",
+      "considered": "なし — 自然なフォールバック。"
+    },
+    {
+      "question": "対象は code review（デフォルト）のみか、test review / spec review も含むか？",
+      "answer": "code review のみ。test review と spec review はスコープ外。",
+      "evidence": "issue #276 は code review のみを対象としている。test review / spec review はそれぞれ独自の目的を持つ。",
+      "why": "スコープを限定し、影響範囲を最小化する。",
+      "considered": "全 review phase に注入する案 — 各フェーズの目的が異なるため一律注入は不適切。"
+    },
+    {
+      "question": "既存テストへの影響は？",
+      "answer": "引数省略時に既存動作を維持し、既存テストを壊さない。",
+      "evidence": "grep で buildDraftSystemPrompt の呼び出し箇所を確認する必要がある。",
+      "why": "テスト修正コストを最小化する。",
+      "considered": "引数を必須にする案 — alpha 版ポリシーでは後方互換不要だが、実用的にはデフォルト引数が適切。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-27T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}
