@@ -303,17 +303,6 @@ function filterEntry(entry) {
   return filtered;
 }
 
-function resolvePhase(state) {
-  if (!state?.steps) return null;
-  const active = state.steps.find((s) => s.status === "in_progress");
-  if (active) {
-    const id = active.id;
-    if (["draft", "spec", "gate", "test"].includes(id)) return id;
-    if (["implement", "review", "finalize"].includes(id)) return "impl";
-  }
-  return null;
-}
-
 /**
  * Load and flatten all analysis entries from analysis.json.
  * @param {string} root - Project root path
@@ -396,4 +385,4 @@ export default class GetContextCommand extends FlowCommand {
   }
 }
 
-export { filterEntry, resolvePhase, searchEntries, collectAllKeywords, buildKeywordSelectionPrompt, fallbackSearch, toBigrams, bigramSimilarity, ngramSearch, loadAnalysisEntries, contextSearch };
+export { filterEntry, searchEntries, collectAllKeywords, buildKeywordSelectionPrompt, fallbackSearch, toBigrams, bigramSimilarity, ngramSearch, loadAnalysisEntries, contextSearch };

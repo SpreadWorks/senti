@@ -129,7 +129,7 @@ C.1.5. **Auto-upgrade check (spec 232)**
 C.2. **Execute instructions**
    - Treat `instructions.content` as the authoritative procedure for this step. Follow it exactly.
    - Fetch any additional context the instructions request via `sdd-forge flow get context ...` / `sdd-forge flow get guardrail <phase>`.
-   - Retry limits: the instructions may cite `config.flow.retry.max` (default 3) for gate retries and other bounded loops. Respect them. When a limit is reached, STOP and return control to the user.
+   - Retry limits: each step has a `maxAttempts` defined in the flow definition. When a limit is reached, STOP and return control to the user.
    - When the current step's work is finished, advance step status:
      - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run review`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — the hook handles the transition; do nothing further.
      - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
@@ -163,12 +163,6 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 - **MUST: Do NOT run `sdd-forge flow run finalize-cleanup` in background.** Run it in the foreground and wait for it to complete before proceeding.
 - **MUST: After `sdd-forge flow run finalize-cleanup` completes in worktree mode**, the worktree directory is deleted by cleanup, invalidating the shell's cwd. Immediately run `cd <mainRepoPath>` to restore a valid working directory. Get `mainRepoPath` from `sdd-forge flow get resolve-context` (run this BEFORE finalize-cleanup).
 - **MUST: After `sdd-forge flow run finalize-cleanup` completes successfully (and the cwd has been restored to `mainRepoPath`)**, run `sdd-forge flow report show` and place the command's stdout verbatim inside a fenced code block so the user sees the finalize Report. The command reads the authoritative `report.json` via the `.sdd-forge/last-finalized-spec` pointer that finalize cleanup wrote. If `sdd-forge flow report show` exits non-zero, surface stderr to the user instead of fabricating report contents.
-
-### Test-first determinism (task write-tests step)
-
-When a task step `write-tests` is in progress:
-- **MUST: Do not reference implementation diffs or implementation target files.** Writing tests from the implementation shape breaks test-first.
-- `flow get context` enforces this at the tool level (files listed in the spec's `implementationTargets` are blocked in path mode and silently excluded from list / search results during `write-tests`).
 
 ### Draft-return for mid-implementation task additions
 
