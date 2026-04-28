@@ -118,6 +118,7 @@ export const FLOW_COMMANDS = {
     },
     check: {
       helpKey: "flow.get.check",
+      requiresFlow: false,
       command: () => import("./lib/get-check.js"),
       args: { positional: ["target"] },
       help: "Usage: sdd-forge flow get check <target>\n\nCheck a condition. Targets: dirty, gh, impl, finalize.",

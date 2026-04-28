@@ -74,7 +74,7 @@ describe("spec 219 R2: retro does not fail when spec.json.requirements is popula
     assert.equal(out.artifacts.requirementsCount, 1);
   });
 
-  it("throws a clear error referring to spec.json (not flow.json) when requirements are absent", async () => {
+  it("returns Envelope.fail referring to spec.json when requirements are absent", async () => {
     tmp = createRepo();
     const specId = "001-test";
     writeSpec(tmp, specId, []);
@@ -90,17 +90,10 @@ describe("spec 219 R2: retro does not fail when spec.json.requirements is popula
     };
 
     const cmd = new RunRetroCommand();
-    await assert.rejects(
-      cmd.execute(ctx),
-      (err) => {
-        assert.doesNotMatch(
-          err.message,
-          /flow\.json/,
-          "error must point at spec.json as the source of truth",
-        );
-        assert.match(err.message, /spec\.json|requirements/i);
-        return true;
-      },
-    );
+    const result = await cmd.execute(ctx);
+    assert.equal(result.ok, false, "should return ok:false");
+    const msgs = result.errors.flatMap((e) => e.messages);
+    assert.ok(msgs.some((m) => /spec\.json|requirements/i.test(m)), "error references spec.json");
+    assert.ok(!msgs.some((m) => /flow\.json/.test(m)), "error must not reference flow.json");
   });
 });

@@ -1,0 +1,92 @@
+{
+  "devType": "refactor",
+  "goal": "flow get/set/run コマンドの返却値を「状態クエリ系」と「操作系」に分類し、前提条件を満たさない場合の挙動を統一する",
+  "analysis": {
+    "problem": "flow get/set/run コマンドで「active flow がない」等の前提条件不足時の挙動が3パターン混在している: (A) ok:true + 状態値 (get-status のみ), (B) throw Error (base-command guard + コマンド内), (C) Envelope.fail return。throw と Envelope.fail は dispatcher が最終的に同じ JSON envelope にラップするが、post-hook スキップの挙動が異なる（Envelope.fail return は post-hook をスキップ、throw は onError hook を呼ぶ）。また get-next-action は requiresFlow:false なのに自前で throw しており、get-check/get-context/get-step-instructions は状態問い合わせなのに requiresFlow:true で強制エラーになる。",
+    "proposedApproach": "コマンドを2カテゴリに分類: (1) 状態クエリ系 — requiresFlow:false、flow 不在時は ok:true + 明示的な空状態を返す。(2) 操作系 — requiresFlow:true（dispatcher guard で NO_FLOW）、コマンド内の前提条件違反は throw ではなく Envelope.fail を返す。分類基準: コマンドの目的が「現在の状態を知ること」か「状態を変更/副作用を起こすこと」か。",
+    "validation": "get-status が既に正しいパターン (A) を実装しており、このパターンを他の状態クエリ系に展開するだけ。操作系は dispatcher が既に throw → Envelope.fail ラップしているが、コマンド内で明示的に Envelope.fail を返す方が post-hook 制御が正確になる。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] 全 flow get/set/run コマンドの分類（状態クエリ vs 操作）と方針の docs 明文化",
+      "[must] 状態クエリ系コマンドの requiresFlow:false 化と空状態返却の実装",
+      "[should] 操作系コマンド内のユーザー起因エラーの throw → Envelope.fail 統一",
+      "[nice-to-have] 内部エラー（agent 呼び出し失敗等）のエラーコード付与"
+    ],
+    "out": [
+      "dispatcher.js の throw→Envelope.fail ラップ機構の変更",
+      "Envelope クラス自体の変更",
+      "registry.js のフック構造の変更",
+      "base-command.js の requiresFlow guard の削除（dispatcher guard と二重化しているが、既存の安全弁として残す）"
+    ]
+  },
+  "impactOnExisting": [
+    "AI スキル（flow skill）: get next-action を NO_ACTIVE_FLOW 時に throw ではなく ok:true + 空状態で受け取るようになる。スキル側は既に active:false チェックしているため影響なし",
+    "既存テスト: flow get/set/run のテストで throw を期待しているものは Envelope.fail return に変更が必要",
+    "post-hook: 操作系コマンドで throw → Envelope.fail に変えると、失敗時に onError hook ではなく success path の skipPost が走る。現在 onError hook を使っている操作コマンドがあれば挙動が変わる"
+  ],
+  "qa": [
+    {
+      "question": "get-next-action は状態クエリか操作か？ requiresFlow:false だが NO_ACTIVE_FLOW を throw している",
+      "answer": "状態クエリ。「次にやるべきことは何か」を問い合わせるコマンドであり、副作用はない。flow 不在時は ok:true + { step: null, action: null } のような空状態を返すべき",
+      "evidence": "get-next-action.js:62 — throw new Error('NO_ACTIVE_FLOW: ...'). get-status.js は同種の問い合わせで { active: false } を返しており、整合的であるべき",
+      "why": "AI スキルは get next-action の結果で分岐しており、throw よりも ok:true + 空状態の方がエラーハンドリングなしで条件分岐できる",
+      "considered": "throw のまま残す案 — dispatcher が Envelope.fail にラップするので出力は同じだが、post-hook 挙動の違い（throw は onError route）が意図と合わない"
+    },
+    {
+      "question": "get-check, get-context, get-step-instructions は状態クエリか？現在 requiresFlow:true",
+      "answer": "get-check と get-context は状態クエリ。get-step-instructions は操作に近い（特定の step の instructions を取得する前提で、step が存在しなければエラーが妥当）。ただし get-context は flow 情報を使ってファイルフィルタリングするため、flow 不在時の挙動は「フィルタなしで返す」か「空を返す」の判断が必要",
+      "evidence": "get-check.js:75 — throw Error. get-context.js は flow-context 経由で base-command guard. get-step-instructions.js も同様",
+      "why": "get-check は spec 状態の確認（monotonic check 等）で副作用なし。get-context はファイル内容の読み取りで副作用なし",
+      "considered": "全て requiresFlow:true のまま残す案 — しかし get-context は worktree 外（prepare 前）でも有用なケースがある"
+    },
+    {
+      "question": "操作系コマンドで throw と Envelope.fail が混在している（run-gate: 21 throw vs 4 Envelope.fail）。全て Envelope.fail に統一すべきか？",
+      "answer": "分類が必要。run-gate 内の throw の多くは内部ロジックエラー（予期しない状態）であり、これらは throw のまま残すのが適切。ユーザー起因の前提条件違反（retry budget 超過、必要な引数不足等）のみ Envelope.fail にする",
+      "evidence": "run-gate.js — throw の多くは agent 呼び出し失敗、JSON パースエラー等の内部エラー。Envelope.fail は RETRY_BUDGET_EXCEEDED 等の構造化されたエラー",
+      "why": "内部エラーと前提条件違反は性質が異なる。前者は unexpected failure（throw が適切）、後者は expected rejection（Envelope.fail が適切）",
+      "considered": "全て Envelope.fail に統一する案 — 過剰な構造化。内部エラーまで code を付与する必要はなく、dispatcher の catch-all ラップで十分"
+    },
+    {
+      "question": "分類基準を docs のどこに明文化するか？",
+      "answer": "src/CLAUDE.md（AGENTS.md 経由で AI に常に提供される）に方針を記載。加えて base-command.js と flow-envelope.js に JSDoc で規約を記述",
+      "evidence": "現在 src/CLAUDE.md にはコマンドの返却値に関する記述がない",
+      "why": "AI エージェントが新しい flow コマンドを追加する際に参照できる場所に置く必要がある。src/CLAUDE.md は常にコンテキストに含まれる",
+      "considered": "docs/ に独立章を作る案 — docs は自動生成されるため、手書きの方針記述は data/text ディレクティブ外に書く必要があり管理が煩雑"
+    },
+    {
+      "question": "base-command.js の requiresFlow guard と dispatcher.js の requiresFlow guard が二重化している。統一すべきか？",
+      "answer": "スコープ外とする。二重化は冗長だが、base-command.js の guard は FlowCommand を直接インスタンス化するテストで安全弁として機能する。dispatcher 経由では dispatcher guard が先に発火するため実害なし",
+      "evidence": "dispatcher.js:187-189 — entry.requiresFlow !== false チェック。base-command.js:43-44 — this.requiresFlow チェック",
+      "why": "二重化の解消は別の concern（dispatcher とコマンドクラスの責務分離）であり、本 spec のスコープ（返却値の方針統一）とは独立",
+      "considered": "base-command.js の guard を削除する案 — テストで FlowCommand を直接使う場合の安全弁がなくなる"
+    },
+    {
+      "question": "テスト戦略: 何をテストするか？",
+      "answer": "各カテゴリの代表的なコマンドについて: (1) 状態クエリ系 — flow 不在時に ok:true + 空状態が返ることを検証, (2) 操作系 — 前提条件違反時に Envelope.fail が返ることを検証。既存テストで throw を期待しているものがあれば修正",
+      "evidence": "tests/ 配下に flow コマンドのテストが存在する",
+      "why": "返却値の変更は呼び出し元（AI スキル・テスト）に影響する。テストで回帰を検知する",
+      "considered": "全コマンドを網羅テストする案 — コスト対効果が低い。代表的なコマンドでパターンを検証すれば十分"
+    },
+    {
+      "question": "状態クエリ系の空状態返却の形式はどうするか？",
+      "answer": "コマンドごとに意味のある空状態を定義する。例: get-next-action → { step: null, action: null }、get-check → { target: <requested>, result: null }。get-status の { active: false } パターンに倣い、消費者が ok:true のまま条件分岐できる形にする",
+      "evidence": "get-status.js:141-143 — { active: false } を返す既存パターン",
+      "why": "空状態の形式がコマンドごとにバラバラだと消費者側の分岐が複雑になる。明示的なフィールド（null, false 等）で「データなし」を表現する",
+      "considered": "ok:false + NOT_ACTIVE code で統一する案 — Issue の方針に反する（状態クエリは ok:true であるべき）"
+    },
+    {
+      "question": "get-next-action の返却値変更（throw → ok:true + 空状態）は CLI 後方互換を壊すか？マイグレーション計画は必要か？",
+      "answer": "alpha 版ポリシーにより後方互換コードは書かない方針（CLAUDE.md: 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する）。ただし消費者への影響は軽微: (1) exit code が 1→0 に変わる（ok:true になるため）, (2) JSON 出力構造が errors 配列付き → data のみに変わる。消費者（AI スキル）は既に ok フィールドで分岐しているため、ok:true + data.step=null への対応は条件追加のみ。マイグレーション計画は不要だが、spec に変更内容を明記する",
+      "evidence": "CLAUDE.md: alpha 版ポリシー: 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する",
+      "why": "alpha 期間中は API の安定性より正しい設計を優先する。消費者が sdd-forge 自身の AI スキルのみであるため、影響範囲が限定的",
+      "considered": "deprecated 警告を挟んで段階移行する案 — alpha 版ポリシーに反し、不要な複雑性を追加する"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-28T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}

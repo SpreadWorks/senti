@@ -1,0 +1,59 @@
+{
+  "spec": "specs/239-flow-command-return-value-policy/spec.json",
+  "date": "2026-04-28T03:41:12.669Z",
+  "requirements": [
+    {
+      "desc": "get-next-action: flow 不在時に ok:true + { step: null, action: null } を返す",
+      "status": "done",
+      "note": "get-next-action.js:62 の throw を { step: null, action: null, ... } return に変更済み。テスト(get-next-action.test.js)も ok:true + step=null 期待に更新済み。"
+    },
+    {
+      "desc": "get-next-action: 全ステップ完了時に ok:true + { step: null, action: 'completed' } を返す",
+      "status": "done",
+      "note": "NO_IN_PROGRESS_STEP throw を { step: null, action: 'completed', ... } return に変更済み。対応テストも更新済み。"
+    },
+    {
+      "desc": "get-check: requiresFlow:false に変更。flow 不在時の step prerequisites は { pass: false, summary: 'no active flow' } を返す",
+      "status": "done",
+      "note": "GetCheckCommand に constructor で requiresFlow:false を設定、registry.js の check エントリにも requiresFlow:false を追加、throw を { pass: false, summary: 'no active flow', checks: [] } return に変更済み。e2e テストも更新済み。"
+    },
+    {
+      "desc": "src/CLAUDE.md に返却値方針セクションを追加",
+      "status": "done",
+      "note": "src/AGENTS.md（src/CLAUDE.md のシンボリックリンク先）に「flow コマンド返却値方針」セクションを追加。分類基準・カテゴリ別 requiresFlow 設定・エラー方式規約が表形式で明記されている。"
+    },
+    {
+      "desc": "run-reopen-draft: ユーザー起因 throw を Envelope.fail に統一",
+      "status": "done",
+      "note": "コード変更なし。issue-log によると validateReason 内の throw は既に try/catch でラップされ Envelope.fail として返されるため変更不要。spec ステータスは skipped、既存コードが方針に準拠済み。"
+    },
+    {
+      "desc": "set-issue-log: 混在 throw を Envelope.fail に統一",
+      "status": "done",
+      "note": "コード変更なし。issue-log によると loadIssueLog の throw は内部データ破損エラーであり設計方針通り throw のまま残す。ユーザー起因の throw が存在しないため変更不要。spec ステータスは skipped。"
+    },
+    {
+      "desc": "run-retro: ユーザー起因 throw を Envelope.fail に統一",
+      "status": "done",
+      "note": "NO_REQUIREMENTS・NO_BASE_BRANCH・NO_CONFIG・NO_AGENT の 4 箇所の throw を Envelope.fail return に変更済み。run-retro-no-missing-requirements.test.js も rejects 期待から Envelope.fail return 期待に更新済み。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/registry.js",
+      "change": "check エントリに requiresFlow:false を追加。spec の implementationTargets に未記載だが R3 の完全実装に必要な変更（FlowCommand クラス側の constructor 設定と対になる）。"
+    },
+    {
+      "file": "specs/239-flow-command-return-value-policy/tests/return-value-policy.test.js",
+      "change": "R1〜R3 を CLI 経由で検証する仕様検証テストを新規追加。spec の test_strategy に記載された意図の実装であり spec 外ではないが、implementationTargets には含まれていない。"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "R1〜R4・R7 の must/should 要件はすべて実装済み。R5/R6 は既存コードが設計方針に準拠済みであることが確認されコード変更不要（skipped 扱い）。未計画変更は registry.js への requiresFlow 追加（R3 実装の自然な帰結）と仕様検証テストの追加のみで、いずれも要件の意図と整合している。全要件充足。"
+  }
+}

@@ -82,6 +82,21 @@ sdd-forge <cmd> [args]
 | `SDD_SOURCE_ROOT` | 対象プロジェクトのソースコードルート | `cli.js` で解決 |
 | `SDD_WORK_ROOT` | 作業ディレクトリ（`.sdd-forge/`, `docs/` の親） | `cli.js` で解決 |
 
+### flow コマンド返却値方針
+
+flow get/set/run コマンドは「状態クエリ系」と「操作系」の2カテゴリに分類される。
+
+**分類基準**: コマンドの目的が「現在の状態を読み取る」か「状態を変更する/副作用を起こす」か。
+
+| カテゴリ | requiresFlow | flow 不在時の挙動 | エラー方式 |
+|---|---|---|---|
+| 状態クエリ系 | `false` | `ok:true` + 空状態を返す | — |
+| 操作系 | `true` (dispatcher guard) | `Envelope.fail` (NO_FLOW) | ユーザー起因: `Envelope.fail`、内部エラー: `throw` |
+
+- **状態クエリ系** (get-status, get-next-action, get-check 等): `requiresFlow: false`。flow が存在しない場合でも `ok:true` + 意味のある空状態（`{ active: false }`, `{ step: null }` 等）を返す。
+- **操作系** (set-step, run-gate, run-finalize 等): `requiresFlow: true`。ユーザー起因の前提条件違反は `Envelope.fail` を return する（`throw` ではない）。内部エラー（agent 呼び出し失敗、JSON パースエラー等）は `throw` のまま（dispatcher の catch-all が `Envelope.fail` にラップ）。
+- `requiresFlow` は registry.js のエントリと FlowCommand クラスの両方に設定する。
+
 ### ドキュメント生成パイプライン
 
 `sdd-forge docs build` は以下のパイプラインを順に実行する:

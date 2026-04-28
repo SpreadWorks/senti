@@ -50,6 +50,10 @@ function checkGh() {
 }
 
 export default class GetCheckCommand extends FlowCommand {
+  constructor() {
+    super({ requiresFlow: false });
+  }
+
   execute(ctx) {
     const { root } = ctx;
     const target = ctx.target;
@@ -72,7 +76,7 @@ export default class GetCheckCommand extends FlowCommand {
 
     const state = ctx.flowState;
     if (!state) {
-      throw new Error("no active flow (flow.json not found)");
+      return { pass: false, summary: "no active flow", checks: [] };
     }
 
     return checkStepPrereqs(state, target === "impl" ? "implement" : target);

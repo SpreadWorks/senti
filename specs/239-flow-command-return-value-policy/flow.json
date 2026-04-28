@@ -1,0 +1,228 @@
+{
+  "spec": "specs/239-flow-command-return-value-policy/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/239-flow-command-return-value-policy",
+  "runId": "37de5a0b-8b18-4eeb-8ac2-f7b68a5257c5",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-04-28T02:55:16.531Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-04-28T02:55:16.531Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-04-28T02:55:16.531Z",
+          "finishedAt": "2026-04-28T03:11:58.024Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-04-28T03:11:58.024Z",
+          "finishedAt": "2026-04-28T03:14:03.598Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-04-28T03:14:03.598Z",
+          "finishedAt": "2026-04-28T03:16:39.722Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-04-28T03:16:39.722Z",
+          "finishedAt": "2026-04-28T03:22:27.189Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-04-28T03:22:27.189Z",
+          "finishedAt": "2026-04-28T03:22:42.794Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-04-28T03:22:42.794Z",
+          "finishedAt": "2026-04-28T03:23:55.464Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-04-28T03:23:55.464Z",
+          "finishedAt": "2026-04-28T03:34:25.979Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-04-28T03:34:25.979Z",
+          "finishedAt": "2026-04-28T03:36:54.444Z"
+        },
+        {
+          "id": "review",
+          "status": "done",
+          "startedAt": "2026-04-28T03:36:54.444Z"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": []
+    }
+  ],
+  "currentTaskId": "T-pending-spec",
+  "issue": 282,
+  "request": "#282 flow get/set/run コマンドの返却値設計（エラー vs 状態返却の方針統一）",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 24,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "方針が明確（状態クエリ系→ok:true、操作系→ok:false）。対象コマンド群・ドキュメント化・修正まで網羅的に列挙。既存flow get/set/runコマンドの棚卸しという先例あり。"
+  },
+  "worktree": true,
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T02:55:46.504Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:12:29.278Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:13:16.469Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T03:14:03.634Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:16:50.541Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:18:32.349Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:19:56.427Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T03:22:27.209Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:35:11.871Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:35:23.716Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T03:36:54.453Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-28T03:39:28.585Z"
+  }
+}

@@ -103,13 +103,13 @@ describe("flow get next-action", () => {
   });
 
   describe("active flow missing (REQ-2)", () => {
-    it("returns ok:false and non-zero exit when no active flow", () => {
+    it("returns ok:true with step=null when no active flow", () => {
       tmp = createTmpDir();
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
-      assert.equal(envelope.ok, false);
-      assert.notEqual(exitCode, 0);
-      const msgs = envelope.errors.flatMap((e) => e.messages);
-      assert.ok(msgs.some((m) => /no active flow/i.test(m)), "error mentions no active flow");
+      assert.equal(envelope.ok, true);
+      assert.equal(exitCode, 0);
+      assert.equal(envelope.data.step, null);
+      assert.equal(envelope.data.action, null);
     });
   });
 
@@ -266,17 +266,17 @@ describe("flow get next-action", () => {
       assert.equal(promoted.status, "in_progress", "fallback persists the promotion to flow.json");
     });
 
-    it("still errors NO_IN_PROGRESS_STEP when every step is done/skipped", () => {
+    it("returns ok:true with action='completed' when every step is done/skipped", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       for (const s of flattenSteps(state.steps)) s.status = "done";
       makeFlowManager(tmp).save(state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
-      assert.equal(envelope.ok, false);
-      assert.notEqual(exitCode, 0);
-      const msgs = envelope.errors.flatMap((e) => e.messages);
-      assert.ok(msgs.some((m) => /NO_IN_PROGRESS_STEP/i.test(m)), "error is NO_IN_PROGRESS_STEP when nothing left");
+      assert.equal(envelope.ok, true);
+      assert.equal(exitCode, 0);
+      assert.equal(envelope.data.step, null);
+      assert.equal(envelope.data.action, "completed");
     });
   });
 

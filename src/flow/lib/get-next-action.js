@@ -59,7 +59,7 @@ export default class GetNextActionCommand extends FlowCommand {
 
   execute(ctx) {
     if (!ctx.flowState) {
-      throw new Error("NO_ACTIVE_FLOW: no active flow; run `sdd-forge flow prepare` first");
+      return { taskId: null, step: null, action: null, instructions: null, context: null, output_schema: null, requires_approval: false };
     }
     let state = ctx.flowState;
 
@@ -100,7 +100,7 @@ export default class GetNextActionCommand extends FlowCommand {
       }
     }
     if (!target) {
-      throw new Error("NO_IN_PROGRESS_STEP: flow has no in_progress step; update step status before requesting next-action");
+      return { taskId: null, step: null, action: "completed", instructions: null, context: null, output_schema: null, requires_approval: false };
     }
 
     const derived = deriveNextAction(target.scope, target.stepId);

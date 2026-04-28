@@ -1,0 +1,123 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — spec は flow get/set/run コマンドの返却値ポリシー統一という単一の関心事に集中している; Unambiguous Requirements — 「requiresFlow:false かつ ok:true + 空状態を返す」「前提条件違反は Envelope.fail を返す」など検証可能な条件で記述されている。曖昧な形容詞は使われていない; Complete Context — 各 QA エントリに問題の根拠（evidence）と期待挙動（answer）が明記されており、トリガー条件と期待動作の両方が揃っている; No Hardcoded Secrets — リファクタ仕様のため秘密情報は関係しない; Prioritize Requirements — scopeVerification.in に4項目の要件があるが、優先度（must/should/nice-to-have）が割り当てられていない; Impact on Existing Features — impactOnExisting セクションに AI スキル・既存テスト・post-hook への影響が明示されている; Present Recommendations with Reasoning — 全 QA エントリに推奨回答と根拠（evidence/why/considered）が記載されている; Explore Before Asking — openQuestions が空で、全設問がコードベース探索（ファイル名・行番号付き evidence）を根拠に回答されている; Proactively Raise Related Implications — post-hook の挙動変化（throw→Envelope.fail で onError route が変わる）やテスト修正の必要性が proactively 言及されている; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved:true で決定済みの仕様として扱われており、ブレインストーミングと決定の混同は見られない; Capture Digressions in draft.md — 議論の過程が提供されておらず、脱線の有無を評価できない; Draft Stays at Requirements Level — 要件レベルで記述されており、アルゴリズムやデータ構造の実装詳細は含まれていない。ファイル名・行番号は evidence として justification に使われている; Backward-Compatible CLI Interface — get-next-action の返却値変化（throw→ok:true+空状態）は CLI 呼び出し元の挙動変化に相当するが、マイグレーション計画や後方互換への言及がない",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T03:12:29.280Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に4項目の要件があるが、優先度（must/should/nice-to-have）が割り当てられていない"
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "get-next-action の返却値変化（throw→ok:true+空状態）は CLI 呼び出し元の挙動変化に相当するが、マイグレーション計画や後方互換への言及がない"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft.json is not valid JSON: Expected double-quoted property name in JSON at position 5764 (line 79 column 5)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T03:13:16.470Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.modules[1].text: required field is missing; overview.modules[1].name: unknown field; overview.modules[1].role: unknown field; overview.modules[2].text: required field is missing; overview.modules[2].name: unknown field; overview.modules[2].role: unknown field; overview.modules[3].text: required field is missing; overview.modules[3].name: unknown field; overview.modules[3].role: unknown field; overview.data_flow[0]: must be object, got string; overview.decisions[0].id: unknown field; overview.decisions[1].id: unknown field; overview.decisions[2].id: unknown field; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; requirements[4].desc: required field is missing; requirements[4].text: unknown field; requirements[5].desc: required field is missing; requirements[5].text: unknown field; requirements[6].desc: required field is missing; requirements[6].text: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T03:16:50.543Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T03:18:32.350Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — 仕様はflowコマンドの返却値方針の統一という単一関心に絞られている; Task Single Responsibility — T-1は状態クエリ系の空状態返却、T-2は操作系のEnvelope.fail統一、T-3はdocs明文化と各タスクが独立した単一関心を持つ; Unambiguous Requirements — 全要件が具体的な返却値構造(step:null, action:'completed'等)や動作変更先(requiresFlow:false)を明示しており検証可能; Complete Context — R1-R7いずれもトリガー条件(flow不在時、全ステップ完了時、ユーザー起因エラー時等)と期待動作が意味的に揃っている; REQ Diff-Verifiability — 全要件はdiff(実装変更)＋テスト実行結果でPASS/FAIL判定可能。exit code・返却JSONの構造変化はdiffとテストで確認できる; No Hardcoded Secrets — 仕様ドキュメントのみでソースコードを含まないため該当なし; No Silent Error Swallowing — 設計方針でthrowとEnvelope.failの使い分けを明示しており、エラーを黙って握り潰す設計はない; Prioritize Requirements — R1-R7の7件すべてにmust/should/nice-to-haveの優先度が付与されている; Impact on Existing Features — 既存機能への影響(post-hookスキップ挙動の変化、exit code変化がスクリプト呼び出し元に与える影響等)を明示するセクションがなく、'既存テストがPASS'という基準のみで代替されている; Bounded Resource Usage — 再帰処理・リトライ・バルクデータロードは本仕様の対象外のため該当なし; Spec Includes Test Strategy — T-1/T-2はunit testパターンを明記、T-3はguardrailチェックで検証と各タスクにtest_strategyが記載されている; Synthesize Draft, Do Not Copy — background・decisions・alternatives_consideredが整理・抽象化されており、草案の単純コピーではない; Record Unresolved Points as Open Questions — open_questionsセクションが用意されており、未解決の点(base-commandのguard二重化)はclarificationsにスコープ外として明記されている; Include 'Why This Approach' Rationale — decisions配列に各判断のevidenceが記載され、alternatives_consideredに却下理由が明記されている; Spec Test Coverage — テストファイルがspecs/239-flow-command-return-value-policy/tests/配下に作成されPASSするかは実行時証拠が必要; Backward-Compatible CLI Interface — flow get next-actionのexit code挙動変更(エラー→exit 0)はCLIインターフェースの意味変更だが、移行計画の記載がなくalpha版ポリシーへの言及のみで代替している; Exit Code Contract — acceptance_criteriaに'exit code 0 + ok:true'という成功条件が明示されており、成功・失敗の定義が仕様化されている; Validate User Input at Entry Point — 本仕様は既存コマンドの返却値挙動変更であり新規ユーザー向け引数を追加しないため該当なし",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T03:19:56.429Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "既存機能への影響(post-hookスキップ挙動の変化、exit code変化がスクリプト呼び出し元に与える影響等)を明示するセクションがなく、'既存テストがPASS'という基準のみで代替されている"
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "flow get next-actionのexit code挙動変更(エラー→exit 0)はCLIインターフェースの意味変更だが、移行計画の記載がなくalpha版ポリシーへの言及のみで代替している"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — R1(get-next-action flow不在→ok:true+step:null), R2(全完了→action:'completed'), R3(get-check requiresFlow:false+空状態), R4(AGENTS.md方針セクション追加), R7(run-retro throw→Envelope.fail)はdiffに実装済み。しかしR5(run-reopen-draft の throw→Envelope.fail)とR6(set-issue-log の throw→Envelope.fail)はdiffに対象ファイルの変更が含まれておらず未実装。spec.jsonではR5/R6ともstatus:doneとマークされているが実装証拠がない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T03:35:11.872Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "R1(get-next-action flow不在→ok:true+step:null), R2(全完了→action:'completed'), R3(get-check requiresFlow:false+空状態), R4(AGENTS.md方針セクション追加), R7(run-retro throw→Envelope.fail)はdiffに実装済み。しかしR5(run-reopen-draft の throw→Envelope.fail)とR6(set-issue-log の throw→Envelope.fail)はdiffに対象ファイルの変更が含まれておらず未実装。spec.jsonではR5/R6ともstatus:doneとマークされているが実装証拠がない。"
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "reason": "R5 (run-reopen-draft) と R6 (set-issue-log) は既にコード内で Envelope.fail パターンを使用しており変更不要。R5: validateReason 内の throw は try/catch でラップ済みで Envelope.fail として返される。R6: loadIssueLog の throw は内部データ破損エラーであり spec の方針通り throw のまま残す",
+      "resolution": "R5/R6 のステータスを skipped に変更。既存コードが既に方針に準拠しているため diff 変更なし",
+      "taskId": null,
+      "timestamp": "2026-04-28T03:35:23.696Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-28T03:41:37.758Z"
+    }
+  ]
+}

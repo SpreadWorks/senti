@@ -151,14 +151,14 @@ export class RunRetroCommand extends FlowCommand {
     const specJson = loadSpecJson(absSpecInput);
     const requirements = normalizeRequirements(specJson.requirements);
     if (requirements.length === 0) {
-      throw new Error(`no requirements found in spec.json at ${specPath}`);
+      return Envelope.fail("run", "retro", "NO_REQUIREMENTS", `no requirements found in spec.json at ${specPath}`);
     }
     const requirementsText = requirementsAsText(requirements);
 
     // Get diff
     const baseBranch = state.baseBranch;
     if (!baseBranch) {
-      throw new Error("baseBranch not set in flow.json");
+      return Envelope.fail("run", "retro", "NO_BASE_BRANCH", "baseBranch not set in flow.json");
     }
 
     const diffStat = getDiff(root, baseBranch);
@@ -192,12 +192,12 @@ export class RunRetroCommand extends FlowCommand {
     // Resolve AI agent
     const config = ctx.config;
     if (!config) {
-      throw new Error("failed to load config");
+      return Envelope.fail("run", "retro", "NO_CONFIG", "failed to load config");
     }
 
     const agent = container.get("agent");
     if (!agent.resolve("flow.finalize.retro")) {
-      throw new Error("no AI agent configured (agent.default or agent.profiles.<name>.flow.finalize.retro)");
+      return Envelope.fail("run", "retro", "NO_AGENT", "no AI agent configured (agent.default or agent.profiles.<name>.flow.finalize.retro)");
     }
 
     // Build prompt and call AI

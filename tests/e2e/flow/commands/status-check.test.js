@@ -56,17 +56,15 @@ describe("flow get check impl", () => {
     assert.match(result, /test/);
   });
 
-  it("errors when no flow.json exists", () => {
+  it("returns ok:true with pass:false when no flow.json exists", () => {
     tmp = createTmpDir();
-    try {
-      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
-        encoding: "utf8",
-        env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
-      });
-      assert.fail("should exit non-zero");
-    } catch (err) {
-      const out = `${err.stdout || ""}${err.stderr || ""}`;
-      assert.match(out, /no.*(active )?flow/i);
-    }
+    const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
+      encoding: "utf8",
+      env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
+    });
+    const envelope = JSON.parse(result);
+    assert.equal(envelope.ok, true);
+    assert.equal(envelope.data.pass, false);
+    assert.match(envelope.data.summary, /no active flow/);
   });
 });
