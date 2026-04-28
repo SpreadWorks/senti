@@ -105,9 +105,9 @@ export function formatText(rows) {
   for (const [phase, phaseRows] of groups.entries()) {
     lines.push(`PHASE ${phaseLabel(phase)}`);
     lines.push("");
-    lines.push("             |             | token          | cache          |            |          |          |");
-    lines.push("             | difficulty  | in      out    | read   create  | call count | cost     | duration |");
-    lines.push("-------------------------------------------------------------------------------------------------");
+    lines.push("             |             | token          | cache          |            |            |          |");
+    lines.push("             | difficulty  | in      out    | read   create  | call count | cost       | duration |");
+    lines.push("---------------------------------------------------------------------------------------------------");
     for (const row of phaseRows) {
       const incomplete = row.cost == null || row.cost === 0;
       const date = row.date.padEnd(11, " ");
@@ -117,10 +117,10 @@ export function formatText(rows) {
       const read = asDisplayValue(row.cacheRead).padEnd(6, " ");
       const create = asDisplayValue(row.cacheCreate).padEnd(7, " ");
       const calls = asDisplayValue(row.callCount).padEnd(10, " ");
-      const cost = asDisplayValue(row.cost, "cost").padEnd(8, " ");
-      const duration = asDisplayValue(row.durationMs, "duration");
       const suffix = incomplete ? " +" : "";
-      lines.push(`${date} | ${diff} | ${inTok} ${outTok} | ${read} ${create} | ${calls} | ${cost} | ${duration}${suffix}`);
+      const cost = (asDisplayValue(row.cost, "cost") + suffix).padEnd(10, " ");
+      const duration = asDisplayValue(row.durationMs, "duration");
+      lines.push(`${date} | ${diff} | ${inTok} ${outTok} | ${read} ${create} | ${calls} | ${cost} | ${duration}`);
     }
     lines.push("");
   }
