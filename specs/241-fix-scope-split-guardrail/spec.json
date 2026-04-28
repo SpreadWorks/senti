@@ -1,0 +1,139 @@
+{
+  "goal": "single-responsibility guardrail が AI にスコープ分割を誘発する問題を修正し、ユーザーが定義した Issue/request のスコープ境界を尊重させる",
+  "scope": {
+    "in": [
+      "single-responsibility guardrail body の修正（ユーザースコープ尊重の明記）",
+      "draft.md prompt の concern 単位記述の明確化（spec 分割とタスク分解の区別）"
+    ],
+    "out": [
+      "task-single-responsibility guardrail（タスク粒度は別 concern）",
+      "gate ロジックの変更（guardrail テキスト評価の仕組み自体は正常）",
+      "greenfield preset の single-responsibility-functions guardrail（コード品質の別 guardrail）"
+    ]
+  },
+  "constraints": [
+    "guardrail body の修正のみで対処する。gate コードの変更は行わない",
+    "既存の guardrail ID (single-responsibility) を維持する。ID 変更は下流の参照を壊す"
+  ],
+  "design_principles": [
+    "guardrail は AI の振る舞いをテキストで制御する。テキスト修正が最小かつ直接的な介入手段",
+    "スコープの判断権はユーザーにある。AI は分割を提案してはならない"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/presets/base/guardrail.json — guardrail 定義の単一ソース。全 preset の基底。gate フェーズで AI に渡される"
+      },
+      {
+        "text": "src/flow/prompts/plan/draft.md — draft フェーズの AI 指示テンプレート。flow get next-action 経由で instructions に含まれる"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "guardrail.json → flow get guardrail <phase> → AI context → gate 評価"
+      },
+      {
+        "text": "draft.md → flow get next-action (step=draft) → instructions.content → AI 指示"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "guardrail body にユーザースコープ尊重条項を追加する。gate ロジックの変更は行わない。gate は guardrail body をそのまま AI に渡して評価させるため、body の表現変更で評価基準が変わる。",
+        "evidence": "src/spec/commands/render.js — gate は guardrail.json の body を AI に渡す汎用処理"
+      },
+      {
+        "text": "draft.md の concern 単位記述を「タスク分解の前提整理」であることを明確化する。spec 自体の分割を示唆しない表現に修正する。",
+        "evidence": "src/flow/prompts/plan/draft.md:1 — 現行文言が AI に spec 分割を示唆"
+      }
+    ]
+  },
+  "background": "draft フェーズで AI が single-responsibility guardrail を過剰適用し、ユーザーが1つの Issue として定義したスコープを複数 spec に分割する提案を行った（#284 で発生）。guardrail body には 'Each spec shall address one concern' とあるが、ユーザーの Issue/request がスコープ境界を定義する旨の記述がなく、AI が独自に concern の粒度を判断してしまう。影響範囲: draft フェーズの AI 振る舞いと gate-draft の single-responsibility 評価基準が変わる。既存の spec/flow データは不変（guardrail は実行時参照テキスト）。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "single-responsibility guardrail の body に、ユーザーが定義した Issue/request のスコープを1つの spec として扱う原則を追記する。AI がスコープ分割を自発的に提案することを禁止する文言を含む。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "draft.md 1行目を修正し、(a) spec 自体の分割に言及しない、(b) タスク分解の前提であることを明記する、(c) task-single-responsibility guardrail への参照を維持する、の3条件を満たす表現にする。",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "guardrail.json の single-responsibility エントリの body に、ユーザーの Issue/request スコープを尊重する旨と、AI が自発的にスコープ分割を提案してはならない旨が記載されている",
+    "guardrail.json の single-responsibility の id, title, meta.phase, meta.category は変更されていない",
+    "draft.md 1行目が (a) spec 分割に言及せず (b) タスク分解の前提であることを明記し (c) task-single-responsibility guardrail 参照を維持している",
+    "npm test が通る"
+  ],
+  "clarifications": [
+    {
+      "q": "gate ロジックの変更は必要か",
+      "a": "不要。gate は guardrail body を AI に渡して評価するため、body 修正だけで評価基準が変わる"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "gate コードに single-responsibility 固有のスコープ分割抑止ロジックを追加する",
+      "reason": "gate は汎用評価エンジンであり、特定 guardrail のためのハードコードは設計原則に反する。テキスト修正で対処可能"
+    },
+    {
+      "option": "single-responsibility guardrail を draft phase から削除する",
+      "reason": "draft 段階での spec スコープ意識は有用。問題は guardrail の存在ではなく表現の曖昧さ"
+    }
+  ],
+  "open_questions": [],
+  "implementationTargets": [
+    "src/presets/base/guardrail.json",
+    "src/flow/prompts/plan/draft.md"
+  ],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-1",
+      "title": "Clarify single-responsibility guardrail body to respect user-defined scope",
+      "goal": "guardrail.json の single-responsibility body にユーザーの Issue/request スコープ尊重と AI によるスコープ分割提案の禁止を明記する",
+      "acceptance": [
+        "body に Issue/request スコープ尊重の文言が含まれる",
+        "body に AI がスコープ分割を提案してはならない旨が含まれる",
+        "id, title, meta は変更なし"
+      ],
+      "implementation_notes": "body フィールドのテキスト修正のみ。JSON 構造は不変。",
+      "test_strategy": "spec テストで body 内容を検証（キーワード含有チェック）",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Clarify draft.md concern-unit note to prevent scope-splitting interpretation",
+      "goal": "draft.md 1行目の concern 単位記述を、spec 分割ではなくタスク分解の前提であることを明確にする表現に修正する",
+      "acceptance": [
+        "draft.md の記述が spec 分割を示唆しない表現に修正されている",
+        "タスク分解の前提として concern 整理を意識する趣旨は維持されている"
+      ],
+      "implementation_notes": "draft.md 1行目のテキスト修正。draft フェーズ全体の指示構造は不変。",
+      "test_strategy": "spec テストで draft.md の内容を検証（修正後テキスト一致）",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-28T14:14:37.393Z",
+    "notes": "autoApprove"
+  }
+}

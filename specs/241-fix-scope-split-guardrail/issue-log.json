@@ -1,0 +1,85 @@
+{
+  "entries": [
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.modules[1].text: required field is missing; overview.modules[1].name: unknown field; overview.modules[1].role: unknown field; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; clarifications[0].q: required field is missing; clarifications[0].a: required field is missing; clarifications[0].question: unknown field; clarifications[0].answer: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T14:04:32.215Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T14:05:30.583Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — spec は single-responsibility guardrail のスコープ分割問題という単一の concern を扱っている; Task Single Responsibility — T-1 は guardrail.json body の修正、T-2 は draft.md の修正とそれぞれ単一の concern を扱い、両者は同じ問題解決の文脈に属する; Unambiguous Requirements — R1・R2 ともに検証可能な条件（特定文言の含有、1行目の表現変更）で記述されており曖昧な形容詞は使われていない; Complete Context — R2 の受入条件 'spec 分割を示唆しない表現に修正されている' は主観的な判定を含む。どのような表現なら合格かを独立した2人のレビュアーが一致して判断できる具体的な基準が示されていない; REQ Diff-Verifiability — R1 は guardrail.json の diff でキーワード含有を確認でき、R2 は draft.md の diff で1行目テキストを確認できる。いずれも diff + テスト実行結果のみで PASS/FAIL が決定できる; No Hardcoded Secrets — シークレット・APIキー等を扱う変更を含まないため非該当; No Silent Error Swallowing — エラーハンドリングの変更を含まないため非該当; Prioritize Requirements — 要件数は2件（3件以下）のため優先度付けの義務は発生しない。なお R1・R2 ともに must が付与されている; Impact on Existing Features — single-responsibility guardrail の body 変更は draft フェーズの gate 評価挙動に影響するが、既存機能への影響を明記するセクションがなく、'既存機能への影響なし' の明示もない; Bounded Resource Usage — 再帰処理・リトライ・バルクロードを伴う変更を含まないため非該当; Spec Includes Test Strategy — T-1・T-2 それぞれに test_strategy フィールドがあり、受入条件にも 'npm test が通る' が明記されている; Synthesize Draft, Do Not Copy — ドラフト内容が整理・抽象化されており、未記載の内容の捏造も見られない; Record Unresolved Points as Open Questions — open_questions が空で、未解決事項を未検証の断定として記述している箇所はない; Include 'Why This Approach' Rationale — decisions セクションに gate コード変更を選ばない根拠、alternatives_considered に代替案とその棄却理由が記載されている; Spec Test Coverage — テストコードの実際の配置（specs/<specid>/tests/）とパスは実装後にしか検証できない; Backward-Compatible CLI Interface — CLI コマンドの追加・変更を含まないため非該当; Exit Code Contract — CLI コマンドの追加・変更を含まないため非該当; Validate User Input at Entry Point — CLI コマンドの追加・変更を含まないため非該当",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T14:06:46.817Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R2 の受入条件 'spec 分割を示唆しない表現に修正されている' は主観的な判定を含む。どのような表現なら合格かを独立した2人のレビュアーが一致して判断できる具体的な基準が示されていない"
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "single-responsibility guardrail の body 変更は draft フェーズの gate 評価挙動に影響するが、既存機能への影響を明記するセクションがなく、'既存機能への影響なし' の明示もない"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: impact_on_existing: unknown field; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T14:07:26.708Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "review",
+      "reason": "flow run review post-hook fails with 'unknown step: review' — flow-store.findStepById cannot locate the review step during post-hook execution",
+      "trigger": "sdd-forge flow run review post-hook",
+      "resolution": "manual workaround: advance step via flow get next-action dispatcher",
+      "guardrailCandidate": "review step post-hook should handle step lookup correctly for flow-level (non-task) review steps",
+      "taskId": "T-pending-spec",
+      "timestamp": "2026-04-28T14:25:29.013Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-28T14:30:03.134Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-28T14:30:29.449Z"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-   **Note on subsequent task decomposition:** 後続の spec 段階で要件を **concern 単位** にタスク分解する前提で要件整理せよ。draft は要件レベルの議論に留めるが、各要件群が単一 concern に収まるよう意識すること。タスク分解の粒度制約は後続の `task-single-responsibility` guardrail (phase=[spec, task-spec]) で評価される。
+   **Note on subsequent task decomposition:** 後続の spec 段階で要件を **concern 単位** にタスク分解する。draft は要件レベルの議論に留め、スコープは Issue or request の境界に従う。タスク分解の粒度制約は後続の `task-single-responsibility` guardrail (phase=[spec, task-spec]) で評価される。
 
    **Draft artifact format: draft.json**
    The draft artifact is a JSON file (`draft.json`), not markdown. The AI writes structured JSON directly.

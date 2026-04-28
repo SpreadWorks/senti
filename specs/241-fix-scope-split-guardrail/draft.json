@@ -1,0 +1,54 @@
+{
+  "devType": "bugfix",
+  "goal": "AI が draft フェーズで single-responsibility guardrail を過剰適用し、ユーザーが定義した Issue スコープを勝手に複数 spec に分割提案する問題を修正する",
+  "analysis": {
+    "problem": "single-responsibility guardrail の body が 'Each spec shall address one concern. Do not bundle unrelated changes into a single specification.' と絶対的な表現で、Issue をスコープ境界として尊重する指示がない。AI はこれを mandate と解釈し、Issue 内に複数の sub-concern を見出すと分割を提案してしまう。draft.md 1行目の '各要件群が単一 concern に収まるよう意識すること' も分割方向への圧力になっている。",
+    "proposedApproach": "guardrail.json の single-responsibility body にユーザーの Issue/request が1つの spec に対応する原則を明記する。分割提案は AI が自発的に行うのではなく、ユーザーの判断に委ねる旨を追加する。draft.md の concern 単位の記述も、spec 内のタスク分解の話であって spec 自体の分割ではないことを明確化する。",
+    "validation": "根本原因は guardrail テキストの曖昧さにある。AI の振る舞いは guardrail 本文に依存するため、テキスト修正で直接的に対処できる。"
+  },
+  "scopeVerification": {
+    "in": [
+      "single-responsibility guardrail body の修正（ユーザースコープ尊重の明記）",
+      "draft.md の concern 単位記述の明確化"
+    ],
+    "out": [
+      "task-single-responsibility guardrail（タスク粒度は別 concern）",
+      "gate ロジックの変更（guardrail 評価ロジック自体は正常動作している）",
+      "greenfield preset の single-responsibility-functions guardrail（コード品質の話で別物）"
+    ]
+  },
+  "impactOnExisting": [
+    "draft フェーズでの AI の振る舞いが変わる（分割提案を控えるようになる）",
+    "gate-draft の single-responsibility 評価基準が変わる（guardrail body が評価の入力）",
+    "既存の spec/flow には影響なし（guardrail は実行時に参照される）"
+  ],
+  "qa": [
+    {
+      "question": "guardrail body の修正で十分か、それとも gate ロジック側にも変更が必要か",
+      "answer": "guardrail body の修正で十分。gate は guardrail の body テキストを AI に渡して評価させるため、body の表現を変えれば評価基準が変わる。gate のコード自体は汎用的な仕組みであり変更不要。",
+      "evidence": "src/spec/commands/render.js — gate は guardrail.json から body を読み取り AI に渡す。ロジックに single-responsibility 固有のハードコードはない。",
+      "why": "最小限の変更で根本原因に対処するため",
+      "considered": "gate にスコープ分割検出ロジックを追加する案 — 過剰実装になる上、AI の判断を制限する方式は柔軟性に欠ける"
+    },
+    {
+      "question": "draft.md 1行目の記述はどう修正するか",
+      "answer": "「各要件群が単一 concern に収まるよう意識すること」を「draft はスコープを分割しない。要件を concern 単位に整理するのは後続の spec 段階でのタスク分解時であり、draft の役割ではない」に修正。spec 自体の分割とタスク分解を混同しない表現にする。",
+      "evidence": "src/flow/prompts/plan/draft.md:1 — 現行の文言が AI に spec レベルの分割を示唆する",
+      "why": "guardrail body だけ修正しても、draft prompt が分割を促す記述を持ったままだと矛盾が残る",
+      "considered": "draft.md を修正しない案 — guardrail body と prompt 間で矛盾が生じ、AI の振る舞いが不安定になるリスク"
+    },
+    {
+      "question": "テスト戦略はどうするか",
+      "answer": "guardrail.json の JSON バリデーションテストと、修正後の body テキストが意図通りの内容を含むことを確認するアサーションテストを追加する。draft.md はテンプレートファイルのため、内容の正確性はテキスト一致で検証。",
+      "evidence": "tests/ 配下の既存テストパターンを踏襲",
+      "why": "guardrail body はテキストであり、構造テストで変更の意図を保護する",
+      "considered": "AI の振る舞いを直接テストする案（agent テスト）— コストが高く、テキスト変更に対しては過剰"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-28T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}

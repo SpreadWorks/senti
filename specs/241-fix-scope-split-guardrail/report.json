@@ -1,0 +1,73 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/241-fix-scope-split-guardrail/draft.json     |  54 ++++\n specs/241-fix-scope-split-guardrail/flow.json      | 336 +++++++++++++++++++++\n specs/241-fix-scope-split-guardrail/issue-log.json |  75 +++++\n specs/241-fix-scope-split-guardrail/issue.md       |  10 +\n specs/241-fix-scope-split-guardrail/qa.md          |   9 +\n specs/241-fix-scope-split-guardrail/review.md      |  25 ++\n specs/241-fix-scope-split-guardrail/spec.json      | 139 +++++++++\n specs/241-fix-scope-split-guardrail/spec.md        |  72 +++++\n .../241-fix-scope-split-guardrail/tests/README.md  |  20 ++\n .../tests/guardrail-body.test.js                   |  67 ++++\n src/flow/prompts/plan/draft.md                     |   2 +-\n src/presets/base/guardrail.json                    |   2 +-\n 12 files changed, 809 insertions(+), 2 deletions(-)",
+      "commits": [
+        "fix: clarify single-responsibility guardrail to respect user-defined Issue scope"
+      ]
+    },
+    "retro": {
+      "total": 2,
+      "done": 2,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "R1・R2 ともに完全に充足されている。guardrail.json への追記は Issue/request スコープ尊重の原則と AI による分割提案禁止を明確に記述しており、draft.md 1行目の修正は spec 分割示唆を除去しつつタスク分解文脈と guardrail 参照を維持している。unplanned として挙げた変更はすべて SDD ワークフローの標準成果物またはテストファイルであり、要件の実装品質に悪影響を与えるものはない。",
+      "requirements": [
+        {
+          "desc": "single-responsibility guardrail の body に、ユーザーが定義した Issue/request のスコープを1つの spec として扱う原則を追記する。AI がスコープ分割を自発的に提案することを禁止する文言を含む。",
+          "status": "done",
+          "note": "guardrail.json の single-responsibility body に 'When a user creates an Issue or request, it defines the scope boundary for a single spec.' および 'The AI shall not propose splitting a user-defined Issue into multiple specs.' が追記された。id/title/meta は変更なし。"
+        },
+        {
+          "desc": "draft.md 1行目を修正し、(a) spec 自体の分割に言及しない、(b) タスク分解の前提であることを明記する、(c) task-single-responsibility guardrail への参照を維持する、の3条件を満たす表現にする。",
+          "status": "done",
+          "note": "(a) 旧文言の「各要件群が単一 concern に収まるよう意識すること」を削除し spec 分割への言及なし。(b) 「後続の spec 段階で要件を concern 単位にタスク分解する」でタスク分解の前提を維持。(c) task-single-responsibility guardrail 参照も維持。3条件すべて充足。"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 15235,
+      "output": 16756,
+      "cacheRead": 169389,
+      "cacheCreation": 115925,
+      "cost": 0.7967957499999999,
+      "callCount": 7,
+      "durationMs": 322166,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 34563
+        },
+        {
+          "phase": "gate",
+          "durationMs": 109471
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 67852
+        },
+        {
+          "phase": "review",
+          "durationMs": 110280
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: clarify single-responsibility guardrail to respect user-defined Issue scope\n    12 files changed, 809 insertions(+), 2 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (2 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 7\n    input tokens ................ 15,235\n    output tokens ............... 16,756\n    cache-read tokens ........... 169,389\n    cache-create tokens ......... 115,925\n    cost ........................ $0.7968\n    duration (total) ............ 322.2s\n      gate-draft ................ 34.6s\n      gate ...................... 109.5s\n      gate-impl ................. 67.9s\n      review .................... 110.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

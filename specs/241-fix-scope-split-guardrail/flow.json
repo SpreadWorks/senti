@@ -1,0 +1,353 @@
+{
+  "spec": "specs/241-fix-scope-split-guardrail/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/241-fix-scope-split-guardrail",
+  "runId": "9b510e3f-8afa-4da0-847f-03ef9efc294f",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-04-28T14:00:06.239Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-04-28T14:00:06.239Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-04-28T14:00:06.239Z",
+          "finishedAt": "2026-04-28T14:02:06.178Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-04-28T14:02:06.178Z",
+          "finishedAt": "2026-04-28T14:02:57.626Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-04-28T14:02:57.626Z",
+          "finishedAt": "2026-04-28T14:04:25.312Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-04-28T14:04:25.312Z",
+          "finishedAt": "2026-04-28T14:14:23.294Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-04-28T14:14:23.294Z",
+          "finishedAt": "2026-04-28T14:14:41.103Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-04-28T14:14:41.103Z",
+          "finishedAt": "2026-04-28T14:15:33.444Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-04-28T14:15:33.444Z",
+          "finishedAt": "2026-04-28T14:19:05.397Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-04-28T14:19:05.397Z",
+          "finishedAt": "2026-04-28T14:20:22.647Z"
+        },
+        {
+          "id": "review",
+          "status": "done",
+          "startedAt": "2026-04-28T14:20:22.647Z",
+          "finishedAt": "2026-04-28T14:25:00.000Z"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "finishedAt": "2026-04-28T14:28:00.000Z"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": []
+    }
+  ],
+  "currentTaskId": "T-pending-spec",
+  "issue": 285,
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 24,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "draft フェーズの guardrail プロンプト修正。対象・問題・期待動作が明確。#284 という具体的な発生事例あり。類似の guardrail 調整は過去に実施済み。"
+  },
+  "worktree": true,
+  "request": "Issue #285: AI が draft フェーズで Single Responsibility guardrail を過剰適用し、ユーザーが1つの Issue として定義したスコープを勝手に複数 spec に分割提案する問題を修正する。",
+  "notes": [
+    {
+      "text": "prelude: auto mode enabled, worktree + base=main, spec title fix-scope-split-guardrail",
+      "taskId": null,
+      "ts": "2026-04-28T14:00:24.559Z"
+    },
+    {
+      "text": "draft: autoApprove self-Q&A completed. Fix single-responsibility guardrail body + draft.md prompt.",
+      "taskId": null,
+      "ts": "2026-04-28T14:02:10.846Z"
+    },
+    {
+      "text": "plan complete: auto → proceed to implementation",
+      "taskId": null,
+      "ts": "2026-04-28T14:15:41.535Z"
+    }
+  ],
+  "metrics": [
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1725,
+      "durationMs": 34563,
+      "tokens": {
+        "input": 2,
+        "output": 1551,
+        "cacheRead": 11585,
+        "cacheCreation": 12904
+      },
+      "cost": 0.0780395,
+      "taskId": null,
+      "ts": "2026-04-28T14:02:57.600Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T14:02:57.658Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T14:04:32.214Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T14:05:30.583Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2332,
+      "durationMs": 56268,
+      "tokens": {
+        "input": 3,
+        "output": 3561,
+        "cacheRead": 11585,
+        "cacheCreation": 13852
+      },
+      "cost": 0.1127165,
+      "taskId": null,
+      "ts": "2026-04-28T14:06:46.792Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T14:06:46.816Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T14:07:26.706Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2796,
+      "durationMs": 53203,
+      "tokens": {
+        "input": 3,
+        "output": 3010,
+        "cacheRead": 11585,
+        "cacheCreation": 13959
+      },
+      "cost": 0.10496475000000001,
+      "taskId": null,
+      "ts": "2026-04-28T14:14:23.284Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T14:14:23.308Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 620,
+      "durationMs": 36268,
+      "tokens": {
+        "input": 2,
+        "output": 1935,
+        "cacheRead": 11585,
+        "cacheCreation": 26092
+      },
+      "cost": 0.1464185,
+      "taskId": null,
+      "ts": "2026-04-28T14:19:51.039Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1247,
+      "durationMs": 31584,
+      "tokens": {
+        "input": 2,
+        "output": 1663,
+        "cacheRead": 11585,
+        "cacheCreation": 26909
+      },
+      "cost": 0.14623925,
+      "taskId": null,
+      "ts": "2026-04-28T14:20:22.638Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T14:20:22.661Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2578,
+      "durationMs": 67309,
+      "tokens": {
+        "input": 15216,
+        "output": 3055,
+        "cacheRead": 75136,
+        "cacheCreation": 0
+      },
+      "taskId": "T-pending-spec",
+      "ts": "2026-04-28T14:21:41.321Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1579,
+      "durationMs": 42971,
+      "tokens": {
+        "input": 7,
+        "output": 1981,
+        "cacheRead": 36328,
+        "cacheCreation": 22209
+      },
+      "cost": 0.20841724999999997,
+      "taskId": "T-pending-spec",
+      "ts": "2026-04-28T14:22:24.344Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-pending-spec",
+      "ts": "2026-04-28T14:25:29.036Z"
+    },
+    {
+      "phase": "finalize-commit",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2641,
+      "durationMs": 35971,
+      "tokens": {
+        "input": 3,
+        "output": 2866,
+        "cacheRead": 11585,
+        "cacheCreation": 26330
+      },
+      "cost": 0.161534,
+      "taskId": "T-pending-spec",
+      "ts": "2026-04-28T14:28:09.159Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-28T14:27:33.081Z"
+  }
+}
