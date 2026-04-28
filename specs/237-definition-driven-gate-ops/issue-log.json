@@ -1,0 +1,81 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — R4a（gate副作用のdefinition駆動化）とR8c（PHASE_TO_STEP_ENTRIESの導出化）はどちらも「definition single source of truth化」という同一のリファクタ目標に属する。spec 236 retro の残件2件を1つのspecにまとめることは合理的。; Unambiguous Requirements — scopeVerification.in の各項目は具体的なファイル・関数名（registry.js gate post hook、PHASE_TO_STEP_ENTRIES等）で表現されており、曖昧な形容詞を避けている。; Complete Context — 各QAエントリにはトリガー条件（gate PASS時、definition走査時等）と期待される振る舞い（副作用実行箇所の移動、定義からの自動導出等）が揃っている。; No Hardcoded Secrets — APIキー・トークン・パスワード等のシークレットに関する記述はなく、リファクタスコープ外の懸念。; Prioritize Requirements — scopeVerification.in に5件の要件があるが、must/should/nice-to-have の優先度が割り当てられていない。; Impact on Existing Features — impactOnExisting フィールドに registry.js・gate-step.js・definition.js・run-gate.js への影響が明示されている。; Present Recommendations with Reasoning — 各QAエントリに recommended answer と evidence/why/considered が揃っており、根拠が明示されている。; Explore Before Asking — QAの各回答はソースコードの具体的な行番号（set-step.js:47, registry.js:335-351等）を根拠として引用しており、コードを調査した上で回答している。openQuestions が空なのも探索済みの証左。; Proactively Raise Related Implications — run-gate.js への影響（「実行箇所の設計次第」）を impactOnExisting で明示し、registry post hook 残留の理由も proactively 説明している。; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true かつ confirmedAt が設定されており、決定フェーズとして明示されている。; Capture Digressions in draft.md — 会話ログが提供されていないため、議論の脱線が発生したかどうか評価不能。; Draft Stays at Requirements Level — QAのevidenceフィールドでファイル名・行番号を参照しているが、それはjustificationとして許容されている。内部アルゴリズムやデータ構造の詳細設計はscopeVerification.outで除外されており、要件レベルの記述にとどまっている。; Backward-Compatible CLI Interface — CLIコマンドの変更はなく、内部リファクタのみ。gate-step.jsの外部APIシグネチャ（resolveGateStepId等）は維持すると明記されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T23:50:25.342Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に5件の要件があるが、must/should/nice-to-have の優先度が割り当てられていない。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T23:53:30.087Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — spec の関心事は R4a（gate PASS 副作用の definition 駆動化）と R8c（PHASE_TO_STEP 派生）の2件であり、どちらも「definition.js を single source of truth にする」という単一アーキテクチャ目標の下位項目。共通関心事のため分割不要。; Task Single Responsibility — T-1: definition.js への属性追加、T-2: gate-step.js の派生置換、T-3: registry→run-gate への移動。各タスクは単一モジュールへの単一変更。; Unambiguous Requirements — 各要件はノード名・メソッド名・行番号を具体的に指定しており、曖昧な形容詞は使用されていない。; Complete Context — R4「gate 結果が pass のとき → sideEffects を実行」など、トリガー条件と期待動作の両方が意味として読み取れる。; REQ Diff-Verifiability — 全要件が「hardcoded 配列の削除」「行の撤去」「戻り値の等価性」など diff とテスト実行で確認できる形式になっている。; No Hardcoded Secrets — spec 内に API キー・パスワード・トークン等の秘密情報は存在しない。; No Silent Error Swallowing — spec はエラー握りつぶしを誘発するパターンを含まない。副作用実行は順次実行と記載されており隠蔽を示唆しない。; Prioritize Requirements — 6件の要件すべてに must / should の優先度が付与されている。; Impact on Existing Features — 制約・受け入れ基準で外部 API の不変性は言及されているが、「既存機能への影響」を明示的に列挙したセクション・文がない。registry.js の gate post hook 変更が他の呼び出し元に波及しないか等が未記述。; Bounded Resource Usage — collectGatePhaseEntries() は静的な FLOW_DEFINITION と TASK_DEFINITION を走査するのみで、再帰深度・リトライ・バルクロードに上限が必要な箇所はない。; Spec Includes Test Strategy — 各タスクに test_strategy フィールドがあり、R6 で既存テスト全件パスと新規検証テスト追加を要件化している。; Synthesize Draft, Do Not Copy — background・decisions・alternatives_considered を独自に整理・抽象化しており、草稿のコピーではなく構造化された内容になっている。; Record Unresolved Points as Open Questions — open_questions が空であり、未解決事項を捏造した形跡がない。; Include 'Why This Approach' Rationale — decisions セクションに各設計選択の根拠（evidence として具体的なファイル名・行番号）が記載されている。; Spec Test Coverage — T-1/T-2/T-3 それぞれに unit テスト戦略が記載され、R6 で npm test 全件パスを要件化している。; Backward-Compatible CLI Interface — 本 spec は内部リファクタリングのみで CLI コマンド・オプションの変更を含まない。; Exit Code Contract — 新規 CLI コマンドの追加・変更がないため該当しない。; Validate User Input at Entry Point — ユーザー向け CLI 引数の追加・変更がないため該当しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-27T23:55:55.203Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "制約・受け入れ基準で外部 API の不変性は言及されているが、「既存機能への影響」を明示的に列挙したセクション・文がない。registry.js の gate post hook 変更が他の呼び出し元に波及しないか等が未記述。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "implement",
+      "reason": "t5-auto-promote.test.js の grep-based call site 検証テストが registry.js を期待していたが、refactoring で promoteNextPending 呼び出しを run-gate.js に移動した",
+      "trigger": "npm test 実行時に spec 226 の structural invariant テストが失敗",
+      "resolution": "テストの期待値を registry.js → run-gate.js に更新。呼び出し箇所数(4)は不変",
+      "taskId": null,
+      "timestamp": "2026-04-28T00:06:50.390Z"
+    }
+  ]
+}

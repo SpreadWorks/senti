@@ -1,0 +1,73 @@
+{
+  "devType": "refactor",
+  "goal": "spec 236 retro で partial 判定された2件の残件を完了する。(1) gate PASS 時の副作用 (completeTask/promoteNextTask/mergeOverview) を registry.js の hardcoded post hook から definition 駆動の単一実行箇所に移動する。(2) gate-step.js の PHASE_TO_STEP を hardcoded 配列から definition のノード属性を使った派生に置き換える。",
+  "analysis": {
+    "problem": "spec 236 で definition.js に sideEffects 属性を宣言したが、gate PASS 副作用の実行側が registry.js post hook に残っている (R4a)。また PHASE_TO_STEP_ENTRIES が hardcoded 配列のまま definition から派生していない (R8c)。definition を single source of truth にする意図が不完全。",
+    "proposedApproach": "R4a: registry.js gate post hook の completeTask/promoteNextPending/mergeOverview ロジックを、definition の sideEffects を参照する共通実行箇所に移動する。set-step.js の collectSideEffects() パターンに倣い、gate 結果に応じて sideEffects を読み取り実行する。R8c: definition.js の gate ノードに gatePhase 属性を追加し、gate-step.js の PHASE_TO_STEP_ENTRIES を definition の走査から自動導出する。",
+    "validation": "R4a は set-step.js で approval 副作用が既に definition 駆動化されている実績がある。同パターンの適用。R8c は collectLeafIds()/derivePhaseMap() と同様の走査ヘルパーで実現可能。どちらも definition を真の single source of truth にする spec 236 の本来の意図を完遂するもの。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] registry.js gate post hook から completeTask/promoteNextPending/mergeOverview ロジックを撤去",
+      "[must] definition の sideEffects を参照する gate 副作用実行ロジックの新設",
+      "[must] definition.js の gate ノードに gatePhase 属性を追加",
+      "[must] gate-step.js の PHASE_TO_STEP_ENTRIES を definition 走査から導出に変更",
+      "[should] 既存テストの更新"
+    ],
+    "out": [
+      "retro R1 (fallbacks 属性) — 別 concern",
+      "retro R6 (MAX_REVIEW_RETRIES 撤去) — 別 concern",
+      "retro R12 (SKILL.md の手動 step 遷移指示の撤去) — 別 concern",
+      "definition.js のノード構造やトラバーサルヘルパーの変更（既存APIで十分）"
+    ]
+  },
+  "impactOnExisting": [
+    "registry.js: gate post hook が簡素化される。task-impl PASS 時の副作用が hook から消える",
+    "gate-step.js: PHASE_TO_STEP_ENTRIES の生成方法が変わるが、export される API (resolveGateStepId, STEP_TO_PHASE, resolveGatePhaseFromState) のシグネチャは維持",
+    "definition.js: FlowNode に gatePhase 属性が追加される。既存ノードのうち gate 系ノードに値が設定される",
+    "run-gate.js: gate 結果処理後に sideEffects 実行を呼ぶ可能性がある（実行箇所の設計次第）"
+  ],
+  "qa": [
+    {
+      "question": "R4a の副作用実行箇所はどこに置くべきか？ set-step.js パターン vs run-gate.js 内部",
+      "answer": "run-gate.js 内部が適切。gate PASS 副作用は gate 結果を前提とするため、gate 実行の文脈で sideEffects を読み取り実行するのが自然。set-step.js は step 状態遷移時の副作用担当で、gate 結果には関与しない。",
+      "evidence": "set-step.js:47 では status==='done' 時に collectSideEffects() を呼ぶが、gate 結果の pass/fail 判定は含まない。registry.js:356 の条件は result?.result === 'pass' && phase === 'task-impl' で、gate 固有のコンテキストが必要。",
+      "why": "gate 副作用は gate の pass/fail を前提条件とし、phase も必要。step の done 遷移とは異なるトリガー条件。",
+      "considered": "set-step.js に統合する案: step done 遷移と gate PASS 副作用が混在し、責務が曖昧になる。registry.js に残す案: definition 駆動にならない。"
+    },
+    {
+      "question": "registry.js の gate post hook から副作用ロジックを完全に撤去できるか？ hook 自体は残す必要があるか？",
+      "answer": "副作用ロジックは撤去できる。ただし post hook 自体は残す。hook には step status 更新 (tryUpdateStepStatus) と gateRetry カウンタ更新、issue-log 記録のロジックも含まれており、それらは gate 固有の registry 責務として残留が妥当。",
+      "evidence": "registry.js:335-351 には tryUpdateStepStatus、updateGateRetryCounter、appendIssueLogFromGateResult がある。これらは gate の post 処理として registry が担うべきもの。",
+      "why": "step status 更新や retry カウンタは registry の coordinate 責務。sideEffects（completeTask 等）だけが definition 駆動に移行すべき対象。",
+      "considered": "post hook 全体を run-gate.js に移す案: registry の hook パターンを壊すため不適切。"
+    },
+    {
+      "question": "R8c で gatePhase 属性を追加する対象ノードはどれか？",
+      "answer": "FLOW_DEFINITION の gate-draft (phase='draft'), gate (phase='spec'), gate-impl (phase='task-impl'/'integration')、および TASK_DEFINITION の gate-impl (phase='task-spec') の4つの gate 系ノード。現在の PHASE_TO_STEP_ENTRIES の5エントリに対応する。",
+      "evidence": "gate-step.js:9-15 の PHASE_TO_STEP_ENTRIES: draft→gate-draft, spec→gate, task-spec→gate, task-impl→gate-impl, integration→gate-impl。definition.js の gate ノード: gate-draft(L82), gate(L98), gate-impl(L141/FLOW), gate-impl(L195/TASK)。",
+      "why": "PHASE_TO_STEP_ENTRIES の全エントリを definition から導出するには、各 gate ノードが自身の phase を知っている必要がある。",
+      "considered": "action='run-gate' で gate ノードをフィルタし ID から phase を推測する案: gate→spec の推測が非自明で、明示的な属性のほうが確実。"
+    },
+    {
+      "question": "gate-impl に複数の gatePhase (task-impl, integration) が対応している。1ノードに複数 phase をどう表現するか？",
+      "answer": "gatePhase を配列にする。FLOW_DEFINITION の gate-impl は ['task-impl', 'integration']、TASK_DEFINITION の gate-impl は ['task-spec']。単一 phase のノードも配列で統一する。",
+      "evidence": "gate-step.js:13-14 に task-impl→gate-impl, integration→gate-impl の2エントリがある。1つの step ID に複数 phase が対応する既存の事実。",
+      "why": "配列にすることで1ノード:N phase のマッピングを定義側で宣言的に表現できる。走査時に flatMap で展開すれば PHASE_TO_STEP と同じ構造が得られる。",
+      "considered": "phase ごとにノードを分割する案: gate-impl の重複定義が発生し、definition が冗長になる。"
+    },
+    {
+      "question": "テスト戦略は？",
+      "answer": "既存テスト (gate-step, set-step, registry 関連) を新しい definition 駆動ロジックで動作確認。gate-step.js の PHASE_TO_STEP 導出が definition と一致することを検証するユニットテストを追加。gate PASS 副作用が definition の sideEffects 宣言に基づいて実行されることを検証。",
+      "evidence": "tests/unit/flow/ 配下に gate-step, set-step 関連のテストが既存。npm test で 2632 件パス (spec 236 retro 時点)。",
+      "why": "既存テストが回帰を検知し、新規テストが definition 駆動の正しさを保証する。",
+      "considered": "E2E テストのみの案: 変更が内部リファクタのため、ユニットテストでの検証が効率的。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-27T15:30:00.000Z",
+    "notes": "autoApprove"
+  }
+}

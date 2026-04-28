@@ -1,0 +1,212 @@
+{
+  "spec": "specs/237-definition-driven-gate-ops/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/237-definition-driven-gate-ops",
+  "runId": "6165f92b-e252-4543-b849-8c9c48209224",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-04-27T23:46:24.279Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-04-27T23:46:24.279Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-04-27T23:46:24.279Z",
+          "finishedAt": "2026-04-27T23:49:55.270Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-04-27T23:49:55.270Z",
+          "finishedAt": "2026-04-27T23:51:02.891Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-04-27T23:51:02.891Z",
+          "finishedAt": "2026-04-27T23:53:22.324Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-04-27T23:53:22.324Z",
+          "finishedAt": "2026-04-27T23:57:22.891Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-04-27T23:57:22.891Z",
+          "finishedAt": "2026-04-27T23:57:39.729Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-04-27T23:57:39.729Z",
+          "finishedAt": "2026-04-27T23:58:50.317Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-04-27T23:58:50.317Z",
+          "finishedAt": "2026-04-28T00:09:16.803Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-04-28T00:09:16.803Z",
+          "finishedAt": "2026-04-28T00:11:56.280Z"
+        },
+        {
+          "id": "review",
+          "status": "done",
+          "startedAt": "2026-04-28T00:11:56.280Z",
+          "finishedAt": "2026-04-28T00:16:00.268Z"
+        },
+        {
+          "id": "finalize",
+          "status": "in_progress",
+          "startedAt": "2026-04-28T00:16:00.268Z"
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending",
+      "steps": []
+    }
+  ],
+  "currentTaskId": null,
+  "issue": 279,
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 19,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 1,
+      "verifiability": 1,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "2件とも対象ファイル・属性・現状が明示済み。ただしR8cの実装詳細（gatePhase属性の型・全gate列挙）に若干の推論が必要。検証はコード静的確認で可能だが動作確認は手動。"
+  },
+  "worktree": true,
+  "request": "Issue #279: spec 236 retro残件 — R4a: gate PASS副作用をregistry hookからdefinition駆動の単一箇所に移動。R8c: gate-step.jsのPHASE_TO_STEPをdefinitionから派生させる",
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-27T23:47:06.282Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-27T23:48:28.937Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-27T23:48:33.316Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-27T23:50:25.341Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-27T23:51:02.899Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-27T23:53:30.085Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-27T23:55:55.202Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-27T23:57:22.899Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:06:50.409Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T00:11:56.289Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft: autoApprove — R4a gate副作用のdefinition駆動化 + R8c PHASE_TO_STEPのdefinition派生。devType=refactor",
+      "taskId": null,
+      "ts": "2026-04-27T23:49:51.562Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-28T00:19:52.253Z"
+  }
+}

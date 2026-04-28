@@ -1,0 +1,54 @@
+{
+  "spec": "specs/237-definition-driven-gate-ops/spec.json",
+  "date": "2026-04-28T00:21:28.712Z",
+  "requirements": [
+    {
+      "desc": "FlowNode コンストラクタに gatePhase 属性（文字列配列 or null）を追加する。gate 系ノードには対応する phase の配列を設定する: gate-draft=['draft'], gate=['spec'], gate-impl=['task-impl','integration'] (FLOW), gate-impl=['task-spec'] (TASK)。非 gate ノードは null。",
+      "status": "partial",
+      "note": "gatePhase 属性の追加・freeze は実装済み。ただし帰属設計が R1 と異なる: FLOW gate ノードに task-spec を統合して ['spec','task-spec'] とし、TASK gate-impl は null（R1 指定は ['task-spec']）。collectGatePhaseEntries() の出力は hardcoded 版と同一で機能的には等価だが、R1 で明示された TASK gate-impl=['task-spec'] の設計に従っていない。"
+    },
+    {
+      "desc": "definition.js に collectGatePhaseEntries() を export する。FLOW_DEFINITION と TASK_DEFINITION を走査し、gatePhase が非 null のノードから [phase, stepId] ペアの配列を返す。返り値の順序は定義順。",
+      "status": "done",
+      "note": "collectGatePhaseEntries() が export され、FLOW_DEFINITION と TASK_DEFINITION を walk して定義順で [phase, stepId] ペアを返す実装が確認できる。"
+    },
+    {
+      "desc": "gate-step.js の PHASE_TO_STEP_ENTRIES を collectGatePhaseEntries() の戻り値から構築する。hardcoded 配列を削除する。外部 API (resolveGateStepId, STEP_TO_PHASE, resolveGatePhaseFromState) のシグネチャと戻り値は変更しない。",
+      "status": "done",
+      "note": "PHASE_TO_STEP_ENTRIES = Object.freeze(collectGatePhaseEntries()) に置換、hardcoded 配列削除済み。外部 API 関数のシグネチャ・実装に変更なし。"
+    },
+    {
+      "desc": "run-gate.js に gate PASS 時の副作用実行関数を追加する。gate 結果が pass のとき、deriveNextAction() で取得した sideEffects を読み取り、各副作用（completeTask, promoteNextTask, mergeOverview）を実行する。",
+      "status": "done",
+      "note": "executeGateSideEffects() が export 追加され、deriveNextAction() で sideEffects を取得し completeTask/promoteNextTask/mergeOverview を順次 dispatch する。各 effect は try/catch でガードされている。"
+    },
+    {
+      "desc": "registry.js の gate post hook から、task-impl PASS 時の completeTask / promoteNextPending / mergeOverview ロジック（現在の L353-377）を撤去する。副作用実行を run-gate.js の関数に委譲する。",
+      "status": "done",
+      "note": "hardcoded ロジックが撤去され、result=pass 時に gateMod.executeGateSideEffects(ctx, phase) 呼び出しに置き換わっている。phase=task-impl 限定条件も除去され全 phase に対応。"
+    },
+    {
+      "desc": "既存テスト（gate-step, run-gate, registry 関連）が全てパスする。PHASE_TO_STEP の導出が hardcoded 版と同一結果であることを検証するテストを追加する。",
+      "status": "done",
+      "note": "specs/237-*/tests/ に gate-step-derivation.test.js（R3: definition 導出と hardcoded の等価性検証含む）・definition-gate-phase.test.js（R1/R2）・gate-side-effects.test.js（R4/R5）を追加。t5-auto-promote.test.js の期待値を registry.js→run-gate.js に更新済み。差分上での実行結果確認は不可だが追加テストは実装と整合する。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/definition.js",
+      "change": "GATE_IMPL_SIDE_EFFECTS 定数を追加し gate-impl の sideEffects 配列を共有化。R1-R6 に含まれない変更だが review.md で APPROVED された提案（重複リテラル排除）。"
+    },
+    {
+      "file": "src/flow/registry.js",
+      "change": "副作用ロジック撤去に伴い既存コメント（'spec 201 P2-R1: update gateRetry counter' 等）を削除。機能変更なし。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 5,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.92,
+    "notes": "R2-R6 は全て完了。R1 は機能的には等価（collectGatePhaseEntries の出力が hardcoded 版と一致）だが、指定設計（TASK gate-impl=['task-spec']）と異なる実装（FLOW gate=['spec','task-spec']、TASK gate-impl=null）のため partial。この設計変更は意図的であり、テストもその設計に合わせて記述されている。非計画変更は GATE_IMPL_SIDE_EFFECTS 定数化（review 承認済み）とコメント削除の 2 件で、いずれも低リスク。"
+  }
+}

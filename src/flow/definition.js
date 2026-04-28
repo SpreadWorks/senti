@@ -27,6 +27,7 @@ class FlowNode {
     fallbacks = null,
     children = null,
     sideEffects = null,
+    gatePhase = null,
   }) {
     this.id = id;
     this.label = label;
@@ -40,11 +41,14 @@ class FlowNode {
     this.fallbacks = fallbacks ? Object.freeze([...fallbacks]) : null;
     this.children = children ? Object.freeze(children.map((c) => Object.freeze(c))) : null;
     this.sideEffects = sideEffects ? Object.freeze([...sideEffects]) : null;
+    this.gatePhase = gatePhase ? Object.freeze([...gatePhase]) : null;
   }
 
   get isBranch() { return this.children != null; }
   get isLeaf() { return this.children == null; }
 }
+
+const GATE_IMPL_SIDE_EFFECTS = Object.freeze(["completeTask", "promoteNextTask", "mergeOverview"]);
 
 // ── FLOW_DEFINITION ─────────────────────────────────────────────────────────
 
@@ -85,6 +89,7 @@ export const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["draft", "guardrail"],
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 10,
+        gatePhase: ["draft"],
       }),
       new FlowNode({
         id: "spec",
@@ -102,6 +107,7 @@ export const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "guardrail"],
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 20,
+        gatePhase: ["spec", "task-spec"],
       }),
       new FlowNode({
         id: "approval",
@@ -145,7 +151,8 @@ export const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "diff", "testlog"],
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
-        sideEffects: ["completeTask", "promoteNextTask", "mergeOverview"],
+        sideEffects: GATE_IMPL_SIDE_EFFECTS,
+        gatePhase: ["task-impl", "integration"],
       }),
       new FlowNode({
         id: "review",
@@ -199,6 +206,31 @@ export const TASK_DEFINITION = Object.freeze([
     sideEffects: ["completeTask", "promoteNextTask", "mergeOverview"],
   }),
 ]);
+
+// ── Gate-phase collection ───────────────────────────────────────────────────
+
+/**
+ * Collect [phase, stepId] pairs from all gate nodes across FLOW_DEFINITION
+ * and TASK_DEFINITION. Order follows definition order.
+ */
+export function collectGatePhaseEntries() {
+  const entries = [];
+  function walk(nodes, depth) {
+    assertDepth(depth);
+    for (const node of nodes) {
+      if (node.children) {
+        walk(node.children, depth + 1);
+      } else if (node.gatePhase) {
+        for (const phase of node.gatePhase) {
+          entries.push([phase, node.id]);
+        }
+      }
+    }
+  }
+  walk(FLOW_DEFINITION, 1);
+  walk(TASK_DEFINITION, 1);
+  return entries;
+}
 
 // ── Traversal helpers ───────────────────────────────────────────────────────
 

@@ -213,14 +213,14 @@ describe("T-5: auto-promote function and callers", () => {
 
     // There should be exactly 4 invocation lines across 3 logical sites:
     //   Site 1: sync-spec-tasks.js (1 line)
-    //   Site 2: registry.js + run-complete-task.js (2 lines, both gate-impl PASS)
+    //   Site 2: run-gate.js + run-complete-task.js (2 lines, both gate-impl PASS)
     //   Site 3: get-next-action.js (1 line, spec 229 safety-net fallback)
     assert.equal(lines.length, 4, `expected 4 invocation lines, got:\n${lines.join("\n")}`);
 
     // Verify the files match the expected call sites.
     const files = lines.map((l) => path.basename(l.split(":")[0]));
     assert.ok(files.includes("sync-spec-tasks.js"), "site 1: sync-spec-tasks");
-    assert.ok(files.includes("registry.js"), "site 2a: registry gate-impl post-hook");
+    assert.ok(files.includes("run-gate.js"), "site 2a: run-gate definition-driven side effects");
     assert.ok(files.includes("run-complete-task.js"), "site 2b: run-complete-task CLI");
     assert.ok(files.includes("get-next-action.js"), "site 3: safety-net fallback (spec 229)");
   });

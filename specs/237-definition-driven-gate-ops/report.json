@@ -1,0 +1,44 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/237-definition-driven-gate-ops/draft.json    |  73 +++++++\n specs/237-definition-driven-gate-ops/flow.json     | 212 +++++++++++++++++++++\n .../237-definition-driven-gate-ops/issue-log.json  |  81 ++++++++\n specs/237-definition-driven-gate-ops/issue.md      |  26 +++\n specs/237-definition-driven-gate-ops/qa.md         |   9 +\n specs/237-definition-driven-gate-ops/review.md     |  33 ++++\n specs/237-definition-driven-gate-ops/spec.json     | 200 +++++++++++++++++++\n specs/237-definition-driven-gate-ops/spec.md       | 102 ++++++++++\n specs/237-definition-driven-gate-ops/tasks/T-1.md  |  21 ++\n specs/237-definition-driven-gate-ops/tasks/T-2.md  |  21 ++\n specs/237-definition-driven-gate-ops/tasks/T-3.md  |  22 +++\n .../tasks/T-pending-spec.md                        |   9 +\n .../237-definition-driven-gate-ops/tests/README.md |  21 ++\n .../tests/definition-gate-phase.test.js            |  64 +++++++\n .../tests/gate-side-effects.test.js                |  50 +++++\n .../tests/gate-step-derivation.test.js             |  64 +++++++\n src/flow/definition.js                             |  34 +++-\n src/flow/lib/gate-step.js                          |  12 +-\n src/flow/lib/run-gate.js                           |  39 ++++\n src/flow/registry.js                               |  29 +--\n .../226-task-decomp-wiring/t5-auto-promote.test.js |   4 +-\n 21 files changed, 1087 insertions(+), 39 deletions(-)",
+      "commits": [
+        "feat: feature/237-definition-driven-gate-ops"
+      ]
+    },
+    "retro": {
+      "total": 6,
+      "done": 5,
+      "partial": 1,
+      "not_done": 0,
+      "rate": 0.92,
+      "notes": "R2-R6 は全て完了。R1 は機能的には等価（collectGatePhaseEntries の出力が hardcoded 版と一致）だが、指定設計（TASK gate-impl=['task-spec']）と異なる実装（FLOW gate=['spec','task-spec']、TASK gate-impl=null）のため partial。この設計変更は意図的であり、テストもその設計に合わせて記述されている。非計画変更は GATE_IMPL_SIDE_EFFECTS 定数化（review 承認済み）とコメント削除の 2 件で、いずれも低リスク。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 0,
+      "durationMs": 0,
+      "phaseDurations": []
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/237-definition-driven-gate-ops\n    21 files changed, 1087 insertions(+), 39 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 92%  (5 done / 1 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 1\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

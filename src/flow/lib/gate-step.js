@@ -4,15 +4,9 @@
  * Gate step / gate phase mapping — derived from definition.js.
  */
 
-import { FLOW_DEFINITION, TASK_DEFINITION, collectLeafIds, resolveNodeFor } from "../definition.js";
+import { FLOW_DEFINITION, TASK_DEFINITION, collectLeafIds, resolveNodeFor, collectGatePhaseEntries } from "../definition.js";
 
-const PHASE_TO_STEP_ENTRIES = Object.freeze([
-  ["draft", "gate-draft"],
-  ["spec", "gate"],
-  ["task-spec", "gate"],
-  ["task-impl", "gate-impl"],
-  ["integration", "gate-impl"],
-]);
+const PHASE_TO_STEP_ENTRIES = Object.freeze(collectGatePhaseEntries());
 
 const PHASE_TO_STEP = Object.freeze(Object.fromEntries(PHASE_TO_STEP_ENTRIES));
 

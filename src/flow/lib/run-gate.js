@@ -41,6 +41,45 @@ import { Envelope } from "../../lib/flow-envelope.js";
 export { resolveGateStepId };
 
 /**
+ * Execute gate PASS side effects driven by definition's sideEffects attribute.
+ * Looks up sideEffects from the definition for the given phase, then dispatches.
+ * Called from registry.js gate post hook when result is "pass".
+ *
+ * @param {object} ctx - flow command context with flowManager
+ * @param {string} phase - gate phase (e.g. "task-impl", "draft")
+ */
+export async function executeGateSideEffects(ctx, phase) {
+  const { deriveNextAction } = await import("../definition.js");
+  const stepId = resolveGateStepId(phase);
+  const scope = ctx.flowManager?.load()?.currentTaskId != null ? "task" : "flow";
+  const derived = deriveNextAction(scope, stepId);
+  const sideEffects = derived?.sideEffects;
+  if (!sideEffects || sideEffects.length === 0) return;
+
+  const fm = ctx.flowManager;
+  const state = fm.load();
+
+  for (const effect of sideEffects) {
+    try {
+      if (effect === "completeTask") {
+        if (state?.currentTaskId != null) {
+          fm.completeTask(state.currentTaskId);
+        }
+      } else if (effect === "promoteNextTask") {
+        const { promoteNextPending } = await import("../../lib/flow-helpers.js");
+        fm.mutate((s) => { promoteNextPending(s); });
+      } else if (effect === "mergeOverview") {
+        const { default: RunUpdateOverviewCommand } = await import("./run-update-overview.js");
+        const cmd = new RunUpdateOverviewCommand();
+        await cmd.execute({ ...ctx, args: { json: "[]" } });
+      }
+    } catch (err) {
+      process.stderr.write(`[sdd-forge] gate side effect '${effect}' failed: ${err.message}\n`);
+    }
+  }
+}
+
+/**
  * Remove T-pending-spec placeholder task from spec.json text before AI evaluation.
  * @param {string} text - raw spec.json content
  * @returns {string} text with T-pending-spec task entry removed from tasks array

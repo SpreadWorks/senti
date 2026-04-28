@@ -337,43 +337,18 @@ export const FLOW_COMMANDS = {
         tryUpdateStepStatus(ctx, resolveGateStepId(phase), status);
 
         const gateMod = await import("./lib/run-gate.js");
-        // spec 201 P2-R1: update gateRetry counter for task-impl/integration.
         try {
           gateMod.updateGateRetryCounter(ctx, result);
         } catch (err) {
           process.stderr.write(`[sdd-forge] updateGateRetryCounter failed: ${err.message}\n`);
         }
 
-        // Auto-record issue-log on gate FAIL — delegate to run-gate.js so
-        // the registry hook stays free of issue-log domain logic.
         if (result?.result !== "pass") {
           tryAppendIssueLog(() => gateMod.appendIssueLogFromGateResult(ctx, result));
         }
 
-        // Spec 226: task-impl PASS triggers task completion + auto-promote.
-        // This is call site (2) of the single promoteNextPending caller
-        // boundary. completeTask handles parent propagation internally.
-        if (result?.result === "pass" && phase === "task-impl") {
-          try {
-            const fm = ctx.flowManager;
-            const state = fm.load();
-            if (state?.currentTaskId != null) {
-              fm.completeTask(state.currentTaskId);
-              const { promoteNextPending } = await import("../lib/flow-helpers.js");
-              fm.mutate((s) => { promoteNextPending(s); });
-            }
-          } catch (err) {
-            process.stderr.write(`[sdd-forge] task completion post-hook failed: ${err.message}\n`);
-          }
-
-          // Spec 227: auto-merge overview additions after task-impl PASS.
-          try {
-            const { default: RunUpdateOverviewCommand } = await import("./lib/run-update-overview.js");
-            const cmd = new RunUpdateOverviewCommand();
-            await cmd.execute({ ...ctx, args: { json: "[]" } });
-          } catch (err) {
-            process.stderr.write(`[sdd-forge] overview merge post-hook warning: ${err.message}\n`);
-          }
+        if (result?.result === "pass") {
+          await gateMod.executeGateSideEffects(ctx, phase);
         }
       },
       async onError(ctx, err) {
