@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-27T14:56:10.058Z",
+  "analyzedAt": "2026-04-28T00:21:32.523Z",
   "package": {
     "entries": [
       {
@@ -2550,11 +2550,12 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "089b643d70e69bb85f961b315466f2bc",
-        "lines": 463,
-        "mtime": "2026-04-27T14:56:09.659Z",
+        "hash": "bec37c7573aed6bd242fe54e7b8d5f92",
+        "lines": 497,
+        "mtime": "2026-04-28T00:21:32.118Z",
         "className": "definition",
         "methods": [
+          "collectGatePhaseEntries",
           "collectLeafIds",
           "derivePhaseMap",
           "resolveNodeFor",
@@ -2575,6 +2576,7 @@
         ],
         "imports": [],
         "exports": [
+          "collectGatePhaseEntries",
           "collectLeafIds",
           "derivePhaseMap",
           "resolveNodeFor",
@@ -2595,23 +2597,24 @@
         "extends": null,
         "usedBy": null,
         "id": "2cb27b93",
-        "summary": "Defines the canonical FLOW_DEFINITION and TASK_DEFINITION trees plus traversal helpers used to derive phases, steps, and next actions.",
-        "detail": "Exports a frozen FlowNode forest with a MAX_DEPTH=3 invariant enforced by assertDepth during walks. Provides utilities to flatten steps, collect leaf ids, derive phase maps, locate active/in-progress nodes, build initial nested step state, and resolve prerequisites for a target. Functions like findFirstPendingLeaf, promoteNextPendingLeaf, and deriveNextAction encode the state machine for SDD phase transitions. The FlowNode class encapsulates node identity, children, and metadata such as sideEffects and maxAttempts, serving as the single source of truth for flow structure.",
+        "summary": "Defines the FlowNode tree structures FLOW_DEFINITION and TASK_DEFINITION that drive the SDD flow's phases and gates, plus utility functions to traverse, derive phase maps, find active/pending leaves, and compute prerequisites.",
+        "detail": "FlowNode is a class enforcing invariants (depth limited to MAX_DEPTH=3, leaf vs branch shape) and carries metadata like maxAttempts and gate side effects. The module exports two frozen forest definitions for the main flow and per-task subflow, alongside helpers (collectLeafIds, derivePhaseMap, resolveNodeFor, findActiveNode, deriveNextAction, buildInitialNestedSteps, flattenSteps, findStepById, findFirstPendingLeaf, promoteNextPendingLeaf, derivePrereqs, findBranchForLeaf). GATE_IMPL_SIDE_EFFECTS lists post-gate operations (completeTask, promoteNextTask, mergeOverview). Traversal functions are recursive with depth assertions, returning leaf ids, phase mappings, or branch lookups. This serves as the single source of truth for flow topology consumed by gate-step, run-gate, and registry.",
         "chapter": "internal_design",
         "role": "model",
         "enrich": {
-          "processedAt": "2026-04-27T14:57:15.101Z",
+          "processedAt": "2026-04-28T00:22:08.005Z",
           "attempts": 1
         },
         "keywords": [
           "flow definition",
           "FlowNode",
           "phase map",
-          "leaf traversal",
-          "step tree",
-          "SDD state machine",
-          "prereqs",
-          "next action"
+          "gate phase",
+          "leaf nodes",
+          "tree traversal",
+          "SDD workflow",
+          "step status",
+          "prerequisites"
         ]
       },
       {
@@ -2842,9 +2845,9 @@
       },
       {
         "file": "src/flow/lib/gate-step.js",
-        "hash": "7c2f5db5db284a37d8c0290dc675aca4",
-        "lines": 98,
-        "mtime": "2026-04-27T14:56:09.659Z",
+        "hash": "e8f4df5c129ce32e7418718a8b789aa2",
+        "lines": 92,
+        "mtime": "2026-04-28T00:21:32.118Z",
         "className": "gate-step",
         "methods": [
           "resolveGateStepId",
@@ -2867,21 +2870,22 @@
           "src/flow/registry.js"
         ],
         "id": "9bbc3f1d",
-        "summary": "Maps gate phases to step ids and resolves the active gate phase from current flow/task state.",
-        "detail": "Builds frozen lookup tables PHASE_TO_STEP and STEP_TO_PHASE for flow-level gate steps, plus TASK_STEP_TO_PHASE for task-level gates. resolveGateStepId returns the configured step id for a given phase with a 'gate' fallback. resolveGatePhaseFromState scans active task steps first, then flow steps, picking the latest in-progress gate step among known leaf ids and reporting stale steps. Helper functions flatten nested steps and resolve the active task by currentTaskId.",
+        "summary": "Resolves the active gate phase from current flow state and maps gate step ids to their corresponding phases for both the main flow and per-task subflow.",
+        "detail": "Builds frozen lookup tables PHASE_TO_STEP / STEP_TO_PHASE from collectGatePhaseEntries() over FLOW_DEFINITION and a static TASK_STEP_TO_PHASE for task-level gates. resolveGateStepId returns the step id for a given phase, defaulting to 'gate'. resolveGatePhaseFromState inspects in-progress steps, picks the latest matching gate leaf, and returns the phase plus any stale steps. Helper functions resolveActiveTask, pickLatestFlowGateStep, and flattenForGate flatten nested step trees and prioritize task-scoped state when a current task is active. The module is a thin lookup layer reused by run-gate and registry to avoid hardcoding phase/step relationships.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-27T14:57:15.101Z",
+          "processedAt": "2026-04-28T00:22:08.005Z",
           "attempts": 1
         },
         "keywords": [
           "gate step",
           "phase resolution",
-          "stale steps",
+          "step to phase",
+          "flow state",
           "task gate",
-          "flow gate",
-          "phase mapping"
+          "stale steps",
+          "lookup table"
         ]
       },
       {
@@ -3687,11 +3691,12 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "56c2a751578848e51a4e19d440e40324",
-        "lines": 1679,
-        "mtime": "2026-04-27T14:56:09.660Z",
+        "hash": "54efd7bfa187d2f2a560acb58e6992a3",
+        "lines": 1718,
+        "mtime": "2026-04-28T00:21:32.118Z",
         "className": "run-gate",
         "methods": [
+          "executeGateSideEffects",
           "filterPendingSpecPlaceholder",
           "validateLevelPhase",
           "collectUntrackedDiff",
@@ -3764,6 +3769,7 @@
           "../definition.js"
         ],
         "exports": [
+          "executeGateSideEffects",
           "filterPendingSpecPlaceholder",
           "validateLevelPhase",
           "collectUntrackedDiff",
@@ -3803,24 +3809,25 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements gate execution: AI guardrail evaluation, retry budget tracking, repeat-fail detection, and pass/fail envelope construction.",
-        "detail": "Loads merged guardrails filtered by phase and role, builds AI prompts with previously passed ids and retry history context, then invokes the agent and parses JSON evaluations via parseEvaluationResponse with strict EvaluationSchemaError checks. Tracks retries through countGateRetry, warnGateRetryBudget, and checkRetryBelowMax, and uses computeGitState plus issue-log entries to detect no-progress and repeated-fail conditions, escalating when needed. Specialized executors handle draft, spec, task-spec, task-impl, and integration phases, including diff scoping for impl phases via collectUntrackedDiff and a flip override that re-passes guardrails on identical content. Final results flow through gatePass/gateFail builders that produce structured envelopes consumed by the flow runtime.",
+        "summary": "Implements the gate execution pipeline: loads guardrails, builds AI evaluation prompts, parses responses, applies retry/escalation policy, and emits pass/fail envelopes for draft, spec, task-spec, task-impl, and integration phases.",
+        "detail": "RunGateCommand dispatches to phase-specific executors (executeDraft, executeSpec, executeTaskSpec, executeDiffBasedGate) which read the target artifact (draft.json, spec.json, spec markdown, or git diff), filter guardrails by phase via filterByPhase, and call checkGuardrail to invoke the configured agent. parseEvaluationResponse strictly validates the JSON schema (allowed result values, required fields) and EvaluationSchemaError surfaces malformed AI output. Retry tracking uses issue-log entries (countGateRetry, checkRetryBelowMax, warnGateRetryBudget) with maxAttempts pulled from FlowNode definitions; checkNoProgressSinceLastFail and assertNoRepeatedFail block infinite loops by comparing headSha/worktreeHash and reason pairs. applyFlipOverride re-passes guardrails that previously passed on identical content, and executeGateSideEffects runs post-gate operations (completeTask, promoteNextTask, mergeOverview). Diff-scoped phases (task-impl, integration) collect tracked + untracked diffs with size limits before evaluation.",
         "chapter": "internal_design",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-27T14:57:15.101Z",
+          "processedAt": "2026-04-28T00:22:08.005Z",
           "attempts": 1
         },
         "keywords": [
-          "gate",
-          "guardrail",
+          "gate execution",
+          "guardrail evaluation",
           "AI evaluation",
-          "retry budget",
-          "flip override",
-          "repeated fail",
-          "diff scope",
+          "retry policy",
           "issue log",
-          "envelope"
+          "flip override",
+          "diff gate",
+          "escalation",
+          "spec validation",
+          "draft validation"
         ]
       },
       {
@@ -4827,9 +4834,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "6965d81630d0c4d249c02075f45afd53",
-        "lines": 627,
-        "mtime": "2026-04-27T14:56:09.661Z",
+        "hash": "0c5190ce41a59dfa0367df075aa8aaa9",
+        "lines": 602,
+        "mtime": "2026-04-28T00:21:32.119Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4847,21 +4854,23 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Central registry of flow subcommands binding args, help text, and execute handlers along with shared post-hook helpers.",
-        "detail": "Exposes FLOW_COMMANDS as the single dispatch table consumed by flow.js, embedding usage strings and validation against VALID_PHASES, VALID_METRIC_COUNTERS, and VALID_GATE_PHASES. Helpers deriveActivePhase, tryUpdateStepStatus, and tryAppendIssueLog wrap stateful side effects with stderr warnings while preserving thrown errors when needed. Post hooks update gate retry counters, append overview merges, and trigger task completion processing after relevant commands. Acts as the seam between CLI parsing in flow.js and the lib/*.js logic layer.",
-        "chapter": "project_structure",
-        "role": "config",
+        "summary": "Central registry mapping flow CLI subcommands to their command classes and lifecycle hooks (pre/post handlers for step status updates, issue-log appends, gate side effects, and metric recording).",
+        "detail": "FLOW_COMMANDS is the dispatch table consumed by flow.js, defining args parsing, help text, and command construction for each action (prepare, get, set, run subcommands). Helpers deriveActivePhase, tryUpdateStepStatus, and tryAppendIssueLog wrap state mutations with error swallowing that still rethrows critical failures. Registry entries wire post-execution hooks—e.g. updateGateRetryCounter after gate runs, executeGateSideEffects after gate-impl, executeCommitPost after commits—keeping side effects declarative rather than embedded in command classes. resolveGateStepId/resolveGatePhaseFromState integrate gate-step lookups so step status updates target the correct nested step id. This is the glue layer between the FlowCommand abstraction and the CLI entry point.",
+        "chapter": "cli_commands",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-27T14:57:15.101Z",
+          "processedAt": "2026-04-28T00:22:08.005Z",
           "attempts": 1
         },
         "keywords": [
-          "flow registry",
-          "command dispatch",
-          "post hooks",
-          "gate retry",
-          "task completion",
-          "overview merge"
+          "command registry",
+          "flow dispatcher",
+          "lifecycle hooks",
+          "step status",
+          "issue log",
+          "gate side effects",
+          "CLI dispatch",
+          "post hooks"
         ]
       },
       {
@@ -9640,9 +9649,9 @@
     ],
     "summary": {
       "total": 279,
-      "totalMethods": 913
+      "totalMethods": 915
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-27T14:57:15.101Z"
+  "enrichedAt": "2026-04-28T00:22:08.005Z"
 }
