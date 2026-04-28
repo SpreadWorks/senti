@@ -345,11 +345,12 @@ export function findActiveNode(steps, tasks, currentTaskId) {
   return null;
 }
 
-function findInProgressLeaf(steps) {
+export function findInProgressLeaf(steps, depth = 0) {
+  assertDepth(depth);
   if (!Array.isArray(steps)) return null;
   for (const s of steps) {
     if (s.children) {
-      const found = findInProgressLeaf(s.children);
+      const found = findInProgressLeaf(s.children, depth + 1);
       if (found) return found;
     } else if (s.status === "in_progress") {
       return s;

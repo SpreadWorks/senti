@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/240-metrics-token-na-rows/draft.json         |  61 +++++++\n specs/240-metrics-token-na-rows/flow.json          | 201 +++++++++++++++++++++\n specs/240-metrics-token-na-rows/issue-log.json     |  22 +++\n specs/240-metrics-token-na-rows/issue.md           |  60 ++++++\n specs/240-metrics-token-na-rows/qa.md              |   9 +\n specs/240-metrics-token-na-rows/review.md          |  33 ++++\n specs/240-metrics-token-na-rows/spec.json          | 143 +++++++++++++++\n specs/240-metrics-token-na-rows/spec.md            |  86 +++++++++\n specs/240-metrics-token-na-rows/tasks/T-1.md       |  20 ++\n specs/240-metrics-token-na-rows/tasks/T-2.md       |  21 +++\n .../tasks/T-pending-spec.md                        |   9 +\n specs/240-metrics-token-na-rows/tests/README.md    |  20 ++\n .../tests/metrics-na-rows.test.js                  | 112 ++++++++++++\n src/flow/definition.js                             |   5 +-\n src/lib/flow-manager.js                            |   3 +-\n src/metrics/commands/token.js                      |  60 +++---\n 16 files changed, 827 insertions(+), 38 deletions(-)",
+      "commits": [
+        "fix metrics token N/A rows: nested step resolution and counter-only filtering"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "R1–R4 はすべて実装・テスト済みで done。未計画変更は 2 件あるが、いずれも review で APPROVED されたリファクタ（assertDepth 追加、applyPhaseMetrics 抽出）であり、動作を破壊する変更ではない。",
+      "requirements": [
+        {
+          "desc": "resolveCurrentContext が nested ステップ構造で正しい sddPhase を返す。findInProgressLeaf を使い、children 内の in_progress リーフステップの id を返す。",
+          "status": "done",
+          "note": "flow-manager.js で findInProgressLeaf を import し、state.steps?.find() のフラット検索を findInProgressLeaf(state.steps) に置き換えている。"
+        },
+        {
+          "desc": "normalizeMetrics が agent エントリのない phase を byPhase に含めない。counter-only エントリだけの phase は空オブジェクトとして残さない。",
+          "status": "done",
+          "note": "normalizeMetrics のフィルタ条件を `entry.kind !== 'agent'` で early-continue に変更し、counter エントリは byPhase に一切追加されなくなっている。"
+        },
+        {
+          "desc": "resolveCurrentContext のユニットテスト: nested ステップ構造（children 内に in_progress あり）で sddPhase が正しく解決されることを検証する。",
+          "status": "done",
+          "note": "metrics-na-rows.test.js に 3 ケース（draft 配下 in_progress、全 done で null、finalize-commit 配下 in_progress）が実装されている。"
+        },
+        {
+          "desc": "normalizeMetrics / buildRowsFromMetrics のユニットテスト: counter-only エントリのみの配列入力で空行が生成されないことを検証する。",
+          "status": "done",
+          "note": "counter-only 入力で 0 行、agent-only 入力で 1 行、混在入力で agent 分のみ、object 形式の後方互換、の 4 ケースが buildRowsFromMetrics に対して実装されている。"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 3,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 0,
+      "durationMs": 0,
+      "phaseDurations": []
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix metrics token N/A rows: nested step resolution and counter-only filtering\n    16 files changed, 827 insertions(+), 38 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 3\n    Q&A ......................... 0\n    issue-log ................... 1\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

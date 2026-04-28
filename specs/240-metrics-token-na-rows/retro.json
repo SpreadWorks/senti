@@ -1,0 +1,44 @@
+{
+  "spec": "specs/240-metrics-token-na-rows/spec.json",
+  "date": "2026-04-28T08:48:22.751Z",
+  "requirements": [
+    {
+      "desc": "resolveCurrentContext が nested ステップ構造で正しい sddPhase を返す。findInProgressLeaf を使い、children 内の in_progress リーフステップの id を返す。",
+      "status": "done",
+      "note": "flow-manager.js で findInProgressLeaf を import し、state.steps?.find() のフラット検索を findInProgressLeaf(state.steps) に置き換えている。"
+    },
+    {
+      "desc": "normalizeMetrics が agent エントリのない phase を byPhase に含めない。counter-only エントリだけの phase は空オブジェクトとして残さない。",
+      "status": "done",
+      "note": "normalizeMetrics のフィルタ条件を `entry.kind !== 'agent'` で early-continue に変更し、counter エントリは byPhase に一切追加されなくなっている。"
+    },
+    {
+      "desc": "resolveCurrentContext のユニットテスト: nested ステップ構造（children 内に in_progress あり）で sddPhase が正しく解決されることを検証する。",
+      "status": "done",
+      "note": "metrics-na-rows.test.js に 3 ケース（draft 配下 in_progress、全 done で null、finalize-commit 配下 in_progress）が実装されている。"
+    },
+    {
+      "desc": "normalizeMetrics / buildRowsFromMetrics のユニットテスト: counter-only エントリのみの配列入力で空行が生成されないことを検証する。",
+      "status": "done",
+      "note": "counter-only 入力で 0 行、agent-only 入力で 1 行、混在入力で agent 分のみ、object 形式の後方互換、の 4 ケースが buildRowsFromMetrics に対して実装されている。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/definition.js",
+      "change": "findInProgressLeaf を export に昇格し、depth パラメータと assertDepth(depth) 呼び出しを追加。review item #2 (APPROVED) に対応した変更だが spec requirements には含まれていない。"
+    },
+    {
+      "file": "src/metrics/commands/token.js",
+      "change": "buildRowsFromMetrics と buildRows で重複していた phase メトリクス適用ブロックを applyPhaseMetrics ヘルパーに抽出。review item #4 (APPROVED) に対応した変更だが spec requirements には含まれていない。"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "R1–R4 はすべて実装・テスト済みで done。未計画変更は 2 件あるが、いずれも review で APPROVED されたリファクタ（assertDepth 追加、applyPhaseMetrics 抽出）であり、動作を破壊する変更ではない。"
+  }
+}

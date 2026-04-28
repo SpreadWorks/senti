@@ -1,0 +1,27 @@
+{
+  "entries": [
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T08:19:01.335Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "review",
+      "reason": "flow set step review done fails: currentTaskId=T-pending-spec has empty steps[], resolveMutationScope targets task scope instead of flow scope",
+      "trigger": "sdd-forge flow set step review done after flow run review",
+      "resolution": "manually edit flow.json to clear currentTaskId and set review step to done",
+      "guardrailCandidate": "placeholder tasks should not intercept flow-level step transitions",
+      "taskId": "T-pending-spec",
+      "timestamp": "2026-04-28T08:43:55.592Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-28T08:48:58.929Z"
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "goal": "metrics token コマンドの N/A 行大量発生を修正する。agent metrics の記録配線断絶と、counter-only エントリからの空行生成の2つのバグを解消する。",
+  "scope": {
+    "in": [
+      "resolveCurrentContext の nested ステップ対応（sddPhase 解決の修正）",
+      "normalizeMetrics の counter-only エントリスキップ"
+    ],
+    "out": [
+      "過去 spec の metrics データ遡及修正",
+      "difficulty 計算ロジックの変更",
+      "metrics token コマンドの出力フォーマット変更"
+    ]
+  },
+  "constraints": [
+    "既存の CLI インターフェース（コマンド名・オプション）は変更しない",
+    "findInProgressLeaf を再利用し、ステップ解決ロジックを definition.js に統一する"
+  ],
+  "design_principles": [
+    "既存のヘルパー関数を再利用し、ステップツリー走査ロジックの重複を避ける"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/flow-manager.js: resolveCurrentContext のステップ解決を nested 対応に修正"
+      },
+      {
+        "text": "src/metrics/commands/token.js: normalizeMetrics で counter-only phase を除外"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "agent.js → flowManager.accumulateAgentMetrics(sddPhase, usage) → flow.json metrics[] に agent エントリ追記"
+      },
+      {
+        "text": "metrics token → flow.json 読込 → normalizeMetrics → buildRows → 表示"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "resolveCurrentContext で findInProgressLeaf を使い nested ステップツリーを走査する。flow-store.js が既に definition.js から同関数をインポートしており、依存方向は一貫している。",
+        "evidence": "src/flow/definition.js:348 findInProgressLeaf, src/lib/flow-store.js:26 既存 import"
+      },
+      {
+        "text": "normalizeMetrics で agent エントリがない phase は byPhase に含めない。counter データは token/cost レポートのスコープ外。",
+        "evidence": "counter エントリ（srcRead, docsRead 等）は kind フィールドを持たず、token/cost 情報を含まない"
+      }
+    ]
+  },
+  "background": "flow-definition 導入（spec 226）でステップ構造が flat からnested（plan.children, impl.children）に変わったが、flow-manager.js の resolveCurrentContext はフラット検索のまま取り残された。結果として sddPhase が常に null を返し、agent.js からの accumulateAgentMetrics 呼び出しが空振りになり、agent metrics が一切記録されなくなった。同時に、normalizeMetrics が counter-only エントリから空の phase オブジェクトを生成し、全 null の N/A 行として表示される問題も発生していた。",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "resolveCurrentContext が nested ステップ構造で正しい sddPhase を返す。findInProgressLeaf を使い、children 内の in_progress リーフステップの id を返す。",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "normalizeMetrics が agent エントリのない phase を byPhase に含めない。counter-only エントリだけの phase は空オブジェクトとして残さない。",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "resolveCurrentContext のユニットテスト: nested ステップ構造（children 内に in_progress あり）で sddPhase が正しく解決されることを検証する。",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "normalizeMetrics / buildRowsFromMetrics のユニットテスト: counter-only エントリのみの配列入力で空行が生成されないことを検証する。",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "nested ステップ構造で resolveCurrentContext が in_progress リーフの id を sddPhase として返す",
+    "counter-only metrics 配列から buildRowsFromMetrics が空行（全 null）を生成しない",
+    "agent エントリを含む metrics 配列からは従来通り正しい行が生成される",
+    "全テストがパスする"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "resolveCurrentContext に独自の nested 検索を実装する",
+      "reason": "findInProgressLeaf が definition.js に既存で、get-next-action.js でも使われている。ロジック重複を避けるため不採用。"
+    },
+    {
+      "option": "counter データも metrics token で表示する",
+      "reason": "counter は srcRead/docsRead 等のアクティビティカウンタであり、token/cost レポートのスコープ外。表示する価値がなく、N/A 行の原因になるため不採用。"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-1",
+      "title": "Fix resolveCurrentContext for nested steps",
+      "goal": "resolveCurrentContext で findInProgressLeaf を使い、nested ステップツリーから正しい sddPhase を解決する。",
+      "acceptance": [
+        "nested ステップ構造（children 内に in_progress あり）で sddPhase が leaf step の id を返す",
+        "全ステップが done/pending の場合は sddPhase が null を返す（既存動作と同じ）",
+        "ユニットテストで検証"
+      ],
+      "implementation_notes": "flow-manager.js:107-114 の resolveCurrentContext を修正。findInProgressLeaf を definition.js から import し、state.steps.find の代わりに使う。",
+      "test_strategy": "ユニットテスト: nested ステップ構造のモック state を作成し、resolveCurrentContext の返り値を検証。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Filter counter-only entries in normalizeMetrics",
+      "goal": "normalizeMetrics で agent エントリがない phase を出力から除外し、N/A 行の生成を防ぐ。",
+      "acceptance": [
+        "counter-only エントリのみの配列入力で空行が生成されない",
+        "agent エントリを含む配列入力では従来通り正しい行が生成される",
+        "agent と counter が混在する同一 phase では agent データのみ集約される",
+        "ユニットテストで検証"
+      ],
+      "implementation_notes": "token.js の normalizeMetrics を修正。ループ終了後、agent データが空の phase（tokens/callCount/cost/durationMs がすべて未設定）を byPhase から除去する。",
+      "test_strategy": "ユニットテスト: buildRowsFromMetrics に counter-only 配列、agent-only 配列、混在配列を渡し、出力行数と内容を検証。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 1,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-28T08:21:30.868Z",
+    "notes": "autoApprove"
+  }
+}

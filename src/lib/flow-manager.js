@@ -17,6 +17,7 @@ import { FlowStore } from "./flow-store.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
 import { STATE_FILE, SCAN_FLOWS_LIMIT, PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
+import { findInProgressLeaf } from "../flow/definition.js";
 
 export class FlowManager {
   /**
@@ -108,7 +109,7 @@ export class FlowManager {
     const state = this._store.load();
     if (!state) return { spec: null, sddPhase: null, taskId: null };
     const spec = specIdFromPath(state.spec) ?? null;
-    const inProgress = state.steps?.find?.((s) => s.status === "in_progress");
+    const inProgress = findInProgressLeaf(state.steps);
     const sddPhase = inProgress?.id ?? null;
     const taskId = state.currentTaskId ?? null;
     return { spec, sddPhase, taskId };

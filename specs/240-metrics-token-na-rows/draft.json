@@ -1,0 +1,61 @@
+{
+  "devType": "bugfix",
+  "goal": "metrics token コマンドの N/A 行大量発生を修正する。原因は2つ: (1) agent metrics が記録されない配線断絶、(2) counter-only エントリから空行が生成される normalizeMetrics のロジック不備。",
+  "analysis": {
+    "problem": "resolveCurrentContext (flow-manager.js:111) が state.steps をフラット検索しているが、flow-definition 導入後のステップ構造は nested (plan.children, impl.children)。トップレベルステップは常に pending であり in_progress にならないため sddPhase が null を返し、accumulateAgentMetrics が呼ばれない。加えて normalizeMetrics が counter-only エントリから空 phase オブジェクトを生成し、全 null 行として表示される。",
+    "proposedApproach": "resolveCurrentContext で findInProgressLeaf (definition.js:348) を使い nested ステップを走査する。normalizeMetrics で agent エントリがない phase は出力しない。",
+    "validation": "原因1は resolveCurrentContext のフラット検索と nested ステップ構造の不整合であり、findInProgressLeaf の利用で直接解消される。原因2は normalizeMetrics のフィルタ追加で解消される。両修正により agent metrics が記録され、N/A 行が除去される。"
+  },
+  "scopeVerification": {
+    "in": [
+      "resolveCurrentContext の nested ステップ対応",
+      "normalizeMetrics の counter-only エントリスキップ"
+    ],
+    "out": [
+      "過去 spec の metrics データ遡及修正",
+      "difficulty 計算ロジックの変更",
+      "metrics token コマンドの出力フォーマット変更"
+    ]
+  },
+  "impactOnExisting": [
+    "flow-manager.js の resolveCurrentContext: sddPhase の解決ロジックが変わるため、agent.js からの agent metrics 記録が有効化される",
+    "token.js の normalizeMetrics: counter-only phase が除外されるため、出力行数が減る（N/A 行の除去）",
+    "今後の spec で flow.json に agent エントリが記録されるようになるため、metrics token の出力に token/cost データが表示される"
+  ],
+  "qa": [
+    {
+      "question": "resolveCurrentContext は findInProgressLeaf を使うべきか、独自に nested 検索を実装すべきか？",
+      "answer": "findInProgressLeaf を使う。definition.js:348 に既存の関数があり、get-next-action.js でも使われている。",
+      "evidence": "src/flow/definition.js:348-359 — findInProgressLeaf は children を再帰的に走査し leaf の in_progress ステップを返す。src/lib/flow-manager.js:111 — 現在のフラット検索。",
+      "why": "既存のヘルパーを再利用し、同一のステップ解決ロジックを統一するため。",
+      "considered": "独自のフラット化実装も可能だが、definition.js に同等の関数が既に存在するため不要。"
+    },
+    {
+      "question": "normalizeMetrics で counter-only エントリをどう扱うか？",
+      "answer": "agent エントリが1つもない phase は byPhase に含めない。counter データは metrics token の表示対象外であり、空行の原因になっている。",
+      "evidence": "src/metrics/commands/token.js の normalizeMetrics — counter エントリで phase キーは作られるが中身は空オブジェクト。buildRowsFromMetrics が空オブジェクトから全 null 行を生成する。",
+      "why": "counter-only の phase に token/cost データはないため、表示する意味がない。",
+      "considered": "counter データも表示する案。しかし counter は srcRead/docsRead 等のアクティビティカウンタであり、token/cost レポートのスコープ外。"
+    },
+    {
+      "question": "findInProgressLeaf を flow-manager.js から import する際の依存方向は妥当か？",
+      "answer": "妥当。flow-manager.js は既に flow-store.js を持ち、flow-store.js は definition.js から findStepById 等を import している。flow-manager.js が definition.js を直接 import しても依存方向は lib/ → flow/ で一貫する。",
+      "evidence": "src/lib/flow-store.js:26 — import { findStepById, promoteNextPendingLeaf, flattenSteps } from '../flow/definition.js'",
+      "why": "既存の依存パターンに合致する。",
+      "considered": "flow-store に委譲する案もあるが、resolveCurrentContext は flow-manager 固有のメソッドであり、直接 import の方が明確。"
+    },
+    {
+      "question": "テスト戦略は？",
+      "answer": "resolveCurrentContext のユニットテスト（nested ステップ構造での sddPhase 解決）と、normalizeMetrics のユニットテスト（counter-only エントリのスキップ）。buildRowsFromMetrics の既存テストがあれば、counter-only 入力のケースを追加。",
+      "evidence": "src/lib/flow-manager.js:107 — resolveCurrentContext。src/metrics/commands/token.js — normalizeMetrics と buildRowsFromMetrics (export あり)。",
+      "why": "2つの独立したバグ修正であり、それぞれ単体テストで検証可能。",
+      "considered": "E2E テスト（実際の agent 呼び出しで metrics 記録を確認）は agent テストの領域であり、このバグ修正のスコープには含めない。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-28T03:50:00.000Z",
+    "notes": "autoApprove"
+  }
+}

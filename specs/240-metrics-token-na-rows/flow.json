@@ -1,0 +1,205 @@
+{
+  "spec": "specs/240-metrics-token-na-rows/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/240-metrics-token-na-rows",
+  "runId": "a18eab00-2cce-4074-8e83-9d6172737b7e",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-04-28T08:12:35.691Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-04-28T08:12:35.691Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-04-28T08:12:35.691Z",
+          "finishedAt": "2026-04-28T08:16:36.490Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-04-28T08:16:36.490Z",
+          "finishedAt": "2026-04-28T08:17:01.284Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-04-28T08:17:01.284Z",
+          "finishedAt": "2026-04-28T08:18:51.943Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-04-28T08:18:51.943Z",
+          "finishedAt": "2026-04-28T08:21:08.374Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-04-28T08:21:08.374Z",
+          "finishedAt": "2026-04-28T08:21:36.490Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-04-28T08:21:36.490Z",
+          "finishedAt": "2026-04-28T08:23:48.664Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-04-28T08:23:48.664Z",
+          "finishedAt": "2026-04-28T08:29:30.095Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-04-28T08:29:30.095Z",
+          "finishedAt": "2026-04-28T08:30:54.644Z"
+        },
+        {
+          "id": "review",
+          "status": "done",
+          "startedAt": "2026-04-28T08:30:54.644Z",
+          "finishedAt": "2026-04-28T08:47:30.202135Z"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "finishedAt": "2026-04-28T08:48:48.650Z"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-04-28T08:48:48.650Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "skipped",
+              "finishedAt": "2026-04-28T08:48:58.940Z"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "skipped",
+              "finishedAt": "2026-04-28T08:48:58.948Z"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": []
+    }
+  ],
+  "currentTaskId": null,
+  "issue": 283,
+  "request": "#283 metrics token の N/A 行大量発生（配列形式 metrics の agent エントリ欠損）",
+  "worktree": true,
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T08:13:11.959Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T08:13:27.807Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T08:13:33.924Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T08:13:50.358Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T08:14:07.422Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T08:17:01.292Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T08:19:01.334Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T08:21:08.381Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T08:30:54.656Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-pending-spec",
+      "ts": "2026-04-28T08:43:55.613Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-28T08:47:52.452Z"
+  }
+}

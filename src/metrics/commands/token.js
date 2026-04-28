@@ -234,6 +234,21 @@ function createEmptyRow(date, phase) {
   };
 }
 
+function applyPhaseMetrics(row, phaseData, specDifficulty) {
+  const tokens = phaseData.tokens && typeof phaseData.tokens === "object" ? phaseData.tokens : {};
+  addMetric(row, "tokenInput", tokens.input);
+  addMetric(row, "tokenOutput", tokens.output);
+  addMetric(row, "cacheRead", tokens.cacheRead);
+  addMetric(row, "cacheCreate", tokens.cacheCreation);
+  addMetric(row, "callCount", phaseData.callCount);
+  addMetric(row, "cost", phaseData.cost);
+  addMetric(row, "durationMs", phaseData.durationMs);
+  if (specDifficulty != null) {
+    row._difficultySum += specDifficulty;
+    row._difficultyCount += 1;
+  }
+}
+
 /**
  * Extract per-phase rows from a single flow's metrics object.
  * Used by both `buildRows` (file-driven) and unit tests.
@@ -245,18 +260,7 @@ export function buildRowsFromMetrics(date, metrics, specDifficulty = null) {
   for (const [phase, phaseData] of Object.entries(normalized)) {
     if (!phaseData || typeof phaseData !== "object") continue;
     const row = createEmptyRow(date, phase);
-    const tokens = phaseData.tokens && typeof phaseData.tokens === "object" ? phaseData.tokens : {};
-    addMetric(row, "tokenInput", tokens.input);
-    addMetric(row, "tokenOutput", tokens.output);
-    addMetric(row, "cacheRead", tokens.cacheRead);
-    addMetric(row, "cacheCreate", tokens.cacheCreation);
-    addMetric(row, "callCount", phaseData.callCount);
-    addMetric(row, "cost", phaseData.cost);
-    addMetric(row, "durationMs", phaseData.durationMs);
-    if (specDifficulty != null) {
-      row._difficultySum += specDifficulty;
-      row._difficultyCount += 1;
-    }
+    applyPhaseMetrics(row, phaseData, specDifficulty);
     rows.push(finalizeRow(row));
   }
   return rows;
@@ -389,19 +393,17 @@ function normalizeMetrics(metrics) {
   if (!Array.isArray(metrics)) return metrics;
   const byPhase = {};
   for (const entry of metrics) {
-    if (!entry || !entry.phase) continue;
+    if (!entry || !entry.phase || entry.kind !== "agent") continue;
     const p = byPhase[entry.phase] = byPhase[entry.phase] || {};
-    if (entry.kind === "agent") {
-      p.callCount = (p.callCount || 0) + (entry.callCount || 0);
-      if (entry.durationMs != null) p.durationMs = (p.durationMs || 0) + entry.durationMs;
-      if (entry.tokens) {
-        p.tokens = p.tokens || { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 };
-        for (const k of ["input", "output", "cacheRead", "cacheCreation"]) {
-          p.tokens[k] += entry.tokens[k] || 0;
-        }
+    p.callCount = (p.callCount || 0) + (entry.callCount || 0);
+    if (entry.durationMs != null) p.durationMs = (p.durationMs || 0) + entry.durationMs;
+    if (entry.tokens) {
+      p.tokens = p.tokens || { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 };
+      for (const k of ["input", "output", "cacheRead", "cacheCreation"]) {
+        p.tokens[k] += entry.tokens[k] || 0;
       }
-      if (entry.cost != null) p.cost = (p.cost || 0) + entry.cost;
     }
+    if (entry.cost != null) p.cost = (p.cost || 0) + entry.cost;
   }
   return byPhase;
 }
@@ -425,19 +427,7 @@ async function buildRows(flowEntries) {
       if (!phaseData || typeof phaseData !== "object") continue;
       const key = toRowKey(date, phase);
       if (!rows.has(key)) rows.set(key, createEmptyRow(date, phase));
-      const row = rows.get(key);
-      const tokens = phaseData.tokens && typeof phaseData.tokens === "object" ? phaseData.tokens : {};
-      addMetric(row, "tokenInput", tokens.input);
-      addMetric(row, "tokenOutput", tokens.output);
-      addMetric(row, "cacheRead", tokens.cacheRead);
-      addMetric(row, "cacheCreate", tokens.cacheCreation);
-      addMetric(row, "callCount", phaseData.callCount);
-      addMetric(row, "cost", phaseData.cost);
-      addMetric(row, "durationMs", phaseData.durationMs);
-      if (specDifficulty != null) {
-        row._difficultySum += specDifficulty;
-        row._difficultyCount += 1;
-      }
+      applyPhaseMetrics(rows.get(key), phaseData, specDifficulty);
     }
   }
   return sortRows([...rows.values()].map(finalizeRow));
