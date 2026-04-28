@@ -145,7 +145,7 @@ export function addSingleSelectOption(fieldId, optionName) {
     query {
       node(id: "${fieldId}") {
         ... on ProjectV2SingleSelectField {
-          options { name color description }
+          options { id name color description }
         }
       }
     }`;
@@ -159,7 +159,7 @@ export function addSingleSelectOption(fieldId, optionName) {
   const optionsInput = [
     ...existing.map(
       (o) =>
-        `{ name: ${JSON.stringify(o.name)}, color: ${o.color}, description: ${JSON.stringify(o.description || "")} }`,
+        `{ id: "${o.id}", name: ${JSON.stringify(o.name)}, color: ${o.color}, description: ${JSON.stringify(o.description || "")} }`,
     ),
     `{ name: ${JSON.stringify(optionName)}, color: GRAY, description: "" }`,
   ];
