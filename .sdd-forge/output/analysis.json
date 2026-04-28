@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-28T00:21:32.523Z",
+  "analyzedAt": "2026-04-28T02:36:29.999Z",
   "package": {
     "entries": [
       {
@@ -2550,9 +2550,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "bec37c7573aed6bd242fe54e7b8d5f92",
-        "lines": 497,
-        "mtime": "2026-04-28T00:21:32.118Z",
+        "hash": "a77dd20147d66f9cbd283aa8d69e9664",
+        "lines": 527,
+        "mtime": "2026-04-28T02:36:29.319Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2597,24 +2597,23 @@
         "extends": null,
         "usedBy": null,
         "id": "2cb27b93",
-        "summary": "Defines the FlowNode tree structures FLOW_DEFINITION and TASK_DEFINITION that drive the SDD flow's phases and gates, plus utility functions to traverse, derive phase maps, find active/pending leaves, and compute prerequisites.",
-        "detail": "FlowNode is a class enforcing invariants (depth limited to MAX_DEPTH=3, leaf vs branch shape) and carries metadata like maxAttempts and gate side effects. The module exports two frozen forest definitions for the main flow and per-task subflow, alongside helpers (collectLeafIds, derivePhaseMap, resolveNodeFor, findActiveNode, deriveNextAction, buildInitialNestedSteps, flattenSteps, findStepById, findFirstPendingLeaf, promoteNextPendingLeaf, derivePrereqs, findBranchForLeaf). GATE_IMPL_SIDE_EFFECTS lists post-gate operations (completeTask, promoteNextTask, mergeOverview). Traversal functions are recursive with depth assertions, returning leaf ids, phase mappings, or branch lookups. This serves as the single source of truth for flow topology consumed by gate-step, run-gate, and registry.",
-        "chapter": "internal_design",
+        "summary": "Defines the SDD flow's nested step tree (FLOW_DEFINITION/TASK_DEFINITION) and pure helpers for traversing, deriving phases, and finding active/pending leaves.",
+        "detail": "Uses a FlowNode class with a MAX_DEPTH=3 invariant to model the flow as a hierarchy of phases, sub-steps, and leaves. Exports pure functions like collectLeafIds, derivePhaseMap, resolveNodeFor, findActiveNode, deriveNextAction, buildInitialNestedSteps, flattenSteps, findFirstPendingLeaf, and promoteNextPendingLeaf used by the registry/dispatcher to compute the next action. Also exposes derivePrereqs, findBranchIndexForLeaf, and findBranchForLeaf to support gate logic and prerequisite checks. GATE_IMPL_SIDE_EFFECTS enumerates allowed side-effect names (completeTask, promoteNextTask, mergeOverview) consumed by gate execution.",
+        "chapter": "project_structure",
         "role": "model",
         "enrich": {
-          "processedAt": "2026-04-28T00:22:08.005Z",
+          "processedAt": "2026-04-28T02:37:04.616Z",
           "attempts": 1
         },
         "keywords": [
           "flow definition",
           "FlowNode",
           "phase map",
+          "step tree",
+          "leaf traversal",
+          "next action",
           "gate phase",
-          "leaf nodes",
-          "tree traversal",
-          "SDD workflow",
-          "step status",
-          "prerequisites"
+          "prereqs"
         ]
       },
       {
@@ -2713,7 +2712,11 @@
           "src/flow/lib/set-approval.js",
           "src/flow/lib/run-complete-task.js",
           "src/flow/lib/run-start-task.js",
-          "src/flow/lib/run-update-overview.js"
+          "src/flow/lib/run-update-overview.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-finalize-commit.js",
+          "src/flow/lib/run-finalize-merge.js",
+          "src/flow/lib/run-finalize-sync.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -3619,10 +3622,163 @@
         ]
       },
       {
+        "file": "src/flow/lib/run-finalize-cleanup.js",
+        "hash": "0afd0f85c83440e5e672adb496b78e7e",
+        "lines": 39,
+        "mtime": "2026-04-28T02:36:29.319Z",
+        "className": "run-finalize-cleanup",
+        "methods": [
+          "RunFinalizeCleanupCommand"
+        ],
+        "imports": [
+          "fs",
+          "../../lib/flow-helpers.js",
+          "../../lib/git-helpers.js",
+          "./base-command.js",
+          "./run-finalize.js"
+        ],
+        "exports": [
+          "RunFinalizeCleanupCommand",
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "40e4daa5",
+        "summary": "Finalize-cleanup subcommand that removes the worktree after merge and points users to the report show command.",
+        "detail": "RunFinalizeCleanupCommand extends FlowCommand and is the last leaf of the finalize phase. In spec-only mode it short-circuits with a status of 'done' and the REPORT_SHOW_COMMAND as nextCommand. Otherwise it deletes the worktree directory if it exists and uses runGit to perform the worktree removal. Always returns nextCommand pointing back to the report show command so users can review the finalized output.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-28T02:37:04.616Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow finalize",
+          "cleanup",
+          "worktree remove",
+          "report show",
+          "spec-only"
+        ]
+      },
+      {
+        "file": "src/flow/lib/run-finalize-commit.js",
+        "hash": "3f431df2c276674ab36e4a52c643b475",
+        "lines": 56,
+        "mtime": "2026-04-28T02:36:29.319Z",
+        "className": "run-finalize-commit",
+        "methods": [
+          "RunFinalizeCommitCommand"
+        ],
+        "imports": [
+          "../../lib/flow-helpers.js",
+          "../../lib/git-helpers.js",
+          "./base-command.js",
+          "./run-finalize.js"
+        ],
+        "exports": [
+          "RunFinalizeCommitCommand",
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "1e686d63",
+        "summary": "Finalize-commit subcommand that runs preflight checks and creates the finalize commit on the feature branch.",
+        "detail": "RunFinalizeCommitCommand extends FlowCommand and executes runFinalizePreflight against the project root before performing the commit. It delegates the actual git commit to shared helpers in run-finalize.js and augments the result with a human-readable message. specIdFromPath is used to derive the spec identifier for messaging. The command is one of the leaf nodes of the finalize phase invoked through the registry dispatcher.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-28T02:37:04.616Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow finalize",
+          "commit",
+          "preflight",
+          "spec id",
+          "feature branch"
+        ]
+      },
+      {
+        "file": "src/flow/lib/run-finalize-merge.js",
+        "hash": "745683d39ced53ea23525b47b1e3c009",
+        "lines": 29,
+        "mtime": "2026-04-28T02:36:29.319Z",
+        "className": "run-finalize-merge",
+        "methods": [
+          "RunFinalizeMergeCommand"
+        ],
+        "imports": [
+          "./base-command.js",
+          "../../lib/container.js"
+        ],
+        "exports": [
+          "RunFinalizeMergeCommand",
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "29dc124e",
+        "summary": "Finalize-merge subcommand that merges the feature branch via the configured merge strategy from the DI container.",
+        "detail": "RunFinalizeMergeCommand extends FlowCommand and resolves the merge strategy through the container abstraction. When merge is disabled it returns status 'skipped' with strategy 'skip'. On success it returns status 'done' and the strategy used (defaulting to 'squash' when not reported). The command is invoked as a finalize leaf and is wrapped by registry-level onError to log step-status update failures.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-28T02:37:04.616Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow finalize",
+          "merge",
+          "squash",
+          "container",
+          "merge strategy"
+        ]
+      },
+      {
+        "file": "src/flow/lib/run-finalize-sync.js",
+        "hash": "f7efa8085d6a8122741c12e6e9e52a76",
+        "lines": 33,
+        "mtime": "2026-04-28T02:36:29.319Z",
+        "className": "run-finalize-sync",
+        "methods": [
+          "RunFinalizeSyncCommand"
+        ],
+        "imports": [
+          "path",
+          "../../lib/process.js",
+          "../../lib/cli.js",
+          "../../lib/git-helpers.js",
+          "./base-command.js",
+          "./run-finalize.js"
+        ],
+        "exports": [
+          "RunFinalizeSyncCommand",
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "493aa8e8",
+        "summary": "Finalize-sync subcommand that runs docs build to refresh generated documentation and commits the diff if any.",
+        "detail": "RunFinalizeSyncCommand extends FlowCommand and invokes the docs.js build script via runCmd/assertOk against PKG_DIR. It uses runGit to compute a diff stat and summary against the previous state, then calls commitOrSkip to either commit changes or skip when nothing changed. The result merges the commit outcome with diffStat and diffSummary fields when present. This step keeps generated docs in sync with code as part of the finalize sequence.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-28T02:37:04.616Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow finalize",
+          "docs sync",
+          "build",
+          "diff stat",
+          "commit or skip"
+        ]
+      },
+      {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "2d1f60055d9276a553862a3679a6ad8e",
-        "lines": 554,
-        "mtime": "2026-04-27T03:02:21.757Z",
+        "hash": "7d997f5332b50cc30b5bd5db2d674689",
+        "lines": 214,
+        "mtime": "2026-04-28T02:36:29.319Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3632,24 +3788,17 @@
           "assertGitWriteAccess",
           "runFinalizePreflight",
           "runPreflightChecks",
+          "runMigrationHook",
           "executeCommitPost",
-          "RunFinalizeCommand",
-          "buildFinalizeSuccessEnvelope",
-          "executeCleanupImpl",
-          "buildFinalizePreflightError",
-          "runSubStep",
-          "runMigrationHook"
+          "buildFinalizePreflightError"
         ],
         "imports": [
           "fs",
           "path",
           "../../lib/process.js",
-          "../../lib/cli.js",
           "../../lib/flow-helpers.js",
           "./set-issue-log.js",
           "../../lib/git-helpers.js",
-          "./base-command.js",
-          "../registry.js",
           "../../lib/container.js",
           "./run-report-show.js"
         ],
@@ -3661,32 +3810,33 @@
           "assertGitWriteAccess",
           "runFinalizePreflight",
           "runPreflightChecks",
+          "runMigrationHook",
           "executeCommitPost",
-          "RunFinalizeCommand",
-          "buildFinalizeSuccessEnvelope",
-          "default",
-          "REPORT_SHOW_COMMAND",
-          "STEP_MAP"
+          "REPORT_SHOW_COMMAND"
         ],
-        "extends": "FlowCommand",
-        "usedBy": null,
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-finalize-commit.js",
+          "src/flow/lib/run-finalize-sync.js"
+        ],
         "id": "c711309b",
-        "summary": "Implements the flow finalize pipeline, including preflight checks, commit/merge orchestration, and cleanup behavior. It supports both full and step-select execution with structured result envelopes.",
-        "detail": "The module performs git preflight validation, including write-access probes in the git common dir and detailed preflight error shaping. It defines a step map and reusable step runner so finalize can execute deterministic sub-steps and report per-step outcomes. Commit logic can skip when there are no staged changes, while cleanup handles worktree-aware and spec-only paths safely. It persists a pointer to the last finalized spec and can invoke a per-spec finalize migration hook script when present. The command integrates with flow state, registry hooks, and post-finalize docs/build actions while preserving robust error-handling paths.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Shared helpers for the finalize phase including preflight checks, last-finalized pointer, commit helpers, and migration hook.",
+        "detail": "Exports REPORT_SHOW_COMMAND constant and writeLastFinalizedPointer which writes the current spec path to a pointer file under the report directory. commitOrSkip wraps git commit calls and returns a skipped status when there is nothing to commit. assertGitWriteAccess probes write access by creating a small lock file under the resolved git common dir, and runFinalizePreflight composes the access check. runPreflightChecks evaluates dirty worktree state, base/feature branch consistency, and spec-only mode. runMigrationHook executes a per-spec finalize-migration.js script when present, and executeCommitPost is the registry post-hook that runs after the commit step.",
+        "chapter": "internal_design",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-27T03:03:14.026Z",
+          "processedAt": "2026-04-28T02:37:04.616Z",
           "attempts": 1
         },
         "keywords": [
-          "finalize workflow",
-          "preflight checks",
-          "git write access",
-          "step orchestration",
+          "finalize helpers",
+          "preflight",
           "commit or skip",
-          "worktree cleanup",
-          "merge strategy"
+          "migration hook",
+          "last finalized pointer",
+          "git write access",
+          "dirty worktree"
         ]
       },
       {
@@ -4834,9 +4984,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "0c5190ce41a59dfa0367df075aa8aaa9",
-        "lines": 602,
-        "mtime": "2026-04-28T00:21:32.119Z",
+        "hash": "c6ec7625e60dfa67bb817d2a479702f4",
+        "lines": 619,
+        "mtime": "2026-04-28T02:36:29.320Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -4854,23 +5004,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Central registry mapping flow CLI subcommands to their command classes and lifecycle hooks (pre/post handlers for step status updates, issue-log appends, gate side effects, and metric recording).",
-        "detail": "FLOW_COMMANDS is the dispatch table consumed by flow.js, defining args parsing, help text, and command construction for each action (prepare, get, set, run subcommands). Helpers deriveActivePhase, tryUpdateStepStatus, and tryAppendIssueLog wrap state mutations with error swallowing that still rethrows critical failures. Registry entries wire post-execution hooks—e.g. updateGateRetryCounter after gate runs, executeGateSideEffects after gate-impl, executeCommitPost after commits—keeping side effects declarative rather than embedded in command classes. resolveGateStepId/resolveGatePhaseFromState integrate gate-step lookups so step status updates target the correct nested step id. This is the glue layer between the FlowCommand abstraction and the CLI entry point.",
-        "chapter": "cli_commands",
+        "summary": "Central registry mapping flow subcommand names to their argument parsers, help text, and command implementations including hooks.",
+        "detail": "FLOW_COMMANDS aggregates every flow subcommand definition consumed by the dispatcher in flow.js. Provides helpers like deriveActivePhase, tryUpdateStepStatus, and tryAppendIssueLog that wrap registry-level concerns with stderr warnings on failure. Wires gate side effects via gateMod.executeGateSideEffects and post-hooks like executeCommitPost from run-finalize.js. resolveGateStepId/resolveGatePhaseFromState integrate gate-step.js, while VALID_PHASES, VALID_METRIC_COUNTERS, and VALID_GATE_PHASES enforce allowed values. onError handlers for finalize-merge log step-status update failures without aborting the flow.",
+        "chapter": "project_structure",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-28T00:22:08.005Z",
+          "processedAt": "2026-04-28T02:37:04.616Z",
           "attempts": 1
         },
         "keywords": [
-          "command registry",
-          "flow dispatcher",
-          "lifecycle hooks",
-          "step status",
-          "issue log",
+          "flow registry",
+          "command map",
+          "dispatcher",
           "gate side effects",
-          "CLI dispatch",
-          "post hooks"
+          "post hook",
+          "issue log",
+          "step status"
         ]
       },
       {
@@ -9648,10 +9797,10 @@
       }
     ],
     "summary": {
-      "total": 279,
+      "total": 283,
       "totalMethods": 915
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-28T00:22:08.005Z"
+  "enrichedAt": "2026-04-28T02:37:04.616Z"
 }
