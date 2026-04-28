@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-28T02:36:29.999Z",
+  "analyzedAt": "2026-04-28T03:23:48.241Z",
   "package": {
     "entries": [
       {
@@ -2396,9 +2396,9 @@
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "5e641b25e543abd02d5d8e3a73060e03",
-        "lines": 199,
-        "mtime": "2026-04-27T10:57:19.404Z",
+        "hash": "99ee2c4acb9bf80466f561537fec3a88",
+        "lines": 211,
+        "mtime": "2026-04-28T03:23:16.008Z",
         "className": "report",
         "methods": [
           "generateReport",
@@ -2419,28 +2419,28 @@
         "extends": null,
         "usedBy": null,
         "id": "5f80ffd2",
-        "summary": "Generates flow report payloads from issue-log-derived metrics and produces a human-readable report text block. It also persists the structured report as `report.json` beside the active spec.",
-        "detail": "The module composes reporting data by combining issue-log input with status/metric aggregation helpers. It formats text output with aligned labels, separators, and duration rendering so CLI output stays readable. The generation function returns both machine-friendly data and formatted text in one response contract. A dedicated save function resolves the spec directory path and writes deterministic JSON with trailing newline for stable file output.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Generates SDD flow report data and text output, persisting structured report.json next to the spec.",
+        "detail": "Exports `generateReport(input)` which composes report data plus a formatted text representation, and `saveReport(root, specPath, reportData)` which writes `report.json` into the spec directory. Uses `loadIssueLog` for issue history and `buildMetricsSummary` / `buildReportTotals` from `get-status.js` to assemble metrics. Text formatting leverages shared `pushSection`, `DIVIDER`, and `formatDurationSeconds` helpers from the formatter module. Output is a labelled, dot-aligned summary plus a JSON sidecar for downstream consumption.",
+        "chapter": "internal_design",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-27T10:58:03.858Z",
+          "processedAt": "2026-04-28T03:24:26.497Z",
           "attempts": 1
         },
         "keywords": [
           "flow report",
+          "report generation",
           "metrics summary",
-          "status totals",
           "issue log",
-          "report.json",
-          "duration formatting"
+          "spec report",
+          "report.json"
         ]
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "9c9960e16d0ec525c57b5752438c924f",
+        "hash": "3bbb1c8735aca1079b825d6a12737475",
         "lines": 1173,
-        "mtime": "2026-04-27T10:47:19.444Z",
+        "mtime": "2026-04-28T02:51:14.505Z",
         "className": "review",
         "methods": [
           "ensureAgent",
@@ -2493,7 +2493,8 @@
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
           "../../lib/constants.js",
-          "../../lib/guardrail.js"
+          "../../lib/guardrail.js",
+          "../definition.js"
         ],
         "exports": [
           "default",
@@ -2509,7 +2510,7 @@
           "collectTouchedFiles",
           "filterProposalsByScope",
           "extractProposalFile",
-          "MAX_REVIEW_RETRIES",
+          "REVIEW_MAX_ATTEMPTS",
           "REVIEW_PHASES",
           "extractRequirements",
           "collectTestFiles",
@@ -2527,25 +2528,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "This file implements the `flow review` command and orchestrates AI-assisted review workflows for code changes, specs, and tests. It also handles diff collection, proposal validation, retry logic, and result file generation.",
-        "detail": "The command resolves the review target from merge-base, spec-related paths, or staged/committed diffs, while excluding documentation and generated paths from analysis. It builds system and task prompts, parses structured AI proposals, filters them against touched files, and merges final verdict metadata for each proposal. The implementation uses a reusable review loop with detect/fix phases and bounded retries to converge on acceptable output, with dry-run support and explicit error exits. It includes dedicated subflows for test review and spec review, including gap parsing, optional file patch application, and validation of regenerated spec format. Review artifacts are persisted under the spec directory (`review.md`, `test-review.md`, `spec-review.md`) so the flow leaves auditable outputs.",
+        "summary": "Implements the flow review command covering code review, test design review, and spec review with AI agent loops.",
+        "detail": "Defines `FlowReviewCommand` and `runReview` orchestrating three review modes: code (diff-based proposals against merge-base), test design (gap analysis vs. requirements), and spec (goal/scope critique with fix application). Uses guardrails filtered by phase, builds draft/final/apply prompts, parses proposals, and writes `review.md`, `test-review.md`, and `spec-review.md` artifacts. A retry loop (`runReviewLoop`) iterates detect→fix cycles up to `REVIEW_MAX_ATTEMPTS` from the flow definition. Excludes docs/output paths from the diff via pathspec and validates spec structure by markdown headings.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-27T10:47:34.329Z",
+          "processedAt": "2026-04-28T03:24:26.497Z",
           "attempts": 1
         },
         "keywords": [
-          "flow review",
-          "CLI command",
-          "diff analysis",
-          "merge-base",
-          "guardrails",
-          "AI proposal parsing",
-          "retry loop",
+          "review",
+          "code review",
+          "test review",
           "spec review",
-          "test gap analysis",
-          "review report generation"
+          "guardrails",
+          "AI agent",
+          "diff review",
+          "gap analysis"
         ]
       },
       {
@@ -2933,9 +2932,9 @@
       },
       {
         "file": "src/flow/lib/get-context.js",
-        "hash": "42ec09791ab6a0e482033bf98e45990c",
-        "lines": 400,
-        "mtime": "2026-04-27T10:57:19.404Z",
+        "hash": "218702df0f3d4bcfc3dd3fd640917b98",
+        "lines": 389,
+        "mtime": "2026-04-28T03:16:44.529Z",
         "className": "get-context",
         "methods": [
           "toSearchResult",
@@ -2949,7 +2948,6 @@
           "aiSearch",
           "contextSearch",
           "filterEntry",
-          "resolvePhase",
           "loadAnalysisEntries"
         ],
         "imports": [
@@ -2963,7 +2961,6 @@
         "exports": [
           "default",
           "filterEntry",
-          "resolvePhase",
           "searchEntries",
           "collectAllKeywords",
           "buildKeywordSelectionPrompt",
@@ -2981,22 +2978,22 @@
           "src/docs/commands/readme.js"
         ],
         "id": "1261e39f",
-        "summary": "Implements context retrieval for flow operations by searching analysis entries with keyword, n-gram, and AI-assisted strategies. It also exposes a command class and reusable search/filter helpers.",
-        "detail": "The file loads `analysis.json` from configured output paths and normalizes entries into compact search-result objects. It provides layered retrieval: direct keyword matching, bigram similarity scoring with thresholding, and AI keyword selection with safe fallbacks. Error paths are explicit, with stderr diagnostics and graceful downgrade to deterministic local search when AI responses fail or parse incorrectly. Entry filtering removes volatile metadata fields, and phase/context helpers support downstream command behavior. The command class handles path resolution, file loading, and packaging search output for flow consumers.",
+        "summary": "Provides flow context retrieval with keyword, n-gram, and AI-driven search over scanned analysis entries.",
+        "detail": "`GetContextCommand` loads `analysis.json`, supports searching entries via direct keyword match, bigram similarity (`NGRAM_THRESHOLD = 0.15`), or AI-assisted keyword selection (`aiSearch` with fallback). Filters out internal metadata fields (`hash`, `mtime`, etc.) before returning. Also supports reading specific files relative to the project root for direct content retrieval. Falls back gracefully on agent failures or JSON parse errors, writing diagnostics to stderr.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-27T10:58:03.858Z",
+          "processedAt": "2026-04-28T03:24:26.497Z",
           "attempts": 1
         },
         "keywords": [
-          "context retrieval",
-          "analysis index",
-          "keyword search",
+          "context search",
+          "ngram",
           "bigram similarity",
-          "ngram matching",
-          "AI fallback",
-          "semantic context"
+          "AI search",
+          "analysis entries",
+          "keyword selection",
+          "fallback search"
         ]
       },
       {
@@ -3776,9 +3773,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "7d997f5332b50cc30b5bd5db2d674689",
-        "lines": 214,
-        "mtime": "2026-04-28T02:36:29.319Z",
+        "hash": "d2e7159533d983fb4f394850e9daf800",
+        "lines": 215,
+        "mtime": "2026-04-28T03:23:16.008Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3821,22 +3818,22 @@
           "src/flow/lib/run-finalize-sync.js"
         ],
         "id": "c711309b",
-        "summary": "Shared helpers for the finalize phase including preflight checks, last-finalized pointer, commit helpers, and migration hook.",
-        "detail": "Exports REPORT_SHOW_COMMAND constant and writeLastFinalizedPointer which writes the current spec path to a pointer file under the report directory. commitOrSkip wraps git commit calls and returns a skipped status when there is nothing to commit. assertGitWriteAccess probes write access by creating a small lock file under the resolved git common dir, and runFinalizePreflight composes the access check. runPreflightChecks evaluates dirty worktree state, base/feature branch consistency, and spec-only mode. runMigrationHook executes a per-spec finalize-migration.js script when present, and executeCommitPost is the registry post-hook that runs after the commit step.",
+        "summary": "Helpers for the finalize phase: preflight checks, commit handling, last-finalized pointer, and migration hooks.",
+        "detail": "Exports utilities used by the finalize flow: `runFinalizePreflight` validates git write access via a temporary lock file in the git common dir, `runPreflightChecks` distinguishes spec-only vs. dirty-worktree states, and `commitOrSkip` wraps commit execution. `writeLastFinalizedPointer` persists the most recently finalized spec path, `runMigrationHook` invokes per-spec `scripts/finalize-migration.js` when present, and `executeCommitPost` handles post-commit bookkeeping. `finalizeOnError` returns a closure for error-path step handlers.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-28T02:37:04.616Z",
+          "processedAt": "2026-04-28T03:24:26.497Z",
           "attempts": 1
         },
         "keywords": [
-          "finalize helpers",
+          "finalize",
           "preflight",
-          "commit or skip",
+          "commit",
+          "git lock",
           "migration hook",
           "last finalized pointer",
-          "git write access",
-          "dirty worktree"
+          "flow finalize"
         ]
       },
       {
@@ -4204,19 +4201,20 @@
       },
       {
         "file": "src/flow/lib/run-report.js",
-        "hash": "b9c3fdfd2a72ed5534111642fa4a46ce",
-        "lines": 57,
-        "mtime": "2026-04-05T09:45:33.802Z",
+        "hash": "409370c265880fcbda1c185a22dd6ad7",
+        "lines": 72,
+        "mtime": "2026-04-28T03:23:16.008Z",
         "className": "run-report",
         "methods": [
           "RunReportCommand"
         ],
         "imports": [
+          "fs",
+          "path",
           "../../lib/git-helpers.js",
           "../commands/report.js",
           "./set-issue-log.js",
-          "./base-command.js",
-          "path"
+          "./base-command.js"
         ],
         "exports": [
           "RunReportCommand",
@@ -4225,20 +4223,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "43872d6b",
-        "summary": "RunReportCommand generates and persists a flow progress report for the current spec. It derives report context from git summary data and flow state.",
-        "detail": "The command requires `baseBranch` in flow state and fails fast when it is missing. It collects diff and commit summary information, then hands report composition to report helpers. Output is saved under the spec directory and returned as a changed file entry. The design separates reporting orchestration from report rendering and persistence logic.",
-        "chapter": "cli_commands",
+        "summary": "FlowCommand that produces the report.json artifact by combining git summary, issue log, and retro data.",
+        "detail": "`RunReportCommand` validates `baseBranch` from flow.json, then calls `generateReport` with git summary (`collectGitSummary`), issue log entries, and optional retro data loaded from `retro.json` next to the spec. Persists output via `saveReport` and reports the changed file path (`<specDir>/report.json`) in the result envelope. Acts as the orchestration layer over the pure `report.js` command module.",
+        "chapter": "internal_design",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
+          "processedAt": "2026-04-28T03:24:26.497Z",
           "attempts": 1
         },
         "keywords": [
-          "flow report",
+          "run report",
+          "report command",
+          "retro",
           "git summary",
-          "report.json",
-          "baseBranch",
-          "progress report"
+          "issue log",
+          "flow report"
         ]
       },
       {
@@ -4276,9 +4275,9 @@
       },
       {
         "file": "src/flow/lib/run-retro.js",
-        "hash": "8bc46325f714ceddd891c0d569d13256",
-        "lines": 246,
-        "mtime": "2026-04-23T04:45:33.474Z",
+        "hash": "8e5620659c246dd4cddba201ca2cf638",
+        "lines": 247,
+        "mtime": "2026-04-28T03:23:16.009Z",
         "className": "run-retro",
         "methods": [
           "RunRetroCommand",
@@ -4309,22 +4308,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "862e7d08",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 5
-        },
-        "summary": "Implements retrospective generation (`retro.json`) from requirements and git diffs using AI output with JSON repair fallback. It enforces idempotency and explicit overwrite behavior.",
-        "detail": "The command loads and normalizes spec requirements, verifies base branch availability, and builds prompt input from high-level and detailed diffs. AI response parsing first attempts strict JSON parsing, then applies repair logic for malformed payloads. Existing `retro.json` is protected unless `--force` is provided, reducing accidental data loss. Errors are wrapped in the flow envelope model to return machine-readable failure metadata. Successful runs persist formatted JSON and return changed path information.",
-        "chapter": "cli_commands",
+        "summary": "FlowCommand that performs an AI-driven retrospective on the spec's diff and writes retro.json.",
+        "detail": "`RunRetroCommand` collects requirements from `spec.json` and the diff against `baseBranch` (summary plus detailed diff), builds a retro prompt, and invokes the configured AI agent. Parses the response with `repairJson` fallback, validating against requirements via `parseRetroResponse`. Refuses to overwrite an existing `retro.json` unless `force` is set, returning a structured failure envelope. Throws explicit errors for missing config, missing agent, or AI/parse failures, and writes the result alongside the spec.",
+        "chapter": "internal_design",
         "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-28T03:24:26.497Z",
+          "attempts": 1
+        },
         "keywords": [
-          "retro analysis",
+          "retro",
+          "retrospective",
+          "AI agent",
+          "diff analysis",
+          "requirements",
           "retro.json",
-          "ai prompt",
-          "json repair",
-          "requirements mapping",
-          "diff synthesis",
-          "force overwrite"
+          "json repair"
         ]
       },
       {
@@ -6669,9 +6668,9 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "64fd4aed2d1dd0462acd166feab723cd",
-        "lines": 502,
-        "mtime": "2026-04-23T04:45:33.475Z",
+        "hash": "073bd529ca344286d3b46a2c0da47645",
+        "lines": 534,
+        "mtime": "2026-04-28T03:06:20.712Z",
         "className": "token",
         "methods": [
           "formatText",
@@ -6683,6 +6682,7 @@
           "toNumberOrNull",
           "addMetric",
           "asDisplayValue",
+          "phaseLabel",
           "asCsvValue",
           "sortRows",
           "groupRowsByPhase",
@@ -6702,6 +6702,7 @@
           "normalizeToHundred",
           "average",
           "computeSpecDifficulty",
+          "normalizeMetrics",
           "buildRows",
           "readCacheRows",
           "writeCache",
@@ -6725,22 +6726,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 5
-        },
-        "summary": "Implements the `metrics token` command to aggregate per-flow token/activity metrics and render text, JSON, or CSV outputs with caching. It also estimates difficulty-adjusted productivity indicators from spec artifacts.",
-        "detail": "The command scans `specs/*/flow.json` with an upper bound to avoid pathological traversal and rebuilds cache when stale or invalid. It computes grouped rows by date and phase, then finalizes totals, averages, and display-safe values. Additional heuristics derive spec difficulty using requirement counts, test volume, request length, and review activity with clamped normalization. Robust file-reading helpers tolerate missing optional files and malformed cache payloads. Output rendering is format-specific and deterministic, making it suitable for CI reporting and trend analysis.",
+        "summary": "Metrics CLI command that aggregates per-spec finalize tokens, durations, and difficulty into text/json/csv output.",
+        "detail": "`TokenCommand` walks `specs/**/flow.json` (capped at `MAX_FLOW_FILES = 5000`), reads finalize metrics, computes per-phase rows keyed by date, and renders text/json/csv. Caches aggregated rows in `.sdd-forge/output/metrics.json`, invalidating when any flow.json's `finalizedAt` exceeds the cached `maxFinalizedAt`. Computes spec difficulty by combining baseline difficulty (requirement count, test count, request chars, review count) with a precision normalizer clamped to [0.3, 3.0]. Supports phase filtering via `VALID_PHASES`, sorts rows by date, and writes diagnostics to stderr for skipped or malformed entries.",
         "chapter": "cli_commands",
         "role": "cli",
+        "enrich": {
+          "processedAt": "2026-04-28T03:24:26.497Z",
+          "attempts": 1
+        },
         "keywords": [
-          "token metrics",
-          "csv export",
-          "json report",
-          "cache freshness",
-          "difficulty scoring",
-          "flow analytics",
-          "phase aggregation"
+          "metrics",
+          "token usage",
+          "spec difficulty",
+          "csv output",
+          "cache",
+          "finalize metrics",
+          "phase filter",
+          "flow.json aggregation"
         ]
       },
       {
@@ -9798,9 +9800,9 @@
     ],
     "summary": {
       "total": 283,
-      "totalMethods": 915
+      "totalMethods": 916
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-28T02:37:04.616Z"
+  "enrichedAt": "2026-04-28T03:24:26.497Z"
 }
