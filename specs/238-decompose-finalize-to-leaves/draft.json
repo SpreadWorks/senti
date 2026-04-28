@@ -1,0 +1,90 @@
+{
+  "devType": "refactor",
+  "goal": "finalize を definition の branch に分解し、commit / merge / sync / cleanup を独立 leaf にすることで、ディスパッチャーがサブステップの進行を個別に追跡・制御できるようにする",
+  "analysis": {
+    "problem": "finalize は definition 上で単一 leaf だが、内部に STEP_MAP {1: commit, 2: merge, 3: sync, 4: cleanup} を持つモノリシックなコマンド。ディスパッチャーは finalize 内部のサブステップ進行を把握できず、--mode select --steps による手動選択が定義木の外で独自に実装されている。spec 236 で definition 導入時に finalize の分解は先送りされた。",
+    "proposedApproach": "FLOW_DEFINITION の finalize leaf を branch に変換し、commit / merge / sync / cleanup を独立 leaf として定義する。run-finalize.js の各サブステップロジックを個別の FlowCommand サブクラスに分割し、registry.js に個別コマンドとして登録する。ディスパッチャーの既存の branch traversal 機構で自然にサブステップを駆動する。",
+    "validation": "definition.js の MAX_DEPTH=3 の制約内に収まる（impl[1] → finalize[2] → commit[3]）。ディスパッチャーの promoteNextPendingLeaf / findActiveNode は既にネストした branch をサポートしている。各 leaf に専用のプロンプトを持たせることで、スキルが各サブステップの手順を正確に案内できる。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] definition.js: finalize leaf → branch with 4 children (commit, merge, sync, cleanup)",
+      "[must] run-finalize.js 分割: 各サブステップを独立 FlowCommand に",
+      "[must] registry.js: 個別コマンド登録、hooks 移行",
+      "[must] プロンプト: impl/finalize.md を分割（各 leaf 用プロンプト）",
+      "[should] show-report ステップ ID の dead reference 整理",
+      "[should] スキルテンプレート更新（finalize の手順記述を新構造に対応）",
+      "[should] 既存テストの更新"
+    ],
+    "out": [
+      "ディスパッチャーループ自体の変更（既存の branch traversal をそのまま使う）",
+      "plan フェーズの構造変更",
+      "retro / report 生成ロジックの内部変更（commit の post hook として移行するだけ）",
+      "merge.js / cleanup の内部ロジック変更（分割して独立コマンド化するが、ロジック自体は変えない）"
+    ]
+  },
+  "impactOnExisting": [
+    "flow.json の steps 構造が変わる（finalize が children を持つ branch になる）: buildInitialNestedSteps が自動対応",
+    "sdd-forge flow run finalize CLI: 統合コマンドを廃止し、個別コマンド（run commit, run merge, run sync, run cleanup）に置換",
+    "スキルテンプレート（SKILL.md の finalize 手順）: ディスパッチャーが leaf 単位で駆動するため手順記述が変わる",
+    "既存テスト（tests/unit/flow/run-finalize-*.test.js 群）: 個別コマンドのテストに再構成",
+    "run-finalize.js の show-report ステップ ID 参照を削除"
+  ],
+  "qa": [
+    {
+      "question": "finalize branch の構造（depth, leaf 構成）はどうなるか？",
+      "answer": "impl (depth 1) → finalize (depth 2, branch) → commit / merge / sync / cleanup (depth 3, leaf)。MAX_DEPTH=3 内。",
+      "evidence": "definition.js L14: const MAX_DEPTH = 3; 現在 impl branch の children は全て depth 2 の leaf。finalize を branch にすると children が depth 3 になるが上限内。",
+      "why": "定義木の既存構造に自然に収まる唯一の配置。新しい top-level branch を追加するのは phase map の意味論を壊す。",
+      "considered": "finalize を独立 top-level branch (plan, impl, finalize) にする案 → phase map で finalize 内 leaf が独自の phase になり、既存の impl phase ロジックとの整合が壊れる"
+    },
+    {
+      "question": "各 leaf の action / instructionsKey はどう命名するか？",
+      "answer": "commit: action='run-finalize-commit', instructionsKey='impl.finalize-commit'。merge/sync/cleanup も同パターン。",
+      "evidence": "既存パターン: gate-impl → action='run-gate', instructionsKey='impl.gate-impl'。finalize 内 leaf は 'impl.finalize-*' で名前空間を共有。",
+      "why": "既存の命名規約に合わせる。action 名に 'finalize-' prefix を付けることで registry lookup 時の衝突を回避。",
+      "considered": "action を 'commit', 'merge' 等の短名にする案 → 将来の他ステップと衝突リスク"
+    },
+    {
+      "question": "merge failure 時の sync / cleanup スキップをどう実現するか？",
+      "answer": "merge leaf の FlowCommand が失敗を返した場合、ディスパッチャーの次アクション取得時に前ステップ失敗を検出してスキップする。もしくは merge の onError hook で後続ステップを skipped にマークする。",
+      "evidence": "run-finalize.js L460-469: 現在は merge.status === 'failed' のガードで後続を skip。分解後は definition の sideEffects か registry の hook で同等の制御を実現。",
+      "why": "merge 失敗時に sync を実行すると main が壊れた状態で docs を生成するリスク。cleanup スキップはワーカーツリーを保全して手動復旧を可能にするため。",
+      "considered": "ディスパッチャーに汎用の 'skip-on-sibling-failure' 機構を追加する案 → この spec のスコープ外で過剰"
+    },
+    {
+      "question": "requiresApproval はどの leaf に付けるか？",
+      "answer": "commit leaf に requiresApproval: true を設定。finalize に入る前の承認ポイントとして機能する。",
+      "evidence": "definition.js L173: 現在 finalize に requiresApproval: true。分解後は最初の leaf (commit) が承認ゲートになる。",
+      "why": "finalize の意図は「コードを確定する前に確認」なので、最初のアクション（commit）前に承認を取るのが適切。",
+      "considered": "全 leaf に requiresApproval を付ける案 → 過剰（auto モードで4回承認を取ることになる）"
+    },
+    {
+      "question": "統合コマンド sdd-forge flow run finalize は残すか？",
+      "answer": "alpha 版ポリシーにより後方互換は不要。統合コマンドを廃止し、個別コマンドに置換する。ディスパッチャーが leaf 単位で各コマンドを呼ぶため、統合コマンドは不要。",
+      "evidence": "CLAUDE.md: alpha 版ポリシー: 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する。",
+      "why": "統合コマンドと個別コマンドの2系統を維持すると、hook 定義やテストが二重化する。",
+      "considered": "統合コマンドを薄いラッパーとして残す案 → コードが増えるだけで利点なし"
+    },
+    {
+      "question": "show-report ステップ ID の扱いは？",
+      "answer": "run-finalize.js L500-509 の show-report 参照を削除。spec 236 で definition から除外済み。cleanup step 内で finalize step status の done 遷移を行う。",
+      "evidence": "definition.js に show-report ノードは存在しない。run-finalize.js のみが updateStepStatus('show-report', 'done') を呼んでいる。",
+      "why": "存在しないステップ ID を更新しても実害はないが、dead code として整理すべき。",
+      "considered": "show-report を definition に追加する案 → spec 236 で除外した判断を覆す理由がない"
+    },
+    {
+      "question": "FLOW_STEPS の死んだエントリ（push, pr-create 等）の整理は必要か？",
+      "answer": "不要。調査の結果、definition.js にこれらのエントリは存在しない。旧 FLOW_STEPS は spec 236 で definition.js に移行された際に除去済み。",
+      "evidence": "grep -rn で definition.js, registry.js 内に push, pr-create, branch-cleanup, pr-merge, docs-update, docs-review, docs-commit は未検出。",
+      "why": "Issue 起票時点では未確認だったが、既に解消済みの論点。",
+      "considered": "なし（事実確認の結果）"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-28T00:30:00.000Z",
+    "notes": "autoApprove"
+  }
+}

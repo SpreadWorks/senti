@@ -182,7 +182,7 @@ describe("231: E2E full lifecycle — flat tasks", () => {
     // R1: flow should be finalize-eligible (flow-scope step)
     na = getNextAction(tmp);
     assert.ok(
-      ["implement", "gate-impl", "review", "finalize"].includes(na.data.step),
+      ["implement", "gate-impl", "review", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"].includes(na.data.step),
       `expected flow-scope step, got ${na.data.step}`,
     );
     assert.equal(na.data.taskId, null);
@@ -236,7 +236,7 @@ describe("231: E2E full lifecycle — parent-child tasks", () => {
     // R2: finalize-eligible
     na = getNextAction(tmp);
     assert.ok(
-      ["implement", "gate-impl", "review", "finalize"].includes(na.data.step),
+      ["implement", "gate-impl", "review", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"].includes(na.data.step),
       `expected flow-scope step, got ${na.data.step}`,
     );
   });

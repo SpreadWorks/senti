@@ -34,13 +34,14 @@ const FLOW_CMD = join(process.cwd(), "src/sdd-forge.js");
 const FLOW_CMD_ARGS_PREFIX = ["flow"];
 
 describe("FLOW_STEPS includes review", () => {
-  it("has review between implement and finalize", () => {
+  it("has review between implement and finalize-commit", () => {
     const implIdx = FLOW_STEPS.indexOf("implement");
     const reviewIdx = FLOW_STEPS.indexOf("review");
-    const finalIdx = FLOW_STEPS.indexOf("finalize");
+    const finalIdx = FLOW_STEPS.indexOf("finalize-commit");
     assert.ok(reviewIdx > 0, "review step exists");
     assert.ok(reviewIdx > implIdx, "review comes after implement");
-    assert.ok(reviewIdx < finalIdx, "review comes before finalize");
+    assert.ok(finalIdx > 0, "finalize-commit step exists");
+    assert.ok(reviewIdx < finalIdx, "review comes before finalize-commit");
   });
 });
 

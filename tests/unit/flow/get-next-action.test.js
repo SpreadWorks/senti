@@ -162,10 +162,10 @@ describe("flow get next-action", () => {
       assert.equal(envelope.data.requires_approval, true);
     });
 
-    it("flow finalize step has requires_approval: true", () => {
+    it("flow finalize-commit step has requires_approval: true", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
-      setFlowStepInProgress(state, "finalize");
+      setFlowStepInProgress(state, "finalize-commit");
       makeFlowManager(tmp).save(state);
       const { envelope } = runCli(tmp, ["flow", "get", "next-action"]);
       assert.equal(envelope.data.requires_approval, true);

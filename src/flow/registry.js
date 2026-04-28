@@ -418,55 +418,72 @@ export const FLOW_COMMANDS = {
         "    detail:   also compare git diff against requirements",
       ].join("\n"),
     },
-    // finalize runs cleanup internally which deletes .active-flow,
-    // so post hooks cannot update step status. Managed by the skill.
-    finalize: {
-      helpKey: "flow.run.finalize",
-      command: () => import("./lib/run-finalize.js"),
+    "finalize-commit": {
+      helpKey: "flow.run.finalize-commit",
+      command: () => import("./lib/run-finalize-commit.js"),
       args: {
-        flags: ["--dry-run"],
-        options: ["--mode", "--steps", "--message"],
+        options: ["--message"],
       },
       help: [
-        "Usage: sdd-forge flow run finalize [options]",
+        "Usage: sdd-forge flow run finalize-commit [options]",
         "",
-        "Execute finalization pipeline: commit(+retro+report) -> merge -> sync -> cleanup.",
+        "Commit implementation changes. Post-hook runs retro, report, and issue comment.",
         "",
         "Options:",
-        "  --mode <all|select>           Mode (default: all)",
-        "  --steps <1,2,3,4>            Comma-separated step numbers (select mode: 1=commit 2=merge 3=sync 4=cleanup)",
-        "  --message <msg>               Custom commit message",
-        "  --dry-run                     Preview only",
+        "  --message <msg>  Custom commit message",
       ].join("\n"),
-      steps: {
-        commit: {
-          async post(ctx, result) {
-            const m = await import("./lib/run-finalize.js");
-            await m.executeCommitPost(ctx);
-          },
-          async onError(ctx, err) {
-            const m = await import("./lib/run-finalize.js");
-            m.finalizeOnError("commit")(ctx, err);
-          },
-        },
-        merge: {
-          async onError(ctx, err) {
-            const m = await import("./lib/run-finalize.js");
-            m.finalizeOnError("merge")(ctx, err);
-          },
-        },
-        sync: {
-          async onError(ctx, err) {
-            const m = await import("./lib/run-finalize.js");
-            m.finalizeOnError("sync")(ctx, err);
-          },
-        },
-        cleanup: {
-          async onError(ctx, err) {
-            const m = await import("./lib/run-finalize.js");
-            m.finalizeOnError("cleanup")(ctx, err);
-          },
-        },
+      async post(ctx, result) {
+        const m = await import("./lib/run-finalize.js");
+        await m.executeCommitPost(ctx);
+      },
+      async onError(ctx, err) {
+        const m = await import("./lib/run-finalize.js");
+        m.finalizeOnError("finalize-commit")(ctx, err);
+      },
+    },
+    "finalize-merge": {
+      helpKey: "flow.run.finalize-merge",
+      command: () => import("./lib/run-finalize-merge.js"),
+      help: [
+        "Usage: sdd-forge flow run finalize-merge",
+        "",
+        "Squash merge or PR creation. On failure, subsequent steps are skipped.",
+      ].join("\n"),
+      async onError(ctx, err) {
+        const m = await import("./lib/run-finalize.js");
+        m.finalizeOnError("finalize-merge")(ctx, err);
+        try {
+          ctx.flowManager.updateStepStatus("finalize-sync", "skipped");
+          ctx.flowManager.updateStepStatus("finalize-cleanup", "skipped");
+        } catch (e) {
+          process.stderr.write(`[sdd-forge] finalize-merge onError: step-status update failed: ${e.message}\n`);
+        }
+      },
+    },
+    "finalize-sync": {
+      helpKey: "flow.run.finalize-sync",
+      command: () => import("./lib/run-finalize-sync.js"),
+      help: [
+        "Usage: sdd-forge flow run finalize-sync",
+        "",
+        "Build docs on main repo after merge and commit.",
+      ].join("\n"),
+      async onError(ctx, err) {
+        const m = await import("./lib/run-finalize.js");
+        m.finalizeOnError("finalize-sync")(ctx, err);
+      },
+    },
+    "finalize-cleanup": {
+      helpKey: "flow.run.finalize-cleanup",
+      command: () => import("./lib/run-finalize-cleanup.js"),
+      help: [
+        "Usage: sdd-forge flow run finalize-cleanup",
+        "",
+        "Clear flow state, remove worktree/branch, write last-finalized-spec pointer.",
+      ].join("\n"),
+      async onError(ctx, err) {
+        const m = await import("./lib/run-finalize.js");
+        m.finalizeOnError("finalize-cleanup")(ctx, err);
       },
     },
     sync: {

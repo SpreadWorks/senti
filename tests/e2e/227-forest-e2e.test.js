@@ -156,7 +156,7 @@ describe("REQ-C1: E2E forest lifecycle via CLI", () => {
     const res = run(tmp, ["flow", "get", "next-action"]);
     assert.equal(res.status, 0, `next-action failed: ${res.stderr}`);
     const env = parseEnvelope(res.stdout);
-    assert.ok(["implement", "gate-impl", "review", "finalize"].includes(env.data.step),
+    assert.ok(["implement", "gate-impl", "review", "finalize-commit", "finalize-merge", "finalize-sync", "finalize-cleanup"].includes(env.data.step),
       `expected flow-scope step for finalize path, got ${env.data.step}`);
   });
 });

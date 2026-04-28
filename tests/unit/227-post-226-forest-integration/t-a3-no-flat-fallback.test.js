@@ -42,7 +42,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
       currentTaskId: "T-1",
     });
     setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval", "test", "implement", "gate-impl", "review");
-    const step = findStepById(state.steps, "finalize");
+    const step = findStepById(state.steps, "finalize-commit");
     if (step) step.status = "in_progress";
     const fm = makeFlowManager(tmp);
     fm.save(state);
@@ -50,6 +50,6 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
     const schemaDir = path.join(process.cwd(), "src/flow/schemas/next-action");
     const ctx = { flowState: fm.load(), flowManager: fm, schemaDir };
     const result = new GetNextActionCommand().execute(ctx);
-    assert.equal(result.step, "finalize");
+    assert.equal(result.step, "finalize-commit");
   });
 });

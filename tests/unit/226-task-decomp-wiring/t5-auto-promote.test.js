@@ -265,7 +265,7 @@ describe("T-5: auto-promote function and callers", () => {
     ];
     for (const s of flattenSteps(steps)) {
       if (doneStepIds.includes(s.id)) s.status = "done";
-      else if (s.id === "finalize") s.status = "in_progress";
+      else if (s.id === "finalize-commit") s.status = "in_progress";
     }
     setupFlow(tmp, { tasks, currentTaskId: null, steps });
     const fm = makeFlowManager(tmp);
@@ -279,7 +279,7 @@ describe("T-5: auto-promote function and callers", () => {
     const envelope = JSON.parse(out);
     assert.equal(envelope.ok, true);
     assert.equal(envelope.data.taskId, null, "flow-scope (not task-scope)");
-    assert.equal(envelope.data.step, "finalize");
+    assert.equal(envelope.data.step, "finalize-commit");
   });
 
   it("get-next-action keeps task-scope while pending tasks exist", () => {

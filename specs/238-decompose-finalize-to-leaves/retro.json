@@ -1,0 +1,120 @@
+{
+  "spec": "specs/238-decompose-finalize-to-leaves/spec.json",
+  "date": "2026-04-28T02:36:25.806Z",
+  "requirements": [
+    {
+      "desc": "FLOW_DEFINITION の finalize ノードが branch になり、finalize-commit / finalize-merge / finalize-sync / finalize-cleanup の4 leaf を children に持つこと。各 leaf は FlowNode インスタンスで、action / instructionsKey / contextKinds が設定されていること。",
+      "status": "done",
+      "note": "definition.js で finalize に children 配列が追加され、4つの FlowNode に action / instructionsKey / contextKinds が全て設定されている"
+    },
+    {
+      "desc": "各 leaf に対応する独立 FlowCommand サブクラスが src/flow/lib/ に存在し、container 経由で run() 呼び出しにより実行可能であること。",
+      "status": "done",
+      "note": "run-finalize-commit.js / merge.js / sync.js / cleanup.js が新規作成され、それぞれ FlowCommand を継承した execute() を実装"
+    },
+    {
+      "desc": "registry.js に各個別コマンドが登録され、sdd-forge flow run finalize-commit / finalize-merge / finalize-sync / finalize-cleanup として CLI から実行可能であること。",
+      "status": "done",
+      "note": "registry.js の FLOW_COMMANDS.run に4コマンドが登録され、各 command factory が設定されている"
+    },
+    {
+      "desc": "finalize-commit の post-hook が retro 実行、report 生成、issue comment 投稿、artifacts commit を行い、現在の executeCommitPost と同等の動作をすること。",
+      "status": "done",
+      "note": "registry の finalize-commit.post が executeCommitPost を呼び出し、run-finalize.js の executeCommitPost は retro/report/issue comment/artifacts commit を全て実行"
+    },
+    {
+      "desc": "finalize-merge の実行が失敗した場合、後続の finalize-sync / finalize-cleanup leaf のステップステータスが skipped に遷移すること。",
+      "status": "done",
+      "note": "registry の finalize-merge.onError で updateStepStatus('finalize-sync', 'skipped') と updateStepStatus('finalize-cleanup', 'skipped') を呼び出し、エラーも stderr に出力"
+    },
+    {
+      "desc": "finalize-commit leaf に requiresApproval: true が設定され、他の3 leaf には設定されないこと。",
+      "status": "done",
+      "note": "definition.js で finalize-commit のみ requiresApproval: true、他3 leaf はフィールドなし。テスト R6 でも検証"
+    },
+    {
+      "desc": "各 leaf に対応するプロンプトファイルが src/flow/prompts/impl/ に存在し、ディスパッチャーの next-action で instructionsKey 経由で取得可能であること。",
+      "status": "done",
+      "note": "finalize-commit.md / finalize-merge.md / finalize-sync.md / finalize-cleanup.md が新規作成され、旧 finalize.md は削除"
+    },
+    {
+      "desc": "buildInitialNestedSteps が新しい定義から正しいステップ構造（finalize が children を持つ branch）を生成すること。",
+      "status": "done",
+      "note": "buildInitialNestedSteps 自体は変更されていないが FLOW_DEFINITION の新構造を受けて finalize branch を children 付きで展開する。238-definition-structure.test.js で検証"
+    },
+    {
+      "desc": "run-finalize.js の show-report ステップ ID への updateStepStatus 呼び出しが削除されること。",
+      "status": "done",
+      "note": "RunFinalizeCommand ごと削除され、show-report / finalize への updateStepStatus 呼び出しが消去"
+    },
+    {
+      "desc": "旧統合コマンド（sdd-forge flow run finalize --mode / --steps）が registry.js から削除されること。",
+      "status": "done",
+      "note": "finalize 統合エントリが registry.js から削��され、removed-commands.test.js で unknown key エラーを検証"
+    },
+    {
+      "desc": "finalize-commit 実行時に finalizePreflight（git write access チェック）と preflightChecks（no-commits / dirty-worktree チェック）が実行されること。",
+      "status": "done",
+      "note": "run-finalize-commit.js で runFinalizePreflight(root) と runPreflightChecks({...}) が順番に呼び出されている"
+    },
+    {
+      "desc": "finalize-cleanup 実行後に、last-finalized-spec ポインタが書き込まれ、worktree/branch の削除と flow state のクリアが行われること。",
+      "status": "done",
+      "note": "run-finalize-cleanup.js で writeLastFinalizedPointer / clearFlowState / worktree remove / branch -D の全処理を実装"
+    },
+    {
+      "desc": "影響を受ける既存機能: (1) sdd-forge flow run finalize コマンドが廃止され finalize-commit / finalize-merge / finalize-sync / finalize-cleanup に置換される、(2) flow.json の steps 構造で finalize が branch (children 付き) になる、(3) スキルテンプレート (SKILL.md) の finalize 手順記述が新構造に対応する。影響を受けない既存機能: plan フェーズの全ステップ、impl フェーズの implement / gate-impl / review ステップ、ディスパッチャーループの next-action / promoteNextPendingLeaf ロジック。",
+      "status": "done",
+      "note": "SKILL.md の finalize 参照が4個別コマンドに更新済み。ディスパッチャーロジック・plan フェーズは非変更。既存テストも finalize-commit 参照に更新"
+    },
+    {
+      "desc": "CLI 移行: sdd-forge flow run finalize を廃止する。alpha 版ポリシーにより後方互換ラッパーは作成しない。旧コマンド実行時は registry の標準エラー ('unknown key') が返る。新コマンド名は sdd-forge flow run finalize-commit / finalize-merge / finalize-sync / finalize-cleanup。ディスパッチャーが leaf 単位で自動呼び出しするため、ユーザーが手動で個別コマンドを叩く場面は稀。",
+      "status": "done",
+      "note": "後方互換ラッパーなし。removed-commands.test.js で unknown action/key エラーを正規表現でアサート"
+    },
+    {
+      "desc": "各新コマンドの exit code 契約: 成功時は exit 0 + JSON envelope { ok: true }。失敗時は exit 1 + JSON envelope { ok: false } または Error throw (FlowCommand 基底クラスがキャッチして envelope 化)。finalize-commit: preflight 失敗 / commit 失敗で exit 1。finalize-merge: merge conflict / gh pr create 失敗で exit 1。finalize-sync: docs build 失敗で exit 1。finalize-cleanup: worktree remove 失敗で exit 1。",
+      "status": "partial",
+      "note": "merge/sync/cleanup は throw → FlowCommand キャッチで exit 1 になるが、finalize-commit の preflight_failed は throw せず { status: 'failed' } を return する。FlowCommand 基底クラスがこの戻り値を exit 1 にマップするかは base-command.js 非変更のため diff から確認不可"
+    },
+    {
+      "desc": "各新コマンドのユーザー入力バリデーション: finalize-commit は --message (任意, 文字列) のみユーザー入力を受け取る。finalize-merge / finalize-sync / finalize-cleanup はユーザー入力を受け取らない (内部自動化専用)。--message が指定されない場合は自動生成メッセージを使用する。",
+      "status": "done",
+      "note": "registry で finalize-commit のみ args.options: ['--message'] を定義。他3コマンドは args なし。メッセージ未指定時は feat: featureBranch にフォールバック"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-finalize.js",
+      "change": "runMigrationHook を private 関数から export 関数に変更（run-finalize-commit.js からの import に必要な実装上の必然）"
+    },
+    {
+      "file": "src/flow/lib/run-finalize.js",
+      "change": "executeCommitPost 内で ctx._results の初期化を ctx._results || {} に変更（防御的フォールバック追加）"
+    },
+    {
+      "file": "src/flow/lib/run-finalize.js",
+      "change": "exportedユーティリティ関数の JSDoc コメントブロックを全削除（コードの動作に影響なし）"
+    },
+    {
+      "file": "src/flow/lib/run-finalize-merge.js",
+      "change": "resolveMergeStrategy で strategy === 'skip' を事前チェックして早期 return するパスを追加（旧 RunFinalizeCommand では runMerge 内部処理に委ねていた）"
+    },
+    {
+      "file": "tests/unit/flow/run-finalize-default-mode.test.js",
+      "change": "RunFinalizeCommand と --mode defaulting 動作を検証していたテストファイルを削除（対象クラス自体が削除されたため）"
+    },
+    {
+      "file": "tests/unit/flow/run-finalize-next-command.test.js",
+      "change": "buildFinalizeSuccessEnvelope の nextCommand hint を検証していたテストファイルを削除（関数自体が削除されたため）"
+    }
+  ],
+  "summary": {
+    "total": 16,
+    "done": 15,
+    "partial": 1,
+    "not_done": 0,
+    "rate": 0.97,
+    "notes": "16要件中15件が完全に満たされ、R15（exit code 契約）のみ partial。finalize-commit の preflight_failed パスが throw ではなく return { status: 'failed' } を使用しており、exit 1 変換が FlowCommand 基底クラスの実装依存となっている点が未検証。他の3コマンドは全て throw → FlowCommand キャッチのパターンで exit 1 契約を満たす。SKILL.md 更新・プロンプト分割・定義木分解・registry 置換・既存テスト更新が全て揃っており、実装の網羅性は高い。"
+  }
+}

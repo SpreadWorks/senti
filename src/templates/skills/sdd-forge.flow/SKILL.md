@@ -131,7 +131,7 @@ C.2. **Execute instructions**
    - Fetch any additional context the instructions request via `sdd-forge flow get context ...` / `sdd-forge flow get guardrail <phase>`.
    - Retry limits: the instructions may cite `config.flow.retry.max` (default 3) for gate retries and other bounded loops. Respect them. When a limit is reached, STOP and return control to the user.
    - When the current step's work is finished, advance step status:
-     - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run review`, `flow run impl-confirm`, `flow run finalize`, `flow run sync`) — the hook handles the transition; do nothing further.
+     - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run review`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — the hook handles the transition; do nothing further.
      - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
 
 C.3. **Loop**
@@ -159,10 +159,10 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 
 <!-- include("@templates/partials/worktree-mode.md") -->
 - Before merge, consider running `git rebase <baseBranch>` in the worktree to incorporate upstream changes and avoid post-merge test failures.
-- `sdd-forge flow run finalize` handles worktree detection, merge, and cleanup internally.
-- **MUST: Do NOT run `sdd-forge flow run finalize` in background.** Run it in the foreground and wait for it to complete before proceeding.
-- **MUST: After `sdd-forge flow run finalize` completes in worktree mode**, the worktree directory is deleted by cleanup, invalidating the shell's cwd. Immediately run `cd <mainRepoPath>` to restore a valid working directory. Get `mainRepoPath` from `sdd-forge flow get resolve-context` (run this BEFORE finalize).
-- **MUST: After `sdd-forge flow run finalize` completes successfully (and the cwd has been restored to `mainRepoPath`)**, run `sdd-forge flow report show` and place the command's stdout verbatim inside a fenced code block so the user sees the finalize Report. The command reads the authoritative `report.json` via the `.sdd-forge/last-finalized-spec` pointer that finalize cleanup wrote, so `steps.report.text` from the envelope does not need to be re-transcribed. If `sdd-forge flow report show` exits non-zero, surface stderr to the user instead of fabricating report contents. The finalize success envelope also carries `data.nextCommand = "sdd-forge flow report show"` as a machine-readable hint; treat both paths as equivalent reminders of this step.
+- The finalize phase is decomposed into 4 independent leaf steps driven by the dispatcher: `finalize-commit` → `finalize-merge` → `finalize-sync` → `finalize-cleanup`. Each step has its own CLI command (`sdd-forge flow run finalize-commit`, etc.) and prompt.
+- **MUST: Do NOT run `sdd-forge flow run finalize-cleanup` in background.** Run it in the foreground and wait for it to complete before proceeding.
+- **MUST: After `sdd-forge flow run finalize-cleanup` completes in worktree mode**, the worktree directory is deleted by cleanup, invalidating the shell's cwd. Immediately run `cd <mainRepoPath>` to restore a valid working directory. Get `mainRepoPath` from `sdd-forge flow get resolve-context` (run this BEFORE finalize-cleanup).
+- **MUST: After `sdd-forge flow run finalize-cleanup` completes successfully (and the cwd has been restored to `mainRepoPath`)**, run `sdd-forge flow report show` and place the command's stdout verbatim inside a fenced code block so the user sees the finalize Report. The command reads the authoritative `report.json` via the `.sdd-forge/last-finalized-spec` pointer that finalize cleanup wrote. If `sdd-forge flow report show` exits non-zero, surface stderr to the user instead of fabricating report contents.
 
 ### Test-first determinism (task write-tests step)
 
@@ -222,7 +222,10 @@ sdd-forge flow prepare --title "..." [--base branch] [--worktree] [--no-branch] 
 sdd-forge flow run gate [--phase <draft|spec|task-impl>]
 sdd-forge flow run review
 sdd-forge flow run impl-confirm --mode <overview|detail>
-sdd-forge flow run finalize [--mode all|select] [--steps 1,2,3,4] [--merge-strategy squash|pr]
+sdd-forge flow run finalize-commit [--message "<msg>"]
+sdd-forge flow run finalize-merge
+sdd-forge flow run finalize-sync
+sdd-forge flow run finalize-cleanup
 sdd-forge flow run reopen-draft [--reason "<text>"]
 sdd-forge flow run retro [--force] [--dry-run]
 sdd-forge flow run report [--dry-run]

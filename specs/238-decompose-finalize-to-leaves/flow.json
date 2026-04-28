@@ -1,0 +1,258 @@
+{
+  "spec": "specs/238-decompose-finalize-to-leaves/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/238-decompose-finalize-to-leaves",
+  "runId": "fed2d191-7a4d-4a6e-8d20-0569a324d2e6",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-04-28T00:25:24.297Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-04-28T00:25:24.297Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-04-28T00:25:24.297Z",
+          "finishedAt": "2026-04-28T00:30:27.023Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-04-28T00:30:27.023Z",
+          "finishedAt": "2026-04-28T00:31:37.073Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-04-28T00:31:37.073Z",
+          "finishedAt": "2026-04-28T00:36:45.496Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-04-28T00:36:45.496Z",
+          "finishedAt": "2026-04-28T00:44:55.915Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-04-28T00:44:55.915Z",
+          "finishedAt": "2026-04-28T00:48:18.884Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-04-28T00:48:18.884Z",
+          "finishedAt": "2026-04-28T00:49:57.426Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-04-28T00:49:57.426Z",
+          "finishedAt": "2026-04-28T01:26:36.236Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-04-28T01:26:36.236Z",
+          "finishedAt": "2026-04-28T01:34:26.672Z"
+        },
+        {
+          "id": "review",
+          "status": "done",
+          "startedAt": "2026-04-28T01:34:26.672Z",
+          "finishedAt": "2026-04-28T01:36:00.000Z"
+        },
+        {
+          "id": "finalize",
+          "status": "in_progress"
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": []
+    }
+  ],
+  "currentTaskId": "T-pending-spec",
+  "issue": 280,
+  "request": "#280 finalize を branch に分解し sub-step を独立 leaf 化する",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 17,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 1,
+      "verifiability": 1,
+      "scopeBoundedness": 1,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "目標・対象ファイル・既存STEP_MAPが明示されているが、show-reportの再検討方針と各leafの境界定義に推論が必要。テスト基準は部分的に主観的。"
+  },
+  "worktree": true,
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:26:04.647Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:26:20.627Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:26:34.029Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:28:48.999Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:30:58.852Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T00:31:37.082Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:32:06.493Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:36:52.695Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:42:05.901Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T00:43:36.526Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T00:44:55.924Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T01:28:11.048Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T01:29:17.123Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T01:32:24.795Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T01:32:42.210Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T01:34:26.684Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft: autoApprove self-Q&A completed. finalize を branch 化し commit/merge/sync/cleanup を独立 leaf にする方針。統合コマンド廃止、show-report 参照削除、FLOW_STEPS 死エントリは既に解消済み",
+      "taskId": null,
+      "ts": "2026-04-28T00:30:24.118Z"
+    },
+    {
+      "text": "approval: autoApprove. spec PASS (16 requirements, 5 tasks). Spec 238 approved.",
+      "taskId": null,
+      "ts": "2026-04-28T00:48:28.651Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-28T02:33:30.906Z"
+  }
+}

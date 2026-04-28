@@ -1,0 +1,163 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — finalize の分解という単一の関心事に限定されている。plan フェーズ変更や retro ロジック変更は明示的にスコープ外とされている。; Unambiguous Requirements — scopeVerification.in の各項目は具体的なファイル・クラス・プロンプトファイル名で記述されており、曖昧な形容詞は使用されていない。; Complete Context — goal・analysis.problem・proposedApproach・impactOnExisting の各項目でトリガー条件（finalize がモノリシックでディスパッチャーがサブステップを追跡できない）と期待動作（branch 分解により leaf 単位で駆動）の両要素が示されている。; No Hardcoded Secrets — 仕様書にAPIキー・パスワード・トークン等の秘密情報は含まれていない。; Prioritize Requirements — scopeVerification.in に7項目の要件があるが、must/should/nice-to-have の優先度が割り当てられていない。3項目超えのため優先度付けが必要。; Impact on Existing Features — impactOnExisting セクションに flow.json の steps 構造変化、CLI コマンドの廃止、スキルテンプレートへの影響、既存テストの再構成など5項目が明示されている。; Present Recommendations with Reasoning — 全7つの QA エントリにおいて推奨回答・根拠（evidence フィールド）・理由（why フィールド）・考慮した代替案（considered フィールド）が揃っている。; Explore Before Asking — 各 QA の evidence フィールドに definition.js の行番号・grep 結果等の実際のコード調査結果が示されており、openQuestions が空であることから未調査の疑問は残っていない。; Proactively Raise Related Implications — merge 失敗時の sync/cleanup スキップ制御、requiresApproval の配置、統合コマンド廃止の影響など、関連する波及事項が QA として先回りして扱われている。; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true かつ confirmedAt が記録されており、ユーザー承認済みの決定事項として扱われている。批評対象が意思決定済みであることが明確。; Capture Digressions in draft.md — 会話の脱線がこの仕様書内では確認できないため、脱線キャプチャの必要性を評価できない。; Draft Stays at Requirements Level — scopeVerification.in はファイル名・クラス名レベルの記述に留まっている。QA の evidence フィールドに行番号・コード参照があるが、これらは根拠提示として許容されており、アルゴリズムや制御フローの詳細設計は記述されていない。; Backward-Compatible CLI Interface — sdd-forge flow run finalize コマンドの廃止を明示的に宣言しており、alpha 版ポリシーにより後方互換不要との根拠（CLAUDE.md 参照）が QA に記録されている。migration plan の代替として alpha ポリシー適用が明示されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T00:30:58.853Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に7項目の要件があるが、must/should/nice-to-have の優先度が割り当てられていない。3項目超えのため優先度付けが必要。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0; tasks: new task 'T-5' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T00:36:52.696Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec addresses one concern: decomposing the finalize command into 4 independent leaf commands in FLOW_DEFINITION.; Task Single Responsibility — Each task addresses a single concern: T-1=definition, T-2=FlowCommand classes, T-3=registry, T-4=prompts, T-5=cleanup. T-2 spans 4 files but all share the same concern (finalize sub-step classes). T-5 bundles dead-reference removal with test updates, which are tightly coupled maintenance actions from the same refactoring.; Unambiguous Requirements — All requirements use concrete, verifiable conditions (e.g., specific class names, isBranch===true, requiresApproval: true). No vague adjectives found.; Complete Context — Behavioral requirements include trigger+behavior (R5: merge failure → skipped; R11: finalize-commit execution → preflight runs). Structural requirements (R1, R6, R8) are inherently self-contextual state assertions common in implementation specs.; REQ Diff-Verifiability — All requirements are verifiable via code diff (structural assertions) or test execution (R4 post-hook behavior, R5 skip transition, R8 buildInitialNestedSteps output). No future-behavior guarantees or extensibility contracts.; No Hardcoded Secrets — Spec is a design document with no source code; no secrets present.; No Silent Error Swallowing — R5 and constraints explicitly require merge failure to propagate as skipped status on subsequent steps; no silent discard of errors described.; Prioritize Requirements — All 12 requirements (>3) have explicit priority labels: R1–R8, R10–R12 are must; R9 is should.; Impact on Existing Features — No dedicated impact statement on existing features. The spec removes sdd-forge flow run finalize (--mode/--steps) and updates SKILL.md templates and tests, but does not explicitly enumerate all affected existing features or state which features are unaffected.; Bounded Resource Usage — Spec describes a sequential 4-step pipeline with no recursive processing, retry loops, or bulk data loading.; Spec Includes Test Strategy — Each task (T-1 through T-5) has a test_strategy field. Acceptance criteria also include 'npm test が全て pass する'.; Synthesize Draft, Do Not Copy — Cannot evaluate without access to the original draft material.; Record Unresolved Points as Open Questions — open_questions is explicitly empty; clarifications section contains real Q&A. No fabricated answers to unresolved points detected.; Include 'Why This Approach' Rationale — design_principles, alternatives_considered, and overview.decisions all provide rationale with evidence and considered alternatives for key choices.; Spec Test Coverage — Requires runtime evidence: test files under specs/238-decompose-finalize-to-leaves/tests/ and test execution results are not provided.; Backward-Compatible CLI Interface — R10 and scope.in explicitly remove sdd-forge flow run finalize (--mode, --steps). The spec cites alpha policy as justification but provides no migration plan for existing users of the unified command, which the guardrail requires.; Exit Code Contract — Four new CLI commands are added (finalize-commit, finalize-merge, finalize-sync, finalize-cleanup). The spec does not state what constitutes success or failure for each command in terms of exit codes, as required by the guardrail.; Validate User Input at Entry Point — Four new CLI commands are introduced. The spec does not list user-facing arguments and their validation requirements, nor does it explicitly mark these commands as taking no user-facing arguments or as internal-automation-only.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T00:42:05.902Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "No dedicated impact statement on existing features. The spec removes sdd-forge flow run finalize (--mode/--steps) and updates SKILL.md templates and tests, but does not explicitly enumerate all affected existing features or state which features are unaffected."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "R10 and scope.in explicitly remove sdd-forge flow run finalize (--mode, --steps). The spec cites alpha policy as justification but provides no migration plan for existing users of the unified command, which the guardrail requires."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "Four new CLI commands are added (finalize-commit, finalize-merge, finalize-sync, finalize-cleanup). The spec does not state what constitutes success or failure for each command in terms of exit codes, as required by the guardrail."
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "Four new CLI commands are introduced. The spec does not list user-facing arguments and their validation requirements, nor does it explicitly mark these commands as taking no user-facing arguments or as internal-automation-only."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec addresses one concern: decomposing finalize into leaf nodes within FLOW_DEFINITION.; Task Single Responsibility — T-5 combines dead-reference cleanup and test updates, but both concerns are directly coupled to the same structural refactor and share a single deliverable.; Unambiguous Requirements — Requirements reference specific function names, file paths, and observable states (isBranch===true, exit 0/1, skipped status). No vague adjectives.; Complete Context — Each requirement contains a trigger condition (execution of a command or a failure event) and an expected observable outcome.; REQ Diff-Verifiability — All requirements can be verified by inspecting the diff (presence of classes, registry entries, prompt files) and npm test output.; No Hardcoded Secrets — Spec concerns architectural decomposition; no secrets or credentials involved.; No Silent Error Swallowing — R5, R15 explicitly mandate error propagation: merge failure triggers skipped cascade, all commands exit 1 on failure.; Prioritize Requirements — All 16 requirements carry explicit priority (must/should).; Impact on Existing Features — R13 explicitly lists impacted features (finalize command, flow.json structure, SKILL.md) and non-impacted features (plan phase, dispatcher loop).; Bounded Resource Usage — Decomposition is a fixed set of 4 leaf nodes; no recursion, retries, or bulk loading introduced.; Spec Includes Test Strategy — Each task includes a test_strategy field, and acceptance criteria include npm test passing.; Synthesize Draft, Do Not Copy — Content is organized into structured sections with decisions, evidence, and alternatives — not a raw copy of draft notes.; Record Unresolved Points as Open Questions — Open questions section is empty; one clarification is answered with a concrete reference to prior spec work (spec 236).; Include 'Why This Approach' Rationale — decisions[] array provides evidence and consideredAlternatives for each architectural choice; alternatives_considered section also present.; Spec Test Coverage — Test strategies reference tests/unit/flow/ directories. No mention of writing tests under specs/238-decompose-finalize-to-leaves/tests/ as required by this guardrail.; Backward-Compatible CLI Interface — R14 explicitly documents the removal of sdd-forge flow run finalize with a migration note (alpha policy, standard 'unknown key' error on old command).; Exit Code Contract — R15 defines success (exit 0 + ok:true) and failure (exit 1 + ok:false) conditions for each of the four new commands.; Validate User Input at Entry Point — R16 enumerates each command's user-facing arguments (only --message on finalize-commit), validation rules, and marks other commands as internal automation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T00:43:36.527Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Test strategies reference tests/unit/flow/ directories. No mention of writing tests under specs/238-decompose-finalize-to-leaves/tests/ as required by this guardrail."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — R13 [must] states that 'スキルテンプレート (SKILL.md) の finalize 手順記述が新構造に対応する' as an impacted existing feature, but no SKILL.md changes appear in the diff or git status. All other requirements are satisfied: R1 (definition.js finalize branch with 4 leaves), R2 (4 independent FlowCommand subclasses), R3 (registry 4 commands registered), R4 (finalize-commit post hook calls executeCommitPost), R5 (finalize-merge onError skips sync/cleanup), R6 (only finalize-commit has requiresApproval), R7 (4 prompt files created, finalize.md deleted), R8 (buildInitialNestedSteps driven by new definition structure), R9 (show-report updateStepStatus removed from run-finalize.js), R10 (unified finalize command removed), R11 (runFinalizePreflight + runPreflightChecks in run-finalize-commit.js), R12 (writeLastFinalizedPointer + clearFlowState + worktree removal in run-finalize-cleanup.js), R14 (removed-commands.test.js verifies unknown key error), R15 (FlowCommand base class handles exit codes, each command throws on failure), R16 (only finalize-commit has --message arg in registry).",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T01:28:11.049Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "R13 [must] states that 'スキルテンプレート (SKILL.md) の finalize 手順記述が新構造に対応する' as an impacted existing feature, but no SKILL.md changes appear in the diff or git status. All other requirements are satisfied: R1 (definition.js finalize branch with 4 leaves), R2 (4 independent FlowCommand subclasses), R3 (registry 4 commands registered), R4 (finalize-commit post hook calls executeCommitPost), R5 (finalize-merge onError skips sync/cleanup), R6 (only finalize-commit has requiresApproval), R7 (4 prompt files created, finalize.md deleted), R8 (buildInitialNestedSteps driven by new definition structure), R9 (show-report updateStepStatus removed from run-finalize.js), R10 (unified finalize command removed), R11 (runFinalizePreflight + runPreflightChecks in run-finalize-commit.js), R12 (writeLastFinalizedPointer + clearFlowState + worktree removal in run-finalize-cleanup.js), R14 (removed-commands.test.js verifies unknown key error), R15 (FlowCommand base class handles exit codes, each command throws on failure), R16 (only finalize-commit has --message arg in registry)."
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "reason": "R13 FAIL: SKILL.md テンプレートの finalize 手順記述が未更新だった",
+      "resolution": "SKILL.md の finalize 関連箇所を更新: 統合コマンド → 4個別コマンド、worktree boundary の finalize 参照を finalize-cleanup に修正",
+      "taskId": null,
+      "timestamp": "2026-04-28T01:29:17.107Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — R1–R7, R9–R14, R16 はいずれも diff から直接確認できる（definition.js の finalize branch 化、4個別 FlowCommand クラス、registry 登録、post/onError hook、requiresApproval 配置、プロンプトファイル新設・旧削除、show-report 参照削除、統合コマンド削除、preflight 呼び出し、cleanup 処理、SKILL.md 更新）。一方 R8（buildInitialNestedSteps が depth=3 の finalize branch を正しく展開するか）は関数本体が変更されておらずテスト実行でのみ確認可能。R15（preflight_failed を throw せず return した場合の exit code が本当に 1 になるか）も FlowCommand 基底クラスの return 値ハンドリングに依存しており diff では検証不可。テスト実行証拠が提供されていないため skip とする。; No Hardcoded Secrets — No API keys, passwords, tokens, or secrets found in added/modified lines.; No Silent Error Swallowing — registry.js finalize-merge onError hook contains `catch (_) { /* best effort */ }` that silently discards errors from updateStepStatus calls. The guardrail requires errors be logged or re-thrown; the secondary step-status update failures are neither.; No Sensitive Data in Logs — No passwords, tokens, or PII written to logs in added/modified lines.; No Disabling Existing Tests — run-finalize-default-mode.test.js and run-finalize-next-command.test.js are deleted because the features they tested (RunFinalizeCommand, buildFinalizeSuccessEnvelope, STEP_MAP) were themselves deleted — the guardrail's exception for deleted features applies. Other tests were updated structurally to match new step IDs, not disabled.; Escalate Pre-Existing Test Failures — No evidence in the diff of pre-existing test failures discovered and independently fixed.; Spec Test Coverage — Tests are present under specs/238-decompose-finalize-to-leaves/tests/ as required, but whether all tests pass requires runtime execution not available in the diff.; Project Test Integrity — Whether all project tests pass requires runtime execution not provided.; Exit Code Contract — R15 defines exit code contracts. The individual commands either throw or return structured results, but mapping to exit codes depends on FlowCommand base class (base-command.js) behavior which is not in this diff.; No Synchronous I/O in Hot Paths — fs.existsSync and fs.writeFileSync are used only in single-invocation, non-loop paths (cleanup and pointer write); not in bulk-processing or iteration contexts.; Validate User Input at Entry Point — R16 is satisfied: finalize-commit accepts --message (optional string, no format constraint per spec), implemented accordingly; the other three commands accept no user input. No validation gap exists.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T01:32:24.797Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "registry.js finalize-merge onError hook contains `catch (_) { /* best effort */ }` that silently discards errors from updateStepStatus calls. The guardrail requires errors be logged or re-thrown; the secondary step-status update failures are neither."
+        }
+      ],
+      "passedGuardrails": [
+        "no-hardcoded-secrets",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "no-silent-error-swallowing FAIL: finalize-merge onError の catch が silent だった",
+      "resolution": "catch ブロックで stderr にエラーメッセージを出力するように修正",
+      "taskId": null,
+      "timestamp": "2026-04-28T01:32:42.194Z"
+    }
+  ]
+}

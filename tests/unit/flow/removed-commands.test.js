@@ -33,13 +33,13 @@ describe("removed flow run commands", () => {
     }
   });
 
-  it("flow run finalize is registered", () => {
+  it("flow run finalize returns unknown key error (decomposed into finalize-commit/merge/sync/cleanup)", () => {
     try {
-      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "run", "finalize", "--help"], { encoding: "utf8" });
+      execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "run", "finalize"], { encoding: "utf8" });
+      assert.fail("should exit non-zero");
     } catch (err) {
-      // --help may exit 0 or non-zero, but should not be "unknown action"
       const out = `${err.stdout || ""}${err.stderr || ""}`;
-      assert.ok(!out.includes("unknown action"), "finalize should be registered");
+      assert.match(out, /unknown (action|key)/i);
     }
   });
 });
