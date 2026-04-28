@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-28T03:23:48.241Z",
+  "analyzedAt": "2026-04-28T08:50:01.075Z",
   "package": {
     "entries": [
       {
@@ -2549,9 +2549,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "a77dd20147d66f9cbd283aa8d69e9664",
-        "lines": 527,
-        "mtime": "2026-04-28T02:36:29.319Z",
+        "hash": "b6ce2a4be7f6eb87de9fe7c0ec4c1cba",
+        "lines": 528,
+        "mtime": "2026-04-28T08:49:24.176Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2559,6 +2559,7 @@
           "derivePhaseMap",
           "resolveNodeFor",
           "findActiveNode",
+          "findInProgressLeaf",
           "deriveNextAction",
           "buildInitialNestedSteps",
           "buildInitialTaskSteps",
@@ -2569,7 +2570,6 @@
           "derivePrereqs",
           "findBranchForLeaf",
           "assertDepth",
-          "findInProgressLeaf",
           "findBranchIndexForLeaf",
           "getLastLeaf"
         ],
@@ -2580,6 +2580,7 @@
           "derivePhaseMap",
           "resolveNodeFor",
           "findActiveNode",
+          "findInProgressLeaf",
           "deriveNextAction",
           "buildInitialNestedSteps",
           "buildInitialTaskSteps",
@@ -2596,23 +2597,23 @@
         "extends": null,
         "usedBy": null,
         "id": "2cb27b93",
-        "summary": "Defines the SDD flow's nested step tree (FLOW_DEFINITION/TASK_DEFINITION) and pure helpers for traversing, deriving phases, and finding active/pending leaves.",
-        "detail": "Uses a FlowNode class with a MAX_DEPTH=3 invariant to model the flow as a hierarchy of phases, sub-steps, and leaves. Exports pure functions like collectLeafIds, derivePhaseMap, resolveNodeFor, findActiveNode, deriveNextAction, buildInitialNestedSteps, flattenSteps, findFirstPendingLeaf, and promoteNextPendingLeaf used by the registry/dispatcher to compute the next action. Also exposes derivePrereqs, findBranchIndexForLeaf, and findBranchForLeaf to support gate logic and prerequisite checks. GATE_IMPL_SIDE_EFFECTS enumerates allowed side-effect names (completeTask, promoteNextTask, mergeOverview) consumed by gate execution.",
-        "chapter": "project_structure",
+        "summary": "Defines the SDD flow tree (FLOW_DEFINITION, TASK_DEFINITION) using FlowNode and exposes traversal helpers for steps and gates.",
+        "detail": "Encodes the canonical flow as nested FlowNode instances with a depth limit (MAX_DEPTH=3) enforced via assertDepth. Provides utilities to collect leaf ids, derive a phase map, resolve nodes by id, and find active/in-progress/pending leaves across step trees. Includes helpers for promoting the next pending leaf, deriving prerequisites for a target step, locating branch indices, and producing initial nested step structures used by FlowStore. Also defines GATE_IMPL_SIDE_EFFECTS for the gate machinery and exports deriveNextAction to produce step-targeted action descriptors.",
+        "chapter": "internal_design",
         "role": "model",
         "enrich": {
-          "processedAt": "2026-04-28T02:37:04.616Z",
+          "processedAt": "2026-04-28T08:50:48.960Z",
           "attempts": 1
         },
         "keywords": [
           "flow definition",
           "FlowNode",
-          "phase map",
           "step tree",
-          "leaf traversal",
-          "next action",
           "gate phase",
-          "prereqs"
+          "leaf traversal",
+          "prereqs",
+          "task definition",
+          "phase map"
         ]
       },
       {
@@ -2892,9 +2893,9 @@
       },
       {
         "file": "src/flow/lib/get-check.js",
-        "hash": "ba73c8ea2358214b1c45da3b9d5dc076",
-        "lines": 81,
-        "mtime": "2026-04-27T14:56:09.659Z",
+        "hash": "208c7d2c7fb85758dedf1427e2fe56f4",
+        "lines": 85,
+        "mtime": "2026-04-28T03:42:02.205Z",
         "className": "get-check",
         "methods": [
           "checkStepPrereqs",
@@ -2913,21 +2914,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "10eecc8b",
-        "summary": "FlowCommand that performs prerequisite checks for flow targets such as dirty tree, gh availability, and step prereqs.",
-        "detail": "Validates the requested check target against VALID_CHECK_TARGETS and dispatches to checkDirty, checkGh, or checkStepPrereqs. checkDirty runs git status and reports a pass/fail summary with stderr details on failure. checkGh probes for the GitHub CLI via isGhAvailable. checkStepPrereqs uses derivePrereqs against FLOW_DEFINITION and verifies each prerequisite step is done in the current flow state, throwing when no active flow exists.",
+        "summary": "FlowCommand implementation for `flow get check <target>` that validates prerequisites for dirty/gh/step targets.",
+        "detail": "Validates the target against VALID_CHECK_TARGETS and dispatches to checkDirty (git status), checkGh (gh CLI availability), or checkStepPrereqs (derived from FLOW_DEFINITION via derivePrereqs). Each check returns a uniform shape `{ pass, summary, checks[] }` so callers can render structured pre-flight results. Step prereq checks flatten the state's step tree and assert each prerequisite step is completed before proceeding. Used by skill flows to guard transitions like impl/finalize.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-27T14:57:15.101Z",
+          "processedAt": "2026-04-28T08:50:48.960Z",
           "attempts": 1
         },
         "keywords": [
-          "flow check",
-          "prereq",
-          "dirty worktree",
-          "gh available",
-          "step prerequisites",
-          "preflight"
+          "flow get check",
+          "preflight",
+          "prerequisites",
+          "dirty check",
+          "gh check",
+          "step gating",
+          "FlowCommand"
         ]
       },
       {
@@ -3068,9 +3070,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "2f9390cc9764d0c1c2ec76d492888562",
+        "hash": "25c814778d3c07bb56ad4e5f96a9ef1b",
         "lines": 134,
-        "mtime": "2026-04-27T14:56:09.659Z",
+        "mtime": "2026-04-28T03:42:02.205Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -3093,21 +3095,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "FlowCommand that returns the next-action descriptor including step instructions and JSON schema for the in-progress step.",
-        "detail": "Resolves the schema directory from SDD_FORGE_NEXT_ACTION_SCHEMA_DIR or a bundled default and lazily loads schemas via loadSchema. Errors NO_ACTIVE_FLOW, NO_IN_PROGRESS_STEP, and NO_RULE_FOR_STEP make missing state explicit. Builds a context descriptor of relevant kinds and absolute paths, attaches step instructions via getStepInstructions, and promotes the next pending step when needed. The output is consumed by the flow skill to drive the next agent action.",
+        "summary": "FlowCommand for `flow get next-action` that resolves the current step, loads its JSON schema, and returns the next instruction payload.",
+        "detail": "Determines the active task/step from flow state, falls back to a `completed` action when no work remains, and throws NO_RULE_FOR_STEP when a step lacks a definition entry. Loads per-step output schemas from `src/flow/schemas/` (overridable via SDD_FORGE_NEXT_ACTION_SCHEMA_DIR) and merges step instructions via getStepInstructions. Builds a context descriptor describing input kinds and resolved paths so callers know which artifacts to read. Drives the skill loop by signaling whether the next action requires user approval.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-27T14:57:15.101Z",
+          "processedAt": "2026-04-28T08:50:48.960Z",
           "attempts": 1
         },
         "keywords": [
           "next action",
           "step instructions",
-          "schema dir",
-          "in-progress step",
-          "flow dispatcher",
-          "context descriptor"
+          "output schema",
+          "skill dispatcher",
+          "context descriptor",
+          "flow get"
         ]
       },
       {
@@ -4275,9 +4277,9 @@
       },
       {
         "file": "src/flow/lib/run-retro.js",
-        "hash": "8e5620659c246dd4cddba201ca2cf638",
+        "hash": "0c84bad49c3f6af1ff8402db50a54900",
         "lines": 247,
-        "mtime": "2026-04-28T03:23:16.009Z",
+        "mtime": "2026-04-28T03:42:02.205Z",
         "className": "run-retro",
         "methods": [
           "RunRetroCommand",
@@ -4308,22 +4310,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "862e7d08",
-        "summary": "FlowCommand that performs an AI-driven retrospective on the spec's diff and writes retro.json.",
-        "detail": "`RunRetroCommand` collects requirements from `spec.json` and the diff against `baseBranch` (summary plus detailed diff), builds a retro prompt, and invokes the configured AI agent. Parses the response with `repairJson` fallback, validating against requirements via `parseRetroResponse`. Refuses to overwrite an existing `retro.json` unless `force` is set, returning a structured failure envelope. Throws explicit errors for missing config, missing agent, or AI/parse failures, and writes the result alongside the spec.",
-        "chapter": "internal_design",
+        "summary": "FlowCommand `flow run retro` that asks an AI agent to extract requirement-level retrospective insights from spec + diff and writes retro.json.",
+        "detail": "Loads spec.json and normalizes requirements, refuses to overwrite an existing retro.json without --force, and demands a baseBranch in flow.json. Builds a structured prompt embedding the requirement list and base-branch diff (summary and detailed) and invokes the resolved agent through the container. Parses responses via JSON.parse with repairJson fallback, returning Envelope.fail for missing config/agent/requirements or runtime errors. On success persists retro.json next to the spec and reports the changed path.",
+        "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-28T03:24:26.497Z",
+          "processedAt": "2026-04-28T08:50:48.960Z",
           "attempts": 1
         },
         "keywords": [
-          "retro",
           "retrospective",
-          "AI agent",
-          "diff analysis",
-          "requirements",
           "retro.json",
-          "json repair"
+          "AI agent",
+          "spec requirements",
+          "diff analysis",
+          "Envelope",
+          "repairJson"
         ]
       },
       {
@@ -4983,9 +4985,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "c6ec7625e60dfa67bb817d2a479702f4",
-        "lines": 619,
-        "mtime": "2026-04-28T02:36:29.320Z",
+        "hash": "c15508812864780247a8eca7374d2843",
+        "lines": 620,
+        "mtime": "2026-04-28T03:42:02.205Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -5003,22 +5005,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Central registry mapping flow subcommand names to their argument parsers, help text, and command implementations including hooks.",
-        "detail": "FLOW_COMMANDS aggregates every flow subcommand definition consumed by the dispatcher in flow.js. Provides helpers like deriveActivePhase, tryUpdateStepStatus, and tryAppendIssueLog that wrap registry-level concerns with stderr warnings on failure. Wires gate side effects via gateMod.executeGateSideEffects and post-hooks like executeCommitPost from run-finalize.js. resolveGateStepId/resolveGatePhaseFromState integrate gate-step.js, while VALID_PHASES, VALID_METRIC_COUNTERS, and VALID_GATE_PHASES enforce allowed values. onError handlers for finalize-merge log step-status update failures without aborting the flow.",
+        "summary": "Central registry mapping flow CLI subcommands to their handlers, args, help text, and post-hook side effects.",
+        "detail": "Defines FLOW_COMMANDS as the single source of truth for `flow` dispatch, wiring each command to argument schemas, help strings, and command classes. Provides shared helpers like deriveActivePhase, tryUpdateStepStatus (with stderr warning on failure) and tryAppendIssueLog so commands can record telemetry without bespoke error handling. Hooks into gate-step resolution and side effects (executeGateSideEffects, executeCommitPost) to perform phase transitions after gate/commit commands succeed. Centralizes the validation tables imported from constants (VALID_PHASES, VALID_METRIC_COUNTERS, VALID_GATE_PHASES).",
         "chapter": "project_structure",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-28T02:37:04.616Z",
+          "processedAt": "2026-04-28T08:50:48.960Z",
           "attempts": 1
         },
         "keywords": [
           "flow registry",
-          "command map",
-          "dispatcher",
+          "command dispatch",
+          "post hooks",
           "gate side effects",
-          "post hook",
           "issue log",
-          "step status"
+          "step status",
+          "FLOW_COMMANDS"
         ]
       },
       {
@@ -5679,9 +5681,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "91bb13df2d7d94be4ea0e7f75a56b617",
-        "lines": 315,
-        "mtime": "2026-04-23T12:18:47.177Z",
+        "hash": "e44a807fdc0cc1f3b0a8e68f983b231c",
+        "lines": 316,
+        "mtime": "2026-04-28T08:49:24.176Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -5693,7 +5695,8 @@
           "./flow-store.js",
           "./active-flow-registry.js",
           "./preparing-flow-store.js",
-          "./flow-helpers.js"
+          "./flow-helpers.js",
+          "../flow/definition.js"
         ],
         "exports": [
           "FlowManager"
@@ -5703,22 +5706,22 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "FlowManager orchestrates flow state access, task-step operations, and multi-source flow discovery across main and worktree contexts. It serves as the high-level coordinator over store and registry components.",
-        "detail": "The class composes collaborators (`FlowStore`, `ActiveFlowRegistry`, `PreparingFlowStore`) and exposes convenience methods for current task lookup, in-progress step detection, and step status updates. It creates contextual manager instances with worktree awareness, preserving `mainRoot` while switching effective roots. Discovery logic scans `specs/*/flow.json` in both main and worktree paths, then also inspects branch-scoped state via git output, with explicit JSON parse error reporting to stderr. It enforces scan caps (`SCAN_FLOWS_LIMIT`, `PREPARING_SCAN_LIMIT`) and returns normalized records like `{ state, specId, worktreePath }` for callers.",
+        "summary": "FlowManager façade aggregating FlowStore, ActiveFlowRegistry, and PreparingFlowStore for state, scan, and worktree resolution.",
+        "detail": "Wraps a per-root FlowStore and exposes navigation helpers: current task/step lookup, step status updates, and agent metric accumulation. Implements scanAllFlows to traverse specs/ in both the main repo and registered worktrees, parsing flow.json at HEAD via `git show` with bounded entries (SCAN_FLOWS_LIMIT) and warning on invalid JSON. Resolves the active flow by combining registry data and on-disk specId→worktreePath mapping, throwing if the worktree is missing. Uses findInProgressLeaf to surface the live step within the current task tree.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-23T12:19:13.411Z",
+          "processedAt": "2026-04-28T08:50:48.960Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
-          "state orchestration",
-          "worktree aware",
-          "flow scanning",
-          "git integration",
-          "task step control",
-          "registry coordination"
+          "scan flows",
+          "active registry",
+          "worktree",
+          "flow store",
+          "specs directory",
+          "state aggregation"
         ]
       },
       {
@@ -6668,9 +6671,9 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "073bd529ca344286d3b46a2c0da47645",
-        "lines": 534,
-        "mtime": "2026-04-28T03:06:20.712Z",
+        "hash": "866676fa1c8098b99cef7df1d4504cfb",
+        "lines": 524,
+        "mtime": "2026-04-28T08:49:24.176Z",
         "className": "token",
         "methods": [
           "formatText",
@@ -6692,6 +6695,7 @@
           "isCacheFresh",
           "toRowKey",
           "createEmptyRow",
+          "applyPhaseMetrics",
           "finalizeRow",
           "safeReadJson",
           "countFilesRecursive",
@@ -6726,23 +6730,22 @@
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "summary": "Metrics CLI command that aggregates per-spec finalize tokens, durations, and difficulty into text/json/csv output.",
-        "detail": "`TokenCommand` walks `specs/**/flow.json` (capped at `MAX_FLOW_FILES = 5000`), reads finalize metrics, computes per-phase rows keyed by date, and renders text/json/csv. Caches aggregated rows in `.sdd-forge/output/metrics.json`, invalidating when any flow.json's `finalizedAt` exceeds the cached `maxFinalizedAt`. Computes spec difficulty by combining baseline difficulty (requirement count, test count, request chars, review count) with a precision normalizer clamped to [0.3, 3.0]. Supports phase filtering via `VALID_PHASES`, sorts rows by date, and writes diagnostics to stderr for skipped or malformed entries.",
+        "summary": "`sdd-forge metrics token` CLI command aggregating per-spec flow metrics into date×phase rows with caching and text/json/csv rendering.",
+        "detail": "Walks specs/*/flow.json (capped at MAX_FLOW_FILES) and reuses `.sdd-forge/output/metrics.json` when its maxFinalizedAt covers the latest input. Computes per-spec difficulty by combining a phase baseline with a precision factor derived from requirement count, request length, test count, and issue-log evidence (clamped to [0.3, 3.0]). Normalizes phase metrics into rows keyed by `phase::date`, applying additive accumulation and finalization before sorting and rendering through formatText/formatJson/formatCsv. Emits stderr diagnostics on cache miss/parse failures and missing finalizedAt entries, and persists a refreshed cache after rebuild.",
         "chapter": "cli_commands",
         "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-28T03:24:26.497Z",
+          "processedAt": "2026-04-28T08:50:48.960Z",
           "attempts": 1
         },
         "keywords": [
-          "metrics",
-          "token usage",
-          "spec difficulty",
-          "csv output",
+          "metrics token",
+          "flow metrics",
+          "difficulty score",
           "cache",
-          "finalize metrics",
-          "phase filter",
-          "flow.json aggregation"
+          "csv json text",
+          "phase aggregation",
+          "finalizedAt"
         ]
       },
       {
@@ -9800,9 +9803,9 @@
     ],
     "summary": {
       "total": 283,
-      "totalMethods": 916
+      "totalMethods": 917
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-28T03:24:26.497Z"
+  "enrichedAt": "2026-04-28T08:50:48.960Z"
 }
