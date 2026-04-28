@@ -1,0 +1,35 @@
+{
+  "spec": "specs/239-retro-incomplete-reasons/spec.json",
+  "date": "2026-04-28T03:16:05.683Z",
+  "requirements": [
+    {
+      "desc": "generateReport が retro data に requirements 配列（各要素: desc, status, note）を含める。呼び出し元（run-finalize.js, run-report.js）が retroResult/retro.json から requirements を渡す。",
+      "status": "done",
+      "note": "report.js の generateReport で retroResult.requirements を retro オブジェクトに追加。run-finalize.js は retroResult?.artifacts?.requirements を results.retro に含め、run-report.js は retro.json を fs.existsSync で読んで requirements を渡す。いずれも実装済み。"
+    },
+    {
+      "desc": "formatText の Retro セクションで rate < 1.0 のとき、partial/not_done の要件ごとに desc と note を 1 エントリずつ表示する。rate = 1.0 のときは追加行を出力しない。",
+      "status": "done",
+      "note": "formatText に `if (r.rate < 1.0 && r.requirements)` ガードを追加し、partial/not_done をフィルタして desc・note を push。rate = 1.0 のとき条件が false になり追加行なし。テストでも両ケースを検証済み。"
+    },
+    {
+      "desc": "未達要件の表示形式は既存の Issue Log セクションのスタイルと一貫する。各エントリは status ラベル + desc 行、その下に note 行を配置する。",
+      "status": "done",
+      "note": "`[${req.status}] ${req.desc}` を1行目に、`               ${req.note}` を2行目に配置する形式で実装。Issue Log の `[step] reason` パターンと一貫している。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-retro.js",
+      "change": "artifacts に `requirements: retro.requirements` を追加。spec の implementationTargets に含まれていないが、run-finalize.js 経路で R1 を成立させるために必要な変更。"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "done": 3,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "全3要件が diff で確認できる実装により満たされている。run-retro.js への変更は spec の implementationTargets に明記されていないが、finalize 経路の R1 を成立させる必要な変更であり、副作用はない。silent error swallowing の問題は gate-impl で検出・修正済み（fs.existsSync ガードに置換）。overall 実装は仕様に忠実で問題なし。"
+  }
+}

@@ -4,11 +4,12 @@
  * FlowCommand: report — generate a work report from the current flow state.
  */
 
+import fs from "fs";
+import path from "path";
 import { collectGitSummary } from "../../lib/git-helpers.js";
 import { generateReport, saveReport } from "../commands/report.js";
 import { loadIssueLog } from "./set-issue-log.js";
 import { FlowCommand } from "./base-command.js";
-import path from "path";
 
 export class RunReportCommand extends FlowCommand {
   async execute(ctx) {
@@ -27,9 +28,23 @@ export class RunReportCommand extends FlowCommand {
     let redolog = { entries: [] };
     try { redolog = loadIssueLog(root, state.spec); } catch (_) { /* no redolog */ }
 
+    let retroResults = {};
+    const specDir = path.dirname(path.resolve(root, state.spec));
+    const retroPath = path.join(specDir, "retro.json");
+    if (fs.existsSync(retroPath)) {
+      const retroData = JSON.parse(fs.readFileSync(retroPath, "utf8"));
+      retroResults = {
+        retro: {
+          status: "done",
+          summary: retroData.summary,
+          requirements: retroData.requirements,
+        },
+      };
+    }
+
     const report = generateReport({
       state,
-      results: {},
+      results: retroResults,
       redolog,
       implDiffStat,
       commitMessages,

@@ -1,0 +1,53 @@
+{
+  "devType": "feature",
+  "goal": "retro rate が 100% 未満のとき、レポートの Retro セクション末尾に partial/not_done 要件の ID と note を表示し、未達理由を可視化する。",
+  "analysis": {
+    "problem": "現在のレポートは retro rate のサマリ（rate%, done/partial/miss 数）のみ表示し、どの要件が未達でなぜかが分からない。rate < 1.0 でも詳細が見えないため、改善アクションにつながらない。",
+    "proposedApproach": "generateReport で retro の requirements データを data.retro に含め、formatText の Retro セクションで rate < 1.0 の場合に partial/not_done エントリの desc と note を追記する。",
+    "validation": "formatText の出力は report text と issue コメントの両方に使われるため、この1箇所の変更で両方に反映される。retro.json の requirements 配列は既に desc, status, note を持っており、新たなデータソースは不要。"
+  },
+  "scopeVerification": {
+    "in": [
+      "generateReport で retro data に requirements を含める",
+      "formatText の Retro セクションで rate < 1.0 時に未達要件を表示"
+    ],
+    "out": [
+      "retro.json のスキーマ変更",
+      "retro 評価ロジックの変更",
+      "report.json のトップレベルスキーマ変更"
+    ]
+  },
+  "impactOnExisting": [
+    "report text の Retro セクションに行が追加される（rate = 1.0 のときは変更なし）",
+    "既存テストで retro 100% のケースは出力変化なし"
+  ],
+  "qa": [
+    {
+      "question": "retro requirements のデータはどの経路で generateReport に届くか？",
+      "answer": "finalize 経路: results.retro に summary のみ。run-report 経路: results は空。いずれも requirements を含まない。retro.json はディスク上にあるが generateReport は読んでいない。呼び出し元で retroResult から requirements を渡すか、generateReport 内で retro.json を読む必要がある。",
+      "evidence": "run-finalize.js:155-156 で summary のみ抽出。run-report.js:30-36 では results: {} で retro データなし。",
+      "why": "最小変更のため、呼び出し元で requirements を results.retro に含めて渡す方式を選択。",
+      "considered": "generateReport 内で retro.json を直接読む案 → report.js に fs 依存が増え、テスタビリティが下がるため不採用。"
+    },
+    {
+      "question": "表示形式はどうするか？",
+      "answer": "Retro サマリ行の下に、partial/not_done の要件を 1 行ずつ表示。形式: '    [partial] R1: <desc>' + '           <note>' のように status + desc + note。",
+      "evidence": "既存の Issue Log セクションが '[step] reason' 形式で一覧表示しており、同パターンを踏襲。",
+      "why": "既存フォーマットとの一貫性。",
+      "considered": "テーブル形式 → plain text レポートにテーブルは過剰。箇条書きのみ（note なし）→ 理由が見えず不十分。"
+    },
+    {
+      "question": "rate = 1.0（全要件 done）のときの挙動は？",
+      "answer": "未達要件がないので追加行は出力しない。既存出力と完全に同一。",
+      "evidence": "rate = 1.0 なら partial + not_done = 0 のため、フィルタ結果が空になる。",
+      "why": "不要な出力を避ける。",
+      "considered": "N/A"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-28",
+    "notes": "autoApprove"
+  }
+}

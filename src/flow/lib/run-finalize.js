@@ -153,7 +153,8 @@ export async function executeCommitPost(ctx) {
     const RetroCommand = (await import("./run-retro.js")).default;
     const retroResult = await new RetroCommand().run(container, { force: true });
     const summary = retroResult?.artifacts?.summary;
-    results.retro = { status: "done", ...(summary ? { summary } : {}) };
+    const retroRequirements = retroResult?.artifacts?.requirements;
+    results.retro = { status: "done", ...(summary ? { summary } : {}), ...(retroRequirements ? { requirements: retroRequirements } : {}) };
   } catch (e) {
     results.retro = { status: "failed", message: String(e.message) };
   }

@@ -32,9 +32,13 @@ export function generateReport(input) {
 
   // Retro
   const retroResult = results.retro;
-  const retro = (retroResult && retroResult.status === "done" && retroResult.summary)
-    ? retroResult.summary
-    : null;
+  let retro = null;
+  if (retroResult && retroResult.status === "done" && retroResult.summary) {
+    retro = { ...retroResult.summary };
+    if (retroResult.requirements) {
+      retro.requirements = retroResult.requirements;
+    }
+  }
 
   // Redolog
   const entries = issueLog?.entries || [];
@@ -129,6 +133,14 @@ function formatText(data) {
     const filled = "\u2588".repeat(bar8);
     const empty = "\u2591".repeat(8 - bar8);
     lines.push(`    ${filled}${empty} ${pct}%  (${r.done} done / ${r.partial} partial / ${r.not_done} miss)`);
+    if (r.rate < 1.0 && r.requirements) {
+      for (const req of r.requirements) {
+        if (req.status === "partial" || req.status === "not_done") {
+          lines.push(`    [${req.status}] ${req.desc}`);
+          if (req.note) lines.push(`               ${req.note}`);
+        }
+      }
+    }
   } else {
     lines.push("    -");
   }

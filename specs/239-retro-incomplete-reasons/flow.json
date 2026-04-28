@@ -1,0 +1,230 @@
+{
+  "spec": "specs/239-retro-incomplete-reasons/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/239-retro-incomplete-reasons",
+  "runId": "e4b83123-9c3b-4d9a-af96-ed9e35607529",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-04-28T02:55:12.373Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-04-28T02:55:12.373Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-04-28T02:55:12.373Z",
+          "finishedAt": "2026-04-28T02:59:00.931Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-04-28T02:59:00.931Z",
+          "finishedAt": "2026-04-28T02:59:30.284Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-04-28T02:59:30.284Z",
+          "finishedAt": "2026-04-28T03:01:24.415Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-04-28T03:01:24.415Z",
+          "finishedAt": "2026-04-28T03:03:13.589Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-04-28T03:03:13.589Z",
+          "finishedAt": "2026-04-28T03:03:27.943Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-04-28T03:03:27.943Z",
+          "finishedAt": "2026-04-28T03:04:33.908Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-04-28T03:04:33.908Z",
+          "finishedAt": "2026-04-28T03:08:51.887Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-04-28T03:08:51.887Z",
+          "finishedAt": "2026-04-28T03:11:36.051Z"
+        },
+        {
+          "id": "review",
+          "status": "skipped",
+          "startedAt": "2026-04-28T03:11:36.051Z",
+          "finishedAt": "2026-04-28T03:14:48.912Z"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "finishedAt": "2026-04-28T03:16:00.000Z"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": []
+    }
+  ],
+  "currentTaskId": "T-pending-spec",
+  "issue": 281,
+  "request": "#281 retro 100%未満時にレポート・issueコメントへ理由を表示",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 24,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "変更箇所(formatText/report.js)・入力データ(requirements[].status+note)・条件(rate<1.0)・出力先(Retroセクション末尾)が全て明示。先行実装あり。"
+  },
+  "worktree": true,
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T02:55:40.531Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T02:55:45.442Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T02:55:52.649Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T02:59:30.296Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:01:32.119Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T03:03:13.609Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:10:08.606Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-28T03:10:30.134Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-28T03:11:36.066Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": "T-pending-spec",
+      "ts": "2026-04-28T03:14:48.935Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft: autoApprove。retro rate < 1.0 時に formatText で未達要件を表示。requirements データは呼び出し元から渡す方式。",
+      "taskId": null,
+      "ts": "2026-04-28T02:59:05.387Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-28T03:15:20.917Z"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/239-retro-incomplete-reasons/draft.json      |  53 +++++\n specs/239-retro-incomplete-reasons/flow.json       | 229 +++++++++++++++++++++\n specs/239-retro-incomplete-reasons/issue-log.json  |  51 +++++\n specs/239-retro-incomplete-reasons/issue.md        |  10 +\n specs/239-retro-incomplete-reasons/qa.md           |   9 +\n specs/239-retro-incomplete-reasons/spec.json       | 131 ++++++++++++\n specs/239-retro-incomplete-reasons/spec.md         |  82 ++++++++\n specs/239-retro-incomplete-reasons/tasks/T-1.md    |  20 ++\n specs/239-retro-incomplete-reasons/tasks/T-2.md    |  20 ++\n .../tasks/T-pending-spec.md                        |   9 +\n specs/239-retro-incomplete-reasons/tests/README.md |  17 ++\n .../tests/report-retro-details.test.js             | 109 ++++++++++\n src/flow/commands/report.js                        |  18 +-\n src/flow/lib/run-finalize.js                       |   3 +-\n src/flow/lib/run-report.js                         |  19 +-\n src/flow/lib/run-retro.js                          |   1 +\n 16 files changed, 775 insertions(+), 6 deletions(-)",
+      "commits": [
+        "feat: display incomplete retro requirement details in report"
+      ]
+    },
+    "retro": {
+      "total": 3,
+      "done": 3,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "全3要件が diff で確認できる実装により満たされている。run-retro.js への変更は spec の implementationTargets に明記されていないが、finalize 経路の R1 を成立させる必要な変更であり、副作用はない。silent error swallowing の問題は gate-impl で検出・修正済み（fs.existsSync ガードに置換）。overall 実装は仕様に忠実で問題なし。"
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 0,
+      "durationMs": 0,
+      "phaseDurations": []
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: display incomplete retro requirement details in report\n    16 files changed, 775 insertions(+), 6 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (3 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 2\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

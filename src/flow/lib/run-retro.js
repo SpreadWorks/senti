@@ -236,6 +236,7 @@ export class RunRetroCommand extends FlowCommand {
         spec: specPath,
         retroPath: path.relative(root, retroPath),
         summary: retro.summary,
+        requirements: retro.requirements,
       },
     };
   }
