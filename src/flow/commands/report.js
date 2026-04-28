@@ -150,7 +150,7 @@ function formatText(data) {
   // Agent metrics (token/cost) — R3-1, R3-2
   if (data.tokenMetrics && data.tokenMetrics.callCount > 0) {
     const t = data.tokenMetrics;
-    const costStr = t.cost != null ? `$${t.cost.toFixed(4)}` : "N/A";
+    const costStr = t.cost != null && t.cost !== 0 ? `$${t.cost.toFixed(4)}` : "N/A+";
     lines.push(metricLine("agent calls", formatInt(t.callCount)));
     lines.push(metricLine("input tokens", formatInt(t.input)));
     lines.push(metricLine("output tokens", formatInt(t.output)));

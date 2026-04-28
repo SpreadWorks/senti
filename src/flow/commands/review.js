@@ -36,9 +36,9 @@ import { runGit } from "../../lib/git-helpers.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { VALID_PHASES } from "../../lib/constants.js";
 import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
+import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
 
-/** Maximum retry iterations for review auto-fix loops (test and spec). */
-const MAX_REVIEW_RETRIES = 3;
+const REVIEW_MAX_ATTEMPTS = resolveNodeFor(FLOW_DEFINITION, "review").maxAttempts;
 
 /** Supported review phases and their descriptions. */
 const REVIEW_PHASES = {
@@ -723,7 +723,7 @@ async function runTestReview(root, flow, config, dryRun) {
   let testFiles = collectTestFiles(root, specDir);
 
   const { history: gapHistory, finalIssues: finalGaps, verdict } = await runReviewLoop({
-    maxRetries: MAX_REVIEW_RETRIES,
+    maxRetries: REVIEW_MAX_ATTEMPTS,
     label: "test-review",
     dryRun,
     async detect() {
@@ -756,7 +756,7 @@ async function runTestReview(root, flow, config, dryRun) {
   if (verdict === "PASS") {
     console.log("Test review PASS. All test cases are adequately covered.");
   } else {
-    console.log(`Test review FAIL. ${finalGaps.length} gap(s) remaining after ${MAX_REVIEW_RETRIES} attempts.`);
+    console.log(`Test review FAIL. ${finalGaps.length} gap(s) remaining after ${REVIEW_MAX_ATTEMPTS} attempts.`);
     console.error(`  [test-review] verdict=FAIL gaps=${finalGaps.length}`);
     process.exit(EXIT_ERROR);
   }
@@ -894,7 +894,7 @@ async function runSpecReview(root, flow, config, dryRun) {
   ensureAgent("flow.impl.review.final");
 
   const { history, finalIssues, verdict } = await runReviewLoop({
-    maxRetries: MAX_REVIEW_RETRIES,
+    maxRetries: REVIEW_MAX_ATTEMPTS,
     label: "spec-review",
     dryRun,
     async detect() {
@@ -967,7 +967,7 @@ async function runSpecReview(root, flow, config, dryRun) {
   if (verdict === "PASS") {
     console.log("Spec review PASS. No oversights found.");
   } else {
-    console.log(`Spec review FAIL. ${finalIssues.length} issue(s) remaining after ${MAX_REVIEW_RETRIES} attempts.`);
+    console.log(`Spec review FAIL. ${finalIssues.length} issue(s) remaining after ${REVIEW_MAX_ATTEMPTS} attempts.`);
     process.exit(EXIT_ERROR);
   }
 }
@@ -1147,7 +1147,7 @@ export {
   buildDraftSystemPrompt, buildFinalSystemPrompt, buildFinalValidationPrompt,
   NO_PROPOSALS_MARKER,
   collectTouchedFiles, filterProposalsByScope, extractProposalFile,
-  MAX_REVIEW_RETRIES, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
+  REVIEW_MAX_ATTEMPTS, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
   applyTestFixes, formatTestReviewMd, runReviewLoop,
   extractGoalAndScope, buildSpecReviewPrompt, formatSpecReviewMd,
   isValidSpecOutput, stripPreamble, buildTestFixPrompt,

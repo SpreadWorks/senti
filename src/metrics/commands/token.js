@@ -10,7 +10,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
-import { EXIT_ERROR, EXIT_SUCCESS } from "../../lib/constants.js";
+import { EXIT_ERROR, EXIT_SUCCESS, VALID_PHASES } from "../../lib/constants.js";
 import { formatDurationSeconds } from "../../lib/formatter.js";
 
 const DEFAULT_FORMAT = "text";
@@ -67,6 +67,12 @@ function asDisplayValue(value, kind = "number") {
   return String(value);
 }
 
+function phaseLabel(phase) {
+  const idx = parseInt(phase, 10);
+  if (Number.isFinite(idx) && idx >= 0 && idx < VALID_PHASES.length) return VALID_PHASES[idx];
+  return phase;
+}
+
 function asCsvValue(value, kind = "number") {
   if (value == null) return "N/A";
   if (kind === "cost") return Number(value).toFixed(6);
@@ -97,12 +103,13 @@ export function formatText(rows) {
   const groups = groupRowsByPhase(sortRows(rows));
 
   for (const [phase, phaseRows] of groups.entries()) {
-    lines.push(`PHASE ${phase}`);
+    lines.push(`PHASE ${phaseLabel(phase)}`);
     lines.push("");
     lines.push("             |             | token          | cache          |            |          |          |");
     lines.push("             | difficulty  | in      out    | read   create  | call count | cost     | duration |");
     lines.push("-------------------------------------------------------------------------------------------------");
     for (const row of phaseRows) {
+      const incomplete = row.cost == null || row.cost === 0;
       const date = row.date.padEnd(11, " ");
       const diff = asDisplayValue(row.difficulty, "difficulty").padEnd(11, " ");
       const inTok = asDisplayValue(row.tokenInput).padEnd(7, " ");
@@ -112,7 +119,8 @@ export function formatText(rows) {
       const calls = asDisplayValue(row.callCount).padEnd(10, " ");
       const cost = asDisplayValue(row.cost, "cost").padEnd(8, " ");
       const duration = asDisplayValue(row.durationMs, "duration");
-      lines.push(`${date} | ${diff} | ${inTok} ${outTok} | ${read} ${create} | ${calls} | ${cost} | ${duration}`);
+      const suffix = incomplete ? " +" : "";
+      lines.push(`${date} | ${diff} | ${inTok} ${outTok} | ${read} ${create} | ${calls} | ${cost} | ${duration}${suffix}`);
     }
     lines.push("");
   }
@@ -125,12 +133,12 @@ function formatJson(rows) {
 }
 
 export function formatCsv(rows) {
-  const header = "date,phase,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,callCount,cost,durationMs";
+  const header = "date,phase,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,callCount,cost,durationMs,incomplete";
   const lines = [header];
   for (const row of sortRows(rows)) {
     lines.push([
       row.date,
-      row.phase,
+      phaseLabel(row.phase),
       asCsvValue(row.difficulty, "difficulty"),
       asCsvValue(row.tokenInput),
       asCsvValue(row.tokenOutput),
@@ -139,6 +147,7 @@ export function formatCsv(rows) {
       asCsvValue(row.callCount),
       asCsvValue(row.cost, "cost"),
       asCsvValue(row.durationMs),
+      row.cost == null || row.cost === 0 ? "+" : "",
     ].join(","));
   }
   return lines.join("\n");
@@ -232,7 +241,8 @@ function createEmptyRow(date, phase) {
 export function buildRowsFromMetrics(date, metrics, specDifficulty = null) {
   const rows = [];
   if (!metrics || typeof metrics !== "object") return rows;
-  for (const [phase, phaseData] of Object.entries(metrics)) {
+  const normalized = normalizeMetrics(metrics);
+  for (const [phase, phaseData] of Object.entries(normalized)) {
     if (!phaseData || typeof phaseData !== "object") continue;
     const row = createEmptyRow(date, phase);
     const tokens = phaseData.tokens && typeof phaseData.tokens === "object" ? phaseData.tokens : {};
@@ -375,6 +385,27 @@ async function computeSpecDifficulty(flowState, specDir) {
   return baseDifficulty * precision;
 }
 
+function normalizeMetrics(metrics) {
+  if (!Array.isArray(metrics)) return metrics;
+  const byPhase = {};
+  for (const entry of metrics) {
+    if (!entry || !entry.phase) continue;
+    const p = byPhase[entry.phase] = byPhase[entry.phase] || {};
+    if (entry.kind === "agent") {
+      p.callCount = (p.callCount || 0) + (entry.callCount || 0);
+      if (entry.durationMs != null) p.durationMs = (p.durationMs || 0) + entry.durationMs;
+      if (entry.tokens) {
+        p.tokens = p.tokens || { input: 0, output: 0, cacheRead: 0, cacheCreation: 0 };
+        for (const k of ["input", "output", "cacheRead", "cacheCreation"]) {
+          p.tokens[k] += entry.tokens[k] || 0;
+        }
+      }
+      if (entry.cost != null) p.cost = (p.cost || 0) + entry.cost;
+    }
+  }
+  return byPhase;
+}
+
 async function buildRows(flowEntries) {
   const rows = new Map();
   for (const entry of flowEntries) {
@@ -389,7 +420,8 @@ async function buildRows(flowEntries) {
     const metrics = parsed?.metrics;
     if (!metrics || typeof metrics !== "object") continue;
 
-    for (const [phase, phaseData] of Object.entries(metrics)) {
+    const phaseMap = normalizeMetrics(metrics);
+    for (const [phase, phaseData] of Object.entries(phaseMap)) {
       if (!phaseData || typeof phaseData !== "object") continue;
       const key = toRowKey(date, phase);
       if (!rows.has(key)) rows.set(key, createEmptyRow(date, phase));
