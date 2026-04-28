@@ -213,8 +213,8 @@ export const FLOW_COMMANDS = {
     note: {
       helpKey: "flow.set.note",
       command: () => import("./lib/set-note.js"),
-      args: { positional: ["text"], options: ["--task-id"] },
-      help: "Usage: sdd-forge flow set note \"<text>\" [--task-id <id>]\n\nAppend a note entry to state.notes. Infers taskId from active task unless --task-id is given.",
+      args: { positional: ["text"], options: ["--task-id", "--run-id"] },
+      help: "Usage: sdd-forge flow set note \"<text>\" [--task-id <id>] [--run-id <id>]\n\nAppend a note entry to state.notes. Works in both active and preparing mode.",
     },
     summary: {
       helpKey: "flow.set.summary",

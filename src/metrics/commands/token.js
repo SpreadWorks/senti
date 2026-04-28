@@ -109,7 +109,7 @@ export function formatText(rows) {
     lines.push("             | difficulty  | in      out    | read   create  | call count | cost       | duration |");
     lines.push("---------------------------------------------------------------------------------------------------");
     for (const row of phaseRows) {
-      const incomplete = row.cost == null || row.cost === 0;
+      const incomplete = row.costIncomplete && row.cost != null;
       const date = row.date.padEnd(11, " ");
       const diff = asDisplayValue(row.difficulty, "difficulty").padEnd(11, " ");
       const inTok = asDisplayValue(row.tokenInput).padEnd(7, " ");
@@ -147,7 +147,7 @@ export function formatCsv(rows) {
       asCsvValue(row.callCount),
       asCsvValue(row.cost, "cost"),
       asCsvValue(row.durationMs),
-      row.cost == null || row.cost === 0 ? "+" : "",
+      row.costIncomplete && row.cost != null ? "+" : "",
     ].join(","));
   }
   return lines.join("\n");
@@ -242,6 +242,7 @@ function applyPhaseMetrics(row, phaseData, specDifficulty) {
   addMetric(row, "cacheCreate", tokens.cacheCreation);
   addMetric(row, "callCount", phaseData.callCount);
   addMetric(row, "cost", phaseData.cost);
+  if (phaseData.costIncomplete) row.costIncomplete = true;
   addMetric(row, "durationMs", phaseData.durationMs);
   if (specDifficulty != null) {
     row._difficultySum += specDifficulty;
@@ -277,6 +278,7 @@ function finalizeRow(row) {
     cacheCreate: row.cacheCreate,
     callCount: row.callCount,
     cost: row.cost,
+    costIncomplete: row.costIncomplete || false,
     durationMs: row.durationMs,
   };
 }
@@ -404,6 +406,7 @@ function normalizeMetrics(metrics) {
       }
     }
     if (entry.cost != null) p.cost = (p.cost || 0) + entry.cost;
+    if (entry.cost == null || entry.cost === 0) p.costIncomplete = true;
   }
   return byPhase;
 }
