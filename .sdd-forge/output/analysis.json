@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-28T08:50:01.075Z",
+  "analyzedAt": "2026-04-28T14:25:53.083Z",
   "package": {
     "entries": [
       {
@@ -2438,11 +2438,12 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "3bbb1c8735aca1079b825d6a12737475",
-        "lines": 1173,
-        "mtime": "2026-04-28T02:51:14.505Z",
+        "hash": "d2b70a5d57e63d7413a1fe4661cdbfb3",
+        "lines": 1209,
+        "mtime": "2026-04-28T14:24:54.054Z",
         "className": "review",
         "methods": [
+          "loadReqMap",
           "ensureAgent",
           "resolveMergeBase",
           "resolveReviewTarget",
@@ -2528,23 +2529,23 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the flow review command covering code review, test design review, and spec review with AI agent loops.",
-        "detail": "Defines `FlowReviewCommand` and `runReview` orchestrating three review modes: code (diff-based proposals against merge-base), test design (gap analysis vs. requirements), and spec (goal/scope critique with fix application). Uses guardrails filtered by phase, builds draft/final/apply prompts, parses proposals, and writes `review.md`, `test-review.md`, and `spec-review.md` artifacts. A retry loop (`runReviewLoop`) iterates detect→fix cycles up to `REVIEW_MAX_ATTEMPTS` from the flow definition. Excludes docs/output paths from the diff via pathspec and validates spec structure by markdown headings.",
+        "summary": "Implements the multi-stage flow review command covering spec, test, and final code review with AI-driven proposal generation, gap analysis, and fix application.",
+        "detail": "Defines `FlowReviewCommand` and `runReview` to orchestrate three review modes (spec, test, final) over a flow's diff against the merge-base. It excludes docs/output paths via `REVIEW_EXCLUDE_PATHS`, builds tailored prompts (draft/final/test-design/gap/fix) with merged guardrails, and parses AI proposals with scope filtering against touched files. The `runReviewLoop` helper iterates detect/fix cycles up to `REVIEW_MAX_ATTEMPTS` from `FLOW_DEFINITION`. Results are written to `review.md`, `test-review.md`, and `spec-review.md` inside the spec directory. Test review additionally walks `tests/` recursively, generates a test design, and applies code fixes from AI responses.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-28T03:24:26.497Z",
+          "processedAt": "2026-04-28T14:26:51.136Z",
           "attempts": 1
         },
         "keywords": [
-          "review",
-          "code review",
-          "test review",
+          "flow review",
           "spec review",
+          "test review",
+          "AI proposals",
+          "gap analysis",
           "guardrails",
-          "AI agent",
-          "diff review",
-          "gap analysis"
+          "merge-base diff",
+          "review.md"
         ]
       },
       {
@@ -2716,7 +2717,8 @@
           "src/flow/lib/run-finalize-cleanup.js",
           "src/flow/lib/run-finalize-commit.js",
           "src/flow/lib/run-finalize-merge.js",
-          "src/flow/lib/run-finalize-sync.js"
+          "src/flow/lib/run-finalize-sync.js",
+          "src/flow/lib/set-files.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -3392,6 +3394,59 @@
         ]
       },
       {
+        "file": "src/flow/lib/req-map.js",
+        "hash": "7c227d23cc6cf2f6a7318a1e2bf6f9a4",
+        "lines": 105,
+        "mtime": "2026-04-28T14:24:54.054Z",
+        "className": "req-map",
+        "methods": [
+          "loadFileMap",
+          "loadTestMap",
+          "appendFiles",
+          "reconcileFileMap",
+          "parseTapOutput",
+          "evaluateRequirement",
+          "loadJsonMap",
+          "saveJsonMap"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path",
+          "../../lib/spec-json.js"
+        ],
+        "exports": [
+          "loadFileMap",
+          "loadTestMap",
+          "appendFiles",
+          "reconcileFileMap",
+          "parseTapOutput",
+          "evaluateRequirement"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-retro.js",
+          "src/flow/lib/set-files.js"
+        ],
+        "id": "4b112428",
+        "summary": "Manages the requirement-to-file and requirement-to-test JSON mappings stored alongside spec artifacts.",
+        "detail": "Provides `loadFileMap` / `loadTestMap` to read `file-map.json` and `tests/test-map.json` from a spec directory, plus `appendFiles` to deduplicate and persist file paths under a requirement id. `reconcileFileMap` returns diff files not present in the recorded mapping for gate warnings. `parseTapOutput` parses TAP test output and `evaluateRequirement` classifies a requirement as pass/fail/partial based on mapped tests' results. Writes are atomic via `saveJsonMap` ensuring parent directories exist.",
+        "chapter": "internal_design",
+        "role": "lib",
+        "enrich": {
+          "processedAt": "2026-04-28T14:26:51.136Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "file-map",
+          "test-map",
+          "requirement mapping",
+          "TAP parser",
+          "requirement evaluation",
+          "spec artifacts"
+        ]
+      },
+      {
         "file": "src/flow/lib/resolve-auto-check-input.js",
         "hash": "5bd920b83c381204e150af795868f087",
         "lines": 109,
@@ -3505,7 +3560,8 @@
         "extends": null,
         "usedBy": [
           "src/flow/lib/run-auto-check.js",
-          "src/flow/lib/set-auto.js"
+          "src/flow/lib/set-auto.js",
+          "src/flow/lib/set-note.js"
         ],
         "id": "43a24e09",
         "enrich": {
@@ -3840,9 +3896,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "54efd7bfa187d2f2a560acb58e6992a3",
-        "lines": 1718,
-        "mtime": "2026-04-28T00:21:32.118Z",
+        "hash": "b387cd5bf05907661b512f8df3408eba",
+        "lines": 1740,
+        "mtime": "2026-04-28T14:24:54.054Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -3909,6 +3965,7 @@
           "../../lib/guardrail.js",
           "../../lib/flow-helpers.js",
           "../../lib/spec-json.js",
+          "./req-map.js",
           "./check-tasks-monotonic.js",
           "../../lib/constants.js",
           "./base-command.js",
@@ -3958,25 +4015,24 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the gate execution pipeline: loads guardrails, builds AI evaluation prompts, parses responses, applies retry/escalation policy, and emits pass/fail envelopes for draft, spec, task-spec, task-impl, and integration phases.",
-        "detail": "RunGateCommand dispatches to phase-specific executors (executeDraft, executeSpec, executeTaskSpec, executeDiffBasedGate) which read the target artifact (draft.json, spec.json, spec markdown, or git diff), filter guardrails by phase via filterByPhase, and call checkGuardrail to invoke the configured agent. parseEvaluationResponse strictly validates the JSON schema (allowed result values, required fields) and EvaluationSchemaError surfaces malformed AI output. Retry tracking uses issue-log entries (countGateRetry, checkRetryBelowMax, warnGateRetryBudget) with maxAttempts pulled from FlowNode definitions; checkNoProgressSinceLastFail and assertNoRepeatedFail block infinite loops by comparing headSha/worktreeHash and reason pairs. applyFlipOverride re-passes guardrails that previously passed on identical content, and executeGateSideEffects runs post-gate operations (completeTask, promoteNextTask, mergeOverview). Diff-scoped phases (task-impl, integration) collect tracked + untracked diffs with size limits before evaluation.",
+        "summary": "Implements the gate command that validates draft/spec/diff against guardrails using AI evaluation, with retry tracking and repeated-failure escalation.",
+        "detail": "Exposes `RunGateCommand` dispatching to draft, spec, task-spec, or diff-based gate flows. It loads merged guardrails filtered by phase, builds AI prompts that demand strict JSON evaluations (`pass|fail|skip`), and validates responses via `parseEvaluationResponse` and `EvaluationSchemaError`. Retry counts come from `issue-log` entries; `assertNoRepeatedFail` and `checkNoProgressSinceLastFail` escalate when identical failures recur without code changes (using `computeGitState` head/worktree hashes). `applyFlipOverride` re-passes guardrails that previously passed on identical content. Also performs spec-text/JSON structural checks, draft enum validation, file-map reconciliation warnings, and emits gate pass/fail envelopes.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-28T00:22:08.005Z",
+          "processedAt": "2026-04-28T14:26:51.136Z",
           "attempts": 1
         },
         "keywords": [
-          "gate execution",
-          "guardrail evaluation",
+          "gate command",
+          "guardrails",
           "AI evaluation",
-          "retry policy",
-          "issue log",
-          "flip override",
-          "diff gate",
-          "escalation",
+          "retry tracking",
+          "issue-log",
+          "draft validation",
           "spec validation",
-          "draft validation"
+          "flip override",
+          "repeated failure escalation"
         ]
       },
       {
@@ -4061,9 +4117,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "f4e9a00b132392fbb9774a55c7e0efd8",
-        "lines": 365,
-        "mtime": "2026-04-27T14:56:09.660Z",
+        "hash": "ac34d593416cd677d1c61a94454c33f3",
+        "lines": 366,
+        "mtime": "2026-04-28T14:21:30.037Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -4098,22 +4154,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "FlowCommand that prepares a new spec directory, optional worktree branch, and initial flow state files.",
-        "detail": "Validates required title and config.json, ensures or detects the base branch, and rejects dirty worktrees unless --worktree isolates work. Computes the next spec index, slugifies the title into a branch and directory name, and writes spec.md, spec.json stub, qa.md (from local template if present), draft.json, and issue.md placeholders. When --worktree is requested it places the new branch under .sdd-forge/worktree/ and resolves the spec root accordingly. Finally writes flow.json via FlowCommand helpers with initial nested steps from buildInitialSteps.",
+        "summary": "Prepares the spec phase by creating the spec directory, scaffold files, and optional worktree branch.",
+        "detail": "`RunPrepareSpecCommand` requires a `--title`, slugifies it with `nextIndex` to allocate a `specs/NNN-slug` directory, and validates the base branch. When `--worktree` is set it creates an isolated git worktree under `.sdd-forge/worktree/`; otherwise it requires a clean main worktree. Writes `spec.json` (empty stub), renders `spec.md`, scaffolds `qa.md` (using `.sdd-forge/templates/<lang>/specs/qa.md` if present, else built-in), and writes a `draft.json` template plus `issue.md`. Initial step list comes from `buildInitialSteps` and is persisted in flow state.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-27T14:57:15.101Z",
+          "processedAt": "2026-04-28T14:26:51.136Z",
           "attempts": 1
         },
         "keywords": [
           "flow prepare",
-          "spec scaffold",
+          "spec scaffolding",
           "worktree",
-          "branch creation",
-          "qa template",
+          "slugify",
           "draft template",
-          "spec index"
+          "qa template",
+          "base branch"
         ]
       },
       {
@@ -4277,9 +4333,9 @@
       },
       {
         "file": "src/flow/lib/run-retro.js",
-        "hash": "0c84bad49c3f6af1ff8402db50a54900",
-        "lines": 247,
-        "mtime": "2026-04-28T03:42:02.205Z",
+        "hash": "dacb5c676648fb2dbbc04a23146e02d2",
+        "lines": 328,
+        "mtime": "2026-04-28T14:24:54.054Z",
         "className": "run-retro",
         "methods": [
           "RunRetroCommand",
@@ -4292,13 +4348,15 @@
         "imports": [
           "fs",
           "path",
+          "child_process",
           "../../lib/git-helpers.js",
           "../../lib/container.js",
           "../../lib/json-parse.js",
           "../../lib/flow-helpers.js",
           "../../lib/spec-json.js",
           "./base-command.js",
-          "../../lib/flow-envelope.js"
+          "../../lib/flow-envelope.js",
+          "./req-map.js"
         ],
         "exports": [
           "RunRetroCommand",
@@ -4310,21 +4368,20 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "862e7d08",
-        "summary": "FlowCommand `flow run retro` that asks an AI agent to extract requirement-level retrospective insights from spec + diff and writes retro.json.",
-        "detail": "Loads spec.json and normalizes requirements, refuses to overwrite an existing retro.json without --force, and demands a baseBranch in flow.json. Builds a structured prompt embedding the requirement list and base-branch diff (summary and detailed) and invokes the resolved agent through the container. Parses responses via JSON.parse with repairJson fallback, returning Envelope.fail for missing config/agent/requirements or runtime errors. On success persists retro.json next to the spec and reports the changed path.",
+        "summary": "Generates a retrospective JSON file for a finalized flow by analyzing requirements, diff, and test mappings via AI.",
+        "detail": "`RunRetroCommand` aggregates spec requirements, base-branch diff (summary and detailed), and test-map evaluations to compose a retro prompt. It calls the configured AI agent, parses the JSON response (with `repairJson` fallback), and writes `retro.json` to the spec directory. Refuses to overwrite existing retro unless `--force` is supplied; returns Envelope failures for missing requirements, base branch, agent, or config. Also exposes `requirementsAsText`, `buildRetroPrompt`, and `parseRetroResponse` for testing/reuse.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-28T08:50:48.960Z",
+          "processedAt": "2026-04-28T14:26:51.136Z",
           "attempts": 1
         },
         "keywords": [
+          "retro",
           "retrospective",
-          "retro.json",
-          "AI agent",
-          "spec requirements",
+          "AI summary",
+          "test-map evaluation",
           "diff analysis",
-          "Envelope",
           "repairJson"
         ]
       },
@@ -4573,6 +4630,41 @@
         ]
       },
       {
+        "file": "src/flow/lib/set-files.js",
+        "hash": "9f29ecc12150ed6fab5a69152199cfe6",
+        "lines": 37,
+        "mtime": "2026-04-28T14:24:54.054Z",
+        "className": "set-files",
+        "methods": [],
+        "imports": [
+          "node:path",
+          "./base-command.js",
+          "../../lib/flow-envelope.js",
+          "./req-map.js",
+          "../../lib/spec-json.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "528aeb56",
+        "summary": "Records file paths against a requirement id in the spec's file-map via `flow set files`.",
+        "detail": "`SetFilesCommand` validates usage (`<reqId> <path...>`), resolves the spec directory from active flow state, and delegates to `appendFiles` which deduplicates. Returns Envelope failures for invalid usage or invalid requirement id, while propagating other errors. The result envelope includes the requirement id, paths, and the updated map.",
+        "chapter": "cli_commands",
+        "role": "controller",
+        "enrich": {
+          "processedAt": "2026-04-28T14:26:51.136Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow set files",
+          "file-map",
+          "requirement mapping",
+          "append files"
+        ]
+      },
+      {
         "file": "src/flow/lib/set-gate-retry.js",
         "hash": "4d280be1e1bbe106e2407bac1c77189a",
         "lines": 71,
@@ -4764,14 +4856,15 @@
       },
       {
         "file": "src/flow/lib/set-note.js",
-        "hash": "9830ae7d29aa6809edf8fc53f556cf7d",
-        "lines": 31,
-        "mtime": "2026-04-22T14:34:07.553Z",
+        "hash": "a014e699695fc32cc52f4e572c74cf19",
+        "lines": 61,
+        "mtime": "2026-04-28T14:21:22.687Z",
         "className": "set-note",
         "methods": [],
         "imports": [
           "./base-command.js",
-          "../../lib/flow-envelope.js"
+          "../../lib/flow-envelope.js",
+          "./resolve-preparing-run-id.js"
         ],
         "exports": [
           "default"
@@ -4779,20 +4872,19 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "7c2ef03f",
-        "summary": "Stores an arbitrary note string in flow state through a minimal command surface. It supports lightweight operator annotations during workflow progress.",
-        "detail": "The command validates that note text is present and non-empty before applying updates. Failure paths return standardized envelope errors with command context. Success returns the persisted note payload for immediate CLI feedback. The implementation is intentionally simple and side-effect free outside state mutation. It complements structured fields with human-readable operational context.",
+        "summary": "Persists a free-form note for the current flow or a preparing-phase run.",
+        "detail": "`SetNoteCommand` accepts a text argument and resolves whether to attach the note to a preparing-phase runId via `resolvePreparingRunId` or to the active flow. Returns an Envelope containing the note (and runId when in preparing mode). Uses `resolveExplicitTaskOption` from the base command for option handling.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
+          "processedAt": "2026-04-28T14:26:51.136Z",
           "attempts": 1
         },
         "keywords": [
-          "flow note",
-          "operator annotation",
-          "state field",
-          "input validation",
-          "set note"
+          "flow set note",
+          "preparing phase",
+          "runId",
+          "note recording"
         ]
       },
       {
@@ -4985,9 +5077,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "c15508812864780247a8eca7374d2843",
-        "lines": 620,
-        "mtime": "2026-04-28T03:42:02.205Z",
+        "hash": "6650f0c2216a636e199741e55294eca6",
+        "lines": 626,
+        "mtime": "2026-04-28T14:24:54.055Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -5005,22 +5097,21 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Central registry mapping flow CLI subcommands to their handlers, args, help text, and post-hook side effects.",
-        "detail": "Defines FLOW_COMMANDS as the single source of truth for `flow` dispatch, wiring each command to argument schemas, help strings, and command classes. Provides shared helpers like deriveActivePhase, tryUpdateStepStatus (with stderr warning on failure) and tryAppendIssueLog so commands can record telemetry without bespoke error handling. Hooks into gate-step resolution and side effects (executeGateSideEffects, executeCommitPost) to perform phase transitions after gate/commit commands succeed. Centralizes the validation tables imported from constants (VALID_PHASES, VALID_METRIC_COUNTERS, VALID_GATE_PHASES).",
+        "summary": "Central registry mapping `flow` subcommand names to their command modules, options, hooks, and help text.",
+        "detail": "Defines `FLOW_COMMANDS` declaratively binding each get/set/run action to its lazy-loaded handler with pre/post/onError hooks for step-status updates, gate side effects, retry counter updates, issue-log appends, and finalize-merge handling. Helpers like `deriveActivePhase`, `tryUpdateStepStatus`, and `tryAppendIssueLog` centralize cross-cutting concerns. Validates phase/metric/gate enums via `VALID_PHASES`, `VALID_METRIC_COUNTERS`, `VALID_GATE_PHASES`. This registry is the single source of truth consumed by `flow.js` dispatcher.",
         "chapter": "project_structure",
-        "role": "controller",
+        "role": "config",
         "enrich": {
-          "processedAt": "2026-04-28T08:50:48.960Z",
+          "processedAt": "2026-04-28T14:26:51.136Z",
           "attempts": 1
         },
         "keywords": [
           "flow registry",
           "command dispatch",
-          "post hooks",
-          "gate side effects",
-          "issue log",
+          "hooks",
           "step status",
-          "FLOW_COMMANDS"
+          "issue-log",
+          "gate side effects"
         ]
       },
       {
@@ -5525,9 +5616,9 @@
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "87b1216fecb59a3c12677ae49776197d",
-        "lines": 282,
-        "mtime": "2026-04-22T14:34:07.554Z",
+        "hash": "f5c63bc6ebb5aebd4457c60e1241a162",
+        "lines": 284,
+        "mtime": "2026-04-28T14:24:54.055Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
@@ -5555,20 +5646,20 @@
           "src/spec.js"
         ],
         "id": "18d5f63b",
-        "summary": "Implements CLI dispatch orchestration, including argument splitting, hook execution, output mode handling, and unified error emission. It is the central runtime bridge from parsed command entries to envelope output.",
-        "detail": "The dispatcher separates positional and non-positional arguments based on entry-declared flags and options, and throws on unknown options. It resolves output mode dynamically, executes pre/post hooks, and preserves structured envelopes across normal and error paths. Failures are normalized through a shared emission function that sets exit code and writes either JSON envelopes or stderr text according to mode. The module keeps command execution flow deterministic with clear lifecycle stages. It also centralizes default I/O writers so behavior remains testable and composable.",
+        "summary": "Generic command dispatcher that parses CLI args, runs pre/post/onError hooks, and emits envelope-formatted output.",
+        "detail": "Provides `parseEntryInput` which splits argv around a positional spec, validates flag/option sets, and returns parsed args (or short-circuits on `-h/--help`). `dispatch` resolves the entry's output mode, executes the command's `pre` hook, runs the underlying `Command`, then the `post` hook, writing JSON envelopes via `Envelope.toJSON()`. On thrown errors it routes through `onError` and `emitFailure`, ensuring non-zero exit codes via the injected `setExitCode`. Output streams (`stdout`, `stderr`) are injectable to support testing.",
         "chapter": "project_structure",
-        "role": "middleware",
+        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
+          "processedAt": "2026-04-28T14:26:51.136Z",
           "attempts": 1
         },
         "keywords": [
-          "command dispatcher",
+          "dispatcher",
           "argument parsing",
-          "hook lifecycle",
-          "output mode",
-          "error handling",
+          "hooks",
+          "envelope",
+          "command lifecycle",
           "exit code"
         ]
       },
@@ -6671,9 +6762,9 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "866676fa1c8098b99cef7df1d4504cfb",
-        "lines": 524,
-        "mtime": "2026-04-28T08:49:24.176Z",
+        "hash": "d030d9ea5e4048bec7a4f2f28e860c45",
+        "lines": 527,
+        "mtime": "2026-04-28T09:08:23.060Z",
         "className": "token",
         "methods": [
           "formatText",
@@ -6730,22 +6821,22 @@
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "summary": "`sdd-forge metrics token` CLI command aggregating per-spec flow metrics into date×phase rows with caching and text/json/csv rendering.",
-        "detail": "Walks specs/*/flow.json (capped at MAX_FLOW_FILES) and reuses `.sdd-forge/output/metrics.json` when its maxFinalizedAt covers the latest input. Computes per-spec difficulty by combining a phase baseline with a precision factor derived from requirement count, request length, test count, and issue-log evidence (clamped to [0.3, 3.0]). Normalizes phase metrics into rows keyed by `phase::date`, applying additive accumulation and finalization before sorting and rendering through formatText/formatJson/formatCsv. Emits stderr diagnostics on cache miss/parse failures and missing finalizedAt entries, and persists a refreshed cache after rebuild.",
+        "summary": "Computes per-phase token/cost/duration metrics across all flows with caching and difficulty scoring.",
+        "detail": "`TokenCommand` walks `specs/**/flow.json` (capped at `MAX_FLOW_FILES`) and aggregates phase metrics into rows keyed by `phase::date` from each flow's `finalizedAt`. A cache at `.sdd-forge/output/metrics.json` is reused when its `maxFinalizedAt` is fresh; otherwise rows are rebuilt and rewritten. `computeSpecDifficulty` derives a precision factor from requirement count, request chars, test file count, and review counts, multiplied by a per-task-type baseline (`DIFFICULTY_BASELINES`) and clamped between `PRECISION_MIN` and `PRECISION_MAX`. Output supports `text`, `json`, and `csv` formats; missing `state.finalizedAt` skips with a warning. Helpers include `groupRowsByPhase`, `addMetric`, `normalizeMetrics`, and CSV/text renderers.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-28T08:50:48.960Z",
+          "processedAt": "2026-04-28T14:26:51.136Z",
           "attempts": 1
         },
         "keywords": [
           "metrics token",
-          "flow metrics",
-          "difficulty score",
+          "phase metrics",
           "cache",
-          "csv json text",
-          "phase aggregation",
-          "finalizedAt"
+          "difficulty score",
+          "precision",
+          "csv output",
+          "flow.json aggregation"
         ]
       },
       {
@@ -9802,10 +9893,10 @@
       }
     ],
     "summary": {
-      "total": 283,
-      "totalMethods": 917
+      "total": 285,
+      "totalMethods": 926
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-28T08:50:48.960Z"
+  "enrichedAt": "2026-04-28T14:26:51.136Z"
 }
