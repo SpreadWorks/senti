@@ -87,7 +87,9 @@ export function parseEntryInput(entry, argv) {
   for (let i = 0; i < positionalNames.length && i < positional.length; i++) {
     parsed[positionalNames[i]] = positional[i];
   }
-  if (positional.length > positionalNames.length) {
+  if (spec.rest) {
+    parsed[spec.rest] = positional.slice(positionalNames.length);
+  } else if (positional.length > positionalNames.length) {
     throwUnexpected(positional.slice(positionalNames.length));
   }
   return parsed;

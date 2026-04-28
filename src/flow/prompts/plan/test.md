@@ -9,11 +9,18 @@
    - Write test code under `specs/<spec>/tests/`. Tests should fail initially (before implementation).
    - Run tests with `node --test specs/<spec>/tests/*.test.js` to verify they fail as expected.
    - **MUST: If a test reveals a production code bug that is outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step test --reason "..."`) before adjusting the test to match current behavior. Do not silently fix or skip the test.
-   - **MUST: Create `specs/<spec>/tests/README.md`** documenting:
-     - What was tested and why
-     - Where tests are located (formal test path or `specs/<spec>/tests/`)
-     - How to run the tests
-     - Expected results
+   - **MUST: Create `specs/<spec>/tests/test-map.json`** mapping requirement IDs to test names.
+     Schema: `{ [reqId: string]: string[] }` — keys are requirement IDs from spec.json, values are arrays of test names (matching the test description strings used in `describe`/`it` blocks).
+     Example:
+     ```json
+     {
+       "R1": ["241-set-files.test.js > should create file-map.json", "241-set-files.test.js > should deduplicate"],
+       "R2": ["241-set-files.test.js > should create file-map.json"],
+       "R3": []
+     }
+     ```
+     - Every requirement ID from spec.json must appear as a key (empty array if no tests cover it).
+     - Test names should match the `> ` separated format: `<file> > <test description>`.
    - **If no test environment**:
      - AI performs spec-implementation alignment check after coding.
      - Compare spec Requirements against actual code changes.

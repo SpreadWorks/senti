@@ -26,7 +26,8 @@ const execFileAsync = promisify(execFile);
 import { container } from "../../lib/container.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
-import { loadSpecJson, resolveSpecJsonPath } from "../../lib/spec-json.js";
+import { loadSpecJson, resolveSpecJsonPath, resolveSpecDir } from "../../lib/spec-json.js";
+import { loadFileMap, reconcileFileMap } from "./req-map.js";
 import { checkTasksMonotonic } from "./check-tasks-monotonic.js";
 import {
   VALID_GATE_PHASES,
@@ -1630,8 +1631,11 @@ export class RunGateCommand extends FlowCommand {
       return gateFail(level, phase, specPath, reqEvaluations, []);
     }
 
+    // spec 241 R5: file-map reconciliation warnings
+    const fileMapWarnings = this.reconcileFileMapWarnings(root, state);
+
     if (skipGuardrail) {
-      return gatePass(level, phase, specPath, reqEvaluations);
+      return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);
     }
 
     const grResult = await checkGuardrail(
@@ -1641,7 +1645,7 @@ export class RunGateCommand extends FlowCommand {
       "You are an implementation compliance checker. Check the implementation against each guardrail.",
     );
     if (!grResult) {
-      return gatePass(level, phase, specPath, reqEvaluations);
+      return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);
     }
     const combined = [...reqEvaluations, ...grResult.evaluations];
     if (!grResult.passed) {
@@ -1653,7 +1657,25 @@ export class RunGateCommand extends FlowCommand {
       });
       return gateFail(level, phase, specPath, combined, []);
     }
-    return gatePass(level, phase, specPath, combined);
+    return gatePass(level, phase, specPath, combined, fileMapWarnings);
+  }
+
+  reconcileFileMapWarnings(root, state) {
+    try {
+      const specDir = resolveSpecDir(path.resolve(root, state.spec));
+      const fileMap = loadFileMap(specDir);
+      if (Object.keys(fileMap).length === 0) return [];
+
+      const diffRes = runGit(["diff", "--name-only", `${state.baseBranch}...HEAD`], { cwd: root });
+      if (!diffRes.ok) return [];
+      const diffFiles = diffRes.stdout.trim().split("\n").filter(Boolean);
+      const unrecorded = reconcileFileMap(fileMap, diffFiles);
+      if (unrecorded.length === 0) return [];
+      return [`file-map: ${unrecorded.length} file(s) in diff but not recorded: ${unrecorded.join(", ")}`];
+    } catch (err) {
+      process.stderr.write(`[sdd-forge] file-map reconciliation skipped: ${err.message}\n`);
+      return [];
+    }
   }
 }
 

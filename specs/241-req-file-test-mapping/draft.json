@@ -1,0 +1,86 @@
+{
+  "devType": "feature",
+  "goal": "要件-ファイル-テストのマッピング基盤を構築し、retro / impl review / test review の3機能が共通で利用できるようにする",
+  "analysis": {
+    "problem": "retro（要件充足判定）、impl review（要件単位のコードレビュー）、test review（テスト設計の存在確認）の3機能がそれぞれ独立に要件-ファイル/テストの対応関係を必要としている。現在の retro は AI に diff 全文を渡して判定しており、トークンコストが高く精度も不安定。共通のマッピング基盤がないため、各機能が個別に対応を推測する必要がある。",
+    "proposedApproach": "specs/<spec>/file-map.json と specs/<spec>/tests/test-map.json の2つの構造化ファイルで要件-ファイル/テスト対応を管理する。file-map.json は flow set files コマンドで impl 中に追記型で記録。test-map.json は既存の tests/README.md を JSON 化したもの。消費側（retro / impl review / test review）はこれらを読んで動作する。",
+    "validation": "spec.json のスキーマ変更が不要。files は agent がリアルタイムで記録するため精度が高く、gate-impl で diff 突合による漏れ検出も可能。test-map.json は既存の README.md の構造化なので新規コストが低い。3機能が同一データソースを使うことで一貫性が保証される。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] flow set files <reqId> <path...> コマンド: file-map.json に追記。同一 reqId+path の重複は無視。存在しない reqId はエラー",
+      "[must] tests/test-map.json: テストフェーズで agent が作成する JSON。要件 ID をキーにテスト名/検証コマンドの配列を値とする。test.md プロンプトの README.md 作成指示を test-map.json 作成指示に変更",
+      "[must] gate-impl で file-map.json と git diff --name-only を突合し、diff に含まれるが file-map.json に未記録のファイルを警告として列挙する",
+      "[must] retro が test-map.json を読み、要件ごとにテスト PASS/FAIL で静的判定する。test-map.json が存在しない場合は現行の AI diff 評価にフォールバック",
+      "[should] impl review が file-map.json を読み、要件ごとに該当ファイルの diff のみでレビューを実行する。file-map.json が存在しない場合は現行の全 diff レビューにフォールバック",
+      "[should] test review が test-map.json を読み、tests が空の要件を「テスト未設計」として報告する。test-map.json が存在しない場合はスキップ"
+    ],
+    "out": [
+      "spec.json スキーマの変更",
+      "過去 spec の tests/README.md の移行（alpha 版ポリシーにより後方互換不要。既存 README.md はそのまま残る。新規フローのみ test-map.json を生成）"
+    ]
+  },
+  "impactOnExisting": [
+    "run-retro.js: AI diff 読みから静的判定に変更（大規模書き換え）",
+    "test.md プロンプト: README.md 作成指示 → test-map.json 作成指示に変更",
+    "run-gate.js: gate-impl に file-map 突合ロジック追加",
+    "review / test review: 新規消費ロジック追加"
+  ],
+  "qa": [
+    {
+      "question": "この spec のスコープは Issue #284 全体か、インフラ層のみか？",
+      "answer": "Issue #284 全体を1つの spec で進める",
+      "evidence": "Issue が「要件-ファイル-テストマッピング基盤」として infra + 消費側を1つの concern として定義している",
+      "why": "消費側が使って初めて価値が出るインフラなので、分割は不適切",
+      "considered": "インフラ層のみ先行 → 消費側との結合テストが後回しになりリスクが残る"
+    },
+    {
+      "question": "flow set files のインターフェースは追記型か上書き型か？",
+      "answer": "追記型（重複排除あり）",
+      "evidence": "agent は実装中にファイルを1つずつ変更するため、変更のたびに全ファイルを列挙するのは非現実的",
+      "why": "追記型なら agent の自然なワークフローに沿う",
+      "considered": "上書き型 → 毎回全ファイルの列挙が必要で実用的でない"
+    },
+    {
+      "question": "tests の記録方法は flow set tests コマンドか、既存の tests/README.md の JSON 化か？",
+      "answer": "既存の specs/<spec>/tests/README.md を JSON 化（test-map.json）",
+      "evidence": "specs/<spec>/tests/README.md が既に要件 ID とテスト名の対応を含んでいる（例: spec 232, 238）。src/flow/prompts/plan/test.md で作成が指示されているがコードからの参照はない",
+      "why": "既存の成果物を活かす方がシンプル。新規 CLI コマンド不要",
+      "considered": "flow set tests コマンド新設 → 既存成果物と重複し、テストフレームワーク非依存性の確保も同等"
+    },
+    {
+      "question": "files の記録先は spec.json の requirements 内か、別ファイルか？",
+      "answer": "別ファイル（specs/<spec>/file-map.json）",
+      "evidence": "spec.json は additionalProperties: false で、スキーマ変更が必要になる。tests が別ファイル（test-map.json）なので対称的に管理できる",
+      "why": "spec.json のスキーマ変更不要、tests と対称的な設計",
+      "considered": "spec.json の requirements に埋め込み → Issue のデータモデル通りだがスキーマ変更が必要"
+    },
+    {
+      "question": "file-map.json / test-map.json のスキーマは？",
+      "answer": "両ファイルとも reqId をキー、文字列配列を値とするオブジェクト。例: {\"R1\": [\"src/a.js\"], \"R2\": [\"src/b.js\"]}",
+      "evidence": "spec.json の requirements は id フィールドで一意識別される。reqId をキーにすれば requirements 配列との突合が O(1)",
+      "why": "最もシンプルな構造で、消費側が reqId で直接ルックアップできる",
+      "considered": "配列形式 [{reqId, paths}] → キーアクセスが不便"
+    },
+    {
+      "question": "マッピングファイルが存在しない場合（過去 spec 等）のフォールバックは？",
+      "answer": "各消費側が個別にフォールバック: retro は現行 AI diff 評価、impl review は全 diff レビュー、test review はスキップ",
+      "evidence": "alpha 版ポリシーにより過去 spec の移行は不要。新規フローのみマッピングファイルを生成する",
+      "why": "マッピングが無い場合でも既存機能が劣化しない",
+      "considered": "マッピング必須化 → 過去 spec が壊れる"
+    },
+    {
+      "question": "test.md プロンプトの README.md → test-map.json 変更は過去 spec に影響するか？",
+      "answer": "影響しない。過去 spec の tests/README.md はそのまま残る。プロンプト変更は今後の新規フローにのみ適用される",
+      "evidence": "alpha 版ポリシー（CLAUDE.md: 後方互換コードは書かない）。test.md プロンプトはフロー開始時に読まれるため、既存フローには影響しない",
+      "why": "過去の成果物は過去の仕様で作られたもの。移行コストをかける必要がない",
+      "considered": "過去 README.md を自動変換するマイグレーション → alpha 期には過剰"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-28T00:00:00Z",
+    "notes": ""
+  }
+}

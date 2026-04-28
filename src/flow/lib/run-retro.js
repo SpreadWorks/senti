@@ -7,13 +7,15 @@
 
 import fs from "fs";
 import path from "path";
+import { execFileSync } from "child_process";
 import { runGit } from "../../lib/git-helpers.js";
 import { container } from "../../lib/container.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
-import { loadSpecJson, normalizeRequirements } from "../../lib/spec-json.js";
+import { loadSpecJson, normalizeRequirements, resolveSpecDir } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { loadTestMap, parseTapOutput, evaluateRequirement } from "./req-map.js";
 
 /**
  * Build the requirements text block from spec.json.requirements. Replaces the
@@ -189,6 +191,30 @@ export class RunRetroCommand extends FlowCommand {
       };
     }
 
+    // spec 241 R6: static evaluation via test-map.json
+    const staticResult = this.tryStaticEvaluation(root, specPath, requirements);
+    if (staticResult) {
+      const retro = {
+        spec: specPath,
+        date: new Date().toISOString(),
+        mode: "static",
+        ...staticResult,
+      };
+      fs.mkdirSync(specDir, { recursive: true });
+      fs.writeFileSync(retroPath, JSON.stringify(retro, null, 2) + "\n", "utf8");
+      return {
+        result: "ok",
+        changed: [path.relative(root, retroPath)],
+        artifacts: {
+          spec: specPath,
+          retroPath: path.relative(root, retroPath),
+          summary: retro.summary,
+          requirements: retro.requirements,
+          mode: "static",
+        },
+      };
+    }
+
     // Resolve AI agent
     const config = ctx.config;
     if (!config) {
@@ -237,6 +263,61 @@ export class RunRetroCommand extends FlowCommand {
         retroPath: path.relative(root, retroPath),
         summary: retro.summary,
         requirements: retro.requirements,
+      },
+    };
+  }
+
+  tryStaticEvaluation(root, specPath, requirements) {
+    const specDir = resolveSpecDir(path.resolve(root, specPath));
+    const testMap = loadTestMap(specDir);
+    if (Object.keys(testMap).length === 0) return null;
+
+    const testsDir = path.join(specDir, "tests");
+    let tapOutput = "";
+    try {
+      const mappedFileNames = new Set();
+      for (const tests of Object.values(testMap)) {
+        for (const t of tests) {
+          const file = t.split(" > ")[0]?.trim();
+          if (file) mappedFileNames.add(file);
+        }
+      }
+      const fullPaths = [...mappedFileNames]
+        .map((f) => path.join(testsDir, f))
+        .filter((p) => fs.existsSync(p));
+      if (fullPaths.length === 0) return null;
+      tapOutput = execFileSync("node", ["--test", "--test-reporter", "tap", ...fullPaths], {
+        encoding: "utf8",
+        timeout: 60000,
+      });
+    } catch (err) {
+      if (err.stdout) tapOutput = err.stdout;
+      else return null;
+    }
+
+    const tapResults = parseTapOutput(tapOutput);
+    const reqs = requirements.map((r) => {
+      const tests = testMap[r.id] || [];
+      const status = evaluateRequirement(tests, tapResults);
+      return { desc: r.desc, status, note: status === "unverified" ? "no tests mapped" : `${tests.length} test(s)` };
+    });
+
+    const total = reqs.length;
+    const done = reqs.filter((r) => r.status === "done").length;
+    const partial = reqs.filter((r) => r.status === "partial").length;
+    const notDone = reqs.filter((r) => r.status === "not_done").length;
+    const rate = total > 0 ? (done + partial * 0.5) / total : 0;
+
+    return {
+      requirements: reqs,
+      unplanned: [],
+      summary: {
+        total,
+        done,
+        partial,
+        not_done: notDone,
+        rate: Math.round(rate * 100) / 100,
+        notes: "static evaluation from test-map.json",
       },
     };
   }

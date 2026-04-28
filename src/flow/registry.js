@@ -228,6 +228,12 @@ export const FLOW_COMMANDS = {
       args: { positional: ["index", "status"] },
       help: "Usage: sdd-forge flow set req <index> <status>\n\nUpdate a single requirement's status.",
     },
+    files: {
+      helpKey: "flow.set.files",
+      command: () => import("./lib/set-files.js"),
+      args: { positional: ["reqId"], rest: "paths" },
+      help: "Usage: sdd-forge flow set files <reqId> <path...>\n\nAppend file paths to file-map.json for a requirement. Deduplicates.",
+    },
     metric: {
       helpKey: "flow.set.metric",
       command: () => import("./lib/set-metric.js"),

@@ -13,7 +13,18 @@ import fs from "fs";
 import path from "path";
 import { parseArgs } from "../../lib/cli.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
-import { loadSpecJson } from "../../lib/spec-json.js";
+import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
+
+async function loadReqMap(root, flow, kind) {
+  try {
+    const { loadFileMap, loadTestMap } = await import("../lib/req-map.js");
+    const specDir = resolveSpecDir(path.resolve(root, flow.spec));
+    return kind === "test" ? loadTestMap(specDir) : loadFileMap(specDir);
+  } catch (err) {
+    process.stderr.write(`  [review] ${kind}-map load skipped: ${err.message}\n`);
+    return null;
+  }
+}
 import { container, initContainer } from "../../lib/container.js";
 import { Command } from "../../lib/command.js";
 
@@ -703,6 +714,21 @@ async function runTestReview(root, flow, config, dryRun) {
     process.exit(EXIT_ERROR);
   }
 
+  // spec 241 R8: check test-map.json for untested requirements
+  const testMap = await loadReqMap(root, flow, "test");
+  if (testMap && Object.keys(testMap).length > 0) {
+    const untested = requirements.filter((r) => {
+      const tests = testMap[r.id] || [];
+      return tests.length === 0;
+    });
+    if (untested.length > 0) {
+      console.error(`  [test-review] test-map.json: ${untested.length} requirement(s) have no tests:`);
+      for (const r of untested) {
+        console.error(`    - ${r.id}: ${r.desc}`);
+      }
+    }
+  }
+
   const agent = ensureAgent("flow.test.review");
 
   // Step 1: Generate test design
@@ -1035,11 +1061,21 @@ async function runReview(rawArgs) {
     return;
   }
 
+  // spec 241 R7: enrich diff with file-map context for scoped review
+  let reviewInput = diff;
+  const fileMap = await loadReqMap(root, flow, "file");
+  if (fileMap && Object.keys(fileMap).length > 0) {
+    const mapLines = Object.entries(fileMap).map(([reqId, files]) =>
+      `- ${reqId}: ${files.join(", ")}`,
+    );
+    reviewInput = `## Requirement-File Mapping\n${mapLines.join("\n")}\n\n## Diff\n${diff}`;
+  }
+
   // --- Draft phase ---
   console.error("  [draft] Generating proposals...");
   const reviewGuardrails = filterByPhase(loadMergedGuardrails(root), "review");
   const draftAgent = ensureAgent("flow.impl.review.draft");
-  const draftResult = await callReviewAgent(draftAgent, diff, "flow.impl.review.draft", buildDraftSystemPrompt(reviewGuardrails));
+  const draftResult = await callReviewAgent(draftAgent, reviewInput, "flow.impl.review.draft", buildDraftSystemPrompt(reviewGuardrails));
 
   if (draftResult.includes("NO_PROPOSALS")) {
     console.log("No improvement proposals found. Code looks good.");

@@ -1,0 +1,72 @@
+{
+  "spec": "specs/241-req-file-test-mapping/spec.json",
+  "date": "2026-04-28T14:15:54.379Z",
+  "requirements": [
+    {
+      "desc": "flow set files <reqId> <path...> コマンドを新設する。reqId（文字列、必須）は spec.json の requirements[].id と突合し、存在しない場合は INVALID_REQ_ID エラー（非ゼロ終了）を返す。path（1つ以上必須、文字列）は file-map.json に追記され、同一 reqId+path の重複は無視される。引数不足時は INVALID_USAGE エラー（非ゼロ終了）を返す。成功時は exit 0",
+      "status": "done",
+      "note": "set-files.js 新設・registry.js 登録・dispatcher.js に rest 引数サポート追加。INVALID_REQ_ID/INVALID_USAGE は Envelope.fail() で返却。appendFiles で重複排除実装済み"
+    },
+    {
+      "desc": "file-map.json は specs/<spec>/ に配置される。スキーマは { [reqId: string]: string[] } 形式のオブジェクトで、reqId をキー、ファイルパスの配列を値とする",
+      "status": "done",
+      "note": "req-map.js の loadFileMap/appendFiles が specDir 直下の file-map.json を読み書き。スキーマ通りの形式を維持"
+    },
+    {
+      "desc": "test-map.json は specs/<spec>/tests/ に配置される。スキーマは { [reqId: string]: string[] } 形式で、reqId をキー、テスト名または検証コマンドの配列を値とする",
+      "status": "done",
+      "note": "req-map.js の loadTestMap が specDir/tests/test-map.json を読み込む。specs/241-.../tests/test-map.json が正しいスキーマで作成済み"
+    },
+    {
+      "desc": "src/flow/prompts/plan/test.md の tests/README.md 作成指示を tests/test-map.json 作成指示に変更する。test-map.json のスキーマと記入例をプロンプトに含める",
+      "status": "done",
+      "note": "README.md 作成指示を test-map.json 指示に変更しスキーマ・記入例を含む。ただし例に '241-set-files.test.js' という spec 固有ファイル名が使われており src/ ルール違反（review #6 APPROVED 指摘済み、未修正）"
+    },
+    {
+      "desc": "gate-impl で git diff --name-only の結果と file-map.json の全パスを突合し、diff に含まれるが file-map.json に未記録のファイルを警告として列挙する。file-map.json が存在しない場合はこのチェックをスキップする。未記録ファイルの存在は警告であり gate の pass/fail 判定や exit code には影響しない（既存の exit code 契約を維持）",
+      "status": "done",
+      "note": "reconcileFileMapWarnings メソッドを追加。loadFileMap が {} を返す場合（ファイル不在含む）はスキップ。警告は gatePass に渡されるが pass/fail 判定に影響しない"
+    },
+    {
+      "desc": "retro が test-map.json を読み、node --test --test-reporter tap で spec テストを実行し、TAP 出力をパースして各テストの pass/fail を取得する。test-map.json の各 reqId のテスト名を TAP 結果と照合し、全 pass → done、一部 pass → partial、全 fail → not_done、test-map.json に reqId のエントリがない → unverified と判定する。test-map.json が存在しない場合は現行の AI diff 評価にフォールバックする。retro の exit code 契約は既存のまま（retro.json 書き出し成功で exit 0、エラー時は非ゼロ）",
+      "status": "done",
+      "note": "tryStaticEvaluation で TAP 実行・パース・全判定ラベル対応済み。test-map 不在時は null を返し AI パスにフォールバック。ただし summary の total に unverified が計上されず done+partial+not_done≠total になる一貫性の問題あり（review #1 APPROVED 済み、未修正）"
+    },
+    {
+      "desc": "impl review が file-map.json を読み、要件-ファイルマッピング情報を diff と共にレビュープロンプトに含めることで、レビュアーが要件とファイルの対応を把握した上でレビューできるようにする。file-map.json が存在しない場合は現行の全 diff レビューにフォールバックする。review の exit code 契約は既存のまま",
+      "status": "done",
+      "note": "loadReqMap でファイルマップを読み込み、## Requirement-File Mapping セクションとして diff 前に付加。不在時は reviewInput=diff のままフォールバック"
+    },
+    {
+      "desc": "test review が test-map.json を読み、spec.json の requirements と突合して tests が空の要件を「テスト未設計」として報告する。test-map.json が存在しない場合はスキップする。review の exit code 契約は既存のまま",
+      "status": "done",
+      "note": "runTestReview 内で loadReqMap('test') し、tests が空の要件を console.error で報告。test-map.json 不在時は catch 内で null を返しスキップ"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/commands/review.js",
+      "change": "loadReqMap を async 動的 import (import()) で実装。同ファイルの他の import はすべて静的で、関数定義が import 文群の途中に挟まれているスタイル不一致（review #5 APPROVED 指摘済み、未修正）"
+    },
+    {
+      "file": "src/flow/lib/run-retro.js",
+      "change": "total/done/partial/not_done/rate の summary 計算ブロックが parseRetroResponse と tryStaticEvaluation の2箇所に重複。プロジェクトルールの2回以上の繰り返しで共通ヘルパー抽出必須に該当（review #3 APPROVED 済み、未修正）"
+    },
+    {
+      "file": "src/flow/commands/review.js",
+      "change": "コメント '// spec 241 R8:' '// spec 241 R7:' を本番コードに記述。CLAUDE.md で禁止されている「現タスク・Issue 番号の参照コメント」に該当"
+    },
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "コメント '// spec 241 R5:' を本番コードに記述。同上の Issue 番号参照コメント違反"
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "R1〜R8 の全要件が実装済み（must 6件・should 2件すべて done）。コアロジックの正確性は高く、主要な受け入れ基準を満たしている。コードレビューで APPROVED された修正（R6 の unverified summary 正規化、summary 計算の重複抽出、動的 import 解消）が未反映のまま残存。test.md 例の spec 固有ファイル名（src/ ルール違反）も未修正。機能要件の充足には影響しないが、コード品質・一貫性の観点で3〜4件の残課題がある"
+  }
+}

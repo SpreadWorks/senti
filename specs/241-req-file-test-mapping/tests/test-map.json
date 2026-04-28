@@ -1,0 +1,34 @@
+{
+  "R1": [
+    "241-set-files.test.js > should create file-map.json with reqId and paths on first call",
+    "241-set-files.test.js > should append paths without duplicates",
+    "241-set-files.test.js > should reject non-existent reqId with error",
+    "241-set-files.test.js > should create empty file-map.json structure when file does not exist"
+  ],
+  "R2": [
+    "241-set-files.test.js > should create file-map.json with reqId and paths on first call",
+    "241-set-files.test.js > should append paths without duplicates"
+  ],
+  "R3": [],
+  "R4": [],
+  "R5": [
+    "241-file-map-reconcile.test.js > should detect files in diff but not in file-map",
+    "241-file-map-reconcile.test.js > should return empty array when all diff files are recorded",
+    "241-file-map-reconcile.test.js > should return all diff files when file-map is empty"
+  ],
+  "R6": [
+    "241-retro-static.test.js > should determine done when all tests pass",
+    "241-retro-static.test.js > should determine partial when some tests pass",
+    "241-retro-static.test.js > should determine not_done when all tests fail",
+    "241-retro-static.test.js > should determine unverified when no tests are mapped",
+    "241-retro-static.test.js > should parse TAP output into per-test results"
+  ],
+  "R7": [
+    "241-review-integration.test.js > should load file-map.json and produce mapping lines",
+    "241-review-integration.test.js > should return empty object when file-map.json does not exist (fallback)"
+  ],
+  "R8": [
+    "241-review-integration.test.js > should identify requirements with empty test arrays",
+    "241-review-integration.test.js > should return empty object when test-map.json does not exist (skip)"
+  ]
+}
