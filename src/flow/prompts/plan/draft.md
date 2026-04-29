@@ -67,6 +67,7 @@
      5. Test strategy — What to test and how?
      6. Alternatives considered — What other approaches were evaluated? Why was this one chosen?
      7. Future extensibility — How does this change affect future modifications or extensions?
+     8. Consumer contracts — Are there rules that consumers of the introduced interfaces or data structures must follow?
    - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly (via Read tool or `sdd-forge flow get context <path> --raw`) to build sufficient understanding before answering the checklist questions.
    - **MUST: draft.json は `flow prepare` 実行時に skeleton が自動生成される。** 生成済みのファイルのフィールドを埋める形で記入する（ファイルを上書き作成しない）。以下の必須フィールドを含む（gate-draft で検証される）:
      - `devType` — enum: `feature` / `bugfix` / `refactor` / `docs` / `chore` / `test` / `other`
@@ -90,6 +91,7 @@
      5. Test strategy — What to test and how?
      6. Alternatives considered — What other approaches were evaluated? Why was this one chosen?
      7. Future extensibility — How does this change affect future modifications or extensions?
+     8. Consumer contracts — Are there rules that consumers of the introduced interfaces or data structures must follow?
    - **Before starting draft discussion**:
      1. **If a GitHub Issue number is linked** (saved in flow.json via `--issue`):
         Fetch the issue content with `sdd-forge flow get issue <number>` and display the title and body before the first question.
