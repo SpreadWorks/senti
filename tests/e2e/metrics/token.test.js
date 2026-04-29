@@ -121,7 +121,7 @@ describe("metrics token command", () => {
     assert.ok(row.difficulty > 0, "difficulty should be positive");
   });
 
-  it("returns N/A difficulty when reviewCount/redoCount are missing", () => {
+  it("returns — difficulty when reviewCount/redoCount are missing", () => {
     setupProject();
     writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("C", 10));
     writeFile(tmp, "specs/001-alpha/review.md", "### [x] 1. one");
@@ -134,7 +134,7 @@ describe("metrics token command", () => {
     const lines = out.trim().split("\n");
     assert.ok(lines.length >= 2, "csv must include at least one data row");
     const cols = lines[1].split(",");
-    assert.equal(cols[2], "N/A");
+    assert.equal(cols[2], "—");
   });
 
   it("treats missing qaCount/testCount/issueLogEntries as zero for calculation", () => {
@@ -167,7 +167,7 @@ describe("metrics token command", () => {
     assert.ok(row.difficulty > 0);
   });
 
-  it("returns N/A when requestChars resolves to zero", () => {
+  it("returns — when requestChars resolves to zero", () => {
     tmp = createTmpDir("sdd-metrics-token-reqzero-");
     writeBaseConfig(tmp);
     writeFile(tmp, "specs/001-alpha/spec.json", paddedSpecJson("C", 10));
@@ -193,6 +193,6 @@ describe("metrics token command", () => {
     });
     const lines = out.trim().split("\n");
     const cols = lines[1].split(",");
-    assert.equal(cols[2], "N/A");
+    assert.equal(cols[2], "—");
   });
 });

@@ -1,0 +1,33 @@
+{
+  "R1": [
+    "245-metrics-output.test.js > R1: VALID_PHASES sort order > sortRows orders phases by VALID_PHASES index, not alphabetically",
+    "245-metrics-output.test.js > R1: VALID_PHASES sort order > same phase rows are sorted by date ascending",
+    "245-metrics-output.test.js > R1: VALID_PHASES sort order > unknown phases are placed after all VALID_PHASES entries"
+  ],
+  "R2": [
+    "245-metrics-output.test.js > R2: formatText 7-row limit per phase > shows all rows when phase has 7 or fewer",
+    "245-metrics-output.test.js > R2: formatText 7-row limit per phase > limits to 7 rows and shows ellipsis for 10 rows",
+    "245-metrics-output.test.js > R2: formatText 7-row limit per phase > displays most recent 7 rows (by date descending)"
+  ],
+  "R3": [
+    "245-metrics-output.test.js > R3: formatText phase summary row > displays summary at the end of each phase block",
+    "245-metrics-output.test.js > R3: formatText phase summary row > excludes cost-null rows from avg cost calculation",
+    "245-metrics-output.test.js > R3: formatText phase summary row > includes cache hit rate in summary"
+  ],
+  "R4": [
+    "245-metrics-output.test.js > R4: formatJson phaseSummary > JSON output includes phaseSummary key with per-phase aggregates",
+    "245-metrics-output.test.js > R4: formatJson phaseSummary > phaseSummary avgCost excludes null-cost rows"
+  ],
+  "R5": [
+    "245-metrics-output.test.js > R5: formatCsv SUMMARY rows > CSV includes SUMMARY row after each phase",
+    "245-metrics-output.test.js > R5: formatCsv SUMMARY rows > CSV SUMMARY row contains phase name"
+  ],
+  "R6": [
+    "245-metrics-output.test.js > R6: asDisplayValue cost null shows — > text output shows — for null cost instead of N/A",
+    "245-metrics-output.test.js > R6: asDisplayValue cost null shows — > text output still shows N/A for null duration"
+  ],
+  "R7": [
+    "245-metrics-output.test.js > R7: asCsvValue cost null shows — in CSV > CSV shows — for null cost"
+  ],
+  "R8": []
+}

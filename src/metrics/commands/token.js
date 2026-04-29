@@ -59,12 +59,16 @@ function addMetric(acc, field, value) {
   acc[field] = acc[field] == null ? n : acc[field] + n;
 }
 
-function asDisplayValue(value, kind = "number") {
-  if (value == null) return "N/A";
+function formatScalar(value, kind = "number") {
+  if (value == null) return (kind === "cost" || kind === "difficulty") ? "—" : "N/A";
   if (kind === "cost") return Number(value).toFixed(6);
   if (kind === "difficulty") return Number(value).toFixed(2);
-  if (kind === "duration") return formatDurationSeconds(value);
   return String(value);
+}
+
+function asDisplayValue(value, kind = "number") {
+  if (kind === "duration") return value == null ? "N/A" : formatDurationSeconds(value);
+  return formatScalar(value, kind);
 }
 
 function phaseLabel(phase) {
@@ -74,41 +78,92 @@ function phaseLabel(phase) {
 }
 
 function asCsvValue(value, kind = "number") {
-  if (value == null) return "N/A";
-  if (kind === "cost") return Number(value).toFixed(6);
-  if (kind === "difficulty") return Number(value).toFixed(2);
-  return String(value);
+  return formatScalar(value, kind);
+}
+
+function phaseOrder(phase) {
+  const idx = VALID_PHASES.indexOf(phase);
+  return idx === -1 ? Infinity : idx;
 }
 
 function sortRows(rows) {
   return [...rows].sort((a, b) => {
-    if (a.phase !== b.phase) return a.phase.localeCompare(b.phase);
+    const pa = phaseOrder(a.phase);
+    const pb = phaseOrder(b.phase);
+    if (pa !== pb) return pa - pb;
     return a.date.localeCompare(b.date);
   });
 }
 
-function groupRowsByPhase(rows) {
+function groupRowsByPhase(rows, { dateDesc = false } = {}) {
+  const sorted = sortRows(rows);
   const groups = new Map();
-  for (const row of rows) {
+  for (const row of sorted) {
     if (!groups.has(row.phase)) groups.set(row.phase, []);
     groups.get(row.phase).push(row);
   }
+  if (dateDesc) {
+    for (const phaseRows of groups.values()) {
+      phaseRows.reverse();
+    }
+  }
   return groups;
 }
+
+export function computePhaseSummary(phaseRows) {
+  if (!phaseRows || phaseRows.length === 0) return null;
+  const n = phaseRows.length;
+  let totalCalls = 0;
+  let totalDuration = 0;
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCacheRead = 0;
+  let costSum = 0;
+  let costCount = 0;
+  let durationCount = 0;
+
+  for (const row of phaseRows) {
+    totalCalls += row.callCount || 0;
+    if (row.durationMs != null) { totalDuration += row.durationMs; durationCount += 1; }
+    totalInput += row.tokenInput || 0;
+    totalOutput += row.tokenOutput || 0;
+    totalCacheRead += row.cacheRead || 0;
+    if (row.cost != null) { costSum += row.cost; costCount += 1; }
+  }
+
+  const cacheHitRate = (totalInput + totalCacheRead) > 0
+    ? totalCacheRead / (totalInput + totalCacheRead)
+    : null;
+
+  return {
+    totalCalls,
+    avgCost: costCount > 0 ? costSum / costCount : null,
+    avgDuration: durationCount > 0 ? totalDuration / durationCount : null,
+    avgTokenInput: n > 0 ? totalInput / n : null,
+    avgTokenOutput: n > 0 ? totalOutput / n : null,
+    cacheHitRate,
+  };
+}
+
+const TEXT_MAX_ROWS = 7;
 
 export function formatText(rows) {
   if (!rows.length) return "No metrics data found.";
 
   const lines = [];
-  const groups = groupRowsByPhase(sortRows(rows));
+  const groups = groupRowsByPhase(rows, { dateDesc: true });
 
-  for (const [phase, phaseRows] of groups.entries()) {
+  for (const [phase, allPhaseRows] of groups.entries()) {
     lines.push(`PHASE ${phaseLabel(phase)}`);
     lines.push("");
     lines.push("             |             | token          | cache          |            |            |          |");
     lines.push("             | difficulty  | in      out    | read   create  | call count | cost       | duration |");
     lines.push("---------------------------------------------------------------------------------------------------");
-    for (const row of phaseRows) {
+
+    const displayed = allPhaseRows.slice(0, TEXT_MAX_ROWS);
+    const elided = allPhaseRows.length - displayed.length;
+
+    for (const row of displayed) {
       const incomplete = row.costIncomplete && row.cost != null;
       const date = row.date.padEnd(11, " ");
       const diff = asDisplayValue(row.difficulty, "difficulty").padEnd(11, " ");
@@ -122,33 +177,71 @@ export function formatText(rows) {
       const duration = asDisplayValue(row.durationMs, "duration");
       lines.push(`${date} | ${diff} | ${inTok} ${outTok} | ${read} ${create} | ${calls} | ${cost} | ${duration}`);
     }
+    if (elided > 0) {
+      lines.push(`... and ${elided} more`);
+    }
+
+    const summary = computePhaseSummary(allPhaseRows);
+    if (summary) {
+      lines.push("---------------------------------------------------------------------------------------------------");
+      const avgCostStr = summary.avgCost != null ? `$${summary.avgCost.toFixed(4)}` : "—";
+      const avgDurStr = summary.avgDuration != null ? formatDurationSeconds(summary.avgDuration) : "—";
+      const cacheStr = summary.cacheHitRate != null ? `${(summary.cacheHitRate * 100).toFixed(0)}%` : "—";
+      lines.push(`  avg cost: ${avgCostStr} | avg duration: ${avgDurStr} | total calls: ${summary.totalCalls} | avg tokens: ${Math.round(summary.avgTokenInput || 0)}/${Math.round(summary.avgTokenOutput || 0)} | cache hit: ${cacheStr}`);
+    }
     lines.push("");
   }
 
   return lines.join("\n").trimEnd();
 }
 
-function formatJson(rows) {
-  return JSON.stringify({ rows: sortRows(rows) }, null, 2);
+export function formatJson(rows) {
+  const groups = groupRowsByPhase(rows);
+  const phaseSummary = {};
+  for (const [phase, phaseRows] of groups.entries()) {
+    phaseSummary[phase] = computePhaseSummary(phaseRows);
+  }
+  const sorted = sortRows(rows);
+  return JSON.stringify({ rows: sorted, phaseSummary }, null, 2);
 }
 
 export function formatCsv(rows) {
   const header = "date,phase,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,callCount,cost,durationMs,incomplete";
   const lines = [header];
-  for (const row of sortRows(rows)) {
-    lines.push([
-      row.date,
-      phaseLabel(row.phase),
-      asCsvValue(row.difficulty, "difficulty"),
-      asCsvValue(row.tokenInput),
-      asCsvValue(row.tokenOutput),
-      asCsvValue(row.cacheRead),
-      asCsvValue(row.cacheCreate),
-      asCsvValue(row.callCount),
-      asCsvValue(row.cost, "cost"),
-      asCsvValue(row.durationMs),
-      row.costIncomplete && row.cost != null ? "+" : "",
-    ].join(","));
+  const groups = groupRowsByPhase(rows);
+
+  for (const [phase, phaseRows] of groups.entries()) {
+    for (const row of phaseRows) {
+      lines.push([
+        row.date,
+        phaseLabel(row.phase),
+        asCsvValue(row.difficulty, "difficulty"),
+        asCsvValue(row.tokenInput),
+        asCsvValue(row.tokenOutput),
+        asCsvValue(row.cacheRead),
+        asCsvValue(row.cacheCreate),
+        asCsvValue(row.callCount),
+        asCsvValue(row.cost, "cost"),
+        asCsvValue(row.durationMs),
+        row.costIncomplete && row.cost != null ? "+" : "",
+      ].join(","));
+    }
+    const summary = computePhaseSummary(phaseRows);
+    if (summary) {
+      lines.push([
+        "SUMMARY",
+        phaseLabel(phase),
+        "",
+        summary.avgTokenInput != null ? Math.round(summary.avgTokenInput) : "",
+        summary.avgTokenOutput != null ? Math.round(summary.avgTokenOutput) : "",
+        "",
+        "",
+        summary.totalCalls,
+        summary.avgCost != null ? summary.avgCost.toFixed(6) : "—",
+        summary.avgDuration != null ? Math.round(summary.avgDuration) : "",
+        "",
+      ].join(","));
+    }
   }
   return lines.join("\n");
 }

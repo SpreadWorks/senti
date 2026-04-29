@@ -1,0 +1,111 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/245-metrics-output-improvements/draft.json   |  79 +++\n .../245-metrics-output-improvements/file-map.json  |  27 ++\n specs/245-metrics-output-improvements/flow.json    | 531 +++++++++++++++++++++\n .../245-metrics-output-improvements/issue-log.json |  96 ++++\n specs/245-metrics-output-improvements/issue.md     |  92 ++++\n specs/245-metrics-output-improvements/qa.md        |   9 +\n specs/245-metrics-output-improvements/review.md    |  41 ++\n specs/245-metrics-output-improvements/spec.json    | 224 +++++++++\n specs/245-metrics-output-improvements/spec.md      | 102 ++++\n specs/245-metrics-output-improvements/tasks/T-1.md |  20 +\n specs/245-metrics-output-improvements/tasks/T-2.md |  20 +\n specs/245-metrics-output-improvements/tasks/T-3.md |  19 +\n specs/245-metrics-output-improvements/tasks/T-4.md |  20 +\n specs/245-metrics-output-improvements/tasks/T-5.md |  20 +\n specs/245-metrics-output-improvements/tasks/T-6.md |  20 +\n .../tests/245-metrics-output.test.js               | 217 +++++++++\n .../tests/test-map.json                            |  33 ++\n src/metrics/commands/token.js                      | 151 ++++--\n tests/e2e/metrics/token.test.js                    |   8 +-\n 19 files changed, 1696 insertions(+), 33 deletions(-)",
+      "commits": [
+        "feat: improve metrics token output (phase ordering, row limits, summaries, null display)"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 0.88,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "sortRows は VALID_PHASES 配列のインデックス順でフェーズをソートする。同一フェーズ内は日付昇順。VALID_PHASES に含まれないフェーズは末尾に配置する。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "formatText は各フェーズの行を日付降順で最新7件に制限する。8件目以降は '... and N more' の省略表記を表示する。7件以下の場合はそのまま全件表示。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "formatText は各フェーズブロックの末尾に集計行を表示する。集計値: avg cost（cost non-null 行のみ）、avg duration、total calls、avg tokens in/out、cache hit rate（cacheRead / (tokenInput + cacheRead)）。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "formatJson は出力 JSON に phaseSummary キーを追加する。キーはフェーズ名、値は R3 と同じ集計値のオブジェクト。rows はフル出力（件数制限なし）。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "formatCsv は各フェーズの全行出力後、集計行を追加する。集計行の date 列は 'SUMMARY' とし、他列に R3 と同じ集計値を格納する。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "asDisplayValue で cost が null の場合、'N/A' ではなく '—' を返す。costIncomplete マーカー（+）の動作は既存のまま維持する。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "asCsvValue で cost が null の場合、'N/A' ではなく '—' を返す。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "specs/245-metrics-output-improvements/tests/ にテストコードを配置し、全テストが通ること。既存テスト（tests/e2e/metrics, tests/unit/metrics）の出力変更に伴う期待値更新は許可する。",
+          "status": "unverified",
+          "note": "no tests mapped"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 3,
+      "question": 3,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 35536,
+      "output": 81609,
+      "cacheRead": 977485,
+      "cacheCreation": 438717,
+      "cost": 3.6116782,
+      "callCount": 17,
+      "durationMs": 1477054,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 299747
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 77174
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 562047
+        },
+        {
+          "phase": "gate",
+          "durationMs": 137335
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 285170
+        },
+        {
+          "phase": "review",
+          "durationMs": 115581
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: improve metrics token output (phase ordering, row limits, summaries, null display)\n    19 files changed, 1696 insertions(+), 33 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 88%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 3\n    Q&A ......................... 3\n    issue-log ................... 1\n    agent calls ................. 17\n    input tokens ................ 35,536\n    output tokens ............... 81,609\n    cache-read tokens ........... 977,485\n    cache-create tokens ......... 438,717\n    cost ........................ $3.6117\n    duration (total) ............ 1477.1s\n      review-draft .............. 299.7s\n      gate-draft ................ 77.2s\n      review-spec ............... 562.0s\n      gate ...................... 137.3s\n      gate-impl ................. 285.2s\n      review .................... 115.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

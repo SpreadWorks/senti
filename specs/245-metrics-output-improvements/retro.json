@@ -1,0 +1,56 @@
+{
+  "spec": "specs/245-metrics-output-improvements/spec.json",
+  "date": "2026-04-29T21:08:49.442Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "sortRows は VALID_PHASES 配列のインデックス順でフェーズをソートする。同一フェーズ内は日付昇順。VALID_PHASES に含まれないフェーズは末尾に配置する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "formatText は各フェーズの行を日付降順で最新7件に制限する。8件目以降は '... and N more' の省略表記を表示する。7件以下の場合はそのまま全件表示。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "formatText は各フェーズブロックの末尾に集計行を表示する。集計値: avg cost（cost non-null 行のみ）、avg duration、total calls、avg tokens in/out、cache hit rate（cacheRead / (tokenInput + cacheRead)）。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "formatJson は出力 JSON に phaseSummary キーを追加する。キーはフェーズ名、値は R3 と同じ集計値のオブジェクト。rows はフル出力（件数制限なし）。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "formatCsv は各フェーズの全行出力後、集計行を追加する。集計行の date 列は 'SUMMARY' とし、他列に R3 と同じ集計値を格納する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "asDisplayValue で cost が null の場合、'N/A' ではなく '—' を返す。costIncomplete マーカー（+）の動作は既存のまま維持する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "asCsvValue で cost が null の場合、'N/A' ではなく '—' を返す。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "specs/245-metrics-output-improvements/tests/ にテストコードを配置し、全テストが通ること。既存テスト（tests/e2e/metrics, tests/unit/metrics）の出力変更に伴う期待値更新は許可する。",
+      "status": "unverified",
+      "note": "no tests mapped"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 0.88,
+    "notes": "static evaluation from test-map.json"
+  }
+}

@@ -1,0 +1,224 @@
+{
+  "goal": "metrics コマンドの出力を改善する: PHASE 順序をフロー実行順に固定、text 出力でフェーズあたり最新7件に制限、全フォーマットにフェーズ別集計データを追加、cost null 行の表示を改善して情報損失を解消する。",
+  "scope": {
+    "in": [
+      "[must] sortRows を VALID_PHASES のインデックス順でソート（全フォーマット共通）",
+      "[must] cost null 行の表示改善（text/CSV: — マーカー、JSON: null 維持）",
+      "[should] 全フォーマットにフェーズ別集計データ追加",
+      "[should] formatText でフェーズあたり最新7件表示 + 省略表記"
+    ],
+    "out": [
+      "metrics.json キャッシュスキーマの変更",
+      "difficulty 計算ロジックの変更",
+      "report.js（flow report）の変更"
+    ]
+  },
+  "constraints": [
+    "外部依存なし（Node.js 組み込みモジュールのみ）",
+    "既存の CLI インターフェース（--format text|json|csv）は変更しない"
+  ],
+  "design_principles": [],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/metrics/commands/token.js — metrics token コマンドの実装。sortRows, formatText, formatCsv, formatJson を含む"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "flow.json → buildRows → sortRows(VALID_PHASES順) → format(Text|Json|Csv) → stdout"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "VALID_PHASES 配列のインデックスをソートキーとして使用。VALID_PHASES に含まれないフェーズは末尾にフォールバック。",
+        "evidence": "VALID_PHASES は src/lib/constants.js でフロー実行順に定義済み"
+      },
+      {
+        "text": "7件制限は text のみ。JSON/CSV はフルデータ出力 + 集計データ付与。",
+        "evidence": "JSON/CSV は機械可読形式で消費側がフィルタ可能。フルデータを維持しつつ集計を付与するのが最も有用"
+      },
+      {
+        "text": "JSON の集計は phaseSummary キーとしてトップレベルに追加。CSV の集計行は date 列を SUMMARY にして区別。",
+        "evidence": "JSON は構造的に分離可能。CSV は RFC 4180 準拠を維持しつつ先頭カラムでフィルタ可能"
+      }
+    ]
+  },
+  "background": "metrics.json の出力で、PHASE がアルファベット順にソートされフロー実行順と一致しない。件数制限がなく大量データ時に見づらい。集計行がなくフェーズ単位の傾向を掴めない。cost null 行が一律 N/A 表示で他の有用なフィールド（callCount, durationMs 等）が埋没している。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "sortRows は VALID_PHASES 配列のインデックス順でフェーズをソートする。同一フェーズ内は日付昇順。VALID_PHASES に含まれないフェーズは末尾に配置する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "formatText は各フェーズの行を日付降順で最新7件に制限する。8件目以降は '... and N more' の省略表記を表示する。7件以下の場合はそのまま全件表示。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "formatText は各フェーズブロックの末尾に集計行を表示する。集計値: avg cost（cost non-null 行のみ）、avg duration、total calls、avg tokens in/out、cache hit rate（cacheRead / (tokenInput + cacheRead)）。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "formatJson は出力 JSON に phaseSummary キーを追加する。キーはフェーズ名、値は R3 と同じ集計値のオブジェクト。rows はフル出力（件数制限なし）。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "formatCsv は各フェーズの全行出力後、集計行を追加する。集計行の date 列は 'SUMMARY' とし、他列に R3 と同じ集計値を格納する。",
+      "priority": "should",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "asDisplayValue で cost が null の場合、'N/A' ではなく '—' を返す。costIncomplete マーカー（+）の動作は既存のまま維持する。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "asCsvValue で cost が null の場合、'N/A' ではなく '—' を返す。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "specs/245-metrics-output-improvements/tests/ にテストコードを配置し、全テストが通ること。既存テスト（tests/e2e/metrics, tests/unit/metrics）の出力変更に伴う期待値更新は許可する。",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "sdd-forge metrics token --format text の出力で PHASE がフロー実行順に並ぶ",
+    "text 出力で8件以上あるフェーズが7件 + 省略表記で表示される",
+    "text 出力の各フェーズ末尾に集計行が表示される",
+    "JSON 出力に phaseSummary キーが存在し、フェーズ別集計値を含む",
+    "CSV 出力のフェーズ末尾に SUMMARY 行が存在する",
+    "cost null 行で text/CSV の cost 列が — 表示になる",
+    "npm test が全て通る"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "text 出力のみ変更（JSON/CSV は変更なし）",
+      "reason": "ユーザーが全フォーマット適用を希望したため却下"
+    },
+    {
+      "option": "JSON/CSV も7件に制限",
+      "reason": "消費側の柔軟性が失われるため却下。フルデータ + 集計が最も有用"
+    },
+    {
+      "option": "CSV 集計行に # コメント行を使用",
+      "reason": "RFC 4180 準拠を損なうため却下"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "sortRows を VALID_PHASES 順にソート",
+      "goal": "sortRows のソート順をアルファベット順から VALID_PHASES インデックス順に変更する。",
+      "acceptance": [
+        "VALID_PHASES に含まれるフェーズが定義順にソートされる",
+        "同一フェーズ内は日付昇順",
+        "VALID_PHASES に含まれないフェーズは末尾に配置される"
+      ],
+      "implementation_notes": "VALID_PHASES.indexOf(phase) をソートキーにする。見つからない場合は Infinity 扱い。",
+      "test_strategy": "既存テストのソート期待値を更新 + 未知フェーズのフォールバックテスト追加",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "cost null 行の表示改善",
+      "goal": "asDisplayValue と asCsvValue で cost null の場合に N/A ではなく — を返すようにする。",
+      "acceptance": [
+        "asDisplayValue(null, 'cost') が '—' を返す",
+        "asCsvValue(null, 'cost') が '—' を返す",
+        "他の kind（number, difficulty, duration）の null 表示は N/A のまま"
+      ],
+      "implementation_notes": "asDisplayValue / asCsvValue の先頭 null チェックを kind === 'cost' で分岐。",
+      "test_strategy": "unit テストで各 kind の null 表示を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "フェーズ別集計ロジックの追加",
+      "goal": "フェーズごとの集計値（avg cost, avg duration, total calls, avg tokens, cache hit rate）を算出する共通関数を追加する。",
+      "acceptance": [
+        "集計関数が avg cost（null 除外）、avg duration、total calls、avg tokens in/out、cache hit rate を返す",
+        "データが0件のフェーズでは集計をスキップする"
+      ],
+      "implementation_notes": "formatText / formatJson / formatCsv から共通利用できる関数として token.js 内に定義。",
+      "test_strategy": "unit テストで集計値の算出結果を検証（null 混在、0件、全件 null のケース）",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "formatText に7件制限と集計行を追加",
+      "goal": "text 出力でフェーズあたり最新7件に制限し、各フェーズ末尾に集計行を表示する。",
+      "acceptance": [
+        "8件以上あるフェーズで最新7件のみ表示される（日付降順で上位7件）",
+        "省略表記 '... and N more' が表示される",
+        "各フェーズブロック末尾に集計行が表示される"
+      ],
+      "implementation_notes": "groupRowsByPhase 後、各グループを日付降順ソートして slice(0, 7)。集計は T-3 の関数を使用。",
+      "test_strategy": "7件未満・ちょうど7件・8件以上のケースで出力を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-5",
+      "title": "formatJson に phaseSummary を追加",
+      "goal": "JSON 出力に phaseSummary キーを追加し、フェーズ別集計値を格納する。",
+      "acceptance": [
+        "出力 JSON に phaseSummary キーが存在する",
+        "phaseSummary の各フェーズに集計値オブジェクトが含まれる",
+        "rows はフル出力（件数制限なし）"
+      ],
+      "implementation_notes": "formatJson 内で groupRowsByPhase → T-3 の集計関数を適用。",
+      "test_strategy": "JSON 出力をパースして phaseSummary の構造と値を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-6",
+      "title": "formatCsv に集計行を追加",
+      "goal": "CSV 出力の各フェーズ末尾に集計行（date=SUMMARY）を追加する。",
+      "acceptance": [
+        "各フェーズの全データ行の後に SUMMARY 行が出力される",
+        "SUMMARY 行の date 列が 'SUMMARY'",
+        "SUMMARY 行に集計値が格納されている"
+      ],
+      "implementation_notes": "formatCsv 内で groupRowsByPhase → フェーズごとにデータ行 + SUMMARY 行を出力。",
+      "test_strategy": "CSV 出力をパースして SUMMARY 行の存在と値を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-29T15:33:41.463Z"
+  }
+}

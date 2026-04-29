@@ -1,0 +1,79 @@
+{
+  "devType": "feature",
+  "goal": "metrics 出力の可読性改善と情報損失の解消（PHASE順序固定・件数制限・集計行・N/A表示改善）",
+  "analysis": {
+    "problem": "metrics テキスト出力で PHASE がアルファベット順にソートされフロー実行順と一致しない。件数制限がなく大量データ時に見づらい。フェーズ単位の集計がなく傾向を掴めない。cost null 行が一律 N/A 表示で他の有用なフィールドが埋没する。",
+    "proposedApproach": "sortRows を VALID_PHASES 順にソート。text 出力でフェーズあたり最新7件に制限（日付降順）。全フォーマットにフェーズ別集計データを追加。cost null 行は他フィールドを表示しつつ cost 列のみマーカー表示。",
+    "validation": "VALID_PHASES がフロー実行順で定義済み。集計値（avg cost, avg duration, total calls, avg tokens, cache hit rate）はフェーズ別の傾向分析に有用。N/A 改善で情報損失が解消される。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] sortRows の VALID_PHASES 順ソート（全フォーマット共通）",
+      "[must] cost null 行の表示改善（text: — マーカー、CSV: — マーカー、JSON: null のまま）",
+      "[should] 全フォーマットにフェーズ別集計データ追加（text: 集計行、JSON: phaseSummary キー、CSV: 集計行 + マーカー）",
+      "[should] formatText でフェーズあたり最新7件表示 + 省略表記"
+    ],
+    "out": [
+      "metrics.json キャッシュスキーマの変更",
+      "difficulty 計算ロジックの変更",
+      "report.js（flow report）の変更"
+    ]
+  },
+  "impactOnExisting": [
+    "formatText の出力が変わる（PHASE 順序、件数制限、集計行追加）",
+    "formatCsv の出力が変わる（PHASE 順序、集計行追加）",
+    "formatJson の出力が変わる（PHASE 順序、phaseSummary 追加）",
+    "sortRows のソート順が変わる（アルファベット順 → VALID_PHASES 順）",
+    "既存テスト（e2e/metrics, unit/metrics）の期待値更新が必要"
+  ],
+  "qa": [
+    {
+      "question": "各改善項目（PHASE順序 / 件数制限 / 集計行 / N/A表示）はどのフォーマット（text/JSON/CSV）に適用されるか？",
+      "answer": "マトリクス形式で整理する。PHASE順序: text / JSON / CSV すべてに適用。件数制限（最新7件）: text のみ（JSON/CSV は消費側でフィルタ可能なためフルデータ出力）。集計行: text / JSON / CSV すべてに適用（text: フェーズブロック末尾に集計行、JSON: phaseSummary キー追加、CSV: フェーズ末尾に集計行＋マーカー）。N/A表示改善: text / JSON / CSV すべてに適用。",
+      "evidence": "ユーザー指示: 「2」を選択",
+      "why": "各項目の適用範囲を先に整理することで、後続 QA がフォーマット差分の詳細に集中できる",
+      "considered": "text のみの変更 — JSON/CSV は機械可読なので消費側で処理可能だが、ユーザーが全フォーマット適用を希望。ただし件数制限は機械可読フォーマットの情報損失を避けるため text のみに限定"
+    },
+    {
+      "question": "JSON / CSV での7件制限と集計行の扱いは？",
+      "answer": "7件制限は text のみ。JSON は rows フル出力 + phaseSummary キー追加。CSV はフル行 + フェーズ末尾に集計行を追加し、先頭カラムを固定文字列 \"SUMMARY\" にすることで通常データ行と区別する（消費側が先頭カラム値でフィルタ可能）。text 形式の集計行は各フェーズブロックの末尾に `TOTAL  calls: N / tokens: N / cost: ¥N / duration: Ns` の形式で付与する（DIVIDER 行で区切り）。",
+      "evidence": "ユーザー指示: 「1」を選択",
+      "why": "JSON/CSV は消費側がフィルタ可能。フルデータ + 集計が最も有用。CSV マーカーは先頭カラム値による機械的なフィルタを可能にするため \"SUMMARY\" 固定文字列を採用。text は既存の pushSection/DIVIDER パターンに合わせる。",
+      "considered": "JSON/CSV も7件制限 — 消費側の柔軟性が失われるため却下。CSV マーカーに # コメント行 — CSV の RFC 4180 準拠を損なうため却下。"
+    },
+    {
+      "question": "7件制限は最新の日付からさかのぼるか？また7件に満たないフェーズではどう表示するか？",
+      "answer": "はい。各フェーズ内で日付降順（最新→古い）にソートし、先頭7件を表示。7件未満のフェーズは存在する件数だけ表示し、N/A でパディングしない（行数を揃える必要はない）。",
+      "evidence": "ユーザー確認: 「7件は最新の日付からさかのぼるで良いよね？」",
+      "why": "直近のトレンドが最も関心が高い。7件未満パディング不要は N/A 表示 QA との整合（N/A は欠損フィールドのみに使用し、行埋めには使わない）",
+      "considered": "古い順 — 過去データは傾向分析には有用だが、日常的な確認では最新が重要。N/A パディングで行数を揃える — 情報のない行を表示することで可読性が下がるため却下"
+    },
+    {
+      "question": "現在の PHASE 表示順序は何か、改善後はどの順序にすべきか？",
+      "answer": "`src/metrics/commands/token.js` の `groupRowsByPhase` は現在アルファベット順にフェーズをソートしている。改善後は `src/lib/flow-helpers.js` の `FLOW_STEPS` / `PHASE_MAP` で定義されるフロー実行順（例: prepare → implement → review → finalize）に従う。VALID_PHASES 配列のインデックス順をソートキーとして使用する。",
+      "evidence": "analysis.proposedApproach: 「sortRows を VALID_PHASES 順にソート」",
+      "why": "アルファベット順はフローの文脈を失う。実行順に並べることでフェーズ間の推移や傾向がひと目で分かる。",
+      "considered": "アルファベット順維持 — 一貫性はあるが、フロー実行の時系列コンテキストが失われる"
+    },
+    {
+      "question": "N/A が表示される条件はどれか？",
+      "answer": "cost フィールドが null の行（実行時に cost が計測されなかった場合）のみ N/A 相当のマーカーを表示する。フェーズ自体にデータが0件の場合はそのフェーズブロック自体を表示しない。7件未満フェーズの残り行を N/A で埋めることはしない（Q3参照）。特定カウンタ（tokens 等）が未記録の場合も同様に当該フィールドのみマーカー表示とし、他フィールドへの影響は与えない。",
+      "evidence": "scopeVerification.in: 「cost null 行の表示改善（text: — マーカー、CSV: — マーカー、JSON: null のまま）」",
+      "why": "N/A は欠損フィールドのみに使用し、行・フェーズ単位での一律非表示を避けることで情報損失を解消する",
+      "considered": "cost null 行全体を非表示 — 他フィールド（tokens, duration 等）の情報が失われるため却下"
+    },
+    {
+      "question": "各フォーマットで N/A（欠損値）をどのように表現するか？",
+      "answer": "text: 欠損フィールドの値位置に `—`（ダッシュ）を表示。他フィールドは通常通り表示。CSV: 欠損フィールドのカラムを `—` とする（空文字は「値なし」と区別できないため不採用）。JSON: 欠損フィールドは `null`（文字列 \"N/A\" や \"—\" は使わない。null が JSON の欠損表現として標準的）。",
+      "evidence": "scopeVerification.in: 「cost null 行の表示改善（text: — マーカー、CSV: — マーカー、JSON: null のまま）」",
+      "why": "フォーマットごとの慣習に従うことで消費側の処理が一貫する。JSON の null は型安全な欠損表現。text/CSV の — は視覚的に欠損と分かる。",
+      "considered": "全フォーマットで空文字 — CSV では値なしとの区別ができない。全フォーマットで文字列 \"N/A\" — JSON の消費側で null チェックが複雑になる"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-29",
+    "notes": ""
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — スペックは「metrics 出力の可読性改善と情報損失解消」という単一の concern に限定されており、スコープ外の report.js や difficulty 計算は明示的に除外されている。; Unambiguous Requirements — 「最新7件」「日付降順」「VALID_PHASES インデックス順」「— マーカー」「SUMMARY 固定文字列」など、測定可能・検証可能な条件で記述されている。曖昧な形容詞は使われていない。; Complete Context — QA でフォーマット別（text/JSON/CSV）の適用範囲マトリクスが整理されており、2人の独立したレビュアーが実装の適合性を判断できる粒度になっている。; No Hardcoded Secrets — シークレット・APIキー・パスワード類はスペックに含まれておらず、適用外。; Prioritize Requirements — scopeVerification.in に4件の要件（PHASE順ソート、件数制限、集計行追加、N/A改善）があり must/should/nice-to-have の優先度が付与されていない。3件超のためガードレール上は必須。; Impact on Existing Features — impactOnExisting セクションで formatText/CSV/JSON の出力変化、sortRows の順序変化、既存テストの期待値更新を明示的に列挙している。; Present Recommendations with Reasoning — 各 QA エントリに answer（推奨）、evidence（根拠）、why（理由）、considered（却下案）が揃っており、推奨とその根拠が明示されている。; Explore Before Asking — Q4 で src/metrics/commands/token.js・src/lib/flow-helpers.js を参照してソート実装を確認済み。コードベース探索を経て QA が構成されている。; Proactively Raise Related Implications — JSON/CSV の件数制限非適用の理由、テスト期待値更新の必要性、CSV マーカーによる機械的フィルタ互換性など、関連する波及事項が積極的に言及されている。; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true、confirmedAt が設定されており、決定済みスペックとして扱われている。QA のユーザー選択（「1」「2」）も決定の証跡。; Capture Digressions in draft.md — ドラフト単体からは議論の経緯や脱線の有無を確認できない。会話履歴の実行時証拠が必要。; Draft Stays at Requirements Level — ファイルパス・関数名はコンテキストとして言及。「日付降順ソートし先頭7件」はアルゴリズム記述だが要件レベルの振る舞い仕様として許容範囲内。内部データ構造・制御フローの詳細には踏み込んでいない。; Backward-Compatible CLI Interface — 変更対象はフォーマット出力の中身のみで、CLI コマンド名やオプションの追加・削除・意味変更はない。移行計画の対象外。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T15:00:22.117Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に4件の要件（PHASE順ソート、件数制限、集計行追加、N/A改善）があり must/should/nice-to-have の優先度が付与されていない。3件超のためガードレール上は必須。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — メトリクスコマンド出力改善という単一の関心事に絞られており、すべての変更が token.js に集約されている。; Task Single Responsibility — T-4 が '7件制限と集計行追加' を組み合わせているが、両者は同一関数 formatText の同一関心事（text 出力改善）に属し、別モジュールにまたがらない。各タスクは単一の関心事を扱っている。; Unambiguous Requirements — R1〜R8 はすべて具体的な条件（インデックス順、最新7件、'—' 文字列、'SUMMARY' 文字列、計算式）で記述されており、曖昧な形容詞を含まない。; Complete Context — 各要件は独立した2名のレビュアーが合否を判定できる水準。R3 は集計式を明示（例: cache hit rate = cacheRead / (tokenInput + cacheRead)）。; REQ Diff-Verifiability — 全要件が diff + テスト実行結果で PASS/FAIL を判定可能。R8 は 'npm test が全て通ること' と明示。将来動作保証や拡張性契約への依存はない。; No Hardcoded Secrets — 仕様書にシークレット・API キー・パスワード類の記述はない。; No Silent Error Swallowing — 本仕様はフォーマット出力変更に関するもので、エラーハンドリングの追加・変更を含まない。適用対象外。; Prioritize Requirements — 8件の要件すべてに must / should の優先度が付与されている（R1, R6, R7, R8 が must; R2〜R5 が should）。; Impact on Existing Features — constraints で CLI インターフェース（--format）の非変更を明示。R8 で既存テストの全通過を要求。scope.out で変更しないモジュールを列挙。; Bounded Resource Usage — text 出力は1フェーズあたり最新7件（R2）で上限を設ける。JSON/CSV はフルデータだが再帰・リトライ・バルクロードは含まない。; Spec Includes Test Strategy — 各タスク（T-1〜T-6）に test_strategy フィールドが記載されており、テスト対象・手法・ケースが明示されている。; Synthesize Draft, Do Not Copy — 仕様は構造化・抽象化されており、下書きの直接コピーではなく、decisions / alternatives_considered / requirements などに再編成されている。; Record Unresolved Points as Open Questions — open_questions が空（[]）で、決定済みの事項には evidence が付与されている。根拠のない回答の捏造は見られない。; Include 'Why This Approach' Rationale — overview.decisions に各設計判断と evidence を記載。alternatives_considered にも却下理由を明記。; Spec Test Coverage — タスクの test_strategy および R8 は既存ディレクトリ（tests/e2e/metrics, tests/unit/metrics）のみを参照しており、specs/<specid>/tests/ 配下へのテストコード配置が明示されていない。; Backward-Compatible CLI Interface — 既存コマンド・オプション（--format text|json|csv）の削除・意味変更はなく、constraints でその旨を明示。JSON/CSV への追加フィールドはアディティブな変更。; Exit Code Contract — 新規 CLI コマンドの追加はなく、既存コマンドの終了コード仕様を変更しないため適用対象外。; Validate User Input at Entry Point — 新たなユーザー入力引数を追加しない。既存の --format フラグは変更されず、バリデーション要件の変更もない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T15:24:16.983Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "タスクの test_strategy および R8 は既存ディレクトリ（tests/e2e/metrics, tests/unit/metrics）のみを参照しており、specs/<specid>/tests/ 配下へのテストコード配置が明示されていない。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — R1: phaseOrder関数でVALID_PHASESインデックス順ソート実装済み。R2: TEXT_MAX_ROWS=7でformatTextに最新7件制限と'... and N more'省略表記を実装。R3: computePhaseSummaryでavg cost/duration/calls/tokens/cache hit rateを算出しformatText末尾に集計行を追加。R4: formatJsonにphaseSummaryキーを追加してexport済み（テストはプレースホルダーだが実装は正しい）。R5: formatCsvでフェーズごとにSUMMARY行を追加。R6: asDisplayValueでcost null→'—'実装（difficultyも同様に変更、T-2の受け入れ基準との軽微な齟齬あり）。R7: asCsvValueでcost null→'—'実装。R8: specs/245-metrics-output-improvements/tests/に245-metrics-output.test.js配置済み、既存テストの期待値更新も実施。テスト実行の実証なしだが全要件のコード実装が確認できる。; No Hardcoded Secrets — Added code contains no API keys, passwords, tokens, or secrets.; No Silent Error Swallowing — No try/catch blocks or error-swallowing patterns in the added code.; No Sensitive Data in Logs — No logging statements added; only stdout formatting logic.; No Disabling Existing Tests — Tests in tests/e2e/metrics/token.test.js are updated (not disabled): test names and assertions reflect the new '—' display value for null cost/difficulty. R8 explicitly permits updating existing test expectations for output changes.; Escalate Pre-Existing Test Failures — Cannot determine from the diff whether any tests were already failing before this implementation without runtime evidence.; Spec Test Coverage — R4 (formatJson phaseSummary) is fully implemented and formatJson is now exported, but the spec test for R4 is a trivial placeholder: assert.ok(true, 'placeholder — will be implemented with T-5'). formatJson is not imported in the test file and phaseSummary behavior is not verified in specs/245-metrics-output-improvements/tests/.; Project Test Integrity — Cannot verify all project tests pass from the diff alone; requires running npm test.; Code Placement — All new logic (phaseOrder, computePhaseSummary) is placed in src/metrics/commands/token.js, which already owns sortRows, formatText, formatCsv, and formatJson. VALID_PHASES is imported from its owner module src/lib/constants.js.; Exit Code Contract — No new CLI commands added; existing command exit code behavior is unchanged.; No Synchronous I/O in Hot Paths — Added code performs only in-memory computation; no file I/O of any kind.; Validate User Input at Entry Point — No new user-facing arguments introduced; existing --format flag and its validation are unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T16:07:46.748Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "R4 (formatJson phaseSummary) is fully implemented and formatJson is now exported, but the spec test for R4 is a trivial placeholder: assert.ok(true, 'placeholder — will be implemented with T-5'). formatJson is not imported in the test file and phaseSummary behavior is not verified in specs/245-metrics-output-improvements/tests/."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "code-placement",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: R4 test was a placeholder (assert.ok(true)). Added proper formatJson/phaseSummary tests.",
+      "resolution": "Imported formatJson, added 2 tests verifying phaseSummary structure and null-cost exclusion.",
+      "taskId": null,
+      "timestamp": "2026-04-29T16:08:51.035Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-29T21:09:21.600Z"
+    }
+  ]
+}
