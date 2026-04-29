@@ -1,0 +1,85 @@
+{
+  "devType": "feature",
+  "goal": "provider config に jsonOutputFlag プロパティを復活させ、agent.js で JSON 出力フラグの有無に基づく出力パース分岐を実装する",
+  "analysis": {
+    "problem": "spec 189 で jsonFlag() メソッドと jsonOutputFlag config プロパティを同時に削除したが、フラグ自動注入（削除すべき）と出力形式宣言（残すべき）を分離しなかった。結果、agent.js は全 provider に対し無条件に provider.parse() を試み、JSON 出力をサポートしない provider でも JSON パースを試行 → 失敗 → フォールバック → usage 喪失というパスを常に通る。マルチエージェント対応で JSON 非対応 CLI を provider に追加した場合、この設計では正しく分岐できない。",
+    "proposedApproach": "provider config スキーマに jsonOutputFlag (string, optional) を追加。builtin profile にも jsonOutputFlag を含める。agent.js の _callOnce で、profile に jsonOutputFlag が存在する場合のみ provider.parse() を呼び、存在しない場合は { text: stdout, usage: null } を直接返す。フラグ自体は args に literal で書く既存方針を維持し、jsonOutputFlag は「この profile の出力が JSON である」という宣言として機能する。",
+    "validation": "この方針はフラグ注入の自動化（spec 189 が禁止した設計）を復活させず、出力形式の宣言のみを復活させる。provider.parse() が呼ばれるかどうかが profile の jsonOutputFlag の有無で明示的に決まるため、JSON 非対応 CLI を追加しても正しく動作する。"
+  },
+  "scopeVerification": {
+    "in": [
+      "(must) config.json の provider スキーマに jsonOutputFlag を追加",
+      "(must) builtin profile (ClaudeProvider, CodexProvider) の builtinProfiles() に jsonOutputFlag を追加",
+      "(must) agent.js で jsonOutputFlag の有無による出力パース分岐を実装",
+      "(should) AGENTS.md (src/CLAUDE.md) の Provider builtin profile セクションに jsonOutputFlag の説明を追加"
+    ],
+    "out": [
+      "Provider クラスに jsonFlag() メソッドを復活させること（spec 189 で禁止済み、args への自動注入は行わない）",
+      "args への JSON フラグ自動注入（args に literal で書く方針は変更しない）",
+      "UserProvider の parse() の変更（jsonOutputFlag なしの場合は parse() 自体が呼ばれないため現状維持）"
+    ]
+  },
+  "impactOnExisting": [
+    "agent.js: _callOnce の出力パース部分が変更される。tryParseProvider の呼び出し条件が jsonOutputFlag の有無に依存するようになる",
+    "provider.js: builtinProfiles() の戻り値に jsonOutputFlag フィールドが追加される。既存の args は変更なし",
+    "config.js: provider スキーマに jsonOutputFlag プロパティが追加される。既存 config は jsonOutputFlag 未定義のまま動作可能（optional）",
+    "既存の動作: builtin provider (claude, codex) は jsonOutputFlag が追加されるため、動作は現状と同一。ユーザー定義 provider で jsonOutputFlag 未定義の場合、parse() がスキップされ { text, usage: null } が返る（現状の UserProvider.parse() と同じ結果）"
+  ],
+  "qa": [
+    {
+      "question": "jsonOutputFlag の値は何を表すか？args への注入に使うのか、それとも純粋な宣言か？",
+      "answer": "純粋な宣言。jsonOutputFlag の値（例: '--output-format json'）は、この profile が JSON 出力を生成することを示す宣言フィールド。args への注入は行わない（args に literal で書く既存方針を維持）。現在の実装では agent.js は jsonOutputFlag の存在のみをチェックし parse() 呼び出しの分岐に使用する。値を string 型とするのは、将来の検証機能（args に対応するフラグが含まれているか警告を出す等）への拡張余地を残すため。boolean にした場合はその拡張ができない。",
+      "evidence": "src/lib/provider.js の builtinProfiles() で JSON フラグ（例: '--output-format json'）が args 配列内に literal 記述されており、メソッドによる自動注入パスは存在しない。src/lib/agent.js の _callOnce では args 組み立てに provider のフラグメソッドを呼び出すパスがなく、stdout 取得後の parse() 分岐のみが存在する。",
+      "why": "フラグ注入と出力形式宣言を分離するため。注入は args に委ね、宣言だけを config に持たせる",
+      "considered": "boolean の hasJsonOutput も検討した。存在チェックのみなら boolean で十分だが、将来的にフラグ値と args の整合性検証（args に jsonOutputFlag の値が含まれているか確認する lint 的機能）に使えるため string を選択"
+    },
+    {
+      "question": "jsonOutputFlag が未定義の provider で agent.call() した場合の動作は？",
+      "answer": "provider.parse() をスキップし、{ text: stdout.trim(), usage: null } を直接返す。downstream の gate / review は extractJsonCandidate で AI 応答テキストから JSON を抽出するため、機能への影響はない。usage が null のため tokens/cost メトリクスは記録されない。",
+      "evidence": "src/flow/lib/run-gate.js:590-616 の extractJsonCandidate は stdout テキストからフェンス除去 + JSON 抽出を行い、CLI envelope とは独立。src/lib/flow-store.js:395 で usage が null の場合 tokens フィールドは省略される",
+      "why": "JSON 非対応 CLI でもフローが正常に動作することを保証する",
+      "considered": "parse() 側で try-catch して UserProvider 的な fallback を返す案もあるが、そもそも parse() を呼ばないほうが意図が明確"
+    },
+    {
+      "question": "provider.js の builtinProfiles() に jsonOutputFlag を追加する際、ユーザー定義 provider との優先順位はどうなるか？",
+      "answer": "builtin provider (claude, codex) は jsonOutputFlag を含む profile を提供する。ユーザーが同名 profile を config で上書きした場合、ユーザーの定義が優先される。ユーザーが jsonOutputFlag を省略すれば JSON パースは無効になり、明示的に指定すれば有効になる。",
+      "evidence": "src/lib/provider.js:160-167 の _mergeProfiles で Object.assign(builtin, user) 相当の上書きが行われ、user 側の profile が builtin を完全に置換する",
+      "why": "後方互換性: 既存ユーザー config を壊さず、明示的に jsonOutputFlag を設定した場合のみ parse() が有効化される",
+      "considered": "builtin provider 名と一致する場合は強制的に jsonOutputFlag を適用する案 → ユーザーが意図的に JSON を無効化したい場合に対応できないため却下"
+    },
+    {
+      "question": "src/CLAUDE.md に jsonOutputFlag の自動注入禁止ルールがあるが、この変更は矛盾しないか？",
+      "answer": "矛盾しない。禁止されているのは「Provider に jsonFlag() メソッドを追加し Agent が args に自動注入する設計」であり、jsonOutputFlag は args 注入に使わない。profile レベルの宣言として parse() の分岐判定にのみ使用する。src/CLAUDE.md の該当セクションを更新し、jsonOutputFlag の位置づけを明記する。",
+      "evidence": "src/lib/provider.js に jsonFlag() 相当のメソッドが存在しないこと、および src/lib/agent.js の _callOnce で args 組み立てに provider のフラグメソッドを呼び出すパスがないことで確認できる。spec 189 で削除されたのは Provider.jsonFlag() メソッドと、それを agent.js が args に注入するロジックであり、config プロパティとしての jsonOutputFlag はその削除対象の主目的ではなかった。",
+      "why": "コーディングルールとの整合性を明示的に確認し、ルール更新も同時に行う",
+      "considered": ""
+    },
+    {
+      "question": "jsonOutputFlag の有無で agent の出力処理はどう変わるか？",
+      "answer": "jsonOutputFlag がある profile は CLI 出力を JSON としてパースし、テキストと usage メトリクスを返す。jsonOutputFlag がない profile は CLI 出力を plain text として扱い、usage は null を返す。上位の呼び出し元はこの分岐を意識しない。",
+      "evidence": "src/lib/agent.js の _callOnce で tryParseProvider が現在無条件に呼ばれている箇所が変更対象。profile.jsonOutputFlag の有無を条件に追加する。",
+      "why": "parse() 呼び出し条件を profile の宣言に基づかせることで、JSON 非対応 provider での誤パースを防ぐ",
+      "considered": "agent.call() レベルで分岐する案もあるが、_callOnce に閉じることで呼び出し側に影響を与えず変更箇所を最小化できる"
+    },
+    {
+      "question": "jsonOutputFlag を provider config に追加する場合、config スキーマバリデーション（src/lib/config.js、src/check/commands/config.js）の更新は必要か？",
+      "answer": "必要。provider スキーマに jsonOutputFlag を optional フィールドとして追加する。型制約は string（boolean 不可、理由は Q1 参照）、必須ではない（optional）。src/lib/config.js のスキーマ定義に jsonOutputFlag の定義を追加することで、sdd-forge check config が未知フィールドとして警告を出すことを防ぐ。unvalidated の素通しにはしない。",
+      "evidence": "src/lib/config.js のスキーマ定義、src/check/commands/config.js のバリデーションロジック",
+      "why": "フィールドをスキーマに追加しないと、check config が jsonOutputFlag を持つ config を不正とみなす可能性がある",
+      "considered": "unknown フィールドとして素通しにする案 → 将来の typo 検出・IDE 補完の観点から明示的なスキーマ追加を優先"
+    },
+    {
+      "question": "jsonOutputFlag は spec 189 で削除された経緯があるが、今回の復活版と旧実装の意味論的な違いは何か？",
+      "answer": "旧実装では jsonOutputFlag（あるいは jsonFlag()）は args への JSON フラグ自動注入のトリガーとして機能していた。spec 189 はこの「フラグ注入の自動化」が provider ごとのフラグ差異を隠蔽し、args の透明性を損なうとして削除した。今回の復活版は意味論が異なる: jsonOutputFlag は args 注入に使わず、agent.js が stdout を parse() に渡すかどうかの分岐フラグとしてのみ機能する。旧実装が「入力側（args 生成）の制御」だったのに対し、新実装は「出力側（stdout 解釈）の制御」である。",
+      "evidence": "analysis.validation セクションに「フラグ注入の自動化（spec 189 が禁止した設計）を復活させず、出力形式の宣言のみを復活させる」と明記。src/lib/provider.js に jsonFlag() 相当のメソッドが存在しないことで旧設計が完全に除去されていることを確認できる。",
+      "why": "旧設計と混同すると Q1・Q4 の「注入禁止」根拠が崩れるため、意味論の差異を明確化する",
+      "considered": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-29T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}

@@ -186,6 +186,7 @@ const CONFIG_SCHEMA = {
               command: { type: "string", minLength: 1 },
               args: { type: "array" },
               systemPromptFlag: { type: "string" },
+              jsonOutputFlag: { type: "string" },
             },
           },
         },

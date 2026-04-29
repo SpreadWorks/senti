@@ -1,0 +1,172 @@
+{
+  "goal": "provider config に jsonOutputFlag プロパティを復活させ、agent.js で JSON 出力フラグの有無に基づく出力パース分岐を実装する。マルチエージェント対応で JSON 非対応 CLI を provider として追加可能にする。",
+  "scope": {
+    "in": [
+      "(must) config.json の provider スキーマに jsonOutputFlag (string, optional) を追加",
+      "(must) builtin profile (ClaudeProvider, CodexProvider) の builtinProfiles() に jsonOutputFlag を追加",
+      "(must) agent.js で jsonOutputFlag の有無による出力パース分岐を実装",
+      "(should) src/CLAUDE.md の Provider builtin profile セクションに jsonOutputFlag の説明を追加"
+    ],
+    "out": [
+      "Provider クラスに jsonFlag() メソッドを復活させること（spec 189 で禁止済み）",
+      "args への JSON フラグ自動注入（args に literal で書く方針は変更しない）",
+      "UserProvider.parse() の変更"
+    ]
+  },
+  "constraints": [
+    "外部依存なし（Node.js 組み込みモジュールのみ）",
+    "jsonOutputFlag は args 注入に使用せず、出力パース分岐の宣言としてのみ機能する",
+    "既存の builtin provider (claude, codex) の動作を変更しない"
+  ],
+  "design_principles": [
+    "フラグ注入（入力側）と出力形式宣言（出力側）の分離。spec 189 が禁止したのは前者であり、後者は正当な concern",
+    "profile レベルの宣言に基づく明示的な分岐。Provider クラスのメソッドではなく profile データで制御する"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/lib/config.js — provider スキーマに jsonOutputFlag プロパティを追加"
+      },
+      {
+        "text": "src/lib/provider.js — builtinProfiles() の戻り値に jsonOutputFlag を含める"
+      },
+      {
+        "text": "src/lib/agent.js — _callOnce で jsonOutputFlag の有無に基づき parse 分岐を実装"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "config.json → ProviderRegistry._mergeProfiles → profile.jsonOutputFlag → agent._callOnce で分岐判定"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "jsonOutputFlag を string 型にする。boolean でなく string にすることで、将来の args 整合性検証（args に対応するフラグが含まれているか確認する lint 的機能）に拡張可能。",
+        "evidence": "draft Q1: 現在は存在チェックのみだが、string 型なら将来の検証用途に対応できる"
+      },
+      {
+        "text": "jsonOutputFlag 未定義の場合は provider.parse() をスキップし { text, usage: null } を返す。downstream は extractJsonCandidate で独立に JSON 抽出するため機能影響なし。",
+        "evidence": "draft Q2: src/flow/lib/run-gate.js の extractJsonCandidate は CLI envelope 形式と独立"
+      },
+      {
+        "text": "ユーザーが config で builtin profile を上書きした場合、ユーザー定義が優先される。jsonOutputFlag を省略すれば JSON パースが無効になる。",
+        "evidence": "draft Q3: _mergeProfiles は Object.assign で user が builtin を上書きする"
+      }
+    ]
+  },
+  "background": "spec 189 で Provider.jsonFlag() メソッドと config の jsonOutputFlag プロパティを同時に削除した。削除の意図は args への自動注入の廃止だったが、出力形式の宣言まで一緒に失われた。結果、agent.js は全 provider に対し無条件に JSON パースを試み、失敗時にフォールバックする設計になっている。JSON 非対応 CLI をマルチエージェント構成に追加する際、この設計では正しく分岐できない。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "config.json の provider スキーマ (src/lib/config.js) に jsonOutputFlag (type: string, optional) を追加する。既存の config で jsonOutputFlag が未定義でもバリデーションが通ること。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "ClaudeProvider.builtinProfiles() の各 profile エントリに jsonOutputFlag を追加する。値は '--output-format json'。CodexProvider.builtinProfiles() の各 profile エントリに jsonOutputFlag を追加する。値は '--json'。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "agent.js の出力パース処理で、profile.jsonOutputFlag が truthy の場合のみ provider.parse(stdout) を呼び出す。falsy の場合は parse() を呼ばず { text: stdout.trim(), usage: null } を返す。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "src/CLAUDE.md の「Provider の builtin profile」セクションを更新し、jsonOutputFlag の位置づけ（出力パース分岐の宣言、args 注入には使用しない）を明記する。",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "R1: config.json で providers.<name>.jsonOutputFlag に string を設定してもバリデーションエラーにならない",
+    "R1: config.json で providers.<name>.jsonOutputFlag を省略してもバリデーションエラーにならない",
+    "R2: ClaudeProvider.builtinProfiles() の全 profile に jsonOutputFlag フィールドが含まれる",
+    "R2: CodexProvider.builtinProfiles() の全 profile に jsonOutputFlag フィールドが含まれる",
+    "R3: jsonOutputFlag が設定された profile で agent を呼び出すと provider.parse() が実行される",
+    "R3: jsonOutputFlag が未設定の profile で agent を呼び出すと provider.parse() がスキップされ { text, usage: null } が返る",
+    "R4: src/CLAUDE.md に jsonOutputFlag の説明が追記されている"
+  ],
+  "clarifications": [
+    {
+      "q": "jsonOutputFlag は args に注入されるか？",
+      "a": "されない。args に literal で書く既存方針を維持する。jsonOutputFlag は出力パース分岐の宣言としてのみ機能する。"
+    },
+    {
+      "q": "UserProvider の parse() は変更されるか？",
+      "a": "変更しない。jsonOutputFlag 未設定の場合は parse() 自体が呼ばれないため、UserProvider.parse() の実装は現状維持で問題ない。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "boolean hasJsonOutput",
+      "reason": "存在チェックのみなら boolean で十分だが、将来の args 整合性検証に使えないため string を選択"
+    },
+    {
+      "option": "Provider.jsonFlag() メソッドの復活",
+      "reason": "spec 189 で禁止された設計（args 自動注入）の復活になるため却下"
+    },
+    {
+      "option": "parse() 内で try-catch してフォールバック",
+      "reason": "parse() を呼ばないほうが意図が明確。無駄な try-catch を避ける"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add jsonOutputFlag to provider config schema and builtin profiles",
+      "goal": "config.json の provider スキーマに jsonOutputFlag を追加し、ClaudeProvider / CodexProvider の builtinProfiles() にフラグ値を含める。",
+      "acceptance": [
+        "config.js の provider スキーマに jsonOutputFlag (type: string) が optional で定義されている",
+        "ClaudeProvider.builtinProfiles() の全 profile に jsonOutputFlag: '--output-format json' が含まれる",
+        "CodexProvider.builtinProfiles() の全 profile に jsonOutputFlag: '--json' が含まれる"
+      ],
+      "implementation_notes": "config.js: provider additionalProperties.properties に jsonOutputFlag を追加。provider.js: builtinProfiles() の各 profile オブジェクトにフィールド追加。",
+      "test_strategy": "unit: builtinProfiles() の戻り値に jsonOutputFlag が含まれることを検証。config バリデーションが jsonOutputFlag ありなしの両方で通ることを検証。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Implement parse branching in agent._callOnce based on jsonOutputFlag",
+      "goal": "agent.js の _callOnce で profile.jsonOutputFlag の有無に基づき、provider.parse() の呼び出しを分岐する。",
+      "acceptance": [
+        "jsonOutputFlag が truthy の profile では provider.parse(stdout) が呼ばれる",
+        "jsonOutputFlag が falsy の profile では parse() がスキップされ { text: stdout.trim(), usage: null } が返る",
+        "既存の claude/codex builtin profile の動作が変わらない"
+      ],
+      "implementation_notes": "_callOnce の child.on('close') 内で、resolved.profile.jsonOutputFlag の有無をチェック。tryParseProvider の呼び出し条件に追加。",
+      "test_strategy": "unit: jsonOutputFlag あり/なしの profile で _callOnce の出力を検証。tryParseProvider が条件付きで呼ばれることを検証。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Update src/CLAUDE.md with jsonOutputFlag documentation",
+      "goal": "src/CLAUDE.md の Provider builtin profile セクションを更新し、jsonOutputFlag の位置づけを明記する。",
+      "acceptance": [
+        "「Provider の builtin profile」セクションに jsonOutputFlag の説明が追記されている",
+        "jsonOutputFlag は出力パース分岐の宣言であり、args 注入には使用しないことが明記されている"
+      ],
+      "implementation_notes": "既存の「禁止: Provider に jsonFlag() 相当のメソッドを追加し…」の記述を維持しつつ、jsonOutputFlag の説明を追加。",
+      "test_strategy": "目視確認。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-29T15:45:37.577Z",
+    "notes": "autoApprove"
+  }
+}

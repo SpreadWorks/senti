@@ -243,8 +243,12 @@ class Agent {
         clearTimeout(timer);
         if (code === 0 && !signal && !stdinError) {
           const trimmed = String(stdout).trim();
-          const parsed = tryParseProvider(provider, trimmed);
-          resolve(parsed ?? { text: trimmed, usage: null });
+          if (profile.jsonOutputFlag) {
+            const parsed = tryParseProvider(provider, trimmed);
+            resolve(parsed ?? { text: trimmed, usage: null });
+          } else {
+            resolve({ text: trimmed, usage: null });
+          }
           return;
         }
         const parts = [];
