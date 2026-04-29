@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-28T14:32:52.349Z",
+  "analyzedAt": "2026-04-29T08:12:49.099Z",
   "package": {
     "entries": [
       {
@@ -2438,9 +2438,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "d2b70a5d57e63d7413a1fe4661cdbfb3",
-        "lines": 1209,
-        "mtime": "2026-04-28T14:24:54.054Z",
+        "hash": "4fe5f859bbe601a46c372527c6e0063b",
+        "lines": 1439,
+        "mtime": "2026-04-29T08:07:58.569Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2462,6 +2462,17 @@
           "formatReviewMd",
           "buildFinalValidationPrompt",
           "buildApplyPrompt",
+          "shouldUseLoopReview",
+          "stripDiffFileHeaders",
+          "groupByDiffContent",
+          "buildPerFileReviewInput",
+          "buildCrossCheckInput",
+          "buildCrossCheckSystemPrompt",
+          "escapeRegExp",
+          "expandProposalsToGroup",
+          "invertFileMap",
+          "collectPerFileDiffs",
+          "runLoopReview",
           "runReviewLoop",
           "extractRequirements",
           "collectTestFiles",
@@ -2524,27 +2535,36 @@
           "formatSpecReviewMd",
           "isValidSpecOutput",
           "stripPreamble",
-          "buildTestFixPrompt"
+          "buildTestFixPrompt",
+          "// spec 242: loop review\n  shouldUseLoopReview",
+          "groupByDiffContent",
+          "buildPerFileReviewInput",
+          "buildCrossCheckInput",
+          "expandProposalsToGroup",
+          "LOOP_REVIEW_THRESHOLD",
+          "MAX_LOOP_CALLS"
         ],
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the multi-stage flow review command covering spec, test, and final code review with AI-driven proposal generation, gap analysis, and fix application.",
-        "detail": "Defines `FlowReviewCommand` and `runReview` to orchestrate three review modes (spec, test, final) over a flow's diff against the merge-base. It excludes docs/output paths via `REVIEW_EXCLUDE_PATHS`, builds tailored prompts (draft/final/test-design/gap/fix) with merged guardrails, and parses AI proposals with scope filtering against touched files. The `runReviewLoop` helper iterates detect/fix cycles up to `REVIEW_MAX_ATTEMPTS` from `FLOW_DEFINITION`. Results are written to `review.md`, `test-review.md`, and `spec-review.md` inside the spec directory. Test review additionally walks `tests/` recursively, generates a test design, and applies code fixes from AI responses.",
+        "summary": "Flow review command implementing AI-driven code, spec, and test review loops with proposal generation, scope filtering, and merge-base-driven diff collection.",
+        "detail": "Defines the FlowReviewCommand which dispatches to runReview, runSpecReview, and runTestReview based on CLI args, each driving an iterative AI review loop (runReviewLoop) bounded by REVIEW_MAX_ATTEMPTS. Builds draft/final/cross-check system prompts incorporating phase-filtered guardrails, parses AI proposals, filters by touched-file scope, and merges verdicts before writing review.md / spec-review.md / test-review.md outputs. For large changesets above LOOP_REVIEW_THRESHOLD, switches to per-file loop review with grouping by diff content and requirement mapping via fileMap/testMap. Resolves merge-base against the base branch to compute committed+staged diffs while excluding docs/, README.md, AGENTS.md, and .sdd-forge/output/ paths. Test review collects test files from tests/ and spec tests/, performs gap analysis against requirements, and applies AI-suggested test fixes by writing code blocks to disk.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-28T14:26:51.136Z",
+          "processedAt": "2026-04-29T08:13:01.601Z",
           "attempts": 1
         },
         "keywords": [
           "flow review",
+          "code review",
           "spec review",
           "test review",
-          "AI proposals",
-          "gap analysis",
-          "guardrails",
+          "AI review loop",
+          "guardrail",
           "merge-base diff",
+          "proposal",
+          "gap analysis",
           "review.md"
         ]
       },
@@ -9894,9 +9914,9 @@
     ],
     "summary": {
       "total": 285,
-      "totalMethods": 926
+      "totalMethods": 937
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-28T14:26:51.136Z"
+  "enrichedAt": "2026-04-29T08:13:01.601Z"
 }
