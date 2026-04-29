@@ -287,6 +287,17 @@
         ],
         "category": "testing"
       }
+    },
+    {
+      "id": "code-placement",
+      "title": "Code Placement",
+      "body": "Before writing new logic, identify which existing module owns the relevant data or responsibility and place the logic there. Do not add derivation, querying, or decision-making code in a consumer module when a provider module already owns the underlying data. If no suitable module exists, create one with a clear single responsibility rather than adding the logic to the nearest convenient file.",
+      "meta": {
+        "phase": [
+          "task-impl"
+        ],
+        "category": "code-quality"
+      }
     }
   ]
 }
