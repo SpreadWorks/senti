@@ -1,0 +1,183 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — スコープは impl review のトークン最適化という単一の concern に限定されており、scope-out で test review や CLI 変更を明示的に除外している; Unambiguous Requirements — 「個別ループ結果を集約した cross-check パスでファイル横断の問題を検出」の「問題を検出」が曖昧。何を検出したとみなすか検証可能な条件が未記載。「同一パターン変更の compaction」も「同一パターン」の定義が不明確; Complete Context — cross-check パスについて「ファイル横断の問題を検出」という記述だけでは、2人の独立レビュアーが実装の充足を判断できない。検出結果の出力形式・アクション・判定基準が未定義; No Hardcoded Secrets — spec レベルの内容であり、シークレット類の記述なし; Prioritize Requirements — scope-in に5項目あるが must/should/nice-to-have の優先度ラベルが付与されていない。3項目超のため優先度付けが必要; Impact on Existing Features — impactOnExisting セクションで内部動作変更・file-map.json 必須化による破壊的変更・10ファイル未満への無影響を明示している; Present Recommendations with Reasoning — QA の全質問に推奨回答・evidence・why・considered が記載され、根拠付きの推薦形式を満たしている; Explore Before Asking — QA の evidence に loadFileMap() の既存実装・実績ファイル数パーセンタイルデータが引用されており、openQuestions が空。コード探索・データ確認後に回答している; Proactively Raise Related Implications — file-map.json が存在するが一部のファイルしかカバーしていない場合（partial coverage）の動作が未記載。明白な関連ケースとして事前提示すべき; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved: true で決定済みの spec。ブレインストーミングと決定の混同はない; Capture Digressions in draft.md — QA セクションで検討事項・却下案が captured されており、脱線の痕跡なし; Draft Stays at Requirements Level — 要件レベルの記述に留まっており、ファイルパス・関数名は evidence として引用されているのみ。内部アルゴリズム・データ構造・API 設計の記述なし; Backward-Compatible CLI Interface — scope-out に「CLI インターフェースの変更」が明記されており、既存コマンド・オプションの意味は変更されない",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T15:47:59.018Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "「個別ループ結果を集約した cross-check パスでファイル横断の問題を検出」の「問題を検出」が曖昧。何を検出したとみなすか検証可能な条件が未記載。「同一パターン変更の compaction」も「同一パターン」の定義が不明確"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "cross-check パスについて「ファイル横断の問題を検出」という記述だけでは、2人の独立レビュアーが実装の充足を判断できない。検出結果の出力形式・アクション・判定基準が未定義"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scope-in に5項目あるが must/should/nice-to-have の優先度ラベルが付与されていない。3項目超のため優先度付けが必要"
+        },
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "file-map.json が存在するが一部のファイルしかカバーしていない場合（partial coverage）の動作が未記載。明白な関連ケースとして事前提示すべき"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0; tasks: new task 'T-5' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T15:52:07.304Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — spec は impl review のトークン最適化という単一の関心事のみを扱っている; Task Single Responsibility — T-1〜T-5 は各々バリデーション・ルーティング・ループ・cross-check・compaction と独立した関心事を持つ; Unambiguous Requirements — 全要件が数値閾値（10ファイル）・具体的動作（stderr 出力・非ゼロ終了）・フォーマット名を使っており曖昧な形容詞がない; Complete Context — clarifications セクションで閾値・同一 diff の定義・cross-check 入力が明示されており、独立した2者がレビューの合否を判断できる; REQ Diff-Verifiability — R1〜R7 はすべて diff と test 実行サマリから PASS/FAIL を判定できる形式になっている; No Hardcoded Secrets — spec 文書でありソースコードを含まない。該当なし; No Silent Error Swallowing — R1 で file-map.json 欠如時に stderr 出力＋非ゼロ終了を明示しており、エラー握りつぶしを誘発する記述がない; Prioritize Requirements — 7件の要件すべてに must / should の優先度が付与されている; Impact on Existing Features — constraints で「10ファイル未満は既存動作を維持」、R2/R7 で一括レビューパスの保持と出力フォーマット同一性を明記。scope.out でCLI変更なしも明示; Bounded Resource Usage — ファイル×要件ループは diff 内ファイル数分だけ AI 呼び出しを行うが、spec にループ上限（最大ファイル数・最大 AI 呼び出し数）の明示的な記載がない。compaction は削減手段であり上限ではない; Spec Includes Test Strategy — T-1〜T-5 の全タスクに unit テスト戦略（検証対象・境界値・シナリオ）が記載されている; Synthesize Draft, Do Not Copy — draft コンテンツを抽象化・構造化して spec に整理しており、直接コピーの痕跡がない; Record Unresolved Points as Open Questions — open_questions が空で、clarifications に未解決点の記述はない。decisions の evidence は issue 番号を参照しており根拠が明示されている; Include 'Why This Approach' Rationale — alternatives_considered と decisions セクションで、閾値10・必須化・compaction スコープ包含の根拠と代替案却下理由を明記; Spec Test Coverage — タスクは全て pending 状態であり、テスト実装の存在と合否をこの時点では確認できない; Backward-Compatible CLI Interface — scope.out で CLI インターフェース変更を明示的に除外。10ファイル未満は既存動作を維持するため後方互換性が保たれる; Exit Code Contract — R1 で file-map.json 欠如時の非ゼロ終了を明記。新規追加の失敗条件のみ変更されており、既存の成功/失敗条件は維持される; Validate User Input at Entry Point — scope.out で CLI インターフェース変更（新フラグ等）を除外しており、新規ユーザー向け引数がない。file-map.json は内部依存であり entry-point バリデーションの対象外",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-28T15:55:24.241Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "ファイル×要件ループは diff 内ファイル数分だけ AI 呼び出しを行うが、spec にループ上限（最大ファイル数・最大 AI 呼び出し数）の明示的な記載がない。compaction は削減手段であり上限ではない"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — 2つの未達がある。(1) escapeRegExp() が '\\\\$&' ではなく '\\\\{{PROMPT}}' を replacement に使用しており、拡張子の '.' など正規表現特殊文字を含む全ファイルパスで expandProposalsToGroup のパス置換が壊れる（R6 に直接影響）。(2) spec の制約「compaction後のグループ数が50を超える場合、複数ファイルを1回の呼び出しにバッチする」が未実装で、50件超のグループは i < MAX_LOOP_CALLS で単純に切り捨てられる（silently skip）。R1〜R5・R7 の実装自体は diff で確認できる。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T00:56:48.737Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "REQ-SPEC",
+          "reason": "2つの未達がある。(1) escapeRegExp() が '\\\\$&' ではなく '\\\\{{PROMPT}}' を replacement に使用しており、拡張子の '.' など正規表現特殊文字を含む全ファイルパスで expandProposalsToGroup のパス置換が壊れる（R6 に直接影響）。(2) spec の制約「compaction後のグループ数が50を超える場合、複数ファイルを1回の呼び出しにバッチする」が未実装で、50件超のグループは i < MAX_LOOP_CALLS で単純に切り捨てられる（silently skip）。R1〜R5・R7 の実装自体は diff で確認できる。"
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate FAIL: (1) escapeRegExp false positive — AI misread standard pattern, code is correct. (2) batching for 50+ groups was missing, now implemented with chunk-based batching",
+      "resolution": "added chunk-based batching for groups exceeding MAX_LOOP_CALLS",
+      "taskId": null,
+      "timestamp": "2026-04-29T01:00:18.913Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — R1: file-map.json 欠如時に console.error + process.exit(EXIT_ERROR) で非ゼロ終了を実装済み。R2: shouldUseLoopReview(touchedFiles.size) で閾値10によるルーティング分岐を実装済み。R3: buildPerFileReviewInput で各ファイルの diff + 対応要件を1回の AI 呼び出しに渡す実装済み。R4: fileToReqs.get(file) || [] で未マッピングファイルを要件なし（空配列）で処理済み。R5: buildCrossCheckInput + buildCrossCheckSystemPrompt + cross-check パスの1回実行が runLoopReview 末尾に実装済み。R6: groupByDiffContent でパスヘッダを除いた diff テキスト一致によるグループ化、expandProposalsToGroup でグループ全体への proposal 展開を実装済み。R7: ループ/一括どちらも同一の filterProposalsByScope → final validation → writeReviewMd パスを通る。50回上限制約: groups.length > MAX_LOOP_CALLS 時に chunkSize = ceil(groups.length / MAX_LOOP_CALLS) でバッチング実装済み（issue-log で前回ゲートの escapeRegExp 指摘は false positive と確認済み）。全要件・制約が diff で確認可能。; No Hardcoded Secrets — No API keys, passwords, or tokens in new code. LOOP_REVIEW_THRESHOLD=10 and MAX_LOOP_CALLS=50 are numeric configuration constants, not secrets.; No Silent Error Swallowing — No try/catch blocks in new code. The file-map.json missing case outputs to stderr and calls process.exit(EXIT_ERROR). No errors are discarded silently.; No Sensitive Data in Logs — All console.error calls log only file counts, group counts, and file paths. No passwords, tokens, or PII are logged.; No Disabling Existing Tests — No existing tests are skipped, commented out, or deleted. Only new test code is added under specs/242-impl-review-token-opt/tests/.; Escalate Pre-Existing Test Failures — Determining whether pre-existing project tests were already failing before this diff requires runtime test execution, which is not available from the diff alone.; Spec Test Coverage — test-map.json lists R1 and R7 with empty arrays (no test cases). R1 (file-map.json required validation with non-zero exit) has no automated spec test — only a comment stating it is covered by acceptance criteria. R7 (same output format for both paths) also has no spec test.; Project Test Integrity — The change makes fileMap required where it was previously optional; any existing project tests that invoke runReview without a fileMap would now fail. Verification requires running the project test suite, which is not available from the diff.; Exit Code Contract — R1 explicitly specifies non-zero exit on missing file-map.json. The implementation calls process.exit(EXIT_ERROR) after writing to stderr, satisfying the exit-code contract for the new failure condition.; No Synchronous I/O in Hot Paths — collectPerFileDiffs and loadSpecJson are called once before the loop. Inside the for-loop body, only Map lookups and async callReviewAgent calls occur — no readFileSync or other synchronous I/O.; Validate User Input at Entry Point — No new user-facing CLI arguments are introduced (CLI changes are explicitly out of scope). file-map.json is an internal dependency, not user input, so no new entry-point validation requirements apply.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T01:03:09.770Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "test-map.json lists R1 and R7 with empty arrays (no test cases). R1 (file-map.json required validation with non-zero exit) has no automated spec test — only a comment stating it is covered by acceptance criteria. R7 (same output format for both paths) also has no spec test."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate FAIL: spec-test-coverage — R1 and R7 had empty test arrays in test-map.json. Added validation tests for R1 and format consistency tests for R7",
+      "resolution": "added 5 new tests covering R1 file-map validation and R7 format consistency",
+      "taskId": null,
+      "timestamp": "2026-04-29T01:04:36.702Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — R1: file-map.json 欠如時に console.error + process.exit(EXIT_ERROR) で非ゼロ終了を実装済み。R2: shouldUseLoopReview(touchedFiles.size) で閾値10によるルーティング分岐を実装済み。R3: buildPerFileReviewInput で各ファイルの diff + 対応要件を1回の AI 呼び出しに渡す実装済み。R4: fileToReqs.get(representative) || [] で未マッピングファイルを要件なしで処理済み。R5: buildCrossCheckInput + buildCrossCheckSystemPrompt + runLoopReview末尾のcross-checkパス1回実行を実装済み。R6: groupByDiffContent でパスヘッダを除いた diff テキスト一致によるグループ化、expandProposalsToGroup でグループ全体への proposal 展開を実装済み。R7: ループ/一括どちらも同一の filterProposalsByScope → final validation → writeReviewMd パスを通る。50回上限制約: groups.length > MAX_LOOP_CALLS 時に chunkSize = ceil(groups.length / MAX_LOOP_CALLS) でバッチング実装済み。全要件・制約が diff で確認可能。; No Hardcoded Secrets — 新規追加されたコードに含まれる LOOP_REVIEW_THRESHOLD=10 および MAX_LOOP_CALLS=50 は数値設定定数であり、API キー・パスワード・トークン等のシークレットではない。; No Silent Error Swallowing — 新規追加コードに try/catch ブロックは存在しない。file-map.json 欠如時は console.error で stderr 出力後に process.exit(EXIT_ERROR) を呼び出しており、エラーを握りつぶす箇所はない。; No Sensitive Data in Logs — 新規追加の console.error 呼び出しはファイル数・グループ数・ファイルパス・エラー文字列のみをログ出力しており、パスワード・トークン・個人情報は含まれない。; No Disabling Existing Tests — 既存テストのスキップ・コメントアウト・削除は一切行われていない。変更は新規テストファイルの追加のみ。; Escalate Pre-Existing Test Failures — この diff の範囲外にある既存プロジェクトテストが実装前から failing だったかどうかはランタイム実行証拠なしに判定不能。; Spec Test Coverage — テストファイル specs/242-impl-review-token-opt/tests/242-loop-review.test.js が formatReviewMd と mergeVerdicts を review.js から named import しているが、diff の export ブロックにこれら2関数は含まれておらず、既存の export 一覧にも存在しない。Node.js ES module はこの場合 SyntaxError を投げるためテストファイル全体が実行不能となり、R7 テストを含む全テストが pass できない。; Project Test Integrity — fileMap を必須化したことで既存プロジェクトテストが影響を受けるか否かは、プロジェクトテストスイートの実行結果なしに diff のみから判定不能。; Exit Code Contract — R1 の失敗条件（file-map.json 欠如）に対し、console.error で stderr 出力後に process.exit(EXIT_ERROR) を呼び出す実装が diff に含まれており、非ゼロ終了が保証されている。; No Synchronous I/O in Hot Paths — 新規追加の collectPerFileDiffs 関数はループ内で collectCommittedAndStagedDiff を呼び出しているが、同関数は pre-existing であり diff 範囲外のため同期 I/O か否かを確認できない。; Validate User Input at Entry Point — scope.out で CLI インターフェースの変更が明示的に除外されており、新規ユーザー向け引数は追加されていない。file-map.json は内部依存でありエントリポイントバリデーションの対象外。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T01:06:15.763Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "テストファイル specs/242-impl-review-token-opt/tests/242-loop-review.test.js が formatReviewMd と mergeVerdicts を review.js から named import しているが、diff の export ブロックにこれら2関数は含まれておらず、既存の export 一覧にも存在しない。Node.js ES module はこの場合 SyntaxError を投げるためテストファイル全体が実行不能となり、R7 テストを含む全テストが pass できない。"
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate FAIL false positive: AI claimed formatReviewMd/mergeVerdicts not exported but they are in the pre-existing export block (outside diff context window). Tests pass 22/22",
+      "resolution": "no code change needed — re-running gate",
+      "taskId": null,
+      "timestamp": "2026-04-29T01:06:44.338Z"
+    },
+    {
+      "step": "review",
+      "reason": "post-hook fails with 'unknown step: review' — flow-store cannot resolve the review step ID to advance it to done. This appears to be a pre-existing flow system bug, not related to spec 242 changes",
+      "trigger": "sdd-forge flow run review post-hook",
+      "resolution": "manual workaround needed to advance past review step",
+      "taskId": "T-pending-spec",
+      "timestamp": "2026-04-29T01:17:07.767Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "pre-merge fetch failed: git fetch origin feature/241-fix-scope-split-guardrail exited 128: fatal: couldn't find remote ref feature/241-fix-scope-split-guardrail\n",
+      "timestamp": "2026-04-29T08:05:18.755Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase feature/241-fix-scope-split-guardrail' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-29T08:07:33.109Z"
+    }
+  ]
+}

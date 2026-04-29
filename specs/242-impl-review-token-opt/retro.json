@@ -1,0 +1,51 @@
+{
+  "spec": "specs/242-impl-review-token-opt/spec.json",
+  "date": "2026-04-29T07:56:22.879Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "impl review（`--phase` なし）実行時に file-map.json が存在しない場合、エラーメッセージを stderr に出力して非ゼロ終了する",
+      "status": "not_done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "diff に含まれるファイル数が 10 以上の場合、ファイル×要件ループ型レビューに切り替える。10 未満の場合は既存の一括 diff レビューを実行する",
+      "status": "not_done",
+      "note": "5 test(s)"
+    },
+    {
+      "desc": "ループ型レビューでは、各ファイルの diff と file-map.json から取得した対応要件を1回の AI 呼び出しに渡し、proposal を生成する",
+      "status": "not_done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "file-map.json に含まれないファイルが diff に存在する場合、そのファイルは要件コンテキストなしで個別にレビューする",
+      "status": "not_done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "全ファイルのループ完了後、個別 proposal のサマリを集約した cross-check パスを1回実行し、インターフェース不整合・重複導入・命名不一致を検出する。検出結果は既存の proposal 形式（### N. title / File / Issue / Suggestion）で出力する",
+      "status": "not_done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "diff 内容が同一のファイル群を1グループとし、代表1件のみ AI レビューを実行する。代表の proposal をグループ全体に適用する",
+      "status": "not_done",
+      "note": "7 test(s)"
+    },
+    {
+      "desc": "ループ型レビューと一括レビューの最終出力（review.md）は同一フォーマットとする。呼び出し元が内部ルーティングを意識しない",
+      "status": "not_done",
+      "note": "2 test(s)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 0,
+    "partial": 0,
+    "not_done": 7,
+    "rate": 0,
+    "notes": "static evaluation from test-map.json"
+  }
+}

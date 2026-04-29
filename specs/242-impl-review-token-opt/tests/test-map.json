@@ -1,0 +1,37 @@
+{
+  "R1": [
+    "242-loop-review.test.js > R1: file-map.json required > null fileMap is detected as missing",
+    "242-loop-review.test.js > R1: file-map.json required > empty fileMap is detected as missing",
+    "242-loop-review.test.js > R1: file-map.json required > non-empty fileMap passes validation"
+  ],
+  "R2": [
+    "242-loop-review.test.js > shouldUseLoopReview > returns false when file count is below threshold",
+    "242-loop-review.test.js > shouldUseLoopReview > returns true when file count equals threshold",
+    "242-loop-review.test.js > shouldUseLoopReview > returns true when file count exceeds threshold",
+    "242-loop-review.test.js > shouldUseLoopReview > returns false for zero files",
+    "242-loop-review.test.js > LOOP_REVIEW_THRESHOLD > equals 10"
+  ],
+  "R3": [
+    "242-loop-review.test.js > buildPerFileReviewInput > includes file diff and mapped requirements"
+  ],
+  "R4": [
+    "242-loop-review.test.js > buildPerFileReviewInput > works with empty requirements (unmapped file, R4)"
+  ],
+  "R5": [
+    "242-loop-review.test.js > buildCrossCheckInput > aggregates proposal summaries from multiple files",
+    "242-loop-review.test.js > buildCrossCheckInput > handles empty summaries (no proposals from any file)"
+  ],
+  "R6": [
+    "242-loop-review.test.js > groupByDiffContent > groups files with identical diff content",
+    "242-loop-review.test.js > groupByDiffContent > returns one group when all diffs are identical",
+    "242-loop-review.test.js > groupByDiffContent > returns individual groups when all diffs are unique",
+    "242-loop-review.test.js > groupByDiffContent > handles single file",
+    "242-loop-review.test.js > expandProposalsToGroup > replicates proposals for each file in the group, replacing file path",
+    "242-loop-review.test.js > expandProposalsToGroup > handles empty proposals",
+    "242-loop-review.test.js > expandProposalsToGroup > handles single-file group (no expansion needed)"
+  ],
+  "R7": [
+    "242-loop-review.test.js > R7: formatReviewMd produces identical format regardless of input source > formats loop-sourced proposals the same as legacy-sourced proposals",
+    "242-loop-review.test.js > R7: formatReviewMd produces identical format regardless of input source > produces consistent format for empty results"
+  ]
+}

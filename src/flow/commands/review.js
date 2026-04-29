@@ -50,6 +50,8 @@ import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
 import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
 
 const REVIEW_MAX_ATTEMPTS = resolveNodeFor(FLOW_DEFINITION, "review").maxAttempts;
+const LOOP_REVIEW_THRESHOLD = 10;
+const MAX_LOOP_CALLS = 50;
 
 /** Supported review phases and their descriptions. */
 const REVIEW_PHASES = {
@@ -428,6 +430,223 @@ function buildApplyPrompt(approved, diff) {
     "## Current Diff (for context)",
     diff,
   ].join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Loop review helpers (spec 242)
+// ---------------------------------------------------------------------------
+
+function shouldUseLoopReview(fileCount) {
+  return fileCount >= LOOP_REVIEW_THRESHOLD;
+}
+
+function stripDiffFileHeaders(diff) {
+  return diff.split("\n").filter((line) =>
+    !line.startsWith("diff --git ") &&
+    !line.startsWith("index ") &&
+    !line.startsWith("--- ") &&
+    !line.startsWith("+++ "),
+  ).join("\n");
+}
+
+function groupByDiffContent(perFileDiffs, fileToReqs) {
+  const keyToFiles = new Map();
+  for (const [file, content] of perFileDiffs) {
+    const reqs = fileToReqs ? (fileToReqs.get(file) || []) : [];
+    const key = content + "\0" + reqs.slice().sort().join("\0");
+    const existing = keyToFiles.get(key);
+    if (existing) {
+      existing.files.push(file);
+    } else {
+      keyToFiles.set(key, { files: [file], diff: content });
+    }
+  }
+  return Array.from(keyToFiles.values()).map((g) => ({
+    files: g.files,
+    diff: g.diff,
+    representative: g.files[0],
+  }));
+}
+
+function buildPerFileReviewInput(filePath, diff, requirements) {
+  const lines = [`## File: ${filePath}`, ""];
+  if (requirements.length > 0) {
+    lines.push("## Related Requirements");
+    for (const r of requirements) lines.push(`- ${r}`);
+    lines.push("");
+  }
+  lines.push("## Diff");
+  lines.push(diff);
+  return lines.join("\n");
+}
+
+function buildCrossCheckInput(summaries) {
+  if (summaries.length === 0) return "No proposals were generated from individual file reviews.";
+  const lines = ["## Individual File Review Summaries", ""];
+  for (const s of summaries) {
+    lines.push(`### ${s.file}`);
+    lines.push(s.proposals);
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+function buildCrossCheckSystemPrompt() {
+  return [
+    "You are a cross-file code quality reviewer. Analyze the aggregated per-file review proposals to detect cross-file issues.",
+    "Focus on:",
+    "- Interface inconsistencies between files",
+    "- Duplicate introductions across files",
+    "- Naming inconsistencies across files",
+    "",
+    "Output a numbered list of proposals in this format:",
+    "### 1. <title>",
+    "**File:** `<path>`",
+    "**Issue:** <description of the cross-file problem>",
+    "**Suggestion:** <concrete improvement>",
+    "",
+    "If no cross-file issues are found, output: NO_PROPOSALS",
+  ].join("\n");
+}
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function expandProposalsToGroup(proposals, groupFiles) {
+  if (proposals.length === 0) return [];
+  const representative = groupFiles[0];
+  const expanded = [];
+  for (const file of groupFiles) {
+    for (const p of proposals) {
+      if (file === representative) {
+        expanded.push(p);
+      } else {
+        expanded.push({
+          ...p,
+          file,
+          body: p.body.replace(
+            /(\*\*File:\*\*\s*`?)[^`\n]+(`?\s*$)/m,
+            `$1${file}$2`,
+          ),
+        });
+      }
+    }
+  }
+  return expanded;
+}
+
+function invertFileMap(fileMap, requirements) {
+  const reqById = new Map(requirements.map((r) => [r.id, r]));
+  const result = new Map();
+  for (const [reqId, files] of Object.entries(fileMap)) {
+    const req = reqById.get(reqId);
+    if (!req) continue;
+    const reqText = `${req.id}${req.priority ? ` [${req.priority}]` : ""}: ${req.desc}`;
+    for (const f of files) {
+      if (!result.has(f)) result.set(f, []);
+      result.get(f).push(reqText);
+    }
+  }
+  return result;
+}
+
+function collectPerFileDiffs(root, mergeBase, touchedFiles) {
+  const perFileDiffs = new Map();
+  for (const file of touchedFiles) {
+    const diffs = collectCommittedAndStagedDiff(root, mergeBase, file);
+    if (diffs.length > 0) perFileDiffs.set(file, diffs.join("\n"));
+  }
+  return perFileDiffs;
+}
+
+async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guardrails) {
+  const specInput = path.resolve(root, flow.spec);
+  const spec = loadSpecJson(specInput);
+  const fileToReqs = invertFileMap(fileMap, spec.requirements || []);
+
+  const scopedFiles = new Set(
+    [...touchedFiles].filter((f) => !REVIEW_EXCLUDE_PATHS.some((ex) => f.startsWith(ex))),
+  );
+  const rawPerFileDiffs = collectPerFileDiffs(root, mergeBase, scopedFiles);
+
+  const strippedDiffs = new Map();
+  for (const [file, diff] of rawPerFileDiffs) {
+    strippedDiffs.set(file, stripDiffFileHeaders(diff));
+  }
+  const groups = groupByDiffContent(strippedDiffs, fileToReqs);
+
+  const draftAgent = ensureAgent("flow.impl.review.draft");
+  const systemPrompt = buildDraftSystemPrompt(guardrails);
+
+  // Batch groups into chunks when exceeding MAX_LOOP_CALLS
+  let reviewChunks;
+  if (groups.length <= MAX_LOOP_CALLS) {
+    reviewChunks = groups.map((g) => [g]);
+  } else {
+    const chunkSize = Math.ceil(groups.length / MAX_LOOP_CALLS);
+    reviewChunks = [];
+    for (let i = 0; i < groups.length; i += chunkSize) {
+      reviewChunks.push(groups.slice(i, i + chunkSize));
+    }
+    console.error(`  [loop-review] ${groups.length} groups batched into ${reviewChunks.length} chunk(s) (limit ${MAX_LOOP_CALLS}).`);
+  }
+
+  console.error(`  [loop-review] ${touchedFiles.size} files → ${groups.length} group(s) after compaction → ${reviewChunks.length} AI call(s).`);
+
+  const allProposals = [];
+  const summaries = [];
+
+  for (let i = 0; i < reviewChunks.length; i++) {
+    const chunk = reviewChunks[i];
+    const primaryGroup = chunk[0];
+    const rawDiff = rawPerFileDiffs.get(primaryGroup.representative) || primaryGroup.diff;
+    const reqs = fileToReqs.get(primaryGroup.representative) || [];
+
+    const label = chunk.length > 1
+      ? `${primaryGroup.representative} +${chunk.length - 1} more`
+      : `${primaryGroup.representative} (${primaryGroup.files.length} file(s))`;
+    console.error(`  [loop-review] Call ${i + 1}/${reviewChunks.length}: ${label}...`);
+
+    const inputParts = [buildPerFileReviewInput(primaryGroup.representative, rawDiff, reqs)];
+    for (let j = 1; j < chunk.length; j++) {
+      const g = chunk[j];
+      const gDiff = rawPerFileDiffs.get(g.representative) || g.diff;
+      const gReqs = fileToReqs.get(g.representative) || [];
+      inputParts.push(buildPerFileReviewInput(g.representative, gDiff, gReqs));
+    }
+    const input = inputParts.join("\n\n---\n\n");
+    const result = await callReviewAgent(draftAgent, input, "flow.impl.review.draft", systemPrompt);
+
+    if (!result.includes("NO_PROPOSALS")) {
+      const proposals = parseProposals(result);
+      if (proposals.length > 0) {
+        for (const g of chunk) {
+          const gProposals = proposals.filter((p) => p.file && g.files.includes(p.file));
+          const toExpand = gProposals.length > 0 ? gProposals : proposals;
+          const expanded = g.files.length > 1
+            ? expandProposalsToGroup(toExpand, g.files)
+            : toExpand;
+          allProposals.push(...expanded);
+        }
+        summaries.push({ file: primaryGroup.representative, proposals: result });
+      }
+    }
+  }
+
+  if (summaries.length > 0) {
+    console.error("  [loop-review] Running cross-check pass...");
+    const crossCheckInput = buildCrossCheckInput(summaries);
+    const crossCheckResult = await callReviewAgent(
+      draftAgent, crossCheckInput, "flow.impl.review.draft", buildCrossCheckSystemPrompt(),
+    );
+    if (!crossCheckResult.includes("NO_PROPOSALS")) {
+      allProposals.push(...parseProposals(crossCheckResult));
+    }
+  }
+
+  console.error(`  [loop-review] ${allProposals.length} total proposal(s).`);
+  return allProposals;
 }
 
 // ---------------------------------------------------------------------------
@@ -1050,8 +1269,6 @@ async function runReview(rawArgs) {
   }
 
   // Resolve merge-base once and use it as the single diff starting point.
-  // Failure here intentionally propagates — there is no silent fallback to
-  // baseBranch tip (spec 223).
   const mergeBase = resolveMergeBase(root, flow.baseBranch);
 
   // Resolve target diff
@@ -1061,36 +1278,46 @@ async function runReview(rawArgs) {
     return;
   }
 
-  // spec 241 R7: enrich diff with file-map context for scoped review
-  let reviewInput = diff;
+  // R1 (spec 242): file-map.json is required for impl review
   const fileMap = await loadReqMap(root, flow, "file");
-  if (fileMap && Object.keys(fileMap).length > 0) {
-    const mapLines = Object.entries(fileMap).map(([reqId, files]) =>
-      `- ${reqId}: ${files.join(", ")}`,
-    );
-    reviewInput = `## Requirement-File Mapping\n${mapLines.join("\n")}\n\n## Diff\n${diff}`;
-  }
-
-  // --- Draft phase ---
-  console.error("  [draft] Generating proposals...");
-  const reviewGuardrails = filterByPhase(loadMergedGuardrails(root), "review");
-  const draftAgent = ensureAgent("flow.impl.review.draft");
-  const draftResult = await callReviewAgent(draftAgent, reviewInput, "flow.impl.review.draft", buildDraftSystemPrompt(reviewGuardrails));
-
-  if (draftResult.includes("NO_PROPOSALS")) {
-    console.log("No improvement proposals found. Code looks good.");
-    writeReviewMd(root, flow, []);
-    return;
-  }
-
-  const rawProposals = parseProposals(draftResult);
-  if (rawProposals.length === 0) {
-    console.log("No structured proposals found.");
-    writeReviewMd(root, flow, []);
-    return;
+  if (!fileMap || Object.keys(fileMap).length === 0) {
+    console.error("Error: file-map.json is required for impl review but was not found or is empty");
+    process.exit(EXIT_ERROR);
   }
 
   const touchedFiles = collectTouchedFiles(root, mergeBase);
+  const reviewGuardrails = filterByPhase(loadMergedGuardrails(root), "review");
+
+  // R2 (spec 242): threshold-based routing
+  let rawProposals;
+  if (shouldUseLoopReview(touchedFiles.size)) {
+    rawProposals = await runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, reviewGuardrails);
+  } else {
+    // Legacy single-call path
+    const mapLines = Object.entries(fileMap).map(([reqId, files]) =>
+      `- ${reqId}: ${files.join(", ")}`,
+    );
+    const reviewInput = `## Requirement-File Mapping\n${mapLines.join("\n")}\n\n## Diff\n${diff}`;
+
+    console.error("  [draft] Generating proposals...");
+    const draftAgent = ensureAgent("flow.impl.review.draft");
+    const draftResult = await callReviewAgent(draftAgent, reviewInput, "flow.impl.review.draft", buildDraftSystemPrompt(reviewGuardrails));
+
+    if (draftResult.includes("NO_PROPOSALS")) {
+      console.log("No improvement proposals found. Code looks good.");
+      writeReviewMd(root, flow, []);
+      return;
+    }
+
+    rawProposals = parseProposals(draftResult);
+    if (rawProposals.length === 0) {
+      console.log("No structured proposals found.");
+      writeReviewMd(root, flow, []);
+      return;
+    }
+  }
+
+  // --- Common post-processing ---
   const { kept: proposals, excluded } = filterProposalsByScope(rawProposals, touchedFiles);
   if (excluded.outOfScope > 0 || excluded.missingFile > 0) {
     console.error(
@@ -1098,14 +1325,14 @@ async function runReview(rawArgs) {
     );
   }
   if (proposals.length === 0) {
-    console.log("All proposals were outside the current change scope. No review output.");
+    console.log("No improvement proposals found. Code looks good.");
     writeReviewMd(root, flow, []);
     return;
   }
 
   console.error(`  [draft] ${proposals.length} proposal(s) generated (after scope filter).`);
 
-  // --- Final phase ---
+  // --- Final validation phase ---
   console.error("  [final] Validating proposals...");
   const finalAgent = ensureAgent("flow.impl.review.final");
   const finalPrompt = buildFinalValidationPrompt(proposals, diff);
@@ -1116,7 +1343,7 @@ async function runReview(rawArgs) {
   const approved = results.filter((r) => r.verdict === "APPROVED");
   const rejected = results.filter((r) => r.verdict === "REJECTED");
 
-  // Write review.md
+  // R7 (spec 242): same review.md format for both paths
   const reviewPath = writeReviewMd(root, flow, results);
   console.error(`  [final] Results saved to ${path.relative(root, reviewPath)}`);
   console.error(`  [final] ${approved.length} approved, ${rejected.length} rejected.`);
@@ -1126,7 +1353,6 @@ async function runReview(rawArgs) {
     return;
   }
 
-  // --- Display and approval ---
   console.log("");
   console.log("Approved proposals:");
   for (const p of approved) {
@@ -1187,6 +1413,10 @@ export {
   applyTestFixes, formatTestReviewMd, runReviewLoop,
   extractGoalAndScope, buildSpecReviewPrompt, formatSpecReviewMd,
   isValidSpecOutput, stripPreamble, buildTestFixPrompt,
+  // spec 242: loop review
+  shouldUseLoopReview, groupByDiffContent, buildPerFileReviewInput,
+  buildCrossCheckInput, expandProposalsToGroup,
+  LOOP_REVIEW_THRESHOLD, MAX_LOOP_CALLS,
 };
 
 export default class FlowReviewCommand extends Command {

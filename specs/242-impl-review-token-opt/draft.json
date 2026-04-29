@@ -1,0 +1,72 @@
+{
+  "devType": "feature",
+  "goal": "impl review の diff 入力をファイル×要件単位のループに分割し、大規模変更でのトークン爆発を防ぐ",
+  "analysis": {
+    "problem": "impl review は全 diff を1回の AI 呼び出しに渡す。21+ファイルの大規模変更では diff がプロンプトの 91.6% を占め、トークン上限に達して破綻する",
+    "proposedApproach": "file-map.json の要件→ファイルマッピングを利用し、ファイル単位（または要件単位）で diff を分割してループ。個別結果を集約後、cross-check パスでファイル横断の問題を検出する",
+    "validation": "根本原因は1回の呼び出しに全 diff を含めること。ループ化により1回あたりのトークン量を一定に保てる。cross-check パスでファイル横断の問題もカバーできるため、品質低下なくトークン最適化が可能"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] file-map.json を必須とする（なければエラー終了）",
+      "[must] ファイル数 10 以上でファイル×要件単位のループ型レビューに切り替え",
+      "[must] cross-check パス: 個別レビューの proposal サマリを集約し、インターフェース不整合・重複導入・命名不一致を検出。検出結果は既存の proposal 形式（### N. title / File / Issue / Suggestion）で出力",
+      "[should] compaction: diff 内容が同一のファイル群を1グループとし、代表1件のみレビュー。結果をグループ全体に適用",
+      "[must] 10 ファイル未満は現行の一括 diff レビューを維持",
+      "[must] file-map.json が diff 内の全ファイルをカバーしていない場合、未マッピングファイルは要件なしで個別レビューする"
+    ],
+    "out": [
+      "test review / spec review のトークン最適化",
+      "review.md の出力フォーマット変更",
+      "CLI インターフェースの変更"
+    ]
+  },
+  "impactOnExisting": [
+    "sdd-forge flow run review（--phase なし）の内部動作が変わる",
+    "file-map.json 必須化により、マッピングなしでの review 実行がエラーになる",
+    "10 ファイル未満の変更には影響なし"
+  ],
+  "qa": [
+    {
+      "question": "file-map.json が存在しない場合の動作",
+      "answer": "必須化。なければエラー終了",
+      "evidence": "loadFileMap() は req-map.js に既に実装済み。ループの前提データ",
+      "why": "ループ型レビューは要件→ファイルのマッピングなしに成立しない",
+      "considered": "フォールバック（一括 diff に戻す）を検討したが、コードパスの複雑化を避けるため必須化を選択"
+    },
+    {
+      "question": "ループの適用条件",
+      "answer": "閾値切り替え。ファイル数が閾値以上の場合のみループ",
+      "evidence": "実績データ: 中央値5ファイル。大半のケースでは1回の AI 呼び出しで十分",
+      "why": "小規模 diff で常時ループすると AI 呼び出し回数増加のオーバーヘッドが大きい",
+      "considered": "常時ループも検討したが、中央値5ファイルの大半のケースで不要なオーバーヘッドが発生"
+    },
+    {
+      "question": "閾値の値",
+      "answer": "10 ファイル",
+      "evidence": "80%ile が 9 ファイル以下。10 で上位 20% をカバー",
+      "why": "中規模 diff にも恩恵を与えつつ、小規模 diff のオーバーヘッドを避けるバランス",
+      "considered": "20 ファイル（上位 7% のみ）も検討したが、中規模 diff にも恩恵があるため 10 を選択"
+    },
+    {
+      "question": "compaction はスコープに含めるか",
+      "answer": "含める。ループ + compaction を同一 spec で実装",
+      "evidence": "Issue に「ループ + 軽量 compaction の組み合わせが最適」と記載",
+      "why": "一括置換のような同一パターン変更ではループしても各ファイルの diff が同じ内容になり冗長",
+      "considered": "別 spec で扱う案もあったが、ユーザーがスコープに含めることを決定"
+    },
+    {
+      "question": "file-map.json が diff 内の一部ファイルしかカバーしていない場合（partial coverage）の動作",
+      "answer": "未マッピングファイルは要件コンテキストなしで個別レビューする",
+      "evidence": "file-map.json は要件→ファイルのマッピングであり、新規ファイルや共通ユーティリティなど要件に紐付かないファイルが diff に含まれうる",
+      "why": "未マッピングファイルをスキップするとレビュー漏れが発生する。要件なしでもコード品質レビューは可能",
+      "considered": "未マッピングファイルをエラーにする案は、正当な変更（共通ヘルパー追加等）を阻害するため不採用"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-28",
+    "notes": ""
+  }
+}
