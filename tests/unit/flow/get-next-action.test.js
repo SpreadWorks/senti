@@ -246,9 +246,9 @@ describe("flow get next-action", () => {
     it("promotes first pending step when no in_progress exists, then returns envelope", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
-      // Simulate a post-gate state: branch/prepare-spec/draft/gate-draft all done,
+      // Simulate a post-gate state: branch/prepare-spec/draft/review-draft/gate-draft all done,
       // next pending step is `spec`. No step is currently in_progress.
-      const prefixDone = ["branch", "prepare-spec", "draft", "gate-draft"];
+      const prefixDone = ["branch", "prepare-spec", "draft", "review-draft", "gate-draft"];
       for (const s of flattenSteps(state.steps)) {
         s.status = prefixDone.includes(s.id) ? "done" : "pending";
       }

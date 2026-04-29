@@ -35,8 +35,11 @@ describe("flow get check", () => {
   it("returns JSON envelope with pass and checks array", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
+    makeFlowManager(tmp).updateStepStatus("review-draft", "skipped");
     makeFlowManager(tmp).updateStepStatus("gate", "done");
+    makeFlowManager(tmp).updateStepStatus("review-spec", "skipped");
     makeFlowManager(tmp).updateStepStatus("test", "done");
+    makeFlowManager(tmp).updateStepStatus("review-test", "skipped");
     const result = execFileSync(
       "node", [FLOW_CMD, "get", "check", "impl"],
       { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },

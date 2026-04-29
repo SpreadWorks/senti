@@ -1,0 +1,61 @@
+{
+  "spec": "specs/242-phase-review-steps/spec.json",
+  "date": "2026-04-29T11:13:05.280Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "FLOW_DEFINITION の plan フェーズに review-draft, review-spec, review-test の FlowNode を追加する。配置順は draft → review-draft → gate-draft, spec → review-spec → gate(spec), test → review-test とする",
+      "status": "not_done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "追加する 3 つの review ノードは skippable: true, maxAttempts: 3 とし、action は \"run-review\", instructionsKey はそれぞれ \"plan.review-draft\", \"plan.review-spec\", \"plan.review-test\" とする",
+      "status": "not_done",
+      "note": "6 test(s)"
+    },
+    {
+      "desc": "VALID_REVIEW_PHASES に \"draft\" を追加する",
+      "status": "not_done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "review.js に runDraftReview 関数を実装する。対象は draft.json、基準は request/issue、文脈は analysis.json 軽量インデックス。runReviewLoop 共通基盤を使用し、結果は draft-review.md に保存、verdict を stderr に出力する。成功（verdict=PASS）時は exit 0、失敗（verdict=FAIL）時は exit 1（EXIT_ERROR）。既存の runSpecReview / runTestReview と同じ exit code 契約に従う",
+      "status": "not_done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "run-review.js に parseDraftReviewOutput 関数を追加し、phase === \"draft\" のサブプロセス出力をパースする。出力形式は既存の parseSpecReviewOutput と同等（verdict, issueCount, changed）",
+      "status": "not_done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "registry.js の review post hook を更新し、--phase 引数に基づいて正しい step id を更新する。phase=draft → review-draft, phase=spec → review-spec, phase=test → review-test, phase なし → review（既存動作を維持）",
+      "status": "not_done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "prompts/plan/ に review-draft.md, review-spec.md, review-test.md を追加する。各プロンプトは sdd-forge flow run review --phase <type> の実行手順と結果の扱いを記述する",
+      "status": "not_done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "既存の impl review（phase なし）、task review（phase=task）、spec review（phase=spec）、test review（phase=test）の動作が変わらないこと",
+      "status": "not_done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "instructions-coverage テスト（新しい instructionsKey に対応する prompt ファイルが存在すること）がパスすること",
+      "status": "not_done",
+      "note": "1 test(s)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 0,
+    "partial": 0,
+    "not_done": 9,
+    "rate": 0,
+    "notes": "static evaluation from test-map.json"
+  }
+}

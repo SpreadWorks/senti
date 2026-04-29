@@ -50,6 +50,19 @@ class FlowNode {
 
 const GATE_IMPL_SIDE_EFFECTS = Object.freeze(["completeTask", "promoteNextTask", "mergeOverview"]);
 
+function createPlanReviewNode({ id, label, contextKinds }) {
+  return new FlowNode({
+    id,
+    label,
+    action: "run-review",
+    instructionsKey: `plan.${id}`,
+    contextKinds,
+    outputSchemaRef: "next-action/review.schema.json",
+    skippable: true,
+    maxAttempts: 3,
+  });
+}
+
 // ── FLOW_DEFINITION ─────────────────────────────────────────────────────────
 
 export const FLOW_DEFINITION = Object.freeze([
@@ -81,6 +94,7 @@ export const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/draft.schema.json",
         maxAttempts: 1,
       }),
+      createPlanReviewNode({ id: "review-draft", label: "Review (draft)", contextKinds: ["draft", "issue"] }),
       new FlowNode({
         id: "gate-draft",
         label: "Gate (draft)",
@@ -99,6 +113,7 @@ export const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["draft", "guardrail"],
         outputSchemaRef: "next-action/spec.schema.json",
       }),
+      createPlanReviewNode({ id: "review-spec", label: "Review (spec)", contextKinds: ["spec", "guardrail"] }),
       new FlowNode({
         id: "gate",
         label: "Gate (spec)",
@@ -127,6 +142,7 @@ export const FLOW_DEFINITION = Object.freeze([
         contextKinds: ["spec", "guardrail"],
         outputSchemaRef: "next-action/spec.schema.json",
       }),
+      createPlanReviewNode({ id: "review-test", label: "Review (test)", contextKinds: ["spec", "guardrail"] }),
     ],
   }),
 

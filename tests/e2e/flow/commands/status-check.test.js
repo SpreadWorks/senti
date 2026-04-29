@@ -16,6 +16,7 @@ describe("flow get check impl", () => {
     tmp = createTmpDir();
     const state = makeFlowState();
     setStepDone(state, "gate", "test");
+    findStepById(state.steps, "review-test").status = "skipped";
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
@@ -30,6 +31,7 @@ describe("flow get check impl", () => {
     const state = makeFlowState();
     setStepDone(state, "gate");
     findStepById(state.steps, "test").status = "skipped";
+    findStepById(state.steps, "review-test").status = "skipped";
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
@@ -39,13 +41,13 @@ describe("flow get check impl", () => {
     assert.match(result, /pass.*true/is);
   });
 
-  it("FAIL when test (last plan-branch leaf) is not done", () => {
+  it("FAIL when review-test (last plan-branch leaf) is not done", () => {
     // In the definition-based model, the only cross-branch prerequisite for
-    // `implement` is `test` (the last leaf of the preceding `plan` branch).
+    // `implement` is `review-test` (the last leaf of the preceding `plan` branch).
     tmp = createTmpDir();
     const state = makeFlowState();
-    // gate is done but test is NOT done → prereq not met.
-    setStepDone(state, "gate");
+    // gate and test are done but review-test is NOT done → prereq not met.
+    setStepDone(state, "gate", "test");
     makeFlowManager(tmp).save(state);
     makeFlowManager(tmp).addActiveFlow("001-test", "local");
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "get", "check", "impl"], {
@@ -53,7 +55,7 @@ describe("flow get check impl", () => {
       env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp },
     });
     assert.match(result, /pass.*false/is);
-    assert.match(result, /test/);
+    assert.match(result, /review-test/);
   });
 
   it("returns ok:true with pass:false when no flow.json exists", () => {

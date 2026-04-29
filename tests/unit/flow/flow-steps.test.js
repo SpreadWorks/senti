@@ -8,11 +8,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { FLOW_STEPS, PHASE_MAP } from "../../../src/lib/flow-helpers.js";
 describe("FLOW_STEPS ordering (plan rework)", () => {
-  it("has prepare-spec, draft, gate-draft, spec, gate, approval, test as plan steps", () => {
-    const first8 = FLOW_STEPS.slice(0, 8);
-    assert.deepEqual(first8, [
-      "branch", "prepare-spec", "draft", "gate-draft",
-      "spec", "gate", "approval", "test",
+  it("has prepare-spec, draft, review-draft, gate-draft, spec, review-spec, gate, approval, test, review-test as plan steps", () => {
+    const first11 = FLOW_STEPS.slice(0, 11);
+    assert.deepEqual(first11, [
+      "branch", "prepare-spec", "draft", "review-draft", "gate-draft",
+      "spec", "review-spec", "gate", "approval", "test", "review-test",
     ]);
   });
 

@@ -9,7 +9,7 @@
  */
 
 import { derivePhase } from "../lib/flow-helpers.js";
-import { VALID_PHASES, VALID_METRIC_COUNTERS, VALID_GATE_PHASES } from "../lib/constants.js";
+import { VALID_PHASES, VALID_METRIC_COUNTERS, VALID_GATE_PHASES, VALID_REVIEW_PHASES } from "../lib/constants.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./lib/gate-step.js";
 
 /**
@@ -376,12 +376,14 @@ export const FLOW_COMMANDS = {
         "Run AI code review on current changes.",
         "",
         "Options:",
-        "  --phase <type>   Review phase: 'test' for test sufficiency, 'spec' for spec completeness",
+        `  --phase <type>   Review phase: ${VALID_REVIEW_PHASES.map((p) => `'${p}'`).join(", ")}`,
         "  --dry-run        Show proposals without applying",
         "  --skip-confirm   Skip initial confirmation prompt",
       ].join("\n"),
       post(ctx, result) {
-        tryUpdateStepStatus(ctx, "review", "done");
+        const phaseStepMap = { draft: "review-draft", spec: "review-spec", test: "review-test" };
+        const stepId = phaseStepMap[ctx.phase] || "review";
+        tryUpdateStepStatus(ctx, stepId, "done");
       },
     },
     "auto-check": {

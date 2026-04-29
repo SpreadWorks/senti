@@ -1,0 +1,42 @@
+{
+  "R1": [
+    "242-phase-review-steps.test.js > R1: review step nodes in FLOW_DEFINITION > review-draft exists between draft and gate-draft",
+    "242-phase-review-steps.test.js > R1: review step nodes in FLOW_DEFINITION > review-spec exists between spec and gate",
+    "242-phase-review-steps.test.js > R1: review step nodes in FLOW_DEFINITION > review-test exists after test"
+  ],
+  "R2": [
+    "242-phase-review-steps.test.js > R2: review node properties > review-draft has skippable: true, maxAttempts: 3, action: \"run-review\"",
+    "242-phase-review-steps.test.js > R2: review node properties > review-spec has skippable: true, maxAttempts: 3, action: \"run-review\"",
+    "242-phase-review-steps.test.js > R2: review node properties > review-test has skippable: true, maxAttempts: 3, action: \"run-review\"",
+    "242-phase-review-steps.test.js > R2: review node properties > review-draft instructionsKey is \"plan.review-draft\"",
+    "242-phase-review-steps.test.js > R2: review node properties > review-spec instructionsKey is \"plan.review-spec\"",
+    "242-phase-review-steps.test.js > R2: review node properties > review-test instructionsKey is \"plan.review-test\""
+  ],
+  "R3": [
+    "242-phase-review-steps.test.js > R3: VALID_REVIEW_PHASES includes draft > contains \"draft\"",
+    "242-phase-review-steps.test.js > R3: VALID_REVIEW_PHASES includes draft > still contains \"test\" and \"spec\""
+  ],
+  "R4": [
+    "242-phase-review-steps.test.js > R4: runDraftReview structural checks > REVIEW_PHASES includes draft entry",
+    "242-phase-review-steps.test.js > R4: runDraftReview structural checks > buildDraftReviewPrompt is exported and produces output"
+  ],
+  "R5": [
+    "242-phase-review-steps.test.js > R5: parseDraftReviewOutput > is exported from run-review.js"
+  ],
+  "R6": [
+    "242-phase-review-steps.test.js > R6: registry review post hook phase mapping > registry exports review entry with post hook"
+  ],
+  "R7": [
+    "242-phase-review-steps.test.js > R7: prompt files exist > prompts/plan/review-draft.md exists",
+    "242-phase-review-steps.test.js > R7: prompt files exist > prompts/plan/review-spec.md exists",
+    "242-phase-review-steps.test.js > R7: prompt files exist > prompts/plan/review-test.md exists"
+  ],
+  "R8": [
+    "242-phase-review-steps.test.js > R8: existing review phases unchanged > impl review node still exists",
+    "242-phase-review-steps.test.js > R8: existing review phases unchanged > parseTestReviewOutput is still exported",
+    "242-phase-review-steps.test.js > R8: existing review phases unchanged > parseSpecReviewOutput is still exported"
+  ],
+  "R9": [
+    "242-phase-review-steps.test.js > R9: instructions-coverage (structural) > new review step nodes have prompt files"
+  ]
+}

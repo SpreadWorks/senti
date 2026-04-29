@@ -12,83 +12,56 @@ import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import path from "path";
 
-/**
- * Parse test review subprocess output into result object.
- */
+const PHASE_REVIEW_PARSERS = {
+  test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement" },
+  spec:  { countPattern: /issues=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Spec review",  next: "approval" },
+  draft: { countPattern: /issues=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft" },
+};
+
+function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label, next }) {
+  const verdictMatch = stderr.match(/verdict=(PASS|FAIL)/);
+  const countMatch = stderr.match(countPattern);
+  const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
+
+  const verdict = verdictMatch ? verdictMatch[1] : (res.ok ? "PASS" : "FAIL");
+  const count = countMatch ? parseInt(countMatch[1], 10) : null;
+
+  const changed = [];
+  if (reviewPathMatch) changed.push(reviewPathMatch[1]);
+
+  if (!res.ok) {
+    const detail = count === 0
+      ? `${label} subprocess error (0 ${countWord} reported but process exited with error)`
+      : count !== null
+        ? `${label} FAIL: ${count} ${countWord} remaining`
+        : `${label} failed (subprocess error)`;
+    throw new Error(
+      [detail, ...(stderr ? [stderr] : []), ...(stdout ? [stdout] : [])].join("\n"),
+    );
+  }
+
+  return {
+    result: "ok",
+    changed,
+    artifacts: { phase, verdict, [countKey]: count ?? 0 },
+    next,
+    output: stdout,
+  };
+}
+
 function parseTestReviewOutput(res, stdout, stderr) {
-  const verdictMatch = stderr.match(/verdict=(PASS|FAIL)/);
-  const gapCountMatch = stderr.match(/gaps=(\d+)/);
-  const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
-
-  const verdict = verdictMatch ? verdictMatch[1] : (res.ok ? "PASS" : "FAIL");
-  const gapCount = gapCountMatch ? parseInt(gapCountMatch[1], 10) : null;
-
-  const changed = [];
-  if (reviewPathMatch) changed.push(reviewPathMatch[1]);
-
-  if (!res.ok) {
-    const detail = gapCount === 0
-      ? `Test review subprocess error (0 gaps reported but process exited with error)`
-      : gapCount !== null
-        ? `Test review FAIL: ${gapCount} gap(s) remaining`
-        : `Test review failed (subprocess error)`;
-    throw new Error(
-      [detail, ...(stderr ? [stderr] : []), ...(stdout ? [stdout] : [])].join("\n"),
-    );
-  }
-
-  return {
-    result: "ok",
-    changed,
-    artifacts: {
-      phase: "test",
-      verdict,
-      gapCount: gapCount ?? 0,
-    },
-    next: "implement",
-    output: stdout,
-  };
+  return parsePhaseReviewOutput(res, stdout, stderr, { phase: "test", ...PHASE_REVIEW_PARSERS.test });
 }
 
-/**
- * Parse spec review subprocess output into result object.
- */
 function parseSpecReviewOutput(res, stdout, stderr) {
-  const verdictMatch = stderr.match(/verdict=(PASS|FAIL)/);
-  const issueCountMatch = stderr.match(/issues=(\d+)/);
-  const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
-
-  const verdict = verdictMatch ? verdictMatch[1] : (res.ok ? "PASS" : "FAIL");
-  const issueCount = issueCountMatch ? parseInt(issueCountMatch[1], 10) : null;
-
-  const changed = [];
-  if (reviewPathMatch) changed.push(reviewPathMatch[1]);
-
-  if (!res.ok) {
-    const detail = issueCount === 0
-      ? `Spec review subprocess error (0 issues reported but process exited with error)`
-      : issueCount !== null
-        ? `Spec review FAIL: ${issueCount} issue(s) remaining`
-        : `Spec review failed (subprocess error)`;
-    throw new Error(
-      [detail, ...(stderr ? [stderr] : []), ...(stdout ? [stdout] : [])].join("\n"),
-    );
-  }
-
-  return {
-    result: "ok",
-    changed,
-    artifacts: {
-      phase: "spec",
-      verdict,
-      issueCount: issueCount ?? 0,
-    },
-    next: "approval",
-    output: stdout,
-  };
+  return parsePhaseReviewOutput(res, stdout, stderr, { phase: "spec", ...PHASE_REVIEW_PARSERS.spec });
 }
 
-export { parseTestReviewOutput, parseSpecReviewOutput };
+function parseDraftReviewOutput(res, stdout, stderr) {
+  return parsePhaseReviewOutput(res, stdout, stderr, { phase: "draft", ...PHASE_REVIEW_PARSERS.draft });
+}
+
+export { parseTestReviewOutput, parseSpecReviewOutput, parseDraftReviewOutput };
 
 const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;
@@ -150,6 +123,11 @@ export class RunReviewCommand extends FlowCommand {
 
     const stdout = (res.stdout || "").trim();
     const stderr = (res.stderr || "").trim();
+
+    // Route to draft review parser
+    if (phase === "draft") {
+      return parseDraftReviewOutput(res, stdout, stderr);
+    }
 
     // Route to test review parser
     if (phase === "test") {

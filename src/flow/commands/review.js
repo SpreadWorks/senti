@@ -49,7 +49,13 @@ import { VALID_PHASES } from "../../lib/constants.js";
 import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
 import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
 
-const REVIEW_MAX_ATTEMPTS = resolveNodeFor(FLOW_DEFINITION, "review").maxAttempts;
+const REVIEW_PHASE_NODE_MAP = { draft: "review-draft", spec: "review-spec", test: "review-test" };
+
+function getReviewMaxAttempts(phase) {
+  const nodeId = REVIEW_PHASE_NODE_MAP[phase] || "review";
+  return resolveNodeFor(FLOW_DEFINITION, nodeId).maxAttempts;
+}
+
 const LOOP_REVIEW_THRESHOLD = 10;
 const MAX_LOOP_CALLS = 50;
 
@@ -57,6 +63,7 @@ const MAX_LOOP_CALLS = 50;
 const REVIEW_PHASES = {
   test: "test sufficiency",
   spec: "spec completeness",
+  draft: "draft QA quality",
 };
 
 // Validate REVIEW_PHASES keys are a subset of VALID_PHASES
@@ -966,8 +973,9 @@ async function runTestReview(root, flow, config, dryRun) {
   // Step 2-3: Compare and retry loop (using common runReviewLoop)
   let testFiles = collectTestFiles(root, specDir);
 
+  const maxAttempts = getReviewMaxAttempts("test");
   const { history: gapHistory, finalIssues: finalGaps, verdict } = await runReviewLoop({
-    maxRetries: REVIEW_MAX_ATTEMPTS,
+    maxRetries: maxAttempts,
     label: "test-review",
     dryRun,
     async detect() {
@@ -1000,7 +1008,7 @@ async function runTestReview(root, flow, config, dryRun) {
   if (verdict === "PASS") {
     console.log("Test review PASS. All test cases are adequately covered.");
   } else {
-    console.log(`Test review FAIL. ${finalGaps.length} gap(s) remaining after ${REVIEW_MAX_ATTEMPTS} attempts.`);
+    console.log(`Test review FAIL. ${finalGaps.length} gap(s) remaining after ${maxAttempts} attempts.`);
     console.error(`  [test-review] verdict=FAIL gaps=${finalGaps.length}`);
     process.exit(EXIT_ERROR);
   }
@@ -1081,15 +1089,8 @@ function buildSpecFixPrompt(specText, proposals) {
   ].join("\n");
 }
 
-/**
- * Format spec-review.md content.
- * @param {string[]} history - Raw review outputs per iteration
- * @param {string} verdict - PASS or FAIL
- * @param {Object[]} finalIssues - Remaining issues if FAIL
- * @returns {string}
- */
-function formatSpecReviewMd(history, verdict, finalIssues) {
-  const lines = ["# Spec Review Results", ""];
+function formatPhaseReviewMd(title, history, verdict, finalIssues) {
+  const lines = [`# ${title}`, ""];
   lines.push("## Review Iterations");
   for (let i = 0; i < history.length; i++) {
     if (history.length > 1) lines.push(`### Iteration ${i + 1}`);
@@ -1106,6 +1107,10 @@ function formatSpecReviewMd(history, verdict, finalIssues) {
     }
   }
   return lines.join("\n");
+}
+
+function formatSpecReviewMd(history, verdict, finalIssues) {
+  return formatPhaseReviewMd("Spec Review Results", history, verdict, finalIssues);
 }
 
 /**
@@ -1137,8 +1142,9 @@ async function runSpecReview(root, flow, config, dryRun) {
   const agent = ensureAgent("flow.spec.review");
   ensureAgent("flow.impl.review.final");
 
+  const maxAttempts = getReviewMaxAttempts("spec");
   const { history, finalIssues, verdict } = await runReviewLoop({
-    maxRetries: REVIEW_MAX_ATTEMPTS,
+    maxRetries: maxAttempts,
     label: "spec-review",
     dryRun,
     async detect() {
@@ -1211,7 +1217,156 @@ async function runSpecReview(root, flow, config, dryRun) {
   if (verdict === "PASS") {
     console.log("Spec review PASS. No oversights found.");
   } else {
-    console.log(`Spec review FAIL. ${finalIssues.length} issue(s) remaining after ${REVIEW_MAX_ATTEMPTS} attempts.`);
+    console.log(`Spec review FAIL. ${finalIssues.length} issue(s) remaining after ${maxAttempts} attempts.`);
+    process.exit(EXIT_ERROR);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Draft review pipeline (--phase draft)
+// ---------------------------------------------------------------------------
+
+function buildDraftReviewPrompt(draftJson, requestText, contextEntries) {
+  const qaText = Array.isArray(draftJson?.qa)
+    ? draftJson.qa.map((q, i) =>
+      `### Q${i + 1}: ${q.question}\n**Answer:** ${q.answer}\n**Evidence:** ${q.evidence || "(none)"}\n**Why:** ${q.why || "(none)"}`
+    ).join("\n\n")
+    : "(no QA entries)";
+
+  const contextText = contextEntries.map((e) =>
+    `- **${e.file}**: ${e.summary || "(no summary)"}${e.detail ? "\n  " + e.detail : ""}`
+  ).join("\n");
+
+  return [
+    "You are a draft QA quality reviewer. Analyze the draft's QA entries against the request/issue and codebase context.",
+    "Focus on:",
+    "- Questions that are too shallow or generic to drive a useful spec",
+    "- Missing coverage: areas the request/issue mentions but no QA entry addresses",
+    "- Ambiguous or unsupported answers (claims without evidence)",
+    "- Redundant entries that cover the same concern",
+    "",
+    "Output a numbered list of issues in this format:",
+    "### 1. <title>",
+    "**QA:** Q<N> (the QA entry number, or 'NEW' for missing coverage)",
+    "**Issue:** <what is wrong or missing>",
+    "**Suggestion:** <concrete improvement to the QA entry>",
+    "",
+    "If no issues are found, output: NO_PROPOSALS",
+    "",
+    "## Request / Issue",
+    requestText || "(no request text)",
+    "",
+    "## Draft QA Entries",
+    qaText,
+    "",
+    "## Codebase Context (related files)",
+    contextText,
+  ].join("\n");
+}
+
+function buildDraftFixPrompt(draftJsonText, issues) {
+  return [
+    "Apply the following improvements to the draft.json QA entries.",
+    "Output ONLY the complete updated draft.json content as valid JSON.",
+    "Do not include any preamble, explanation, or commentary.",
+    "Do not wrap the output in markdown fences.",
+    "Make only the changes described in the issues. Preserve all other fields.",
+    "",
+    "## Issues to fix",
+    issues,
+    "",
+    "## Current draft.json",
+    draftJsonText,
+  ].join("\n");
+}
+
+function formatDraftReviewMd(history, verdict, finalIssues) {
+  return formatPhaseReviewMd("Draft Review Results", history, verdict, finalIssues);
+}
+
+async function runDraftReview(root, flow, config, dryRun) {
+  const specDir = path.dirname(flow.spec);
+  const draftPath = path.resolve(root, specDir, "draft.json");
+
+  if (!fs.existsSync(draftPath)) {
+    console.error("Error: draft.json not found");
+    process.exit(EXIT_ERROR);
+  }
+
+  let draftJson;
+  try {
+    draftJson = JSON.parse(fs.readFileSync(draftPath, "utf8"));
+  } catch (e) {
+    console.error(`Error: failed to parse draft.json: ${e.message}`);
+    process.exit(EXIT_ERROR);
+  }
+
+  const requestText = [
+    flow.request || "",
+    flow.issue ? `Issue #${flow.issue}` : "",
+  ].filter(Boolean).join("\n");
+
+  let analysisData = null;
+  try {
+    const { loadAnalysisEntries, contextSearch: ctxSearch } = await import("../lib/get-context.js");
+    analysisData = { ...loadAnalysisEntries(root), ctxSearch };
+  } catch (e) {
+    console.error(`  [draft-review] Warning: failed to load codebase context: ${e.message}`);
+  }
+
+  const agent = ensureAgent("flow.draft.review");
+
+  const maxAttempts = getReviewMaxAttempts("draft");
+  const { history, finalIssues, verdict } = await runReviewLoop({
+    maxRetries: maxAttempts,
+    label: "draft-review",
+    dryRun,
+    async detect() {
+      let contextEntries = [];
+      if (analysisData) {
+        const searchQuery = draftJson.goal || requestText;
+        if (searchQuery) {
+          contextEntries = await analysisData.ctxSearch(analysisData.entries, analysisData.analysis, searchQuery, root);
+        }
+      }
+      const detectPrompt = buildDraftReviewPrompt(draftJson, requestText, contextEntries);
+      const raw = await callReviewAgent(
+        agent, detectPrompt, "flow.draft.review",
+        "You are a draft QA quality reviewer. Identify weaknesses in draft QA entries.",
+      );
+      if (raw.includes("NO_PROPOSALS")) return { issues: [], raw };
+      const issues = parseProposals(raw);
+      return { issues, raw };
+    },
+    async fix(raw) {
+      const draftJsonText = fs.readFileSync(draftPath, "utf8");
+      const fixPrompt = buildDraftFixPrompt(draftJsonText, raw);
+      const fixResult = await callReviewAgent(
+        agent, fixPrompt, "flow.draft.review",
+        "You are a draft writer. Apply the approved improvements to produce an updated draft.json.",
+      );
+
+      const cleaned = fixResult.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+      try {
+        const updated = JSON.parse(cleaned);
+        fs.writeFileSync(draftPath, JSON.stringify(updated, null, 2) + "\n");
+        draftJson = updated;
+        console.error("  [draft-review] draft.json updated.");
+      } catch (e) {
+        console.error(`  [draft-review] WARNING: AI output is not valid JSON. Keeping original draft.json.`);
+      }
+    },
+  });
+
+  const reviewPath = path.join(path.resolve(root, specDir), "draft-review.md");
+  fs.writeFileSync(reviewPath, formatDraftReviewMd(history, verdict, finalIssues));
+  console.error(`  [draft-review] Results saved to ${path.relative(root, reviewPath)}`);
+  console.error(`  [draft-review] verdict=${verdict} issues=${finalIssues.length}`);
+
+  if (verdict === "PASS") {
+    console.log("Draft review PASS. QA entries are adequate.");
+  } else {
+    console.log(`Draft review FAIL. ${finalIssues.length} issue(s) remaining after ${maxAttempts} attempts.`);
     process.exit(EXIT_ERROR);
   }
 }
@@ -1253,6 +1408,12 @@ async function runReview(rawArgs) {
   if (!config || Object.keys(config).length === 0) {
     console.error("Error: failed to load config.json");
     process.exit(EXIT_ERROR);
+  }
+
+  // Draft review pipeline
+  if (cli.phase === "draft") {
+    await runDraftReview(root, flow, config, cli.dryRun);
+    return;
   }
 
   // Test review pipeline
@@ -1408,11 +1569,11 @@ export {
   buildDraftSystemPrompt, buildFinalSystemPrompt, buildFinalValidationPrompt,
   NO_PROPOSALS_MARKER,
   collectTouchedFiles, filterProposalsByScope, extractProposalFile,
-  REVIEW_MAX_ATTEMPTS, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
+  getReviewMaxAttempts, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
   applyTestFixes, formatTestReviewMd, runReviewLoop,
   extractGoalAndScope, buildSpecReviewPrompt, formatSpecReviewMd,
   isValidSpecOutput, stripPreamble, buildTestFixPrompt,
-  // spec 242: loop review
+  buildDraftReviewPrompt, formatDraftReviewMd,
   shouldUseLoopReview, groupByDiffContent, buildPerFileReviewInput,
   buildCrossCheckInput, expandProposalsToGroup,
   LOOP_REVIEW_THRESHOLD, MAX_LOOP_CALLS,

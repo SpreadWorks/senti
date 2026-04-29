@@ -1,0 +1,114 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — スペックは draft/spec/test フェーズへの AI review ステップ追加という単一の concern に絞られており、impl review や token 最適化は明示的に out-of-scope。; Unambiguous Requirements — スコープ項目は具体的なノード名・ファイル名・定数名で記述されており、「適切な」「速い」等の曖昧な形容詞は使われていない。; Complete Context — 各スコープ項目は変更対象（FLOW_DEFINITION, VALID_REVIEW_PHASES, registry.js 等）と操作（追加・対応）を明示しており、独立した 2 人のレビュアーが実装を評価できる粒度。; No Hardcoded Secrets — spec 文書であり、ソースコード・秘密情報は含まれない。; Prioritize Requirements — scopeVerification.in に 7 項目あるが must/should/nice-to-have の優先度分類がない。3 項目超の場合は優先度付けが必須。; Impact on Existing Features — impactOnExisting セクションで FLOW_DEFINITION, flow.json steps 構造, registry.js, VALID_REVIEW_PHASES, instructions-coverage テストへの影響を明示列挙している。; Present Recommendations with Reasoning — QA の全 4 問に answer・evidence（コード行番号付き）・why・considered が揃っており、推奨とその根拠が明示されている。; Explore Before Asking — QA の evidence が review.js の具体的行番号（L447-492, L704-789, L896-998）を示しており、コードベース探索を実施してから回答していることが確認できる。openQuestions も空。; Proactively Raise Related Implications — 進行中フローへの影響（新規フローから適用）、registry.js post hook の変更要件、instructions-coverage テストへの影響など関連事項を先回りして列挙している。; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true かつ confirmedAt が設定されており、決定済みの状態で記録されている。; Capture Digressions in draft.md — 議論の脱線は見受けられず、このガードレールの適用対象となる状況がない。; Draft Stays at Requirements Level — QA の「draft review のパイプライン設計は？」の answer フィールドで「detect で draft.json の QA 内容を request/issue と突合…fix で QA エントリを自動補強」とアルゴリズム・制御フローを記述している。answer は evidence/why/considered ではないため免除されず、要件レベルを超えた実装詳細に当たる。; Backward-Compatible CLI Interface — 既存 CLI コマンド・オプションの削除や意味変更はない。flow.json 内部構造の変化は「新規フローから適用」と明記されており、CLI インターフェース上の後方互換問題はない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T07:54:53.951Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に 7 項目あるが must/should/nice-to-have の優先度分類がない。3 項目超の場合は優先度付けが必須。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "QA の「draft review のパイプライン設計は？」の answer フィールドで「detect で draft.json の QA 内容を request/issue と突合…fix で QA エントリを自動補強」とアルゴリズム・制御フローを記述している。answer は evidence/why/considered ではないため免除されず、要件レベルを超えた実装詳細に当たる。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0; tasks: new task 'T-2' added_round must be 1, got 0; tasks: new task 'T-3' added_round must be 1, got 0; tasks: new task 'T-4' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T07:59:16.659Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — spec は plan フェーズへの AI review ステップ追加という単一の concern に絞られており、関係のない変更を混在させていない; Task Single Responsibility — T-1〜T-4 の各タスクはそれぞれ単一の concern（定義追加・パイプライン実装・配線・プロンプトファイル追加）を扱っており、無関係なアクションを束ねていない; Unambiguous Requirements — R1〜R9 はいずれも具体的なファイル・関数名・プロパティ値・フェーズ名を明示しており、曖昧な形容詞を使っていない。R4 の「軽量インデックス」は implementation_notes で loadAnalysisEntries として具体化されている; Complete Context — 各要件は独立したレビュアーが PASS/FAIL を判定できる粒度で記述されている。R7 の「実行手順と結果の扱い」はやや幅があるが、implementation_notes と既存パターン参照で補完されている; REQ Diff-Verifiability — すべての要件は diff（ファイル存在・プロパティ値・関数定義）と npm test の実行結果で検証可能。将来保証や拡張性契約への依存はない; No Hardcoded Secrets — spec 文書であり実装コードは含まれない。ハードコードされた秘密情報の記載なし; No Silent Error Swallowing — spec 文書であり実装コードは含まれない。エラー握り潰しの指示もない; Prioritize Requirements — 要件が9件（3件超）あり、すべてに priority: must が付与されている; Impact on Existing Features — R8 で既存の impl review / task review / spec review / test review の動作が変わらないことを明示要件として定めている; Bounded Resource Usage — R2 で review ノードに maxAttempts: 3 の上限を明示している; Spec Includes Test Strategy — 各タスク（T-1〜T-4）に test_strategy フィールドがあり、acceptance_criteria に npm test パス条件を含む; Synthesize Draft, Do Not Copy — spec は設計判断・代替案・データフローを体系的に整理しており、ドラフト内容を単純コピーした形跡はない; Record Unresolved Points as Open Questions — open_questions は空で、未解決事項は clarifications に正直に記録されている。根拠のない断言もない; Include 'Why This Approach' Rationale — overview.decisions と alternatives_considered で各設計選択の理由（review→gate 順序の根拠、#0003 待機不要の根拠）が evidence 付きで説明されている; Spec Test Coverage — 全タスクに test_strategy があり、acceptance_criteria に instructions-coverage テストを含む npm test パスが明示されている; Backward-Compatible CLI Interface — constraints で既存 CLI インターフェースを壊さないことを明示、R8 で既存 review フェーズの動作維持を要件化している。既存コマンドの削除・変更はないため migration plan は不要; Exit Code Contract — R4 は verdict を stderr に出力することを定めているが、--phase draft コマンドの成功・失敗条件と対応する exit code（特に FAIL verdict 時の非ゼロ exit code）が明示されていない; Validate User Input at Entry Point — R3 で VALID_REVIEW_PHASES に draft を追加することを要件化しており、既存の --phase 引数バリデーションをこの定数で行うパターンを踏襲している。内部自動化専用の引数は存在しない",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T08:01:24.817Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "R4 は verdict を stderr に出力することを定めているが、--phase draft コマンドの成功・失敗条件と対応する exit code（特に FAIL verdict 時の非ゼロ exit code）が明示されていない"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — R1: review-draft/review-spec/review-test FlowNode が definition.js に正しい順序（draft→review-draft→gate-draft, spec→review-spec→gate, test→review-test）で追加済み。R2: 3ノードとも skippable:true, maxAttempts:3, action:\"run-review\", instructionsKey が仕様通り。R3: VALID_REVIEW_PHASES に \"draft\" 追加済み。R4: runDraftReview が draft.json 対象・runReviewLoop 使用・draft-review.md 出力・PASS=exit0/FAIL=EXIT_ERROR で実装済み。R5: parseDraftReviewOutput が run-review.js に追加され phase===\"draft\" 時にルーティング済み、verdict/issueCount/changed を返す。R6: registry.js の post hook が phaseStepMap で draft→review-draft/spec→review-spec/test→review-test/未指定→review を解決。R7: prompts/plan/ に review-draft.md/review-spec.md/review-test.md が追加され各フェーズの実行手順を記述。R8: 既存関数（runSpecReview/runTestReview）および registry の impl review（phase なし→\"review\"）は変更なし。R9: instructionsKey に対応する prompt ファイルが実際に追加されており instructions-coverage テストは通過可能。; No Hardcoded Secrets — 追加されたコードにAPIキー・パスワード・トークン等のハードコードされたシークレットは存在しない。; No Silent Error Swallowing — 全ての catch ブロックは console.error でログ出力しており、エラーを無言で握り潰していない。analysis.json ロード失敗時も Warning としてログ出力し継続。fix() 内の JSON パース失敗も WARNING ログで通知している。; No Sensitive Data in Logs — ログ出力はファイルパス・verdict・issueCount のみ。パスワード・トークン・PII に相当する情報は含まれない。; No Disabling Existing Tests — 既存テストのスキップ・コメントアウト・削除はない。テストの変更は新規ステップ（review-draft/spec/test）の追加に伴うステップ順序・前提条件の更新であり、テストの意図はそのまま維持されている。; Escalate Pre-Existing Test Failures — 実装前のテスト失敗状況はランタイム証跡なしには判定不可能。; Spec Test Coverage — test-map.json で R4（runDraftReview の exit code 契約: PASS→exit 0、FAIL→exit 1）が R4: [] と空であり、対応するテストが一切書かれていない。spec の必須要件に対する自動検証が欠如している。; Project Test Integrity — 既存テストの変更は新しいステップ順序・前提条件に合わせた更新として妥当に見えるが、全テストパスの確認にはランタイム実行が必要。; Code Placement — runDraftReview は review.js の runSpecReview/runTestReview と同一ファイルに配置。parseDraftReviewOutput は run-review.js の既存パーサーと同一ファイルに配置。定数・定義・レジストリもそれぞれの既存モジュールに配置されており、コードの責務配置が一貫している。; Exit Code Contract — runDraftReview は PASS 時に暗黙の exit 0、FAIL 時に process.exit(EXIT_ERROR) で非ゼロ終了する。ファイル不在・JSONパース失敗時も EXIT_ERROR で終了しており、仕様 R4 の exit code 契約を実装している。; No Synchronous I/O in Hot Paths — fix() 内の readFileSync はレビューループ（最大 3 回）内で呼ばれるが、各イテレーションは外部 AI API 呼び出しを伴う数秒単位の待機があり、I/O がボトルネックとなるホットパスではない。バルク処理や大量ループへの適用もない。; Validate User Input at Entry Point — runReview エントリポイントで --phase 引数を VALID_REVIEW_PHASES（\"draft\" を追加済み）と照合してバリデーションしており、draft フェーズも既存の入力検証の仕組みに組み込まれている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T08:31:02.671Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "test-map.json で R4（runDraftReview の exit code 契約: PASS→exit 0、FAIL→exit 1）が R4: [] と空であり、対応するテストが一切書かれていない。spec の必須要件に対する自動検証が欠如している。"
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "code-placement",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "gate FAIL: spec-test-coverage — R4 had empty test coverage in test-map.json",
+      "resolution": "Added structural tests for R4: REVIEW_PHASES.draft existence and buildDraftReviewPrompt export/output verification",
+      "taskId": null,
+      "timestamp": "2026-04-29T08:32:13.309Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-29T11:13:56.275Z"
+    }
+  ]
+}

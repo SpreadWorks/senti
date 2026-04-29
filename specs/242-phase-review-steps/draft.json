@@ -1,0 +1,68 @@
+{
+  "devType": "feature",
+  "goal": "draft / spec / test の各フェーズに AI review ステップを追加し、gate では検出できない実質的な品質問題を早期に発見・修正する",
+  "analysis": {
+    "problem": "現在 review ステップは impl フェーズにのみ存在する。draft の設問の浅さ、spec の要求漏れ・スコープクリープ、テスト網羅性の不足は gate（静的ルール判定）では 65% が検出不可能（87件の分析に基づく）。外部エージェントによる review がこれらを補完する。",
+    "proposedApproach": "FLOW_DEFINITION の plan フェーズに review-draft, review-spec, review-test ノードを追加する。配置は各 gate の前（review → gate の順）。既存の spec review / test review コマンド実装（review.js 内の runSpecReview / runTestReview）を活用し、draft review は新規パイプラインを実装する。registry の post hook、prompts、constants を対応させる。",
+    "validation": "既存の runSpecReview / runTestReview が runReviewLoop 共通基盤の上に構築されていることを確認済み。draft review も同パターンで実装可能。flow definition へのノード追加と接続部分（registry, prompts, constants）の変更で実現できる。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] FLOW_DEFINITION に review-draft, review-spec, review-test ノードを追加（review → gate の順に配置）",
+      "[must] draft review パイプライン新規実装（review.js に runDraftReview 追加）",
+      "[must] VALID_REVIEW_PHASES に draft を追加",
+      "[must] run-review.js に draft review 用パーサーを追加",
+      "[must] registry.js の review post hook を phase 別 step id に対応させる",
+      "[must] plan フェーズ用の review prompt ファイルを追加",
+      "[should] 各 review ステップは skippable にしてユーザーがスキップ可能にする"
+    ],
+    "out": [
+      "impl review の変更（既存のまま）",
+      "トークンコスト最適化（#0003 の範囲）",
+      "task-level review ステップの追加"
+    ]
+  },
+  "impactOnExisting": [
+    "FLOW_DEFINITION の plan フェーズにノード追加 — 既存ステップの順序が変わる（draft の直後に review-draft が挿入される等）",
+    "既存フローの flow.json steps 構造が変わるため、進行中のフローには影響あり（新規フローから適用）",
+    "registry.js の review post hook の変更 — phase 引数に基づいて正しい step id を更新する必要あり",
+    "VALID_REVIEW_PHASES への draft 追加 — 既存の test/spec は影響なし",
+    "instructions-coverage テスト — 新しい instructionsKey に対応する prompt ファイルが必要"
+  ],
+  "qa": [
+    {
+      "question": "既存の spec review / test review コマンド実装を活用し、flow definition にステップとして接続する方針で進めるか？",
+      "answer": "はい。既存実装を活用し、draft review のみ新規パイプライン実装。",
+      "evidence": "review.js に runSpecReview (L896-998) と runTestReview (L704-789) が完成済み。runReviewLoop 共通基盤を使用。",
+      "why": "既存のコマンド実装が動作しており、flow definition への接続が主な作業になるため。",
+      "considered": "全フェーズの review を一から再設計する案 — 既存実装が十分に成熟しているため不要。"
+    },
+    {
+      "question": "review ステップの配置順序は gate の前か後か？",
+      "answer": "gate の前（review → gate の順）。",
+      "evidence": "review は成果物を修正する（spec review は spec.md を auto-fix、test review はテストコードを auto-fix）。gate の後に review を置くと re-gate が必要になる。",
+      "why": "review で内容を磨いてから gate で構造的妥当性を最終確認する流れが自然。二重検証を回避。",
+      "considered": "gate → review の順 — review が成果物を修正するため re-gate が必要になり非効率。"
+    },
+    {
+      "question": "#0003（トークン削減）を前提条件として待つ必要があるか？",
+      "answer": "いいえ。先行実装する。",
+      "evidence": "review ステップの実装は #0003 と技術的に独立。コードレベルでの依存関係なし。",
+      "why": "Issue #288 が前提条件として記載したのは経済的理由（トークンコスト）であり、技術的依存ではない。各 review ステップはスキップ可能にするため、コスト懸念がある間は使わない選択ができる。",
+      "considered": "#0003 完了を待つ案 — 技術的依存がないため不要。"
+    },
+    {
+      "question": "draft review のパイプライン設計は？",
+      "answer": "既存の spec review / test review と同じ共通基盤を使用する。対象物は draft.json、基準は request/issue、文脈は analysis.json 軽量インデックス。出力は draft-review.md に保存し verdict を返す。",
+      "evidence": "runSpecReview / runTestReview が同じ runReviewLoop 共通基盤を使用（review.js L447-492）。",
+      "why": "既存パターンとの統一性。3つの review が同じインターフェースで動作し、registry / run-review.js のルーティングが一貫する。",
+      "considered": "独自のパイプラインを設計する案 — 共通基盤が十分であり、独自化の利点がない。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-29T01:30:00Z",
+    "notes": ""
+  }
+}

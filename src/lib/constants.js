@@ -117,6 +117,7 @@ export const VALID_CHECK_TARGETS = Object.freeze([
 export const VALID_REVIEW_PHASES = Object.freeze([
   "test",
   "spec",
+  "draft",
 ]);
 
 // ---------------------------------------------------------------------------
