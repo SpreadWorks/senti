@@ -15,7 +15,7 @@ import { getSpecName } from "../../lib/flow-helpers.js";
 import { loadSpecJson, normalizeRequirements, resolveSpecDir } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { loadTestMap, parseTapOutput, extractReqResults, evaluateReqByResults } from "./req-map.js";
+import { loadTestMap, isTestNotRequired, parseTapOutput, extractReqResults, evaluateReqByResults } from "./req-map.js";
 
 /**
  * Build the requirements text block from spec.json.requirements. Replaces the
@@ -273,43 +273,58 @@ export class RunRetroCommand extends FlowCommand {
     if (Object.keys(testMap).length === 0) return null;
 
     const testsDir = path.join(specDir, "tests");
-    let tapOutput = "";
-    try {
-      const mappedFileNames = new Set();
-      for (const tests of Object.values(testMap)) {
-        for (const t of tests) {
-          const file = t.split(" > ")[0]?.trim();
-          if (file) mappedFileNames.add(file);
-        }
+
+    const mappedFileNames = new Set();
+    for (const tests of Object.values(testMap)) {
+      if (isTestNotRequired(tests)) continue;
+      for (const t of tests) {
+        const file = t.split(" > ")[0]?.trim();
+        if (file) mappedFileNames.add(file);
       }
+    }
+
+    let reqResults = new Map();
+    if (mappedFileNames.size > 0) {
       const fullPaths = [...mappedFileNames]
         .map((f) => path.join(testsDir, f))
         .filter((p) => fs.existsSync(p));
       if (fullPaths.length === 0) return null;
-      tapOutput = execFileSync("node", ["--test", "--test-reporter", "tap", ...fullPaths], {
-        encoding: "utf8",
-        timeout: 60000,
-      });
-    } catch (err) {
-      if (err.stdout) tapOutput = err.stdout;
-      else return null;
+
+      let tapOutput = "";
+      try {
+        const env = { ...process.env };
+        delete env.NODE_TEST_CONTEXT;
+        tapOutput = execFileSync("node", ["--test", "--test-reporter", "tap", ...fullPaths], {
+          encoding: "utf8",
+          timeout: 60000,
+          env,
+        });
+      } catch (err) {
+        if (err.stdout) tapOutput = err.stdout;
+        else return null;
+      }
+
+      const tapResults = parseTapOutput(tapOutput);
+      reqResults = extractReqResults(tapResults);
+      if (reqResults.size === 0) return null;
     }
 
-    const tapResults = parseTapOutput(tapOutput);
-    const reqResults = extractReqResults(tapResults);
-    if (reqResults.size === 0) return null;
-
     const reqs = requirements.map((r) => {
+      if (isTestNotRequired(testMap[r.id])) {
+        return { desc: r.desc, status: "n/a", note: "testing not required" };
+      }
       const counts = reqResults.get(r.id) || null;
       const status = evaluateReqByResults(counts);
       const note = !counts ? "no tests mapped" : `${counts.passed + counts.failed} test(s)`;
       return { desc: r.desc, status, note };
     });
 
-    const total = reqs.length;
-    const done = reqs.filter((r) => r.status === "done").length;
-    const partial = reqs.filter((r) => r.status === "partial").length;
-    const notDone = reqs.filter((r) => r.status === "not_done").length;
+    const evaluated = reqs.filter((r) => r.status !== "n/a");
+    const naCount = reqs.length - evaluated.length;
+    const total = evaluated.length;
+    const done = evaluated.filter((r) => r.status === "done").length;
+    const partial = evaluated.filter((r) => r.status === "partial").length;
+    const notDone = evaluated.filter((r) => r.status === "not_done").length;
     const rate = total > 0 ? (done + partial * 0.5) / total : 0;
 
     return {
@@ -320,6 +335,7 @@ export class RunRetroCommand extends FlowCommand {
         done,
         partial,
         not_done: notDone,
+        na_count: naCount,
         rate: Math.round(rate * 100) / 100,
         notes: "static evaluation from test-map.json",
       },

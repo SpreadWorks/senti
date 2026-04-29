@@ -942,7 +942,9 @@ async function runTestReview(root, flow, config, dryRun) {
   // spec 241 R8: check test-map.json for untested requirements
   const testMap = await loadReqMap(root, flow, "test");
   if (testMap && Object.keys(testMap).length > 0) {
+    const { isTestNotRequired } = await import("../lib/req-map.js");
     const untested = requirements.filter((r) => {
+      if (isTestNotRequired(testMap[r.id])) return false;
       const tests = testMap[r.id] || [];
       return tests.length === 0;
     });
