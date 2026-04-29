@@ -168,3 +168,5 @@ export class RunUpdateOverviewCommand extends FlowCommand {
     }
   }
 }
+
+export default RunUpdateOverviewCommand;

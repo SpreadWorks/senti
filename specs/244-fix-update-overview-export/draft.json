@@ -1,0 +1,72 @@
+{
+  "devType": "bugfix",
+  "goal": "run-update-overview.js に export default を追加し、dynamic import 経由の呼び出しが正常に動作するようにする",
+  "analysis": {
+    "problem": "src/flow/lib/run-update-overview.js で RunUpdateOverviewCommand クラスは export class として定義されているが export default がない。run-gate.js:73 は { default: RunUpdateOverviewCommand } で destructure しており undefined を受け取る。registry.js:552 の dynamic import も .default を期待する。try-catch でエラーが握りつぶされるため gate-impl は PASS するが overview 更新が黙って失敗する。",
+    "proposedApproach": "ファイル末尾に export default RunUpdateOverviewCommand; を追加する。他の全 FlowCommand サブクラス（run-gate.js, run-review.js, run-sync.js 等）と同一パターンに合わせる。",
+    "validation": "呼び出し元の destructure パターン { default: RunUpdateOverviewCommand } に合致するため、dynamic import が正常に解決される。既存の named export（persistOverviewUpdate, validateOverviewAdditions, RunUpdateOverviewCommand）はそのまま維持されるため後方互換性にも影響なし。"
+  },
+  "scopeVerification": {
+    "in": [
+      "src/flow/lib/run-update-overview.js に export default RunUpdateOverviewCommand を追加"
+    ],
+    "out": [
+      "run-gate.js の try-catch によるエラー握りつぶし問題の修正（別 concern）",
+      "他ファイルの export パターン変更"
+    ]
+  },
+  "impactOnExisting": [
+    "gate-impl フェーズの overview 更新が正常に動作するようになる（修正前は黙って失敗していた）",
+    "sdd-forge flow run update-overview CLI コマンドが正常に動作するようになる"
+  ],
+  "qa": [
+    {
+      "question": "他の FlowCommand サブクラスの export パターンは？また run-update-overview.js 自体の現状は？",
+      "answer": "他の全 16 ファイル（run-gate.js, run-review.js, run-sync.js 等）が export default を持つ。run-update-overview.js のみ欠落。run-update-overview.js 自体は line 31 に `export function persistOverviewUpdate`、line 64 に `export function validateOverviewAdditions`、line 126 に `export class RunUpdateOverviewCommand extends FlowCommand` が存在し、クラス定義は存在する。export default 行のみが欠落しているため、修正は「ファイル末尾への 1 行追加」で完結する。クラス定義ごと追加が必要なケースではない。",
+      "evidence": "grep -n 'class RunUpdateOverviewCommand\\|^export' src/flow/lib/run-update-overview.js → line 31, 64, 126 に named export のみ確認。export default 行は存在しない。grep -rn 'export default' src/flow/lib/run-*.js で他全ファイルに export default が存在することを確認。",
+      "why": "既存パターンとの一貫性を確認するだけでなく、修正が「1行追加」で済むのか「クラス定義ごと追加が必要」なのかを確定するため。スコープ見積もりの根拠となる。",
+      "considered": "export class を export default class に書き換える案もあるが、named export が他で使われている可能性があるため、別行で export default を追加する既存パターンに合わせる。"
+    },
+    {
+      "question": "呼び出し元の import パターンは？",
+      "answer": "run-gate.js:73 が { default: RunUpdateOverviewCommand } で destructure。registry.js:552 が () => import('./lib/run-update-overview.js') で dynamic import し、run.js ディスパッチャが .default を参照。",
+      "evidence": "grep -n 'update-overview|RunUpdateOverview' src/flow/run.js src/flow/registry.js src/flow/lib/run-gate.js で各呼び出し箇所を確認。grep -n '\\.default' src/flow/run.js で run.js が .default を参照している行を直接確認。registry.js の該当行番号は grep -n 'run-update-overview' src/flow/registry.js で一致を確認。",
+      "why": "修正が呼び出し元の期待に合致することを確認。",
+      "considered": "呼び出し元を named import に変更する案は、他コマンドとの一貫性を崩すため不採用。"
+    },
+    {
+      "question": "テスト戦略は？既存テストがこのバグを検知できなかった理由は？",
+      "answer": "既存テストファイル tests/unit/flow/run-update-overview.test.js は存在するが、line 6 で `import { persistOverviewUpdate } from '.../run-update-overview.js'` と named import しており、`export default` の存在を一切検証していない。そのため今回のバグ（export default 欠落）を検知できなかった。新規テストとして dynamic import で `.default` を検証する 2 ステップのテストを tests/unit/flow/run-update-overview.test.js に追加する。① `assert.ok(m.default !== undefined, 'export default が存在しない')` で undefined を明示チェック、② `assert.ok(m.default.prototype instanceof FlowCommand, 'export default は FlowCommand のサブクラスであること')` で継承を確認する。エラーメッセージを明示することで失敗時の診断が容易になる。テストフレームワークは既存ファイルと同じ node:test を使用。",
+      "evidence": "tests/unit/flow/run-update-overview.test.js line 6: `import { persistOverviewUpdate } from '../../../src/flow/lib/run-update-overview.js'` — named import のみ。dynamic import で `.default` を取得するテストケースは存在しない。",
+      "why": "再発防止のため export default の存在をテストで保証する。この種の欠落は静的解析では検出しづらく、named import を使う既存テストでは検知できない。",
+      "considered": "既存テストのみで十分とする案もあるが、named import と dynamic import の両方をテストすることで将来の同様のミスを防げる。"
+    },
+    {
+      "question": "run-gate.js:73 の try-catch は .default が undefined のときどう振る舞うか。guard 追加やエラーログ挿入を行うべきか？",
+      "answer": "run-gate.js lines 64-79 の try-catch は、`RunUpdateOverviewCommand` が undefined の場合 `new RunUpdateOverviewCommand()` で `TypeError: RunUpdateOverviewCommand is not a constructor` が発生し、catch ブロックが `process.stderr.write('[sdd-forge] gate side effect \\'mergeOverview\\' failed: ...')` でステータスを stderr に書き出す。gate 自体は PASS し続けるため、ユーザーが stderr を確認しなければ失敗を見逃す構造になっている。今回の修正（export default 追加）によりこの TypeError は発生しなくなるため、guard 追加は本 Issue のスコープ外とする。ただし catch-and-continue パターンが意図的な設計かどうかは現行コードの証拠から確認できない。本 Issue のスコープ外とする根拠は「export default 追加により TypeError が発生しなくなる」という事実のみであり、catch-and-continue の設計意図については別 Issue で設計判断を求めることを推奨する。",
+      "evidence": "src/flow/lib/run-gate.js lines 64-79: `catch (err) { process.stderr.write(`[sdd-forge] gate side effect '${effect}' failed: ${err.message}\\n`); }` — stderr 書き出しはあるが throw しない。コード内に catch-and-continue の設計意図を示すコメントは存在しない。",
+      "why": "Issue が「try-catch によるサイレント失敗」を明示的に問題として挙げているため、採否の根拠を spec に明記する必要がある。export default 追加だけでは将来の同様ミスを防げない可能性があるが、scope を広げると今回の修正の焦点がぼける。",
+      "considered": "`if (!RunUpdateOverviewCommand) throw new Error('run-update-overview.js has no default export')` を追加する案は、バグの早期検出に有効。ただし export default を正しく追加すれば発火しないため、本 Issue では対処しない。別 Issue として追跡することを推奨。"
+    },
+    {
+      "question": "run-gate.js が mergeOverview を side effect として呼び出すトリガー条件は何か？どの gate 種別・どの flow state のときに実行されるか？",
+      "answer": "run-gate.js の side effect ディスパッチロジックを確認し、effect 名の取得元・分岐条件を特定する必要がある。どの gate 種別（例：impl, review 等）で mergeOverview side effect が有効になるか、および flow state のどの条件下で実行パスに入るかが明確でないと、修正後の smoke test や受け入れ確認の再現手順を仕様として確定できない。",
+      "evidence": "src/flow/lib/run-gate.js の side effect ディスパッチ部（effect 名の取得元・分岐条件）を grep -n 'mergeOverview\\|sideEffect\\|effect' src/flow/lib/run-gate.js で確認し、どの gate 呼び出し経路が mergeOverview に到達するかを特定すること。",
+      "why": "バグが顕在化するトリガー条件が不明なまま修正しても、受け入れ確認や smoke test の再現手順を定義できない。「どのコマンドを実行すればバグを再現できるか」を仕様として確定するために必要。",
+      "considered": "再現手順の記述を省略する案もあるが、修正後の動作確認に使えるトリガー条件が spec に存在しないと検証が属人化するため採用しない。"
+    },
+    {
+      "question": "named export（persistOverviewUpdate, validateOverviewAdditions）を維持したまま export default を追加する場合、既存の import 側に副作用はないか？",
+      "answer": "ES modules では named export と export default は独立したバインディングであるため、export default を追加しても既存の named import 側に副作用は発生しない。`import { persistOverviewUpdate } from '...'` は引き続き正常に動作する。tests/unit/flow/run-update-overview.test.js の named import も影響を受けない。",
+      "evidence": "ES modules 仕様上、named export と default export は独立したバインディング。既存の named import パターン（tests/unit/flow/run-update-overview.test.js line 6 等）を grep で確認済み。",
+      "why": "Q1 で確認した「1行追加で完結」という結論が、既存 import 側への破壊的変更を含まないことを独立して保証するため。named export を使う既存コードが壊れないことを仕様として明記する。",
+      "considered": "export class を export default class に書き換える案は named export を壊すリスクがあるため不採用。ファイル末尾への別行追加が既存パターンと一致し、最もリスクが低い。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-29",
+    "notes": "autoApprove"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "entries": [
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — スペックは run-update-overview.js への export default 追加という単一の懸念に絞られている。; Task Single Responsibility — T-1 は export default 追加という単一の関心のみを扱う。無関係な変更との混在はない。; Unambiguous Requirements — R1・R2 ともに具体的なコード記述・クラス名・検証条件が明示されており、曖昧な形容詞を含まない。; Complete Context — R1 はファイルパスと追加行を明示。R2 は検証対象（.default が FlowCommand サブクラス）を明示。二者が独立にレビューしても合否判定が一致できる。; REQ Diff-Verifiability — R1 は diff で追加行を確認可能。R2 はテスト実行サマリで PASS/FAIL を判定可能。将来的な拡張性契約等は含まない。; No Hardcoded Secrets — スペック内にシークレット・トークン類の記述はない。; No Silent Error Swallowing — 背景に run-gate.js の try-catch によるエラー握りつぶしが記述されているが、scope.out で修正を明示的に除外している。既知のサイレント障害を意図的に放置したままにするため、このガードレールに抵触する。; Prioritize Requirements — 要件は R1・R2 の2件のみ（閾値3件以下）。優先度付けは任意だが、両要件とも must が付与されている。; Impact on Existing Features — 既存の named export（persistOverviewUpdate, validateOverviewAdditions, RunUpdateOverviewCommand）への影響が制約・受け入れ基準に明記されている。; Bounded Resource Usage — 再帰処理・リトライ・バルクデータ読み込みはこのスペックに含まれない。; Spec Includes Test Strategy — R2 でテスト追加を要件化し、T-1 の test_strategy に dynamic import 検証のユニットテスト戦略が記述されている。; Synthesize Draft, Do Not Copy — 背景・設計判断・代替案が整理・抽象化されており、ドラフトの単純コピーではない。架空の内容も含まない。; Record Unresolved Points as Open Questions — open_questions は空。未解決事項を捏造して回答している箇所はない。; Include 'Why This Approach' Rationale — decisions セクションに grep 実証を添えた設計根拠（ファイル末尾別行パターンの一貫性維持）が記述されている。; Spec Test Coverage — テストコードが specs/<specid>/tests/ 配下に配置されるかは実装後の確認が必要であり、スペック文書単体では判定できない。; Backward-Compatible CLI Interface — CLI コマンドの追加・変更はスペックのスコープ外。; Exit Code Contract — CLI コマンドの追加・変更はスペックのスコープ外。; Validate User Input at Entry Point — CLI コマンドの追加・変更はスペックのスコープ外。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T12:19:32.272Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "背景に run-gate.js の try-catch によるエラー握りつぶしが記述されているが、scope.out で修正を明示的に除外している。既知のサイレント障害を意図的に放置したままにするため、このガードレールに抵触する。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "review-test",
+      "reason": "sdd-forge flow run review --phase test failed with TypeError: requirements.filter is not a function at review.js:945",
+      "trigger": "running test review in auto mode",
+      "resolution": "skipped review-test step; pre-existing bug in review.js test review path",
+      "guardrailCandidate": "review.js should validate requirements is an array before calling .filter()",
+      "taskId": null,
+      "timestamp": "2026-04-29T14:12:24.741Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-29T14:19:45.691Z"
+    }
+  ]
+}

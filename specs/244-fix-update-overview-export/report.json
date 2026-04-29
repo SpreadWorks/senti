@@ -1,0 +1,85 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/244-fix-update-overview-export/draft.json    |  72 +++\n specs/244-fix-update-overview-export/file-map.json |   8 +\n specs/244-fix-update-overview-export/flow.json     | 510 +++++++++++++++++++++\n .../244-fix-update-overview-export/issue-log.json  |  45 ++\n specs/244-fix-update-overview-export/issue.md      |  10 +\n specs/244-fix-update-overview-export/qa.md         |   9 +\n specs/244-fix-update-overview-export/review.md     |   9 +\n specs/244-fix-update-overview-export/spec.json     |  95 ++++\n specs/244-fix-update-overview-export/spec.md       |  71 +++\n specs/244-fix-update-overview-export/tasks/T-1.md  |  19 +\n .../tests/export-default.test.js                   |  23 +\n .../tests/test-map.json                            |  11 +\n src/flow/lib/run-update-overview.js                |   2 +\n 13 files changed, 884 insertions(+)",
+      "commits": [
+        "fix: add missing export default to run-update-overview.js"
+      ]
+    },
+    "retro": {
+      "total": 2,
+      "done": 0,
+      "partial": 0,
+      "not_done": 2,
+      "rate": 0,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "src/flow/lib/run-update-overview.js のファイル末尾に export default RunUpdateOverviewCommand; を追加する",
+          "status": "not_done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "dynamic import で .default が RunUpdateOverviewCommand クラス（FlowCommand のサブクラス）であることを検証するテストを追加する",
+          "status": "not_done",
+          "note": "3 test(s)"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 28043,
+      "output": 61915,
+      "cacheRead": 1090890,
+      "cacheCreation": 327985,
+      "cost": 3.1812460500000004,
+      "callCount": 18,
+      "durationMs": 1216085,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 283946
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 19597
+        },
+        {
+          "phase": "spec",
+          "durationMs": 243122
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 226006
+        },
+        {
+          "phase": "gate",
+          "durationMs": 302453
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 53116
+        },
+        {
+          "phase": "review",
+          "durationMs": 87845
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: add missing export default to run-update-overview.js\n    13 files changed, 884 insertions(+)\n\n  Retro\n  ────────────────────────────────────────────────\n    ░░░░░░░░ 0%  (0 done / 0 partial / 2 miss)\n    [not_done] src/flow/lib/run-update-overview.js のファイル末尾に export default RunUpdateOverviewCommand; を追加する\n               2 test(s)\n    [not_done] dynamic import で .default が RunUpdateOverviewCommand クラス（FlowCommand のサブクラス）であることを検証するテストを追加する\n               3 test(s)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 18\n    input tokens ................ 28,043\n    output tokens ............... 61,915\n    cache-read tokens ........... 1,090,890\n    cache-create tokens ......... 327,985\n    cost ........................ $3.1812\n    duration (total) ............ 1216.1s\n      review-draft .............. 283.9s\n      gate-draft ................ 19.6s\n      spec ...................... 243.1s\n      review-spec ............... 226.0s\n      gate ...................... 302.5s\n      gate-impl ................. 53.1s\n      review .................... 87.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}
