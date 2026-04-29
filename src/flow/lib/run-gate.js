@@ -80,23 +80,6 @@ export async function executeGateSideEffects(ctx, phase) {
   }
 }
 
-/**
- * Remove T-pending-spec placeholder task from spec.json text before AI evaluation.
- * @param {string} text - raw spec.json content
- * @returns {string} text with T-pending-spec task entry removed from tasks array
- */
-export function filterPendingSpecPlaceholder(text) {
-  try {
-    const obj = JSON.parse(text);
-    if (Array.isArray(obj.tasks)) {
-      obj.tasks = obj.tasks.filter((t) => t.id !== "T-pending-spec");
-    }
-    return JSON.stringify(obj, null, 2);
-  } catch (err) {
-    process.stderr.write(`filterPendingSpecPlaceholder: JSON parse failed: ${err.message}\n`);
-    return text;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Level / phase validation
@@ -1478,7 +1461,7 @@ export class RunGateCommand extends FlowCommand {
     }
 
     const targetPath = path.relative(root, jsonPath);
-    const targetText = filterPendingSpecPlaceholder(fs.readFileSync(jsonPath, "utf8"));
+    const targetText = fs.readFileSync(jsonPath, "utf8");
 
     let spec;
     let loadError = null;

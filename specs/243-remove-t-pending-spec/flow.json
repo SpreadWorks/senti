@@ -1,0 +1,323 @@
+{
+  "spec": "specs/243-remove-t-pending-spec/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/243-remove-t-pending-spec",
+  "runId": "dd6f603e-eccd-48de-84a6-3fa62011c8e4",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-04-29T08:15:09.429Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-04-29T08:15:09.429Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-04-29T08:15:09.429Z",
+          "finishedAt": "2026-04-29T08:16:54.317Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-04-29T08:16:54.317Z",
+          "finishedAt": "2026-04-29T08:17:16.279Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-04-29T08:17:16.279Z",
+          "finishedAt": "2026-04-29T08:18:30.826Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-04-29T08:18:30.826Z",
+          "finishedAt": "2026-04-29T08:21:33.988Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-04-29T08:21:33.988Z",
+          "finishedAt": "2026-04-29T08:21:46.766Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-04-29T08:21:46.766Z",
+          "finishedAt": "2026-04-29T08:22:42.459Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-04-29T08:22:42.459Z",
+          "finishedAt": "2026-04-29T10:02:48.930Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-04-29T10:02:48.930Z",
+          "finishedAt": "2026-04-29T10:03:53.201Z"
+        },
+        {
+          "id": "review",
+          "status": "done",
+          "startedAt": "2026-04-29T10:03:53.201Z",
+          "finishedAt": "2026-04-29T08:30:00.000Z"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "finishedAt": "2026-04-29T11:07:31.045Z"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-04-29T11:07:31.045Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "skipped",
+              "finishedAt": "2026-04-29T11:07:42.861Z"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "skipped",
+              "finishedAt": "2026-04-29T11:07:42.868Z"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [
+    {
+      "id": "T-pending-spec",
+      "title": "Pending spec definition",
+      "goal": "Placeholder task until spec.json tasks[] is populated.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "in_progress",
+      "steps": []
+    }
+  ],
+  "currentTaskId": null,
+  "issue": 289,
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 24,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 2,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "根本原因・修正方針・影響ファイルが全て明示済み。削除対象コードも具体的で、テスト可能な成功基準（unknown stepエラーの消滅）が明確。"
+  },
+  "worktree": true,
+  "notes": [
+    {
+      "text": "prelude: auto mode enabled, issue #289, remove T-pending-spec placeholder",
+      "taskId": null,
+      "ts": "2026-04-29T08:15:15.634Z"
+    }
+  ],
+  "request": "Issue #289: T-pending-spec プレースホルダーを廃止し tasks 空配列を許可する。flow-store.js のスキーマ検証緩和、run-prepare-spec.js のプレースホルダー削除、run-gate.js の stripPendingSpecTask 削除。",
+  "metrics": [
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-29T08:16:09.958Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2484,
+      "durationMs": 14267,
+      "tokens": {
+        "input": 2,
+        "output": 597,
+        "cacheRead": 11585,
+        "cacheCreation": 13346
+      },
+      "cost": 0.065668,
+      "taskId": null,
+      "ts": "2026-04-29T08:17:16.269Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-29T08:17:16.294Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-29T08:18:37.143Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-29T08:19:27.900Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3005,
+      "durationMs": 44196,
+      "tokens": {
+        "input": 3,
+        "output": 2645,
+        "cacheRead": 11585,
+        "cacheCreation": 13740
+      },
+      "cost": 0.09829850000000001,
+      "taskId": null,
+      "ts": "2026-04-29T08:20:37.293Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-29T08:20:37.316Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3500,
+      "durationMs": 38782,
+      "tokens": {
+        "input": 3,
+        "output": 2371,
+        "cacheRead": 11585,
+        "cacheCreation": 13938
+      },
+      "cost": 0.09516400000000001,
+      "taskId": null,
+      "ts": "2026-04-29T08:21:33.967Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-29T08:21:34.005Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 552,
+      "durationMs": 15048,
+      "tokens": {
+        "input": 2,
+        "output": 806,
+        "cacheRead": 11585,
+        "cacheCreation": 26823
+      },
+      "cost": 0.13283875,
+      "taskId": null,
+      "ts": "2026-04-29T10:03:10.662Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2890,
+      "durationMs": 42516,
+      "tokens": {
+        "input": 2,
+        "output": 2521,
+        "cacheRead": 11585,
+        "cacheCreation": 27731
+      },
+      "cost": 0.16287675,
+      "taskId": null,
+      "ts": "2026-04-29T10:03:53.193Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-29T10:03:53.214Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1924,
+      "durationMs": 100512,
+      "tokens": {
+        "input": 22883,
+        "output": 4728,
+        "cacheRead": 126080,
+        "cacheCreation": 0
+      },
+      "taskId": "T-pending-spec",
+      "ts": "2026-04-29T10:06:17.031Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1421,
+      "durationMs": 38743,
+      "tokens": {
+        "input": 9,
+        "output": 2106,
+        "cacheRead": 98648,
+        "cacheCreation": 40150
+      },
+      "cost": 0.3555815,
+      "taskId": "T-pending-spec",
+      "ts": "2026-04-29T10:06:55.794Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-29T11:07:20.206Z"
+  }
+}

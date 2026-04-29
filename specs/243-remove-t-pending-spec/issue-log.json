@@ -1,0 +1,60 @@
+{
+  "entries": [
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: overview.modules[0].text: required field is missing; overview.modules[0].name: unknown field; overview.modules[0].role: unknown field; overview.modules[1].text: required field is missing; overview.modules[1].name: unknown field; overview.modules[1].role: unknown field; overview.modules[2].text: required field is missing; overview.modules[2].name: unknown field; overview.modules[2].role: unknown field; overview.data_flow[0]: must be object, got string; overview.data_flow[1]: must be object, got string; overview.data_flow[2]: must be object, got string; requirements[0].desc: required field is missing; requirements[0].text: unknown field; requirements[1].desc: required field is missing; requirements[1].text: unknown field; requirements[2].desc: required field is missing; requirements[2].text: unknown field; requirements[3].desc: required field is missing; requirements[3].text: unknown field; clarifications[0].q: required field is missing; clarifications[0].a: required field is missing; clarifications[0].question: unknown field; clarifications[0].answer: unknown field; clarifications[1].q: required field is missing; clarifications[1].a: required field is missing; clarifications[1].question: unknown field; clarifications[1].answer: unknown field; tasks[0].implementation_notes: must be string, got array; tasks: existing task 'T-pending-spec' missing from spec.json (append-only)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T08:18:37.143Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "tasks: existing task 'T-pending-spec' missing from spec.json (append-only); tasks: new task 'T-1' added_round must be 1, got 0",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T08:19:27.901Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec addresses one concern: removing T-pending-spec placeholder and allowing tasks:[].; Task Single Responsibility — T-1 touches multiple files but all changes are tightly coupled to the single concern of eliminating the placeholder.; Unambiguous Requirements — All requirements use verifiable conditions (SHALL accept/initialize/NOT contain specific values/functions).; Complete Context — Requirements name exact function names, file paths, and specific values; two reviewers would agree on pass/fail.; REQ Diff-Verifiability — All four requirements are decidable from a diff (presence/absence of code) plus npm test output.; No Hardcoded Secrets — No secrets or credentials present in the spec content.; No Silent Error Swallowing — Spec removes code; no new catch blocks or error-discarding patterns are introduced.; Prioritize Requirements — Four requirements are present and each is assigned priority 'must'.; Impact on Existing Features — Background and clarifications state existing flow.json files with T-pending-spec must be re-created; downstream functions are confirmed unaffected.; Bounded Resource Usage — No recursive processing, retries, or bulk data loading in scope.; Spec Includes Test Strategy — T-1 includes a test_strategy field and R4 mandates a unit test verifying FlowStore.load() accepts empty arrays.; Synthesize Draft, Do Not Copy — Content is organized and abstracted; no raw draft copying detected.; Record Unresolved Points as Open Questions — open_questions is empty; clarifications are answered with evidence from existing code.; Include 'Why This Approach' Rationale — overview.decisions and alternatives_considered both explain why this approach was chosen with evidence citations.; Spec Test Coverage — The test file is specified as tests/unit/227-post-226-forest-integration/t-a2-strict-load.test.js — not under specs/<specid>/tests/ as required by this guardrail. No test path under specs/243-remove-t-pending-spec/tests/ is mentioned.; Backward-Compatible CLI Interface — No CLI commands or options are removed or changed in meaning.; Exit Code Contract — No CLI commands are added or modified.; Validate User Input at Entry Point — No new user-facing CLI arguments are introduced.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T08:20:37.317Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The test file is specified as tests/unit/227-post-226-forest-integration/t-a2-strict-load.test.js — not under specs/<specid>/tests/ as required by this guardrail. No test path under specs/243-remove-t-pending-spec/tests/ is mentioned."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-29T11:07:42.854Z"
+    }
+  ]
+}

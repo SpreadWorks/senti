@@ -1,0 +1,83 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/243-remove-t-pending-spec/draft.json         |  63 ++++\n specs/243-remove-t-pending-spec/file-map.json      |  15 +\n specs/243-remove-t-pending-spec/flow.json          | 319 +++++++++++++++++++++\n specs/243-remove-t-pending-spec/issue-log.json     |  55 ++++\n specs/243-remove-t-pending-spec/issue.md           |  46 +++\n specs/243-remove-t-pending-spec/qa.md              |   9 +\n specs/243-remove-t-pending-spec/review.md          |  17 ++\n specs/243-remove-t-pending-spec/spec.json          | 154 ++++++++++\n specs/243-remove-t-pending-spec/spec.md            |  83 ++++++\n .../243-remove-t-pending-spec/tests/test-map.json  |  13 +\n specs/243-remove-t-pending-spec/tests/test.js      |  71 +++++\n src/flow/lib/run-gate.js                           |  19 +-\n src/flow/lib/run-prepare-spec.js                   |  11 +-\n src/lib/flow-store.js                              |  30 +-\n .../t-a2-strict-load.test.js                       |  16 +-\n 15 files changed, 866 insertions(+), 55 deletions(-)",
+      "commits": [
+        "fix: remove T-pending-spec placeholder, allow empty tasks array"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 0,
+      "partial": 0,
+      "not_done": 3,
+      "rate": 0,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "flow-store.js assertTaskSchema SHALL accept tasks: [] (empty array) without throwing",
+          "status": "not_done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "run-prepare-spec.js SHALL initialize flow.json with tasks: [] and currentTaskId: null, with no T-pending-spec placeholder",
+          "status": "not_done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "run-gate.js SHALL NOT contain filterPendingSpecPlaceholder function or any reference to T-pending-spec",
+          "status": "not_done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "specs/243-remove-t-pending-spec/tests/test.js SHALL verify that FlowStore.load() accepts tasks: [] and t-a2-strict-load.test.js SHALL be updated accordingly",
+          "status": "unverified",
+          "note": "no tests mapped"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 22904,
+      "output": 15774,
+      "cacheRead": 282653,
+      "cacheCreation": 135728,
+      "cost": 0.9104275000000001,
+      "callCount": 7,
+      "durationMs": 294064,
+      "phaseDurations": [
+        {
+          "phase": "gate-draft",
+          "durationMs": 14267
+        },
+        {
+          "phase": "gate",
+          "durationMs": 82978
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 57564
+        },
+        {
+          "phase": "review",
+          "durationMs": 139255
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: remove T-pending-spec placeholder, allow empty tasks array\n    15 files changed, 866 insertions(+), 55 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ░░░░░░░░ 0%  (0 done / 0 partial / 3 miss)\n    [not_done] flow-store.js assertTaskSchema SHALL accept tasks: [] (empty array) without throwing\n               2 test(s)\n    [not_done] run-prepare-spec.js SHALL initialize flow.json with tasks: [] and currentTaskId: null, with no T-pending-spec placeholder\n               1 test(s)\n    [not_done] run-gate.js SHALL NOT contain filterPendingSpecPlaceholder function or any reference to T-pending-spec\n               1 test(s)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 7\n    input tokens ................ 22,904\n    output tokens ............... 15,774\n    cache-read tokens ........... 282,653\n    cache-create tokens ......... 135,728\n    cost ........................ $0.9104\n    duration (total) ............ 294.1s\n      gate-draft ................ 14.3s\n      gate ...................... 83.0s\n      gate-impl ................. 57.6s\n      review .................... 139.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

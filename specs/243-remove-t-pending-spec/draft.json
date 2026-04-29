@@ -1,0 +1,63 @@
+{
+  "devType": "bugfix",
+  "goal": "Remove the T-pending-spec placeholder task and allow tasks: [] in flow.json, fixing the unknown step error that occurs when currentTaskId points to a placeholder with empty steps.",
+  "analysis": {
+    "problem": "run-prepare-spec.js creates a T-pending-spec placeholder task with steps: []. After approval, syncSpecTasksToFlow calls promoteNextPending which promotes T-pending-spec to currentTaskId. Subsequently, updateStepStatus scopes searches to this task's empty steps array, causing 'unknown step' errors for flow-level steps like review.",
+    "proposedApproach": "Remove the T-pending-spec placeholder entirely. Allow tasks: [] in flow-store.js schema validation. Clean up filterPendingSpecPlaceholder in run-gate.js. The 'no tasks yet' state is naturally represented by an empty array.",
+    "validation": "The root cause is representing 'no tasks yet' with a placeholder instead of an empty array. Removing the placeholder eliminates the possibility of it being promoted to currentTaskId. promoteNextPending already handles empty tasks arrays correctly (early return at line 215). No other code depends on T-pending-spec existing."
+  },
+  "scopeVerification": {
+    "in": [
+      "Remove tasks: [] rejection from assertTaskSchema in flow-store.js",
+      "Replace T-pending-spec placeholder with tasks: [] in run-prepare-spec.js",
+      "Remove filterPendingSpecPlaceholder function from run-gate.js and its call site",
+      "Update test t-a2-strict-load.test.js to expect tasks: [] to be accepted"
+    ],
+    "out": [
+      "resolveMutationScope fallthrough logic (separate concern, not needed once placeholder is gone)",
+      "Existing flow.json migration (alpha policy: no backward compat)",
+      "Changes to promoteNextPending or syncSpecTasksToFlow logic"
+    ]
+  },
+  "impactOnExisting": [
+    "flow-store.js load() will accept tasks: [] — previously rejected. Only affects newly created flows (no migration needed per alpha policy).",
+    "run-gate.js spec gate evaluation will no longer filter T-pending-spec from spec.json text — the placeholder won't exist in spec.json anymore.",
+    "Existing flows with T-pending-spec in flow.json will fail to load if the placeholder is the only task and it gets removed manually. However, alpha policy means no backward compat obligation."
+  ],
+  "qa": [
+    {
+      "question": "assertTaskSchema の空配列 reject を削除しても、他のコードに影響はないか？",
+      "answer": "影響なし。promoteNextPending (flow-helpers.js:215) は tasks.length === 0 で早期 return する。syncSpecTasksToFlow は specTasks.length === 0 で早期 return する。findNextPendingTask は空配列で null を返す。全て空配列を正しく処理する。",
+      "evidence": "flow-helpers.js:215 `if (!Array.isArray(state.tasks) || state.tasks.length === 0) return null;`, sync-spec-tasks.js:44 `if (specTasks.length === 0) return { added: [] };`",
+      "why": "空配列は正当な状態であり、関連関数は全て空配列を想定したガード節を持っている。",
+      "considered": "tasks 配列を optional にする案は却下。必須フィールドのまま空配列を許可する方がスキーマの明確さを保てる。"
+    },
+    {
+      "question": "filterPendingSpecPlaceholder の削除は gate 評価に影響するか？",
+      "answer": "影響なし。T-pending-spec が存在しなくなるため、フィルタリング自体が不要になる。run-gate.js:1481 で呼ばれているが、プレースホルダーがなければ JSON をそのまま通すだけの no-op になるため、削除して直接 readFileSync にしても等価。",
+      "evidence": "run-gate.js:88-99 filterPendingSpecPlaceholder, run-gate.js:1481 唯一の呼び出し元",
+      "why": "プレースホルダーが存在しなくなればフィルタも不要。",
+      "considered": "関数を残して defensive に保つ案は alpha 版ポリシー（後方互換コードは書かない）に反する。"
+    },
+    {
+      "question": "テスト t-a2-strict-load.test.js をどう変更するか？",
+      "answer": "テストの妥当性を再評価する。現在のテストは tasks: [] を reject することを検証しているが、修正後は tasks: [] は valid な状態になる。テストシナリオを 'tasks: [] は受け入れられる' に反転する。テストコードの変更ではなくプロダクトコードの仕様変更に伴う正当なテスト更新。",
+      "evidence": "tests/unit/227-post-226-forest-integration/t-a2-strict-load.test.js:10-18",
+      "why": "CLAUDE.md の 'テストを通すためにテストコードを修正してはならない' ルールは、テスト自体のシナリオが妥当な場合に適用される。今回はシナリオの前提（tasks: [] は不正）が変わるため、テスト更新は正当。",
+      "considered": "テストを削除する案は却下。tasks: [] を受け入れることを明示的に検証するテストとして残す価値がある。"
+    },
+    {
+      "question": "CLI コマンドの互換性に影響はあるか？",
+      "answer": "flow prepare が出力する flow.json の tasks 初期値が変わる（[T-pending-spec] → []）。ただし T-pending-spec は内部実装詳細であり、外部 CLI インターフェースの変更はない。flow get status / flow get next-action の出力構造も変わらない。",
+      "evidence": "run-prepare-spec.js:265-273 が唯一の T-pending-spec 生成箇所",
+      "why": "プレースホルダーはユーザーから見えない内部状態。CLI の入出力インターフェースは不変。",
+      "considered": "guardrail 'Backward-Compatible CLI Interface' に該当しないことを確認済み。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-29T08:16:00.000Z",
+    "notes": "autoApprove"
+  }
+}

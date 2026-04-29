@@ -38,34 +38,28 @@ function specIdFromBranch(root) {
   return null;
 }
 
-function assertTaskSchema(state, sourcePath) {
+function assertFlowStateSchema(state, sourcePath) {
+  const displayPath = sourcePath ?? "<unknown>";
   if (!state || typeof state !== "object") {
-    throw new Error(`flow-store: invalid flow state (not an object): ${sourcePath || "<unknown>"}`);
+    throw new Error(`flow-store: invalid flow state (not an object): ${displayPath}`);
   }
   if (!Array.isArray(state.tasks)) {
     throw new Error(
       `flow-store: flow.json without 'tasks' array rejected. ` +
-      `Path: ${sourcePath || "<unknown>"}. ` +
-      `Requires a non-empty 'tasks' array and a 'currentTaskId' field (string or null).`,
-    );
-  }
-  if (state.tasks.length === 0) {
-    throw new Error(
-      `flow-store: flow.json with empty 'tasks' array rejected. ` +
-      `Path: ${sourcePath || "<unknown>"}. ` +
-      `Requires at least one task. Run migrate.js to populate legacy flows.`,
+      `Path: ${displayPath}. ` +
+      `Requires a 'tasks' array and a 'currentTaskId' field (string or null).`,
     );
   }
   if (!("currentTaskId" in state)) {
     throw new Error(
       `flow-store: legacy flow.json without 'currentTaskId' field rejected. ` +
-      `Path: ${sourcePath || "<unknown>"}.`,
+      `Path: ${displayPath}.`,
     );
   }
   if (state.metrics != null && !Array.isArray(state.metrics)) {
     throw new Error(
       `flow-store: legacy flow.json with non-array 'metrics' rejected. ` +
-      `Path: ${sourcePath || "<unknown>"}. ` +
+      `Path: ${displayPath}. ` +
       `cac6/T10 requires 'metrics' to be an append-only entry array.`,
     );
   }
@@ -73,14 +67,14 @@ function assertTaskSchema(state, sourcePath) {
     if (!Array.isArray(state.notes)) {
       throw new Error(
         `flow-store: legacy flow.json with non-array 'notes' rejected. ` +
-        `Path: ${sourcePath || "<unknown>"}.`,
+        `Path: ${displayPath}.`,
       );
     }
     const firstNonObj = state.notes.find((n) => n != null && typeof n !== "object");
     if (firstNonObj !== undefined) {
       throw new Error(
         `flow-store: legacy flow.json with string-array 'notes' rejected. ` +
-        `Path: ${sourcePath || "<unknown>"}. ` +
+        `Path: ${displayPath}. ` +
         `cac6/T10 requires note entries to be objects {taskId, text, ts}.`,
       );
     }
@@ -89,7 +83,7 @@ function assertTaskSchema(state, sourcePath) {
     if (task && ("metrics" in task || "notes" in task)) {
       throw new Error(
         `flow-store: legacy flow.json with per-task metrics/notes rejected. ` +
-        `Task: ${task.id}. Path: ${sourcePath || "<unknown>"}. ` +
+        `Task: ${task.id}. Path: ${displayPath}. ` +
         `cac6/T10 moved metrics/notes to flat top-level arrays with taskId.`,
       );
     }
@@ -211,7 +205,7 @@ export class FlowStore {
       resolvedPath = p;
     }
 
-    assertTaskSchema(state, resolvedPath);
+    assertFlowStateSchema(state, resolvedPath);
 
     if (state && !state.runId) {
       state.runId = crypto.randomUUID();
@@ -239,7 +233,7 @@ export class FlowStore {
       process.stderr.write(`[sdd-forge] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
       return null;
     }
-    assertTaskSchema(state, p);
+    assertFlowStateSchema(state, p);
     return state;
   }
 
