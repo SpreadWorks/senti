@@ -1,0 +1,96 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/246-test-map-null-sentinel/draft.json        |  77 ++++\n specs/246-test-map-null-sentinel/file-map.json     |   7 +\n specs/246-test-map-null-sentinel/flow.json         | 469 +++++++++++++++++++++\n specs/246-test-map-null-sentinel/issue-log.json    |  71 ++++\n specs/246-test-map-null-sentinel/issue.md          |  55 +++\n specs/246-test-map-null-sentinel/qa.md             |   9 +\n specs/246-test-map-null-sentinel/review.md         |  25 ++\n specs/246-test-map-null-sentinel/spec.json         | 174 ++++++++\n specs/246-test-map-null-sentinel/spec.md           |  59 +++\n .../tests/246-null-sentinel.test.js                | 204 +++++++++\n .../tests/246-review-null.test.js                  |  50 +++\n .../246-test-map-null-sentinel/tests/test-map.json |   7 +\n src/flow/commands/review.js                        |   2 +\n src/flow/lib/req-map.js                            |   4 +\n src/flow/lib/run-retro.js                          |  64 +--\n src/flow/prompts/plan/test.md                      |   9 +-\n 16 files changed, 1259 insertions(+), 27 deletions(-)",
+      "commits": [
+        "allow null sentinel in test-map.json to exclude test-not-required requirements from retro denominator"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 1,
+      "notes": "R1–R5 の全要件を満たしている。isTestNotRequired ヘルパーの req-map.js への追加は file-map.json の対象外だが code review で承認済み。NODE_TEST_CONTEXT 削除のみ完全に未計画の変更。",
+      "requirements": [
+        {
+          "desc": "tryStaticEvaluation で testMap[r.id] === null のエントリを status: 'n/a', note: 'testing not required' として requirements 配列に含め、summary.total / done / partial / not_done の集計から除外する",
+          "status": "done",
+          "note": "reqs マッピングで isTestNotRequired チェックにより n/a を返し、evaluated フィルタで total/done/partial/not_done の集計から除外。requirements 配列には n/a エントリが含まれる"
+        },
+        {
+          "desc": "tryStaticEvaluation の summary に na_count フィールドを追加し、n/a 件数を記録する",
+          "status": "done",
+          "note": "naCount = reqs.length - evaluated.length で算出し、summary に na_count として追加"
+        },
+        {
+          "desc": "tryStaticEvaluation 内の Object.values(testMap) イテレーション（テストファイル名抽出）で null エントリをスキップし、TypeError を防止する",
+          "status": "done",
+          "note": "Object.values(testMap) ループ内に isTestNotRequired(tests) チェックを追加し null をスキップ"
+        },
+        {
+          "desc": "test.md プロンプトの test-map.json スキーマ説明に null を追加し、テスト不要の要件に null を設定するよう AI に指示する",
+          "status": "done",
+          "note": "スキーマを string[] | null に更新し、null の意味・使用条件・[] との区別を明記。例示コードも R3: null に変更"
+        },
+        {
+          "desc": "review.js の test-map untested チェックで testMap[r.id] === null のエントリを untested としてカウントしない",
+          "status": "done",
+          "note": "filter 内に isTestNotRequired チェックを追加し、null エントリを早期リターンで除外"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 3,
+      "question": 0,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 10581,
+      "output": 63953,
+      "cacheRead": 633403,
+      "cacheCreation": 283657,
+      "cost": 2.9585538500000004,
+      "callCount": 15,
+      "durationMs": 1412327,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 448316
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 88191
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 578913
+        },
+        {
+          "phase": "gate",
+          "durationMs": 74352
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 126918
+        },
+        {
+          "phase": "review",
+          "durationMs": 95637
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    allow null sentinel in test-map.json to exclude test-not-required requirements from retro denominator\n    16 files changed, 1259 insertions(+), 27 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 3\n    Q&A ......................... 0\n    issue-log ................... 1\n    agent calls ................. 15\n    input tokens ................ 10,581\n    output tokens ............... 63,953\n    cache-read tokens ........... 633,403\n    cache-create tokens ......... 283,657\n    cost ........................ $2.9586\n    duration (total) ............ 1412.3s\n      review-draft .............. 448.3s\n      gate-draft ................ 88.2s\n      review-spec ............... 578.9s\n      gate ...................... 74.4s\n      gate-impl ................. 126.9s\n      review .................... 95.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}
