@@ -3,51 +3,30 @@ import assert from "node:assert/strict";
 
 describe("R6: retro static evaluation from test-map.json", () => {
   it("should determine done when all tests pass", async () => {
-    const { evaluateRequirement } = await import("../../../src/flow/lib/req-map.js");
+    const { evaluateReqByResults } = await import("../../../src/flow/lib/req-map.js");
 
-    const tapResults = new Map([
-      ["241-set-files.test.js > should create file-map.json", true],
-      ["241-set-files.test.js > should append paths", true],
-    ]);
-
-    const tests = [
-      "241-set-files.test.js > should create file-map.json",
-      "241-set-files.test.js > should append paths",
-    ];
-
-    const status = evaluateRequirement(tests, tapResults);
+    const status = evaluateReqByResults({ passed: 2, failed: 0 });
     assert.strictEqual(status, "done");
   });
 
   it("should determine partial when some tests pass", async () => {
-    const { evaluateRequirement } = await import("../../../src/flow/lib/req-map.js");
+    const { evaluateReqByResults } = await import("../../../src/flow/lib/req-map.js");
 
-    const tapResults = new Map([
-      ["test1", true],
-      ["test2", false],
-    ]);
-
-    const status = evaluateRequirement(["test1", "test2"], tapResults);
+    const status = evaluateReqByResults({ passed: 1, failed: 1 });
     assert.strictEqual(status, "partial");
   });
 
   it("should determine not_done when all tests fail", async () => {
-    const { evaluateRequirement } = await import("../../../src/flow/lib/req-map.js");
+    const { evaluateReqByResults } = await import("../../../src/flow/lib/req-map.js");
 
-    const tapResults = new Map([
-      ["test1", false],
-      ["test2", false],
-    ]);
-
-    const status = evaluateRequirement(["test1", "test2"], tapResults);
+    const status = evaluateReqByResults({ passed: 0, failed: 2 });
     assert.strictEqual(status, "not_done");
   });
 
   it("should determine unverified when no tests are mapped", async () => {
-    const { evaluateRequirement } = await import("../../../src/flow/lib/req-map.js");
+    const { evaluateReqByResults } = await import("../../../src/flow/lib/req-map.js");
 
-    const tapResults = new Map();
-    const status = evaluateRequirement([], tapResults);
+    const status = evaluateReqByResults(null);
     assert.strictEqual(status, "unverified");
   });
 

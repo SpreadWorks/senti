@@ -1,0 +1,58 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 単一の関心事（retro 静的評価が常に rate:0 を返すバグの修正）に限定されており、無関係な変更が混入していない。; Unambiguous Requirements — scopeVerification.in の各項目は具体的な変更対象と変更方向を明記しており、「適切な」「高速な」等の曖昧な形容詞は使用されていない。; Complete Context — analysis と qa によって問題の技術的根拠が示されており、2人の独立したレビュアーが実装の充足判定に合意できる具体性を持つ。; No Hardcoded Secrets — 仕様ドキュメントであり、APIキー・パスワード・トークン等のシークレットは含まれていない。; Prioritize Requirements — scopeVerification.in に4件の要件が列挙されているが、must/should/nice-to-have の優先度が付与されていない。; Impact on Existing Features — impactOnExisting セクションに3件の既存機能への影響が明記されており、影響なしの機能（review.js 等）も out 欄で明示されている。; Present Recommendations with Reasoning — 各 QA エントリに answer・evidence・why・considered が揃っており、推奨案の根拠が既存コードパターンまたは仕様から示されている。; Explore Before Asking — QA の evidence フィールドに tryStaticEvaluation L278-287 等の具体的なコード箇所が示されており、コードベース探索済みであることが確認できる。; Proactively Raise Related Implications — parseTapOutput の戻り値変化・evaluateRequirement の引数変更等、変更に伴う連鎖的影響が impactOnExisting で明示されている。; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true かつ confirmedAt が記録されており、決定済みの仕様であることが明確。; Capture Digressions in draft.md — openQuestions が空であり、逸脱した議論の痕跡はない。considered フィールドに却下案が記録されており、主要な検討事項は整理済み。; Draft Stays at Requirements Level — QA3 の answer フィールドに具体的な正規表現の変更前後（`/^(ok|not ok)/` → `/^\\s*(ok|not ok)/`）が記述されており、これは実装詳細に踏み込んでいる。evidence/why/considered 以外の answer フィールドでの実装記述は要件レベルの範囲を超えている。; Backward-Compatible CLI Interface — 変更対象は内部評価ロジック（parseTapOutput・tryStaticEvaluation）であり、CLI コマンド・オプションの削除や意味変更は行われない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T14:29:33.629Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に4件の要件が列挙されているが、must/should/nice-to-have の優先度が付与されていない。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "QA3 の answer フィールドに具体的な正規表現の変更前後（`/^(ok|not ok)/` → `/^\\s*(ok|not ok)/`）が記述されており、これは実装詳細に踏み込んでいる。evidence/why/considered 以外の answer フィールドでの実装記述は要件レベルの範囲を超えている。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "requirements[1].desc: unresolved marker \"TODO\" in value (parseTapOutput は # TODO ディレクティブ付きの行からディレクティブ部分を除去してテスト名を抽出し、# SKIP 付きの行は結果 Map から除外する); tasks[0].goal: unresolved marker \"TODO\" in value (parseTapOutput の正規表現を修正し、インデントされたサブテスト行と TAP ディレクティブ（# TODO, # SKIP）を正しく処理する); tasks[0].acceptance[2]: unresolved marker \"TODO\" in value (# TODO 付き行はディレクティブ部分が除去されテスト名のみ格納される); tasks[0].test_strategy: unresolved marker \"TODO\" in value (parseTapOutput にインデント付き TAP 出力、# TODO/SKIP 付き行を入力し期待する Map を検証する unit test)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T14:43:34.673Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "requirements[1].desc: unresolved marker \"todo\" in value (parseTapOutput は TAP ディレクティブ（todo, skip）付きの行を処理する。todo 付き行はディレクティブ部分を除去してテスト名を抽出し、skip 付き行は結果 Map から除外する); tasks[0].goal: unresolved marker \"todo\" in value (parseTapOutput の正規表現を修正し、インデントされたサブテスト行と TAP ディレクティブ（todo, skip）を正しく処理する); tasks[0].acceptance[2]: unresolved marker \"todo\" in value (todo directive 付き行はディレクティブ部分が除去されテスト名のみ格納される); tasks[0].test_strategy: unresolved marker \"todo\" in value (parseTapOutput にインデント付き TAP 出力、todo/skip ディレクティブ 付き行を入力し期待する Map を検証する unit test)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T14:44:11.792Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-29T15:03:28.155Z"
+    }
+  ]
+}

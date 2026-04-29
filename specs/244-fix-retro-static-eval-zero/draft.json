@@ -1,0 +1,78 @@
+{
+  "devType": "bugfix",
+  "goal": "retro の静的評価が常に rate: 0 を返すバグを修正し、テスト結果が正しく要件にマッピングされるようにする",
+  "analysis": {
+    "problem": "parseTapOutput の正規表現 /^(ok|not ok)/ がインデントされたサブテスト行を無視し、tryStaticEvaluation が test-map.json の階層形式テスト名 (file > describe > it) を TAP 出力のリーフ名と完全一致で照合するため、全要件が not_done と判定される",
+    "proposedApproach": "parseTapOutput をインデント対応にしてサブテスト結果を捕捉し、TAP テスト名に含まれる要件ID (R1, R2 等) を抽出して要件と直接マッピングする。test-map.json の文字列完全一致に依存しない方式に変更する。test-map.json はテスト対象ファイルの特定と review 時のカバレッジチェックに引き続き使用する",
+    "validation": "テスト名に R1:, R2: 等のプレフィックスが既に含まれているため (test.md のプロンプトで規約化されている)、要件IDの抽出で正確なマッピングが可能。インデント対応により Node.js --test-reporter tap のネスト出力を正しくパースできる"
+  },
+  "scopeVerification": {
+    "in": [
+      "(must) parseTapOutput のインデント対応 (サブテスト行の捕捉)",
+      "(must) tryStaticEvaluation のマッピング方式変更 (要件ID抽出方式)",
+      "(must) evaluateRequirement の入力変更 (test-map テスト名配列 → TAP結果の要件ID集約)",
+      "(should) test-map.json のファイル特定用途は維持"
+    ],
+    "out": [
+      "test-map.json のスキーマ変更",
+      "test.md プロンプトの変更",
+      "review.js の test-map 利用 (空/非空チェックのみなので影響なし)",
+      "AI フォールバック評価パス"
+    ]
+  },
+  "impactOnExisting": [
+    "tryStaticEvaluation: マッピングロジックの変更。test-map.json は引き続きテストファイル特定に使用するが、テスト名の完全一致照合は廃止",
+    "parseTapOutput: 戻り値の Map キーがトップレベル名のみ → サブテスト名を含む全テスト結果に変更",
+    "evaluateRequirement: 引数の意味が変わる可能性 (テスト名配列 → 要件ID付きTAP結果)"
+  ],
+  "qa": [
+    {
+      "question": "サブテストを無視した場合、なぜ retro 静的評価が常に 0% になるか。名前不一致は独立して 0% を引き起こすか、両条件が重なって初めて 0% になるか。",
+      "answer": "Node.js の --test-reporter tap はすべての実テスト結果をインデント付きサブテスト行として出力し、トップレベルには TAP version 13 と 1..N の集計行しか現れない。そのため /^(ok|not ok)/ でマッチできる行が 0 件となり、passedTests は空集合になる。一方 test-map.json の要件エントリは全件 not_done と判定されるため rate = 0/N = 0 となる（分母は要件数なので 0/0 にはならない）。名前不一致（第2原因）も独立して 0% を引き起こす。サブテスト行をパースできても test-map.json のテスト名と TAP 出力名が一致しなければ passedTests は依然として空集合になるためである。両原因はそれぞれ単独で 0% を引き起こし、どちらも修正必須。",
+      "evidence": "Node.js --test-reporter tap の出力: トップレベルに 'TAP version 13' と '1..N' のみ。実テスト結果は全行インデント付きで出力される。tryStaticEvaluation が最終的に rate を passedCount/totalReqs で計算している",
+      "why": "修正範囲と修正効果の正当性を検証するために因果チェーンの明示が必要。どちらか一方を修正すれば十分か、両方必要かを判断するため",
+      "considered": "特になし。両原因とも修正必須"
+    },
+    {
+      "question": "test-map.json が保持するテスト名と TAP 出力のテスト名はどのように乖離しているか。例を示せ。修正後はどちらの形式に揃えるか、あるいはどちらかを正規化するか。",
+      "answer": "test-map.json は 'retro.test.js > evaluateRequirement > 要件を正しく評価する' のような 'file > describe > it' 形式の結合文字列でテスト名を保持する。一方 TAP 出力のサブテスト行は '    ok 1 - 要件を正しく評価する' のようにリーフ名のみ（または describe ブロック名）を個別行として出力する。完全一致照合ではこの構造差によりマッチしない。修正後は test-map.json のテスト名文字列との照合を廃止し、TAP 出力から直接マッピングを構築するため、どちらかの形式に揃える正規化は不要。",
+      "evidence": "tryStaticEvaluation の現行コードが test-map.json エントリ文字列を TAP の ok/not ok 行テキストと直接比較していることによる不一致",
+      "why": "第2根本原因である名前乖離の具体像を明確にしないと修正対象が曖昧になる",
+      "considered": "test-map.json のフォーマットを TAP 出力に合わせて変換する正規化案 → test-map.json スキーマ変更はスコープ外のため却下"
+    },
+    {
+      "question": "現行の parseTapOutput がサブテスト行を無視する原因は何か。具体的にどこをどう修正するか。",
+      "answer": "現行の正規表現は行頭マッチを要求するため、Node.js TAP reporter がサブテストに付与する先頭インデント（describe 内=4スペース、ネストされた describe=8スペース等）が存在すると一切マッチしない。修正は先頭の空白を許容するように正規表現を変更し、任意深度のサブテスト行を捕捉可能にする。",
+      "evidence": "Node.js --test-reporter tap の出力: トップレベル=0インデント, describe内=4スペース, ネストされたdescribe=8スペース。全実テスト行がインデント付きで出力される",
+      "why": "正規表現の行頭マッチ要件が根本原因。\\s* の追加だけで任意深度に対応でき、変更量が最小",
+      "considered": "各行を trim() してからマッチする案 → 同等の効果だが、正規表現内に \\s* を含める方が一箇所の変更で完結しシンプル"
+    },
+    {
+      "question": "TAP パーサーで # TODO / # SKIP ディレクティブはどう扱うか",
+      "answer": "テスト名からディレクティブ部分を除去する。# TODO は not ok として、# SKIP は結果から除外するのが TAP 標準の意味",
+      "evidence": "TAP version 13 仕様: ok/not ok の後に # TODO や # SKIP が付くことがある",
+      "why": "ディレクティブ付きのテスト名が要件ID抽出の妨げになる",
+      "considered": "ディレクティブを無視して結果だけ取る案 → SKIP は結果に含めるべきでないため適切に処理する"
+    },
+    {
+      "question": "test-map.json からテストファイルを特定するロジック (tryStaticEvaluation L278-287) は変更するか",
+      "answer": "変更しない。テストファイルの特定は test-map.json の file > ... 形式の先頭要素を使う既存ロジックのまま。変更するのはTAP結果と要件のマッピング部分のみ",
+      "evidence": "tryStaticEvaluation L278-287: mappedFileNames は test-map エントリから split(' > ')[0] でファイル名を抽出している",
+      "why": "テストファイル特定は正しく動作しており、問題はその後のマッピング部分にある",
+      "considered": "spec.json の implementationTargets からファイルを特定する案 → test-map.json の方が正確"
+    },
+    {
+      "question": "修正後、既存の test-map.json エントリのマッピングは壊れないか？壊れる場合はどのように移行するか？",
+      "answer": "test-map.json のスキーマ自体は変更しないため、ファイル特定用途（file > ... 形式の先頭要素によるテストファイル抽出）は引き続き正常に動作する。壊れるのはテスト名の完全一致照合によるマッピング部分であり、これは修正後に廃止される。alpha 版ポリシーにより後方互換フォールバックは提供しない。既存の test-map.json エントリはファイル特定にのみ使用し、マッピングは TAP 出力から新方式で行う。移行作業は不要。",
+      "evidence": "scopeVerification.out: 'test-map.json のスキーマ変更' は対象外。impactOnExisting: 'テスト名の完全一致照合は廃止'",
+      "why": "alpha 版ポリシー: 後方互換コードは書かない。旧文字列一致フォールバックを残すと二重管理になる",
+      "considered": "フォールバックとして旧文字列一致を残す案 → alpha ポリシーで後方互換コード禁止のため却下"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-29T12:00:00.000Z",
+    "notes": "autoApprove"
+  }
+}

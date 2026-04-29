@@ -1,0 +1,41 @@
+{
+  "spec": "specs/244-fix-retro-static-eval-zero/spec.json",
+  "date": "2026-04-29T15:02:58.460Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "parseTapOutput は先頭にインデント（空白）を持つ TAP サブテスト行（例: '    ok 1 - R1: test name'）を捕捉し、Map に testName → boolean として格納する",
+      "status": "not_done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "parseTapOutput は TAP 13 のディレクティブ（未実装マーク・省略マーク）付きの行を処理する。未実装マーク付き行はディレクティブ部分を除去してテスト名を抽出し、省略マーク付き行は結果 Map から除外する",
+      "status": "not_done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "tryStaticEvaluation は TAP 結果のテスト名から要件ID（R1, R2 等の /^R\\d+/ パターン）を抽出し、要件IDベースで pass/fail を集約する。test-map.json のテスト名との文字列完全一致は行わない",
+      "status": "not_done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "tryStaticEvaluation は引き続き test-map.json からテストファイル名を特定する（split(' > ')[0] による既存ロジック維持）",
+      "status": "not_done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "テスト名に要件IDプレフィックスが含まれない場合（R-prefix が TAP 出力から1つも見つからない場合）、tryStaticEvaluation は null を返して AI フォールバック評価に委譲する",
+      "status": "not_done",
+      "note": "1 test(s)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 0,
+    "partial": 0,
+    "not_done": 5,
+    "rate": 0,
+    "notes": "static evaluation from test-map.json"
+  }
+}

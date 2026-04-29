@@ -15,7 +15,7 @@ import { getSpecName } from "../../lib/flow-helpers.js";
 import { loadSpecJson, normalizeRequirements, resolveSpecDir } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { loadTestMap, parseTapOutput, evaluateRequirement } from "./req-map.js";
+import { loadTestMap, parseTapOutput, extractReqResults, evaluateReqByResults } from "./req-map.js";
 
 /**
  * Build the requirements text block from spec.json.requirements. Replaces the
@@ -296,10 +296,14 @@ export class RunRetroCommand extends FlowCommand {
     }
 
     const tapResults = parseTapOutput(tapOutput);
+    const reqResults = extractReqResults(tapResults);
+    if (reqResults.size === 0) return null;
+
     const reqs = requirements.map((r) => {
-      const tests = testMap[r.id] || [];
-      const status = evaluateRequirement(tests, tapResults);
-      return { desc: r.desc, status, note: status === "unverified" ? "no tests mapped" : `${tests.length} test(s)` };
+      const counts = reqResults.get(r.id) || null;
+      const status = evaluateReqByResults(counts);
+      const note = !counts ? "no tests mapped" : `${counts.passed + counts.failed} test(s)`;
+      return { desc: r.desc, status, note };
     });
 
     const total = reqs.length;

@@ -75,30 +75,38 @@ export function reconcileFileMap(fileMap, diffFiles) {
 export function parseTapOutput(tap) {
   const results = new Map();
   for (const line of tap.split("\n")) {
-    const match = line.match(/^(ok|not ok)\s+\d+\s+-\s+(.+)$/);
-    if (match) {
-      results.set(match[2].trim(), match[1] === "ok");
+    const match = line.match(/^\s*(ok|not ok)\s+\d+\s+-\s+(.+)$/);
+    if (!match) continue;
+    const status = match[1] === "ok";
+    let name = match[2].trim();
+    const dirIdx = name.indexOf(" # ");
+    if (dirIdx !== -1) {
+      const directive = name.slice(dirIdx + 3).trim().toUpperCase();
+      if (directive.startsWith("SKIP")) continue;
+      name = name.slice(0, dirIdx).trim();
     }
+    results.set(name, status);
   }
   return results;
 }
 
-export function evaluateRequirement(tests, tapResults) {
-  if (!tests || tests.length === 0) return "unverified";
-
-  let passed = 0;
-  let failed = 0;
-
-  for (const testName of tests) {
-    const result = tapResults.get(testName);
-    if (result === true) {
-      passed++;
-    } else {
-      failed++;
-    }
+export function extractReqResults(tapResults) {
+  const reqMap = new Map();
+  for (const [name, passed] of tapResults) {
+    const m = name.match(/^(R\d+)\b/);
+    if (!m) continue;
+    const id = m[1];
+    if (!reqMap.has(id)) reqMap.set(id, { passed: 0, failed: 0 });
+    const entry = reqMap.get(id);
+    if (passed) entry.passed++;
+    else entry.failed++;
   }
+  return reqMap;
+}
 
-  if (passed === tests.length) return "done";
-  if (failed === tests.length) return "not_done";
+export function evaluateReqByResults(counts) {
+  if (!counts) return "unverified";
+  if (counts.passed > 0 && counts.failed === 0) return "done";
+  if (counts.failed > 0 && counts.passed === 0) return "not_done";
   return "partial";
 }

@@ -1,0 +1,96 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../tests/241-retro-static.test.js                 |  37 +-\n specs/244-fix-retro-static-eval-zero/draft.json    |  78 ++++\n specs/244-fix-retro-static-eval-zero/file-map.json |  18 +\n specs/244-fix-retro-static-eval-zero/flow.json     | 465 +++++++++++++++++++++\n .../244-fix-retro-static-eval-zero/issue-log.json  |  53 +++\n specs/244-fix-retro-static-eval-zero/issue.md      |  42 ++\n specs/244-fix-retro-static-eval-zero/qa.md         |   9 +\n specs/244-fix-retro-static-eval-zero/review.md     |  25 ++\n specs/244-fix-retro-static-eval-zero/spec.json     | 156 +++++++\n specs/244-fix-retro-static-eval-zero/spec.md       |  76 ++++\n .../tests/244-tap-parser.test.js                   | 132 ++++++\n .../tests/test-map.json                            |  21 +\n src/flow/lib/req-map.js                            |  44 +-\n src/flow/lib/run-retro.js                          |  12 +-\n 14 files changed, 1117 insertions(+), 51 deletions(-)",
+      "commits": [
+        "fix retro static eval always returning rate 0"
+      ]
+    },
+    "retro": {
+      "total": 5,
+      "done": 0,
+      "partial": 0,
+      "not_done": 5,
+      "rate": 0,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "parseTapOutput は先頭にインデント（空白）を持つ TAP サブテスト行（例: '    ok 1 - R1: test name'）を捕捉し、Map に testName → boolean として格納する",
+          "status": "not_done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "parseTapOutput は TAP 13 のディレクティブ（未実装マーク・省略マーク）付きの行を処理する。未実装マーク付き行はディレクティブ部分を除去してテスト名を抽出し、省略マーク付き行は結果 Map から除外する",
+          "status": "not_done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "tryStaticEvaluation は TAP 結果のテスト名から要件ID（R1, R2 等の /^R\\d+/ パターン）を抽出し、要件IDベースで pass/fail を集約する。test-map.json のテスト名との文字列完全一致は行わない",
+          "status": "not_done",
+          "note": "3 test(s)"
+        },
+        {
+          "desc": "tryStaticEvaluation は引き続き test-map.json からテストファイル名を特定する（split(' > ')[0] による既存ロジック維持）",
+          "status": "not_done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "テスト名に要件IDプレフィックスが含まれない場合（R-prefix が TAP 出力から1つも見つからない場合）、tryStaticEvaluation は null を返して AI フォールバック評価に委譲する",
+          "status": "not_done",
+          "note": "1 test(s)"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 93047,
+      "output": 68985,
+      "cacheRead": 1059172,
+      "cacheCreation": 312805,
+      "cost": 2.95345915,
+      "callCount": 15,
+      "durationMs": 1309785,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 353617
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 63272
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 598965
+        },
+        {
+          "phase": "gate",
+          "durationMs": 44475
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 64557
+        },
+        {
+          "phase": "review",
+          "durationMs": 184899
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix retro static eval always returning rate 0\n    14 files changed, 1117 insertions(+), 51 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ░░░░░░░░ 0%  (0 done / 0 partial / 5 miss)\n    [not_done] parseTapOutput は先頭にインデント（空白）を持つ TAP サブテスト行（例: '    ok 1 - R1: test name'）を捕捉し、Map に testName → boolean として格納する\n               2 test(s)\n    [not_done] parseTapOutput は TAP 13 のディレクティブ（未実装マーク・省略マーク）付きの行を処理する。未実装マーク付き行はディレクティブ部分を除去してテスト名を抽出し、省略マーク付き行は結果 Map から除外する\n               2 test(s)\n    [not_done] tryStaticEvaluation は TAP 結果のテスト名から要件ID（R1, R2 等の /^R\\d+/ パターン）を抽出し、要件IDベースで pass/fail を集約する。test-map.json のテスト名との文字列完全一致は行わない\n               3 test(s)\n    [not_done] tryStaticEvaluation は引き続き test-map.json からテストファイル名を特定する（split(' > ')[0] による既存ロジック維持）\n               1 test(s)\n    [not_done] テスト名に要件IDプレフィックスが含まれない場合（R-prefix が TAP 出力から1つも見つからない場合）、tryStaticEvaluation は null を返して AI フォールバック評価に委譲する\n               1 test(s)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 15\n    input tokens ................ 93,047\n    output tokens ............... 68,985\n    cache-read tokens ........... 1,059,172\n    cache-create tokens ......... 312,805\n    cost ........................ $2.9535\n    duration (total) ............ 1309.8s\n      review-draft .............. 353.6s\n      gate-draft ................ 63.3s\n      review-spec ............... 599.0s\n      gate ...................... 44.5s\n      gate-impl ................. 64.6s\n      review .................... 184.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}
