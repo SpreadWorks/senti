@@ -1,0 +1,36 @@
+{
+  "spec": "specs/245-restore-json-output-flag/spec.json",
+  "date": "2026-04-29T16:00:29.522Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "config.json の provider スキーマ (src/lib/config.js) に jsonOutputFlag (type: string, optional) を追加する。既存の config で jsonOutputFlag が未定義でもバリデーションが通ること。",
+      "status": "done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "ClaudeProvider.builtinProfiles() の各 profile エントリに jsonOutputFlag を追加する。値は '--output-format json'。CodexProvider.builtinProfiles() の各 profile エントリに jsonOutputFlag を追加する。値は '--json'。",
+      "status": "done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "agent.js の出力パース処理で、profile.jsonOutputFlag が truthy の場合のみ provider.parse(stdout) を呼び出す。falsy の場合は parse() を呼ばず { text: stdout.trim(), usage: null } を返す。",
+      "status": "done",
+      "note": "4 test(s)"
+    },
+    {
+      "desc": "src/CLAUDE.md の「Provider の builtin profile」セクションを更新し、jsonOutputFlag の位置づけ（出力パース分岐の宣言、args 注入には使用しない）を明記する。",
+      "status": "unverified",
+      "note": "no tests mapped"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 3,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 0.75,
+    "notes": "static evaluation from test-map.json"
+  }
+}

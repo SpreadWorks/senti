@@ -562,6 +562,8 @@ const child = spawn("claude", args, {
 
 **禁止:** Provider に `jsonFlag()` 相当のメソッドを追加し、それを Agent 側で自動注入する設計。config で上書きできない隠し動作となり、CLI フラグ名変更時に code 修正が必須となる。
 
+**`jsonOutputFlag` プロパティ（出力パース分岐の宣言）:** builtin profile および config.agent.providers の各 profile エントリには `jsonOutputFlag` (string, optional) を設定できる。このプロパティは args への注入には使用しない。agent.js が stdout を provider.parse() に渡すかどうかの分岐判定にのみ使用する。jsonOutputFlag が設定された profile は JSON パースを行い usage メトリクスを取得する。未設定の profile は plain text として扱い `{ text, usage: null }` を返す。
+
 ---
 
 ## テスト

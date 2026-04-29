@@ -94,20 +94,24 @@
       "claude/sonnet": {
         "command": "claude",
         "args": ["-p", "{{PROMPT}}", "--model", "sonnet", "--output-format", "json"],
-        "systemPromptFlag": "--system-prompt"
+        "systemPromptFlag": "--system-prompt",
+        "jsonOutputFlag": "--output-format json"
       },
       "claude/opus": {
         "command": "claude",
         "args": ["-p", "{{PROMPT}}", "--model", "opus", "--output-format", "json"],
-        "systemPromptFlag": "--system-prompt"
+        "systemPromptFlag": "--system-prompt",
+        "jsonOutputFlag": "--output-format json"
       },
       "codex/gpt-5.4": {
         "command": "codex",
-        "args": ["exec", "--json", "--full-auto", "-m", "gpt-5.4", "-C", ".tmp", "{{PROMPT}}"]
+        "args": ["exec", "--json", "--full-auto", "-m", "gpt-5.4", "-C", ".tmp", "{{PROMPT}}"],
+        "jsonOutputFlag": "--json"
       },
       "codex/gpt-5.3": {
         "command": "codex",
-        "args": ["exec", "--json", "--full-auto", "-m", "gpt-5.3-codex", "-C", ".tmp", "{{PROMPT}}"]
+        "args": ["exec", "--json", "--full-auto", "-m", "gpt-5.3-codex", "-C", ".tmp", "{{PROMPT}}"],
+        "jsonOutputFlag": "--json"
       }
     },
     "profiles": {

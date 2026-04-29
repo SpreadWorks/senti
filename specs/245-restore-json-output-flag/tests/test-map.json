@@ -1,0 +1,17 @@
+{
+  "R1": [
+    "json-output-flag.test.js > jsonOutputFlag in provider config schema > R1: config schema accepts jsonOutputFlag as optional string in provider",
+    "json-output-flag.test.js > jsonOutputFlag in provider config schema > R1: config schema accepts provider without jsonOutputFlag"
+  ],
+  "R2": [
+    "json-output-flag.test.js > jsonOutputFlag in builtin profiles > R2: ClaudeProvider builtinProfiles include jsonOutputFlag",
+    "json-output-flag.test.js > jsonOutputFlag in builtin profiles > R2: CodexProvider builtinProfiles include jsonOutputFlag"
+  ],
+  "R3": [
+    "json-output-flag.test.js > parse branching based on jsonOutputFlag > R3: profile with jsonOutputFlag invokes provider.parse on stdout",
+    "json-output-flag.test.js > parse branching based on jsonOutputFlag > R3: profile without jsonOutputFlag returns raw stdout as text with null usage",
+    "json-output-flag.test.js > parse branching based on jsonOutputFlag > R3: builtin claude profile resolves with jsonOutputFlag set",
+    "json-output-flag.test.js > parse branching based on jsonOutputFlag > R3: user-defined profile without jsonOutputFlag resolves as undefined"
+  ],
+  "R4": []
+}

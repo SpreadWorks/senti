@@ -76,10 +76,12 @@ class ClaudeProvider extends Provider {
       "claude/opus": {
         command: "claude",
         args: ["-p", "{{PROMPT}}", "--model", "opus", "--output-format", "json"],
+        jsonOutputFlag: "--output-format json",
       },
       "claude/sonnet": {
         command: "claude",
         args: ["-p", "{{PROMPT}}", "--model", "sonnet", "--output-format", "json"],
+        jsonOutputFlag: "--output-format json",
       },
     };
   }
@@ -126,10 +128,12 @@ class CodexProvider extends Provider {
       "codex/gpt-5.4": {
         command: "codex",
         args: ["exec", "--json", "-m", "gpt-5.4", "--full-auto", "{{PROMPT}}"],
+        jsonOutputFlag: "--json",
       },
       "codex/gpt-5.3": {
         command: "codex",
         args: ["exec", "--json", "-m", "gpt-5.3-codex", "--full-auto", "{{PROMPT}}"],
+        jsonOutputFlag: "--json",
       },
     };
   }
