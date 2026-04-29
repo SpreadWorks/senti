@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-29T11:18:33.857Z",
+  "analyzedAt": "2026-04-29T21:10:34.169Z",
   "package": {
     "entries": [
       {
@@ -3426,9 +3426,9 @@
       },
       {
         "file": "src/flow/lib/req-map.js",
-        "hash": "7c227d23cc6cf2f6a7318a1e2bf6f9a4",
-        "lines": 105,
-        "mtime": "2026-04-28T14:24:54.054Z",
+        "hash": "468fd1b974b73faf98334b50f0b5c705",
+        "lines": 113,
+        "mtime": "2026-04-29T15:03:49.562Z",
         "className": "req-map",
         "methods": [
           "loadFileMap",
@@ -3436,7 +3436,8 @@
           "appendFiles",
           "reconcileFileMap",
           "parseTapOutput",
-          "evaluateRequirement",
+          "extractReqResults",
+          "evaluateReqByResults",
           "loadJsonMap",
           "saveJsonMap"
         ],
@@ -3451,7 +3452,8 @@
           "appendFiles",
           "reconcileFileMap",
           "parseTapOutput",
-          "evaluateRequirement"
+          "extractReqResults",
+          "evaluateReqByResults"
         ],
         "extends": null,
         "usedBy": [
@@ -3460,21 +3462,23 @@
           "src/flow/lib/set-files.js"
         ],
         "id": "4b112428",
-        "summary": "Manages the requirement-to-file and requirement-to-test JSON mappings stored alongside spec artifacts.",
-        "detail": "Provides `loadFileMap` / `loadTestMap` to read `file-map.json` and `tests/test-map.json` from a spec directory, plus `appendFiles` to deduplicate and persist file paths under a requirement id. `reconcileFileMap` returns diff files not present in the recorded mapping for gate warnings. `parseTapOutput` parses TAP test output and `evaluateRequirement` classifies a requirement as pass/fail/partial based on mapped tests' results. Writes are atomic via `saveJsonMap` ensuring parent directories exist.",
+        "summary": "Helper module for managing requirement-to-file and requirement-to-test mappings used by the SDD flow's spec tracking.",
+        "detail": "Provides loadFileMap/loadTestMap to read JSON map files from a spec directory and saveJsonMap to persist them with consistent formatting. appendFiles records which source files implement each requirement by id, while reconcileFileMap filters diff files against already-recorded entries. Includes parseTapOutput to extract test results from TAP output, extractReqResults to aggregate per-requirement pass/fail counts, and evaluateReqByResults to classify a requirement as passed, failed, or partial. Acts as the persistence and evaluation layer connecting requirements to concrete code and test artifacts.",
         "chapter": "internal_design",
         "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-28T14:26:51.136Z",
+          "processedAt": "2026-04-29T21:11:02.523Z",
           "attempts": 1
         },
         "keywords": [
-          "file-map",
-          "test-map",
           "requirement mapping",
+          "file map",
+          "test map",
           "TAP parser",
+          "spec tracking",
           "requirement evaluation",
-          "spec artifacts"
+          "flow",
+          "req-map"
         ]
       },
       {
@@ -4364,9 +4368,9 @@
       },
       {
         "file": "src/flow/lib/run-retro.js",
-        "hash": "dacb5c676648fb2dbbc04a23146e02d2",
-        "lines": 328,
-        "mtime": "2026-04-28T14:24:54.054Z",
+        "hash": "c27e3ed54d6985621e85d9f84c0e2c0b",
+        "lines": 332,
+        "mtime": "2026-04-29T15:03:49.562Z",
         "className": "run-retro",
         "methods": [
           "RunRetroCommand",
@@ -4399,21 +4403,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "862e7d08",
-        "summary": "Generates a retrospective JSON file for a finalized flow by analyzing requirements, diff, and test mappings via AI.",
-        "detail": "`RunRetroCommand` aggregates spec requirements, base-branch diff (summary and detailed), and test-map evaluations to compose a retro prompt. It calls the configured AI agent, parses the JSON response (with `repairJson` fallback), and writes `retro.json` to the spec directory. Refuses to overwrite existing retro unless `--force` is supplied; returns Envelope failures for missing requirements, base branch, agent, or config. Also exposes `requirementsAsText`, `buildRetroPrompt`, and `parseRetroResponse` for testing/reuse.",
+        "summary": "FlowCommand implementation that runs a retrospective analysis on completed work by invoking an AI agent with diff and requirements context.",
+        "detail": "RunRetroCommand loads the spec.json, normalizes requirements, and gathers a base-branch diff via git helpers to feed into buildRetroPrompt. It calls the configured AI agent (with NO_AGENT/NO_CONFIG envelope failures) and parses the JSON response, falling back to repairJson on parse errors. Static evaluation merges TAP test results from test-map.json via evaluateReqByResults to classify each requirement's status without AI involvement. Results are written to retro.json in the spec directory, with --force required to overwrite an existing report. Uses the standard Envelope.ok/fail pattern for command results.",
         "chapter": "cli_commands",
         "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-28T14:26:51.136Z",
+          "processedAt": "2026-04-29T21:11:02.523Z",
           "attempts": 1
         },
         "keywords": [
-          "retro",
           "retrospective",
-          "AI summary",
-          "test-map evaluation",
+          "retro",
+          "flow run retro",
+          "AI agent",
           "diff analysis",
-          "repairJson"
+          "requirements evaluation",
+          "TAP results",
+          "spec finalization"
         ]
       },
       {
@@ -4542,9 +4548,9 @@
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
-        "hash": "4c118c50c24dff16d5d65274a611bc4a",
-        "lines": 171,
-        "mtime": "2026-04-24T08:12:50.734Z",
+        "hash": "9c0e5abf766e4bc27d49dde017ba99f7",
+        "lines": 173,
+        "mtime": "2026-04-29T14:20:13.755Z",
         "className": "run-update-overview",
         "methods": [
           "persistOverviewUpdate",
@@ -4564,25 +4570,30 @@
         "exports": [
           "persistOverviewUpdate",
           "validateOverviewAdditions",
-          "RunUpdateOverviewCommand"
+          "RunUpdateOverviewCommand",
+          "default"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d001ca9b",
-        "summary": "This command persists overview additions into `spec.json` and re-renders `spec.md`. It validates input payloads and size constraints before writing.",
-        "detail": "`validateOverviewAdditions` parses and verifies required JSON structure and allowed keys. `persistOverviewUpdate` enforces a maximum spec JSON size and applies additions through merge logic. It then regenerates Markdown from canonical JSON using `renderSpecMarkdown`. The command wraps execution in flow-state checks and returns standardized envelope outcomes.",
+        "summary": "FlowCommand that merges new overview additions (modules, data flow, decisions) into an existing spec.json and re-renders spec.md.",
+        "detail": "validateOverviewAdditions parses the --json argument, restricts keys to OVERVIEW_ADDITION_KEYS, and returns a discriminated result object with error codes. persistOverviewUpdate enforces a 256KB size cap on spec.json, applies additions via applyOverviewAdditions, writes the merged JSON, and regenerates spec.md through renderSpecMarkdown. RunUpdateOverviewCommand resolves the active flow's spec directory through FlowManager, fails with NO_ACTIVE_FLOW or NO_SPEC_DIR envelopes when context is missing, and returns success with the affected paths. Designed for incremental spec enrichment during the implementation phase.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
+          "processedAt": "2026-04-29T21:11:02.523Z",
           "attempts": 1
         },
         "keywords": [
           "update overview",
-          "spec.json merge",
-          "spec.md render",
-          "input validation",
-          "flow-aware persistence"
+          "spec merge",
+          "overview additions",
+          "modules",
+          "data flow",
+          "decisions",
+          "spec.json",
+          "spec.md",
+          "flow command"
         ]
       },
       {
@@ -6799,12 +6810,14 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "d030d9ea5e4048bec7a4f2f28e860c45",
-        "lines": 527,
-        "mtime": "2026-04-28T09:08:23.060Z",
+        "hash": "652817e8611e28cbcbac44f915c7503a",
+        "lines": 620,
+        "mtime": "2026-04-29T21:09:51.769Z",
         "className": "token",
         "methods": [
+          "computePhaseSummary",
           "formatText",
+          "formatJson",
           "formatCsv",
           "buildRowsFromMetrics",
           "formatUsage",
@@ -6812,12 +6825,13 @@
           "isoDateFromFinalizedAt",
           "toNumberOrNull",
           "addMetric",
+          "formatScalar",
           "asDisplayValue",
           "phaseLabel",
           "asCsvValue",
+          "phaseOrder",
           "sortRows",
           "groupRowsByPhase",
-          "formatJson",
           "listFlowFiles",
           "computeMaxFinalizedAt",
           "isCacheFresh",
@@ -6850,7 +6864,9 @@
           "../../lib/formatter.js"
         ],
         "exports": [
+          "computePhaseSummary",
           "formatText",
+          "formatJson",
           "formatCsv",
           "buildRowsFromMetrics",
           "default"
@@ -6858,22 +6874,24 @@
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "summary": "Computes per-phase token/cost/duration metrics across all flows with caching and difficulty scoring.",
-        "detail": "`TokenCommand` walks `specs/**/flow.json` (capped at `MAX_FLOW_FILES`) and aggregates phase metrics into rows keyed by `phase::date` from each flow's `finalizedAt`. A cache at `.sdd-forge/output/metrics.json` is reused when its `maxFinalizedAt` is fresh; otherwise rows are rebuilt and rewritten. `computeSpecDifficulty` derives a precision factor from requirement count, request chars, test file count, and review counts, multiplied by a per-task-type baseline (`DIFFICULTY_BASELINES`) and clamped between `PRECISION_MIN` and `PRECISION_MAX`. Output supports `text`, `json`, and `csv` formats; missing `state.finalizedAt` skips with a warning. Helpers include `groupRowsByPhase`, `addMetric`, `normalizeMetrics`, and CSV/text renderers.",
+        "summary": "CLI command that aggregates per-spec flow.json metrics across phases (plan/impl/finalize) and renders token usage summaries in text, JSON, or CSV.",
+        "detail": "Discovers flow.json files under specs/ up to MAX_FLOW_FILES, normalizes phase metrics into per-date rows, and computes a difficulty score from requirement count, test count, request length, review iterations, and issue-log entries clamped via PRECISION_MIN/MAX. Maintains a cache at .sdd-forge/output/metrics.json keyed by maxFinalizedAt, falling back to a full rebuild on miss/parse failure with stderr diagnostics. Exposes formatText (truncated to TEXT_MAX_ROWS), formatJson (with phaseSummary), and formatCsv renderers, plus computePhaseSummary and buildRowsFromMetrics as testable helpers. Sorts results by phase order then date and registers as TokenCommand for the metrics token subcommand.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-28T14:26:51.136Z",
+          "processedAt": "2026-04-29T21:11:02.523Z",
           "attempts": 1
         },
         "keywords": [
-          "metrics token",
-          "phase metrics",
-          "cache",
+          "metrics",
+          "token usage",
+          "flow metrics",
           "difficulty score",
-          "precision",
-          "csv output",
-          "flow.json aggregation"
+          "cache",
+          "CSV output",
+          "JSON output",
+          "phase summary",
+          "specs aggregation"
         ]
       },
       {
@@ -9931,9 +9949,9 @@
     ],
     "summary": {
       "total": 285,
-      "totalMethods": 946
+      "totalMethods": 950
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-29T11:19:24.011Z"
+  "enrichedAt": "2026-04-29T21:11:02.523Z"
 }
