@@ -509,10 +509,6 @@ function buildCrossCheckSystemPrompt() {
   ].join("\n");
 }
 
-function escapeRegExp(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function expandProposalsToGroup(proposals, groupFiles) {
   if (proposals.length === 0) return [];
   const representative = groupFiles[0];
@@ -560,6 +556,23 @@ function collectPerFileDiffs(root, mergeBase, touchedFiles) {
   return perFileDiffs;
 }
 
+function buildChunkReviewInput(chunk, rawPerFileDiffs, fileToReqs) {
+  const parts = [];
+  for (const g of chunk) {
+    const diff = rawPerFileDiffs.get(g.representative) || g.diff;
+    const reqs = fileToReqs.get(g.representative) || [];
+    parts.push(buildPerFileReviewInput(g.representative, diff, reqs));
+  }
+  return parts.join("\n\n---\n\n");
+}
+
+function chunkLabel(chunk) {
+  const primary = chunk[0];
+  return chunk.length > 1
+    ? `${primary.representative} +${chunk.length - 1} more`
+    : `${primary.representative} (${primary.files.length} file(s))`;
+}
+
 async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guardrails) {
   const specInput = path.resolve(root, flow.spec);
   const spec = loadSpecJson(specInput);
@@ -599,23 +612,9 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
 
   for (let i = 0; i < reviewChunks.length; i++) {
     const chunk = reviewChunks[i];
-    const primaryGroup = chunk[0];
-    const rawDiff = rawPerFileDiffs.get(primaryGroup.representative) || primaryGroup.diff;
-    const reqs = fileToReqs.get(primaryGroup.representative) || [];
+    console.error(`  [loop-review] Call ${i + 1}/${reviewChunks.length}: ${chunkLabel(chunk)}...`);
 
-    const label = chunk.length > 1
-      ? `${primaryGroup.representative} +${chunk.length - 1} more`
-      : `${primaryGroup.representative} (${primaryGroup.files.length} file(s))`;
-    console.error(`  [loop-review] Call ${i + 1}/${reviewChunks.length}: ${label}...`);
-
-    const inputParts = [buildPerFileReviewInput(primaryGroup.representative, rawDiff, reqs)];
-    for (let j = 1; j < chunk.length; j++) {
-      const g = chunk[j];
-      const gDiff = rawPerFileDiffs.get(g.representative) || g.diff;
-      const gReqs = fileToReqs.get(g.representative) || [];
-      inputParts.push(buildPerFileReviewInput(g.representative, gDiff, gReqs));
-    }
-    const input = inputParts.join("\n\n---\n\n");
+    const input = buildChunkReviewInput(chunk, rawPerFileDiffs, fileToReqs);
     const result = await callReviewAgent(draftAgent, input, "flow.impl.review.draft", systemPrompt);
 
     if (!result.includes("NO_PROPOSALS")) {
@@ -629,7 +628,7 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
             : toExpand;
           allProposals.push(...expanded);
         }
-        summaries.push({ file: primaryGroup.representative, proposals: result });
+        summaries.push({ file: chunk[0].representative, proposals: result });
       }
     }
   }
