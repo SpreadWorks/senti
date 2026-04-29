@@ -1,0 +1,87 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/config.json                             |  12 +-\n specs/245-restore-json-output-flag/draft.json      |  85 ++++\n specs/245-restore-json-output-flag/file-map.json   |  15 +\n specs/245-restore-json-output-flag/flow.json       | 463 +++++++++++++++++++++\n specs/245-restore-json-output-flag/issue-log.json  |  99 +++++\n specs/245-restore-json-output-flag/issue.md        |  10 +\n specs/245-restore-json-output-flag/qa.md           |   9 +\n specs/245-restore-json-output-flag/spec.json       | 172 ++++++++\n specs/245-restore-json-output-flag/spec.md         | 102 +++++\n specs/245-restore-json-output-flag/tasks/T-1.md    |  20 +\n specs/245-restore-json-output-flag/tasks/T-2.md    |  20 +\n specs/245-restore-json-output-flag/tasks/T-3.md    |  19 +\n .../tests/json-output-flag.test.js                 | 200 +++++++++\n .../tests/test-map.json                            |  17 +\n src/AGENTS.md                                      |   2 +\n src/lib/agent.js                                   |   8 +-\n src/lib/config.js                                  |   1 +\n src/lib/provider.js                                |   4 +\n 18 files changed, 1252 insertions(+), 6 deletions(-)",
+      "commits": [
+        "restore jsonOutputFlag to provider config and implement parse branching"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 3,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 0.75,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "config.json の provider スキーマ (src/lib/config.js) に jsonOutputFlag (type: string, optional) を追加する。既存の config で jsonOutputFlag が未定義でもバリデーションが通ること。",
+          "status": "done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "ClaudeProvider.builtinProfiles() の各 profile エントリに jsonOutputFlag を追加する。値は '--output-format json'。CodexProvider.builtinProfiles() の各 profile エントリに jsonOutputFlag を追加する。値は '--json'。",
+          "status": "done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "agent.js の出力パース処理で、profile.jsonOutputFlag が truthy の場合のみ provider.parse(stdout) を呼び出す。falsy の場合は parse() を呼ばず { text: stdout.trim(), usage: null } を返す。",
+          "status": "done",
+          "note": "4 test(s)"
+        },
+        {
+          "desc": "src/CLAUDE.md の「Provider の builtin profile」セクションを更新し、jsonOutputFlag の位置づけ（出力パース分岐の宣言、args 注入には使用しない）を明記する。",
+          "status": "unverified",
+          "note": "no tests mapped"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 59,
+      "output": 62380,
+      "cacheRead": 881146,
+      "cacheCreation": 403147,
+      "cost": 3.2601774,
+      "callCount": 15,
+      "durationMs": 1027719,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 336815
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 60486
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 366507
+        },
+        {
+          "phase": "gate",
+          "durationMs": 55255
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 208656
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    restore jsonOutputFlag to provider config and implement parse branching\n    18 files changed, 1252 insertions(+), 6 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ██████░░ 75%  (3 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 15\n    input tokens ................ 59\n    output tokens ............... 62,380\n    cache-read tokens ........... 881,146\n    cache-create tokens ......... 403,147\n    cost ........................ $3.2602\n    duration (total) ............ 1027.7s\n      review-draft .............. 336.8s\n      gate-draft ................ 60.5s\n      review-spec ............... 366.5s\n      gate ...................... 55.3s\n      gate-impl ................. 208.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}
