@@ -5,18 +5,19 @@
        スペック完全性レビューの方針を選択してください。
      ──────────────────────────────────────────────────────────
 
-       [1] スペックレビューを行い改善を自動で行う
+       [1] スペックレビューを行う（propose→validate）
        [2] しない
 
      ```
      - 2 → `sdd-forge flow set step review-spec skipped` → next step
 
-   **Option 1 (auto-fix):**
+   **Option 1 (propose→validate):**
    - Run `sdd-forge flow run review --phase spec` to perform AI-powered spec review.
-   - The review checks spec.md against the codebase context for:
-     - Files or features the spec does not mention
-     - Contradictions or gaps between requirements
-     - External references that depend on files to be modified
-   - **If issues exist**: display review summary and auto-fix spec.md.
-   - **If no issues** (NO_PROPOSALS): display "レビューの結果、修正の必要はありませんでした。"
+   - The review uses a 2-step propose→validate pipeline:
+     1. **Propose:** AI identifies oversights in the spec (files not mentioned, contradictions, missing external references)
+     2. **Validate:** A separate AI agent judges each proposal as APPROVED or REJECTED
+   - Results are saved to spec-review.md with APPROVED proposals listed with title, target section, and suggested change.
+   - The review does NOT modify spec.md or spec.json directly.
+   - **If APPROVED proposals exist**: read spec-review.md and reflect the approved changes into the spec. The skill-side AI performs the actual edits.
+   - **If no proposals or all rejected**: display "レビューの結果、修正の必要はありませんでした。"
    - **Retry limit:** bounded by the definition's maxAttempts. If exceeded, STOP and return control to the user.

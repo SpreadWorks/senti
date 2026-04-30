@@ -1,0 +1,144 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — draft review 改修と spec review 改修はどちらも plan フェーズのレビューパイプラインという単一の concern に属する。スコープが明確に in/out で境界定義されている。; Unambiguous Requirements — goal に「トークン消費を大幅削減」という検証不能な表現が含まれる。Q3 の回答も「削減率は実測で確認する（現時点では未検証）」と defer しており、要件として検証可能な条件が設定されていない。; Complete Context — 「トークン消費を大幅削減」の合否判定閾値が未定義のため、2人の独立したレビュアーが合意できない。「信頼性を確保」も同様に測定基準がない。; No Hardcoded Secrets — 仕様書の性質上、秘密情報の記述箇所はない。; Prioritize Requirements — 暗黙の要件（auto-fix 廃止、追加質問方式、2ステップ化、命名統一、トークン削減）が5項目以上あるが、must/should/nice-to-have の優先度ラベルが付与されていない。; Impact on Existing Features — impactOnExisting フィールドに5項目の影響が明示されており、スコープ外の機能への無影響も scopeVerification.out で宣言されている。; Present Recommendations with Reasoning — 全6件の QA エントリに answer / evidence / why / considered が揃っており、推奨根拠として既存コード（run-review.js、minify.js 等）と alpha ポリシー（CLAUDE.md）が明示されている。; Explore Before Asking — 各 QA の evidence フィールドに実ファイルパスと既存実装の参照がある。openQuestions が空で、コードベース探索済みであることが示されている。; Proactively Raise Related Implications — Q1 で proposals スキーマ（{ id, target_section, change_type, content }）を定義しているが、そのスキーマを消費する skill プロンプト（sdd-forge.flow 等）の更新が必要になる点が scopeVerification にも QA にも言及されていない。; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true / confirmedAt=2026-04-29 が設定されており、決定済みの仕様であることが明確。; Capture Digressions in draft.md — 実際の議論の経緯（会話ログ）がなく、draft.md への記録有無を判定できない。; Draft Stays at Requirements Level — Q1 の answer フィールドがデータ構造 `{ id: string, target_section: string, change_type: \"add\"|\"update\"|\"delete\", content: string }` を直接定義している。Q2・Q6 の answer が具体的な関数リネーム（parseDraftReviewOutput → parseProposalReviewOutput）と内部キー変更を列挙している。Q5 の answer が `retries=0 を明示的に渡す` という実装パラメータを指定している。これらは evidence/why/considered ではなく answer フィールドに記述されており、要件レベルを超えた実装詳細に該当する。; Backward-Compatible CLI Interface — CLI コマンド（sdd-forge flow review 等）の変更はない。agent commandId のリネームは破壊的変更だが Q2 で alpha 版ポリシー（後方互換不要）を根拠に明示的に判断しており、移行計画不要の理由が記載されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T00:07:13.912Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "goal に「トークン消費を大幅削減」という検証不能な表現が含まれる。Q3 の回答も「削減率は実測で確認する（現時点では未検証）」と defer しており、要件として検証可能な条件が設定されていない。"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "「トークン消費を大幅削減」の合否判定閾値が未定義のため、2人の独立したレビュアーが合意できない。「信頼性を確保」も同様に測定基準がない。"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "暗黙の要件（auto-fix 廃止、追加質問方式、2ステップ化、命名統一、トークン削減）が5項目以上あるが、must/should/nice-to-have の優先度ラベルが付与されていない。"
+        },
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "Q1 で proposals スキーマ（{ id, target_section, change_type, content }）を定義しているが、そのスキーマを消費する skill プロンプト（sdd-forge.flow 等）の更新が必要になる点が scopeVerification にも QA にも言及されていない。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Q1 の answer フィールドがデータ構造 `{ id: string, target_section: string, change_type: \"add\"|\"update\"|\"delete\", content: string }` を直接定義している。Q2・Q6 の answer が具体的な関数リネーム（parseDraftReviewOutput → parseProposalReviewOutput）と内部キー変更を列挙している。Q5 の answer が `retries=0 を明示的に渡す` という実装パラメータを指定している。これらは evidence/why/considered ではなく answer フィールドに記述されており、要件レベルを超えた実装詳細に該当する。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 単一の関心事（plan phase レビューステップの改修）に限定されており、新たな違反は導入されていない; Unambiguous Requirements — Q1 の回答「skill 側 AI が対象箇所を特定・適用できる構造とする」が検証可能な条件ではなく、どのような構造を満たせば要件が充足されるか不明。また Q3 の「削減率は実測で確認（現時点では未検証）」はトークン削減の受入れ基準を定義していない; Complete Context — proposals 出力フォーマットが「対象箇所を特定・適用できる構造」としか記述されておらず、2人の独立したレビュアーが実装の適合性について合意できる水準の具体性がない; No Hardcoded Secrets — 以前合格済み。新たな違反なし; Prioritize Requirements — scopeVerification.in に 6 項目、impactOnExisting に 5 項目、QA に 6 件の変更要件があるが、いずれにも must/should/nice-to-have の優先度が付与されていない; Impact on Existing Features — 以前合格済み。impactOnExisting セクションで既存への影響が明示されており、新たな違反なし; Present Recommendations with Reasoning — 以前合格済み。新たな違反なし; Explore Before Asking — 以前合格済み。新たな違反なし; Proactively Raise Related Implications — commandId リネームの全参照箇所、パーサーへの波及（Q6）、autoApprove モードの挙動（Q4）、skill プロンプト更新（scope.in）が網羅的に列挙されており、見落とされた明白な関連影響はない; Confirm Brainstorm vs. Decision Before Critiquing — 以前合格済み。approval.approved=true で確定済み。新たな違反なし; Capture Digressions in draft.md — 議論の脱線は見受けられず、全 QA が本 spec のスコープ内で処理されている; Draft Stays at Requirements Level — ファイル名・関数名はコンテキストとして言及（許容範囲）。Q3 の spec.json フィールド列挙はレビュー入力の要件仕様であり、内部アルゴリズム記述には該当しない; Backward-Compatible CLI Interface — 以前合格済み。commandId リネームは alpha ポリシー適用として QA2 に明記されており、新たな違反なし",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T00:10:45.194Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Q1 の回答「skill 側 AI が対象箇所を特定・適用できる構造とする」が検証可能な条件ではなく、どのような構造を満たせば要件が充足されるか不明。また Q3 の「削減率は実測で確認（現時点では未検証）」はトークン削減の受入れ基準を定義していない"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "proposals 出力フォーマットが「対象箇所を特定・適用できる構造」としか記述されておらず、2人の独立したレビュアーが実装の適合性について合意できる水準の具体性がない"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に 6 項目、impactOnExisting に 5 項目、QA に 6 件の変更要件があるが、いずれにも must/should/nice-to-have の優先度が付与されていない"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — plan phase のレビューステップ改修という単一の concern に絞られており、新たな違反なし; Unambiguous Requirements — impactOnExisting の should 項目「review-draft / review-spec の skill instructions プロンプト更新」「PHASE_REVIEW_PARSERS — 出力形式変更に伴う更新」「review 関連テストの更新」はすべて「更新」という動詞のみで検証可能な完了条件を示していない; Complete Context — 上記 3 つの should 項目は「更新」という主観的な語のみで記述されており、2 人の独立したレビュアーが実装の充足を合意できる基準がない; No Hardcoded Secrets — 以前 pass。新たなシークレットのハードコードなし; Prioritize Requirements — impactOnExisting 7 項目すべてに [must]/[should] の優先度が付与されている; Impact on Existing Features — 以前 pass。新たな違反なし; Present Recommendations with Reasoning — 以前 pass。新たな違反なし; Explore Before Asking — 以前 pass。新たな違反なし; Proactively Raise Related Implications — 以前 pass。新たな違反なし; Confirm Brainstorm vs. Decision Before Critiquing — 以前 pass。新たな違反なし; Capture Digressions in draft.md — 以前 pass。新たな違反なし; Draft Stays at Requirements Level — 以前 pass。新たな違反なし; Backward-Compatible CLI Interface — 以前 pass。新たな違反なし",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T00:12:28.952Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "impactOnExisting の should 項目「review-draft / review-spec の skill instructions プロンプト更新」「PHASE_REVIEW_PARSERS — 出力形式変更に伴う更新」「review 関連テストの更新」はすべて「更新」という動詞のみで検証可能な完了条件を示していない"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "上記 3 つの should 項目は「更新」という主観的な語のみで記述されており、2 人の独立したレビュアーが実装の充足を合意できる基準がない"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — plan phase レビューステップの改修という単一の concern に限定されており、無関係な変更を混在させていない。; Task Single Responsibility — 全 7 タスクが単一の concern を扱っている（リネーム、パーサー更新、config更新、draft書き換え、spec書き換え、トークン削減、プロンプト更新）。タイトルや実装ノートも各タスク内で concern が分散していない。; Unambiguous Requirements — R-01〜R-07 は削除対象の関数名・出力フォーマット（番号付きリスト）・バイト数比較・commandId 文字列など具体的条件を記述している。R-08 の「正しく消費できるよう」は曖昧だが他要件は検証可能な条件を持つ。; Complete Context — R-08（skill instructions プロンプト更新）が「正しく消費できるよう」という主観的表現のみで、要件単体では 2 人の独立したレビュアーが合否を判断できる基準がない。測定可能な基準は T-7 の acceptance にのみ存在し、要件本文に含まれていない。; REQ Diff-Verifiability — R-01〜R-05 は関数削除・callReviewAgent 呼び出し回数・commandId 文字列の有無で diff から判定可能。R-04 のバイト数比較は単体テストで検証可能。R-06〜R-08 もテスト実行またはファイル内容で判定できる。; No Hardcoded Secrets — 仕様書であり、シークレットへの言及はない。; No Silent Error Swallowing — エラーハンドリングの削除や無視を要求する記述はなく、本 guardrail は内容上適用外。; Prioritize Requirements — 8 件の要件すべてに priority が付与されている（R-01〜R-05: must、R-06〜R-08: should）。; Impact on Existing Features — scope.out で影響を受けないパイプラインを明示。acceptance_criteria で既存テスト全件 PASS を要求。constraints で CLI インターフェース不変を明記。; Bounded Resource Usage — 最悪 10 回の AI 呼び出しを固定 2 回に削減することを明示しており、無限ループ・無制限リトライを廃止する設計になっている。; Spec Includes Test Strategy — 全 7 タスクに test_strategy フィールドが記述され、spec レベルの acceptance_criteria も定義されている。; Synthesize Draft, Do Not Copy — 元の draft/Issue 本文が提供されていないため、合成か転写かを判断できない。; Record Unresolved Points as Open Questions — open_questions は空。decisions の各項目に evidence が付与されており、未解決事項に対して回答を捏造している箇所はない。; Include 'Why This Approach' Rationale — overview.decisions に evidence フィールド、alternatives_considered に却下理由、design_principles に設計方針の根拠が記述されている。; Spec Test Coverage — 実装前の仕様レビューであり、specs/<specid>/tests/ 配下のテストコードの存在・合否は現時点では評価不能。; Backward-Compatible CLI Interface — constraints に「sdd-forge flow run review --phase <phase> は変更しない」と明記されており、移行計画が不要な変更範囲に留まっている。; Exit Code Contract — 新規 CLI コマンドの追加・既存コマンドの変更がなく、exit code 契約に影響しない。; Validate User Input at Entry Point — ユーザー向け CLI 引数の追加・変更がなく、エントリポイントのバリデーション要件は発生しない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T00:33:14.756Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R-08（skill instructions プロンプト更新）が「正しく消費できるよう」という主観的表現のみで、要件単体では 2 人の独立したレビュアーが合否を判断できる基準がない。測定可能な基準は T-7 の acceptance にのみ存在し、要件本文に含まれていない。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-30T01:47:33.423Z"
+    }
+  ]
+}

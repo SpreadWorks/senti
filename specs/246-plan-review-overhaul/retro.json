@@ -1,0 +1,72 @@
+{
+  "spec": "specs/246-plan-review-overhaul/spec.json",
+  "date": "2026-04-30T01:47:15.435Z",
+  "requirements": [
+    {
+      "desc": "draft review（runDraftReview）から auto-fix を廃止する。buildDraftFixPrompt と draft.json 自動書き換えを削除し、不足検出結果のみを draft-review.md に番号付きリストとして出力する",
+      "status": "done",
+      "note": "buildDraftFixPrompt 削除済み、draft.json への writeFileSync 除去済み、formatDraftReviewMd が issues 配列を番号付きリストに整形して draft-review.md に出力"
+    },
+    {
+      "desc": "spec review（runSpecReview）を propose→validate 2 ステップに変更する。detect/validate/fix 3 ステップの runReviewLoop 呼び出しを廃止し、propose agent で proposals 生成 → validate agent で APPROVED/REJECTED 判定の 2 回の AI 呼び出しで完結させる",
+      "status": "done",
+      "note": "runReviewLoop 廃止済み。callReviewAgent を flow.spec.review.propose → flow.impl.review.final の順で 2 回呼び出す構造に変更。commandId が agent.call() に渡って LLM 設定を決定するため validate ステップは flow.impl.review.final を正しく使用している"
+    },
+    {
+      "desc": "spec review の auto-fix を廃止する。buildSpecFixPrompt と spec.md 自動書き換えを削除し、APPROVED proposals を spec-review.md に番号付きリスト（タイトル、対象セクション名、変更内容）として出力する",
+      "status": "done",
+      "note": "buildSpecFixPrompt 削除済み、spec.md write 除去済み。formatSpecReviewMd が APPROVED/REJECTED proposals を番号付きリストで出力。対象セクション名・変更内容は proposals の body フィールド経由で AI が生成したテキストを保持する構造"
+    },
+    {
+      "desc": "spec review の入力を spec.md 全文から spec.json フィールド選択（goal, background, scope, constraints, design_principles, overview, requirements の id+desc+priority）に変更し、markdown 形式に整形した上で minify して propose agent に送る。1 回あたりの入力バイト数が spec.md 全文より小さいこと",
+      "status": "done",
+      "note": "buildSpecSummaryMarkdown 関数が指定フィールドを markdown 整形し minify を適用。runSpecReview は spec.md 読み込みを廃止して buildSpecSummaryMarkdown(spec) の結果を入力に使用。テストコードも bytes < spec.md bytes を検証"
+    },
+    {
+      "desc": "エージェント commandId をリネームする: flow.impl.review.draft → flow.impl.review.propose、flow.draft.review → flow.draft.review.propose、flow.spec.review → flow.spec.review.propose。review.js 内の全参照箇所を一括変更する",
+      "status": "done",
+      "note": "review.js 内の runLoopReview (3箇所)、runSpecReview、runDraftReview、runReview 末尾 (2箇所) を含む全参照が新 commandId に置換済み"
+    },
+    {
+      "desc": "run-review.js の PHASE_REVIEW_PARSERS と parseDraftReviewOutput をリネーム後の commandId・出力ヘッダーに合わせて更新する。パーサーの regex パターンがリネーム後の stderr 出力と一致すること",
+      "status": "done",
+      "note": "parseDraftReviewOutput → parseProposalReviewOutput にリネーム済み。PHASE_REVIEW_PARSERS の各エントリに commandId フィールドを追加してリネーム後の値に更新。regex パターン(/issues=(\\d+)/)は stderr 出力形式が変わっていないため引き続き一致"
+    },
+    {
+      "desc": ".sdd-forge/config.json の agent.providers セクションの commandId キーをリネーム後の値に変更する",
+      "status": "done",
+      "note": "flow.spec.review → flow.spec.review.propose、flow.impl.review.draft → flow.impl.review.propose に変更。flow.draft.review.propose を新規追加"
+    },
+    {
+      "desc": "review-draft.md が「不足検出レポート出力 → skill 側 AI が追加質問」の流れを記述し、review-spec.md が「propose→validate → APPROVED proposals レポート出力 → skill 側 AI が反映」の流れを記述していること",
+      "status": "done",
+      "note": "review-draft.md: detection-only モードの記述、draft-review.md 読み取り + 追加質問フローを明記。review-spec.md: propose→validate 2 ステップ説明、spec-review.md の APPROVED proposals を skill 側 AI が反映する手順を明記。auto-fix 記述は両ファイルとも除去"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-review.js",
+      "change": "PHASE_REVIEW_PARSERS を新たに export するようになった（R-06 は関数リネームと内容更新を要求しているが export 追加は要件に記載なし）"
+    },
+    {
+      "file": "src/flow/commands/review.js",
+      "change": "formatSpecReviewMd が REJECTED proposals も verdict と reason 付きで出力する（R-03 は APPROVED proposals のみ言及。ただし T-5 acceptance criteria には含まれる）"
+    },
+    {
+      "file": "src/flow/commands/review.js",
+      "change": "ensureAgent(\"flow.impl.review.final\") の戻り値を変数に代入せず呼び出しのみ行っている（commandId 設定の存在確認のみを行うパターンだが、コード上は意図が不明確な dead-assignment に見える）"
+    },
+    {
+      "file": "src/flow/commands/review.js",
+      "change": "formatPhaseReviewMd 関数が残存しているが、formatSpecReviewMd・formatDraftReviewMd の双方がこれを呼び出さなくなり dead code になっている可能性がある（他の呼び出し元がある場合を除く）"
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "8 要件すべて done。主要な変更（auto-fix 廃止・propose→validate 化・トークン削減・commandId リネーム・プロンプト更新）は spec どおり実装されている。unplanned 項目は機能破壊ではないが、formatPhaseReviewMd の dead code 化は cleanup 対象として確認が必要"
+  }
+}
