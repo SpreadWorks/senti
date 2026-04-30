@@ -1,0 +1,84 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — メトリクス token の text 出力フォーマット改修という単一 concern に絞られており、無関係な変更は含まれていない。; Unambiguous Requirements — toFixed(1)、カラム順序、フェーズ区切り形式など、検証可能な条件で要件が記述されている。主観的形容詞の使用は最小限。; Complete Context — QA 各エントリに evidence・why・considered が揃い、独立した2人のレビュアーが実装の合否を判断できる水準に達している。; No Hardcoded Secrets — フォーマット変更のみの spec であり、シークレット類は一切含まれない。; Prioritize Requirements — scopeVerification.in に5項目の要件があるが、must / should / nice-to-have の優先度が一切割り当てられていない。3項目超の場合は優先度付けが必須。; Impact on Existing Features — impactOnExisting に3項目（外部ツール影響・token.test.js アサーション破損・CSV アサーション影響）が明示されている。; Present Recommendations with Reasoning — 全 QA エントリに推奨回答 + evidence（コード箇所引用）+ why + considered の構成が整っている。; Explore Before Asking — token.js の具体的な行番号（:113-146, :284-307, :159-161 等）を参照しており、コードを事前に読んで回答していることが確認できる。; Proactively Raise Related Implications — キャッシュスキーマ変更による旧キャッシュ不整合、e2e テスト破損、CSV アサーション影響など関連する波及を事前に列挙している。; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true で承認済みの決定ドキュメントであり、ブレインストーム段階ではない。; Capture Digressions in draft.md — これは構造化された spec であり、会話上の脱線が発生する文脈ではないため評価不可。; Draft Stays at Requirements Level — キャッシュ再計算の QA 回答（answer フィールド）に「version フィールドを追加しコード側の期待 version と不一致ならリビルド」という内部データ構造・制御フローの記述が含まれている。answer フィールドは guardrail の除外対象（evidence/why/considered）ではなく、要件レベルの記述（例:「旧フォーマット検出時に自動再構築すること」）に留めるべき。; Backward-Compatible CLI Interface — CLI コマンド・オプションの変更はなく、変更対象は formatText の出力フォーマットのみ。マイグレーションプランの適用外。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T04:53:00.253Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に5項目の要件があるが、must / should / nice-to-have の優先度が一切割り当てられていない。3項目超の場合は優先度付けが必須。"
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "キャッシュ再計算の QA 回答（answer フィールド）に「version フィールドを追加しコード側の期待 version と不一致ならリビルド」という内部データ構造・制御フローの記述が含まれている。answer フィールドは guardrail の除外対象（evidence/why/considered）ではなく、要件レベルの記述（例:「旧フォーマット検出時に自動再構築すること」）に留めるべき。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — スペックは metrics token 出力フォーマット改修という単一の concern に集中しており、無関係な変更は含まれていない。; Task Single Responsibility — 各タスクは単一の concern（データモデル追加、サマリー計算更新、テキスト整形、CSV/JSON更新、キャッシュバージョン管理）に集中しており、無関係な actions の混在はない。; Unambiguous Requirements — 各要件は verifiable な条件（toFixed(1)、cacheRead/(tokenInput+cacheRead)、version 不一致など）で記述されている。R2 の「現行の罫線幅に合わせる」はやや曖昧だが、T-3 acceptance で「テーブル幅に合わせる」と補足されており許容範囲。; Complete Context — R5 は数式を明示し、R6 は精度を明示し、R8 の avgDifficulty の算出方法は T-2 implementation_notes に記載されており、独立したレビュアーが合意できる水準に達している。; REQ Diff-Verifiability — 全要件はコード変更と既存テストの実行結果のみで PASS/FAIL を判定できる。将来の拡張性契約や out-of-diff プロセス不変量への依存はない。; No Hardcoded Secrets — スペックに API キー・パスワード・トークン等のシークレットは含まれていない。; No Silent Error Swallowing — 実装コードが提供されていないため、エラー処理の実態を評価できない。; Prioritize Requirements — 8件の要件すべてに must/should の優先度が付与されている。; Impact on Existing Features — text/CSV のカラム追加・フォーマット変更は既存の出力を消費するスクリプトに影響するが、既存機能への影響を明示したセクションがなく「影響なし」の明示もない。; Bounded Resource Usage — 再帰処理・リトライ・バルクロードを伴う新設計はない。既存の buildRows ループに上限を設ける必要はないと判断できる。; Spec Includes Test Strategy — 全5タスクに test_strategy フィールドがあり、unit/e2e の観点と検証内容が記載されている。; Synthesize Draft, Do Not Copy — スペックはドラフト内容を整理・抽象化した形式になっており、直接コピーの痕跡はない。; Record Unresolved Points as Open Questions — open_questions は空であり、未解決事項は clarifications セクションに Q&A として適切に記載されている。; Include 'Why This Approach' Rationale — overview.decisions に各設計判断の根拠（evidence）が明示され、alternatives_considered で却下理由も記載されている。; Spec Test Coverage — specs/<specid>/tests/ 配下にテストが実際に書かれるかどうかは実装フェーズの成果物であり、スペック文書のみから判定できない。; Backward-Compatible CLI Interface — 既存 CLI コマンドの削除や意味変更はなく、出力フォーマットのみの変更であるため migration plan は不要。; Exit Code Contract — 新規 CLI コマンドの追加も既存コマンドの exit code 変更もスコープに含まれていない。; Validate User Input at Entry Point — ユーザー向け引数の追加・変更はスコープに含まれていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T05:12:09.193Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "text/CSV のカラム追加・フォーマット変更は既存の出力を消費するスクリプトに影響するが、既存機能への影響を明示したセクションがなく「影響なし」の明示もない。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "review-test",
+      "reason": "Test review subprocess error: requirements.filter is not a function in review.js:879. This is a pre-existing bug in the review command when requirements is an object-keyed structure rather than an array.",
+      "trigger": "sdd-forge flow run review --phase test",
+      "resolution": "Skipping test review step as this is a pre-existing issue unrelated to spec 247 changes",
+      "guardrailCandidate": "review.js should handle both array and object requirement formats",
+      "taskId": null,
+      "timestamp": "2026-04-30T05:31:12.429Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-30T05:47:59.208Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-30T05:48:26.272Z"
+    }
+  ]
+}

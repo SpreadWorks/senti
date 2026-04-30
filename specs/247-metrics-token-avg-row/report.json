@@ -1,0 +1,112 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/247-metrics-token-avg-row/draft-review.md    |   8 +\n specs/247-metrics-token-avg-row/draft.json         |  98 ++++\n specs/247-metrics-token-avg-row/file-map.json      |  10 +\n specs/247-metrics-token-avg-row/flow.json          | 538 +++++++++++++++++++++\n specs/247-metrics-token-avg-row/issue-log.json     |  74 +++\n specs/247-metrics-token-avg-row/issue.md           |  60 +++\n specs/247-metrics-token-avg-row/qa.md              |   9 +\n specs/247-metrics-token-avg-row/review.md          |   3 +\n specs/247-metrics-token-avg-row/spec-review.md     |  57 +++\n specs/247-metrics-token-avg-row/spec.json          | 232 +++++++++\n specs/247-metrics-token-avg-row/spec.md            | 108 +++++\n specs/247-metrics-token-avg-row/tasks/T-1.md       |  21 +\n specs/247-metrics-token-avg-row/tasks/T-2.md       |  20 +\n specs/247-metrics-token-avg-row/tasks/T-3.md       |  23 +\n specs/247-metrics-token-avg-row/tasks/T-4.md       |  22 +\n specs/247-metrics-token-avg-row/tasks/T-5.md       |  19 +\n .../tests/247-metrics-token-avg-row.test.js        | 338 +++++++++++++\n .../247-metrics-token-avg-row/tests/test-map.json  |  29 ++\n src/metrics/commands/token.js                      | 117 +++--\n tests/e2e/metrics/token-finalized-at.test.js       |   1 +\n tests/e2e/metrics/token.test.js                    |   8 +-\n 21 files changed, 1763 insertions(+), 32 deletions(-)",
+      "commits": [
+        "metrics-token-avg-row-output"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 8,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "rate": 1,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "formatText は出力先頭にカラムヘッダーを一度だけ出力し、フェーズごとにヘッダーを繰り返さない",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "formatText のフェーズ区切りは '-- {phaseLabel} ' + '-' パディング（現行の罫線幅に合わせる）形式とする",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "formatText のサマリー行を AVG 行に変更。データ行と同じカラムに揃え、先頭列に 'AVG.' を表示する",
+          "status": "done",
+          "note": "3 test(s)"
+        },
+        {
+          "desc": "行データに specCount フィールドを追加。値は buildRows で同一 (date, phase) キーに集約された flow.json の数。全フォーマット (text/json/csv) に反映する",
+          "status": "done",
+          "note": "4 test(s)"
+        },
+        {
+          "desc": "行データに cacheHitRate フィールドを追加。値は cacheRead / (tokenInput + cacheRead)。(tokenInput + cacheRead) が 0 の場合は null。全フォーマットに反映する",
+          "status": "done",
+          "note": "5 test(s)"
+        },
+        {
+          "desc": "text/CSV の cost 表示精度を toFixed(1) に変更する。JSON は数値のまま",
+          "status": "done",
+          "note": "3 test(s)"
+        },
+        {
+          "desc": "キャッシュ JSON に version フィールドを追加し、コード側の期待バージョンと不一致の場合はリビルドする",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "computePhaseSummary に avgSpecCount と avgDifficulty を追加し、AVG 行に反映する",
+          "status": "done",
+          "note": "1 test(s)"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 3,
+      "question": 4,
+      "issueLog": 1
+    },
+    "tokenMetrics": {
+      "input": 31,
+      "output": 25031,
+      "cacheRead": 121896,
+      "cacheCreation": 1252864,
+      "cost": 6.9197719,
+      "callCount": 22,
+      "durationMs": 1142805,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 290426
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 112239
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 448607
+        },
+        {
+          "phase": "gate",
+          "durationMs": 139359
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 129531
+        },
+        {
+          "phase": "review",
+          "durationMs": 22643
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    metrics-token-avg-row-output\n    21 files changed, 1763 insertions(+), 32 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (8 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 3\n    Q&A ......................... 4\n    issue-log ................... 1\n    agent calls ................. 22\n    input tokens ................ 31\n    output tokens ............... 25,031\n    cache-read tokens ........... 121,896\n    cache-create tokens ......... 1,252,864\n    cost ........................ $6.9198\n    duration (total) ............ 1142.8s\n      review-draft .............. 290.4s\n      gate-draft ................ 112.2s\n      review-spec ............... 448.6s\n      gate ...................... 139.4s\n      gate-impl ................. 129.5s\n      review .................... 22.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

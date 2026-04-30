@@ -13,6 +13,7 @@ import { Command } from "../../lib/command.js";
 import { EXIT_ERROR, EXIT_SUCCESS, VALID_PHASES } from "../../lib/constants.js";
 import { formatDurationSeconds } from "../../lib/formatter.js";
 
+const CACHE_VERSION = 2;
 const DEFAULT_FORMAT = "text";
 const SUPPORTED_FORMATS = new Set(["text", "json", "csv"]);
 const MAX_FLOW_FILES = 5000;
@@ -118,9 +119,13 @@ export function computePhaseSummary(phaseRows) {
   let totalInput = 0;
   let totalOutput = 0;
   let totalCacheRead = 0;
+  let totalCacheCreate = 0;
+  let totalSpecCount = 0;
   let costSum = 0;
   let costCount = 0;
   let durationCount = 0;
+  let difficultySum = 0;
+  let difficultyCount = 0;
 
   for (const row of phaseRows) {
     totalCalls += row.callCount || 0;
@@ -128,7 +133,10 @@ export function computePhaseSummary(phaseRows) {
     totalInput += row.tokenInput || 0;
     totalOutput += row.tokenOutput || 0;
     totalCacheRead += row.cacheRead || 0;
+    totalCacheCreate += row.cacheCreate || 0;
+    totalSpecCount += row.specCount || 0;
     if (row.cost != null) { costSum += row.cost; costCount += 1; }
+    if (row.difficulty != null) { difficultySum += row.difficulty; difficultyCount += 1; }
   }
 
   const cacheHitRate = (totalInput + totalCacheRead) > 0
@@ -137,15 +145,35 @@ export function computePhaseSummary(phaseRows) {
 
   return {
     totalCalls,
+    avgCallCount: n > 0 ? totalCalls / n : null,
     avgCost: costCount > 0 ? costSum / costCount : null,
     avgDuration: durationCount > 0 ? totalDuration / durationCount : null,
     avgTokenInput: n > 0 ? totalInput / n : null,
     avgTokenOutput: n > 0 ? totalOutput / n : null,
+    avgCacheRead: n > 0 ? totalCacheRead / n : null,
+    avgCacheCreate: n > 0 ? totalCacheCreate / n : null,
     cacheHitRate,
+    avgSpecCount: n > 0 ? totalSpecCount / n : null,
+    avgDifficulty: difficultyCount > 0 ? difficultySum / difficultyCount : null,
   };
 }
 
 const TEXT_MAX_ROWS = 7;
+const TABLE_WIDTH = 107;
+
+function formatCacheHitPercent(rate) {
+  if (rate == null) return "—";
+  return `${Math.round(rate * 100)}%`;
+}
+
+function formatTextCost(value) {
+  if (value == null) return "—";
+  return `$${Number(value).toFixed(1)}`;
+}
+
+function textDataLine(label, specs, diff, inTok, outTok, read, create, hit, calls, cost, duration) {
+  return `${label.padEnd(13)}| ${specs.padEnd(6)}| ${diff.padEnd(12)}| ${inTok.padEnd(8)}${outTok.padEnd(7)}| ${read.padEnd(7)}${create.padEnd(7)}${hit.padEnd(6)}| ${calls.padEnd(11)}| ${cost.padEnd(9)}| ${duration}`;
+}
 
 export function formatText(rows) {
   if (!rows.length) return "No metrics data found.";
@@ -153,29 +181,32 @@ export function formatText(rows) {
   const lines = [];
   const groups = groupRowsByPhase(rows, { dateDesc: true });
 
+  lines.push(textDataLine("", "", "", "token", "", "cache", "", "", "", "", ""));
+  lines.push(textDataLine("", "specs", "difficulty", "in", "out", "read", "create", "hit", "call count", "cost", "duration"));
+
   for (const [phase, allPhaseRows] of groups.entries()) {
-    lines.push(`PHASE ${phaseLabel(phase)}`);
-    lines.push("");
-    lines.push("             |             | token          | cache          |            |            |          |");
-    lines.push("             | difficulty  | in      out    | read   create  | call count | cost       | duration |");
-    lines.push("---------------------------------------------------------------------------------------------------");
+    const sep = `-- ${phaseLabel(phase)} `;
+    lines.push(sep + "-".repeat(Math.max(3, TABLE_WIDTH - sep.length)));
 
     const displayed = allPhaseRows.slice(0, TEXT_MAX_ROWS);
     const elided = allPhaseRows.length - displayed.length;
 
     for (const row of displayed) {
       const incomplete = row.costIncomplete && row.cost != null;
-      const date = row.date.padEnd(11, " ");
-      const diff = asDisplayValue(row.difficulty, "difficulty").padEnd(11, " ");
-      const inTok = asDisplayValue(row.tokenInput).padEnd(7, " ");
-      const outTok = asDisplayValue(row.tokenOutput).padEnd(7, " ");
-      const read = asDisplayValue(row.cacheRead).padEnd(6, " ");
-      const create = asDisplayValue(row.cacheCreate).padEnd(7, " ");
-      const calls = asDisplayValue(row.callCount).padEnd(10, " ");
-      const suffix = incomplete ? " +" : "";
-      const cost = (asDisplayValue(row.cost, "cost") + suffix).padEnd(10, " ");
-      const duration = asDisplayValue(row.durationMs, "duration");
-      lines.push(`${date} | ${diff} | ${inTok} ${outTok} | ${read} ${create} | ${calls} | ${cost} | ${duration}`);
+      const costStr = formatTextCost(row.cost) + (incomplete ? " +" : "");
+      lines.push(textDataLine(
+        row.date,
+        String(row.specCount),
+        asDisplayValue(row.difficulty, "difficulty"),
+        asDisplayValue(row.tokenInput),
+        asDisplayValue(row.tokenOutput),
+        asDisplayValue(row.cacheRead),
+        asDisplayValue(row.cacheCreate),
+        formatCacheHitPercent(row.cacheHitRate),
+        asDisplayValue(row.callCount),
+        costStr,
+        asDisplayValue(row.durationMs, "duration"),
+      ));
     }
     if (elided > 0) {
       lines.push(`... and ${elided} more`);
@@ -183,11 +214,20 @@ export function formatText(rows) {
 
     const summary = computePhaseSummary(allPhaseRows);
     if (summary) {
-      lines.push("---------------------------------------------------------------------------------------------------");
-      const avgCostStr = summary.avgCost != null ? `$${summary.avgCost.toFixed(4)}` : "—";
-      const avgDurStr = summary.avgDuration != null ? formatDurationSeconds(summary.avgDuration) : "—";
-      const cacheStr = summary.cacheHitRate != null ? `${(summary.cacheHitRate * 100).toFixed(0)}%` : "—";
-      lines.push(`  avg cost: ${avgCostStr} | avg duration: ${avgDurStr} | total calls: ${summary.totalCalls} | avg tokens: ${Math.round(summary.avgTokenInput || 0)}/${Math.round(summary.avgTokenOutput || 0)} | cache hit: ${cacheStr}`);
+      lines.push("-".repeat(TABLE_WIDTH));
+      lines.push(textDataLine(
+        "AVG.",
+        summary.avgSpecCount != null ? summary.avgSpecCount.toFixed(1) : "—",
+        summary.avgDifficulty != null ? summary.avgDifficulty.toFixed(2) : "—",
+        summary.avgTokenInput != null ? String(Math.round(summary.avgTokenInput)) : "—",
+        summary.avgTokenOutput != null ? String(Math.round(summary.avgTokenOutput)) : "—",
+        summary.avgCacheRead != null ? String(Math.round(summary.avgCacheRead)) : "—",
+        summary.avgCacheCreate != null ? String(Math.round(summary.avgCacheCreate)) : "—",
+        formatCacheHitPercent(summary.cacheHitRate),
+        summary.avgCallCount != null ? summary.avgCallCount.toFixed(1) : "—",
+        summary.avgCost != null ? formatTextCost(summary.avgCost) : "—",
+        summary.avgDuration != null ? formatDurationSeconds(summary.avgDuration) : "—",
+      ));
     }
     lines.push("");
   }
@@ -205,8 +245,13 @@ export function formatJson(rows) {
   return JSON.stringify({ rows: sorted, phaseSummary }, null, 2);
 }
 
+function csvCostValue(value) {
+  if (value == null) return "—";
+  return Number(value).toFixed(1);
+}
+
 export function formatCsv(rows) {
-  const header = "date,phase,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,callCount,cost,durationMs,incomplete";
+  const header = "date,phase,specCount,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,cacheHitRate,callCount,cost,durationMs,incomplete";
   const lines = [header];
   const groups = groupRowsByPhase(rows);
 
@@ -215,13 +260,15 @@ export function formatCsv(rows) {
       lines.push([
         row.date,
         phaseLabel(row.phase),
+        row.specCount,
         asCsvValue(row.difficulty, "difficulty"),
         asCsvValue(row.tokenInput),
         asCsvValue(row.tokenOutput),
         asCsvValue(row.cacheRead),
         asCsvValue(row.cacheCreate),
+        row.cacheHitRate != null ? row.cacheHitRate.toFixed(4) : "N/A",
         asCsvValue(row.callCount),
-        asCsvValue(row.cost, "cost"),
+        csvCostValue(row.cost),
         asCsvValue(row.durationMs),
         row.costIncomplete && row.cost != null ? "+" : "",
       ].join(","));
@@ -231,13 +278,15 @@ export function formatCsv(rows) {
       lines.push([
         "SUMMARY",
         phaseLabel(phase),
-        "",
+        summary.avgSpecCount != null ? summary.avgSpecCount.toFixed(1) : "",
+        summary.avgDifficulty != null ? summary.avgDifficulty.toFixed(2) : "",
         summary.avgTokenInput != null ? Math.round(summary.avgTokenInput) : "",
         summary.avgTokenOutput != null ? Math.round(summary.avgTokenOutput) : "",
-        "",
-        "",
-        summary.totalCalls,
-        summary.avgCost != null ? summary.avgCost.toFixed(6) : "—",
+        summary.avgCacheRead != null ? Math.round(summary.avgCacheRead) : "",
+        summary.avgCacheCreate != null ? Math.round(summary.avgCacheCreate) : "",
+        summary.cacheHitRate != null ? summary.cacheHitRate.toFixed(4) : "",
+        summary.avgCallCount != null ? summary.avgCallCount.toFixed(1) : "",
+        summary.avgCost != null ? csvCostValue(summary.avgCost) : "—",
         summary.avgDuration != null ? Math.round(summary.avgDuration) : "",
         "",
       ].join(","));
@@ -303,6 +352,10 @@ async function isCacheFresh(cachePath, maxFinalizedAt) {
     return false;
   }
   if (typeof parsed?.maxFinalizedAt !== "string") return false;
+  if (parsed.version !== CACHE_VERSION) {
+    process.stderr.write(`sdd-forge metrics token: cache version mismatch (got ${parsed.version}, expected ${CACHE_VERSION}), rebuilding\n`);
+    return false;
+  }
   return parsed.maxFinalizedAt >= maxFinalizedAt;
 }
 
@@ -314,6 +367,7 @@ function createEmptyRow(date, phase) {
   return {
     date,
     phase,
+    specCount: 0,
     difficulty: null,
     tokenInput: null,
     tokenOutput: null,
@@ -328,6 +382,7 @@ function createEmptyRow(date, phase) {
 }
 
 function applyPhaseMetrics(row, phaseData, specDifficulty) {
+  row.specCount += 1;
   const tokens = phaseData.tokens && typeof phaseData.tokens === "object" ? phaseData.tokens : {};
   addMetric(row, "tokenInput", tokens.input);
   addMetric(row, "tokenOutput", tokens.output);
@@ -361,14 +416,19 @@ export function buildRowsFromMetrics(date, metrics, specDifficulty = null) {
 }
 
 function finalizeRow(row) {
+  const tokenInput = row.tokenInput || 0;
+  const cacheRead = row.cacheRead || 0;
+  const cacheHitDenom = tokenInput + cacheRead;
   return {
     date: row.date,
     phase: row.phase,
+    specCount: row.specCount,
     difficulty: row._difficultyCount > 0 ? row._difficultySum / row._difficultyCount : null,
     tokenInput: row.tokenInput,
     tokenOutput: row.tokenOutput,
     cacheRead: row.cacheRead,
     cacheCreate: row.cacheCreate,
+    cacheHitRate: cacheHitDenom > 0 ? cacheRead / cacheHitDenom : null,
     callCount: row.callCount,
     cost: row.cost,
     costIncomplete: row.costIncomplete || false,
@@ -541,6 +601,7 @@ async function readCacheRows(cachePath) {
 async function writeCache(cachePath, rows, maxFinalizedAt) {
   await fs.mkdir(path.dirname(cachePath), { recursive: true });
   const payload = {
+    version: CACHE_VERSION,
     generatedAt: new Date().toISOString(),
     maxFinalizedAt,
     rows: sortRows(rows),

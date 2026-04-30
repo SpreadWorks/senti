@@ -113,6 +113,7 @@ describe("metrics token — state.finalizedAt as date axis (R2, R3, R4, R5)", ()
       metricsFlow("2025-06-15T12:00:00Z"),
     );
     writeJson(tmp, ".sdd-forge/output/metrics.json", {
+      version: 2,
       generatedAt: "2025-06-16T00:00:00Z",
       maxFinalizedAt: "2025-06-15T12:00:00Z",
       rows: [

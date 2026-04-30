@@ -1,0 +1,57 @@
+{
+  "spec": "specs/247-metrics-token-avg-row/spec.json",
+  "date": "2026-04-30T05:46:18.047Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "formatText は出力先頭にカラムヘッダーを一度だけ出力し、フェーズごとにヘッダーを繰り返さない",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "formatText のフェーズ区切りは '-- {phaseLabel} ' + '-' パディング（現行の罫線幅に合わせる）形式とする",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "formatText のサマリー行を AVG 行に変更。データ行と同じカラムに揃え、先頭列に 'AVG.' を表示する",
+      "status": "done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "行データに specCount フィールドを追加。値は buildRows で同一 (date, phase) キーに集約された flow.json の数。全フォーマット (text/json/csv) に反映する",
+      "status": "done",
+      "note": "4 test(s)"
+    },
+    {
+      "desc": "行データに cacheHitRate フィールドを追加。値は cacheRead / (tokenInput + cacheRead)。(tokenInput + cacheRead) が 0 の場合は null。全フォーマットに反映する",
+      "status": "done",
+      "note": "5 test(s)"
+    },
+    {
+      "desc": "text/CSV の cost 表示精度を toFixed(1) に変更する。JSON は数値のまま",
+      "status": "done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "キャッシュ JSON に version フィールドを追加し、コード側の期待バージョンと不一致の場合はリビルドする",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "computePhaseSummary に avgSpecCount と avgDifficulty を追加し、AVG 行に反映する",
+      "status": "done",
+      "note": "1 test(s)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "rate": 1,
+    "notes": "static evaluation from test-map.json"
+  }
+}

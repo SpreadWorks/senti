@@ -1,0 +1,29 @@
+{
+  "R1": ["247-metrics-token-avg-row.test.js > R1: text output shows column header once at top"],
+  "R2": ["247-metrics-token-avg-row.test.js > R2: text output uses -- phase --- separator format"],
+  "R3": [
+    "247-metrics-token-avg-row.test.js > R3: text output has AVG. row aligned to data columns",
+    "247-metrics-token-avg-row.test.js > R3+R8: AVG row in text includes specs and cache hit columns",
+    "247-metrics-token-avg-row.test.js > R3: separator line before AVG row uses dashes"
+  ],
+  "R4": [
+    "247-metrics-token-avg-row.test.js > R4: json rows include specCount field",
+    "247-metrics-token-avg-row.test.js > R4: csv includes specCount column",
+    "247-metrics-token-avg-row.test.js > R4: text output shows specs column",
+    "247-metrics-token-avg-row.test.js > R4: specCount reflects number of flow.json files per (date, phase)"
+  ],
+  "R5": [
+    "247-metrics-token-avg-row.test.js > R5: json rows include cacheHitRate field",
+    "247-metrics-token-avg-row.test.js > R5: cacheHitRate is null when tokenInput + cacheRead is 0",
+    "247-metrics-token-avg-row.test.js > R5: csv includes cacheHitRate column",
+    "247-metrics-token-avg-row.test.js > R5: text output shows hit column in cache group",
+    "247-metrics-token-avg-row.test.js > R5: cacheHitRate = cacheRead / (tokenInput + cacheRead)"
+  ],
+  "R6": [
+    "247-metrics-token-avg-row.test.js > R6: text cost displays with one decimal place",
+    "247-metrics-token-avg-row.test.js > R6: csv cost uses toFixed(1)",
+    "247-metrics-token-avg-row.test.js > R6: json cost remains numeric (not string)"
+  ],
+  "R7": ["247-metrics-token-avg-row.test.js > R7: stale cache (no version) triggers rebuild"],
+  "R8": ["247-metrics-token-avg-row.test.js > R8: json phaseSummary includes avgSpecCount, avgDifficulty, avgCallCount"]
+}

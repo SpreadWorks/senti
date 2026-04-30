@@ -89,7 +89,7 @@ describe("metrics token command", () => {
       env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp, SDD_FORGE_SOURCE_ROOT: tmp },
       cwd: tmp,
     });
-    assert.match(out, /PHASE\s+draft/i);
+    assert.match(out, /-- draft -+/i);
     assert.match(out, /difficulty/i);
     assert.match(out, /call count/i);
   });
@@ -103,7 +103,7 @@ describe("metrics token command", () => {
     });
     assert.match(
       out,
-      /date,phase,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,callCount,cost/i
+      /date,phase,specCount,difficulty,tokenInput,tokenOutput,cacheRead,cacheCreate,cacheHitRate,callCount,cost/i
     );
   });
 
@@ -134,7 +134,7 @@ describe("metrics token command", () => {
     const lines = out.trim().split("\n");
     assert.ok(lines.length >= 2, "csv must include at least one data row");
     const cols = lines[1].split(",");
-    assert.equal(cols[2], "—");
+    assert.equal(cols[3], "—");
   });
 
   it("treats missing qaCount/testCount/issueLogEntries as zero for calculation", () => {
@@ -193,6 +193,6 @@ describe("metrics token command", () => {
     });
     const lines = out.trim().split("\n");
     const cols = lines[1].split(",");
-    assert.equal(cols[2], "—");
+    assert.equal(cols[3], "—");
   });
 });

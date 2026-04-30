@@ -1,0 +1,98 @@
+{
+  "devType": "feature",
+  "goal": "metrics token の text 出力を改修し、サマリー行を AVG 行としてカラム配置で表示。specs 列・cache hit 列追加、cost 精度変更、フェーズ区切りとヘッダー構造を改善する。",
+  "analysis": {
+    "problem": "現在のサマリー行はフリーテキスト形式で、どのカラムの集計値かが視覚的に不明確。またスペック数や cache hit rate が行レベルで見えない。",
+    "proposedApproach": "formatText を改修し、カラムヘッダーを先頭に一度だけ出力、フェーズ区切りを -- phase --- 形式に、サマリーを AVG 行としてデータ行と同じカラム配置で出力。行データに specCount と cacheHitRate を追加。",
+    "validation": "表示変更のみで集計ロジック（分母の混在）は変更しない。既存の computePhaseSummary の結果を AVG 行にマッピングするだけ。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] formatText 関数の出力フォーマット改修（AVG 行・フェーズ区切り・ヘッダー一括表示）",
+      "[must] 行データへの specCount / cacheHitRate 追加（全フォーマット）",
+      "[must] cost 表示精度の変更 (toFixed(1))",
+      "[should] キャッシュ再構築の自動検知（旧フォーマット検出時）"
+    ],
+    "out": [
+      "集計ロジック（分母の混在）の変更",
+      "flow.json のスキーマ変更",
+      "metrics.json キャッシュの後方互換"
+    ]
+  },
+  "impactOnExisting": [
+    "formatText の出力が変わるため、text 形式をパースしている外部ツールがあれば影響を受ける",
+    "e2e テスト token.test.js の /PHASE\\s+draft/ アサーションが破損する",
+    "CSV ヘッダーに新カラムが追加される場合、CSV アサーションも影響を受ける"
+  ],
+  "qa": [
+    {
+      "question": "JSON/CSV 形式にも specCount, cacheHitRate を追加するか",
+      "answer": "全フォーマットに追加",
+      "evidence": "データモデルの変更なので text だけ追加すると JSON/CSV との不整合が生じる",
+      "why": "一貫したデータモデル",
+      "considered": "text のみ変更"
+    },
+    {
+      "question": "新フィールド追加時にキャッシュが正しく再計算されるか",
+      "answer": "旧フォーマットのキャッシュを検出した場合は自動的に再構築すること",
+      "evidence": "現行の isCacheFresh (token.js:284-307) は maxFinalizedAt のみで判定。specCount/cacheHitRate が追加されると旧キャッシュにはこれらが存在しない。alpha 版ポリシー (CLAUDE.md) により後方互換不要",
+      "why": "スキーマ変更時に旧キャッシュから不完全なデータを読み込むことを防止",
+      "considered": "新フィールド不在時に暗黙リビルド、既存 maxFinalizedAt のみで運用"
+    },
+    {
+      "question": "AVG 行の各カラムの値",
+      "answer": "AVG. | avgSpecCount | avgDifficulty | avgTokenInput avgTokenOutput | avgCacheRead avgCacheCreate cacheHitRate(全行合算) | avgCallCount | avgCost($toFixed(1)) | avgDuration",
+      "evidence": "Issue #299 の表示イメージで AVG 行がデータ行と同じカラムに揃っている。computePhaseSummary (token.js:113-146) が avgCost/avgDuration/avgTokenInput/avgTokenOutput/cacheHitRate を既に算出",
+      "why": "サマリーの各値がどのカラムの集計か一目で分かる",
+      "considered": "フリーテキスト形式のサマリー行（現行 token.js:190）"
+    },
+    {
+      "question": "カラムヘッダーの表示位置",
+      "answer": "出力全体の先頭に 1 回だけ表示。各フェーズセクションでは繰り返さない",
+      "evidence": "Issue #299 の表示イメージでヘッダーが先頭に 1 回のみ。現行は formatText (token.js:159-161) でフェーズごとにヘッダーを出力している",
+      "why": "フェーズごとのヘッダー繰り返しは冗長",
+      "considered": "現行のフェーズごとヘッダー"
+    },
+    {
+      "question": "フェーズ区切りの形式と幅",
+      "answer": "-- draft --- のように phaseLabel() が返す名前を使用。区切り線の全幅は現行の罫線幅（token.js:161 の --- 行と同じ文字数）に合わせる",
+      "evidence": "Issue #299 で -- draft --- 形式を採用。現行の罫線は固定幅の --- 文字列 (token.js:161)",
+      "why": "ヘッダー繰り返し廃止に伴い、フェーズ名を区切り線に統合",
+      "considered": "PHASE draft（現行）、[draft] 形式"
+    },
+    {
+      "question": "テーブルカラムの順序と名前",
+      "answer": "左から: date | specs | difficulty | token in out | cache read create hit | call count | cost | duration。現行から specs と cache hit を追加",
+      "evidence": "Issue #299 の表示イメージと現行カラム順 (token.js:159-160) を比較。specs は date の次、cache hit は cache create の次に配置",
+      "why": "specs はフェーズ日の属性なので date の横、cache hit は cache グループ内が自然",
+      "considered": "cache hit を独立カラムグループにする"
+    },
+    {
+      "question": "cost の toFixed(1) の適用範囲",
+      "answer": "text / CSV は文字列として $0.4 形式。JSON は数値のまま（toFixed しない）",
+      "evidence": "JSON は機械可読フォーマット。現行の formatScalar (token.js:62-67) が kind ごとにフォーマットを分岐",
+      "why": "フォーマットごとの役割に合わせた精度",
+      "considered": "全フォーマットで toFixed(1)"
+    },
+    {
+      "question": "specs / cache hit の正確な意味",
+      "answer": "specs: その行（日付+フェーズ）を構成する flow.json の数。AVG 行では全行の平均。cache hit: 行レベルで cacheRead / (tokenInput + cacheRead)。AVG 行では全行合算からの比率",
+      "evidence": "buildRows (token.js:507-530) で同一 toRowKey(date, phase) に複数 flow.json が集約される。cacheHitRate は computePhaseSummary (token.js:134-136) の計算式と同一",
+      "why": "行レベルのスペック数と cache 効率を可視化",
+      "considered": "AVG specs を合計表示"
+    },
+    {
+      "question": "分母ロジック不変の制約",
+      "answer": "cost/duration は non-null 行のみで平均、token/callCount は null=0 で全行平均。この混在を変更しない",
+      "evidence": "computePhaseSummary (token.js:113-146): costCount/durationCount は non-null のみカウント、totalInput/totalOutput は || 0 で全行合算。Issue #299 で分母ロジック変更はスコープ外と明記",
+      "why": "集計ロジックの変更はスコープ外",
+      "considered": "全カラム統一で null 除外、全カラム統一で null=0"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-30",
+    "notes": "R1-R7 承認"
+  }
+}
