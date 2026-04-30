@@ -60,7 +60,9 @@ class ClaudeProvider extends Provider {
       envelope = parsed;
     }
     return {
-      text: String(envelope.result ?? ""),
+      text: envelope.structured_output != null
+        ? JSON.stringify(envelope.structured_output)
+        : String(envelope.result ?? ""),
       usage: {
         input_tokens: envelope.usage?.input_tokens ?? 0,
         output_tokens: envelope.usage?.output_tokens ?? 0,
