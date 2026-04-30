@@ -1,0 +1,26 @@
+{
+  "REQ-1": [
+    "248-per-req-diff.test.js > 248: per-requirement diff splitting > buildImplCheckPrompt single-requirement mode > REQ-1: accepts a single requirement id and includes only that id in the prompt",
+    "248-per-req-diff.test.js > 248: per-file diff collection > REQ-1: collectPerFileDiffsForGate returns a Map keyed by file path",
+    "248-per-req-diff.test.js > 248: per-requirement diff building from file-map > REQ-1: builds diff for a mapped requirement using only mapped files",
+    "248-per-req-diff.test.js > 248: per-requirement diff building from file-map > REQ-1: unmapped files diff is appended to every requirement"
+  ],
+  "REQ-2": [
+    "248-per-req-diff.test.js > 248: per-requirement diff splitting > fallback mode (no file-map) > REQ-2: accepts all requirement IDs for fallback mode",
+    "248-per-req-diff.test.js > 248: per-requirement diff building from file-map > REQ-2: returns null when file-map is empty"
+  ],
+  "REQ-3": [
+    "248-per-req-diff.test.js > 248: per-requirement diff building from file-map > REQ-3: unmapped requirement receives full diff"
+  ],
+  "REQ-4": [
+    "248-per-req-diff.test.js > 248: per-requirement diff splitting > empty diff handling > REQ-4: building prompt with empty diff produces a prompt with empty diff section",
+    "248-per-req-diff.test.js > 248: per-requirement diff building from file-map > REQ-4: mapped requirement with no matching diff returns empty string"
+  ],
+  "REQ-5": [
+    "248-per-req-diff.test.js > 248: per-requirement diff splitting > result aggregation compatibility > REQ-5: per-requirement evaluation objects have the same shape as current format"
+  ],
+  "REQ-6": [
+    "248-per-req-diff.test.js > 248: retry skip for previously passed requirements > REQ-6: findPreviousPassedGuardrails returns passed IDs from issue-log",
+    "248-per-req-diff.test.js > 248: retry skip for previously passed requirements > REQ-6: previously passed requirements can be filtered from reqIds"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "spec": "specs/248-gate-impl-per-req-diff/spec.json",
+  "date": "2026-04-30T14:56:00.367Z",
+  "requirements": [
+    {
+      "desc": "handleImplCheck が requirement 単位で AI を呼び出し、各呼び出しに渡される diff が file-map.json のマッピングに基づいて対象 requirement に関連するファイルの diff + 未マッピングファイルの diff に限定される",
+      "status": "done",
+      "note": "buildPerRequirementDiffs が各 reqId に対して「マッピング済みファイルの diff + 未マッピングファイルの diff」を構築し、per-req ループ内で buildImplCheckPrompt(specText, reqDiff, [reqId]) を単一 requirement で呼び出している。collectPerFileDiffsForGate が committed/uncommitted/untracked の3種を統合した per-file Map を返す実装も含む。"
+    },
+    {
+      "desc": "file-map.json が存在しないか空の場合、handleImplCheck は現行と同じ動作（全 diff + 全 requirement ID を1回の AI 呼び出しでチェック）にフォールバックする",
+      "status": "done",
+      "note": "loadFileMap の返却値が空オブジェクトのとき hasFileMap=false になり perReqDiffs は null のまま。null チェック (!perReqDiffs) で従来の単一 AI 呼び出しパスに分岐する。buildPerRequirementDiffs 内にも null ガードがあり二重安全。"
+    },
+    {
+      "desc": "file-map.json に登録されていない requirement は、全 diff を受け取って判定される（per-requirement フォールバック）",
+      "status": "done",
+      "note": "buildPerRequirementDiffs 内で fileMap[reqId] が Array でない場合（キー不在）に result.set(reqId, fullDiff) を設定している。per-req ループはその fullDiff を AI に渡す。"
+    },
+    {
+      "desc": "マッピング済みだが関連 diff が空の requirement は skip 判定となり、AI 呼び出しを行わない",
+      "status": "done",
+      "note": "per-req ループで reqDiff.trim() が空の場合に result:'skip', reason:'no related diff found' をプッシュして continue する。AI 呼び出しは実行されない。"
+    },
+    {
+      "desc": "per-requirement 判定の結果が既存の gatePass/gateFail インターフェースと同じ形式で集約される。呼び出し元の動作に変更がない",
+      "status": "done",
+      "note": "フォールバックパスと per-req パスの両方が同じ {guardrail_id, result, reason, title, category} 形式の reqEvaluations を構築する。reqPassed 計算・gatePass/gateFail の返却ロジックは変更なし。"
+    },
+    {
+      "desc": "リトライ時に前回 PASS した requirement を再評価しない（previouslyPassedIds の仕組みを per-requirement 方式でも維持する）",
+      "status": "done",
+      "note": "per-req ループの前に findPreviousPassedGuardrails で previouslyPassed Set を構築し、各 reqId がセット内にあれば result:'pass', reason:'previously passed (skipped on retry)' をプッシュして AI 呼び出しをスキップする。2件のユニットテストも追加済み（test-map.json で REQ-6 に紐付け確認）。"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "splitDiffByFile, collectPerFileDiffsForGate, buildPerRequirementDiffs の3関数を named export に追加。spec はこれら関数の公開を要求していないが、テストファイルが直接 import するために必要。機能上の副作用はない。"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "全6要件が実装済み。REQ-1〜5（must）は splitDiffByFile / collectPerFileDiffsForGate / buildPerRequirementDiffs の追加と handleImplCheck の per-req ループ化で満たされる。REQ-6（should）は findPreviousPassedGuardrails 活用の previouslyPassed Set スキップで実装されており、2件のユニットテストも追加済み。唯一の非計画変更は3ヘルパー関数の export 追加のみで、これはテスト可能性のために必要な最小限の変更。"
+  }
+}

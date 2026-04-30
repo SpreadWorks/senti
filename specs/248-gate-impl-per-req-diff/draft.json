@@ -1,0 +1,113 @@
+{
+  "devType": "refactor",
+  "goal": "gate-impl の requirement チェックを per-requirement diff 分割方式に変更し、AI 呼び出しあたりのトークン消費を削減する",
+  "analysis": {
+    "problem": "gate-impl は毎回 spec.md 全文 + git diff 全文（75-118KB）を1プロンプトに結合して AI に投入している。リトライ時も同じ diff を再送信するため、cacheCreate トークンの 42.7% を消費している",
+    "proposedApproach": "requirement チェックを requirement 単位に分割し、各 requirement に関連するファイルの diff のみで判定を行う方式に変更する",
+    "validation": "review.js で同パターン（per-file diff 分割）が実績あり。推定 77% のトークン削減。リトライ時は FAIL した requirement のみ再評価できるため、さらに効率化される"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] gate-impl の requirement チェックが requirement 単位で実行され、各呼び出しに渡される diff が対象 requirement に関連するファイルのみに限定される",
+      "[must] file-map.json が存在しない場合、現行と同じ動作（全 diff + 全 requirement を一括チェック）にフォールバックする",
+      "[must] file-map に登録されていない requirement は全 diff を受け取る（per-requirement フォールバック）",
+      "[should] リトライ時に前回 PASS した requirement を再評価しない"
+    ],
+    "out": [
+      "guardrail チェックの分割（横断的チェックであり分割不適）",
+      "review.js の collectPerFileDiffs / groupByDiffContent の共通化（diff 収集セマンティクスが異なる）",
+      "gate-draft / gate-spec フェーズの変更"
+    ]
+  },
+  "impactOnExisting": [
+    "gate-impl の外部インターフェース（gatePass/gateFail の返却値構造）は不変",
+    "run-gate.test.js の既存テストに影響（内部関数のシグネチャ変更に伴う更新が必要）"
+  ],
+  "qa": [
+    {
+      "question": "collectPerFileDiffs / groupByDiffContent を共通ライブラリに移動するか、gate-impl 側で独立実装するか",
+      "answer": "gate-impl 側で独自の per-file diff 収集を実装する",
+      "evidence": "review.js の collectPerFileDiffs は collectCommittedAndStagedDiff を使用。gate-impl は baseBranch...HEAD + HEAD (uncommitted) + untracked の3種結合。diff 収集セマンティクスが異なる",
+      "why": "セマンティクスの違いを無理に抽象化するより、各用途に最適な実装を持つ方がシンプル",
+      "considered": "共通ライブラリ化 — diff 収集方式をパラメータ化する案。抽象化コストに見合わない"
+    },
+    {
+      "question": "file-map.json が存在しない/不完全な場合のフォールバック",
+      "answer": "全 diff を全 requirement に渡す（現行動作と同等にフォールバック）",
+      "evidence": "file-map.json は flow set files で AI が記録するもので、手動 gate 実行時や記録漏れ時に不在の可能性がある",
+      "why": "file-map がなくても gate-impl が動作しなくなることがあってはならない",
+      "considered": "file-map.json 必須化 — 手動実行が不可能になるため却下"
+    },
+    {
+      "question": "AI 呼び出しのバッチング戦略",
+      "answer": "requirement 単位で個別呼び出し",
+      "evidence": "requirement あたりの diff は平均 1-4KB（全体 diff の 2-5%）。requirement 間に依存なし",
+      "why": "実装がシンプル。リトライ時に FAIL 分だけ再評価でき、トータルコスト最小",
+      "considered": "N 件バッチ — review.js と同じパターンだが、gate-impl では requirement 間依存がないため個別呼び出しで十分"
+    },
+    {
+      "question": "guardrail チェックのスコープ",
+      "answer": "guardrail チェックは現行通り全 diff で実施",
+      "evidence": "guardrail は命名規約・セキュリティ等の横断的チェック。requirement 単位の分割はセマンティクスが合わない",
+      "why": "今回のスコープは requirement チェックのトークン削減。guardrail は別 concern",
+      "considered": "guardrail も分割 — 横断的チェックの性質上、ファイル単位では検出漏れのリスク"
+    },
+    {
+      "question": "requirement テキストのソース",
+      "answer": "spec.json の requirements 配列を使う",
+      "evidence": "spec.json には id / desc / priority が構造化済み。spec.md のマークダウンパースは脆弱",
+      "why": "構造化データから確実に取得できる。パース失敗のリスクがない",
+      "considered": "spec.md パース — セクション境界の検出が正規表現依存で脆弱"
+    },
+    {
+      "question": "フォールバックの粒度: file-map が部分的に不完全な場合",
+      "answer": "per-requirement フォールバック。マッピングがある requirement は関連 diff のみ、ない requirement は全 diff を渡す",
+      "evidence": "file-map.json は requirement ID をキーとする。loadFileMap(specDir) で読み込み、キーの有無で requirement ごとに判定可能",
+      "why": "マッピングがある分だけ削減効果を得られる。1件の欠落で全体のフォールバックは過剰",
+      "considered": "全体フォールバック — 1件でも欠けたら全 requirement に全 diff。削減効果が無駄になる"
+    },
+    {
+      "question": "どの requirement にもマッピングされていないファイルの diff の扱い",
+      "answer": "全 requirement の呼び出しに含める",
+      "evidence": "cross-cutting な変更（設定ファイル、共通ライブラリ等）はどの requirement にも影響しうる。未マッピングファイルは通常少量",
+      "why": "見落としを防ぐ。未マッピングファイルの diff は小さいためトークン影響は限定的",
+      "considered": "無視する — マッピングされたファイルのみ。cross-cutting な変更の見落としリスク"
+    },
+    {
+      "question": "結果集約とテスト戦略",
+      "answer": "gate-impl の外部インターフェースは不変。既存テスト更新 + 分割ロジックのユニットテスト追加",
+      "evidence": "現行の gate-impl は全 requirement の判定結果を集約して pass/fail を返す。この外部契約は分割後も維持可能",
+      "why": "外部インターフェースを不変に保つことで、呼び出し元への影響をゼロにする",
+      "considered": "新しい出力形式の導入 — 既存呼び出し元の変更が必要になるため却下"
+    },
+    {
+      "question": "per-requirement AI プロンプトの形状",
+      "answer": "各 requirement の判定に使用されるコンテキストは、その requirement に関連する diff に限定される",
+      "evidence": "現行は全 requirement + 全 diff を1プロンプトに結合。分割後は requirement 1件分に縮小",
+      "why": "最小限のコンテキストで正確な判定を得る。不要な情報を排除することでトークン削減と判定精度の両立を図る",
+      "considered": ""
+    },
+    {
+      "question": "マッピング済み requirement + 未マッピングファイルの結合ルール",
+      "answer": "マッピング済み requirement は関連ファイル + 未マッピングファイルの diff で判定される。マッピングなし requirement は全 diff で判定される",
+      "evidence": "Q6（per-requirement フォールバック）と Q7（未マッピングファイルを全 requirement に含める）の組み合わせ",
+      "why": "マッピング済みファイルで削減効果を得つつ、未マッピングの cross-cutting 変更も見落とさない",
+      "considered": ""
+    },
+    {
+      "question": "マッピング済みだが関連 diff が空の requirement の扱い",
+      "answer": "関連 diff が空の requirement は skip 判定となる。diff がなければ実装有無を判定する根拠がない",
+      "evidence": "現行でも diff 全体が空の場合は gateFail を返す（run-gate.js L1603-1607）。requirement 単位でも同じセマンティクス",
+      "why": "diff なしで AI を呼んでも有意な判定は得られない。skip は既に gate 結果の有効な値として定義済み",
+      "considered": "空 diff で AI 呼び出し — トークンの無駄であり、AI が根拠なく pass/fail を返すリスク"
+    }
+  ],
+  "openQuestions": [
+    "Issue #303 の推定値（requirement あたり 1-4KB）は分析データに基づく設計前提。実装後に実測で検証する"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-30T12:15:00.000Z",
+    "notes": ""
+  }
+}

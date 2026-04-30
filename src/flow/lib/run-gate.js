@@ -231,6 +231,32 @@ export async function collectUntrackedDiff(root, options = {}) {
   return parts.join("");
 }
 
+function splitDiffByFile(diffText) {
+  const map = new Map();
+  if (!diffText) return map;
+  const segments = diffText.split(/(?=^diff --git )/m);
+  for (const segment of segments) {
+    if (!segment.trim()) continue;
+    const headerMatch = segment.match(/^diff --git a\/.+? b\/(.+)$/m);
+    if (!headerMatch) continue;
+    const filePath = headerMatch[1];
+    const existing = map.get(filePath) || "";
+    map.set(filePath, existing + segment);
+  }
+  return map;
+}
+
+function collectPerFileDiffsForGate(committed, uncommitted, untracked) {
+  const merged = splitDiffByFile(committed);
+  for (const [file, d] of splitDiffByFile(uncommitted)) {
+    merged.set(file, (merged.get(file) || "") + d);
+  }
+  for (const [file, d] of splitDiffByFile(untracked)) {
+    merged.set(file, (merged.get(file) || "") + d);
+  }
+  return merged;
+}
+
 function sectionAt(lines, lineIdx) {
   for (let i = lineIdx - 1; i >= 0; i--) {
     const m = lines[i].match(/^\s*##\s+(.+)/);
@@ -1162,6 +1188,39 @@ function buildImplCheckPrompt(specText, diff, knownIds) {
   return pb;
 }
 
+function buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, fullDiff) {
+  if (!fileMap || Object.keys(fileMap).length === 0) return null;
+
+  const allMappedFiles = new Set();
+  for (const files of Object.values(fileMap)) {
+    if (Array.isArray(files)) {
+      for (const f of files) allMappedFiles.add(f);
+    }
+  }
+
+  let unmappedDiff = "";
+  for (const [file, diff] of perFileDiffs) {
+    if (!allMappedFiles.has(file)) unmappedDiff += diff;
+  }
+
+  const result = new Map();
+  for (const reqId of reqIds) {
+    const mappedFiles = fileMap[reqId];
+    if (!Array.isArray(mappedFiles)) {
+      result.set(reqId, fullDiff);
+      continue;
+    }
+    let reqDiff = "";
+    for (const file of mappedFiles) {
+      const fileDiff = perFileDiffs.get(file);
+      if (fileDiff) reqDiff += fileDiff;
+    }
+    reqDiff += unmappedDiff;
+    result.set(reqId, reqDiff);
+  }
+  return result;
+}
+
 /**
  * Extract requirement ids (REQ-1, REQ-2, ...) from spec.md. Fallback to a
  * single synthetic id when none can be parsed.
@@ -1614,21 +1673,92 @@ export class RunGateCommand extends FlowCommand {
       );
     }
 
-    const reqIds = extractRequirementIds(specText);
-    const reqPb = buildImplCheckPrompt(specText, diff, reqIds);
-    const reqBuilt = reqPb.build();
-    const reqResponse = await agent.call(reqBuilt.userPrompt, {
-      commandId: "flow.spec.gate",
-      systemPrompt: reqBuilt.systemPrompt,
-      jsonSchema: reqBuilt.jsonSchema,
-      fmtFallback: reqBuilt.fmtFallback,
-    });
-    const reqResults = parseEvaluationResponse(reqResponse, reqIds);
-    const reqEvaluations = reqResults.map((r) => ({
-      ...r,
-      title: r.guardrail_id,
-      category: "requirements",
-    }));
+    const specDir = resolveSpecDir(absSpecPath);
+    const fileMap = loadFileMap(specDir);
+    const hasFileMap = Object.keys(fileMap).length > 0;
+
+    let reqIds;
+    if (hasFileMap) {
+      try {
+        const specJson = loadSpecJson(absSpecPath, { validate: false });
+        reqIds = (specJson.requirements || []).map((r) => r.id);
+      } catch (err) {
+        process.stderr.write(`[sdd-forge] spec.json load failed, falling back to spec.md: ${err.message}\n`);
+      }
+    }
+    if (!reqIds || reqIds.length === 0) {
+      reqIds = extractRequirementIds(specText);
+    }
+
+    let perReqDiffs = null;
+    if (hasFileMap) {
+      const perFileDiffs = collectPerFileDiffsForGate(committed, uncommitted, untracked);
+      perReqDiffs = buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, diff);
+    }
+
+    let reqEvaluations;
+
+    if (!perReqDiffs) {
+      const reqPb = buildImplCheckPrompt(specText, diff, reqIds);
+      const reqBuilt = reqPb.build();
+      const reqResponse = await agent.call(reqBuilt.userPrompt, {
+        commandId: "flow.spec.gate",
+        systemPrompt: reqBuilt.systemPrompt,
+        jsonSchema: reqBuilt.jsonSchema,
+        fmtFallback: reqBuilt.fmtFallback,
+      });
+      const reqResults = parseEvaluationResponse(reqResponse, reqIds);
+      reqEvaluations = reqResults.map((r) => ({
+        ...r,
+        title: r.guardrail_id,
+        category: "requirements",
+      }));
+    } else {
+      const previousResult = findPreviousPassedGuardrails({
+        issueLog: loadIssueLog(root, state.spec),
+        phase,
+      });
+      const previouslyPassed = new Set(previousResult?.passedGuardrails || []);
+
+      reqEvaluations = [];
+      for (const reqId of reqIds) {
+        if (previouslyPassed.has(reqId)) {
+          reqEvaluations.push({
+            guardrail_id: reqId,
+            result: "pass",
+            reason: "previously passed (skipped on retry)",
+            title: reqId,
+            category: "requirements",
+          });
+          continue;
+        }
+        const reqDiff = perReqDiffs.get(reqId) || "";
+        if (!reqDiff.trim()) {
+          reqEvaluations.push({
+            guardrail_id: reqId,
+            result: "skip",
+            reason: "no related diff found",
+            title: reqId,
+            category: "requirements",
+          });
+          continue;
+        }
+        const reqPb = buildImplCheckPrompt(specText, reqDiff, [reqId]);
+        const reqBuilt = reqPb.build();
+        const reqResponse = await agent.call(reqBuilt.userPrompt, {
+          commandId: "flow.spec.gate",
+          systemPrompt: reqBuilt.systemPrompt,
+          jsonSchema: reqBuilt.jsonSchema,
+          fmtFallback: reqBuilt.fmtFallback,
+        });
+        const reqResults = parseEvaluationResponse(reqResponse, [reqId]);
+        reqEvaluations.push(...reqResults.map((r) => ({
+          ...r,
+          title: r.guardrail_id,
+          category: "requirements",
+        })));
+      }
+    }
 
     const reqPassed = reqEvaluations.every(
       (r) => r.result === "pass" || r.result === "skip",
@@ -1701,6 +1831,9 @@ export {
   buildGuardrailPrompt,
   buildImplCheckPrompt,
   checkGuardrail,
+  splitDiffByFile,
+  collectPerFileDiffsForGate,
+  buildPerRequirementDiffs,
 };
 
 export function appendIssueLogFromGateResult(ctx, result) {
