@@ -131,7 +131,8 @@ C.2. **Execute instructions**
    - Fetch any additional context the instructions request via `sdd-forge flow get context ...` / `sdd-forge flow get guardrail <phase>`.
    - Retry limits: each step has a `maxAttempts` defined in the flow definition. When a limit is reached, STOP and return control to the user.
    - When the current step's work is finished, advance step status:
-     - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run review`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — the hook handles the transition; do nothing further.
+     - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — the hook handles the transition; do nothing further.
+     - **`flow run review`**: plan review phases (review-draft, review-spec, review-test) do NOT auto-done via post hook — the prompt instructions manage step status based on verdict. Impl/task review still auto-dones via post hook.
      - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
 
 C.3. **Loop**

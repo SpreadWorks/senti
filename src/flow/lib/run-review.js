@@ -44,7 +44,7 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
     result: "ok",
     changed,
     artifacts: { phase, verdict, [countKey]: count ?? 0 },
-    next,
+    next: verdict === "FAIL" ? null : next,
     output: stdout,
   };
 }

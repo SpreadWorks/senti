@@ -1,0 +1,32 @@
+{
+  "R1": null,
+  "R2": null,
+  "R3": null,
+  "R4": [
+    "248-exit-code.test.js > spec 248: review.js exit 0 on verdict FAIL (R4) > R4: runDraftReview does not call process.exit on verdict FAIL",
+    "248-exit-code.test.js > spec 248: review.js exit 0 on verdict FAIL (R4) > R4: runSpecReview does not call process.exit on proposal found",
+    "248-exit-code.test.js > spec 248: review.js exit 0 on verdict FAIL (R4) > R4: runTestReview does not call process.exit on verdict FAIL",
+    "248-exit-code.test.js > spec 248: review.js exit 0 on verdict FAIL (R4) > R4: runDraftReview still exits on execution errors (file not found, parse error)"
+  ],
+  "R5": [
+    "248-parse-phase-review.test.js > spec 248: parsePhaseReviewOutput exit 0 semantics (R5) > draft review parser > R5: res.ok=true + verdict=FAIL returns ok with verdict FAIL and next=null",
+    "248-parse-phase-review.test.js > spec 248: parsePhaseReviewOutput exit 0 semantics (R5) > draft review parser > R5: res.ok=true + verdict=PASS returns ok with verdict PASS and normal next",
+    "248-parse-phase-review.test.js > spec 248: parsePhaseReviewOutput exit 0 semantics (R5) > draft review parser > R5: res.ok=false throws Error",
+    "248-parse-phase-review.test.js > spec 248: parsePhaseReviewOutput exit 0 semantics (R5) > spec review parser > R5: res.ok=true + verdict=FAIL returns ok with next=null",
+    "248-parse-phase-review.test.js > spec 248: parsePhaseReviewOutput exit 0 semantics (R5) > spec review parser > R5: res.ok=true + verdict=PASS returns normal next",
+    "248-parse-phase-review.test.js > spec 248: parsePhaseReviewOutput exit 0 semantics (R5) > test review parser > R5: res.ok=true + verdict=FAIL returns ok with next=null"
+  ],
+  "R6": [
+    "248-registry-post-hook.test.js > spec 248: registry.js review post hook (R6) > R6: review post hook does not auto-done plan review steps",
+    "248-registry-post-hook.test.js > spec 248: registry.js review post hook (R6) > R6: review post hook still handles impl/task review auto-done"
+  ],
+  "R7": null,
+  "R8": [
+    "248-streaming-json-filter.test.js > spec 248: streaming JSON filter in agent.js (R8) > R8: agent.js exports or contains a streaming event filter",
+    "248-streaming-json-filter.test.js > spec 248: streaming JSON filter in agent.js (R8) > R8: filter removes Claude CLI streaming event lines",
+    "248-streaming-json-filter.test.js > spec 248: streaming JSON filter in agent.js (R8) > R8: filter preserves intentional JSON output from AI",
+    "248-streaming-json-filter.test.js > spec 248: streaming JSON filter in agent.js (R8) > R8: filter preserves JSON inside code blocks",
+    "248-streaming-json-filter.test.js > spec 248: streaming JSON filter in agent.js (R8) > R8: filter handles all specified event types"
+  ],
+  "R9": null
+}

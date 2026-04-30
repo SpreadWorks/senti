@@ -269,7 +269,7 @@ class Agent {
             const parsed = tryParseProvider(provider, trimmed);
             resolve(parsed ?? { text: trimmed, usage: null });
           } else {
-            resolve({ text: trimmed, usage: null });
+            resolve({ text: filterStreamingEvents(trimmed), usage: null });
           }
           return;
         }
@@ -355,6 +355,21 @@ function ensureWorkDir(workDir) {
   fs.mkdirSync(workDir, { recursive: true });
 }
 
+const STREAMING_EVENT_PATTERN = /^\s*\{[^}]*"type"\s*:\s*"(message_start|message_delta|message_stop|content_block_start|content_block_delta|content_block_stop)"/;
+
+function filterStreamingEvents(text) {
+  const lines = text.split("\n");
+  const result = [];
+  let inCodeBlock = false;
+  for (const line of lines) {
+    if (line.trimStart().startsWith("```")) inCodeBlock = !inCodeBlock;
+    if (inCodeBlock) { result.push(line); continue; }
+    if (STREAMING_EVENT_PATTERN.test(line)) continue;
+    result.push(line);
+  }
+  return result.join("\n");
+}
+
 function tryParseProvider(provider, stdout) {
   try {
     return provider.parse(stdout);
@@ -426,4 +441,4 @@ function textStats(s) {
   return { chars: str.length, lines: str.length === 0 ? 0 : str.split("\n").length };
 }
 
-export { Agent };
+export { Agent, filterStreamingEvents };

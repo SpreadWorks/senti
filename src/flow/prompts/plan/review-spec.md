@@ -1,8 +1,9 @@
-   - Step status is automatically managed by `sdd-forge flow run review --phase spec` hooks (pre sets in_progress, post sets done).
    - Run `sdd-forge flow run review --phase spec` to perform AI-powered spec review.
    - The review uses a propose-only pipeline: AI identifies oversights in the spec (files not mentioned, contradictions, missing external references).
    - Results are saved to spec-review.md with proposals listed with title, target section, and suggested change.
    - The review does NOT modify spec.md or spec.json directly.
-   - **If proposals exist**: read spec-review.md and evaluate each proposal against the spec and codebase context. Reflect changes that are valid into the spec. The skill-side AI performs the actual edits.
-   - **If no proposals**: display "レビューの結果、修正の必要はありませんでした。"
-   - **Retry limit:** bounded by the definition's maxAttempts. If exceeded, STOP and return control to the user.
+   - **If verdict=PASS** (no proposals): display "レビューの結果、修正の必要はありませんでした。" Then run `sdd-forge flow set step review-spec done`.
+   - **If verdict=FAIL** (proposals exist): read spec-review.md and evaluate each proposal against the spec and codebase context. Reflect changes that are valid into the spec. Then re-run `sdd-forge flow run review --phase spec`.
+   - **Review loop:** repeat review → fix → re-review until verdict=PASS or maxAttempts reached.
+   - **maxAttempts reached:** STOP and return control to the user. Do not set step done.
+   - **On complete (verdict=PASS):** `sdd-forge flow set step review-spec done`

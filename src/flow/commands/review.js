@@ -946,11 +946,11 @@ async function runTestReview(root, flow, config, dryRun) {
   console.error(`  [test-review] Results saved to ${path.relative(root, testReviewPath)}`);
 
   if (verdict === "PASS") {
+    console.error(`  [test-review] verdict=PASS gaps=0`);
     console.log("Test review PASS. All test cases are adequately covered.");
   } else {
-    console.log(`Test review FAIL. ${finalGaps.length} gap(s) remaining after ${maxAttempts} attempts.`);
     console.error(`  [test-review] verdict=FAIL gaps=${finalGaps.length}`);
-    process.exit(EXIT_ERROR);
+    console.log(`Test review FAIL. ${finalGaps.length} gap(s) remaining after ${maxAttempts} attempts.`);
   }
 }
 
@@ -1131,7 +1131,7 @@ async function runSpecReview(root, flow, config, dryRun) {
     const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
     fs.writeFileSync(reviewPath, formatSpecReviewMd([]));
     console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-    console.error("  [spec-review] proposalCount=0");
+    console.error("  [spec-review] verdict=PASS proposalCount=0");
     console.log("NO_PROPOSALS");
     return;
   }
@@ -1141,7 +1141,7 @@ async function runSpecReview(root, flow, config, dryRun) {
     const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
     fs.writeFileSync(reviewPath, formatSpecReviewMd([]));
     console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-    console.error("  [spec-review] proposalCount=0");
+    console.error("  [spec-review] verdict=PASS proposalCount=0");
     console.log("NO_PROPOSALS");
     return;
   }
@@ -1153,8 +1153,8 @@ async function runSpecReview(root, flow, config, dryRun) {
   console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
   console.error(`  [spec-review] proposalCount=${proposals.length}`);
 
+  console.error(`  [spec-review] verdict=FAIL proposalCount=${proposals.length}`);
   console.log(`Spec review found ${proposals.length} proposal(s). See spec-review.md.`);
-  process.exit(EXIT_ERROR);
 }
 
 // ---------------------------------------------------------------------------
@@ -1273,7 +1273,6 @@ async function runDraftReview(root, flow, config, dryRun) {
     console.log("Draft review PASS. QA entries are adequate.");
   } else {
     console.log(`Draft review FAIL. ${issues.length} issue(s) detected.`);
-    process.exit(EXIT_ERROR);
   }
 }
 

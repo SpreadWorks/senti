@@ -1,0 +1,84 @@
+{
+  "devType": "bugfix",
+  "goal": "draft review の構造的問題（選択肢UI残存、承認位置不正、review loop 未実装、runCmdWithRetry 誤リトライ、生JSON混入）を修正し、review-spec/review-test と一貫した動作にする",
+  "analysis": {
+    "problem": "draft review に5つの構造的問題がある。(1) 選択肢UIが残存（他reviewは廃止済み）、(2) 承認がdraftステップ内にあり review 前に来る、(3) review loopがなく issue検出時にexitして終了、(4) runCmdWithRetryが issue検出exitを一時エラーと誤認してリトライ、(5) エージェント出力のストリーミングJSON がフィルタされずにdraft-review.mdに混入",
+    "proposedApproach": "review-draft.md の選択肢を廃止し、承認ロジックを draft.md から review-draft 後に移動。review loop を実装し、issue 検出→ユーザー回答→再レビューのサイクルを構築。runCmdWithRetry で issue検出の deliberate FAIL を区別。callReviewAgent の出力からストリーミング制御JSONをフィルタ",
+    "validation": "5つの問題はすべて issue #300 に明記されており、spec 247 で実際に発生したリトライ問題を含む。修正後は review-spec/review-test と一貫したパターンになる"
+  },
+  "scopeVerification": {
+    "in": [
+      "review-draft.md の選択肢UI廃止",
+      "draft.md の承認ロジック除去と review-draft 後への移動",
+      "review loop の実装（prompt 駆動）",
+      "review.js: 全 review phase (draft/spec/test) で verdict FAIL 時に exit 0 に変更",
+      "run-review.js: parsePhaseReviewOutput の exit 0 対応（verdict=FAIL を正常リターン）",
+      "review ステップの post hook による自動 done 遷移を廃止。prompt instructions で verdict=PASS 時のみ手動 done",
+      "review-spec.md / review-test.md の prompt instructions に verdict 判定と手動 step done を追加",
+      "callReviewAgent 出力のストリーミングJSON フィルタ（Claude provider allowlist 方式）"
+    ],
+    "out": [
+      "runCmdWithRetry のロジック変更（exit 0 化により変更不要）",
+      "gate-draft の変更",
+      "draft.json スキーマの変更",
+      "flow エンジンへのループ機構追加"
+    ]
+  },
+  "impactOnExisting": [
+    "draft フェーズの UX が変わる（選択肢なし→常時レビュー実行、承認タイミングが review 後に移動）",
+    "全 review phase (draft/spec/test) の exit code セマンティクスが変わる（FAIL 時 exit 1 → exit 0）。Envelope が ok:true で返るため、skill 側 prompt が verdict を見て分岐する必要がある",
+    "run-review.js の parsePhaseReviewOutput で throw していた FAIL ケースが正常リターンになる。Envelope が ok:true で返るため、prompt instructions で verdict 分岐が必要",
+    "review ステップ (review-draft, review-spec, review-test) の post hook 自動 done 遷移を廃止。prompt instructions で手動管理に変更",
+    "agent.js にストリーミング JSON フィルタを追加。Claude provider の streaming event type のみ除去。正当な AI 出力は保持"
+  ],
+  "qa": [
+    {
+      "question": "review loop の実装方式と具体的挙動",
+      "answer": "prompt 駆動で実装。変更ファイル: review-draft.md（loop 手順を記述）。変更しないファイル: definition.js（ノード構造はそのまま）、run-review.js（RunReviewCommand は verdict を返すだけ）。loop の制御フロー: (1) review-draft.md の prompt instructions が sdd-forge flow run review --phase draft を呼ぶ。(2) RunReviewCommand.execute が Envelope ok:true + artifacts.verdict で返す。(3) AI が verdict を読み、FAIL なら draft-review.md を読んで追加 Q&A → draft.json 更新 → 再度 review コマンド呼び出し。(4) PASS なら承認選択肢を提示 → sdd-forge flow set step review-draft done。(5) maxAttempts=3 到達時は STOP。step status 管理: review-draft の post hook による自動 done 遷移を廃止。代わりに prompt instructions が verdict=PASS 時のみ手動で step done を設定。これにより FAIL 中は step が in_progress のまま維持される。重複 QA の扱い: review proposal の title が既存 QA の question に類似する場合、AI は既存 QA を更新する。完全に新規の指摘のみ新しい QA エントリとして追記。判定は AI の判断に委ね、厳密なマッチングルールは設けない（prompt instructions レベルの指示）",
+      "evidence": "review-spec / review-test が同じ prompt 駆動パターン。draft review の差異: spec/test review は AI がファイルを直接修正するが、draft review は検出された gap をユーザーへの追加質問に変換し、回答を draft.json に記録する。flow エンジンにループ構造がなく、step 分割は engine 拡張が必要でスコープ外",
+      "why": "既存パターンとの一貫性。PASS/FAIL は Envelope の artifacts.verdict（決定的値）で判定するため、AI の判断力に依存しない。post hook 廃止により exit 0 + verdict FAIL 時の step 自動 done 問題を回避",
+      "considered": "step 分割 — flow エンジンにループ機構がないため、エンジン拡張が必須となりスコープ超過"
+    },
+    {
+      "question": "選択肢UI廃止の具体的変更内容",
+      "answer": "review-draft.md から選択肢ブロック（[1] QA レビューを行い不足を検出する [2] しない）と skip 分岐（2 → sdd-forge flow set step review-draft skipped）を削除。review-spec.md / review-test.md と同形式にする: 常時レビュー実行、結果に応じた処理のみ記述",
+      "evidence": "review-spec.md: 選択肢なし、常時実行。review-test.md: 同様。spec 247 で廃止済み",
+      "why": "draft review だけ選択肢が残っているのは spec 247 対応時の漏れ",
+      "considered": ""
+    },
+    {
+      "question": "承認位置移動の責務分離と failure/stop 時の状態",
+      "answer": "draft.md: Q&A と draft.json 記入のみ。承認ロジック（L110-111 の approval.approved = true 設定）を除去。review-draft.md: レビュー実行→issue があれば追加Q&A→再レビュー（loop）→PASS 後に承認選択肢を提示→承認されたら draft.json の approval を記録。状態ルール: (1) approval は review PASS 後かつユーザー承認後にのみ書き込む。(2) review FAIL 中や maxAttempts 到達時は approval.approved = false のまま。(3) loop 中に draft.json の qa が更新された場合、再レビューが必要であり prior approval は無効（そもそも PASS 前に approval は書かれない設計）",
+      "evidence": "現在の draft.md L110-111 に承認ロジックがある。review-draft.md にはレビュー結果の処理のみ",
+      "why": "レビュー前に承認すると、レビューで検出された問題が承認後に判明する矛盾が生じる。failure/stop 時に approved = true になることを防ぐ明示的ルールが必要",
+      "considered": ""
+    },
+    {
+      "question": "exit 0 統一と CLI exit code 契約、制御フロー全体",
+      "answer": "全 review phase (draft/spec/test) で verdict FAIL 時も exit 0 にする。制御フローの全体像: (1) subprocess (review.js): verdict FAIL でも exit 0。process.exit(EXIT_ERROR) を除去し、verdict を stdout/stderr で出力するのみ。(2) runCmdWithRetry: res.ok=true で即座に return。リトライしない。コード変更不要。リトライ対象は exit non-zero（agent 呼び出し失敗、パースエラー、ファイル不在等）のみ。(3) parsePhaseReviewOutput (run-review.js): res.ok=true なので throw ブロックに入らない。verdict=FAIL でも正常に { result: 'ok', artifacts: { verdict: 'FAIL', ...count } } を return。(4) RunReviewCommand.execute: parser の return をそのまま返す。throw しない。(5) Envelope: ok:true で返る。(6) step status: review ステップの post hook による自動 done 遷移を廃止。prompt instructions が verdict を見て PASS 時のみ sdd-forge flow set step <review-step> done を実行。CLI exit code 契約: exit 0 = レビュー正常完了（verdict は PASS/FAIL どちらも）。exit non-zero = コマンド実行失敗",
+      "evidence": "3つの review phase (test L953, spec L1136, draft L1254) がすべて同じパターンで process.exit(EXIT_ERROR)。同一バグを共有。parsePhaseReviewOutput は既に stderr から verdict をパースしている",
+      "why": "レビュー完了はエラーではない。exit code セマンティクスを正すことで、runCmdWithRetry の誤リトライが根本解決する。RunReviewCommand.execute で throw しないことで、exit 0 の意味が一貫する（throw すると結局 Envelope.fail → non-zero 相当になり矛盾する）",
+      "considered": "exit code 区別（専用 exit code）— 正常完了をエラーとして表現する設計が不自然。draft のみ修正 — 同じバグを持つコードを放置するリスク。execute で throw — exit 0 の意図と矛盾し、runCmdWithRetry の上位層で再リトライされる可能性がある"
+    },
+    {
+      "question": "ストリーミング JSON フィルタの対象と配置",
+      "answer": "agent.js の plain text モード（jsonOutputFlag なし）で、Claude CLI streaming event lines をフィルタする。フィルタ対象の allowlist は Claude provider 層に定義する。既知の Claude CLI streaming event type: 'thread.started', 'thread.completed', 'content_block_start', 'content_block_delta', 'content_block_stop', 'message_start', 'message_delta', 'message_stop' 等。判定ロジック: (1) stdout を行分割。(2) 各行を JSON.parse 試行。(3) パース成功 + type フィールドが allowlist に含まれる → 除去。(4) パース失敗 or type が allowlist にない → 保持。コードブロック内（``` で囲まれた範囲）は行単位のフィルタ前にスキップする。テスト: (a) streaming event 行が除去されること、(b) AI が出力した正当な JSON（{\"type\": \"config\", ...} 等）が保持されること、(c) コードブロック内の JSON が保持されること",
+      "evidence": "jsonOutputFlag ありの場合は provider.parse が構造化処理する。plain text モードのみ生 stdout がそのまま返される。実際に混入するのは Claude CLI の streaming event lines。allowlist は Claude provider に固有で、他 provider（codex 等）には影響しない",
+      "why": "根本原因を正しい層で解決。allowlist 方式により、未知の type フィールドを持つ正当な AI 出力を誤除去しない",
+      "considered": "review.js でフィルタ — 影響範囲は限定的だが他の呼び出し元で再発する。全 JSON 行除去 — 正当な AI 出力を破壊する"
+    },
+    {
+      "question": "テスト戦略",
+      "answer": "ユニットテスト: (1) parsePhaseReviewOutput の exit 0 + verdict=FAIL ケース（全3 phase）— 正常リターンで artifacts.verdict='FAIL' を返すこと。(2) parsePhaseReviewOutput の exit non-zero ケース — 従来通り throw すること（実行失敗のリトライ対象）。(3) agent.js ストリーミング JSON フィルタ — streaming event 除去、正当な JSON 保持、コードブロック内 JSON 保持の3ケース。agent テスト: agent.js を変更するため npm run test:agent を実行して回帰検知。テンプレート変更: src/templates/ の prompt テンプレートを変更するため、sdd-forge upgrade を実行してプロジェクトのスキル・設定に反映。review loop のテスト: prompt instructions の変更（実行コードの追加なし）のため E2E テストは不要。ただし exit 0 + verdict 分岐の正しさはユニットテストでカバー済み",
+      "evidence": "プロジェクトルール: src/lib/agent.js を変更した場合は npm run test:agent で回帰検知。src/templates/ 変更時は sdd-forge upgrade を実行",
+      "why": "プロジェクトルールに準拠。exit 0 化の振る舞いはユニットテストで検証可能（PASS/FAIL の分岐、throw 有無、artifacts の構造）",
+      "considered": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-30",
+    "notes": ""
+  }
+}

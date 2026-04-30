@@ -107,8 +107,7 @@
      1. Try to resolve in ONE exchange.
      2. If unresolved, record in `openQuestions` and move on.
      3. Open Questions are resolved during spec filling or implementation.
-   - When requirements are sufficiently defined, ask the user for approval.
-   - Update draft.json with `approval.approved = true` and `approval.confirmedAt`.
+   - When requirements are sufficiently defined, proceed to the next step (review-draft handles approval).
    - Transfer Q&A and decisions to spec (step 7).
    - Keep `draft.json` in `specs/` (do not delete).
    - **On complete**: `sdd-forge flow set step draft done`

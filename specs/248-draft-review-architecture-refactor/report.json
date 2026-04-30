@@ -1,0 +1,113 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-review.md                                |  38 +\n .../draft.json                                     |  84 ++\n .../flow.json                                      | 892 +++++++++++++++++++++\n .../issue-log.json                                 | 260 ++++++\n .../issue.md                                       |  84 ++\n specs/248-draft-review-architecture-refactor/qa.md |   9 +\n .../spec-review.md                                 |  38 +\n .../spec.json                                      | 330 ++++++++\n .../248-draft-review-architecture-refactor/spec.md | 149 ++++\n .../tasks/T-1.md                                   |  19 +\n .../tasks/T-2.md                                   |  20 +\n .../tasks/T-3.md                                   |  21 +\n .../tasks/T-4.md                                   |  19 +\n .../tasks/T-5.md                                   |  21 +\n .../tasks/T-6.md                                   |  20 +\n .../tasks/T-7.md                                   |  19 +\n .../tests/248-exit-code.test.js                    |  81 ++\n .../tests/248-parse-phase-review.test.js           |  82 ++\n .../tests/248-registry-post-hook.test.js           |  49 ++\n .../tests/248-streaming-json-filter.test.js        | 100 +++\n .../tests/test-map.json                            |  32 +\n src/flow/commands/review.js                        |  11 +-\n src/flow/lib/run-review.js                         |   2 +-\n src/flow/prompts/plan/draft.md                     |   3 +-\n src/flow/prompts/plan/review-draft.md              |  36 +-\n src/flow/prompts/plan/review-spec.md               |   9 +-\n src/flow/prompts/plan/review-test.md               |   9 +-\n src/flow/registry.js                               |   5 +-\n src/lib/agent.js                                   |  19 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |   3 +-\n 30 files changed, 2425 insertions(+), 39 deletions(-)",
+      "commits": [
+        "draft-review-architecture-refactor: exit-0-semantics, prompt-driven-loop, streaming-json-filter"
+      ]
+    },
+    "retro": {
+      "total": 4,
+      "done": 4,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 5,
+      "rate": 1,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "review-draft.md から選択肢ブロック（[1] QA レビューを行い不足を検出する [2] しない）と skip 分岐を削除し、常時レビュー実行にする",
+          "status": "n/a",
+          "note": "testing not required"
+        },
+        {
+          "desc": "draft.md から承認ロジック（approval.approved = true の設定指示）を除去する",
+          "status": "n/a",
+          "note": "testing not required"
+        },
+        {
+          "desc": "review-draft.md に review loop と承認ロジックを追加する。loop: verdict=FAIL → 追加Q&A → draft.json 更新 → 再レビュー。PASS → 承認選択肢提示 → draft.json の approval フィールドを直接更新（sdd-forge flow set approval は使わない）。maxAttempts 到達 → STOP（step は in_progress のまま、ユーザーに制御を返す）。flow.json の autoApprove フィールドが true の場合（ユーザーが auto モードを有効にした状態）は PASS 時に承認選択肢を提示せず自動承認する",
+          "status": "n/a",
+          "note": "testing not required"
+        },
+        {
+          "desc": "review.js の runDraftReview, runSpecReview, runTestReview で verdict FAIL 時の process.exit(EXIT_ERROR) を除去し、exit 0 で verdict を stdout/stderr に出力する",
+          "status": "done",
+          "note": "4 test(s)"
+        },
+        {
+          "desc": "run-review.js の parsePhaseReviewOutput で res.ok=true かつ verdict=FAIL の場合、throw せず { result:'ok', artifacts:{ verdict:'FAIL', ...count }, next: null } を返す。verdict=PASS 時は従来の next 値を返す。res.ok=false は従来通り throw",
+          "status": "done",
+          "note": "5 test(s)"
+        },
+        {
+          "desc": "registry.js の review コマンド post hook から review-draft/review-spec/review-test の自動 done 遷移を除去する。prompt instructions が verdict=PASS 時のみ sdd-forge flow set step <id> done を実行する。impl phase の review post hook は変更しない",
+          "status": "done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "review-spec.md、review-test.md、および flow skill テンプレート (SKILL.md) の prompt instructions を更新する。review-spec.md / review-test.md に verdict=PASS 時のみ sdd-forge flow set step <id> done を実行する指示を追加する。SKILL.md の C.2 step completion ルール（L134 付近）で `flow run review` を post-hook 自動 done コマンドリストから除去し、plan review phase（review-draft/review-spec/review-test）は prompt instructions が step status を管理する旨の注記を追加する。impl/task phase の review は従来通り post hook 管理。verdict は大文字（PASS/FAIL）を正規形とする",
+          "status": "n/a",
+          "note": "testing not required"
+        },
+        {
+          "desc": "agent.js の plain text モードで Claude CLI streaming event JSON lines をフィルタする。除去対象の event type 一覧: message_start, message_delta, message_stop, content_block_start, content_block_delta, content_block_stop。行が JSON.parse 可能で type フィールドが上記リストに含まれる場合のみ除去。コードブロック（``` で囲まれた範囲）内の行はフィルタしない",
+          "status": "done",
+          "note": "5 test(s)"
+        },
+        {
+          "desc": "src/templates/skills/sdd-forge.flow/SKILL.md の変更後に sdd-forge upgrade を実行する。upgrade の出力で sdd-forge.flow/SKILL.md が更新されたことを確認する（.claude/ は .gitignore 対象のため diff には現れない）",
+          "status": "n/a",
+          "note": "testing not required"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 3,
+      "srcRead": 2,
+      "question": 5,
+      "issueLog": 7
+    },
+    "tokenMetrics": {
+      "input": 1146674,
+      "output": 189858,
+      "cacheRead": 11286751,
+      "cacheCreation": 670968,
+      "cost": 4.7232705,
+      "callCount": 36,
+      "durationMs": 3832328,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 297456
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 675941
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 1795595
+        },
+        {
+          "phase": "gate",
+          "durationMs": 351987
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 711349
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    draft-review-architecture-refactor: exit-0-semantics, prompt-driven-loop, streaming-json-filter\n    30 files changed, 2425 insertions(+), 39 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (4 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 3\n    src read .................... 2\n    Q&A ......................... 5\n    issue-log ................... 7\n    agent calls ................. 36\n    input tokens ................ 1,146,674\n    output tokens ............... 189,858\n    cache-read tokens ........... 11,286,751\n    cache-create tokens ......... 670,968\n    cost ........................ $4.7233\n    duration (total) ............ 3832.3s\n      review-draft .............. 297.5s\n      gate-draft ................ 675.9s\n      review-spec ............... 1795.6s\n      gate ...................... 352.0s\n      gate-impl ................. 711.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

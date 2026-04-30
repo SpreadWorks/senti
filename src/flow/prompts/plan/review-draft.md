@@ -1,23 +1,25 @@
-   - Step status is automatically managed by `sdd-forge flow run review --phase draft` hooks (pre sets in_progress, post sets done).
-   - Present review policy:
-     ```
-     ──────────────────────────────────────────────────────────
-       ドラフト QA レビューの方針を選択してください。
-     ──────────────────────────────────────────────────────────
-
-       [1] QA レビューを行い不足を検出する
-       [2] しない
-
-     ```
-     - 2 → `sdd-forge flow set step review-draft skipped` → next step
-
-   **Option 1 (detection-only):**
    - Run `sdd-forge flow run review --phase draft` to perform AI-powered QA review.
    - The review checks draft.json QA entries against the request/issue for:
      - Shallow or generic questions
      - Missing coverage areas
      - Ambiguous or unsupported answers
    - The review outputs a detection report to draft-review.md. It does NOT modify draft.json.
-   - **If issues exist**: read draft-review.md and ask the user additional questions based on the detected gaps. Update draft.json with user-provided answers.
-   - **If no issues** (NO_PROPOSALS): display "レビューの結果、修正の必要はありませんでした。"
-   - **Retry limit:** bounded by the definition's maxAttempts. If exceeded, STOP and return control to the user.
+   - **If verdict=PASS** (NO_PROPOSALS): proceed to approval below.
+   - **If verdict=FAIL** (issues detected): read draft-review.md and ask the user additional questions based on the detected gaps. Update draft.json with user-provided answers. Then re-run `sdd-forge flow run review --phase draft`.
+   - **Review loop:** repeat detect → fix → re-review until verdict=PASS or maxAttempts reached.
+   - **maxAttempts reached:** STOP and return control to the user. Do not set step done.
+   - **Approval (after verdict=PASS):**
+     - Present approval choice:
+       ```
+       ──────────────────────────────────────────────────────────
+         ドラフトの承認
+       ──────────────────────────────────────────────────────────
+
+         [1] 承認する
+         [2] 修正する
+
+       ```
+     - If `autoApprove: true`: auto-select [1].
+     - On approval: read draft.json, set `approval.approved = true` and `approval.confirmedAt` to the current ISO timestamp, write back to draft.json.
+     - On [2]: incorporate user feedback into draft.json, then re-run review from the top.
+   - **On complete (approval done):** `sdd-forge flow set step review-draft done`

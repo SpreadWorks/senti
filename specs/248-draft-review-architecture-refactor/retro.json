@@ -1,0 +1,62 @@
+{
+  "spec": "specs/248-draft-review-architecture-refactor/spec.json",
+  "date": "2026-04-30T14:43:36.559Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "review-draft.md から選択肢ブロック（[1] QA レビューを行い不足を検出する [2] しない）と skip 分岐を削除し、常時レビュー実行にする",
+      "status": "n/a",
+      "note": "testing not required"
+    },
+    {
+      "desc": "draft.md から承認ロジック（approval.approved = true の設定指示）を除去する",
+      "status": "n/a",
+      "note": "testing not required"
+    },
+    {
+      "desc": "review-draft.md に review loop と承認ロジックを追加する。loop: verdict=FAIL → 追加Q&A → draft.json 更新 → 再レビュー。PASS → 承認選択肢提示 → draft.json の approval フィールドを直接更新（sdd-forge flow set approval は使わない）。maxAttempts 到達 → STOP（step は in_progress のまま、ユーザーに制御を返す）。flow.json の autoApprove フィールドが true の場合（ユーザーが auto モードを有効にした状態）は PASS 時に承認選択肢を提示せず自動承認する",
+      "status": "n/a",
+      "note": "testing not required"
+    },
+    {
+      "desc": "review.js の runDraftReview, runSpecReview, runTestReview で verdict FAIL 時の process.exit(EXIT_ERROR) を除去し、exit 0 で verdict を stdout/stderr に出力する",
+      "status": "done",
+      "note": "4 test(s)"
+    },
+    {
+      "desc": "run-review.js の parsePhaseReviewOutput で res.ok=true かつ verdict=FAIL の場合、throw せず { result:'ok', artifacts:{ verdict:'FAIL', ...count }, next: null } を返す。verdict=PASS 時は従来の next 値を返す。res.ok=false は従来通り throw",
+      "status": "done",
+      "note": "5 test(s)"
+    },
+    {
+      "desc": "registry.js の review コマンド post hook から review-draft/review-spec/review-test の自動 done 遷移を除去する。prompt instructions が verdict=PASS 時のみ sdd-forge flow set step <id> done を実行する。impl phase の review post hook は変更しない",
+      "status": "done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "review-spec.md、review-test.md、および flow skill テンプレート (SKILL.md) の prompt instructions を更新する。review-spec.md / review-test.md に verdict=PASS 時のみ sdd-forge flow set step <id> done を実行する指示を追加する。SKILL.md の C.2 step completion ルール（L134 付近）で `flow run review` を post-hook 自動 done コマンドリストから除去し、plan review phase（review-draft/review-spec/review-test）は prompt instructions が step status を管理する旨の注記を追加する。impl/task phase の review は従来通り post hook 管理。verdict は大文字（PASS/FAIL）を正規形とする",
+      "status": "n/a",
+      "note": "testing not required"
+    },
+    {
+      "desc": "agent.js の plain text モードで Claude CLI streaming event JSON lines をフィルタする。除去対象の event type 一覧: message_start, message_delta, message_stop, content_block_start, content_block_delta, content_block_stop。行が JSON.parse 可能で type フィールドが上記リストに含まれる場合のみ除去。コードブロック（``` で囲まれた範囲）内の行はフィルタしない",
+      "status": "done",
+      "note": "5 test(s)"
+    },
+    {
+      "desc": "src/templates/skills/sdd-forge.flow/SKILL.md の変更後に sdd-forge upgrade を実行する。upgrade の出力で sdd-forge.flow/SKILL.md が更新されたことを確認する（.claude/ は .gitignore 対象のため diff には現れない）",
+      "status": "n/a",
+      "note": "testing not required"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 4,
+    "done": 4,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 5,
+    "rate": 1,
+    "notes": "static evaluation from test-map.json"
+  }
+}

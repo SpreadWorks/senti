@@ -1,6 +1,7 @@
-   - Step status is automatically managed by `sdd-forge flow run review --phase test` hooks (pre sets in_progress, post sets done).
    - Run `sdd-forge flow run review --phase test` to perform AI-powered test review.
    - The review generates a test design from spec requirements, compares against actual test code, and identifies gaps.
-   - **If gaps exist**: display review summary and auto-fix test files.
-   - **If no gaps** (NO_GAPS): display "レビューの結果、修正の必要はありませんでした。"
-   - **Retry limit:** bounded by the definition's maxAttempts. If exceeded, STOP and return control to the user.
+   - **If verdict=PASS** (no gaps): display "レビューの結果、修正の必要はありませんでした。" Then run `sdd-forge flow set step review-test done`.
+   - **If verdict=FAIL** (gaps exist): display review summary and auto-fix test files. Then re-run `sdd-forge flow run review --phase test`.
+   - **Review loop:** repeat review → fix → re-review until verdict=PASS or maxAttempts reached.
+   - **maxAttempts reached:** STOP and return control to the user. Do not set step done.
+   - **On complete (verdict=PASS):** `sdd-forge flow set step review-test done`

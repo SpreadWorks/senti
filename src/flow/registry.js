@@ -381,8 +381,9 @@ export const FLOW_COMMANDS = {
         "  --skip-confirm   Skip initial confirmation prompt",
       ].join("\n"),
       post(ctx, result) {
-        const phaseStepMap = { draft: "review-draft", spec: "review-spec", test: "review-test" };
-        const stepId = phaseStepMap[ctx.phase] || "review";
+        const planPhases = ["draft", "spec", "test"];
+        if (planPhases.includes(ctx.phase)) return;
+        const stepId = "review";
         tryUpdateStepStatus(ctx, stepId, "done");
       },
     },
