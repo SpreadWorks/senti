@@ -148,9 +148,26 @@ class Agent {
     const systemPrompt = options.systemPrompt ?? null;
 
     const prefix = systemFlag && systemPrompt ? [systemFlag, systemPrompt] : [];
-    const effectivePrompt = !systemFlag && systemPrompt
+    let effectivePrompt = !systemFlag && systemPrompt
       ? `${systemPrompt}\n\n${prompt}`
       : prompt;
+
+    // jsonSchema handling: provider-specific flag or fmtFallback
+    const jsonSchema = options.jsonSchema ?? null;
+    const schemaFlag = jsonSchema ? provider.jsonSchemaFlag() : null;
+    const schemaSuffix = [];
+    let pendingSchemaWrite = null;
+    if (jsonSchema && schemaFlag) {
+      if (provider.constructor.key === "codex") {
+        const schemaPath = path.join(this._paths.agentWorkDir, `schema-${Date.now()}.json`);
+        pendingSchemaWrite = { path: schemaPath, content: JSON.stringify(jsonSchema) };
+        schemaSuffix.push(schemaFlag, schemaPath);
+      } else {
+        schemaSuffix.push(schemaFlag, JSON.stringify(jsonSchema));
+      }
+    } else if (jsonSchema && !schemaFlag && options.fmtFallback) {
+      effectivePrompt = `${options.fmtFallback}\n\n${effectivePrompt}`;
+    }
 
     const promptedArgs = substitutePromptToken(baseArgs, effectivePrompt);
 
@@ -159,14 +176,14 @@ class Agent {
       ? injectWorkDirFlag(workDirFlag, this._paths.agentWorkDir, promptedArgs)
       : promptedArgs;
 
-    const finalArgs = [...prefix, ...workDirInjected];
+    const finalArgs = [...prefix, ...workDirInjected, ...schemaSuffix];
     const env = { ...process.env };
     delete env.CLAUDECODE;
 
     const threshold = this._config.agent?.stdinFallbackThreshold ?? DEFAULT_STDIN_FALLBACK_THRESHOLD;
     const totalBytes = finalArgs.reduce((sum, a) => sum + Buffer.byteLength(String(a)), 0);
     if (totalBytes <= threshold) {
-      return { finalArgs, env, stdinContent: null };
+      return { finalArgs, env, stdinContent: null, pendingSchemaWrite };
     }
 
     // Stdin fallback: route the prompt via stdin instead of CLI args.
@@ -175,9 +192,10 @@ class Agent {
       ? injectWorkDirFlag(workDirFlag, this._paths.agentWorkDir, strippedArgs)
       : strippedArgs;
     return {
-      finalArgs: [...prefix, ...strippedFinal],
+      finalArgs: [...prefix, ...strippedFinal, ...schemaSuffix],
       env,
       stdinContent: effectivePrompt,
+      pendingSchemaWrite,
     };
   }
 
@@ -204,10 +222,14 @@ class Agent {
     throw lastError;
   }
 
-  _callOnce(resolved, prompt, options) {
+  async _callOnce(resolved, prompt, options) {
     const { provider, profile, timeoutMs } = resolved;
-    const { finalArgs, env, stdinContent } = this._buildInvocation(resolved, prompt, options);
+    const { finalArgs, env, stdinContent, pendingSchemaWrite } = this._buildInvocation(resolved, prompt, options);
     const cwd = this._paths.root || process.cwd();
+
+    if (pendingSchemaWrite) {
+      await fs.promises.writeFile(pendingSchemaWrite.path, pendingSchemaWrite.content);
+    }
 
     return new Promise((resolve, reject) => {
       const child = spawn(profile.command, finalArgs, {

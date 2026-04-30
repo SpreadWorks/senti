@@ -21,6 +21,7 @@ import { loadFullAnalysis, loadAnalysisData } from "../lib/command-context.js";
 import { stripBlockDirectives } from "../lib/directive-parser.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 
 const logger = createLogger("init");
 
@@ -63,26 +64,30 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
 
   const selectionRule = "Look at the project analysis and each chapter title. Include a chapter only if both conditions are true: (1) the analysis contains data relevant to that chapter's topic, and (2) the chapter's primary audience matches the documentation purpose. Exclude a chapter if either condition is false. When unsure about audience fit, exclude developer-oriented chapters.";
 
-  const prompt = [
-    `Select which documentation chapters to include for this project.`,
-    `The project analysis summary is:`,
-    summary,
-    "",
-    `Available chapters:`,
-    chapterList,
-    "",
-    purposeClause,
-    audienceRule,
-    audienceRule ? "" : null,
-    `Selection rule:`,
-    selectionRule,
-    "",
-    `Reply with ONLY a JSON array of filenames. Example: ["overview.md", "commands.md"]`,
-  ].join("\n");
+  const pb = new PromptBuilder();
+  pb.setRole("Select which documentation chapters to include for this project.");
+
+  const ruleLines = [selectionRule];
+  if (purposeClause) ruleLines.unshift(purposeClause.trim());
+  if (audienceRule) ruleLines.push(audienceRule);
+  pb.setRules(ruleLines.join("\n"));
+
+  pb.setJsonSchema({ type: "array", items: { type: "string" } });
+  pb.setFmtFallback('Reply with ONLY a JSON array of filenames. Example: ["overview.md", "commands.md"]');
+
+  pb.add("## Project analysis summary", summary);
+  pb.add("## Available chapters", chapterList);
+
+  const initBuilt = pb.build();
 
   let response;
   try {
-    response = await agent.call(prompt, { commandId: "docs.init" });
+    response = await agent.call(initBuilt.userPrompt, {
+      commandId: "docs.init",
+      systemPrompt: initBuilt.systemPrompt,
+      jsonSchema: initBuilt.jsonSchema,
+      fmtFallback: initBuilt.fmtFallback,
+    });
   } catch (err) {
     logger.log(`[init] WARN: AI chapter selection failed: ${err.message}`);
     return chapters;

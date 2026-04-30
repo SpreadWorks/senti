@@ -12,6 +12,7 @@
 import fs from "fs";
 import path from "path";
 import { parseBlocks, BLOCK_START_RE, BLOCK_END_RE } from "./directive-parser.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { resolveChainSafe, resolveMultiChains } from "../../lib/presets.js";
 
 const SPECIAL_FILES = new Set(["README.md", "AGENTS.sdd.md", "layout.md"]);
@@ -418,22 +419,23 @@ export function resolveChaptersOrder(presetKeys, configChapters, projectRoot) {
  * @returns {string}
  */
 export async function translateTemplate(content, fromLang, toLang, agent, _root) {
-  const prompt = [
-    `Translate the following Markdown template from ${fromLang} to ${toLang}.`,
-    "",
-    "Rules:",
+  const pb = new PromptBuilder();
+  pb.setRole(`Translate the following Markdown template from ${fromLang} to ${toLang}.`);
+  pb.setRules([
     '- Preserve ALL directives exactly as-is: {{data(...)}}, {{text(...)}}, {{/data}}, {%block%}, {%/block%}, {%extends%}',
     "- Translate ONLY: Markdown headings (#), static text, table headers in data directive labels",
     "- For {{text(...)}} directives, translate the prompt text inside them",
     "- Do NOT add or remove any lines",
     "- Output ONLY the translated template, no explanation",
-    "",
-    "Template:",
-    content,
-  ].join("\n");
+  ].join("\n"));
+  pb.add("## Template", content);
+  const built = pb.build();
 
   try {
-    return await agent.call(prompt, { commandId: "docs.init" });
+    return await agent.call(built.userPrompt, {
+      commandId: "docs.init",
+      systemPrompt: built.systemPrompt,
+    });
   } catch (err) {
     process.stderr.write(`[sdd-forge] template translation failed: ${err.message}\n`);
     return content;

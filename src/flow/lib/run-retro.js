@@ -16,6 +16,7 @@ import { loadSpecJson, normalizeRequirements, resolveSpecDir } from "../../lib/s
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadTestMap, isTestNotRequired, parseTapOutput, extractReqResults, evaluateReqByResults } from "./req-map.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 
 /**
  * Build the requirements text block from spec.json.requirements. Replaces the
@@ -47,39 +48,66 @@ function getDetailedDiff(root, baseBranch) {
 /**
  * Build the prompt for AI evaluation.
  */
+const RETRO_SCHEMA = {
+  type: "object",
+  properties: {
+    requirements: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          desc: { type: "string" },
+          status: { type: "string", enum: ["done", "partial", "not_done"] },
+          note: { type: "string" },
+        },
+        required: ["desc", "status", "note"],
+        additionalProperties: false,
+      },
+    },
+    unplanned: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          file: { type: "string" },
+          change: { type: "string" },
+        },
+        required: ["file", "change"],
+        additionalProperties: false,
+      },
+    },
+    summary: {
+      type: "object",
+      properties: { notes: { type: "string" } },
+      required: ["notes"],
+      additionalProperties: false,
+    },
+  },
+  required: ["requirements", "unplanned", "summary"],
+  additionalProperties: false,
+};
+
+const RETRO_FMT_FALLBACK = 'Output ONLY valid JSON in this exact format (no markdown fencing, no preamble):\n{"requirements": [{"desc": "...", "status": "done|partial|not_done", "note": "..."}], "unplanned": [{"file": "...", "change": "..."}], "summary": {"notes": "..."}}';
+
 function buildRetroPrompt(requirementsText, requirements, diff) {
   const reqList = requirements.map((r, i) => `  ${i + 1}. ${r.desc}`).join("\n");
 
-  return [
-    "You are evaluating the accuracy of a feature specification after implementation.",
-    "Compare the spec requirements against the actual code changes (git diff) and produce a JSON evaluation.",
-    "",
-    "## Spec Requirements",
-    requirementsText,
-    "",
-    "## Requirements List (from flow.json)",
-    reqList,
-    "",
-    "## Git Diff",
-    diff,
-    "",
-    "## Instructions",
+  const pb = new PromptBuilder();
+  pb.setRole("You are evaluating the accuracy of a feature specification after implementation.\nCompare the spec requirements against the actual code changes (git diff) and produce a JSON evaluation.");
+
+  const rules = [
     "For each requirement in the Requirements List, evaluate whether the diff satisfies it.",
     "Also identify any changes in the diff that are NOT covered by any requirement (unplanned changes).",
-    "",
-    "Output ONLY valid JSON in this exact format (no markdown fencing, no preamble):",
-    '{',
-    '  "requirements": [',
-    '    { "desc": "requirement text", "status": "done|partial|not_done", "note": "brief reason" }',
-    '  ],',
-    '  "unplanned": [',
-    '    { "file": "path/to/file", "change": "brief description of unplanned change" }',
-    '  ],',
-    '  "summary": {',
-    '    "notes": "overall assessment"',
-    '  }',
-    '}',
   ].join("\n");
+  pb.setRules(rules);
+  pb.setJsonSchema(RETRO_SCHEMA);
+  pb.setFmtFallback(RETRO_FMT_FALLBACK);
+
+  pb.add("## Spec Requirements", requirementsText);
+  pb.add("## Requirements List (from flow.json)", reqList);
+  pb.add("## Git Diff", diff);
+
+  return pb;
 }
 
 /**
@@ -227,11 +255,17 @@ export class RunRetroCommand extends FlowCommand {
     }
 
     // Build prompt and call AI
-    const prompt = buildRetroPrompt(requirementsText, requirements, detailedDiff);
+    const retroPb = buildRetroPrompt(requirementsText, requirements, detailedDiff);
+    const retroBuilt = retroPb.build();
 
     let response;
     try {
-      response = await agent.call(prompt, { commandId: "flow.finalize.retro" });
+      response = await agent.call(retroBuilt.userPrompt, {
+        commandId: "flow.finalize.retro",
+        systemPrompt: retroBuilt.systemPrompt,
+        jsonSchema: retroBuilt.jsonSchema,
+        fmtFallback: retroBuilt.fmtFallback,
+      });
     } catch (e) {
       throw new Error(`AI agent call failed: ${e.message}`);
     }

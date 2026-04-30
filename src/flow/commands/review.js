@@ -27,6 +27,7 @@ async function loadReqMap(root, flow, kind) {
 }
 import { container, initContainer } from "../../lib/container.js";
 import { Command } from "../../lib/command.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -194,8 +195,10 @@ function collectCommittedAndStagedDiff(root, baseRef, filePath) {
  * @param {Object[]} [guardrails=[]] - Pre-filtered guardrail articles (phase:review)
  */
 function buildDraftSystemPrompt(guardrails = []) {
-  const lines = [
-    "You are a code quality reviewer. Analyze the following code changes and propose improvements.",
+  const pb = new PromptBuilder();
+  pb.setRole("You are a code quality reviewer. Analyze the following code changes and propose improvements.");
+
+  const rules = [
     "Focus on:",
     "- Duplicate code elimination",
     "- Naming improvements",
@@ -215,24 +218,48 @@ function buildDraftSystemPrompt(guardrails = []) {
     "**Suggestion:** <concrete improvement>",
     "",
     "If no improvements are needed, output: NO_PROPOSALS",
-  ];
+  ].join("\n");
+  pb.setRules(rules);
 
   if (guardrails.length > 0) {
-    lines.push("");
-    lines.push("## Additional Guardrail Review Perspectives");
-    lines.push("Also check the code against the following project-specific guardrail articles.");
-    lines.push("If a violation is found, report it as a proposal using the same format above.");
-    lines.push("");
+    const guardrailLines = [
+      "Also check the code against the following project-specific guardrail articles.",
+      "If a violation is found, report it as a proposal using the same format above.",
+      "",
+    ];
     for (const g of guardrails) {
-      lines.push(`- id: ${g.id}`);
-      lines.push(`  title: ${g.title}`);
-      lines.push(`  body: ${g.body.trim()}`);
+      guardrailLines.push(`- id: ${g.id}`);
+      guardrailLines.push(`  title: ${g.title}`);
+      guardrailLines.push(`  body: ${g.body.trim()}`);
     }
+    pb.add("## Additional Guardrail Review Perspectives", guardrailLines.join("\n"));
   }
 
-  return lines.join("\n");
+  const built = pb.build();
+  return built.systemPrompt + (built.userPrompt ? "\n\n" + built.userPrompt : "");
 }
 
+/**
+ * Build system prompt for the final (validation) phase.
+ */
+function buildFinalSystemPrompt() {
+  const pb = new PromptBuilder();
+  pb.setRole("You are a senior code reviewer validating refactoring proposals.");
+  const rules = [
+    "For each proposal, judge whether it:",
+    "1. Actually improves code quality",
+    "2. Does not break existing behavior",
+    "",
+    "Output each proposal with a verdict:",
+    "### <number>. <title>",
+    "**Verdict:** APPROVED or REJECTED",
+    "**Reason:** <brief justification>",
+    "",
+    "Be conservative. Reject proposals that are cosmetic-only or risk breaking behavior.",
+  ].join("\n");
+  pb.setRules(rules);
+  return pb.build().systemPrompt;
+}
 
 /**
  * Parse proposals from draft output.

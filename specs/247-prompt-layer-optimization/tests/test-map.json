@@ -1,0 +1,30 @@
+{
+  "R1": [
+    "prompt-builder.test.js > PromptBuilder > exports PromptBuilder class",
+    "prompt-builder.test.js > PromptBuilder > build() returns { systemPrompt, userPrompt, jsonSchema }",
+    "prompt-builder.test.js > PromptBuilder > systemPrompt joins role and rules",
+    "prompt-builder.test.js > PromptBuilder > systemPrompt is null when neither role nor rules set",
+    "prompt-builder.test.js > PromptBuilder > userPrompt contains add() sections in declaration order",
+    "prompt-builder.test.js > PromptBuilder > jsonSchema passes through as-is",
+    "prompt-builder.test.js > PromptBuilder > jsonSchema is null when not set",
+    "prompt-builder.test.js > PromptBuilder > fmtFallback is available in build result",
+    "prompt-builder.test.js > PromptBuilder > role is NOT included in userPrompt when set"
+  ],
+  "R2": [
+    "provider-json-schema-flag.test.js > Provider jsonSchemaFlag > Provider base returns null",
+    "provider-json-schema-flag.test.js > Provider jsonSchemaFlag > ClaudeProvider returns '--json-schema'",
+    "provider-json-schema-flag.test.js > Provider jsonSchemaFlag > CodexProvider returns '--output-schema'",
+    "provider-json-schema-flag.test.js > Provider jsonSchemaFlag > UserProvider returns profile.jsonSchemaFlag when set",
+    "provider-json-schema-flag.test.js > Provider jsonSchemaFlag > UserProvider returns null when profile.jsonSchemaFlag not set"
+  ],
+  "R3": [
+    "agent-json-schema.test.js > Agent _buildInvocation with jsonSchema > claude provider includes --json-schema flag with inline JSON",
+    "agent-json-schema.test.js > Agent _buildInvocation with jsonSchema > codex provider includes --output-schema flag with file path",
+    "agent-json-schema.test.js > Agent _buildInvocation with jsonSchema > no jsonSchema flag when jsonSchema option is not provided",
+    "agent-json-schema.test.js > Agent _buildInvocation with jsonSchema > fmtFallback is prepended to prompt when provider lacks jsonSchemaFlag"
+  ],
+  "R4": [],
+  "R5": [],
+  "R6": [],
+  "R7": []
+}

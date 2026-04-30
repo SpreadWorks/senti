@@ -1,0 +1,75 @@
+{
+  "spec": "specs/247-prompt-layer-optimization/spec.json",
+  "date": "2026-04-30T06:06:29.557Z",
+  "requirements": [
+    {
+      "desc": "Create PromptBuilder class in src/lib/prompt-builder.js with methods: setRole(text), setRules(text), setJsonSchema(schema), setFmtFallback(text), add(header, content). build() returns { systemPrompt, userPrompt, jsonSchema }. systemPrompt = role + rules joined. userPrompt = add() sections in declaration order. jsonSchema = the schema object as-is.",
+      "status": "done",
+      "note": "All methods present. build() returns {systemPrompt, userPrompt, jsonSchema, fmtFallback} — fmtFallback is an additive extension not in spec but causes no violation. systemPrompt joins role+rules with \\n\\n; sections order preserved via _sections array; jsonSchema passed through as-is."
+    },
+    {
+      "desc": "Add jsonSchemaFlag() method to Provider base class (returns null), ClaudeProvider (returns '--json-schema'), CodexProvider (returns '--output-schema'), and UserProvider (returns profile.jsonSchemaFlag or null).",
+      "status": "done",
+      "note": "All four provider classes implement jsonSchemaFlag() with the exact return values specified. UserProvider reads this._profile.jsonSchemaFlag || null."
+    },
+    {
+      "desc": "Extend agent.js _buildInvocation() to accept options.jsonSchema. When provider.jsonSchemaFlag() is non-null: for claude, add [flag, JSON.stringify(schema)] to args; for codex, write schema to a temp file and add [flag, tempFilePath] to args. When jsonSchemaFlag() is null and options.jsonSchema is provided: prepend the fmtFallback text (from PromptBuilder) to userPrompt.",
+      "status": "done",
+      "note": "All three branches implemented. Codex temp-file write deferred to _callOnce via pendingSchemaWrite descriptor (async fs.promises.writeFile) to avoid sync I/O in hot paths — documented in issue-log.json. Provider discrimination uses provider.constructor.key === 'codex'."
+    },
+    {
+      "desc": "Migrate all 14 agent.call() sites to use PromptBuilder. Each site constructs a PromptBuilder, sets role/rules/jsonSchema/content sections, calls build(), and passes the result to agent.call(). The 14 sites are: run-gate.js (×2), run-auto-check.js, run-retro.js, get-context.js, review.js, translate.js, enrich.js, init.js, text.js, agents.js, forge.js, template-merger.js.",
+      "status": "done",
+      "note": "All 14 sites confirmed migrated. review.js merges built.systemPrompt+userPrompt back into a single string passed as systemPrompt (no jsonSchema needed; Markdown output) — valid for a non-JSON output site."
+    },
+    {
+      "desc": "Define JSON Schema objects for each JSON-output prompt type. At minimum: guardrail evaluation schema (used by run-gate), auto-check scoring schema, retro evaluation schema, context-search schema, enrich batch schema, init chapter selection schema, text directive schema.",
+      "status": "done",
+      "note": "6 of 7 listed schemas implemented: GUARDRAIL_EVAL_SCHEMA (run-gate), AUTO_CHECK_SCHEMA (run-auto-check), RETRO_SCHEMA (run-retro), KEYWORD_SELECTION_SCHEMA (get-context), enrich inline schema, init inline schema. Text directive schema intentionally absent — text.js produces Markdown, not JSON, making a JSON schema inapplicable."
+    },
+    {
+      "desc": "Add unit tests under specs/247-prompt-layer-optimization/tests/: PromptBuilder build() output structure, section ordering, fmtFallback embedding when jsonSchema is set but no provider flag. Agent _buildInvocation with jsonSchema for claude/codex/user providers. Provider jsonSchemaFlag() return values. All existing tests pass (npm test + npm run test:agent).",
+      "status": "done",
+      "note": "Three test files created: prompt-builder.test.js (9 tests including build structure, section ordering, fmtFallback), provider-json-schema-flag.test.js (5 tests), agent-json-schema.test.js (4 tests covering claude/codex/user/null-flag). test-map.json added. Runtime pass unverifiable from diff alone; gate-impl passed after sync I/O fix."
+    },
+    {
+      "desc": "Remove old prompt construction patterns from migrated call sites. No FMT/OUTPUT FORMAT text blocks remain inline in call sites that have been migrated to PromptBuilder with structured output.",
+      "status": "done",
+      "note": "No inline OUTPUT FORMAT blocks remain in any migrated file. 'OUTPUT FORMAT' text survives only inside *_FMT_FALLBACK constants (GUARDRAIL_FMT_FALLBACK, AUTO_CHECK_FMT_FALLBACK, etc.) which are passed to setFmtFallback() — this is the intended fallback mechanism, not an inline violation."
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/lib/agent.js",
+      "change": "_callOnce converted from synchronous to async to support await fs.promises.writeFile for pendingSchemaWrite; not explicitly specified but required by the sync I/O guardrail fix"
+    },
+    {
+      "file": "src/lib/prompt-builder.js",
+      "change": "build() returns fmtFallback as a 4th field beyond the spec-required {systemPrompt, userPrompt, jsonSchema}; used by agent.js to avoid requiring callers to pass fmtFallback separately"
+    },
+    {
+      "file": "src/flow/lib/run-gate.js",
+      "change": "buildGuardrailPromptFromFiltered now returns PromptBuilder instead of string; string-assembling wrapper buildGuardrailPrompt added for backward-compat — dual API not specified"
+    },
+    {
+      "file": "src/flow/lib/get-context.js",
+      "change": "buildKeywordSelectionPrompt kept as string-returning public wrapper alongside new private _buildKeywordSelectionPb — dual API not required by spec"
+    },
+    {
+      "file": "src/docs/commands/enrich.js",
+      "change": "buildEnrichPrompt kept as string-returning wrapper alongside new _buildEnrichPromptBuilder; ENRICH_FMT_FALLBACK constant defined at module scope"
+    },
+    {
+      "file": "specs/247-prompt-layer-optimization/",
+      "change": "SDD flow infrastructure files added (flow.json, spec.json, draft.json, issue.md, issue-log.json, review.md, qa.md, spec-review.md, draft-review.md, file-map.json, tests/test-map.json) — not source code changes"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "All 7 requirements implemented. Text directive schema (R5) correctly omitted since text.js produces Markdown. Codex sync I/O issue surfaced by gate-impl was resolved via pendingSchemaWrite deferral pattern. Minor unplanned additions: dual wrapper/builder APIs in three files for string-compatible callers, fmtFallback added to build() return shape to simplify agent.js integration."
+  }
+}

@@ -20,6 +20,7 @@ import { loadFullAnalysis, getChapterFiles, readText } from "../lib/command-cont
 import { loadSddTemplate } from "../../lib/agents-md.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 
 const logger = createLogger("agents");
 
@@ -27,35 +28,23 @@ const logger = createLogger("agents");
 // AI プロンプト構築
 // ---------------------------------------------------------------------------
 
-function buildAgentsSystemPrompt() {
+function buildAgentsPromptBuilder(projectContent, docsContent, config, srcRoot, sddContent) {
   const t = translate();
   const rules = t.raw("prompts:agents.outputRules") || [];
-  return [
-    t("prompts:agents.systemPrompt"),
-    "",
-    "## Output Rules (strict)",
-    ...rules.map((r) => `- ${r}`),
-  ].join("\n");
-}
 
-function buildRefinePrompt(projectContent, docsContent, config, srcRoot, sddContent) {
-  const parts = [];
+  const pb = new PromptBuilder();
+  pb.setRole(t("prompts:agents.systemPrompt"));
+  pb.setRules("## Output Rules (strict)\n" + rules.map((r) => `- ${r}`).join("\n"));
 
   if (sddContent) {
-    parts.push("## SDD Section (already present — do not duplicate)");
-    parts.push(sddContent);
-    parts.push("");
+    pb.add("## SDD Section (already present — do not duplicate)", sddContent);
   }
 
-  parts.push("## Current PROJECT Section (template-generated)");
-  parts.push(projectContent);
-  parts.push("");
+  pb.add("## Current PROJECT Section (template-generated)", projectContent);
 
   if (config.type) {
-    parts.push("## Project Config");
     const typeStr = Array.isArray(config.type) ? config.type.join(", ") : config.type;
-    parts.push(`- type: ${typeStr}`);
-    parts.push("");
+    pb.add("## Project Config", `- type: ${typeStr}`);
   }
 
   const pkgPath = path.join(srcRoot, "package.json");
@@ -63,19 +52,16 @@ function buildRefinePrompt(projectContent, docsContent, config, srcRoot, sddCont
     try {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
       if (pkg.scripts) {
-        parts.push("## package.json scripts");
-        parts.push(JSON.stringify(pkg.scripts, null, 2));
-        parts.push("");
+        pb.add("## package.json scripts", JSON.stringify(pkg.scripts, null, 2));
       }
     } catch (_) { /* skip */ }
   }
 
   if (docsContent) {
-    parts.push("## Generated Documentation");
-    parts.push(docsContent);
+    pb.add("## Generated Documentation", docsContent);
   }
 
-  return parts.join("\n");
+  return pb;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,11 +187,14 @@ async function runAgents(ctx, rawArgs) {
     }
 
     logger.log(t("messages:agents.refining"));
-    const systemPrompt = buildAgentsSystemPrompt();
-    const prompt = buildRefinePrompt(projectContent, combinedDocs, config, srcRoot, sddContent);
+    const agentsPb = buildAgentsPromptBuilder(projectContent, combinedDocs, config, srcRoot, sddContent);
+    const agentsBuilt = agentsPb.build();
 
     try {
-      const result = await agent.call(prompt, { commandId: "docs.agents", systemPrompt });
+      const result = await agent.call(agentsBuilt.userPrompt, {
+        commandId: "docs.agents",
+        systemPrompt: agentsBuilt.systemPrompt,
+      });
 
       let refined = result.trim();
 

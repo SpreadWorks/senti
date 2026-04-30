@@ -1,0 +1,82 @@
+{
+  "devType": "refactor",
+  "goal": "Refactor all agent.call() prompt construction sites to use a new PromptBuilder class, separate ROLE+RULES into system prompt, externalize OUTPUT FORMAT as structured output via provider jsonSchemaFlag, and maximize user prompt prefix sharing for cache efficiency.",
+  "analysis": {
+    "problem": "Prefix cache sharing across SDD flow phases is inefficient because ROLE sentences at the top of user prompts differ between phases, and variable data splits fixed data. Cache read rate is 38.5% but could be higher with better prefix alignment.",
+    "proposedApproach": "Three-layer refactor: (1) PromptBuilder class (provider-agnostic, returns structured data), (2) provider.js jsonSchemaFlag() for structured output, (3) agent.js _buildInvocation() jsonSchema handling with fallback. All 14 agent.call() sites migrated.",
+    "validation": "Addresses root cause — prefix mismatch — by moving ROLE+RULES to system prompt and enforcing shared-data-first ordering via PromptBuilder. Structured output eliminates FMT text from prompts, further expanding the shared prefix range."
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] PromptBuilder class (src/lib/prompt-builder.js) — new, provider-agnostic",
+      "[must] provider.js — add jsonSchemaFlag() to each provider class",
+      "[must] agent.js — add jsonSchema handling with fallback for unsupported providers",
+      "[must] All 14 agent.call() sites migrated to PromptBuilder",
+      "[should] JSON Schema definitions for each JSON-output prompt type",
+      "[must] Unit tests for PromptBuilder, jsonSchemaFlag, agent jsonSchema handling"
+    ],
+    "out": [
+      "Data-level redundancy reduction (spec JSON tasks array repetition, spec+diff duplication) — separate concern",
+      "Logging/metadata completeness (sddPhase/spec missing) — separate concern",
+      "Cache TTL tuning — runtime configuration, not code change"
+    ]
+  },
+  "impactOnExisting": [
+    "All AI agent invocations will have restructured prompts (same content, different ordering/separation)",
+    "Claude provider calls gain --json-schema flag for JSON-output prompts",
+    "Codex provider calls gain --output-schema flag (temp file) for JSON-output prompts",
+    "Custom UserProvider profiles without jsonSchemaFlag fall back to FMT text in user prompt (no behavior change)",
+    "tests/unit/agent.test.js needs updates for new _buildInvocation jsonSchema parameter",
+    "tests/agent/ (AI execution tests) may be affected by structured output flags"
+  ],
+  "qa": [
+    {
+      "question": "impl-guardrail は Issue で「保留」とされているが、buildGuardrailPromptFromFiltered を PromptBuilder に移行すると自動的に impl-guardrail も変わる。分離するか？",
+      "answer": "まとめて移行する。全 14 箇所を対応する方針。",
+      "evidence": "buildGuardrailPromptFromFiltered (run-gate.js:522) は spec/draft/impl-guardrail 共通。全 14 箇所: run-gate×2, run-auto-check, run-retro, get-context, review, translate, enrich, init, text, agents, forge, template-merger (docs.init経由×2)。分離は不要な複雑さを生む。",
+      "why": "同じ関数を通る以上、部分的に旧方式を維持する方が保守コストが高い。Issue の「保留」は diff 関連の別件改修を指しており、プロンプト構造移行自体は問題ない。",
+      "considered": "impl-guardrail だけ旧方式に分離 → 関数が2つに分かれ保守コスト増。却下。"
+    },
+    {
+      "question": "テスト戦略は？",
+      "answer": "PromptBuilder のユニットテスト、agent.js の jsonSchema ハンドリングテスト、provider.js の jsonSchemaFlag テスト、既存テストの回帰確認（npm test + npm run test:agent）。",
+      "evidence": "既存の _buildInvocationForTest() パターン (agent.js) でテスト可能。PromptBuilder は純粋データ変換。",
+      "why": "インフラ層のテストで全呼び出しサイトの正しい動作を保証できる。",
+      "considered": "各呼び出しサイト個別のテスト → PromptBuilder + agent のテストでカバーされるため不要。"
+    },
+    {
+      "question": "既存 CLI インターフェースへの影響は？",
+      "answer": "公開 CLI オプションの変更なし。内部的に --json-schema / --output-schema / --system-prompt フラグが追加されるが、ユーザーが直接操作するものではない。カスタム provider は jsonSchemaFlag null でフォールバック（FMT テキストを user prompt に埋め込み）。alpha ポリシーにより旧方式の互換パスは維持しない。",
+      "evidence": "変更は内部プロンプト構築ロジックのみ。agent.call() の外部インターフェースは options.jsonSchema の追加のみ（オプショナル）。",
+      "why": "alpha ポリシーに従い、旧方式は削除して新方式に統一。カスタム provider のフォールバックは agent.js 側の責務。",
+      "considered": "N/A"
+    },
+    {
+      "question": "user prompt prefix 最大化とは具体的に何をするか？",
+      "answer": "共有パーツ（ガードレール条文等）を user prompt の先頭に、可変パーツ（評価対象コンテンツ等）を末尾に配置する。ROLE + RULES は system prompt に移動済みなので、user prompt はフェーズ間で共有されるパーツから始まり、キャッシュプレフィックスが一致する。",
+      "evidence": "実測データ (8cae): spec/draft/impl-guardrail (69 calls) で FMT + RULES + ARTICLES は共通だが、先頭の ROLE 文の差異でキャッシュが効かない。ROLE を system prompt に移し、共有パーツを先頭に集めれば prefix が一致する。",
+      "why": "PromptBuilder の add() 順序でプレフィックス共有を強制する。ガイドラインではなくコードで保証する設計。",
+      "considered": "呼び出し側に順序を委ねる → 順序ミスでキャッシュ効率が低下するリスク。PromptBuilder でコードにより順序を強制する方が安全。"
+    },
+    {
+      "question": "agent.js 変更に伴い npm run test:agent は必要か？",
+      "answer": "必要。agent.js を変更するため、CLAUDE.md のルールに従い npm run test:agent を実行して回帰検知する。",
+      "evidence": "CLAUDE.md: 「src/lib/agent.js を変更した場合は npm run test:agent を実行して回帰検知すること」",
+      "why": "実 CLI を叩くテストで structured output フラグの追加が既存動作を壊さないことを確認する。",
+      "considered": "N/A"
+    },
+    {
+      "question": "トークン削減の成功基準は？",
+      "answer": "代表的なプロンプト（guardrail, auto-check, enrich）について移行前後のプロンプト文字数を比較する。FMT テキスト除去分（各プロンプト 200-500 chars）と ROLE+RULES 分離分（~400 chars）の構造的削減を確認する。正確なトークン数の比較は tokenizer 不在のため行わない。",
+      "evidence": "run-gate.js:534-543 の OUTPUT FORMAT セクションは約 400 chars。ROLE 文 + RULES は合計 ~400 chars (Issue #290 実測)。これらが user prompt から除去される。",
+      "why": "構造的な削減（FMT 除去、ROLE 分離）は確実に発生するため、文字数ベースの確認で十分。",
+      "considered": "実行時のキャッシュヒット率比較 → ランタイム条件に依存し再現性が低い。構造的削減の確認に留める。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-30",
+    "notes": "Full scope: all 14 agent.call() sites. Issue #290 design adopted as-is for PromptBuilder + agent.call() + provider.js."
+  }
+}

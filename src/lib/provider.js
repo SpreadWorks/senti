@@ -25,6 +25,10 @@ class Provider {
     return null;
   }
 
+  jsonSchemaFlag() {
+    return null;
+  }
+
   workDirFlag() {
     return null;
   }
@@ -36,6 +40,10 @@ class Provider {
 
 class ClaudeProvider extends Provider {
   static key = "claude";
+
+  jsonSchemaFlag() {
+    return "--json-schema";
+  }
 
   parse(stdout) {
     const parsed = JSON.parse(stdout);
@@ -89,6 +97,10 @@ class ClaudeProvider extends Provider {
 
 class CodexProvider extends Provider {
   static key = "codex";
+
+  jsonSchemaFlag() {
+    return "--output-schema";
+  }
 
   parse(stdout) {
     const lines = stdout.trim().split("\n");
@@ -149,6 +161,9 @@ class UserProvider extends Provider {
   }
   systemPromptFlag() {
     return this._profile.systemPromptFlag || null;
+  }
+  jsonSchemaFlag() {
+    return this._profile.jsonSchemaFlag || null;
   }
   workDirFlag() {
     return this._profile.workDirFlag || null;

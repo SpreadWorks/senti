@@ -17,6 +17,7 @@ import { createLogger } from "../../lib/progress.js";
 import { getChapterFiles, stripResponsePreamble } from "../lib/command-context.js";
 import { mapWithConcurrency } from "../lib/concurrency.js";
 import { container } from "../../lib/container.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
 
@@ -48,10 +49,10 @@ function toneInstruction(tone, toLang) {
 async function translateDocument(content, fromLang, toLang, agent, _root, documentStyle) {
   const toneInstr = documentStyle?.tone ? toneInstruction(documentStyle.tone, toLang) : "";
 
-  const systemPrompt = [
-    `You are a professional technical document translator specializing in ${toLang}.`,
-    `Translate the following Markdown document from ${fromLang} to ${toLang}.`,
-    "",
+  const pb = new PromptBuilder();
+  pb.setRole(`You are a professional technical document translator specializing in ${toLang}.\nTranslate the following Markdown document from ${fromLang} to ${toLang}.`);
+
+  const ruleLines = [
     "## Formatting rules",
     "- Preserve ALL Markdown formatting (headings, tables, code blocks, links)",
     "- Preserve ALL directives exactly as-is: <!-- {{data(...)}} -->, <!-- {{text(...)}} -->, <!-- {{/data}} -->, <!-- {%block%} -->, <!-- {%extends%} -->",
@@ -65,15 +66,17 @@ async function translateDocument(content, fromLang, toLang, agent, _root, docume
     "- Avoid excessive use of loanwords/katakana when the target language has natural equivalents.",
     "- Avoid verbose patterns such as chains of nominalizations or passive voice.",
     "- Respect the cultural conventions and writing customs of the target language — the result should read as if originally written in that language, not as a translation.",
-    toneInstr ? `- Writing style: ${toneInstr}` : "",
-    documentStyle?.customInstruction ? `- ${documentStyle.customInstruction}` : "",
-  ].filter(Boolean).join("\n");
+  ];
+  if (toneInstr) ruleLines.push(`- Writing style: ${toneInstr}`);
+  if (documentStyle?.customInstruction) ruleLines.push(`- ${documentStyle.customInstruction}`);
+  pb.setRules(ruleLines.join("\n"));
 
-  const prompt = content;
+  pb.add("## Document", content);
+  const built = pb.build();
 
-  const result = await agent.call(prompt, {
+  const result = await agent.call(built.userPrompt, {
     commandId: "docs.translate",
-    systemPrompt,
+    systemPrompt: built.systemPrompt,
   });
 
   if (!result || result.trim().length === 0) {

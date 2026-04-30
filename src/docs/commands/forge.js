@@ -24,6 +24,7 @@ import { loadFullAnalysis, loadAnalysisData, getChapterFiles, readText } from ".
 import { createResolver } from "../lib/resolver-factory.js";
 import { container } from "../../lib/container.js";
 import { translate } from "../../lib/i18n.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { loadSpecJson, specJsonToPromptText } from "../../lib/spec-json.js";
 import {
@@ -141,10 +142,15 @@ async function invokeAgent(agent, prompt, { systemPrompt, verbose, label }) {
     ? setInterval(() => process.stderr.write("."), DEFAULT_WAIT_LOG_SEC * 1000)
     : null;
 
+  const pb = new PromptBuilder();
+  if (systemPrompt) pb.setRole(systemPrompt);
+  pb.add("## Content", prompt);
+  const built = pb.build();
+
   try {
-    return await agent.call(prompt, {
+    return await agent.call(built.userPrompt, {
       commandId: "docs.forge",
-      systemPrompt,
+      systemPrompt: built.systemPrompt,
       onStdout: verbose ? (chunk) => process.stderr.write(chunk) : undefined,
       onStderr: verbose ? (chunk) => process.stderr.write(chunk) : undefined,
     });

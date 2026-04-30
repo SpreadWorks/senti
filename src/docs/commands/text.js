@@ -17,6 +17,7 @@ import { parseDirectives, TEXT_OPEN_RE } from "../lib/directive-parser.js";
 import { mapWithConcurrency } from "../lib/concurrency.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 import {
   getAnalysisContext,
   getEnrichedContext,
@@ -264,9 +265,13 @@ async function processTemplateFileBatch(text, analysis, fileName, agent, dryRun,
 // エージェント呼び出し
 // ---------------------------------------------------------------------------
 async function invokeAgent(agent, prompt, preamblePatterns, systemPrompt, extraOptions) {
-  const result = await agent.call(prompt, {
+  const pb = new PromptBuilder();
+  if (systemPrompt) pb.setRole(systemPrompt);
+  pb.add("## Content", prompt);
+  const built = pb.build();
+  const result = await agent.call(built.userPrompt, {
     commandId: "docs.text",
-    systemPrompt,
+    systemPrompt: built.systemPrompt,
     ...extraOptions,
   });
   return stripPreamble(result, preamblePatterns);

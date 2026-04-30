@@ -16,6 +16,7 @@ import { sddOutputDir, loadConfig } from "../../lib/config.js";
 import { FlowCommand } from "./base-command.js";
 import { ANALYSIS_META_KEYS } from "../../docs/lib/analysis-entry.js";
 import { container } from "../../lib/container.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 
 const EXCLUDE_FIELDS = new Set(["hash", "mtime", "lines", "id", "enrich", "detail"]);
 
@@ -86,22 +87,39 @@ function collectAllKeywords(analysis, limit = 2000) {
  * @param {string} query - User's natural language query
  * @returns {string} Prompt text
  */
+const KEYWORD_SELECTION_SCHEMA = {
+  type: "array",
+  items: { type: "string" },
+};
+
+const KEYWORD_SELECTION_FMT_FALLBACK = 'Return ONLY a JSON array of selected keywords. No explanation, no markdown fences.\nExample output: ["auth", "認証", "session", "login"]';
+
 function buildKeywordSelectionPrompt(keywords, query) {
-  return [
-    "You are a keyword selector. Given a query and a list of available keywords, select the keywords that are relevant to the query.",
-    "",
-    "## Query",
-    query,
-    "",
-    "## Available keywords",
-    keywords.join(", "),
-    "",
-    "## Rules",
+  const pb = _buildKeywordSelectionPb(keywords, query);
+  const built = pb.build();
+  const parts = [];
+  if (built.systemPrompt) parts.push(built.systemPrompt);
+  if (built.fmtFallback) parts.push(built.fmtFallback);
+  if (built.userPrompt) parts.push(built.userPrompt);
+  return parts.join("\n\n");
+}
+
+function _buildKeywordSelectionPb(keywords, query) {
+  const pb = new PromptBuilder();
+  pb.setRole("You are a keyword selector. Given a query and a list of available keywords, select the keywords that are relevant to the query.");
+
+  const rules = [
     "- Select 5-20 keywords that are most relevant to the query.",
-    "- Return ONLY a JSON array of selected keywords. No explanation, no markdown fences.",
     "- Include both direct matches and semantically related keywords.",
-    '- Example output: ["auth", "認証", "session", "login"]',
   ].join("\n");
+  pb.setRules(rules);
+  pb.setJsonSchema(KEYWORD_SELECTION_SCHEMA);
+  pb.setFmtFallback(KEYWORD_SELECTION_FMT_FALLBACK);
+
+  pb.add("## Query", query);
+  pb.add("## Available keywords", keywords.join(", "));
+
+  return pb;
 }
 
 /**
@@ -216,10 +234,16 @@ async function aiSearch(allEntries, analysis, query, _root) {
   const agent = container.get("agent");
   if (!agent.resolve("flow.context.search")) return fallbackSearch(allEntries, query);
 
-  const prompt = buildKeywordSelectionPrompt(allKeywords, query);
+  const kwPb = _buildKeywordSelectionPb(allKeywords, query);
+  const kwBuilt = kwPb.build();
   let response;
   try {
-    response = await agent.call(prompt, { commandId: "flow.context.search" });
+    response = await agent.call(kwBuilt.userPrompt, {
+      commandId: "flow.context.search",
+      systemPrompt: kwBuilt.systemPrompt,
+      jsonSchema: kwBuilt.jsonSchema,
+      fmtFallback: kwBuilt.fmtFallback,
+    });
   } catch (err) {
     process.stderr.write(`[sdd-forge] context aiSearch agent call failed: ${err.message}\n`);
     return fallbackSearch(allEntries, query);

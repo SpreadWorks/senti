@@ -30,12 +30,12 @@ import { evaluateStaticGates } from "./auto-check-static.js";
 import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
 import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 
-const PROMPT_TEMPLATE = `You evaluate whether a feature request can safely proceed in SDD "auto mode" —
-meaning the AI drafts, specs, and implements without human confirmation loops.
+const AUTO_CHECK_ROLE = `You evaluate whether a feature request can safely proceed in SDD "auto mode" —
+meaning the AI drafts, specs, and implements without human confirmation loops.`;
 
-Score the following request on six dimensions (0/1/2 each). Output JSON only,
-no prose. Use these exact keys and integer scores:
+const AUTO_CHECK_RULES = `Score the following request on six dimensions (0/1/2 each).
 
 - specBuildability (weight 3) — can Goal / Scope / Acceptance be derived?
   0 = cannot determine Goal or Acceptance without clarification
@@ -62,16 +62,24 @@ no prose. Use these exact keys and integer scores:
   1 = partial precedent
   2 = clear precedent
 
-Also include a reason field (short string, under 200 chars, Japanese).
+Also include a reason field (short string, under 200 chars, Japanese).`;
 
-Input text (request / Issue body):
----
-{{INPUT}}
----
+const AUTO_CHECK_SCHEMA = {
+  type: "object",
+  properties: {
+    specBuildability: { type: "integer" },
+    ambiguity: { type: "integer" },
+    verifiability: { type: "integer" },
+    scopeBoundedness: { type: "integer" },
+    targetSpecificity: { type: "integer" },
+    precedent: { type: "integer" },
+    reason: { type: "string" },
+  },
+  required: ["specBuildability", "ambiguity", "verifiability", "scopeBoundedness", "targetSpecificity", "precedent", "reason"],
+  additionalProperties: false,
+};
 
-Output JSON shape (no markdown fence, no prose):
-{"specBuildability": N, "ambiguity": N, "verifiability": N, "scopeBoundedness": N, "targetSpecificity": N, "precedent": N, "reason": "..."}
-`;
+const AUTO_CHECK_FMT_FALLBACK = 'Output JSON only, no prose. Use these exact keys and integer scores.\nOutput JSON shape (no markdown fence, no prose):\n{"specBuildability": N, "ambiguity": N, "verifiability": N, "scopeBoundedness": N, "targetSpecificity": N, "precedent": N, "reason": "..."}';
 
 const WEIGHTS = {
   specBuildability: 3,
@@ -138,10 +146,22 @@ async function scoreWithAi(container, inputText) {
   if (!agent?.resolve?.("flow.auto-check")) {
     return { breakdown: emptyBreakdown(), reason: "no agent profile for auto-check", ok: false };
   }
-  const prompt = PROMPT_TEMPLATE.replace("{{INPUT}}", inputText);
+  const pb = new PromptBuilder();
+  pb.setRole(AUTO_CHECK_ROLE);
+  pb.setRules(AUTO_CHECK_RULES);
+  pb.setJsonSchema(AUTO_CHECK_SCHEMA);
+  pb.setFmtFallback(AUTO_CHECK_FMT_FALLBACK);
+  pb.add("## Input text (request / Issue body)", inputText);
+  const built = pb.build();
+
   let responseText;
   try {
-    responseText = await agent.call(prompt, { commandId: "flow.auto-check" });
+    responseText = await agent.call(built.userPrompt, {
+      commandId: "flow.auto-check",
+      systemPrompt: built.systemPrompt,
+      jsonSchema: built.jsonSchema,
+      fmtFallback: built.fmtFallback,
+    });
   } catch (err) {
     return { breakdown: emptyBreakdown(), reason: `agent call failed: ${err.message}`, ok: false };
   }

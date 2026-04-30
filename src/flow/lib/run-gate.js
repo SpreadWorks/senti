@@ -24,6 +24,7 @@ import { runGit } from "../../lib/git-helpers.js";
 
 const execFileAsync = promisify(execFile);
 import { container } from "../../lib/container.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
 import { loadSpecJson, resolveSpecJsonPath, resolveSpecDir } from "../../lib/spec-json.js";
@@ -509,7 +510,14 @@ const DIFF_SCOPED_PHASES = Object.freeze(["task-impl", "integration"]);
  */
 function buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPassedIds) {
   const filtered = filterByPhase(guardrails, phase);
-  return buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds);
+  const pb = buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds);
+  if (!pb) return null;
+  const built = pb.build();
+  const parts = [];
+  if (built.systemPrompt) parts.push(built.systemPrompt);
+  if (built.fmtFallback) parts.push(built.fmtFallback);
+  if (built.userPrompt) parts.push(built.userPrompt);
+  return parts.join("\n\n");
 }
 
 /**
@@ -519,6 +527,34 @@ function buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPas
  *
  * @param {string[]} [previouslyPassedIds] - guardrail IDs that passed in a prior evaluation (spec 229)
  */
+const GUARDRAIL_EVAL_SCHEMA = {
+  type: "object",
+  properties: {
+    evaluations: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          guardrail_id: { type: "string" },
+          result: { type: "string", enum: ["pass", "fail", "skip"] },
+          reason: { type: "string" },
+        },
+        required: ["guardrail_id", "result", "reason"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["evaluations"],
+  additionalProperties: false,
+};
+
+const GUARDRAIL_FMT_FALLBACK = [
+  "OUTPUT FORMAT — strictly required:",
+  "Return a single JSON object matching this shape:",
+  '  {"evaluations":[{"guardrail_id":"<id>","result":"pass"|"fail"|"skip","reason":"<brief>"}]}',
+  "Output MUST be valid JSON. No preamble, no trailing commentary, no Markdown prose — JSON only.",
+].join("\n");
+
 function buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds) {
   if (filtered.length === 0) return null;
 
@@ -528,45 +564,36 @@ function buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, pre
 
   const checkerRole = role || `You are a ${phase} compliance checker.`;
 
-  const parts = [
-    `${checkerRole} Check the following content against each guardrail article.`,
-    "",
-    "OUTPUT FORMAT — strictly required:",
-    "Return a single JSON object matching this shape:",
-    '  {"evaluations":[{"guardrail_id":"<id>","result":"pass"|"fail"|"skip","reason":"<brief>"}]}',
-    "",
-    "Rules:",
+  const pb = new PromptBuilder();
+  pb.setRole(`${checkerRole} Check the following content against each guardrail article.`);
+
+  const rules = [
     "- Include exactly one entry per guardrail article listed below, identified by its id.",
     "- `result` MUST be one of the lowercase strings: pass, fail, skip.",
     "- Use skip only when the article cannot be evaluated without runtime evidence not provided.",
     "- If an article is inapplicable by nature of the content, mark it as pass with a short reason.",
-    "- Output MUST be valid JSON. No preamble, no trailing commentary, no Markdown prose — JSON only.",
-    "",
-  ];
+  ].join("\n");
+  pb.setRules(rules);
+  pb.setJsonSchema(GUARDRAIL_EVAL_SCHEMA);
+  pb.setFmtFallback(GUARDRAIL_FMT_FALLBACK);
 
   if (Array.isArray(previouslyPassedIds) && previouslyPassedIds.length > 0) {
-    parts.push(
+    pb.add(
       "## Previously Passed Guardrails",
-      "The following guardrail IDs passed in a previous evaluation of this content.",
-      "Only FAIL these if the current content specifically introduces a new violation.",
-      "IDs: " + previouslyPassedIds.join(", "),
-      "",
+      "The following guardrail IDs passed in a previous evaluation of this content.\n"
+        + "Only FAIL these if the current content specifically introduces a new violation.\n"
+        + "IDs: " + previouslyPassedIds.join(", "),
     );
   }
 
   if (DIFF_SCOPED_PHASES.includes(phase)) {
-    parts.push(...IMPL_DIFF_SCOPE_LINES);
+    pb.add("## Diff Scope Constraint", IMPL_DIFF_SCOPE_LINES.slice(1).join("\n"));
   }
 
-  parts.push(
-    "## Guardrail Articles",
-    articleList,
-    "",
-    "## Content",
-    targetText,
-  );
+  pb.add("## Guardrail Articles", articleList);
+  pb.add("## Content", targetText);
 
-  return parts.join("\n");
+  return pb;
 }
 
 // ---------------------------------------------------------------------------
@@ -721,10 +748,16 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
   const agent = container.get("agent");
   if (!agent.resolve("flow.spec.gate")) return null;
 
-  const prompt = buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds);
-  if (!prompt) return { passed: true, evaluations: [] };
+  const pb = buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds);
+  if (!pb) return { passed: true, evaluations: [] };
 
-  const response = await agent.call(prompt, { commandId: "flow.spec.gate" });
+  const built = pb.build();
+  const response = await agent.call(built.userPrompt, {
+    commandId: "flow.spec.gate",
+    systemPrompt: built.systemPrompt,
+    jsonSchema: built.jsonSchema,
+    fmtFallback: built.fmtFallback,
+  });
   const knownIds = filtered.map((g) => g.id);
   const parsed = parseEvaluationResponse(response, knownIds);
   const byId = new Map(filtered.map((g) => [g.id, g]));
@@ -1110,31 +1143,23 @@ export function applyFlipOverride({ evaluations, previousEntry, currentState, ph
 
 
 function buildImplCheckPrompt(specText, diff, knownIds) {
-  const lines = [
-    "You are an implementation compliance checker.",
-    "Check whether each spec requirement has been implemented in the diff.",
-    "",
-    "OUTPUT FORMAT — strictly required:",
-    "Return a single JSON object:",
-    '  {"evaluations":[{"guardrail_id":"<requirement-id>","result":"pass"|"fail"|"skip","reason":"<brief>"}]}',
-    "",
-    "Rules:",
+  const pb = new PromptBuilder();
+  pb.setRole("You are an implementation compliance checker.\nCheck whether each spec requirement has been implemented in the diff.");
+
+  const rules = [
     "- guardrail_id MUST be one of the requirement ids listed below.",
     "- result MUST be one of the lowercase strings: pass, fail, skip.",
     "- Use skip only when the requirement can only be verified by running tests and no execution evidence is provided.",
-    "- Output MUST be valid JSON only.",
-    "",
-    "## Requirement IDs",
-    knownIds.map((id) => `- ${id}`).join("\n"),
-    "",
-    "## Spec",
-    specText,
-    "",
-    "## Git Diff",
-    diff,
-  ];
+  ].join("\n");
+  pb.setRules(rules);
+  pb.setJsonSchema(GUARDRAIL_EVAL_SCHEMA);
+  pb.setFmtFallback(GUARDRAIL_FMT_FALLBACK);
 
-  return lines.join("\n");
+  pb.add("## Requirement IDs", knownIds.map((id) => `- ${id}`).join("\n"));
+  pb.add("## Spec", specText);
+  pb.add("## Git Diff", diff);
+
+  return pb;
 }
 
 /**
@@ -1590,8 +1615,14 @@ export class RunGateCommand extends FlowCommand {
     }
 
     const reqIds = extractRequirementIds(specText);
-    const reqPrompt = buildImplCheckPrompt(specText, diff, reqIds);
-    const reqResponse = await agent.call(reqPrompt, { commandId: "flow.spec.gate" });
+    const reqPb = buildImplCheckPrompt(specText, diff, reqIds);
+    const reqBuilt = reqPb.build();
+    const reqResponse = await agent.call(reqBuilt.userPrompt, {
+      commandId: "flow.spec.gate",
+      systemPrompt: reqBuilt.systemPrompt,
+      jsonSchema: reqBuilt.jsonSchema,
+      fmtFallback: reqBuilt.fmtFallback,
+    });
     const reqResults = parseEvaluationResponse(reqResponse, reqIds);
     const reqEvaluations = reqResults.map((r) => ({
       ...r,

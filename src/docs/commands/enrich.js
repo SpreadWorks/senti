@@ -27,6 +27,7 @@ import { ANALYSIS_META_KEYS } from "../lib/analysis-entry.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
+import { PromptBuilder } from "../../lib/prompt-builder.js";
 
 const logger = createLogger("enrich");
 const DEFAULT_BATCH_TOKEN_LIMIT = 10000;
@@ -123,86 +124,112 @@ function splitIntoBatches(entries, maxTokens) {
  * @param {Array<{category: string, index: number, file: string}>} batchEntries - バッチ内のエントリー
  * @returns {string} Prompt text
  */
+const ENRICH_FMT_FALLBACK = [
+  "## Output format",
+  "Return a JSON object with the following structure:",
+  '{"<category>": [{"index": 0, "summary": "...", "detail": "...", "chapter": "...", "role": "...", "keywords": [...]}]}',
+  "Return ONLY valid JSON, no markdown fences, no explanation text.",
+].join("\n");
+
 function buildEnrichPrompt(chapters, batchEntries, opts) {
+  const pb = _buildEnrichPromptBuilder(chapters, batchEntries, opts);
+  const built = pb.build();
   const parts = [];
+  if (built.systemPrompt) parts.push(built.systemPrompt);
+  if (built.fmtFallback) parts.push(built.fmtFallback);
+  if (built.userPrompt) parts.push(built.userPrompt);
+  return parts.join("\n\n");
+}
 
-  parts.push("Analyze the following source code extracts and add structured metadata.");
-  parts.push("");
+function _buildEnrichPromptBuilder(chapters, batchEntries, opts) {
+  const pb = new PromptBuilder();
+  pb.setRole("Analyze the following source code extracts and add structured metadata.");
 
-  // Embedded essential source
-  parts.push("## Target files");
-  parts.push("");
+  // Target files
+  const fileParts = [];
   for (const entry of batchEntries) {
-    parts.push(`### [${entry.category}:${entry.index}] ${entry.file}`);
+    fileParts.push(`### [${entry.category}:${entry.index}] ${entry.file}`);
     if (entry.essential) {
-      parts.push("```");
-      parts.push(entry.essential);
-      parts.push("```");
+      fileParts.push("```");
+      fileParts.push(entry.essential);
+      fileParts.push("```");
     }
-    parts.push("");
+    fileParts.push("");
   }
+  pb.add("## Target files", fileParts.join("\n"));
 
-  // Chapter list (accepts both string[] and {chapter, desc}[])
-  parts.push("## Available chapters");
-  parts.push("Each entry should be assigned to one of these chapters:");
+  // Chapter list
+  const chapterLines = ["Each entry should be assigned to one of these chapters:"];
   for (const ch of chapters) {
     if (typeof ch === "string") {
-      parts.push(`- ${ch.replace(/\.md$/, "")}`);
+      chapterLines.push(`- ${ch.replace(/\.md$/, "")}`);
     } else {
       const name = ch.chapter.replace(/\.md$/, "");
-      parts.push(ch.desc ? `- ${name}: ${ch.desc}` : `- ${name}`);
+      chapterLines.push(ch.desc ? `- ${name}: ${ch.desc}` : `- ${name}`);
     }
   }
-  parts.push("");
+  pb.add("## Available chapters", chapterLines.join("\n"));
 
-  // Output format instruction
-  parts.push("## Output format");
-  parts.push("");
-  parts.push("Return a JSON object with the following structure:");
-  parts.push("```json");
-  parts.push('{');
-  parts.push('  "<category>": [');
-  parts.push('    {');
-  parts.push('      "index": 0,');
-  parts.push('      "summary": "1-2 sentence summary of what this file/class does",');
-  parts.push('      "detail": "3-5 sentences summarizing key implementation patterns and logic.",');
-  parts.push('      "chapter": "chapter_name (from the available chapters list, without .md)",');
-  parts.push('      "role": "one of: controller, model, lib, config, cli, middleware, test, migration, route, view, other",');
-  parts.push('      "keywords": ["keyword1", "keyword2", "synonym"]');
-  parts.push('    }');
-  parts.push('  ]');
-  parts.push('}');
-  parts.push("```");
-  parts.push("");
   // Monorepo app assignment (optional)
   const monorepoApps = opts?.monorepoApps;
   if (Array.isArray(monorepoApps) && monorepoApps.length > 0) {
-    parts.push("## Monorepo apps");
-    parts.push("This is a monorepo. Assign each entry to one of these apps based on its file path:");
+    const appLines = [
+      "This is a monorepo. Assign each entry to one of these apps based on its file path:",
+    ];
     for (const app of monorepoApps) {
-      parts.push(`- "${app.name}" (path prefix: ${app.path})`);
+      appLines.push(`- "${app.name}" (path prefix: ${app.path})`);
     }
-    parts.push('Add an `"app"` field to each entry with the app name.');
-    parts.push("");
+    appLines.push('Add an `"app"` field to each entry with the app name.');
+    pb.add("## Monorepo apps", appLines.join("\n"));
   }
 
-  parts.push("Rules:");
-  parts.push("- Return ONLY valid JSON, no markdown fences, no explanation text.");
-  parts.push("- Group entries by category in the output.");
-  parts.push("- The `index` field must match the original index provided above.");
-  parts.push("- `summary` should be concise (1-2 sentences).");
-  parts.push("- `detail`: 3-5 sentences summarizing key implementation patterns and logic.");
-  parts.push("- `chapter` must be one of the available chapter names (without .md extension).");
+  // JSON schema for structured output
+  const schemaProperties = {
+    index: { type: "integer" },
+    summary: { type: "string" },
+    detail: { type: "string" },
+    chapter: { type: "string" },
+    role: { type: "string", enum: ["controller", "model", "lib", "config", "cli", "middleware", "test", "migration", "route", "view", "other"] },
+    keywords: { type: "array", items: { type: "string" } },
+  };
+  const requiredFields = ["index", "summary", "detail", "chapter", "role", "keywords"];
   if (monorepoApps) {
-    parts.push("- `app` must be one of the monorepo app names listed above (omit if file does not belong to any app).");
+    schemaProperties.app = { type: "string" };
+  }
+  pb.setJsonSchema({
+    type: "object",
+    additionalProperties: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: schemaProperties,
+        required: requiredFields,
+        additionalProperties: false,
+      },
+    },
+  });
+  pb.setFmtFallback(ENRICH_FMT_FALLBACK);
+
+  // Rules
+  const ruleLines = [
+    "- Return ONLY valid JSON, no markdown fences, no explanation text.",
+    "- Group entries by category in the output.",
+    "- The `index` field must match the original index provided above.",
+    "- `summary` should be concise (1-2 sentences).",
+    "- `detail`: 3-5 sentences summarizing key implementation patterns and logic.",
+    "- `chapter` must be one of the available chapter names (without .md extension).",
+  ];
+  if (monorepoApps) {
+    ruleLines.push("- `app` must be one of the monorepo app names listed above (omit if file does not belong to any app).");
   }
   const LANG_NAMES = { en: "English", ja: "Japanese", zh: "Chinese", ko: "Korean", fr: "French", de: "German", es: "Spanish", pt: "Portuguese", it: "Italian", ru: "Russian" };
   const lang = opts?.lang || "en";
   const langName = LANG_NAMES[lang] || lang;
-  parts.push("- `keywords` must be in English. Include 3-10 search keywords with synonyms and related terms.");
-  parts.push(`- Write summary, detail, and any descriptive content strictly in ${langName}.`);
+  ruleLines.push("- `keywords` must be in English. Include 3-10 search keywords with synonyms and related terms.");
+  ruleLines.push(`- Write summary, detail, and any descriptive content strictly in ${langName}.`);
+  pb.setRules(ruleLines.join("\n"));
 
-  return parts.join("\n");
+  return pb;
 }
 
 /**
@@ -451,12 +478,16 @@ async function runEnrich(ctx, rawArgs) {
     const batchIdx = batches.indexOf(batch);
     logger.log(`batch ${batchIdx + 1}/${batches.length} (${batch.length} entries)`);
 
-    const prompt = buildEnrichPrompt(chapters, batch, { monorepoApps: config.monorepo?.apps, lang: config.docs?.defaultLanguage || "en" });
+    const enrichPb = _buildEnrichPromptBuilder(chapters, batch, { monorepoApps: config.monorepo?.apps, lang: config.docs?.defaultLanguage || "en" });
+    const enrichBuilt = enrichPb.build();
 
     let response;
     try {
-      response = await agent.call(prompt, {
+      response = await agent.call(enrichBuilt.userPrompt, {
         commandId: ctx.commandId || "docs.enrich",
+        systemPrompt: enrichBuilt.systemPrompt,
+        jsonSchema: enrichBuilt.jsonSchema,
+        fmtFallback: enrichBuilt.fmtFallback,
         retryCount,
       });
     } catch (err) {
