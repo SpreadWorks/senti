@@ -1,0 +1,35 @@
+{
+  "R-01": [
+    "246-review-pipeline.test.js > spec 246: draft review auto-fix abolished (R-01) > R-01: buildDraftFixPrompt does not exist in review.js",
+    "246-review-pipeline.test.js > spec 246: draft review auto-fix abolished (R-01) > R-01: runDraftReview does not write to draft.json"
+  ],
+  "R-02": [
+    "246-review-pipeline.test.js > spec 246: spec review propose-validate pattern (R-02, R-03) > R-02: buildSpecFixPrompt does not exist in review.js",
+    "246-review-pipeline.test.js > spec 246: spec review propose-validate pattern (R-02, R-03) > R-02: runSpecReview does not call runReviewLoop"
+  ],
+  "R-03": [
+    "246-review-pipeline.test.js > spec 246: spec review propose-validate pattern (R-02, R-03) > R-03: runSpecReview does not write to spec.md"
+  ],
+  "R-04": [
+    "246-token-reduction.test.js > spec 246: spec review token reduction (R-04) > R-04: review.js no longer reads spec.md as full text for spec review",
+    "246-token-reduction.test.js > spec 246: spec review token reduction (R-04) > R-04: buildSpecSummaryMarkdown uses minify for token reduction",
+    "246-token-reduction.test.js > spec 246: spec review token reduction (R-04) > R-04: field-selection + minify output is smaller than spec.md"
+  ],
+  "R-05": [
+    "246-commandid-rename.test.js > spec 246: commandId rename (R-05) > R-05: old commandIds do not appear in src/flow/commands/review.js",
+    "246-commandid-rename.test.js > spec 246: commandId rename (R-05) > R-05: new commandIds are present in src/flow/commands/review.js",
+    "246-commandid-rename.test.js > spec 246: commandId rename (R-05) > R-05: old commandIds do not appear anywhere in src/"
+  ],
+  "R-06": [
+    "246-review-pipeline.test.js > spec 246: run-review.js parser rename (R-06) > R-06: PHASE_REVIEW_PARSERS draft key uses renamed commandId",
+    "246-review-pipeline.test.js > spec 246: run-review.js parser rename (R-06) > R-06: parseDraftReviewOutput is renamed to parseProposalReviewOutput or equivalent"
+  ],
+  "R-07": [
+    "246-commandid-rename.test.js > spec 246: config.json commandId keys (R-07) > R-07: config.json has no old commandId keys",
+    "246-commandid-rename.test.js > spec 246: config.json commandId keys (R-07) > R-07: config.json has new commandId keys"
+  ],
+  "R-08": [
+    "246-review-pipeline.test.js > spec 246: skill instruction prompts (R-08) > R-08: review-draft.md describes detection report + additional questions flow",
+    "246-review-pipeline.test.js > spec 246: skill instruction prompts (R-08) > R-08: review-spec.md describes propose-validate + APPROVED proposals flow"
+  ]
+}

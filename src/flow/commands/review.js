@@ -596,7 +596,7 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
   }
   const groups = groupByDiffContent(strippedDiffs, fileToReqs);
 
-  const draftAgent = ensureAgent("flow.impl.review.draft");
+  const draftAgent = ensureAgent("flow.impl.review.propose");
   const systemPrompt = buildDraftSystemPrompt(guardrails);
 
   // Batch groups into chunks when exceeding MAX_LOOP_CALLS
@@ -622,7 +622,7 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
     console.error(`  [loop-review] Call ${i + 1}/${reviewChunks.length}: ${chunkLabel(chunk)}...`);
 
     const input = buildChunkReviewInput(chunk, rawPerFileDiffs, fileToReqs);
-    const result = await callReviewAgent(draftAgent, input, "flow.impl.review.draft", systemPrompt);
+    const result = await callReviewAgent(draftAgent, input, "flow.impl.review.propose", systemPrompt);
 
     if (!result.includes("NO_PROPOSALS")) {
       const proposals = parseProposals(result);
@@ -644,7 +644,7 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
     console.error("  [loop-review] Running cross-check pass...");
     const crossCheckInput = buildCrossCheckInput(summaries);
     const crossCheckResult = await callReviewAgent(
-      draftAgent, crossCheckInput, "flow.impl.review.draft", buildCrossCheckSystemPrompt(),
+      draftAgent, crossCheckInput, "flow.impl.review.propose", buildCrossCheckSystemPrompt(),
     );
     if (!crossCheckResult.includes("NO_PROPOSALS")) {
       allProposals.push(...parseProposals(crossCheckResult));
@@ -1018,9 +1018,36 @@ async function runTestReview(root, flow, config, dryRun) {
 // Spec review pipeline (--phase spec)
 // ---------------------------------------------------------------------------
 
+import { minify } from "../../docs/lib/minify.js";
+
+function buildSpecSummaryMarkdown(spec) {
+  const lines = [];
+  if (spec.goal) lines.push(`# Goal\n${spec.goal}`);
+  if (spec.background) lines.push(`# Background\n${spec.background}`);
+  if (spec.scope) {
+    lines.push("# Scope");
+    if (Array.isArray(spec.scope.in)) lines.push(`## In\n${spec.scope.in.map((s) => `- ${s}`).join("\n")}`);
+    if (Array.isArray(spec.scope.out)) lines.push(`## Out\n${spec.scope.out.map((s) => `- ${s}`).join("\n")}`);
+  }
+  if (Array.isArray(spec.constraints)) lines.push(`# Constraints\n${spec.constraints.map((c) => `- ${c}`).join("\n")}`);
+  if (Array.isArray(spec.design_principles)) lines.push(`# Design Principles\n${spec.design_principles.map((d) => `- ${d}`).join("\n")}`);
+  if (spec.overview) {
+    lines.push("# Overview");
+    if (Array.isArray(spec.overview.modules)) lines.push(`## Modules\n${spec.overview.modules.map((m) => `- ${m.text}`).join("\n")}`);
+    if (Array.isArray(spec.overview.data_flow)) lines.push(`## Data Flow\n${spec.overview.data_flow.map((d) => `- ${d.text}`).join("\n")}`);
+  }
+  if (Array.isArray(spec.requirements)) {
+    lines.push("# Requirements");
+    for (const r of spec.requirements) {
+      lines.push(`- ${r.id} [${r.priority}]: ${r.desc}`);
+    }
+  }
+  const md = lines.join("\n\n");
+  return minify(md, "spec-summary.md");
+}
+
 /**
- * Build a context-search query from a spec.json object. Post-T8 this replaces
- * the regex-based Goal / Scope extraction from spec.md.
+ * Build a context-search query from a spec.json object.
  */
 function extractGoalAndScope(spec) {
   const parts = [];
@@ -1033,7 +1060,7 @@ function extractGoalAndScope(spec) {
 
 /**
  * Build the spec review prompt.
- * @param {string} specText - Full spec.md content
+ * @param {string} specText - Minified spec summary from spec.json fields
  * @param {Object[]} contextEntries - Related codebase entries from contextSearch
  * @returns {string}
  */
@@ -1066,28 +1093,6 @@ function buildSpecReviewPrompt(specText, contextEntries) {
   ].join("\n");
 }
 
-/**
- * Build the spec fix prompt.
- * @param {string} specText - Current spec.md content
- * @param {string} proposals - Approved proposals text
- * @returns {string}
- */
-function buildSpecFixPrompt(specText, proposals) {
-  return [
-    "Apply the following approved proposals to improve the spec.",
-    "Output ONLY the complete updated spec.md content. Do not include any preamble, explanation, or commentary before or after the spec content.",
-    "Do not wrap the output in markdown fences.",
-    "The output must start with the spec's first heading (e.g. '# Feature Specification').",
-    "Make only the changes described in the proposals. Do not add unrelated modifications.",
-    "Preserve all existing sections and formatting.",
-    "",
-    "## Approved Proposals",
-    proposals,
-    "",
-    "## Current Spec",
-    specText,
-  ].join("\n");
-}
 
 function formatPhaseReviewMd(title, history, verdict, finalIssues) {
   const lines = [`# ${title}`, ""];
@@ -1109,28 +1114,45 @@ function formatPhaseReviewMd(title, history, verdict, finalIssues) {
   return lines.join("\n");
 }
 
-function formatSpecReviewMd(history, verdict, finalIssues) {
-  return formatPhaseReviewMd("Spec Review Results", history, verdict, finalIssues);
+function formatSpecReviewMd(results) {
+  const lines = ["# Spec Review Results", ""];
+  const approved = results.filter((r) => r.verdict === "APPROVED");
+  const rejected = results.filter((r) => r.verdict === "REJECTED");
+
+  if (approved.length > 0) {
+    lines.push("## APPROVED Proposals", "");
+    for (let i = 0; i < approved.length; i++) {
+      lines.push(`### ${i + 1}. ${approved[i].title}`);
+      if (approved[i].body) lines.push(approved[i].body);
+      lines.push("");
+    }
+  }
+
+  if (rejected.length > 0) {
+    lines.push("## REJECTED Proposals", "");
+    for (let i = 0; i < rejected.length; i++) {
+      lines.push(`### ${i + 1}. ${rejected[i].title}`);
+      if (rejected[i].reason) lines.push(`**Reason:** ${rejected[i].reason}`);
+      if (rejected[i].body) lines.push(rejected[i].body);
+      lines.push("");
+    }
+  }
+
+  if (results.length === 0) {
+    lines.push("No proposals generated. Spec looks complete.");
+  }
+
+  return lines.join("\n");
 }
 
 /**
- * Run the spec review pipeline.
+ * Run the spec review pipeline (propose→validate, 2 AI calls).
  */
 async function runSpecReview(root, flow, config, dryRun) {
   const specInput = path.resolve(root, flow.spec);
   const specDir = path.dirname(flow.spec);
-  // Post-T8: the AI spec-review pipeline still operates on rendered spec.md
-  // text (since the AI's natural output format is Markdown), but the md file
-  // is an authoritative render of spec.json — never parsed for structured data
-  // outside of this function. Throws if spec.json is missing or invalid.
   const spec = loadSpecJson(specInput);
-  const specPath = path.join(path.dirname(specInput), "spec.md");
-  if (!fs.existsSync(specPath)) {
-    console.error("Error: spec.md not found (run 'sdd-forge spec render' first)");
-    process.exit(EXIT_ERROR);
-  }
 
-  // Load analysis data once (entries don't change during review)
   let analysisData = null;
   try {
     const { loadAnalysisEntries, contextSearch: ctxSearch } = await import("../lib/get-context.js");
@@ -1139,85 +1161,73 @@ async function runSpecReview(root, flow, config, dryRun) {
     console.error(`  [spec-review] Warning: failed to load codebase context: ${e.message}`);
   }
 
-  const agent = ensureAgent("flow.spec.review");
+  const proposeAgent = ensureAgent("flow.spec.review.propose");
   ensureAgent("flow.impl.review.final");
 
-  const maxAttempts = getReviewMaxAttempts("spec");
-  const { history, finalIssues, verdict } = await runReviewLoop({
-    maxRetries: maxAttempts,
-    label: "spec-review",
-    dryRun,
-    async detect() {
-      // Re-read spec and recompute context on each iteration (spec may have been modified by fix)
-      const specText = fs.readFileSync(specPath, "utf8");
-      let contextEntries = [];
-      if (analysisData) {
-        const searchQuery = extractGoalAndScope(spec);
-        if (searchQuery) {
-          contextEntries = await analysisData.ctxSearch(analysisData.entries, analysisData.analysis, searchQuery, root);
-        }
-      }
-      const detectPrompt = buildSpecReviewPrompt(specText, contextEntries);
-      const raw = await callReviewAgent(
-        agent, detectPrompt, "flow.spec.review",
-        "You are a spec completeness reviewer. Identify oversights in the spec.",
-      );
-      if (raw.includes("NO_PROPOSALS")) return { issues: [], raw };
-      const issues = parseProposals(raw);
-      return { issues, raw };
-    },
-    async fix(raw) {
-      const specText = fs.readFileSync(specPath, "utf8");
-      const proposals = parseProposals(raw);
-      const validationPrompt = [
-        "Validate these spec improvement proposals:",
-        "",
-        raw,
-        "",
-        "## Current spec for context:",
-        specText,
-      ].join("\n");
-      const validationResult = await callReviewAgent(
-        agent, validationPrompt, "flow.impl.review.final", buildFinalSystemPrompt(),
-      );
-      const results = mergeVerdicts(validationResult, proposals);
-      const approved = results.filter((r) => r.verdict === "APPROVED");
+  // Step 1: Propose — detect oversights
+  console.error("  [spec-review] Proposing...");
+  const specSummary = buildSpecSummaryMarkdown(spec);
+  let contextEntries = [];
+  if (analysisData) {
+    const searchQuery = extractGoalAndScope(spec);
+    if (searchQuery) {
+      contextEntries = await analysisData.ctxSearch(analysisData.entries, analysisData.analysis, searchQuery, root);
+    }
+  }
+  const proposePrompt = buildSpecReviewPrompt(specSummary, contextEntries);
+  const proposeRaw = await callReviewAgent(
+    proposeAgent, proposePrompt, "flow.spec.review.propose",
+    "You are a spec completeness reviewer. Identify oversights in the spec.",
+  );
 
-      if (approved.length === 0) {
-        console.error("  [spec-review] All proposals rejected. Skipping fix.");
-        return;
-      }
-
-      console.error(`  [spec-review] ${approved.length} proposal(s) approved. Applying to spec...`);
-
-      const approvedText = approved.map((p, i) => `### ${i + 1}. ${p.title}\n${p.body}`).join("\n\n");
-      const specFixPrompt = buildSpecFixPrompt(specText, approvedText);
-      const fixResult = await callReviewAgent(
-        agent, specFixPrompt, "flow.spec.review",
-        "You are a spec writer. Apply the approved proposals to produce an updated spec.",
-      );
-
-      // Strip preamble and markdown fences from AI output
-      const cleaned = stripPreamble(fixResult);
-      if (!isValidSpecOutput(cleaned)) {
-        console.error("  [spec-review] WARNING: AI output is not valid spec content. Keeping original spec.md.");
-        return;
-      }
-      fs.writeFileSync(specPath, cleaned + "\n");
-      console.error("  [spec-review] spec.md updated.");
-    },
-  });
-
-  // Save review results
-  const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
-  fs.writeFileSync(reviewPath, formatSpecReviewMd(history, verdict, finalIssues));
-  console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-  console.error(`  [spec-review] verdict=${verdict} issues=${finalIssues.length}`);
-
-  if (verdict === "PASS") {
+  if (proposeRaw.includes("NO_PROPOSALS")) {
+    const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
+    fs.writeFileSync(reviewPath, formatSpecReviewMd([]));
+    console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
+    console.error("  [spec-review] verdict=PASS issues=0");
     console.log("Spec review PASS. No oversights found.");
+    return;
+  }
+
+  const proposals = parseProposals(proposeRaw);
+  if (proposals.length === 0) {
+    const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
+    fs.writeFileSync(reviewPath, formatSpecReviewMd([]));
+    console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
+    console.error("  [spec-review] verdict=PASS issues=0");
+    console.log("Spec review PASS. No oversights found.");
+    return;
+  }
+
+  console.error(`  [spec-review] ${proposals.length} proposal(s) generated.`);
+
+  // Step 2: Validate — judge each proposal
+  console.error("  [spec-review] Validating proposals...");
+  const validationPrompt = [
+    "Validate these spec improvement proposals:",
+    "",
+    proposeRaw,
+    "",
+    "## Current spec summary for context:",
+    specSummary,
+  ].join("\n");
+  const validationResult = await callReviewAgent(
+    proposeAgent, validationPrompt, "flow.impl.review.final", buildFinalSystemPrompt(),
+  );
+  const results = mergeVerdicts(validationResult, proposals);
+
+  const approved = results.filter((r) => r.verdict === "APPROVED");
+  const rejected = results.filter((r) => r.verdict === "REJECTED");
+
+  const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
+  fs.writeFileSync(reviewPath, formatSpecReviewMd(results));
+  console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
+  console.error(`  [spec-review] verdict=${approved.length > 0 ? "FAIL" : "PASS"} issues=${approved.length}`);
+
+  if (approved.length === 0) {
+    console.log("Spec review PASS. All proposals were rejected.");
   } else {
-    console.log(`Spec review FAIL. ${finalIssues.length} issue(s) remaining after ${maxAttempts} attempts.`);
+    console.log(`Spec review FAIL. ${approved.length} approved, ${rejected.length} rejected.`);
     process.exit(EXIT_ERROR);
   }
 }
@@ -1264,24 +1274,19 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries) {
   ].join("\n");
 }
 
-function buildDraftFixPrompt(draftJsonText, issues) {
-  return [
-    "Apply the following improvements to the draft.json QA entries.",
-    "Output ONLY the complete updated draft.json content as valid JSON.",
-    "Do not include any preamble, explanation, or commentary.",
-    "Do not wrap the output in markdown fences.",
-    "Make only the changes described in the issues. Preserve all other fields.",
-    "",
-    "## Issues to fix",
-    issues,
-    "",
-    "## Current draft.json",
-    draftJsonText,
-  ].join("\n");
-}
-
-function formatDraftReviewMd(history, verdict, finalIssues) {
-  return formatPhaseReviewMd("Draft Review Results", history, verdict, finalIssues);
+function formatDraftReviewMd(issues) {
+  const lines = ["# Draft Review Results", ""];
+  if (issues.length === 0) {
+    lines.push("No issues found. PASS.");
+  } else {
+    lines.push(`${issues.length} issue(s) detected.`, "");
+    for (let i = 0; i < issues.length; i++) {
+      lines.push(`### ${i + 1}. ${issues[i].title}`);
+      if (issues[i].body) lines.push(issues[i].body);
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
 }
 
 async function runDraftReview(root, flow, config, dryRun) {
@@ -1314,59 +1319,34 @@ async function runDraftReview(root, flow, config, dryRun) {
     console.error(`  [draft-review] Warning: failed to load codebase context: ${e.message}`);
   }
 
-  const agent = ensureAgent("flow.draft.review");
+  const agent = ensureAgent("flow.draft.review.propose");
 
-  const maxAttempts = getReviewMaxAttempts("draft");
-  const { history, finalIssues, verdict } = await runReviewLoop({
-    maxRetries: maxAttempts,
-    label: "draft-review",
-    dryRun,
-    async detect() {
-      let contextEntries = [];
-      if (analysisData) {
-        const searchQuery = draftJson.goal || requestText;
-        if (searchQuery) {
-          contextEntries = await analysisData.ctxSearch(analysisData.entries, analysisData.analysis, searchQuery, root);
-        }
-      }
-      const detectPrompt = buildDraftReviewPrompt(draftJson, requestText, contextEntries);
-      const raw = await callReviewAgent(
-        agent, detectPrompt, "flow.draft.review",
-        "You are a draft QA quality reviewer. Identify weaknesses in draft QA entries.",
-      );
-      if (raw.includes("NO_PROPOSALS")) return { issues: [], raw };
-      const issues = parseProposals(raw);
-      return { issues, raw };
-    },
-    async fix(raw) {
-      const draftJsonText = fs.readFileSync(draftPath, "utf8");
-      const fixPrompt = buildDraftFixPrompt(draftJsonText, raw);
-      const fixResult = await callReviewAgent(
-        agent, fixPrompt, "flow.draft.review",
-        "You are a draft writer. Apply the approved improvements to produce an updated draft.json.",
-      );
+  console.error("  [draft-review] Detecting issues...");
+  let contextEntries = [];
+  if (analysisData) {
+    const searchQuery = draftJson.goal || requestText;
+    if (searchQuery) {
+      contextEntries = await analysisData.ctxSearch(analysisData.entries, analysisData.analysis, searchQuery, root);
+    }
+  }
+  const detectPrompt = buildDraftReviewPrompt(draftJson, requestText, contextEntries);
+  const raw = await callReviewAgent(
+    agent, detectPrompt, "flow.draft.review.propose",
+    "You are a draft QA quality reviewer. Identify weaknesses in draft QA entries.",
+  );
 
-      const cleaned = fixResult.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
-      try {
-        const updated = JSON.parse(cleaned);
-        fs.writeFileSync(draftPath, JSON.stringify(updated, null, 2) + "\n");
-        draftJson = updated;
-        console.error("  [draft-review] draft.json updated.");
-      } catch (e) {
-        console.error(`  [draft-review] WARNING: AI output is not valid JSON. Keeping original draft.json.`);
-      }
-    },
-  });
+  const issues = raw.includes("NO_PROPOSALS") ? [] : parseProposals(raw);
+  const verdict = issues.length === 0 ? "PASS" : "FAIL";
 
   const reviewPath = path.join(path.resolve(root, specDir), "draft-review.md");
-  fs.writeFileSync(reviewPath, formatDraftReviewMd(history, verdict, finalIssues));
+  fs.writeFileSync(reviewPath, formatDraftReviewMd(issues));
   console.error(`  [draft-review] Results saved to ${path.relative(root, reviewPath)}`);
-  console.error(`  [draft-review] verdict=${verdict} issues=${finalIssues.length}`);
+  console.error(`  [draft-review] verdict=${verdict} issues=${issues.length}`);
 
   if (verdict === "PASS") {
     console.log("Draft review PASS. QA entries are adequate.");
   } else {
-    console.log(`Draft review FAIL. ${finalIssues.length} issue(s) remaining after ${maxAttempts} attempts.`);
+    console.log(`Draft review FAIL. ${issues.length} issue(s) detected.`);
     process.exit(EXIT_ERROR);
   }
 }
@@ -1460,8 +1440,8 @@ async function runReview(rawArgs) {
     const reviewInput = `## Requirement-File Mapping\n${mapLines.join("\n")}\n\n## Diff\n${diff}`;
 
     console.error("  [draft] Generating proposals...");
-    const draftAgent = ensureAgent("flow.impl.review.draft");
-    const draftResult = await callReviewAgent(draftAgent, reviewInput, "flow.impl.review.draft", buildDraftSystemPrompt(reviewGuardrails));
+    const draftAgent = ensureAgent("flow.impl.review.propose");
+    const draftResult = await callReviewAgent(draftAgent, reviewInput, "flow.impl.review.propose", buildDraftSystemPrompt(reviewGuardrails));
 
     if (draftResult.includes("NO_PROPOSALS")) {
       console.log("No improvement proposals found. Code looks good.");

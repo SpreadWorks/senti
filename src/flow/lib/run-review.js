@@ -13,9 +13,9 @@ import { FlowCommand } from "./base-command.js";
 import path from "path";
 
 const PHASE_REVIEW_PARSERS = {
-  test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement" },
-  spec:  { countPattern: /issues=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Spec review",  next: "approval" },
-  draft: { countPattern: /issues=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft" },
+  test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
+  spec:  { countPattern: /issues=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Spec review",  next: "approval",   commandId: "flow.spec.review.propose" },
+  draft: { countPattern: /issues=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft", commandId: "flow.draft.review.propose" },
 };
 
 function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label, next }) {
@@ -57,11 +57,11 @@ function parseSpecReviewOutput(res, stdout, stderr) {
   return parsePhaseReviewOutput(res, stdout, stderr, { phase: "spec", ...PHASE_REVIEW_PARSERS.spec });
 }
 
-function parseDraftReviewOutput(res, stdout, stderr) {
+function parseProposalReviewOutput(res, stdout, stderr) {
   return parsePhaseReviewOutput(res, stdout, stderr, { phase: "draft", ...PHASE_REVIEW_PARSERS.draft });
 }
 
-export { parseTestReviewOutput, parseSpecReviewOutput, parseDraftReviewOutput };
+export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, parseProposalReviewOutput };
 
 const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;
@@ -126,7 +126,7 @@ export class RunReviewCommand extends FlowCommand {
 
     // Route to draft review parser
     if (phase === "draft") {
-      return parseDraftReviewOutput(res, stdout, stderr);
+      return parseProposalReviewOutput(res, stdout, stderr);
     }
 
     // Route to test review parser

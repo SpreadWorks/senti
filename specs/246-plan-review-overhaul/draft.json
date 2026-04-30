@@ -1,0 +1,84 @@
+{
+  "devType": "refactor",
+  "goal": "plan phase のレビューステップ（review-draft, review-spec）を改修し、draft review では auto-fix を廃止して追加質問方式に変更、spec review では impl review と同じ propose→validate パターンに統一し AI 呼び出し回数を最悪 10 回から 2 回に削減する",
+  "analysis": {
+    "problem": "draft review は QA の不足を AI が自動で回答捏造して埋めており本末転倒。spec review は 3 ステップ直列（detect→validate→fix）で最悪 10 回の AI 呼び出しが走り、毎回 spec.md 全文を送るためトークン消費が過大",
+    "proposedApproach": "draft review: auto-fix 廃止→質問計画レビュー+追加質問方式。spec review: detect/validate/fix 3 ステップ→ propose/validate 2 ステップに統一（impl review パターン踏襲）、auto-fix 廃止、spec.md 全文→spec.json フィールド選択でトークン削減。エージェント命名を draft/final→propose/final に統一",
+    "validation": "draft review: auto-fix を廃止しユーザー回答のみで QA を構成する。spec review: AI 呼び出し回数は最悪 10 回（3 イテレーション×3 呼び出し + verification）から 2 回（propose + validate）に削減。入力トークンは spec.json フィールド選択 + minify で spec.md 全文比で削減（削減率は spec 作成時に実測）"
+  },
+  "scopeVerification": {
+    "in": [
+      "src/flow/commands/review.js — runDraftReview, buildDraftReviewPrompt, buildDraftFixPrompt, runSpecReview, buildSpecReviewPrompt, buildSpecFixPrompt, runReviewLoop",
+      "src/flow/lib/run-review.js — PHASE_REVIEW_PARSERS",
+      "src/flow/definition.js — createPlanReviewNode, review-draft/review-spec ノード定義",
+      "src/flow/prompts/plan/ — review-draft.md, review-spec.md",
+      "エージェント命名: flow.draft.review → flow.draft.review.propose, flow.impl.review.draft → flow.impl.review.propose",
+      "skill プロンプト（review-draft.md, review-spec.md）— proposals 出力を消費する instructions の更新"
+    ],
+    "out": [
+      "impl review パイプライン本体（propose→final の既存動作）",
+      "test review パイプライン",
+      "gate 系の処理",
+      "flow definition の impl/finalize 側のノード定義"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] draft review の auto-fix 廃止 — runDraftReview の fix コールバック削除、追加質問方式への変更",
+    "[must] spec review の propose→validate 統一 — runSpecReview を 2 ステップに書き換え、auto-fix 廃止",
+    "[must] エージェント commandId リネーム — draft→propose。全参照箇所（ソースコード、config、プロンプト、テスト）を一括変更",
+    "[must] spec review 入力のトークン削減 — spec.md 全文→spec.json フィールド選択 + markdown 整形 + minify",
+    "[should] review-draft / review-spec の skill instructions プロンプトが新パイプライン（追加質問方式 / propose→validate）の出力を正しく消費できること",
+    "[should] PHASE_REVIEW_PARSERS のフェーズキーと regex パターンがリネーム後の commandId・出力ヘッダーと一致し、parse が成功すること",
+    "[should] review 関連テストがリネーム後のフェーズキー・関数名で実行され全件 PASS すること"
+  ],
+  "qa": [
+    {
+      "question": "spec review の auto-fix 廃止後、APPROVED proposals の反映は誰が行うか",
+      "answer": "APPROVED proposals はレポート（spec-review.md）に番号付きリストで出力する。各 proposal はタイトル、対象セクション名（spec.json のトップレベルキーまたは requirements.R-XX 形式）、変更内容（追加/更新/削除と具体的テキスト）を含む。spec.md/spec.json への反映は skill 側の AI（作業中のエージェント）がレポートを読んで行う",
+      "evidence": "現在の runSpecReview は buildSpecFixPrompt で spec.md を自動書き換えしている",
+      "why": "auto-fix は AI が spec を勝手に書き換えるため、意図しない変更が入るリスクがある。skill 側で反映することで作業者が制御できる",
+      "considered": "auto-fix を残す案は Issue の方針と矛盾するため却下"
+    },
+    {
+      "question": "エージェント commandId のリネーム（draft→propose）は破壊的変更だが問題ないか",
+      "answer": "alpha 版ポリシーにより後方互換は不要。リネーム実施。commandId を参照する全箇所（ソースコード、config、プロンプト、テスト、ドキュメント）を洗い出して一括変更する",
+      "evidence": "CLAUDE.md: alpha 版ポリシー — 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する",
+      "why": "draft という語が QA ドラフトと被るため propose に統一し、全レビューフェーズで一貫した命名にする",
+      "considered": "既存 commandId を残して alias を追加する案は alpha ポリシーに反する"
+    },
+    {
+      "question": "spec review のトークン削減で spec.md 全文の代わりに何を送るか",
+      "answer": "spec.json から必要フィールド（goal, background, scope, constraints, design_principles, overview, requirements の id+desc+priority）を抽出し、markdown 形式に整形した上で minify して送る。受入れ基準: spec review 全体の AI 呼び出し回数が 2 回以下（propose + validate）、かつ 1 回あたりの入力が spec.md 全文より小さいこと",
+      "evidence": "src/docs/lib/minify.js に既存の minify モジュールがある",
+      "why": "JSON 直送より markdown 整形の方が AI の読解に適している。minify でさらにトークン削減",
+      "considered": "spec.json をそのまま JSON で送る案 — AI にとって markdown の方が読みやすいため却下"
+    },
+    {
+      "question": "draft review の autoApprove モード時の挙動",
+      "answer": "フローは通常モードと同一。外部 agent が不足検出 → 追加質問生成 → 回答者が人間か AI かだけの違い。終了条件は外部 agent が追加質問を生成しなかった場合。最大ラウンド数は既存の definition maxAttempts に準ずる",
+      "evidence": "Issue: autoApprove モードでは AI 自身が自問自答するため、現行の auto-fix 相当でよい",
+      "why": "アーキテクチャを分岐させず、回答者のみを切り替えることで実装の複雑性を抑える",
+      "considered": "autoApprove 時のみ別フローにする案 — 不要な複雑性"
+    },
+    {
+      "question": "spec review フェーズの retry ポリシー（auto-fix 廃止後）",
+      "answer": "spec review では retry を行わない（1 回限り）。propose で proposals を生成し validate で検証。REJECTED proposals もレポートに含めて skill 側に委ねる",
+      "evidence": "impl review の propose→validate は retry なしで動作している",
+      "why": "auto-fix 廃止により「fix して再 validate」のサイクルが不要になる。retry は parse エラー等の一時的失敗向けであり、意味的な propose/validate の再試行はスコープ外",
+      "considered": "REJECTED proposals を再 propose する案 — propose の入力条件が変わらないため同じ結果になる可能性が高く、トークン浪費になるため却下"
+    },
+    {
+      "question": "draft→propose リネームが run-review.js のパーサー構造に与える影響と変更箇所",
+      "answer": "commandId リネームに伴い、レビュー出力のパーサー（関数名、フェーズキー、regex パターン）とそのテストも合わせて更新する。regex パターンはレビュー出力のヘッダーに直接依存するため、プロンプト変更と同時に更新が必要",
+      "evidence": "run-review.js のパーサーが stderr のヘッダー文字列を regex でマッチしている",
+      "why": "Q2 のリネーム方針に伴う整合性維持。パーサーの regex がプロンプト出力に追従しないと parse が無言で失敗する",
+      "considered": "旧名の alias を残す案 — alpha ポリシーに反するため却下"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-29",
+    "notes": ""
+  }
+}
