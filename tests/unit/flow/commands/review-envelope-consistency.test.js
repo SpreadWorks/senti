@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import {
   formatReviewMd,
-  buildFinalValidationPrompt,
   NO_PROPOSALS_MARKER,
 } from "../../../../src/flow/commands/review.js";
 
@@ -32,80 +31,25 @@ describe("formatReviewMd — empty input (spec 219 R2)", () => {
   });
 });
 
-describe("formatReviewMd — entry count matches approved + rejected (spec 219 R3)", () => {
-  it("renders one entry per approved/rejected result, count equals approved + rejected", () => {
+describe("formatReviewMd — entry count matches proposals (spec 247)", () => {
+  it("renders one entry per proposal", () => {
     const results = [
-      { title: "Alpha", body: "Body A", verdict: "APPROVED", reason: "" },
-      { title: "Beta", body: "Body B", verdict: "REJECTED", reason: "not needed" },
-      { title: "Gamma", body: "Body C", verdict: "APPROVED", reason: "" },
+      { title: "Alpha", body: "Body A" },
+      { title: "Beta", body: "Body B" },
+      { title: "Gamma", body: "Body C" },
     ];
     const output = formatReviewMd(results);
     const entries = output.split(/^### /m).slice(1);
-    const approved = results.filter((r) => r.verdict === "APPROVED").length;
-    const rejected = results.filter((r) => r.verdict === "REJECTED").length;
-    assert.equal(entries.length, approved + rejected);
+    assert.equal(entries.length, results.length);
   });
 
-  it("each entry contains its title and the verdict marker", () => {
+  it("each entry contains its title without verdict markers", () => {
     const results = [
-      { title: "OnlyOne", body: "Body", verdict: "APPROVED", reason: "" },
+      { title: "OnlyOne", body: "Body" },
     ];
     const output = formatReviewMd(results);
     assert.match(output, /OnlyOne/);
-    assert.match(output, /\*\*Verdict:\*\*\s*APPROVED/);
-  });
-});
-
-describe("buildFinalValidationPrompt — scope-filtered input only (spec 219 R4)", () => {
-  it("is exported as a callable function", () => {
-    assert.equal(typeof buildFinalValidationPrompt, "function");
-  });
-
-  it("includes every kept proposal body in prompt text", () => {
-    const proposals = [
-      { title: "Kept1", body: "**File:** `src/a.js`\nBody-K1", file: "src/a.js" },
-      { title: "Kept2", body: "**File:** `src/b.js`\nBody-K2", file: "src/b.js" },
-    ];
-    const diff = "diff --git a/src/a.js b/src/a.js\n";
-    const prompt = buildFinalValidationPrompt(proposals, diff);
-    assert.match(prompt, /Body-K1/);
-    assert.match(prompt, /Body-K2/);
-    assert.match(prompt, /Kept1/);
-    assert.match(prompt, /Kept2/);
-  });
-
-  it("does not carry over proposals not in the passed list (excluded bodies absent)", () => {
-    const proposals = [
-      { title: "Kept", body: "**File:** `src/keep.js`\nBody-KEEP", file: "src/keep.js" },
-    ];
-    const diff = "";
-    const prompt = buildFinalValidationPrompt(proposals, diff);
-    assert.doesNotMatch(
-      prompt,
-      /Body-EXCLUDED/,
-      "excluded-body text must not appear (prompt is built from passed array only)",
-    );
-    assert.doesNotMatch(prompt, /out-of-scope-title/i);
-  });
-
-  it("numbers proposals sequentially from 1 so verdict index lines up with array position", () => {
-    const proposals = [
-      { title: "First", body: "**File:** `src/x.js`\nFirstBody", file: "src/x.js" },
-      { title: "Second", body: "**File:** `src/y.js`\nSecondBody", file: "src/y.js" },
-      { title: "Third", body: "**File:** `src/z.js`\nThirdBody", file: "src/z.js" },
-    ];
-    const prompt = buildFinalValidationPrompt(proposals, "");
-    assert.match(prompt, /###\s*1\..*First/s);
-    assert.match(prompt, /###\s*2\..*Second/s);
-    assert.match(prompt, /###\s*3\..*Third/s);
-  });
-
-  it("contains a 'Validate' instruction header so the AI knows the task", () => {
-    const prompt = buildFinalValidationPrompt(
-      [{ title: "P", body: "B", file: "src/p.js" }],
-      "",
-    );
-    assert.match(prompt, /validate/i);
+    assert.doesNotMatch(output, /\*\*Verdict:\*\*/);
   });
 });
 

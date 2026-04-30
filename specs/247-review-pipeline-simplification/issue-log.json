@@ -1,0 +1,127 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 2軸（選択肢UI廃止・final agent廃止）は共に「レビューパイプライン簡素化」という単一の関心事に帰属し、無関係な変更は含まれていない。; Unambiguous Requirements — scopeVerification.in はファイルパスと具体的な操作（「選択肢UI削除」「final agent呼び出し削除」）で記述されており、曖昧な形容詞による要件は存在しない。analysis.validation の「品質は上がる」は要件ではなく根拠説明であり許容範囲。; Complete Context — 各要件はファイルパス・関数名・変更内容で記述されており、独立した2人のレビュアーが実装の充足性を判断できる粒度になっている。; No Hardcoded Secrets — 仕様文書内にAPIキー・パスワード・トークン等の秘密情報は存在しない。; Prioritize Requirements — scopeVerification.in に8件のスコープ項目があるが、must/should/nice-to-have の優先度ラベルが一切付与されていない。3件超の要件には優先度割り当てが必要。; Impact on Existing Features — impactOnExisting セクションに6件の影響が明示されており（review.md フォーマット変更、run-review.js パーサー変更、config.json 無害化、テスト更新等）、影響範囲が明確に記述されている。; Present Recommendations with Reasoning — 全8件のQAエントリに answer・evidence・why・considered が記述されており、推奨回答とその根拠（コード参照・設計方針）が対になっている。; Explore Before Asking — 全QAエントリの evidence フィールドに具体的なファイル名と行番号が記録されており、コードベース調査済みであることが示されている。openQuestions は空。; Proactively Raise Related Implications — review.md 出力フォーマット変更・run-review.js パーサー変更・config.json への影響・既存テストへの波及・dead code 削除の要否など、関連する影響が先回りして挙げられている。; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved: true かつ confirmedAt が設定されており、決定済みの仕様として扱われている。ブレインストーミング段階ではない。; Capture Digressions in draft.md — ドラフト成果物のみから議論中の脱線が発生したか否かを判定する実行時根拠がないため評価不可。; Draft Stays at Requirements Level — ファイルパスと関数名はコンテキストとして明示的に許可されている。QA の evidence/why/considered 内のコード参照は根拠提示として許容されるルール通り。proposedApproach での関数名言及も「変更対象の特定」に留まり、アルゴリズム・データ構造・制御フローの詳細記述には至っていない。; Backward-Compatible CLI Interface — 変更対象はレビューパイプラインの内部実装（prompt・review.js・definition.js）であり、CLIコマンドや公開オプションの削除・意味変更は含まれていない。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T02:19:28.554Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に8件のスコープ項目があるが、must/should/nice-to-have の優先度ラベルが一切付与されていない。3件超の要件には優先度割り当てが必要。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec addresses one concern: simplifying the review pipeline by removing choice UI and final agent. Both changes are tightly coupled within the same pipeline.; Task Single Responsibility — Each task (T-1 through T-5) targets a single cohesive concern. T-2 covers both impl and spec review paths but shares the same goal of removing final agent.; Unambiguous Requirements — Requirements reference specific function names (buildFinalSystemPrompt, mergeVerdicts), file paths, and line numbers (L1476-1489). No vague adjectives like 'appropriate' or 'fast'.; Complete Context — Each requirement is specific enough to be independently verifiable; acceptance criteria reinforce with concrete field-presence checks (verdict フィールドが含まれない, skippable: true が設定されていない, etc.).; REQ Diff-Verifiability — All acceptance criteria are checkable from a unified diff (symbol presence/absence, attribute values) plus a test execution summary ('既存テストが全て PASS する').; No Hardcoded Secrets — Spec contains no source code with secrets; not applicable by nature.; No Silent Error Swallowing — Spec does not describe error handling behavior changes; cannot evaluate without inspecting runtime code paths.; Prioritize Requirements — All 10 requirements carry explicit priority labels (must or should).; Impact on Existing Features — Removing the choice UI and skippable flag changes existing user-facing behavior (users can no longer skip review steps). The spec does not include a dedicated impact statement; it only lists what is out-of-scope, not what existing behavior changes for current users.; Bounded Resource Usage — No recursive processing, retries, or bulk data loading introduced; not applicable.; Spec Includes Test Strategy — Every task (T-1 through T-5) contains a test_strategy field describing what to test and how.; Synthesize Draft, Do Not Copy — Content is organized and abstracted from the underlying requirements; no raw draft copied verbatim.; Record Unresolved Points as Open Questions — Open questions list is explicitly empty; no unresolved points are fabricated as resolved.; Include 'Why This Approach' Rationale — design_principles and overview.decisions sections explain why final agent is abolished and why choice UI is removed, with evidence references.; Spec Test Coverage — Task test strategies reference updating existing unit tests and note that some prompt files are '対象外', but no test code is specified to be written under specs/247/tests/ as required by this guardrail.; Backward-Compatible CLI Interface — Constraints explicitly state that the review.js CLI interface (--phase, --dry-run, --skip-confirm) is unchanged; no migration plan needed.; Exit Code Contract — No new CLI commands are added or modified; existing exit code contract is unaffected.; Validate User Input at Entry Point — No new user-facing CLI arguments are introduced; existing argument validation is unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T02:34:24.779Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Removing the choice UI and skippable flag changes existing user-facing behavior (users can no longer skip review steps). The spec does not include a dedicated impact statement; it only lists what is out-of-scope, not what existing behavior changes for current users."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Task test strategies reference updating existing unit tests and note that some prompt files are '対象外', but no test code is specified to be written under specs/247/tests/ as required by this guardrail."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "review-test",
+      "reason": "runTestReview L945 calls requirements.filter() but extractRequirements returns a string, not an array. Pre-existing bug.",
+      "trigger": "sdd-forge flow run review --phase test",
+      "resolution": "Skipped review-test step — bug is outside spec 247 scope",
+      "guardrailCandidate": "extractRequirements should return typed data, not a formatted string",
+      "taskId": null,
+      "timestamp": "2026-04-30T02:40:08.031Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — All 10 requirements implemented: R1-R3 choice UI removed from review-spec.md, review-test.md, impl/review.md; R4 task/review.md updated for propose-only evaluation; R5 impl review final agent phase removed, proposals written directly to review.md; R6 runSpecReview validation step removed, proposals written directly to spec-review.md; R7 buildFinalSystemPrompt, buildFinalValidationPrompt, mergeVerdicts deleted from implementation and exports; R8 skippable:true removed from createPlanReviewNode in definition.js; R9 approved/rejected parsing removed from run-review.js, proposalCount only returned; R10 ensureAgent('flow.impl.review.final') calls removed from both impl and spec review paths.; No Hardcoded Secrets — No API keys, passwords, tokens, or secrets appear in any added lines.; No Silent Error Swallowing — No catch blocks or silent error discarding introduced in the diff.; No Sensitive Data in Logs — Added console.error calls log only file paths and counts (proposalCount, path.relative results); no sensitive data.; No Disabling Existing Tests — Tests for mergeVerdicts, buildFinalSystemPrompt, buildFinalValidationPrompt were removed because those functions were deleted from production code — justified by the guardrail's own exception for deleted features. formatReviewMd tests were updated to assert the intentionally redesigned (verdict-free) output format, not to bypass a failing test.; Escalate Pre-Existing Test Failures — The pre-existing runTestReview bug (extractRequirements returns string, not array) is documented in issue-log.json with an explicit resolution note and marked as outside spec 247 scope — properly escalated rather than silently patched or ignored.; Spec Test Coverage — Two gaps: (1) R9 requires tests for RunReviewCommand proposalCount-only parsing per T-5 test_strategy, but test-map.json shows R9:[] with no test written. (2) review-simplification.test.js imports formatSpecReviewMd from review.js, but that function is absent from the module's export list in the diff — the import resolves to undefined and the R6 test will throw TypeError, meaning the spec test coverage for R6 is broken at runtime.; Project Test Integrity — review-simplification.test.js line imports formatSpecReviewMd from ../../../src/flow/commands/review.js, but formatSpecReviewMd does not appear in the export block added by this diff. The named export will be undefined; calling it inside the 'R6: formatSpecReviewMd without verdicts' describe block will throw TypeError, causing that test suite to fail.; Code Placement — All logic changes are placed in the modules that already own the relevant responsibilities: review.js (pipeline logic), run-review.js (output parsing), definition.js (node definitions).; Exit Code Contract — runSpecReview now exits non-zero whenever any proposals exist (previously only when APPROVED proposals existed). This is an intentional, spec-defined change (R6); no new CLI commands are added and --phase/--dry-run/--skip-confirm interface is explicitly preserved by constraint.; No Synchronous I/O in Hot Paths — fs.writeFileSync calls in the diff are in linear, single-execution paths — not inside loops or bulk-processing iterators.; Validate User Input at Entry Point — No new user-facing CLI arguments are introduced; existing argument validation for --phase, --dry-run, --skip-confirm is unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T03:09:36.695Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Two gaps: (1) R9 requires tests for RunReviewCommand proposalCount-only parsing per T-5 test_strategy, but test-map.json shows R9:[] with no test written. (2) review-simplification.test.js imports formatSpecReviewMd from review.js, but that function is absent from the module's export list in the diff — the import resolves to undefined and the R6 test will throw TypeError, meaning the spec test coverage for R6 is broken at runtime."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "review-simplification.test.js line imports formatSpecReviewMd from ../../../src/flow/commands/review.js, but formatSpecReviewMd does not appear in the export block added by this diff. The named export will be undefined; calling it inside the 'R6: formatSpecReviewMd without verdicts' describe block will throw TypeError, causing that test suite to fail."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "pre-existing-test-failure-escalation",
+        "code-placement",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: add R9 tests for run-review.js proposalCount-only parsing",
+      "resolution": "Added 2 tests to review-simplification.test.js for R9. formatSpecReviewMd export was already present (gate false positive).",
+      "taskId": null,
+      "timestamp": "2026-04-30T03:12:53.908Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "pre-merge fetch failed: git fetch origin feature/246-plan-review-overhaul exited 128: fatal: couldn't find remote ref feature/246-plan-review-overhaul\n",
+      "timestamp": "2026-04-30T03:18:12.581Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase feature/246-plan-review-overhaul' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-30T03:18:40.286Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase feature/246-plan-review-overhaul' in the worktree and retry finalize.",
+      "timestamp": "2026-04-30T03:19:30.496Z"
+    }
+  ]
+}

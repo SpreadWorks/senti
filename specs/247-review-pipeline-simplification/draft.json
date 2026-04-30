@@ -1,0 +1,101 @@
+{
+  "devType": "refactor",
+  "goal": "レビューパイプラインを2軸で簡素化する: (1) review-spec, review-test, impl/review の選択肢UIを廃止し常に自動実行、(2) impl review と spec review から外部検証エージェント (flow.impl.review.final) を廃止し、propose agent → セッション AI の2段構成に変更する。",
+  "analysis": {
+    "problem": "レビューステップに不要な複雑性が2つある。第一に、review-spec/review-test/impl review で毎回ユーザーに実行可否を選択させる UI があるが、レビューをスキップする合理的理由はほぼなく、autoApprove 時は常に [1] を自動選択するため分岐が無意味。第二に、impl review と spec review で propose agent → final agent (flow.impl.review.final) → セッション AI の3段パイプラインを使っているが、final agent は diff のみで判断するのに対し、セッション AI は spec・設計経緯・tradeoff の全コンテキストを持っており、final agent より適切な判断ができる。3段構成は AI 呼び出しコストと時間の無駄でもある。",
+    "proposedApproach": "軸1: plan/review-spec.md, plan/review-test.md, impl/review.md から選択肢 UI を削除し、常にレビューを自動実行する指示に書き換える。definition.js の review ノードから skippable: true を削除する。軸2: review.js の impl review パス (runReview 関数のデフォルトパス) と spec review パス (runSpecReview) から final agent の呼び出しを削除し、propose agent の出力をそのまま返す。セッション AI 側の prompt (impl/review.md, task/review.md) を更新し、セッション AI が propose agent の提案を自身で評価・適用する手順に変更する。",
+    "validation": "軸1は選択肢を削除するだけなので、レビュー機能自体の品質に影響しない。軸2は review.js の出力形式が変わる (verdict フィールドがなくなる) が、セッション AI が全コンテキストを持って判断する方が品質は上がる。review.md のフォーマットが変わるため、review.md を読み込むテストがあれば更新が必要。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] src/flow/prompts/plan/review-spec.md — 選択肢 UI 削除",
+      "[must] src/flow/prompts/plan/review-test.md — 選択肢 UI 削除",
+      "[must] src/flow/prompts/impl/review.md — 選択肢 UI 削除 + propose-only 出力への対応",
+      "[must] src/flow/prompts/task/review.md — propose-only 出力への対応",
+      "[must] src/flow/commands/review.js — final agent 呼び出し削除 (impl review + spec review)",
+      "[must] src/flow/definition.js — review ノードの skippable: true 削除",
+      "[should] src/flow/lib/run-review.js — 出力パース調整 (verdict 関連のパースが不要になる可能性)",
+      "[should] src/templates/skills/sdd-forge.flow/SKILL.md — review の autoApprove 分岐が不要になることの反映"
+    ],
+    "out": [
+      "src/flow/prompts/plan/review-draft.md — spec 246 で設問補完機構に変更済み、対象外",
+      "review-draft の review.js コードパス (runDraftReview) — 対象外",
+      "test review の review.js コードパス (runTestReview) — final agent を使っていないため対象外",
+      "flow.impl.review.propose agent の設定 — propose agent は維持",
+      "flow.test.review agent の設定 — 変更なし",
+      "flow.draft.review.propose agent の設定 — 変更なし"
+    ]
+  },
+  "impactOnExisting": [
+    "review.md の出力フォーマットが変わる: APPROVED/REJECTED verdict がなくなり、raw proposals のみになる",
+    "spec-review.md の出力フォーマットが変わる: 同上",
+    "run-review.js のパース結果が変わる: approved/rejected カウントが不要になり proposalCount のみになる",
+    "flow.impl.review.final agent の commandId が使われなくなる — config.json にエントリがあっても無害だが参照されない",
+    "review ステップが skippable でなくなるため、常に実行される (CI 等での影響なし: review は元々 subprocess で AI 依存)",
+    "既存の review テスト (tests/unit/flow/) に review.md フォーマット依存があれば更新が必要"
+  ],
+  "qa": [
+    {
+      "question": "review.js から final agent を削除した場合、review.md と stdout の出力フォーマットはどう変わるか？",
+      "answer": "impl review: review.md は proposals を verdict なしで出力する。stdout は 'N proposal(s) generated' のみで 'N approved, N rejected' は出力しない。run-review.js の parseProposalReviewOutput は proposalCount のみ返す。spec review: spec-review.md は proposals を verdict なしで出力する。",
+      "evidence": "review.js L1460-1509 (impl review の final phase), L1205-1232 (spec review の validation step)",
+      "why": "出力フォーマットの変更箇所を特定し、下流の run-review.js パーサーと prompt の整合性を保つため",
+      "considered": "final agent を残して propose agent を省く案: propose agent こそが実際の改善提案を行う本質的な部分であり省くべきではない"
+    },
+    {
+      "question": "skippable: true を削除した場合、flow definition の step promotion ロジックに影響はあるか？",
+      "answer": "skippable は FlowNode のプロパティとして定義されており、step promotion ロジック (definition.js の promoteFirstPending 等) では直接参照されない。skippable は prompt 側で `flow set step <id> skipped` を呼ぶかどうかの判断に使われるのみ。削除しても step promotion に影響はない。",
+      "evidence": "definition.js L26 (skippable property), createPlanReviewNode (L53-64) で skippable: true を設定",
+      "why": "definition.js の変更が step 遷移に副作用を生まないことを確認するため",
+      "considered": "skippable を残して prompt だけ変更する案: 不整合を生むため却下"
+    },
+    {
+      "question": "impl/review.md から選択肢 UI を削除した場合、Option 2 (review-only) の機能はどうなるか？",
+      "answer": "Option 2 は個別提案をユーザーに1件ずつ提示して対応を選択させる機能。選択肢 UI 廃止に伴い、常に auto-fix (Option 1 相当) で実行する。ユーザーが review-only を望む場合は --dry-run フラグで対応可能。",
+      "evidence": "impl/review.md L39-60 (Option 2 の記述), review.js L1503 (--dry-run 対応)",
+      "why": "削除される機能の代替手段を確認するため",
+      "considered": "Option 2 を残す案: 選択肢 UI 自体を廃止する趣旨に反するため却下"
+    },
+    {
+      "question": "セッション AI が propose agent の出力を直接評価するために、prompt にどのような指示を追加する必要があるか？",
+      "answer": "impl/review.md と task/review.md に以下を追加: (1) review.md を読み、各 proposal を spec と設計意図に照らして評価する手順、(2) 適用すべき proposal を選別する基準（品質改善に寄与するか、既存動作を壊さないか）、(3) 適用後のテスト再実行指示。現在の prompt にある 'APPROVED items in review.md' の記述を 'proposals in review.md' に変更する。",
+      "evidence": "impl/review.md L17-36 (現在の Option 1 手順), task/review.md L6-11",
+      "why": "final agent が担っていた evaluate 機能をセッション AI に移管するため",
+      "considered": "評価基準を review.js 内に埋め込む案: セッション AI がコンテキストを持って判断する趣旨に反するため却下"
+    },
+    {
+      "question": "review.js の buildFinalSystemPrompt, buildFinalValidationPrompt, mergeVerdicts は削除してよいか？",
+      "answer": "軸2の変更により impl review と spec review の両方から final agent が削除されるため、これらの関数は参照されなくなる。ただし export されているため、テストが直接 import している可能性がある。テストの参照を確認し、不要なら削除する。",
+      "evidence": "review.js L1546-1555 (export リスト), review.js L239-253 (buildFinalSystemPrompt), L408-419 (buildFinalValidationPrompt), L342-361 (mergeVerdicts)",
+      "why": "dead code を残さないため (alpha 版ポリシー: 後方互換コードは書かない)",
+      "considered": "将来の再利用のために残す案: alpha 版ポリシーに反するため却下"
+    },
+    {
+      "question": "SKILL.md テンプレートにおける autoApprove 関連の review 分岐はどう変わるか？",
+      "answer": "現在の SKILL.md には review ステップの autoApprove 分岐は明示的に記述されていない。autoApprove は汎用的に choice の [1] を自動選択するルールとして定義されている。選択肢 UI を削除すれば、review ステップでの autoApprove 分岐は自然に不要になる。SKILL.md の変更は不要か最小限。",
+      "evidence": "SKILL.md テンプレート: autoApprove は 'treat choice id=1 as selected' のグローバルルール",
+      "why": "SKILL.md テンプレートの変更範囲を特定するため",
+      "considered": "N/A"
+    },
+    {
+      "question": "flow.impl.review.final の agent 設定を config.json から削除するべきか？",
+      "answer": "config.json は各プロジェクトの .sdd-forge/config.json に存在するユーザー設定ファイル。コード側で ensureAgent('flow.impl.review.final') を呼ばなくなれば、config に残っていても無害。ユーザーの config を強制的に変更する必要はない。ただし、config schema のドキュメントやデフォルト設定テンプレートからは削除する。",
+      "evidence": "review.js L1165 (ensureAgent call), L1477 (finalAgent usage)",
+      "why": "ユーザー設定への影響を最小化するため",
+      "considered": "config から強制削除する案: ユーザーの config を壊すリスクがあるため却下"
+    },
+    {
+      "question": "テスト戦略: 既存テストへの影響と追加テストの方針は？",
+      "answer": "影響を受けるテスト: (1) review.js の unit テスト (parseProposals, mergeVerdicts, formatReviewMd 等), (2) run-review.js の出力パーステスト, (3) instructions-coverage.test.js (prompt ファイルの存在検証)。追加テスト: (1) 新しい review.md フォーマット (verdict なし) の formatReviewMd テスト, (2) 新しい spec-review.md フォーマットのテスト。削除されるテスト: mergeVerdicts, buildFinalSystemPrompt, buildFinalValidationPrompt のテスト。",
+      "evidence": "tests/unit/flow/ 配下のテストファイル",
+      "why": "テスト変更のスコープを事前に把握するため",
+      "considered": "N/A"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-30T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}
