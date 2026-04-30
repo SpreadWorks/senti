@@ -1,0 +1,121 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-review.md                                |   3 +\n .../247-review-pipeline-simplification/draft.json  | 101 +++++\n .../file-map.json                                  |  12 +\n specs/247-review-pipeline-simplification/flow.json | 413 +++++++++++++++++++++\n .../issue-log.json                                 | 112 ++++++\n specs/247-review-pipeline-simplification/issue.md  |  22 ++\n specs/247-review-pipeline-simplification/qa.md     |   9 +\n specs/247-review-pipeline-simplification/review.md |   3 +\n .../spec-review.md                                 |   3 +\n specs/247-review-pipeline-simplification/spec.json | 245 ++++++++++++\n specs/247-review-pipeline-simplification/spec.md   | 113 ++++++\n .../tasks/T-1.md                                   |  20 +\n .../tasks/T-2.md                                   |  23 ++\n .../tasks/T-3.md                                   |  20 +\n .../tasks/T-4.md                                   |  19 +\n .../tasks/T-5.md                                   |  19 +\n .../tests/review-simplification.test.js            | 111 ++++++\n .../tests/test-map.json                            |  24 ++\n src/flow/commands/review.js                        | 177 ++-------\n src/flow/definition.js                             |   1 -\n src/flow/lib/run-review.js                         |  19 +-\n src/flow/prompts/impl/review.md                    |  53 +--\n src/flow/prompts/plan/review-spec.md               |  23 +-\n src/flow/prompts/plan/review-test.md               |  13 -\n src/flow/prompts/task/review.md                    |  12 +-\n .../commands/review-envelope-consistency.test.js   |  74 +---\n 26 files changed, 1335 insertions(+), 309 deletions(-)",
+      "commits": [
+        "simplify review pipeline: remove final agent and choice UI"
+      ]
+    },
+    "retro": {
+      "total": 10,
+      "done": 5,
+      "partial": 0,
+      "not_done": 0,
+      "rate": 0.5,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "plan/review-spec.md から選択肢 UI を削除し、`sdd-forge flow run review --phase spec` を常に実行する指示に変更する",
+          "status": "unverified",
+          "note": "no tests mapped"
+        },
+        {
+          "desc": "plan/review-test.md から選択肢 UI を削除し、`sdd-forge flow run review --phase test` を常に実行する指示に変更する",
+          "status": "unverified",
+          "note": "no tests mapped"
+        },
+        {
+          "desc": "impl/review.md から選択肢 UI (Option 1/2/3) を削除し、常に review を実行し、セッション AI が proposals を評価・適用する手順に変更する",
+          "status": "unverified",
+          "note": "no tests mapped"
+        },
+        {
+          "desc": "task/review.md をセッション AI が proposals を評価・適用する手順に更新する",
+          "status": "unverified",
+          "note": "no tests mapped"
+        },
+        {
+          "desc": "review.js の impl review パス (runReview 関数のデフォルトパス) から final agent (flow.impl.review.final) の呼び出しを削除し、scope-filtered proposals をそのまま review.md に出力する",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "review.js の spec review パス (runSpecReview) から final agent の呼び出し (validation step) を削除し、proposals をそのまま spec-review.md に出力する",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "review.js から参照されなくなる関数 (buildFinalSystemPrompt, buildFinalValidationPrompt, mergeVerdicts) とそれらの export を削除する",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "definition.js の createPlanReviewNode から skippable: true を削除する",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "run-review.js の impl review パースから approved/rejected カウントを削除し、proposalCount のみ返すように変更する",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "review.js の ensureAgent('flow.impl.review.final') 呼び出しを削除する (impl review の L1477, spec review の L1165)",
+          "status": "unverified",
+          "note": "no tests mapped"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 16,
+      "output": 22704,
+      "cacheRead": 92680,
+      "cacheCreation": 266837,
+      "cost": 1.5510407499999999,
+      "callCount": 12,
+      "durationMs": 1288616,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 211128
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 79797
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 319549
+        },
+        {
+          "phase": "gate",
+          "durationMs": 429865
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 225535
+        },
+        {
+          "phase": "review",
+          "durationMs": 22742
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    simplify review pipeline: remove final agent and choice UI\n    26 files changed, 1335 insertions(+), 309 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████░░░░ 50%  (5 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 12\n    input tokens ................ 16\n    output tokens ............... 22,704\n    cache-read tokens ........... 92,680\n    cache-create tokens ......... 266,837\n    cost ........................ $1.5510\n    duration (total) ............ 1288.6s\n      review-draft .............. 211.1s\n      gate-draft ................ 79.8s\n      review-spec ............... 319.5s\n      gate ...................... 429.9s\n      gate-impl ................. 225.5s\n      review .................... 22.7s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

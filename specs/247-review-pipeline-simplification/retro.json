@@ -1,0 +1,66 @@
+{
+  "spec": "specs/247-review-pipeline-simplification/spec.json",
+  "date": "2026-04-30T03:17:21.547Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "plan/review-spec.md から選択肢 UI を削除し、`sdd-forge flow run review --phase spec` を常に実行する指示に変更する",
+      "status": "unverified",
+      "note": "no tests mapped"
+    },
+    {
+      "desc": "plan/review-test.md から選択肢 UI を削除し、`sdd-forge flow run review --phase test` を常に実行する指示に変更する",
+      "status": "unverified",
+      "note": "no tests mapped"
+    },
+    {
+      "desc": "impl/review.md から選択肢 UI (Option 1/2/3) を削除し、常に review を実行し、セッション AI が proposals を評価・適用する手順に変更する",
+      "status": "unverified",
+      "note": "no tests mapped"
+    },
+    {
+      "desc": "task/review.md をセッション AI が proposals を評価・適用する手順に更新する",
+      "status": "unverified",
+      "note": "no tests mapped"
+    },
+    {
+      "desc": "review.js の impl review パス (runReview 関数のデフォルトパス) から final agent (flow.impl.review.final) の呼び出しを削除し、scope-filtered proposals をそのまま review.md に出力する",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "review.js の spec review パス (runSpecReview) から final agent の呼び出し (validation step) を削除し、proposals をそのまま spec-review.md に出力する",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "review.js から参照されなくなる関数 (buildFinalSystemPrompt, buildFinalValidationPrompt, mergeVerdicts) とそれらの export を削除する",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "definition.js の createPlanReviewNode から skippable: true を削除する",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "run-review.js の impl review パースから approved/rejected カウントを削除し、proposalCount のみ返すように変更する",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "review.js の ensureAgent('flow.impl.review.final') 呼び出しを削除する (impl review の L1477, spec review の L1165)",
+      "status": "unverified",
+      "note": "no tests mapped"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 10,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 0.5,
+    "notes": "static evaluation from test-map.json"
+  }
+}
