@@ -1,0 +1,46 @@
+{
+  "R1": [
+    "248-context-search.test.js > R1: spec.schema.json keywords field > has keywords property defined",
+    "248-context-search.test.js > R1: spec.schema.json keywords field > keywords is type array with string items",
+    "248-context-search.test.js > R1: spec.schema.json keywords field > keywords is not required"
+  ],
+  "R2": null,
+  "R3": [
+    "248-context-search.test.js > R3: per-word bigram comparison > splits query into words and matches each word independently",
+    "248-context-search.test.js > R3: per-word bigram comparison > matches when any query word has similarity >= 0.6 with any keyword",
+    "248-context-search.test.js > R3: per-word bigram comparison > does not match when similarity is below 0.6 for all pairs"
+  ],
+  "R4": [
+    "248-context-search.test.js > R4: imports/methods scoring > adds imports/methods bonus to scored entries",
+    "248-context-search.test.js > R4: imports/methods scoring > handles null/undefined imports and methods gracefully"
+  ],
+  "R5": [
+    "248-context-search.test.js > R5: dynamic N result count control > includes all entries with matchCount >= 2",
+    "248-context-search.test.js > R5: dynamic N result count control > enforces maximum 30 results",
+    "248-context-search.test.js > R5: dynamic N result count control > enforces minimum 5 results when enough candidates exist"
+  ],
+  "R6": [
+    "248-context-search.test.js > R6: extractGoalAndScope keywords integration > uses spec.keywords when present",
+    "248-context-search.test.js > R6: extractGoalAndScope keywords integration > falls back to goal+scope when keywords is absent",
+    "248-context-search.test.js > R6: extractGoalAndScope keywords integration > falls back when keywords is empty array"
+  ],
+  "R7": [
+    "248-context-search.test.js > R7: scope.in path matching > extracts backtick-enclosed file paths from scope.in"
+  ],
+  "R8": [
+    "248-context-search.test.js > R8: imports expansion > expands imports of matched files by one level",
+    "248-context-search.test.js > R8: imports expansion > excludes hub files from expansion path",
+    "248-context-search.test.js > R8: imports expansion > keeps hub files that are direct matches"
+  ],
+  "R9": [
+    "248-context-search.test.js > R9: detail removal from review prompts > buildSpecReviewPrompt output does not contain detail",
+    "248-context-search.test.js > R9: detail removal from review prompts > buildDraftReviewPrompt output does not contain detail"
+  ],
+  "R10": [
+    "248-context-search.test.js > R10: score-based sorting > returns results sorted by score descending"
+  ],
+  "R11": [
+    "248-context-search.test.js > R11: relevance order annotation in prompts > buildSpecReviewPrompt includes relevance order statement",
+    "248-context-search.test.js > R11: relevance order annotation in prompts > buildDraftReviewPrompt includes relevance order statement"
+  ]
+}

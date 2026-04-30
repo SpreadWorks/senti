@@ -1,0 +1,72 @@
+{
+  "spec": "specs/248-context-search-accuracy/spec.json",
+  "date": "2026-04-30T14:19:00.361Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "spec.schema.json に `keywords` プロパティ（`type: array, items: string`）を optional フィールドとして追加する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "spec 記入ステップの instruction（`src/flow/prompts/plan/spec.md`）に、spec 内容から英語キーワード 5-15 個を `keywords` フィールドに生成する指示を追加する。",
+      "status": "n/a",
+      "note": "testing not required"
+    },
+    {
+      "desc": "ngramSearch を単語別 bigram 比較に置き換える。クエリを空白で単語分割し、各クエリ単語と各エントリキーワードの bigram 類似度を個別に計算する。類似度 >= 0.6 のペアが1つでもあればそのエントリを候補に含める。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "エントリのスコアに imports と methods の数を加味する。スコア加算: `(imports / maxImports) * 0.5 + (methods / maxMethods) * 0.3`。imports/methods が配列でない場合は 0 として扱い、maxImports/maxMethods が 0 の場合はボーナス 0 とする。usedBy は含めない。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "動的 N（multi-match 戦略）で結果件数を制御する。matchCount >= 2 のエントリは全て採用、matchCount = 1 のエントリはスコア上位から補填。合計で最低 5 件、最大 30 件。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "extractGoalAndScope を spec.keywords ベースに切り替える。`spec.keywords` が存在すれば `keywords.join(' ')` を検索クエリとして使用し、不在時は従来の goal+scope から英語単語を抽出する fallback を維持する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "spec.json の scope.in からバッククォートで囲まれたファイルパスを正規表現で抽出し、analysis entry と突き合わせて一致するファイルを検索結果に追加する。review.js が scope.in パスを抽出して contextSearch に渡す（optional な options パラメータ経由）。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "keyword 検索 + scope.in マッチで見つかったファイルの import 先を1段階展開して検索結果に追加する。hub ファイル（connectionCount = imports.length + usedBy.length >= 20）は展開経路から除外する。直接マッチしたファイルは hub でも結果に含める。importedBy（逆方向）は展開しない。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "buildSpecReviewPrompt と buildDraftReviewPrompt の contextEntries フォーマットから detail フィールドを除去し、file + summary のみにする。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "contextSearch の結果をスコア降順でソートする。scope.in マッチのエントリは bigram スコア 0 + imports/methods boost で算出。imports 展開のエントリは展開元のスコアの半分で算出。全エントリをスコア降順で統合ソートする。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "buildSpecReviewPrompt と buildDraftReviewPrompt のプロンプトに「以下のファイルは spec との関連度順に並んでいます」の1行を追加する。",
+      "status": "done",
+      "note": "1 test(s)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "rate": 1,
+    "notes": "static evaluation from test-map.json"
+  }
+}

@@ -76,13 +76,13 @@ describe("searchEntries", () => {
     assert.equal(results.length, 0);
   });
 
-  it("returns file, summary, detail, keywords, chapter, role", () => {
+  it("returns file, summary, keywords, chapter, role (no detail)", () => {
     const results = searchEntries(ENTRIES, "database");
     assert.equal(results.length, 1);
     const r = results[0];
     assert.equal(r.file, "src/config/database.js");
     assert.equal(r.summary, "Database configuration");
-    assert.ok(r.detail);
+    assert.equal(r.detail, undefined);
     assert.ok(Array.isArray(r.keywords));
     assert.equal(r.chapter, "configuration");
     assert.equal(r.role, "config");

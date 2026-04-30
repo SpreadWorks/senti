@@ -36,7 +36,7 @@ describe("spec.schema.json", () => {
     assert.ok(fs.existsSync(SCHEMA_PATH), `schema file not found at ${SCHEMA_PATH}`);
   });
 
-  it("defines the agreed fields (11 baseline + implementationTargets + tasks + user_approval)", () => {
+  it("defines the agreed fields (11 baseline + keywords + implementationTargets + tasks + user_approval)", () => {
     const schema = loadSchema();
     assert.equal(schema.type, "object");
     const expected = [
@@ -51,6 +51,7 @@ describe("spec.schema.json", () => {
       "clarifications",
       "alternatives_considered",
       "open_questions",
+      "keywords",
       "implementationTargets",
       "tasks",
       "user_approval",

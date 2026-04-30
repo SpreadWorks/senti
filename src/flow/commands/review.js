@@ -990,12 +990,28 @@ function buildSpecSummaryMarkdown(spec) {
  * Build a context-search query from a spec.json object.
  */
 function extractGoalAndScope(spec) {
+  if (Array.isArray(spec?.keywords) && spec.keywords.length > 0) {
+    return spec.keywords.join(" ");
+  }
   const parts = [];
   if (spec?.goal) parts.push(spec.goal);
   if (Array.isArray(spec?.scope?.in) && spec.scope.in.length) {
     parts.push(spec.scope.in.join("\n"));
   }
   return parts.join("\n");
+}
+
+function extractScopePaths(spec) {
+  if (!Array.isArray(spec?.scope?.in)) return [];
+  const paths = [];
+  const re = /`([^`]+\.[a-zA-Z0-9]+)`/g;
+  for (const item of spec.scope.in) {
+    let m;
+    while ((m = re.exec(item)) !== null) {
+      paths.push(m[1]);
+    }
+  }
+  return paths;
 }
 
 /**
@@ -1006,7 +1022,7 @@ function extractGoalAndScope(spec) {
  */
 function buildSpecReviewPrompt(specText, contextEntries) {
   const contextText = contextEntries.map((e) =>
-    `- **${e.file}**: ${e.summary || "(no summary)"}${e.detail ? "\n  " + e.detail : ""}`
+    `- **${e.file}**: ${e.summary || "(no summary)"}`
   ).join("\n");
 
   return [
@@ -1029,6 +1045,7 @@ function buildSpecReviewPrompt(specText, contextEntries) {
     specText,
     "",
     "## Codebase Context (related files)",
+    "以下のファイルは spec との関連度順に並んでいます。",
     contextText,
   ].join("\n");
 }
@@ -1097,7 +1114,11 @@ async function runSpecReview(root, flow, config, dryRun) {
   if (analysisData) {
     const searchQuery = extractGoalAndScope(spec);
     if (searchQuery) {
-      contextEntries = await analysisData.ctxSearch(analysisData.entries, analysisData.analysis, searchQuery, root);
+      const scopePaths = extractScopePaths(spec);
+      contextEntries = await analysisData.ctxSearch(
+        analysisData.entries, analysisData.analysis, searchQuery, root, "ngram",
+        { scopePaths, expandImports: true },
+      );
     }
   }
   const proposePrompt = buildSpecReviewPrompt(specSummary, contextEntries);
@@ -1148,7 +1169,7 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries) {
     : "(no QA entries)";
 
   const contextText = contextEntries.map((e) =>
-    `- **${e.file}**: ${e.summary || "(no summary)"}${e.detail ? "\n  " + e.detail : ""}`
+    `- **${e.file}**: ${e.summary || "(no summary)"}`
   ).join("\n");
 
   return [
@@ -1174,6 +1195,7 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries) {
     qaText,
     "",
     "## Codebase Context (related files)",
+    "以下のファイルは spec との関連度順に並んでいます。",
     contextText,
   ].join("\n");
 }

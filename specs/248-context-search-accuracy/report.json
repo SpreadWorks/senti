@@ -1,0 +1,127 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/248-context-search-accuracy/draft-review.md  |  33 ++\n specs/248-context-search-accuracy/draft.json       |  63 +++\n specs/248-context-search-accuracy/file-map.json    |  37 ++\n specs/248-context-search-accuracy/flow.json        | 587 +++++++++++++++++++++\n specs/248-context-search-accuracy/issue-log.json   |  77 +++\n specs/248-context-search-accuracy/issue.md         | 190 +++++++\n specs/248-context-search-accuracy/qa.md            |   9 +\n specs/248-context-search-accuracy/spec-review.md   |  48 ++\n specs/248-context-search-accuracy/spec.json        | 281 ++++++++++\n specs/248-context-search-accuracy/spec.md          | 122 +++++\n specs/248-context-search-accuracy/tasks/T-1.md     |  22 +\n specs/248-context-search-accuracy/tasks/T-2.md     |  23 +\n specs/248-context-search-accuracy/tasks/T-3.md     |  24 +\n specs/248-context-search-accuracy/tasks/T-4.md     |  21 +\n .../tests/248-context-search.test.js               | 302 +++++++++++\n .../tests/test-map.json                            |  46 ++\n src/flow/commands/review.js                        |  28 +-\n src/flow/lib/get-context.js                        | 206 +++++---\n src/flow/prompts/plan/spec.md                      |   1 +\n src/flow/schemas/spec.schema.json                  |   4 +\n tests/unit/flow/get-context-search.test.js         |   4 +-\n tests/unit/spec/schema.test.js                     |   3 +-\n 22 files changed, 2062 insertions(+), 69 deletions(-)",
+      "commits": [
+        "context-search-accuracy-and-token-reduction"
+      ]
+    },
+    "retro": {
+      "total": 10,
+      "done": 10,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 1,
+      "rate": 1,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "spec.schema.json に `keywords` プロパティ（`type: array, items: string`）を optional フィールドとして追加する。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "spec 記入ステップの instruction（`src/flow/prompts/plan/spec.md`）に、spec 内容から英語キーワード 5-15 個を `keywords` フィールドに生成する指示を追加する。",
+          "status": "n/a",
+          "note": "testing not required"
+        },
+        {
+          "desc": "ngramSearch を単語別 bigram 比較に置き換える。クエリを空白で単語分割し、各クエリ単語と各エントリキーワードの bigram 類似度を個別に計算する。類似度 >= 0.6 のペアが1つでもあればそのエントリを候補に含める。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "エントリのスコアに imports と methods の数を加味する。スコア加算: `(imports / maxImports) * 0.5 + (methods / maxMethods) * 0.3`。imports/methods が配列でない場合は 0 として扱い、maxImports/maxMethods が 0 の場合はボーナス 0 とする。usedBy は含めない。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "動的 N（multi-match 戦略）で結果件数を制御する。matchCount >= 2 のエントリは全て採用、matchCount = 1 のエントリはスコア上位から補填。合計で最低 5 件、最大 30 件。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "extractGoalAndScope を spec.keywords ベースに切り替える。`spec.keywords` が存在すれば `keywords.join(' ')` を検索クエリとして使用し、不在時は従来の goal+scope から英語単語を抽出する fallback を維持する。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "spec.json の scope.in からバッククォートで囲まれたファイルパスを正規表現で抽出し、analysis entry と突き合わせて一致するファイルを検索結果に追加する。review.js が scope.in パスを抽出して contextSearch に渡す（optional な options パラメータ経由）。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "keyword 検索 + scope.in マッチで見つかったファイルの import 先を1段階展開して検索結果に追加する。hub ファイル（connectionCount = imports.length + usedBy.length >= 20）は展開経路から除外する。直接マッチしたファイルは hub でも結果に含める。importedBy（逆方向）は展開しない。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "buildSpecReviewPrompt と buildDraftReviewPrompt の contextEntries フォーマットから detail フィールドを除去し、file + summary のみにする。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "contextSearch の結果をスコア降順でソートする。scope.in マッチのエントリは bigram スコア 0 + imports/methods boost で算出。imports 展開のエントリは展開元のスコアの半分で算出。全エントリをスコア降順で統合ソートする。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "buildSpecReviewPrompt と buildDraftReviewPrompt のプロンプトに「以下のファイルは spec との関連度順に並んでいます」の1行を追加する。",
+          "status": "done",
+          "note": "1 test(s)"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 2,
+      "question": 4,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 436605,
+      "output": 81726,
+      "cacheRead": 3323535,
+      "cacheCreation": 175142,
+      "cost": 1.5799850000000002,
+      "callCount": 25,
+      "durationMs": 1914377,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 249844
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 390031
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 627491
+        },
+        {
+          "phase": "gate",
+          "durationMs": 349683
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 134736
+        },
+        {
+          "phase": "review",
+          "durationMs": 162592
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    context-search-accuracy-and-token-reduction\n    22 files changed, 2062 insertions(+), 69 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (10 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 2\n    Q&A ......................... 4\n    issue-log ................... 3\n    agent calls ................. 25\n    input tokens ................ 436,605\n    output tokens ............... 81,726\n    cache-read tokens ........... 3,323,535\n    cache-create tokens ......... 175,142\n    cost ........................ $1.5800\n    duration (total) ............ 1914.4s\n      review-draft .............. 249.8s\n      gate-draft ................ 390.0s\n      review-spec ............... 627.5s\n      gate ...................... 349.7s\n      gate-impl ................. 134.7s\n      review .................... 162.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

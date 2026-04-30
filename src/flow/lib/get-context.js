@@ -24,7 +24,6 @@ function toSearchResult(e) {
   return {
     file: e.file,
     summary: e.summary || null,
-    detail: e.detail || null,
     keywords: e.keywords,
     chapter: e.chapter || null,
     role: e.role || null,
@@ -44,14 +43,7 @@ function searchEntries(entries, query) {
       if (!Array.isArray(e.keywords)) return false;
       return e.keywords.some((kw) => String(kw).toLowerCase().includes(q));
     })
-    .map((e) => ({
-      file: e.file,
-      summary: e.summary || null,
-      detail: e.detail || null,
-      keywords: e.keywords,
-      chapter: e.chapter || null,
-      role: e.role || null,
-    }));
+    .map((e) => toSearchResult(e));
 }
 
 /**
@@ -140,26 +132,17 @@ function fallbackSearch(entries, query) {
     );
     if (match && !seen.has(e.file)) {
       seen.add(e.file);
-      results.push({
-        file: e.file,
-        summary: e.summary || null,
-        detail: e.detail || null,
-        keywords: e.keywords,
-        chapter: e.chapter || null,
-        role: e.role || null,
-      });
+      results.push(toSearchResult(e));
     }
   }
   return results;
 }
 
-const NGRAM_THRESHOLD = 0.15;
+const NGRAM_THRESHOLD = 0.6;
+const NGRAM_MIN_RESULTS = 5;
+const NGRAM_MAX_RESULTS = 30;
+const HUB_CONNECTION_THRESHOLD = 20;
 
-/**
- * Split text into bigrams (character pairs).
- * @param {string} text - Input text
- * @returns {string[]} Array of bigrams
- */
 function toBigrams(text) {
   const s = text.toLowerCase();
   if (s.length < 2) return [];
@@ -170,12 +153,6 @@ function toBigrams(text) {
   return bigrams;
 }
 
-/**
- * Calculate Dice coefficient between two bigram arrays.
- * @param {string[]} a - First bigram set
- * @param {string[]} b - Second bigram set
- * @returns {number} Similarity score between 0 and 1
- */
 function bigramSimilarity(a, b) {
   if (a.length === 0 || b.length === 0) return 0.0;
   const setA = new Set(a);
@@ -187,35 +164,78 @@ function bigramSimilarity(a, b) {
   return (2 * intersection) / (setA.size + setB.size);
 }
 
-/**
- * N-gram (bigram) based keyword search.
- * Compares query bigrams against entry keywords bigrams using Dice coefficient.
- * @param {Object[]} allEntries - All analysis entries
- * @param {string} query - Natural language query
- * @returns {Object[]} Matched entries sorted by score descending
- */
 function ngramSearch(allEntries, query) {
-  const queryBigrams = toBigrams(query);
-  if (queryBigrams.length === 0) return [];
+  const words = query.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+
+  const wordBigrams = words.map((w) => toBigrams(w));
+  if (wordBigrams.every((bg) => bg.length === 0)) return [];
+
+  let maxImports = 0;
+  let maxMethods = 0;
+  for (const e of allEntries) {
+    const ic = Array.isArray(e.imports) ? e.imports.length : 0;
+    const mc = Array.isArray(e.methods) ? e.methods.length : 0;
+    if (ic > maxImports) maxImports = ic;
+    if (mc > maxMethods) maxMethods = mc;
+  }
 
   const scored = [];
   for (const e of allEntries) {
     if (!Array.isArray(e.keywords) || e.keywords.length === 0) continue;
-    // Compute max similarity across all keywords for this entry
-    let maxScore = 0;
-    for (const kw of e.keywords) {
-      const kwBigrams = toBigrams(String(kw));
-      const score = bigramSimilarity(queryBigrams, kwBigrams);
-      if (score > maxScore) maxScore = score;
+
+    let matchCount = 0;
+    let totalSim = 0;
+    for (const wbg of wordBigrams) {
+      if (wbg.length === 0) continue;
+      let bestSim = 0;
+      for (const kw of e.keywords) {
+        const sim = bigramSimilarity(wbg, toBigrams(String(kw)));
+        if (sim > bestSim) bestSim = sim;
+      }
+      if (bestSim >= NGRAM_THRESHOLD) {
+        matchCount++;
+        totalSim += bestSim;
+      }
     }
-    if (maxScore >= NGRAM_THRESHOLD) {
-      scored.push({ entry: e, score: maxScore });
+
+    if (matchCount === 0) continue;
+
+    const ic = Array.isArray(e.imports) ? e.imports.length : 0;
+    const mc = Array.isArray(e.methods) ? e.methods.length : 0;
+    const importBonus = maxImports > 0 ? (ic / maxImports) * 0.5 : 0;
+    const methodBonus = maxMethods > 0 ? (mc / maxMethods) * 0.3 : 0;
+    const score = totalSim + matchCount + importBonus + methodBonus;
+
+    scored.push({ entry: e, score, matchCount });
+  }
+
+  const multiMatch = scored.filter((s) => s.matchCount >= 2);
+  const singleMatch = scored.filter((s) => s.matchCount === 1);
+  singleMatch.sort((a, b) => b.score - a.score);
+
+  let results = [...multiMatch];
+  for (const s of singleMatch) {
+    if (results.length >= NGRAM_MAX_RESULTS) break;
+    results.push(s);
+  }
+
+  if (results.length < NGRAM_MIN_RESULTS) {
+    for (const s of singleMatch) {
+      if (results.includes(s)) continue;
+      results.push(s);
+      if (results.length >= NGRAM_MIN_RESULTS) break;
     }
   }
 
-  scored.sort((a, b) => b.score - a.score);
+  results = results.slice(0, NGRAM_MAX_RESULTS);
+  results.sort((a, b) => b.score - a.score);
 
-  return scored.map(({ entry }) => toSearchResult(entry));
+  return results.map(({ entry, score }) => {
+    const sr = toSearchResult(entry);
+    sr.score = score;
+    return sr;
+  });
 }
 
 /**
@@ -273,14 +293,7 @@ async function aiSearch(allEntries, analysis, query, _root) {
     );
     if (match && !seen.has(e.file)) {
       seen.add(e.file);
-      results.push({
-        file: e.file,
-        summary: e.summary || null,
-        detail: e.detail || null,
-        keywords: e.keywords,
-        chapter: e.chapter || null,
-        role: e.role || null,
-      });
+      results.push(toSearchResult(e));
     }
   }
   // If AI-selected keywords matched nothing, fall back to text search
@@ -299,20 +312,87 @@ async function aiSearch(allEntries, analysis, query, _root) {
  * @param {string} mode - Search mode ("ngram" or "ai")
  * @returns {Object[]} Matched entries
  */
-async function contextSearch(allEntries, analysis, query, root, mode = "ngram") {
+function isHub(entry) {
+  const ic = Array.isArray(entry.imports) ? entry.imports.length : 0;
+  const uc = Array.isArray(entry.usedBy) ? entry.usedBy.length : 0;
+  return (ic + uc) >= HUB_CONNECTION_THRESHOLD;
+}
+
+function _postProcess(results, allEntries, options) {
+  const seen = new Set(results.map((r) => r.file));
+  const scoreMap = new Map();
+  for (const r of results) {
+    scoreMap.set(r.file, r.score || 0);
+  }
+
+  if (Array.isArray(options.scopePaths)) {
+    const entryMap = new Map(allEntries.map((e) => [e.file, e]));
+    let maxImports = 0;
+    let maxMethods = 0;
+    for (const e of allEntries) {
+      const ic = Array.isArray(e.imports) ? e.imports.length : 0;
+      const mc = Array.isArray(e.methods) ? e.methods.length : 0;
+      if (ic > maxImports) maxImports = ic;
+      if (mc > maxMethods) maxMethods = mc;
+    }
+    for (const sp of options.scopePaths) {
+      if (seen.has(sp)) continue;
+      const entry = entryMap.get(sp);
+      if (!entry) continue;
+      const sr = toSearchResult(entry);
+      const ic = Array.isArray(entry.imports) ? entry.imports.length : 0;
+      const mc = Array.isArray(entry.methods) ? entry.methods.length : 0;
+      const importBonus = maxImports > 0 ? (ic / maxImports) * 0.5 : 0;
+      const methodBonus = maxMethods > 0 ? (mc / maxMethods) * 0.3 : 0;
+      sr.score = importBonus + methodBonus;
+      results.push(sr);
+      seen.add(sp);
+      scoreMap.set(sp, sr.score);
+    }
+  }
+
+  if (options.expandImports) {
+    const entryMap = new Map(allEntries.map((e) => [e.file, e]));
+    const directMatchFiles = new Set(seen);
+    for (const file of directMatchFiles) {
+      const entry = entryMap.get(file);
+      if (!entry || !Array.isArray(entry.imports)) continue;
+      const parentScore = scoreMap.get(file) || 0;
+      for (const imp of entry.imports) {
+        if (seen.has(imp)) continue;
+        const impEntry = entryMap.get(imp);
+        if (!impEntry) continue;
+        if (isHub(impEntry)) continue;
+        const sr = toSearchResult(impEntry);
+        sr.score = parentScore * 0.5;
+        results.push(sr);
+        seen.add(imp);
+        scoreMap.set(imp, sr.score);
+      }
+    }
+  }
+
+  results.sort((a, b) => (b.score || 0) - (a.score || 0));
+  return results;
+}
+
+function contextSearch(allEntries, analysis, query, root, mode = "ngram", options = {}) {
   if (mode === "ai") {
     return aiSearch(allEntries, analysis, query, root);
   }
 
-  // ngram mode (default): ngram → fallbackSearch → AI
   let results = ngramSearch(allEntries, query);
-  if (results.length > 0) return results;
+  if (results.length === 0) {
+    results = fallbackSearch(allEntries, query);
+  }
 
-  results = fallbackSearch(allEntries, query);
-  if (results.length > 0) return results;
+  const processed = _postProcess(results, allEntries, options);
 
-  // Final fallback: try AI if agent is available
-  return aiSearch(allEntries, analysis, query, root);
+  if (processed.length === 0) {
+    return aiSearch(allEntries, analysis, query, root);
+  }
+
+  return processed;
 }
 
 function filterEntry(entry) {

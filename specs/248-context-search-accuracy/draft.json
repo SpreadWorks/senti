@@ -1,0 +1,63 @@
+{
+  "devType": "feature",
+  "goal": "contextSearch の検索精度を改善し、review-spec / review-draft プロンプトのトークンコストを大幅に削減する。現状 ~27件 / ~4,590 tokens を ~21.7件 / ~977 tokens に改善（件数 20%減、トークン 79%減）。",
+  "analysis": {
+    "problem": "contextSearch の ngramSearch はクエリ全体を1文字列として bigram 化しており、日本語クエリと英語キーワードの比較で構造的に精度が低い。また review プロンプトに渡す contextEntries に detail フィールド（平均 479文字/entry）を含むため、トークンコストが高い。",
+    "proposedApproach": "9項目の改修: (1) spec.json に keywords フィールド追加、(2) ngramSearch を単語別比較に置き換え、(3) スコアリングに imports/methods 加味、(4) 動的 N で件数制御、(5) extractGoalAndScope を keywords に切り替え、(6) scope.in パスマッチ、(7) imports 展開 depth=1 hub除外、(8) detail 除去、(9) 関連度順ソート+プロンプト明示。",
+    "validation": "シミュレーションで検証済み。単語別 bigram + multi-match で 72% カバー率を維持しつつ平均 N を 27→10 に削減。imports 展開 + scope.in マッチで 55% カバー率。detail 除去で entry あたり 73% トークン削減。不採用案（summary/detail 検索 81件、chapter 展開 125件、importedBy、depth=2）も評価済み。"
+  },
+  "scopeVerification": {
+    "in": [
+      "src/flow/lib/get-context.js — ngramSearch 書き換え、動的 N、imports 展開、scope.in マッチ、スコア順ソート",
+      "src/flow/commands/review.js — extractGoalAndScope 修正、buildSpecReviewPrompt / buildDraftReviewPrompt から detail 除去、関連度順説明文追加",
+      "src/flow/schemas/spec.schema.json — keywords フィールド追加",
+      "spec 生成プロンプト — keywords 生成指示追加"
+    ],
+    "out": [
+      "aiSearch ロジックの変更（既存の AI fallback チェーンは維持）",
+      "contextSearch の呼び出しインターフェース変更（既存の引数は維持）",
+      "config.json へのユーザー設定追加"
+    ]
+  },
+  "impactOnExisting": [
+    "review-spec / review-draft の AI レビュー精度に影響（detail 除去による情報量減少があるが、spec 網羅性チェックには file+summary で十分）",
+    "既存 spec.json との互換性（keywords は optional、fallback で goal+scope から抽出）",
+    "ngramSearch の既存テストは新ロジックに置き換え"
+  ],
+  "qa": [
+    {
+      "question": "buildDraftReviewPrompt も detail 除去・関連度順ソートの対象に含めるか？",
+      "answer": "はい。buildSpecReviewPrompt と同じ改善を適用する。",
+      "evidence": "review.js L1143-1160: buildDraftReviewPrompt も contextEntries を detail 含むフォーマットで使用している",
+      "why": "同じ contextEntries 消費パターンが2箇所にあり、片方だけ改善するのは一貫性に欠ける",
+      "considered": "buildSpecReviewPrompt のみ対象とする案 — 却下（同じ問題が残る）"
+    },
+    {
+      "question": "テスト方針はどうするか？",
+      "answer": "ユニットテスト（新検索関数の入出力）に加え、contextSearch の合成結果テスト、buildSpecReviewPrompt / buildDraftReviewPrompt から detail が除去されていることの確認、keywords fallback の動作確認を含める。",
+      "evidence": "変更は純粋関数だけでなく、contextSearch の fallback chain、scope.in 追加、imports 展開、review prompt の contextEntries 表示、spec schema にまたがる",
+      "why": "純粋関数のユニットテストだけでは合成結果の正しさを保証できない。小規模な統合テストで結合部分もカバーする。",
+      "considered": "ユニットテストのみ — 合成結果の検証が不足する"
+    },
+    {
+      "question": "hub 除外の実装方針は？",
+      "answer": "connectionCount = imports.length + importedBy.length で算出。閾値 >= 20 で hub 判定。除外対象は imports expansion の経路のみ。直接の keyword マッチや scope.in マッチで見つかったファイルは hub であっても結果に含める。",
+      "evidence": "src/ 禁止事項: 特定プロジェクトに固有の情報を含めてはならない。Issue のシミュレーションで閾値 20 が container.js, base-command.js を適切に除外。",
+      "why": "sdd-forge は汎用パッケージ。ファイル名ハードコードは src/ ルール違反。直接マッチしたファイルは関連性が高いため hub でも除外しない。",
+      "considered": "config でユーザー設定可能にする案 — 過剰（定数で十分）"
+    },
+    {
+      "question": "keywords フィールドの仕様は？",
+      "answer": "spec.schema.json に optional の keywords: string[] を追加。spec 生成プロンプトに英語 5-15 個の生成指示を追加。既存 spec には keywords がないため、extractGoalAndScope は keywords 不在時に従来の goal+scope から英語単語を抽出する fallback を持つ。",
+      "evidence": "spec.schema.json は additionalProperties: false のためスキーマ変更が必須。Issue 項目1, 5 に仕様記載。",
+      "why": "contextSearch のクエリ品質を向上させるため。日本語 goal/scope から検索するより、AI が生成した英語キーワードで検索する方が analysis.json の英語キーワードとのマッチ精度が高い。",
+      "considered": "keywords を required にする案 — 既存 spec との互換性が壊れるため optional にする"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-30T11:50:00Z",
+    "notes": ""
+  }
+}

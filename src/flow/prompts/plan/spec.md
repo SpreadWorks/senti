@@ -5,6 +5,7 @@
        - If project structure is still unclear: `sdd-forge flow get context <path> --raw` for specific files; `sdd-forge flow get context --raw` only as a last resort.
      - If guardrail articles for spec have NOT been loaded in this session: `sdd-forge flow get guardrail spec`. If output is non-empty, follow these principles. Skip if already present in context.
    - Fill spec.json fields: `goal`, `scope`, `constraints`, `requirements`, `acceptance_criteria`, `alternatives_considered` (if applicable).
+   - Generate `keywords`: an array of 5–15 English keywords derived from the spec content (goal, scope, requirements). These keywords are used by contextSearch for codebase relevance matching. Choose specific, concrete terms (function names, module names, domain concepts) over generic words.
    - If draft phase was done, transfer draft.json content to spec.json using the following field mapping:
      - `draft.json.analysis.problem` → `spec.json.background` (synthesize, do not copy verbatim)
      - `draft.json.qa[].evidence` → `spec.json.overview.decisions[].evidence` (for Q&A entries that resulted in design decisions)
