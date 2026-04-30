@@ -1,0 +1,413 @@
+{
+  "spec": "specs/247-review-pipeline-simplification/spec.json",
+  "baseBranch": "feature/246-plan-review-overhaul",
+  "featureBranch": "feature/247-review-pipeline-simplification",
+  "runId": "d0e48dee-9a10-4783-93fe-0923c4ca73bc",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-04-30T02:10:05.761Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-04-30T02:10:05.761Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-04-30T02:10:05.761Z",
+          "finishedAt": "2026-04-30T02:14:35.510Z"
+        },
+        {
+          "id": "review-draft",
+          "status": "done",
+          "startedAt": "2026-04-30T02:14:35.510Z",
+          "finishedAt": "2026-04-30T02:18:20.795Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-04-30T02:18:20.795Z",
+          "finishedAt": "2026-04-30T02:20:13.959Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-04-30T02:20:13.959Z",
+          "finishedAt": "2026-04-30T02:22:42.243Z"
+        },
+        {
+          "id": "review-spec",
+          "status": "done",
+          "startedAt": "2026-04-30T02:22:42.243Z",
+          "finishedAt": "2026-04-30T02:33:08.387Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-04-30T02:28:21.165Z",
+          "finishedAt": "2026-04-30T02:37:23.430Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-04-30T02:37:23.430Z",
+          "finishedAt": "2026-04-30T02:37:40.558Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-04-30T02:37:40.558Z",
+          "finishedAt": "2026-04-30T02:39:21.495Z"
+        },
+        {
+          "id": "review-test",
+          "status": "skipped",
+          "startedAt": "2026-04-30T02:39:21.495Z",
+          "finishedAt": "2026-04-30T02:40:16.158Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-04-30T02:40:16.158Z",
+          "finishedAt": "2026-04-30T03:07:16.577Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-04-30T03:07:16.577Z",
+          "finishedAt": "2026-04-30T03:14:39.974Z"
+        },
+        {
+          "id": "review",
+          "status": "done",
+          "startedAt": "2026-04-30T03:14:39.974Z",
+          "finishedAt": "2026-04-30T03:16:56.056Z"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "in_progress",
+              "startedAt": "2026-04-30T03:16:56.056Z"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 297,
+  "request": "#297 レビューパイプライン簡素化: ユーザー確認廃止 + 外部検証エージェント廃止",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "score": 22,
+    "maxScore": 24,
+    "threshold": 16,
+    "breakdown": {
+      "specBuildability": 2,
+      "ambiguity": 2,
+      "verifiability": 1,
+      "scopeBoundedness": 2,
+      "targetSpecificity": 2,
+      "precedent": 2
+    },
+    "staticGates": {
+      "G": false,
+      "H": false,
+      "I": false
+    },
+    "reason": "対象ファイル・変更軸・除外範囲が明示済み。検証はプロンプトの選択肢UI消滅とfinalエージェント呼び出し消滅で確認できるが、動作品質は主観残り。"
+  },
+  "worktree": true,
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-30T02:10:27.837Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-30T02:10:31.297Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-30T02:10:42.212Z"
+    },
+    {
+      "phase": "review-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 823230,
+      "durationMs": 211128,
+      "taskId": null,
+      "ts": "2026-04-30T02:18:20.776Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2150,
+      "durationMs": 59782,
+      "tokens": {
+        "input": 2,
+        "output": 3000,
+        "cacheRead": 11585,
+        "cacheCreation": 15585
+      },
+      "cost": 0.11202325,
+      "taskId": null,
+      "ts": "2026-04-30T02:19:28.537Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-30T02:19:28.553Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1675,
+      "durationMs": 20015,
+      "tokens": {
+        "input": 2,
+        "output": 754,
+        "cacheRead": 11585,
+        "cacheCreation": 15723
+      },
+      "cost": 0.07891875000000001,
+      "taskId": null,
+      "ts": "2026-04-30T02:20:13.951Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-30T02:20:13.966Z"
+    },
+    {
+      "phase": "review-spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 408388,
+      "durationMs": 319549,
+      "taskId": null,
+      "ts": "2026-04-30T02:28:21.147Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 275142,
+      "durationMs": 297732,
+      "taskId": null,
+      "ts": "2026-04-30T02:33:08.366Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3679,
+      "durationMs": 63796,
+      "tokens": {
+        "input": 2,
+        "output": 3461,
+        "cacheRead": 11585,
+        "cacheCreation": 16702
+      },
+      "cost": 0.124174,
+      "taskId": null,
+      "ts": "2026-04-30T02:34:24.759Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-30T02:34:24.778Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2491,
+      "durationMs": 68337,
+      "tokens": {
+        "input": 2,
+        "output": 3520,
+        "cacheRead": 11585,
+        "cacheCreation": 17151
+      },
+      "cost": 0.12718675,
+      "taskId": null,
+      "ts": "2026-04-30T02:37:23.420Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-30T02:37:23.436Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-30T02:40:08.045Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 780,
+      "durationMs": 27786,
+      "tokens": {
+        "input": 2,
+        "output": 1383,
+        "cacheRead": 11585,
+        "cacheCreation": 48789
+      },
+      "cost": 0.24529825,
+      "taskId": null,
+      "ts": "2026-04-30T03:07:59.557Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3170,
+      "durationMs": 97108,
+      "tokens": {
+        "input": 2,
+        "output": 5487,
+        "cacheRead": 11585,
+        "cacheCreation": 49697
+      },
+      "cost": 0.31121125,
+      "taskId": null,
+      "ts": "2026-04-30T03:09:36.676Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-30T03:09:36.693Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-04-30T03:12:53.922Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 698,
+      "durationMs": 27518,
+      "tokens": {
+        "input": 2,
+        "output": 1366,
+        "cacheRead": 11585,
+        "cacheCreation": 51141
+      },
+      "cost": 0.25622025,
+      "taskId": null,
+      "ts": "2026-04-30T03:13:26.831Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 1952,
+      "durationMs": 73123,
+      "tokens": {
+        "input": 2,
+        "output": 3733,
+        "cacheRead": 11585,
+        "cacheCreation": 52049
+      },
+      "cost": 0.29600825,
+      "taskId": null,
+      "ts": "2026-04-30T03:14:39.964Z"
+    },
+    {
+      "phase": "task-impl",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-04-30T03:14:39.981Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2165,
+      "durationMs": 22742,
+      "taskId": null,
+      "ts": "2026-04-30T03:16:56.037Z"
+    }
+  ],
+  "notes": [
+    {
+      "text": "draft: autoApprove self-QA完了。2軸の簡素化スコープ確定（review-draft除外）。final agent削除、選択肢UI削除、skippable削除。",
+      "taskId": null,
+      "ts": "2026-04-30T02:14:40.089Z"
+    },
+    {
+      "text": "spec: R1-R10定義、T-1〜T-5分解完了。review.mdフォーマット変更、final agent削除、選択肢UI削除、skippable削除。",
+      "taskId": null,
+      "ts": "2026-04-30T02:22:50.969Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-04-30T03:17:21.250Z"
+  }
+}

@@ -58,7 +58,6 @@ function createPlanReviewNode({ id, label, contextKinds }) {
     instructionsKey: `plan.${id}`,
     contextKinds,
     outputSchemaRef: "next-action/review.schema.json",
-    skippable: true,
     maxAttempts: 3,
   });
 }

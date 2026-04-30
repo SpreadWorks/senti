@@ -3,7 +3,7 @@
  * src/flow/commands/review.js
  *
  * sdd-forge flow review — code quality review after implementation.
- * Phases: confirm → draft (propose) → final (validate) → approve → apply
+ * Phases: confirm → draft (propose) → approve → apply
  *
  * --phase test: test sufficiency review before impl.
  * Internal pipeline: generate test design → compare with test code → auto-fix loop.
@@ -233,24 +233,6 @@ function buildDraftSystemPrompt(guardrails = []) {
   return lines.join("\n");
 }
 
-/**
- * Build system prompt for the final (validation) phase.
- */
-function buildFinalSystemPrompt() {
-  return [
-    "You are a senior code reviewer validating refactoring proposals.",
-    "For each proposal, judge whether it:",
-    "1. Actually improves code quality",
-    "2. Does not break existing behavior",
-    "",
-    "Output each proposal with a verdict:",
-    "### <number>. <title>",
-    "**Verdict:** APPROVED or REJECTED",
-    "**Reason:** <brief justification>",
-    "",
-    "Be conservative. Reject proposals that are cosmetic-only or risk breaking behavior.",
-  ].join("\n");
-}
 
 /**
  * Parse proposals from draft output.
@@ -334,33 +316,6 @@ function filterProposalsByScope(proposals, touchedFiles) {
 }
 
 /**
- * Parse verdicts from final output and merge into proposals.
- * @param {string} text
- * @param {{ title: string, body: string }[]} proposals
- * @returns {{ title: string, body: string, verdict: string, reason: string }[]}
- */
-function mergeVerdicts(text, proposals) {
-  const verdictMap = new Map();
-  const parts = text.split(/^### /m).filter(Boolean);
-  for (const part of parts) {
-    const numMatch = part.match(/^(\d+)\./);
-    if (!numMatch) continue;
-    const idx = parseInt(numMatch[1], 10) - 1;
-    const verdictMatch = part.match(/\*\*Verdict:\*\*\s*(APPROVED|REJECTED)/i);
-    const reasonMatch = part.match(/\*\*Reason:\*\*\s*(.+)/);
-    verdictMap.set(idx, {
-      verdict: verdictMatch ? verdictMatch[1].toUpperCase() : "REJECTED",
-      reason: reasonMatch ? reasonMatch[1].trim() : "",
-    });
-  }
-
-  return proposals.map((p, i) => {
-    const v = verdictMap.get(i) || { verdict: "REJECTED", reason: "No verdict provided" };
-    return { ...p, verdict: v.verdict, reason: v.reason };
-  });
-}
-
-/**
  * Write review.md for the current spec under specDir, using formatReviewMd
  * as the single source of truth for the on-disk format. Returns the absolute
  * path written.
@@ -388,35 +343,13 @@ function formatReviewMd(results) {
     lines.push("");
     return lines.join("\n");
   }
-  for (const r of results) {
-    const mark = r.verdict === "APPROVED" ? "[x]" : "[ ]";
-    lines.push(`### ${mark} ${r.title}`);
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    lines.push(`### ${i + 1}. ${r.title}`);
     lines.push(r.body);
-    lines.push("");
-    lines.push(`**Verdict:** ${r.verdict}`);
-    if (r.reason) lines.push(`**Reason:** ${r.reason}`);
     lines.push("");
   }
   return lines.join("\n");
-}
-
-/**
- * Build the final validation prompt from the scope-filtered proposal set.
- * The AI is asked to emit verdicts numbered 1..N matching the array order so
- * `mergeVerdicts` can map verdict[i] back to proposals[i] without drift.
- */
-function buildFinalValidationPrompt(proposals, diff) {
-  const numbered = proposals
-    .map((p, i) => `### ${i + 1}. ${p.title}\n${p.body}`)
-    .join("\n\n");
-  return [
-    "Validate these refactoring proposals:",
-    "",
-    numbered,
-    "",
-    "## Original diff for context:",
-    diff,
-  ].join("\n");
 }
 
 /**
@@ -1116,37 +1049,24 @@ function formatPhaseReviewMd(title, history, verdict, finalIssues) {
 
 function formatSpecReviewMd(results) {
   const lines = ["# Spec Review Results", ""];
-  const approved = results.filter((r) => r.verdict === "APPROVED");
-  const rejected = results.filter((r) => r.verdict === "REJECTED");
-
-  if (approved.length > 0) {
-    lines.push("## APPROVED Proposals", "");
-    for (let i = 0; i < approved.length; i++) {
-      lines.push(`### ${i + 1}. ${approved[i].title}`);
-      if (approved[i].body) lines.push(approved[i].body);
-      lines.push("");
-    }
-  }
-
-  if (rejected.length > 0) {
-    lines.push("## REJECTED Proposals", "");
-    for (let i = 0; i < rejected.length; i++) {
-      lines.push(`### ${i + 1}. ${rejected[i].title}`);
-      if (rejected[i].reason) lines.push(`**Reason:** ${rejected[i].reason}`);
-      if (rejected[i].body) lines.push(rejected[i].body);
-      lines.push("");
-    }
-  }
 
   if (results.length === 0) {
     lines.push("No proposals generated. Spec looks complete.");
+    return lines.join("\n");
+  }
+
+  lines.push("## Proposals", "");
+  for (let i = 0; i < results.length; i++) {
+    lines.push(`### ${i + 1}. ${results[i].title}`);
+    if (results[i].body) lines.push(results[i].body);
+    lines.push("");
   }
 
   return lines.join("\n");
 }
 
 /**
- * Run the spec review pipeline (propose→validate, 2 AI calls).
+ * Run the spec review pipeline (propose-only, 1 AI call).
  */
 async function runSpecReview(root, flow, config, dryRun) {
   const specInput = path.resolve(root, flow.spec);
@@ -1162,9 +1082,7 @@ async function runSpecReview(root, flow, config, dryRun) {
   }
 
   const proposeAgent = ensureAgent("flow.spec.review.propose");
-  ensureAgent("flow.impl.review.final");
 
-  // Step 1: Propose — detect oversights
   console.error("  [spec-review] Proposing...");
   const specSummary = buildSpecSummaryMarkdown(spec);
   let contextEntries = [];
@@ -1184,8 +1102,8 @@ async function runSpecReview(root, flow, config, dryRun) {
     const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
     fs.writeFileSync(reviewPath, formatSpecReviewMd([]));
     console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-    console.error("  [spec-review] verdict=PASS issues=0");
-    console.log("Spec review PASS. No oversights found.");
+    console.error("  [spec-review] proposalCount=0");
+    console.log("NO_PROPOSALS");
     return;
   }
 
@@ -1194,42 +1112,20 @@ async function runSpecReview(root, flow, config, dryRun) {
     const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
     fs.writeFileSync(reviewPath, formatSpecReviewMd([]));
     console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-    console.error("  [spec-review] verdict=PASS issues=0");
-    console.log("Spec review PASS. No oversights found.");
+    console.error("  [spec-review] proposalCount=0");
+    console.log("NO_PROPOSALS");
     return;
   }
 
   console.error(`  [spec-review] ${proposals.length} proposal(s) generated.`);
 
-  // Step 2: Validate — judge each proposal
-  console.error("  [spec-review] Validating proposals...");
-  const validationPrompt = [
-    "Validate these spec improvement proposals:",
-    "",
-    proposeRaw,
-    "",
-    "## Current spec summary for context:",
-    specSummary,
-  ].join("\n");
-  const validationResult = await callReviewAgent(
-    proposeAgent, validationPrompt, "flow.impl.review.final", buildFinalSystemPrompt(),
-  );
-  const results = mergeVerdicts(validationResult, proposals);
-
-  const approved = results.filter((r) => r.verdict === "APPROVED");
-  const rejected = results.filter((r) => r.verdict === "REJECTED");
-
   const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
-  fs.writeFileSync(reviewPath, formatSpecReviewMd(results));
+  fs.writeFileSync(reviewPath, formatSpecReviewMd(proposals));
   console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-  console.error(`  [spec-review] verdict=${approved.length > 0 ? "FAIL" : "PASS"} issues=${approved.length}`);
+  console.error(`  [spec-review] proposalCount=${proposals.length}`);
 
-  if (approved.length === 0) {
-    console.log("Spec review PASS. All proposals were rejected.");
-  } else {
-    console.log(`Spec review FAIL. ${approved.length} approved, ${rejected.length} rejected.`);
-    process.exit(EXIT_ERROR);
-  }
+  console.log(`Spec review found ${proposals.length} proposal(s). See spec-review.md.`);
+  process.exit(EXIT_ERROR);
 }
 
 // ---------------------------------------------------------------------------
@@ -1472,30 +1368,13 @@ async function runReview(rawArgs) {
 
   console.error(`  [draft] ${proposals.length} proposal(s) generated (after scope filter).`);
 
-  // --- Final validation phase ---
-  console.error("  [final] Validating proposals...");
-  const finalAgent = ensureAgent("flow.impl.review.final");
-  const finalPrompt = buildFinalValidationPrompt(proposals, diff);
-
-  const finalResult = await callReviewAgent(finalAgent, finalPrompt, "flow.impl.review.final", buildFinalSystemPrompt());
-
-  const results = mergeVerdicts(finalResult, proposals);
-  const approved = results.filter((r) => r.verdict === "APPROVED");
-  const rejected = results.filter((r) => r.verdict === "REJECTED");
-
-  // R7 (spec 242): same review.md format for both paths
-  const reviewPath = writeReviewMd(root, flow, results);
-  console.error(`  [final] Results saved to ${path.relative(root, reviewPath)}`);
-  console.error(`  [final] ${approved.length} approved, ${rejected.length} rejected.`);
-
-  if (approved.length === 0) {
-    console.log("All proposals were rejected. No changes to apply.");
-    return;
-  }
+  const reviewPath = writeReviewMd(root, flow, proposals);
+  console.error(`  [review] Results saved to ${path.relative(root, reviewPath)}`);
+  console.error(`  [review] proposalCount=${proposals.length}`);
 
   console.log("");
-  console.log("Approved proposals:");
-  for (const p of approved) {
+  console.log("Proposals:");
+  for (const p of proposals) {
     console.log(`  - ${p.title}`);
   }
   console.log("");
@@ -1544,9 +1423,9 @@ function isValidSpecOutput(text) {
 }
 
 export {
-  parseProposals, mergeVerdicts, formatReviewMd, resolveReviewTarget,
+  parseProposals, formatReviewMd, resolveReviewTarget,
   resolveMergeBase,
-  buildDraftSystemPrompt, buildFinalSystemPrompt, buildFinalValidationPrompt,
+  buildDraftSystemPrompt,
   NO_PROPOSALS_MARKER,
   collectTouchedFiles, filterProposalsByScope, extractProposalFile,
   getReviewMaxAttempts, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,

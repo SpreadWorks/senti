@@ -2,11 +2,13 @@ Use this guidance for the per-task code review step. Mirrors the flow-level revi
 
 - Read the context provided by `flow get next-action`: `task_spec`, `diff` (task-scoped), and `testlog`.
 - Step status is automatically managed by `sdd-forge flow run review` hooks (pre sets in_progress, post sets done).
-- Run `sdd-forge flow run review --phase task` to perform AI-powered code review scoped to this task's surface.
-- **If proposals exist** (APPROVED items in review.md):
-  1. Display review summary listing approved proposals (problem + fix) and not-needed proposals (with reasoning).
-  2. Apply approved fixes automatically.
-  3. Re-run the task tests to confirm no regressions.
+- Run `sdd-forge flow run review` to perform AI-powered code review scoped to this task's surface.
+- **If proposals exist** (proposals in review.md):
+  1. Read review.md and evaluate each proposal against the task spec and design intent.
+  2. For each proposal, determine whether it improves quality, risks breakage, and is within scope.
+  3. Display review summary listing proposals you will apply (problem + fix) and proposals you will skip (with reasoning).
+  4. Apply the proposals you judged to be valid.
+  5. Re-run the task tests to confirm no regressions.
 - **If no proposals** (NO_PROPOSALS): Display "レビューの結果、修正の必要はありませんでした。"
 - **Retry limit:** If review keeps producing new proposals beyond the definition's maxAttempts limit, STOP and return control to the user.
 - On complete, the next-action CLI advances to `task.update-overview`.

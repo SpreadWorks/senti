@@ -14,7 +14,7 @@ import path from "path";
 
 const PHASE_REVIEW_PARSERS = {
   test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
-  spec:  { countPattern: /issues=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Spec review",  next: "approval",   commandId: "flow.spec.review.propose" },
+  spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "approval",   commandId: "flow.spec.review.propose" },
   draft: { countPattern: /issues=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft", commandId: "flow.draft.review.propose" },
 };
 
@@ -145,31 +145,22 @@ export class RunReviewCommand extends FlowCommand {
       );
     }
 
-    // Parse proposal counts from stderr (review writes progress to stderr)
-    const proposalMatch = stderr.match(/(\d+) proposal\(s\) generated/);
-    const approvedMatch = stderr.match(/(\d+) approved/);
-    const rejectedMatch = stderr.match(/(\d+) rejected/);
+    const proposalCountMatch = stderr.match(/proposalCount=(\d+)/);
     const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
 
-    const proposalCount = proposalMatch ? parseInt(proposalMatch[1], 10) : 0;
-    const approved = approvedMatch ? parseInt(approvedMatch[1], 10) : 0;
-    const rejected = rejectedMatch ? parseInt(rejectedMatch[1], 10) : 0;
+    const proposalCount = proposalCountMatch ? parseInt(proposalCountMatch[1], 10) : 0;
     const noChanges = /No changes detected/i.test(stdout);
     const noProposals = /No improvement proposals found/i.test(stdout) || /NO_PROPOSALS/.test(stdout);
 
     const changed = [];
     if (reviewPathMatch) changed.push(reviewPathMatch[1]);
 
-    const next = noChanges || noProposals || approved === 0 ? "finalize" : "apply";
+    const next = noChanges || noProposals || proposalCount === 0 ? "finalize" : "apply";
 
     return {
       result: noChanges ? "no-changes" : noProposals ? "no-proposals" : "ok",
       changed,
-      artifacts: {
-        proposalCount,
-        approved,
-        rejected,
-      },
+      artifacts: { proposalCount },
       next,
       output: stdout,
     };
