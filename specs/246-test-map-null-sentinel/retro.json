@@ -1,0 +1,49 @@
+{
+  "spec": "specs/246-test-map-null-sentinel/spec.json",
+  "date": "2026-04-29T23:15:38.493Z",
+  "requirements": [
+    {
+      "desc": "tryStaticEvaluation で testMap[r.id] === null のエントリを status: 'n/a', note: 'testing not required' として requirements 配列に含め、summary.total / done / partial / not_done の集計から除外する",
+      "status": "done",
+      "note": "reqs マッピングで isTestNotRequired チェックにより n/a を返し、evaluated フィルタで total/done/partial/not_done の集計から除外。requirements 配列には n/a エントリが含まれる"
+    },
+    {
+      "desc": "tryStaticEvaluation の summary に na_count フィールドを追加し、n/a 件数を記録する",
+      "status": "done",
+      "note": "naCount = reqs.length - evaluated.length で算出し、summary に na_count として追加"
+    },
+    {
+      "desc": "tryStaticEvaluation 内の Object.values(testMap) イテレーション（テストファイル名抽出）で null エントリをスキップし、TypeError を防止する",
+      "status": "done",
+      "note": "Object.values(testMap) ループ内に isTestNotRequired(tests) チェックを追加し null をスキップ"
+    },
+    {
+      "desc": "test.md プロンプトの test-map.json スキーマ説明に null を追加し、テスト不要の要件に null を設定するよう AI に指示する",
+      "status": "done",
+      "note": "スキーマを string[] | null に更新し、null の意味・使用条件・[] との区別を明記。例示コードも R3: null に変更"
+    },
+    {
+      "desc": "review.js の test-map untested チェックで testMap[r.id] === null のエントリを untested としてカウントしない",
+      "status": "done",
+      "note": "filter 内に isTestNotRequired チェックを追加し、null エントリを早期リターンで除外"
+    }
+  ],
+  "unplanned": [
+    {
+      "file": "src/flow/lib/req-map.js",
+      "change": "isTestNotRequired(entry) ヘルパー関数を追加・export。file-map.json にこのファイルへの変更は記載されていないが、code review で APPROVED 済みのセンチネル判定の集約リファクタ"
+    },
+    {
+      "file": "src/flow/lib/run-retro.js",
+      "change": "NODE_TEST_CONTEXT を process.env から削除した env オブジェクトをテスト実行時に使用。ネストされたテストコンテキストでの実行時干渉を防ぐ修正だが、いずれの要件にも記載がない"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "rate": 1,
+    "notes": "R1–R5 の全要件を満たしている。isTestNotRequired ヘルパーの req-map.js への追加は file-map.json の対象外だが code review で承認済み。NODE_TEST_CONTEXT 削除のみ完全に未計画の変更。"
+  }
+}

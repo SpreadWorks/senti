@@ -1,0 +1,174 @@
+{
+  "goal": "test-map.json の値として null を sentinel 値として許容し、テスト不要の要件を retro static evaluation の分母から除外する",
+  "scope": {
+    "in": [
+      "[must] src/flow/lib/run-retro.js tryStaticEvaluation — null エントリを status: n/a として分母除外",
+      "[must] src/flow/lib/req-map.js — testMap イテレーションで null をスキップ（TypeError 防止）",
+      "[must] src/flow/prompts/plan/test.md — null スキーマ説明の追加",
+      "[should] src/flow/commands/review.js — test-map review で null を untested 扱いしない"
+    ],
+    "out": [
+      "AI retro (non-static) 評価ロジックの変更",
+      "file-map.json の null 対応",
+      "test-map.json の既存 [] エントリの一括マイグレーション",
+      "report.js への n/a 件数表示追加"
+    ]
+  },
+  "constraints": [
+    "外部依存なし（Node.js 組み込みモジュールのみ）",
+    "alpha 版ポリシー: 後方互換コードは書かない"
+  ],
+  "design_principles": [
+    "null は JSON 標準の値であり、[] との意味的分離が明確",
+    "既存フィールド（total, done, partial, not_done, rate）の意味は変わらない。na_count は純粋な加算フィールド"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "req-map.js — test-map.json のロード・イテレーションユーティリティ。null エントリをスキップする責務を追加"
+      },
+      {
+        "text": "run-retro.js — tryStaticEvaluation で null エントリを n/a 扱いし、rate 計算の分母から除外"
+      },
+      {
+        "text": "review.js — test-map review で null エントリを untested として誤報告しない"
+      },
+      {
+        "text": "test.md — AI 向けプロンプト。test-map.json スキーマに null を追加"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "AI が test-map.json を書く際、テスト不要の要件に null を設定"
+      },
+      {
+        "text": "loadTestMap() が null を含む map をそのまま返す"
+      },
+      {
+        "text": "tryStaticEvaluation() が null エントリを n/a として処理し、rate 分母から除外"
+      },
+      {
+        "text": "review.js が null エントリを untested としてカウントしない"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "loadTestMap は null を正規化せずそのまま返す。下流が null の意味的情報を必要とするため",
+        "evidence": "run-retro.js:279 — Object.values(testMap) で全エントリをイテレーション"
+      },
+      {
+        "text": "n/a 要件は retro.json requirements 配列に含めるが、summary.total からは除外。na_count を別フィールドで追加",
+        "evidence": "report.js:131-135 — done/partial/not_done のみ参照。na_count は無視される（加算フィールド）"
+      }
+    ]
+  },
+  "background": "static retro 評価は test-map.json のテスト対応表から要件達成率を機械的に算出する。現状、テスト不要な要件も空配列 [] で記録されるが、[] は「テスト未作成」と「テスト不要」を区別できず、retro で unverified 扱いになり達成率が不当に低下する。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "tryStaticEvaluation で testMap[r.id] === null のエントリを status: 'n/a', note: 'testing not required' として requirements 配列に含め、summary.total / done / partial / not_done の集計から除外する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "tryStaticEvaluation の summary に na_count フィールドを追加し、n/a 件数を記録する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "tryStaticEvaluation 内の Object.values(testMap) イテレーション（テストファイル名抽出）で null エントリをスキップし、TypeError を防止する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "test.md プロンプトの test-map.json スキーマ説明に null を追加し、テスト不要の要件に null を設定するよう AI に指示する",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "review.js の test-map untested チェックで testMap[r.id] === null のエントリを untested としてカウントしない",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "test-map.json に null エントリを含む spec で tryStaticEvaluation を実行した場合、null エントリは n/a として扱われ rate 計算の分母に含まれない",
+    "null エントリのみの test-map.json（全要件が null）で tryStaticEvaluation を実行した場合、total=0 で rate=0 となり null を返さない（static evaluation は成立する）",
+    "Object.values(testMap) のイテレーションで null エントリが存在しても TypeError が発生しない",
+    "review.js の untested チェックで null エントリが untested として報告されない",
+    "既存の test-map.json（null を含まない）に対する動作が変更されない"
+  ],
+  "clarifications": [],
+  "alternatives_considered": [
+    {
+      "option": "loadTestMap で null を除外してフィルタリングする",
+      "reason": "下流の tryStaticEvaluation が null の意味的情報（n/a 判定）を必要とするため不適切"
+    },
+    {
+      "option": "status: 'done' として扱う",
+      "reason": "テストを実行していないのに done は不正確。n/a が意味的に正確"
+    },
+    {
+      "option": "既存 [] エントリを一括マイグレーションする",
+      "reason": "過去 spec の retro は実行済みで再評価しないため、コスト対効果が低い"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add null handling to tryStaticEvaluation",
+      "goal": "tryStaticEvaluation で null エントリを n/a として扱い、rate 計算の分母から除外する。summary に na_count を追加する。",
+      "acceptance": [
+        "testMap[r.id] === null のエントリが status: 'n/a' として requirements 配列に含まれる",
+        "summary.total / done / partial / not_done が n/a を除くカウントになる",
+        "summary.na_count が n/a 件数を記録する",
+        "Object.values(testMap) のイテレーションで null エントリをスキップし TypeError を防止する"
+      ],
+      "implementation_notes": "run-retro.js tryStaticEvaluation 内の2箇所を変更: (1) L279 テストファイル抽出ループで null スキップ、(2) L302-313 requirements マッピングと summary 計算で null を n/a 扱い",
+      "test_strategy": "ユニットテスト: null エントリを含む testMap で tryStaticEvaluation を実行し、n/a 扱い・rate 計算・summary.na_count を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Add null schema to test.md prompt",
+      "goal": "test.md プロンプトに null の意味と使用条件を追加し、AI がテスト不要の要件に null を設定できるようにする。",
+      "acceptance": [
+        "test-map.json スキーマ説明に null が sentinel 値として記載されている",
+        "null と [] の意味的区別が明記されている"
+      ],
+      "implementation_notes": "src/flow/prompts/plan/test.md の JSON スキーマ例に null エントリを追加。null の使用条件（ドキュメント更新、プロンプト変更等）を注釈で記載",
+      "test_strategy": "プロンプトテンプレートの変更はテスト不要（R4 は null）",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Skip null entries in review.js untested check",
+      "goal": "review.js の test-map untested チェックで null エントリを untested としてカウントしないようにする。",
+      "acceptance": [
+        "testMap[r.id] === null のエントリが untested リストに含まれない"
+      ],
+      "implementation_notes": "src/flow/commands/review.js L945-948 の filter 条件に null チェックを追加",
+      "test_strategy": "ユニットテスト: null エントリを含む testMap で untested チェックを実行し、null エントリが除外されることを検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-04-29T22:31:29.095Z",
+    "notes": "autoApprove"
+  }
+}

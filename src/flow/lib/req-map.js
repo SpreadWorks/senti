@@ -32,6 +32,10 @@ export function loadTestMap(specDir) {
   return loadJsonMap(path.join(testsDir, TEST_MAP_NAME));
 }
 
+export function isTestNotRequired(entry) {
+  return entry === null;
+}
+
 export function appendFiles(specDir, reqId, paths, root, specPath) {
   const absSpecInput = path.isAbsolute(specPath) ? specPath : path.resolve(root, specPath);
   const spec = loadSpecJson(absSpecInput, { validate: false });

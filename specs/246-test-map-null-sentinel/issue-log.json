@@ -1,0 +1,71 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — null sentinel 導入という単一の concern に限定されている。スコープ境界も明示されている。; Unambiguous Requirements — in-scope 項目はファイル名・関数名・具体的な動作（スキップ・除外・n/a 扱い）で記述されており、曖昧な形容詞は使われていない。; Complete Context — QA 各エントリに evidence と why を備え、独立した二者が実装判断に合意できる粒度で記述されている。; No Hardcoded Secrets — シークレット・認証情報に関する変更を含まない。; Prioritize Requirements — in-scope が4項目あるが must/should/nice-to-have の優先度が付与されていない。3項目超の場合は優先度付与が必要。; Impact on Existing Features — impactOnExisting フィールドで retro static evaluation・review.js・req-map.js の3点への影響が明示されている。; Present Recommendations with Reasoning — 全 QA エントリに answer（推奨）・evidence（コード参照）・why（根拠）・considered（代替案）が揃っている。; Explore Before Asking — QA の evidence フィールドで run-retro.js:279-284、302-313、test.md:12-23 等の具体的な行番号を引用しており、コードベース調査済みと判断できる。; Proactively Raise Related Implications — Q3 で [] を「使用禁止」と宣言しているが、既存 test-map.json で [] を「テスト不要」の意図で使っているエントリが変更後に「全テスト失敗」として誤解釈されるリスクが明示されていない。マイグレーションを out-of-scope にする判断は示されているが、そのリスクを proactive に警告する記述がない。; Confirm Brainstorm vs. Decision Before Critiquing — approval フィールドで承認済み（autoApprove）であり、ブレスト段階ではなく決定済みの仕様として提示されている。; Capture Digressions in draft.md — ドラフト内に逸脱した議論スレッドは見当たらない。; Draft Stays at Requirements Level — ファイル名・関数名はコンテキストとして言及されているが、アルゴリズム・データ構造・制御フローの詳細設計には踏み込んでいない。QA の evidence/considered はあくまで根拠提示。; Backward-Compatible CLI Interface — CLI コマンド・オプションの変更を含まない。test-map.json のスキーマ拡張のみ。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T22:15:16.034Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "in-scope が4項目あるが must/should/nice-to-have の優先度が付与されていない。3項目超の場合は優先度付与が必要。"
+        },
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "Q3 で [] を「使用禁止」と宣言しているが、既存 test-map.json で [] を「テスト不要」の意図で使っているエントリが変更後に「全テスト失敗」として誤解釈されるリスクが明示されていない。マイグレーションを out-of-scope にする判断は示されているが、そのリスクを proactive に警告する記述がない。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 1つの concern（null sentinel 導入による retro 分母除外）に限定されている; Unambiguous Requirements — 各要件は具体的な動作条件（null スキップ、n/a 除外、summary.na_count 追加等）で記述されており、曖昧な形容詞は使われていない; Complete Context — 要件は独立したレビュアーが合否を判断できる具体的な条件で記述されている; No Hardcoded Secrets — シークレット情報は含まれていない; Prioritize Requirements — 4要件に [must]/[should] の優先度が付与されている; Impact on Existing Features — impactOnExisting フィールドに retro static evaluation、review.js、req-map.js への影響が明示されている; Present Recommendations with Reasoning — 各 QA エントリに推奨答と evidence/why/considered が付与されている; Explore Before Asking — openQuestions が空であり、コード参照（行番号付き）に基づいて問いに答えている; Proactively Raise Related Implications — 既存 [] エントリが null 導入後に意味上「テスト未作成」に固定されることへの影響は QA で言及されているが、summary スキーマ変更（na_count フィールド追加）が retro.json を消費する下流（review.js, docs 等）に与える破壊的影響が proactive に挙げられていない; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true で決定フェーズであることが明確。ブレインストーミングとの混同なし; Capture Digressions in draft.md — 脱線の記録が必要な議論上の逸脱は見当たらない; Draft Stays at Requirements Level — コード参照は evidence として使用されており、アルゴリズムや制御フローの詳細設計は記述されていない; Backward-Compatible CLI Interface — CLI インターフェースの変更は含まれていない",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-29T22:16:18.187Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "既存 [] エントリが null 導入後に意味上「テスト未作成」に固定されることへの影響は QA で言及されているが、summary スキーマ変更（na_count フィールド追加）が retro.json を消費する下流（review.js, docs 等）に与える破壊的影響が proactive に挙げられていない"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "review-test",
+      "reason": "review.js L945 で requirements.filter が TypeError を投げる。requirements が配列でない可能性。本 spec のスコープ外の既存バグ",
+      "trigger": "sdd-forge flow run review --phase test",
+      "resolution": "review-test をスキップして先に進む",
+      "taskId": null,
+      "timestamp": "2026-04-29T22:35:32.264Z"
+    }
+  ]
+}

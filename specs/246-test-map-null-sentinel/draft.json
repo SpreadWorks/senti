@@ -1,0 +1,77 @@
+{
+  "devType": "feature",
+  "goal": "test-map.json で null を sentinel 値として許容し、テスト不要の要件を retro の static evaluation 分母から除外する",
+  "analysis": {
+    "problem": "test-map.json の値が空配列 [] の場合、「テスト未作成」と「テスト不要」を区別できない。結果として retro static evaluation でテスト不要の要件が unverified 扱いになり、達成率が不当に低下する。",
+    "proposedApproach": "test-map.json の値として null を sentinel 値として許容する。null は「この要件はテストによる検証が不要」を明示的に宣言する。3箇所を変更: (1) test.md プロンプトに null スキーマを追加、(2) req-map.js のイテレーションで null をスキップ、(3) run-retro.js tryStaticEvaluation で null エントリを n/a として分母から除外。",
+    "validation": "根本問題は [] と null の意味的区別がないこと。null sentinel の導入は JSON の標準的な表現方法で、既存の [] との意味的分離が明確。変更は3ファイルに限定され、既存テストへの影響は最小。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] src/flow/lib/run-retro.js tryStaticEvaluation — null エントリを status: n/a として分母除外",
+      "[must] src/flow/lib/req-map.js — testMap イテレーションで null をスキップ（TypeError 防止）",
+      "[must] src/flow/prompts/plan/test.md — null スキーマ説明の追加（AI が null を使えるようにする）",
+      "[should] src/flow/commands/review.js — test-map review で null を untested 扱いしない"
+    ],
+    "out": [
+      "AI retro (non-static) 評価ロジックの変更",
+      "file-map.json の null 対応",
+      "test-map.json の既存 [] エントリの一括マイグレーション"
+    ]
+  },
+  "impactOnExisting": [
+    "retro static evaluation — null エントリが n/a になることで、テスト不要要件を含む spec の達成率が正確になる",
+    "review.js test-map チェック — null エントリを untested として誤報告しなくなる",
+    "req-map.js のテストファイル抽出 — null エントリをスキップ（テストファイル名がないため）"
+  ],
+  "qa": [
+    {
+      "question": "tryStaticEvaluation 内の Object.values(testMap) イテレーション (L279) で null をどう扱うか？",
+      "answer": "null のエントリはテストファイル名を含まないため、for-of ループ内で null チェックしてスキップする。L280 の for (const t of tests) は tests が null だと TypeError になる。",
+      "evidence": "run-retro.js:279-284 — Object.values(testMap) で全エントリをイテレーションし、テストファイル名を抽出している",
+      "why": "null に対して for-of を実行すると TypeError。null スキップは必須。",
+      "considered": "loadTestMap で null を除外する案 — 下流の tryStaticEvaluation が null の意味的情報を必要とするため不適切"
+    },
+    {
+      "question": "tryStaticEvaluation での n/a 要件の扱い — 分母から除外 vs status: n/a で分母に含める",
+      "answer": "分母から除外する。n/a エントリは retro.json の requirements 配列に `{ id: \"REQ-X\", status: \"n/a\", testFiles: null, note: \"testing not required\" }` の形で含める。`summary.total` は n/a を含まないカウントとし、`summary.na_count` を別フィールドで追加する。rate 計算の total/done/partial/not_done からは除外する。",
+      "evidence": "run-retro.js:302-313 — 現在 reqs.length を total として rate 計算。null 要件を total に含めると達成率が下がる（Issue の根本問題）",
+      "why": "テスト不要の要件を分母に含めると達成率が不当に低下する — これが Issue の根本問題",
+      "considered": "status: 'done' として扱う案 — テストを実行していないのに done は不正確。n/a が意味的に正確"
+    },
+    {
+      "question": "Consumer contract: test-map.json を書く AI は null をいつ使うべきか？",
+      "answer": "test.md の JSON スキーマ説明に `\"REQ-001\": null` を明示例として追加し、`null`（テスト不要・n/a）と `[]`（テストあり・全失敗）を対比する注釈を入れる。使用条件の例: ドキュメント更新、プロンプト変更、インフラ設定のみの要件。`[]` は使用禁止とし、テストが0件でも存在するなら該当テストファイルを列挙すること。これにより AI の出力ばらつきを減らせる。",
+      "evidence": "src/flow/prompts/plan/test.md:12-23 — 現在のスキーマ説明に null の記述がない",
+      "why": "AI が test-map.json を書く際に null を適切に使えるようにする必要がある",
+      "considered": "プロンプト変更なしで AI に推論させる案 — AI はスキーマ定義にないパターンを使わないため不適切"
+    },
+    {
+      "question": "既存の test-map.json で [] を「テスト不要」の意図で使っているエントリは、本変更後にどう扱われるか？",
+      "answer": "[] は引き続き「テストが存在しない（unverified）」として扱われる。null 導入前に [] で記録された「テスト不要」意図のエントリは、retro で unverified のままカウントされる。ただし、既存 test-map.json のマイグレーション（[] → null への一括変換）は本 spec のスコープ外とする。理由: (1) 過去 spec の test-map.json は retro 実行済みで再評価する運用がない、(2) マイグレーションスクリプトの実装・検証コストに見合わない。",
+      "evidence": "scopeVerification.out に「test-map.json の既存 [] エントリの一括マイグレーション」を明示。evaluateReqByResults() は counts が null のとき unverified を返す既存動作を維持",
+      "why": "[] の意味が「テスト未作成」に固定されることで、既存エントリの意図と乖離する可能性がある。リスクを明示した上でスコープ外とする判断を記録する",
+      "considered": "既存 [] を自動マイグレーションする案 — 過去 spec の retro は実行済みで再評価しないため、コスト対効果が低い"
+    },
+    {
+      "question": "retro.json summary への na_count フィールド追加は下流の消費者に破壊的影響を与えるか？",
+      "answer": "破壊的影響なし。retro.json の summary を消費するのは run-report.js → report.js のパイプライン。report.js:135 は done/partial/not_done のみをフォーマット表示し、未知のフィールドは無視する。na_count は純粋な加算フィールドであり、既存フィールド（total, done, partial, not_done, rate）の意味は変わらない。ただし total の定義が「全要件数」から「n/a を除く要件数」に変わるため、rate 計算の分母が小さくなる。これは意図した動作（達成率の正確化）。report 表示に n/a 件数を追加するかは nice-to-have だが本 spec のスコープ外。",
+      "evidence": "run-report.js:36-42 — retroData.summary をそのまま渡す。report.js:131-135 — done/partial/not_done のみ参照。na_count は無視される",
+      "why": "スキーマ変更が下流に波及しないことの確認は、alpha 版であっても実施すべき",
+      "considered": "na_count を追加しない案 — n/a 件数が不明になり、retro.json の監査性が下がる"
+    },
+    {
+      "question": "`req-map.js` の `loadTestMap` は null エントリをそのまま保持して返すか？ `evaluateRequirement` は `testMap[reqId] === null` のとき何を返すべきか？",
+      "answer": "`loadTestMap` は null を正規化せずそのまま保持して返す（`|| []` 等で空配列に変換しない）。`evaluateRequirement` は `testMap[reqId] === null` の場合 `{ status: 'n/a', tests: [] }` 相当を返す。呼び出し元（`run-retro.js`）が rate 計算から除外する責務を持つ設計とするか、あるいは `evaluateRequirement` を呼ばずに呼び出し元でスキップするかを決定する必要がある。",
+      "evidence": "src/flow/lib/req-map.js — `loadTestMap`（test-map.json を読み込む）と `evaluateRequirement`（テスト結果から pass/fail/partial を分類）を提供",
+      "why": "req-map.js は Issue の明示的変更対象だが、null エントリを受け取ったときの振る舞いが未定義のまま実装に入るとインターフェース不整合が生じる",
+      "considered": "`loadTestMap` で null を除外する案 — 下流が null の意味的情報を必要とするため不適切。正規化は呼び出し元の責務"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-29T00:00:00Z",
+    "notes": "autoApprove"
+  }
+}
