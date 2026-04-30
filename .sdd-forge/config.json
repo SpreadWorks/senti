@@ -103,6 +103,10 @@
         "systemPromptFlag": "--system-prompt",
         "jsonOutputFlag": "--output-format json"
       },
+      "codex/gpt-5.5": {
+        "command": "codex",
+        "args": ["exec", "--json", "--full-auto", "-m", "gpt-5.5", "-C", ".tmp", "{{PROMPT}}"]
+      },
       "codex/gpt-5.4": {
         "command": "codex",
         "args": ["exec", "--json", "--full-auto", "-m", "gpt-5.4", "-C", ".tmp", "{{PROMPT}}"],
@@ -116,18 +120,20 @@
     },
     "profiles": {
       "default": {
-        "docs.init":         "claude/sonnet",
-        "docs.enrich":       "claude/opus",
-        "docs.text":         "claude/opus",
-        "docs.forge":        "claude/opus",
-        "docs.readme":       "claude/sonnet",
-        "docs.agents":       "claude/opus",
-        "docs.translate":    "codex/gpt-5.4",
+        "docs.init":              "claude/sonnet",
+        "docs.enrich":            "claude/opus",
+        "docs.text":              "claude/opus",
+        "docs.forge":             "claude/opus",
+        "docs.readme":            "claude/sonnet",
+        "docs.agents":            "claude/opus",
+        "docs.translate":         "codex/gpt-5.5",
+        "flow.auto-check":        "claude/sonnet",
+        "flow.draft.review":      "codex/gpt-5.5",
         "flow.spec.gate":         "claude/sonnet",
-        "flow.spec.review":       "claude/sonnet",
-        "flow.impl.review.draft": "codex/gpt-5.4",
+        "flow.spec.review":       "codex/gpt-5.5",
+        "flow.test.review":       "codex/gpt-5.5",
+        "flow.impl.review.draft": "codex/gpt-5.5",
         "flow.impl.review.final": "claude/opus",
-        "flow.test.review":       "claude/sonnet",
         "flow.finalize.retro":    "claude/sonnet",
         "flow.context.search":    "claude/sonnet"
       },
