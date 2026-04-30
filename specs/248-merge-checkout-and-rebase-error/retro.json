@@ -1,0 +1,42 @@
+{
+  "spec": "specs/248-merge-checkout-and-rebase-error/spec.json",
+  "date": "2026-04-30T14:30:19.402Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "worktree squash merge は常に baseBranch 上に squash commit を作成する。main repo が baseBranch 以外のブランチにいる場合でも正しく動作する",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "baseBranch が別 worktree で使用中等で checkout 不可の場合、一時 detached worktree を用いて baseBranch に squash commit を作成する。失敗時は baseBranch を変更しない",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "一時 worktree は成功・失敗に関わらず必ず削除される",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "rebaseOnto は失敗時に dirty worktree 起因かコンフリクト起因かを区別し、それぞれ異なるエラー情報を返す",
+      "status": "unverified",
+      "note": "no tests mapped"
+    },
+    {
+      "desc": "dirty worktree 起因の rebase 失敗時のエラーメッセージは 'Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.' とする",
+      "status": "unverified",
+      "note": "no tests mapped"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 3,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "rate": 0.6,
+    "notes": "static evaluation from test-map.json"
+  }
+}

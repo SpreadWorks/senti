@@ -12,6 +12,7 @@
 
 import { runCmd, assertOk } from "../../lib/process.js";
 import path from "path";
+import os from "os";
 import { container } from "../../lib/container.js";
 import { isGhAvailable, runGit, fetchBranch, rebaseOnto, abortRebase } from "../../lib/git-helpers.js";
 import { loadSpecJson } from "../../lib/spec-json.js";
@@ -198,6 +199,12 @@ function runMerge(ctx) {
     const remote = resolveRemote(cfg);
     const syncResult = runPreSync({ worktreePath: root, baseBranch, featureBranch, remote });
     if (syncResult.ok === false) {
+      if (syncResult.dirty) {
+        const err = new Error(syncResult.recoveryHint);
+        err.dirty = true;
+        err.recoveryHint = syncResult.recoveryHint;
+        throw err;
+      }
       const err = new Error(
         `Pre-merge rebase detected conflicts in ${syncResult.conflictFiles.join(", ")}. ` +
           `Worktree has been restored. ${syncResult.recoveryHint}`,
@@ -206,8 +213,32 @@ function runMerge(ctx) {
       err.recoveryHint = syncResult.recoveryHint;
       throw err;
     }
-    runSquashMerge(["-C", mainRepoPath], `Run 'git rebase ${baseBranch}' in the worktree and retry finalize.`);
-    return { strategy: "squash" };
+
+    const mergeHint = `Run 'git rebase ${baseBranch}' in the worktree and retry finalize.`;
+    const checkoutRes = runGit(["-C", mainRepoPath, "checkout", baseBranch]);
+    if (checkoutRes.ok) {
+      runSquashMerge(["-C", mainRepoPath], mergeHint);
+      return { strategy: "squash" };
+    }
+
+    // baseBranch is locked (e.g. checked out in another worktree) — fall back to
+    // a temporary detached worktree, squash-merge there, then update the ref.
+    const tmpWorktree = path.join(os.tmpdir(), `sdd-merge-tmp-${process.pid}-${Date.now()}`);
+    try {
+      const addRes = runGit(["-C", mainRepoPath, "worktree", "add", "--detach", tmpWorktree, baseBranch]);
+      assertOk(addRes, "failed to create temporary worktree for baseBranch checkout fallback");
+      runSquashMerge(["-C", tmpWorktree], mergeHint);
+      const headRes = runGit(["-C", tmpWorktree, "rev-parse", "HEAD"]);
+      assertOk(headRes, "failed to read HEAD of temporary worktree");
+      const updateRes = runGit(["-C", mainRepoPath, "update-ref", `refs/heads/${baseBranch}`, headRes.stdout.trim()]);
+      assertOk(updateRes, `failed to update ${baseBranch} ref`);
+      return { strategy: "squash" };
+    } finally {
+      const removeRes = runGit(["-C", mainRepoPath, "worktree", "remove", "--force", tmpWorktree]);
+      if (!removeRes.ok) {
+        process.stderr.write(`warning: failed to remove temporary worktree ${tmpWorktree}: ${removeRes.stderr}\n`);
+      }
+    }
   }
 
   // Branch mode
@@ -242,6 +273,16 @@ function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin"
 
   const rebaseRes = rebaseOnto(rebaseRef, { cwd: worktreePath });
   if (rebaseRes.ok) return { ok: true };
+
+  if (rebaseRes.reason === "dirty") {
+    return {
+      ok: false,
+      dirty: true,
+      conflictFiles: [],
+      recoveryHint:
+        "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+    };
+  }
 
   abortRebase({ cwd: worktreePath });
   const recoveryHint =

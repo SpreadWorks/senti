@@ -1,0 +1,158 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "AI evaluation response is not valid JSON: Unexpected token '#', \"## Complia\"... is not valid JSON",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-30T12:31:37.575Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "AI evaluation response is not valid JSON: Unexpected token '*', \"**Summary \"... is not valid JSON",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-30T12:33:01.826Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "AI evaluation response is not valid JSON: Unexpected token '*', \"**Summary \"... is not valid JSON",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-04-30T12:34:21.249Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Two bugs are both in the merge-finalization flow (merge.js / git-helpers.js) and were defined together by the user as one Issue. The guardrail explicitly defers to the user's judgment on scope boundaries.; Unambiguous Requirements — Requirements use concrete, verifiable conditions throughout: specific file paths, exact error message text, explicit stderr patterns ('unstaged changes' / 'uncommitted changes'), and named return fields. No vague adjectives such as 'appropriate' or 'fast' appear.; Complete Context — scopeVerification lists explicit in/out items; each QA entry pairs a verifiable condition with evidence from the actual source lines. Two independent reviewers could agree on whether checkout is present and whether the error message matches the specified string.; No Hardcoded Secrets — The draft contains no API keys, passwords, tokens, or other secrets.; Prioritize Requirements — The draft has exactly two requirements (Bug 1 fix, Bug 2 fix), which is below the threshold of three items that triggers mandatory priority labeling.; Impact on Existing Features — The impactOnExisting field explicitly lists both affected areas: (1) worktree squash merge normal flow gains a checkout step, and (2) rebaseOnto return-value structure change affects existing callers.; Present Recommendations with Reasoning — Every QA entry leads with a concrete answer, backs it with evidence citing specific source lines or grep results, and states the why. The basis is existing code patterns (branch-mode checkout at L213-216, stderr output format).; Explore Before Asking — openQuestions is empty. Evidence fields reference specific line numbers (merge.js L196-210, L213-216), grep results ('grep -rn rebaseOnto src/ tests/'), and existing test file paths, indicating the codebase was explored before drafting.; Proactively Raise Related Implications — The draft proactively raises that (1) concurrent flows can prevent checkout, motivating the detached-worktree fallback, and (2) rebaseOnto's return-value structure change affects every caller, listed explicitly in impactOnExisting.; Confirm Brainstorm vs. Decision Before Critiquing — The draft is already in an approved decision state (approval.approved: true, confirmedAt: 2026-04-30). No brainstorming-vs-deciding ambiguity is present.; Capture Digressions in draft.md — openQuestions is empty and no digressions are evident in the content. The considered fields capture rejected alternatives inline within each QA entry.; Draft Stays at Requirements Level — Several QA answer fields (not just evidence/why/considered) contain implementation-level detail that belongs in code, not in a requirements spec: (1) Bug 1 answer specifies the exact git command sequence ('git worktree add --detach <tmpPath> baseBranch', 'git update-ref refs/heads/<baseBranch> <SHA>') — internal algorithm; (2) Bug 1 cleanup answer names the control-flow construct ('finally で git worktree remove する') — internal control flow; (3) Bug 2 answer specifies the data structure key ('reason: \"dirty\"') and the internal mechanism ('stderr を検査し…が含まれる場合は') — API design and internal algorithm. The guardrail permits code references in evidence/why/considered as justification, but the answer fields should remain at the observable-behavior / verifiable-condition level.; Backward-Compatible CLI Interface — The spec modifies only internal logic in merge.js and git-helpers.js. No CLI commands, option names, or their meanings are changed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T13:04:35.384Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Several QA answer fields (not just evidence/why/considered) contain implementation-level detail that belongs in code, not in a requirements spec: (1) Bug 1 answer specifies the exact git command sequence ('git worktree add --detach <tmpPath> baseBranch', 'git update-ref refs/heads/<baseBranch> <SHA>') — internal algorithm; (2) Bug 1 cleanup answer names the control-flow construct ('finally で git worktree remove する') — internal control flow; (3) Bug 2 answer specifies the data structure key ('reason: \"dirty\"') and the internal mechanism ('stderr を検査し…が含まれる場合は') — API design and internal algorithm. The guardrail permits code references in evidence/why/considered as justification, but the answer fields should remain at the observable-behavior / verifiable-condition level."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Both bugs share the same merge/rebase flow domain (merge.js + git-helpers.js). Previously passed; no new bundling of unrelated concerns introduced.; Unambiguous Requirements — Requirements state verifiable conditions (e.g., specific checkout sequence, specific stderr-based detection, specific error message text). Previously passed; no new vague adjectives introduced.; Complete Context — Scope boundaries are explicit (in/out), failure cases are named (checkout unavailable, dirty vs conflict), and expected error messages are quoted verbatim. Previously passed.; No Hardcoded Secrets — No API keys, tokens, or passwords appear in the content.; Prioritize Requirements — The spec enumerates five or more distinct requirements (checkout addition, detached-worktree fallback, cleanup, dirty-detection, error message). Previously passed; no new unprioritized expansion.; Impact on Existing Features — impactOnExisting explicitly lists two affected areas: worktree squash merge normal path and rebaseOnto return-value consumers.; Present Recommendations with Reasoning — Every QA entry leads with a recommended answer and cites evidence from code locations or project rules. Previously passed.; Explore Before Asking — Evidence fields reference specific file paths and line numbers (merge.js L196-216, grep results) showing codebase was explored before questions were formulated.; Proactively Raise Related Implications — The draft proactively raises the concurrent-flow implication (baseBranch held by another worktree) and the rebaseOnto caller impact. Previously passed.; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true indicates the draft is in decision mode; no brainstorming content is being critiqued without confirmation.; Capture Digressions in draft.md — No apparent unresolved digressions; openQuestions is empty and all discussed topics are captured in QA entries.; Draft Stays at Requirements Level — The draft crosses from requirements into implementation design in two places. (1) analysis.proposedApproach describes internal control flow and algorithm ('checkout が失敗した場合は一時 detached worktree にフォールバック', 'stderr を検査し…エラー情報を返す') — this field is not covered by the evidence/why/considered exemption. (2) Several QA answer fields (not the exempted evidence/why/considered fields) describe internal API design and inter-function control flow: e.g., 'rebaseOnto の返り値の構造変更' (API design), 'コンフリクト時は既存パターン通り呼び出し元が abort する' (internal call-site control flow). These belong in an implementation plan, not a requirements-level draft.; Backward-Compatible CLI Interface — No CLI commands or options are removed or redefined. The changes are internal to merge.js and git-helpers.js. Previously passed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T13:06:32.803Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft crosses from requirements into implementation design in two places. (1) analysis.proposedApproach describes internal control flow and algorithm ('checkout が失敗した場合は一時 detached worktree にフォールバック', 'stderr を検査し…エラー情報を返す') — this field is not covered by the evidence/why/considered exemption. (2) Several QA answer fields (not the exempted evidence/why/considered fields) describe internal API design and inter-function control flow: e.g., 'rebaseOnto の返り値の構造変更' (API design), 'コンフリクト時は既存パターン通り呼び出し元が abort する' (internal call-site control flow). These belong in an implementation plan, not a requirements-level draft."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Previously passed. Both bugs are scoped to the merge finalization flow (worktree squash and rebase), and the spec treats them as one cohesive concern. No new bundling violation introduced.; Unambiguous Requirements — Previously passed. Requirements specify concrete, verifiable conditions: explicit checkout step, specific error message text, and distinguishable failure paths. No vague adjectives like 'appropriate' or 'fast' appear.; Complete Context — Previously passed. QA entries include evidence (file paths, line numbers, grep results) and exact error message text, giving two independent reviewers sufficient information to agree on whether an implementation satisfies each requirement.; No Hardcoded Secrets — Previously passed. No API keys, passwords, tokens, or secrets are present in the spec.; Prioritize Requirements — Previously passed. No new requirements have been added to the current content beyond what was evaluated before, so no new prioritization violation is introduced.; Impact on Existing Features — Previously passed. The `impactOnExisting` field explicitly lists two affected behaviours: the added checkout step in the worktree squash normal path, and the extended return value of rebaseOnto distinguishing failure causes.; Present Recommendations with Reasoning — Previously passed. Each QA entry leads with a recommended answer followed by evidence, why, and considered fields that cite code locations and rationale.; Explore Before Asking — Previously passed. Evidence fields reference specific file paths and line numbers (merge.js L213-216, L196-210) and grep results, demonstrating codebase exploration before any question was posed.; Proactively Raise Related Implications — Previously passed. The spec proactively raises the stash-prohibition implication (active flow rule) and the concurrent-worktree checkout failure scenario, both of which a user might not notice without prompting.; Confirm Brainstorm vs. Decision Before Critiquing — Previously passed. The spec is an approved, decided artifact (approval.approved=true); there is no brainstorming context being critiqued as a final decision.; Capture Digressions in draft.md — Previously passed. The spec is a finalized document with no unresolved digressions; openQuestions is empty and the approval is confirmed.; Draft Stays at Requirements Level — The answer fields in multiple QA entries cross from requirements level into internal control flow and implementation decisions. Bug 1 answer describes a two-path algorithm ('通常経路: main repo を baseBranch に切り替えてから squash merge する / フォールバック: 一時的な隔離環境で baseBranch の内容に対して squash merge し、結果を baseBranch に反映する') — this is a control-flow design, not a requirement. Bug 2 answer states 'dirty 時は rebase が開始されていないため abort 不要', which is an internal implementation decision about whether to invoke git rebase --abort. These details belong in the evidence/why/considered fields (which the guardrail exempts), not in the answer field that should stay at requirements level.; Backward-Compatible CLI Interface — Previously passed. The change is an internal bugfix with no CLI command or option modifications; no migration plan is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T13:08:41.017Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The answer fields in multiple QA entries cross from requirements level into internal control flow and implementation decisions. Bug 1 answer describes a two-path algorithm ('通常経路: main repo を baseBranch に切り替えてから squash merge する / フォールバック: 一時的な隔離環境で baseBranch の内容に対して squash merge し、結果を baseBranch に反映する') — this is a control-flow design, not a requirement. Bug 2 answer states 'dirty 時は rebase が開始されていないため abort 不要', which is an internal implementation decision about whether to invoke git rebase --abort. These details belong in the evidence/why/considered fields (which the guardrail exempts), not in the answer field that should stay at requirements level."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "review-test",
+      "reason": "test review failed: requirements.filter is not a function in review.js:884 — likely spec.json requirements format mismatch",
+      "trigger": "sdd-forge flow run review --phase test",
+      "resolution": "skipped review-test step, will proceed with implementation",
+      "taskId": null,
+      "timestamp": "2026-04-30T14:13:02.193Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "REQ-SPEC — All five spec requirements are implemented in the diff. R1: merge.js adds `runGit(['-C', mainRepoPath, 'checkout', baseBranch])` before `runSquashMerge`, ensuring the squash commit lands on baseBranch even when the main repo is on a different branch. R2: when checkout fails, a temporary detached worktree is created via `git worktree add --detach`, squash-merged there, and `git update-ref` advances baseBranch only after success; if any step throws, baseBranch is left unchanged. R3: the temporary worktree removal is in a `finally` block, guaranteeing cleanup on both success and failure paths. R4: git-helpers.js inspects `res.stderr` with `/unstaged changes|uncommitted changes/` and returns `{ reason: 'dirty', conflictFiles: [], ... }` for dirty failures and `{ reason: 'conflict', conflictFiles, ... }` for real conflicts. R5: runPreSync checks `rebaseRes.reason === 'dirty'` and returns `recoveryHint: 'Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.'` — matching the spec-mandated string exactly, with no mention of stash.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets appear in the added lines. The test fixtures use only dummy git config values (t@example.com, 'T') which are clearly non-sensitive test data.; No Silent Error Swallowing — In the finally block added to merge.js, `runGit([\"-C\", mainRepoPath, \"worktree\", \"remove\", \"--force\", tmpWorktree])` is called but its return value is completely discarded. If the worktree removal fails, the error is silently swallowed with no logging or re-throw. This is especially problematic because spec requirement R3 mandates the temporary worktree be deleted on both success and failure — a silent failure here violates both the guardrail and the requirement.; No Sensitive Data in Logs — No log statements in the added lines write passwords, tokens, or personally identifiable information. Error messages reference git command output and branch names only.; No Disabling Existing Tests — No existing tests are skipped, commented out, or deleted anywhere in the diff. Only new test files and spec artifacts are added.; Escalate Pre-Existing Test Failures — Determining whether tests were already failing before this diff requires runtime test execution, which is not available from the static diff content.; Spec Test Coverage — All five requirements (R1–R5) defined in spec.json have corresponding test cases in specs/248-merge-checkout-and-rebase-error/tests/248-merge-checkout.test.js, and the test-map.json correctly cross-references each requirement to its test(s).; Project Test Integrity — The diff changes rebaseOnto's return shape for failure cases from `{ ok: false, conflictFiles, stderr }` to `{ ok: false, reason, conflictFiles, stderr }`. The file tests/unit/lib/git-sync-helpers.test.js (mentioned explicitly in spec-review.md as asserting the old shape) is not updated in this diff. If those tests use strict equality assertions on the return value, they will fail after this change is merged, violating the requirement that all project tests pass.; Code Placement — The new logic is placed in the modules that own the relevant responsibility: rebaseOnto's dirty-worktree detection belongs in git-helpers.js (the git abstraction layer), and the squash-merge routing belongs in merge.js. The added `set` method on Container is within the container module itself. No cross-module placement violations are introduced by the diff.; Exit Code Contract — No new CLI commands are added or modified. All changes are to internal library functions (merge.js worktree route, git-helpers.js rebaseOnto). Exit code behavior at the CLI boundary is not affected.; No Synchronous I/O in Hot Paths — The added source code in merge.js and git-helpers.js contains no synchronous I/O calls (readFileSync, writeFileSync, etc.) in loops or bulk-processing paths. Test-file usage of fs.writeFileSync is in test setup/teardown only, not in production hot paths.; Validate User Input at Entry Point — No new CLI commands or user-facing arguments are introduced by this diff. The changes are entirely to internal merge and rebase helper functions, so no new entry-point validation is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-04-30T14:27:18.393Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-silent-error-swallowing",
+          "reason": "In the finally block added to merge.js, `runGit([\"-C\", mainRepoPath, \"worktree\", \"remove\", \"--force\", tmpWorktree])` is called but its return value is completely discarded. If the worktree removal fails, the error is silently swallowed with no logging or re-throw. This is especially problematic because spec requirement R3 mandates the temporary worktree be deleted on both success and failure — a silent failure here violates both the guardrail and the requirement."
+        },
+        {
+          "guardrail_id": "project-test-integrity",
+          "reason": "The diff changes rebaseOnto's return shape for failure cases from `{ ok: false, conflictFiles, stderr }` to `{ ok: false, reason, conflictFiles, stderr }`. The file tests/unit/lib/git-sync-helpers.test.js (mentioned explicitly in spec-review.md as asserting the old shape) is not updated in this diff. If those tests use strict equality assertions on the return value, they will fail after this change is merged, violating the requirement that all project tests pass."
+        }
+      ],
+      "passedGuardrails": [
+        "REQ-SPEC",
+        "no-hardcoded-secrets",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "spec-test-coverage",
+        "code-placement",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: added stderr warning when temporary worktree removal fails in finally block (no-silent-error-swallowing). project-test-integrity is a false positive — npm test ran 268/268 PASS including git-sync-helpers tests; the added 'reason' field is additive and does not break existing assertions",
+      "resolution": "worktree removal result now checked and warned on stderr; existing test suite confirmed passing",
+      "taskId": null,
+      "timestamp": "2026-04-30T14:27:55.983Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in . Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-04-30T14:30:53.085Z"
+    }
+  ]
+}

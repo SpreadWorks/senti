@@ -46,6 +46,10 @@ export class Container {
     this._map.set(name, value);
   }
 
+  set(name, value) {
+    this._map.set(name, value);
+  }
+
   get(name) {
     if (!this._map.has(name)) {
       throw new Error(`Container: dependency not registered: ${name}`);

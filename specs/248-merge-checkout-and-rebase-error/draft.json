@@ -1,0 +1,57 @@
+{
+  "devType": "bugfix",
+  "goal": "merge.js の worktree squash ルートにある baseBranch checkout 欠落と、rebaseOnto の dirty worktree 誤報の 2 つのバグを修正する",
+  "analysis": {
+    "problem": "Bug 1: worktree squash ルートは runSquashMerge([\"-C\", mainRepoPath], ...) で main repo に squash merge するが、baseBranch への checkout を行わない。branch モードでは runGit([\"checkout\", baseBranch]) を実行しているのに worktree モードだけ欠落。flow prepare --worktree は main repo のブランチを変更しないため、main repo が baseBranch 以外のブランチにいる場合に誤ったブランチへ merge される。Bug 2: rebaseOnto が dirty worktree で git rebase に失敗した場合、git diff --diff-filter=U でコンフリクトファイルを取得するが、dirty worktree はコンフリクトではないので空配列が返る。merge.js で conflictFiles.join(\", \") が空文字列になり、'conflicts in ' という意味不明なエラーになる。",
+    "proposedApproach": "Bug 1: worktree squash merge が常に baseBranch 上で実行されるようにする。baseBranch が使用中で直接切り替えられない場合でも成功するフォールバック手段を提供する。Bug 2: rebase 失敗時に dirty worktree とコンフリクトを区別し、それぞれに適切なエラーメッセージを表示する。",
+    "validation": "Bug 1: branch モードと同等の前提条件（baseBranch 上であること）を worktree モードにも確保する。Bug 2: 失敗原因に応じた適切なエラーメッセージにより、ユーザーが正しい対処を取れるようになる。"
+  },
+  "scopeVerification": {
+    "in": ["src/flow/commands/merge.js の worktree squash ルートに baseBranch checkout を追加", "src/lib/git-helpers.js の rebaseOnto で dirty worktree を検出しエラー情報を分岐"],
+    "out": ["PR ルートの変更", "branch モードの変更", "rebase コンフリクト時の挙動変更"]
+  },
+  "impactOnExisting": ["worktree squash merge の正常系に baseBranch 切り替えステップが追加される", "rebase 失敗時の返り値に失敗原因の区別が追加される"],
+  "qa": [
+    {
+      "question": "Bug 1: worktree squash ルートの baseBranch checkout アプローチ — 通常経路とフォールバック経路",
+      "answer": "worktree squash merge は baseBranch が使用中であっても、常に baseBranch 上に squash commit が作成される。失敗時は baseBranch を変更しない",
+      "evidence": "branch モード (merge.js L213-216) は checkout baseBranch → squash merge の順で実行。worktree モード (L196-210) は checkout なしに squash merge を実行するため、main repo が baseBranch 以外にいると誤ったブランチに merge される。baseBranch が別 worktree で使用中の場合は checkout が拒否されるため、一時的な隔離環境で merge するフォールバックが必要。",
+      "why": "worktree モードでは main repo が baseBranch 上にある保証がないため、branch モードと同等の前提条件を確保する必要がある",
+      "considered": "checkout 失敗時にエラーで中断する案 → 並行フロー時に常に失敗するため不採用"
+    },
+    {
+      "question": "Bug 1: 一時 worktree の cleanup 方針",
+      "answer": "一時的な隔離環境は成功・失敗に関わらず必ず削除する。merge conflict 時はマージ状態をリセットしてから削除する",
+      "evidence": "既存の runSquashMerge 内で conflict 時に runGit(resetArgs) を実行するパターンが存在",
+      "why": "一時 worktree が残ると git worktree list に不要なエントリが残り、後続の worktree 作成を妨げる可能性がある",
+      "considered": ""
+    },
+    {
+      "question": "Bug 2: rebaseOnto の dirty worktree 検出方式と返り値拡張",
+      "answer": "rebase 失敗時に dirty worktree 起因かコンフリクト起因かを区別し、それぞれに適切なエラー情報を返す",
+      "evidence": "git rebase が dirty worktree で失敗した場合の stderr 例: 'error: cannot rebase: You have unstaged changes.' — dirty 時は rebase が開始されないため abort 不要、コンフリクト時は既存の abort 処理が適用される。rebaseOnto の呼び出し元は merge.js の runPreSync のみ (grep -rn 'rebaseOnto' src/ tests/ で確認済み)",
+      "why": "現在の実装は conflict と dirty を区別せず git diff --diff-filter=U で conflictFiles を取得するが、dirty 時は空配列が返り 'conflicts in ' という不完全なエラーになるため",
+      "considered": "rebase 前に git status --porcelain で事前検査する案 → 毎回余分な git コマンドが走る。失敗時の stderr で判定する方がシンプル"
+    },
+    {
+      "question": "Bug 2: dirty worktree 時のエラーメッセージ仕様",
+      "answer": "dirty 時: 'Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.' — conflict と誤認しないメッセージにする。stash はプロジェクトルールで active flow 中に禁止されているためメッセージに含めない",
+      "evidence": "現在 merge.js の runPreSync は conflictFiles.join(', ') をエラーメッセージに埋め込むが、dirty 時は空配列で 'conflicts in ' になる",
+      "why": "ユーザーが問題の原因を特定し、適切な対処（commit or stash）を取れるようにするため",
+      "considered": ""
+    },
+    {
+      "question": "テスト戦略の具体化",
+      "answer": "以下を検証: (1) rebaseOnto: dirty worktree の失敗とコンフリクトの失敗が区別される (2) worktree squash: baseBranch 上に squash commit が作られる、baseBranch が使用中でも成功する、一時環境が cleanup される (3) dirty rebase 時のエラーメッセージがコンフリクトと誤認されない",
+      "evidence": "既存テスト: tests/unit/lib/git-sync-helpers.test.js に rebaseOnto の成功/conflict テストが存在",
+      "why": "バグ修正の回帰テストを確保し、dirty/conflict の区別が正しく動作することを保証するため",
+      "considered": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-04-30",
+    "notes": ""
+  }
+}

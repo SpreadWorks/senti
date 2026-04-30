@@ -89,19 +89,26 @@ export function fetchBranch(remote, branch, opts = {}) {
 
 /**
  * Run `git rebase <baseRef>`. Returns { ok: true } on success, or
- * { ok: false, conflictFiles: string[], stderr: string } on conflict.
- * Caller is responsible for calling abortRebase() on conflict.
+ * { ok: false, reason, conflictFiles, stderr } on failure.
+ * `reason` is "dirty" when the working tree has uncommitted changes
+ * (rebase never started — no abort needed), or "conflict" for actual
+ * merge conflicts (caller must call abortRebase()).
  * @param {string} baseRef
  * @param {{cwd?: string}} [opts]
  */
 export function rebaseOnto(baseRef, opts = {}) {
   const res = runGit(["rebase", baseRef], opts);
   if (res.ok) return { ok: true };
+  const stderr = res.stderr || "";
+  const isDirty = /unstaged changes|uncommitted changes/.test(stderr);
+  if (isDirty) {
+    return { ok: false, reason: "dirty", conflictFiles: [], stderr };
+  }
   const statusRes = runGit(["diff", "--name-only", "--diff-filter=U"], opts);
   const conflictFiles = statusRes.ok
     ? statusRes.stdout.trim().split("\n").filter(Boolean)
     : [];
-  return { ok: false, conflictFiles, stderr: res.stderr };
+  return { ok: false, reason: "conflict", conflictFiles, stderr };
 }
 
 /** @param {{cwd?: string}} [opts] */
