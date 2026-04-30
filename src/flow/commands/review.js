@@ -240,28 +240,6 @@ function buildDraftSystemPrompt(guardrails = []) {
 }
 
 /**
- * Build system prompt for the final (validation) phase.
- */
-function buildFinalSystemPrompt() {
-  const pb = new PromptBuilder();
-  pb.setRole("You are a senior code reviewer validating refactoring proposals.");
-  const rules = [
-    "For each proposal, judge whether it:",
-    "1. Actually improves code quality",
-    "2. Does not break existing behavior",
-    "",
-    "Output each proposal with a verdict:",
-    "### <number>. <title>",
-    "**Verdict:** APPROVED or REJECTED",
-    "**Reason:** <brief justification>",
-    "",
-    "Be conservative. Reject proposals that are cosmetic-only or risk breaking behavior.",
-  ].join("\n");
-  pb.setRules(rules);
-  return pb.build().systemPrompt;
-}
-
-/**
  * Parse proposals from draft output.
  * Also extracts the first '**File:** <path>' marker in the body (if any).
  * @param {string} text
