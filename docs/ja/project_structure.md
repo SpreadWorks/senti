@@ -45,7 +45,7 @@ src/spec/commands/    (cli)
 | src/lib | 33 | lib, route, model, config, middleware, view |
 | src | 10 | cli |
 | src/check | 3 | cli |
-| src/metrics | 1 | cli |
+| src/metrics | 1 | controller |
 | src/spec | 1 | cli |
 <!-- {{/data}} -->
 
