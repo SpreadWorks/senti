@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-04-30T14:34:43.875Z",
+  "analyzedAt": "2026-05-01T02:54:32.869Z",
   "package": {
     "entries": [
       {
@@ -2458,9 +2458,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "b4ab9ae2d739049042fdd635d1ac6d43",
-        "lines": 1488,
-        "mtime": "2026-04-30T14:19:51.390Z",
+        "hash": "9dca5e51bdc775b535b6d25106e43a47",
+        "lines": 1487,
+        "mtime": "2026-04-30T14:51:12.684Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2572,12 +2572,12 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements `flow review` for draft, spec, test, and code phases — running AI-driven review loops that produce structured proposals and gap analyses.",
-        "detail": "Dispatches by phase: draft-review checks draft.json against the original request; spec-review evaluates the spec; test-review derives test design and gap analysis vs existing tests; code review compares HEAD against the merge-base diff (excluding docs paths). For large change sets it groups files by diff identity and runs per-file/loop review with cross-checking. Results are written as `*-review.md` artifacts; max-attempts and loop thresholds come from `FLOW_DEFINITION`. Failure paths exit with `EXIT_ERROR`.",
+        "summary": "Phase-aware review command that orchestrates draft, spec, test, and code review loops with AI-driven proposal generation and gap analysis.",
+        "detail": "Implements `runReview` as the entry point dispatching to `runDraftReview`, `runSpecReview`, `runTestReview`, or the code-review path based on flow phase. Uses guardrail filtering, PromptBuilder for system/user prompts, and parses AI responses into proposals scoped to touched files via `filterProposalsByScope`. Supports loop-mode reviews when file count exceeds `LOOP_REVIEW_THRESHOLD` (10), grouping per-file diffs and running cross-checks across summaries. Writes results to `review.md`, `spec-review.md`, `test-review.md`, or `draft-review.md` under the spec directory, and excludes docs/README/AGENTS paths from diff analysis.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "Flow review command implementation",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-01T02:55:29.411Z",
           "attempts": 1
         },
         "keywords": [
@@ -2585,11 +2585,12 @@
           "draft review",
           "spec review",
           "test review",
-          "code review",
-          "merge-base diff",
           "gap analysis",
-          "review proposals",
-          "loop review"
+          "proposal",
+          "guardrail",
+          "loop review",
+          "diff scope",
+          "AI agent"
         ]
       },
       {
@@ -3955,9 +3956,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "5df4e3709c5fd03a7d0f67ae3f68f23d",
-        "lines": 1754,
-        "mtime": "2026-04-30T06:10:20.701Z",
+        "hash": "8865fb0da690ee533f44a6de5f9cb39e",
+        "lines": 1887,
+        "mtime": "2026-04-30T14:58:10.851Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -3984,6 +3985,8 @@
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
           "runGitDiff",
+          "splitDiffByFile",
+          "collectPerFileDiffsForGate",
           "sectionAt",
           "findUnresolvedMatch",
           "checkSpecText",
@@ -4004,6 +4007,7 @@
           "findPreviousFailEntry",
           "buildFailPairKey",
           "buildImplCheckPrompt",
+          "buildPerRequirementDiffs",
           "extractRequirementIds",
           "reasonsFromEvaluations",
           "gatePass",
@@ -4065,6 +4069,9 @@
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
           "checkGuardrail",
+          "splitDiffByFile",
+          "collectPerFileDiffsForGate",
+          "buildPerRequirementDiffs",
           "PHASE_TO_LEVEL",
           "IMPL_DIFF_SCOPE_LINES"
         ],
@@ -4073,25 +4080,25 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the gate command that runs guardrail checks against drafts, specs, and impl diffs using AI evaluation.",
-        "detail": "Defines RunGateCommand (extends FlowCommand) which dispatches to phase-specific executors (draft / spec / task-spec / diff-based gate). Loads merged guardrails via loadMergedGuardrails, filters by phase/role, and builds JSON-schema-constrained prompts via PromptBuilder before invoking the configured agent. Parses AI evaluations, validates schema with EvaluationSchemaError, applies flip overrides for previously-passed identical content, and detects no-progress / repeated-fail conditions against issue-log to escalate. Tracks retry budgets per phase, updates step status during inference, reconciles file-map against git diff, and emits Envelope-shaped pass/fail results with side-effects executed via executeGateSideEffects.",
+        "summary": "Gate execution engine that runs guardrail evaluations against drafts, specs, and implementation diffs, with retry tracking and repeated-failure escalation.",
+        "detail": "Defines `RunGateCommand` plus `runGateFlow` which builds guardrail prompts via `PromptBuilder`, invokes the AI agent with a JSON evaluation schema, and parses results through `parseEvaluationResponse` enforcing strict schema validation. Tracks retries per phase against `node.maxAttempts`, implements `assertNoRepeatedFail` to escalate when identical fail pairs reoccur, and applies flip-overrides when previously-passed guardrails reappear on identical content. Collects committed/uncommitted/untracked diffs (with size and count caps), splits per-file diffs, and routes through phase-specific executors (draft/spec/task-spec/diff-based). Side effects include issue-log appends, file-map reconciliation, and step-status updates via container-resolved commands.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "Gate evaluation pipeline",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:30.473Z",
+          "processedAt": "2026-05-01T02:55:29.411Z",
           "attempts": 1
         },
         "keywords": [
           "gate",
-          "guardrail",
-          "evaluation",
-          "AI evaluation",
-          "retry budget",
-          "issue-log",
-          "flow",
-          "spec validation",
-          "diff scope",
-          "envelope"
+          "guardrail evaluation",
+          "retry tracking",
+          "repeated fail",
+          "flip override",
+          "diff collection",
+          "JSON schema",
+          "issue log",
+          "escalation",
+          "flow phase"
         ]
       },
       {
@@ -4452,9 +4459,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "a0d9469ae56a410a5d6b8440b518086f",
+        "hash": "9c659cd5435e6e9003b9e3bfc1c5e401",
         "lines": 171,
-        "mtime": "2026-04-30T05:19:57.012Z",
+        "mtime": "2026-04-30T14:51:12.685Z",
         "className": "run-review",
         "methods": [
           "runCmdWithRetry",
@@ -4483,22 +4490,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4e97204",
-        "summary": "Wraps the review.js subprocess with phase-aware output parsers and retry logic, exposing RunReviewCommand for the flow runner.",
-        "detail": "Defines PHASE_REVIEW_PARSERS with per-phase (draft/spec/test) extraction patterns to derive issue/proposal counts and next-step hints from review.js stdout. parsePhaseReviewOutput is a generic parser shared by parseTestReviewOutput, parseSpecReviewOutput, and parseProposalReviewOutput. runCmdWithRetry implements exponential retry around runCmd with configurable count and delay, logging retry attempts to stderr. RunReviewCommand validates the phase against VALID_REVIEW_PHASES, resolves the review.js script path under PKG_DIR, runs it as a subprocess, and dispatches to the matching parser. Returns a structured result the flow dispatcher can interpret.",
-        "chapter": "cli_commands",
-        "role": "controller",
+        "summary": "Wrapper command that spawns the review.js subprocess for each review phase and parses its stdout/stderr into structured next-action envelopes.",
+        "detail": "Defines `RunReviewCommand` (FlowCommand subclass) that resolves the absolute path to `flow/commands/review.js`, validates the requested phase against `VALID_REVIEW_PHASES`, and shells out via `runCmd` with retry support (`runCmdWithRetry`, default 2 retries with 3s delay). The `PHASE_REVIEW_PARSERS` table maps each phase (draft/spec/test) to count patterns and label rules, with `parsePhaseReviewOutput` extracting issue counts and producing the appropriate next-state transition. Throws when the phase is unknown or when stdout doesn't match the expected count pattern, surfacing parse failures explicitly.",
+        "chapter": "internal_design",
+        "role": "Review subprocess dispatcher",
         "enrich": {
-          "processedAt": "2026-04-30T05:51:02.221Z",
+          "processedAt": "2026-05-01T02:55:29.411Z",
           "attempts": 1
         },
         "keywords": [
-          "run-review",
-          "review command",
+          "review runner",
           "subprocess",
-          "retry logic",
-          "output parser",
-          "phase review",
-          "flow runner"
+          "retry",
+          "phase parser",
+          "next action",
+          "FlowCommand",
+          "stdout parsing",
+          "review phases"
         ]
       },
       {
@@ -5153,9 +5161,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "de70a023cc52ca097c38b6a6608a29f6",
-        "lines": 628,
-        "mtime": "2026-04-29T11:18:22.047Z",
+        "hash": "ccc71bece593887ff5bdcbd98e343e20",
+        "lines": 629,
+        "mtime": "2026-04-30T14:51:12.685Z",
         "className": "registry",
         "methods": [
           "deriveActivePhase",
@@ -5173,22 +5181,23 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Flow command registry centralizing argument schemas, help text, and dispatch logic for all `sdd-forge flow` subcommands.",
-        "detail": "Exports FLOW_COMMANDS object keyed by subcommand name (get, set, run, etc.), each containing args definitions, help strings, and async command handlers. Wraps step-status updates and issue-log appends with try-catch wrappers (tryUpdateStepStatus, tryAppendIssueLog) that log failures without halting flow. Coordinates post-action side effects including gate retry counter updates, gate side effects via gateMod.executeGateSideEffects, and finalize-merge step transitions. Uses derivePhase from flow-helpers to determine the active phase from current flow state for phase-aware command behavior.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Central FLOW_COMMANDS registry mapping subcommand keys to args/help/execute definitions with shared hooks for step status and issue-log appends.",
+        "detail": "Provides the `FLOW_COMMANDS` object that the flow dispatcher reads to resolve `flow get`, `flow set`, and `flow run` subcommands. Includes helpers `deriveActivePhase`, `tryUpdateStepStatus`, and `tryAppendIssueLog` that wrap state transitions in try/catch with stderr warnings while still re-throwing. Coordinates post-execution hooks such as `executeGateSideEffects`, `executeCommitPost`, and `updateGateRetryCounter` for gate/finalize transitions, and validates phase/counter inputs against constants like `VALID_PHASES` and `VALID_GATE_PHASES`.",
+        "chapter": "project_structure",
+        "role": "Flow command registry and hooks",
         "enrich": {
-          "processedAt": "2026-04-29T11:19:24.011Z",
+          "processedAt": "2026-05-01T02:55:29.411Z",
           "attempts": 1
         },
         "keywords": [
-          "flow registry",
-          "subcommands",
-          "dispatch",
+          "registry",
+          "FLOW_COMMANDS",
+          "dispatcher",
+          "hooks",
           "step status",
           "issue log",
           "gate side effects",
-          "phase derivation"
+          "phase validation"
         ]
       },
       {
@@ -5273,9 +5282,9 @@
       },
       {
         "file": "src/lib/agent.js",
-        "hash": "442a5c214ee9294558868472c231e8d7",
-        "lines": 430,
-        "mtime": "2026-04-30T06:10:20.701Z",
+        "hash": "baf437c5eb7a21b3f6cdaa882667de2b",
+        "lines": 445,
+        "mtime": "2026-05-01T02:54:14.263Z",
         "className": "agent",
         "methods": [
           "matchProfilePrefix",
@@ -5283,6 +5292,7 @@
           "stripPromptArgs",
           "injectWorkDirFlag",
           "ensureWorkDir",
+          "filterStreamingEvents",
           "tryParseProvider",
           "sleep",
           "runWithLogging",
@@ -5296,32 +5306,33 @@
           "./provider.js"
         ],
         "exports": [
-          "Agent"
+          "Agent",
+          "filterStreamingEvents"
         ],
         "extends": null,
         "usedBy": [
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "summary": "Defines the Agent class that resolves provider profiles and invokes external CLIs (claude/codex) with retries, schemas, and logging.",
-        "detail": "The Agent class resolves an active profile from config (respecting SDD_FORGE_PROFILE), constructs invocation args via the matched Provider, and supports JSON schema files, system prompts, work-dir flags, prompt token substitution, and stdin fallback for long prompts. Calls run through runWithLogging which generates a request id, emits start/end agent log events, accumulates metrics via FlowManager, and handles parse failures gracefully by trying the provider's parse() before falling back. Retries are bounded by MAX_RETRY with exponential backoff (RETRY_BACKOFF_FACTOR) and configurable counts/delays, defaulting to 300s timeout. Spawns the child process with a sanitized env and writes pending schema files just before invocation.",
+        "summary": "Agent abstraction that resolves provider profiles, builds CLI invocations, and runs AI calls with retry, logging, and stdin fallback handling.",
+        "detail": "The `Agent` class resolves a provider/profile from `agent.providers` (honoring `SDD_FORGE_PROFILE` and `useProfile`), composes argv via `_buildInvocation` including JSON schema flags, work-dir injection, and {{PROMPT}} substitution. `_callOnce` writes pending schema files and spawns the configured CLI, with retries up to `MAX_RETRY` using exponential backoff (`RETRY_BACKOFF_FACTOR`). Wraps every call in `runWithLogging` which records start/end events with request IDs through the flow logger, accumulates token metrics, and parses provider stdout via `tryParseProvider` while filtering streaming events. Falls back to stdin delivery when prompts exceed `DEFAULT_STDIN_FALLBACK_THRESHOLD` (100k chars).",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "AI agent invocation layer",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:30.473Z",
+          "processedAt": "2026-05-01T02:55:29.411Z",
           "attempts": 1
         },
         "keywords": [
-          "Agent",
-          "claude CLI",
-          "codex",
-          "provider",
+          "agent",
+          "provider profile",
+          "CLI invocation",
+          "retry",
+          "backoff",
+          "stdin fallback",
+          "logging",
           "JSON schema",
-          "retry backoff",
-          "prompt logging",
-          "spawn",
-          "timeout",
-          "profiles"
+          "prompt substitution",
+          "token metrics"
         ]
       },
       {
@@ -5504,9 +5515,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "580286cb98833b9dd00854d8dde39dd0",
-        "lines": 353,
-        "mtime": "2026-04-29T21:11:55.414Z",
+        "hash": "91ab3c68bb7264125c7d9041342e4976",
+        "lines": 355,
+        "mtime": "2026-05-01T02:54:14.263Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -5556,22 +5567,23 @@
           "src/upgrade.js"
         ],
         "id": "dff6e5b4",
-        "summary": "Loads, validates, and resolves SDD configuration from .sdd-forge/config.json with helpers for paths, language, and concurrency.",
-        "detail": "Defines constants DEFAULT_CONCURRENCY and DEFAULT_LANG plus path helpers sddDir, sddConfigPath, sddOutputDir for the .sdd-forge directory layout. resolveWorkDir honors SDD_FORGE_WORK_DIR env var and falls back to config-defined or default paths. loadJsonFile and loadPackageField provide safe JSON reads with controlled error handling. The validate function applies CONFIG_SCHEMA via validateSchema and throws descriptive errors with formatted error lists. loadConfig combines JSON loading and validation to return a typed SddConfig. loadLang reads only the lang field with a default fallback for early bootstrap.",
+        "summary": "Configuration loader that validates .sdd-forge/config.json against a schema and exposes path/concurrency/lang resolution helpers.",
+        "detail": "Exports `loadConfig` which reads `.sdd-forge/config.json`, runs `validateSchema` against `CONFIG_SCHEMA`, and returns the typed config or throws with aggregated errors. Provides path helpers `sddDir`, `sddConfigPath`, `sddOutputDir`, plus `resolveWorkDir` honoring the `SDD_FORGE_WORK_DIR` env override. `resolveConcurrency` falls back to `DEFAULT_CONCURRENCY` (5) and `loadLang` reads `lang` from config defaulting to `DEFAULT_LANG` (\"en\"). `loadPackageField` safely reads fields from the project's package.json without throwing on missing files.",
         "chapter": "configuration",
-        "role": "config",
+        "role": "Config loader and path helpers",
         "enrich": {
-          "processedAt": "2026-04-30T05:51:02.221Z",
+          "processedAt": "2026-05-01T02:55:29.411Z",
           "attempts": 1
         },
         "keywords": [
           "config",
-          "configuration",
+          "loadConfig",
           "schema validation",
-          "sdd-forge config",
-          "work dir",
+          "sddDir",
+          "work directory",
+          "concurrency",
           "language",
-          "concurrency"
+          "package.json"
         ]
       },
       {
@@ -6639,9 +6651,9 @@
       },
       {
         "file": "src/lib/provider.js",
-        "hash": "71c6edd92a0409c48bd989b2d9cb9ad1",
-        "lines": 228,
-        "mtime": "2026-04-30T12:55:59.006Z",
+        "hash": "1a99cf19603a360dd896e8a1fd34bb08",
+        "lines": 221,
+        "mtime": "2026-05-01T02:54:14.263Z",
         "className": "provider",
         "methods": [],
         "imports": [],
@@ -6658,25 +6670,24 @@
           "src/lib/container.js"
         ],
         "id": "0e966da6",
-        "summary": "Provider abstraction that normalizes invocation flags and output parsing across claude, codex, and user-defined CLIs.",
-        "detail": "Provider is an abstract base requiring parse(); ClaudeProvider parses claude's JSON envelope (array form with a 'result' event, prefers structured_output) and exposes flag accessors like --json-schema and --system-prompt. CodexProvider streams JSONL events, returning the final assistant text and using -C as work-dir flag and --output-schema for schemas. UserProvider trusts raw stdout as text with no usage metadata and reads its flag overrides from the profile config. ProviderRegistry merges built-in providers with user profiles, resolves a profile to a (provider, profile) pair, and lists available profile names.",
+        "summary": "Provider abstraction defining the contract for AI CLI integrations with concrete Claude, Codex, and User provider subclasses plus a registry.",
+        "detail": "Base `Provider` class declares `parse(stdout)` (must be overridden), `systemPromptFlag()`, and `workDirFlag()` returning null by default. `ClaudeProvider` parses Claude CLI's array envelope to extract the `result` event with structured output handling and exposes `--system-prompt`. `CodexProvider` parses line-delimited JSON events and uses `-C` for work directory. `UserProvider` is a passthrough returning raw stdout, configurable via profile flags. `ProviderRegistry` merges built-in and user-defined profiles, resolves `(provider, profile)` pairs by name, and lists available profile keys.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "AI provider abstraction",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:30.473Z",
+          "processedAt": "2026-05-01T02:55:29.411Z",
           "attempts": 1
         },
         "keywords": [
-          "Provider",
-          "ClaudeProvider",
-          "CodexProvider",
-          "UserProvider",
-          "ProviderRegistry",
-          "JSON envelope",
-          "JSONL",
-          "structured_output",
-          "schema flag",
-          "profile resolution"
+          "provider",
+          "Claude",
+          "Codex",
+          "User provider",
+          "registry",
+          "stdout parsing",
+          "system prompt flag",
+          "work dir flag",
+          "profile"
         ]
       },
       {
@@ -6824,9 +6835,9 @@
       },
       {
         "file": "src/lib/types.js",
-        "hash": "fd89672eb068ea3d73ac8e3b53637e59",
-        "lines": 87,
-        "mtime": "2026-04-19T01:08:34.185Z",
+        "hash": "1d5cd40dac9fc45a83d6263308d9235d",
+        "lines": 89,
+        "mtime": "2026-05-01T02:54:14.263Z",
         "className": "types",
         "methods": [],
         "imports": [],
@@ -6834,20 +6845,20 @@
         "extends": null,
         "usedBy": null,
         "id": "69d5afb4",
+        "summary": "Empty types module reserved for shared JSDoc type definitions referenced via @typedef imports.",
+        "detail": "This file currently contains no exported code. It exists as a placeholder for `import(\"./types.js\").SddConfig` and similar JSDoc type imports referenced from sibling modules like `config.js`. Keeping the file present allows TypeScript-aware editors to resolve type references without introducing a TypeScript build step, consistent with the project's no-external-dependency policy.",
+        "chapter": "internal_design",
+        "role": "Shared type declarations placeholder",
         "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 8
+          "processedAt": "2026-05-01T02:55:29.411Z",
+          "attempts": 1
         },
-        "summary": "This file is a shared type-definition module referenced by runtime code through JSDoc type imports. It serves as the canonical location for internal type contracts.",
-        "detail": "Although no extract content is shown, imports indicate it defines structural interfaces such as `SddConfig` and related typed shapes. Other modules rely on it to keep JavaScript code documented and tool-friendly without TypeScript compilation. It supports consistency across configuration, flow state, and command payload structures. The role is primarily declarative and cross-cutting.",
-        "chapter": "project_structure",
-        "role": "model",
         "keywords": [
-          "type definitions",
-          "JSDoc types",
-          "shared contracts",
+          "types",
+          "JSDoc",
+          "typedef",
           "SddConfig",
-          "static hints"
+          "placeholder"
         ]
       },
       {
@@ -6885,9 +6896,9 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "419ab5bbfa2591f6fcf98591296e52b1",
+        "hash": "58d13170276984e9d9e255aa5751f2bd",
         "lines": 681,
-        "mtime": "2026-04-30T05:48:37.609Z",
+        "mtime": "2026-05-01T00:33:54.970Z",
         "className": "token",
         "methods": [
           "computePhaseSummary",
@@ -6953,25 +6964,25 @@
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "summary": "Implements the metrics token aggregation command that scans flow.json files, computes per-phase token/cost/difficulty rows, and renders text/json/csv reports.",
-        "detail": "TokenCommand walks specs/*/flow.json (capped at MAX_FLOW_FILES), uses a versioned cache at .sdd-forge/output/metrics.json keyed by maxFinalizedAt for incremental rebuilds. Per spec, computeSpecDifficulty combines requirement count, test file count, issue-log size, and request length using DIFFICULTY_BASELINES and a precision normalizer to bound the score. buildRowsFromMetrics aggregates phase metrics per ISO date, then formatText/formatJson/formatCsv render results with phase summaries computed by computePhaseSummary. Text output is fixed-width table format with rounded cache hit rates and formatted costs. Cache version mismatches, parse failures, and missing finalizedAt entries fall back to rebuild with stderr warnings.",
+        "summary": "Metrics token command that aggregates per-spec finalize.json data into phase-grouped tables of token usage, cost, cache hit rate, and difficulty.",
+        "detail": "`runToken` walks the project's `specs/` directory (capped at `MAX_FLOW_FILES`=5000), reading each `flow.json`, computing `specDifficulty` from spec.json, tests, and issue-log evidence, and applying difficulty-normalized precision in `[PRECISION_MIN, PRECISION_MAX]`. Aggregates rows by `(phase, date)` via `buildRowsFromMetrics`, with caching to `.tmp/metrics.json` keyed by `CACHE_VERSION`=2 and `maxFinalizedAt` for incremental rebuilds. Renders output in three formats — text (padded table limited to `TEXT_MAX_ROWS`=7), JSON (with `phaseSummary`), and CSV — selectable via `--format`. Computes per-phase summary metrics including cache hit percentages, cost totals, and duration formatting.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "Metrics aggregation command",
         "enrich": {
-          "processedAt": "2026-04-30T05:51:02.221Z",
+          "processedAt": "2026-05-01T02:55:29.411Z",
           "attempts": 1
         },
         "keywords": [
           "metrics",
           "token usage",
+          "cache hit rate",
           "cost",
-          "difficulty",
-          "cache",
-          "flow.json",
+          "spec difficulty",
           "phase summary",
           "CSV",
-          "JSON output",
-          "report"
+          "JSON",
+          "incremental cache",
+          "finalized"
         ]
       },
       {
@@ -10029,9 +10040,9 @@
     ],
     "summary": {
       "total": 286,
-      "totalMethods": 955
+      "totalMethods": 959
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-04-30T14:35:43.749Z"
+  "enrichedAt": "2026-05-01T02:55:29.411Z"
 }
