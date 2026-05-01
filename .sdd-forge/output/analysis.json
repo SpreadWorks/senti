@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-05-01T02:54:32.869Z",
+  "analyzedAt": "2026-05-01T05:18:48.119Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "b9c1e43500827bd7a9e171f1650513ce",
+        "hash": "aae72f67dcff51da9d81599fc5f86815",
         "lines": 41,
-        "mtime": "2026-04-22T13:17:19.559Z",
+        "mtime": "2026-05-01T03:28:18.317Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -21,22 +21,23 @@
         },
         "composerDeps": null,
         "id": "451a9f25",
-        "summary": "This file defines the npm package metadata and runtime contract for the sdd-forge CLI. It declares distribution boundaries, engine requirements, and test entrypoints.",
-        "detail": "The package is published as an ESM module and exposes a single CLI binary mapped to `src/sdd-forge.js`. It enforces a Node.js minimum version and follows an external-dependency-free operational model at the package level. The `files` whitelist limits published artifacts to `src/` while excluding preset test fixtures from package output. Script definitions separate unit, e2e, acceptance, agent, and full test runs to support different validation scopes. Repository and package manager metadata pin source origin and tooling reproducibility.",
+        "summary": "npm package manifest declaring the sdd-forge CLI bin, ESM module type, and test scripts.",
+        "detail": "Exposes the `sdd-forge` binary via src/sdd-forge.js with ESM (`type: module`) and Node >=18.19.0. Publishes only `src/` (excluding preset tests) and pins pnpm 10.33.2 as the package manager. Provides test scripts split by scope (unit, e2e, acceptance, agent, all) all backed by tests/run.js. Version follows the alpha N-commit convention (0.1.0-alpha.775) with MIT license and SpreadWorks GitHub origin.",
         "chapter": "stack_and_ops",
-        "role": "config",
+        "role": "package-manifest",
         "enrich": {
-          "processedAt": "2026-04-22T13:17:59.282Z",
+          "processedAt": "2026-05-01T05:19:20.433Z",
           "attempts": 1
         },
         "keywords": [
-          "package manifest",
-          "npm metadata",
-          "cli entrypoint",
-          "esm module",
-          "node engine",
+          "package.json",
+          "npm",
+          "ESM",
+          "Node 18",
+          "bin",
+          "pnpm",
           "test scripts",
-          "publish files"
+          "alpha versioning"
         ]
       }
     ],
@@ -2458,9 +2459,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "9dca5e51bdc775b535b6d25106e43a47",
-        "lines": 1487,
-        "mtime": "2026-04-30T14:51:12.684Z",
+        "hash": "9ea4aa5dcf4751f99c44e76afc5f9b9b",
+        "lines": 1500,
+        "mtime": "2026-05-01T05:18:43.675Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2572,12 +2573,12 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Phase-aware review command that orchestrates draft, spec, test, and code review loops with AI-driven proposal generation and gap analysis.",
-        "detail": "Implements `runReview` as the entry point dispatching to `runDraftReview`, `runSpecReview`, `runTestReview`, or the code-review path based on flow phase. Uses guardrail filtering, PromptBuilder for system/user prompts, and parses AI responses into proposals scoped to touched files via `filterProposalsByScope`. Supports loop-mode reviews when file count exceeds `LOOP_REVIEW_THRESHOLD` (10), grouping per-file diffs and running cross-checks across summaries. Writes results to `review.md`, `spec-review.md`, `test-review.md`, or `draft-review.md` under the spec directory, and excludes docs/README/AGENTS paths from diff analysis.",
+        "summary": "Flow review command orchestrating draft, spec, and test review phases with AI agents.",
+        "detail": "Implements multiple review pipelines (runDraftReview, runSpecReview, runTestReview, runReview) that load spec.json, build prompts via PromptBuilder, and dispatch to configured AI agents. Uses guardrails filtered by phase, collects diffs with git merge-base resolution, excludes docs/output paths, and writes review artifacts (review.md, spec-review.md, test-review.md, draft-review.md) to the spec directory. Supports loop review for large file sets via LOOP_REVIEW_THRESHOLD and groups files by diff content to chunk requests. Defines REVIEW_PHASE_NODE_MAP linking phases to flow definition nodes and enforces VALID_PHASES invariants.",
         "chapter": "cli_commands",
-        "role": "Flow review command implementation",
+        "role": "flow-review-command",
         "enrich": {
-          "processedAt": "2026-05-01T02:55:29.411Z",
+          "processedAt": "2026-05-01T05:19:20.433Z",
           "attempts": 1
         },
         "keywords": [
@@ -2585,12 +2586,11 @@
           "draft review",
           "spec review",
           "test review",
-          "gap analysis",
-          "proposal",
+          "AI agent",
           "guardrail",
-          "loop review",
-          "diff scope",
-          "AI agent"
+          "diff",
+          "prompt builder",
+          "merge-base"
         ]
       },
       {
@@ -3447,14 +3447,12 @@
       },
       {
         "file": "src/flow/lib/req-map.js",
-        "hash": "bdcb4f91c4d504c017ab4c3b71ac11e7",
-        "lines": 117,
-        "mtime": "2026-04-30T05:24:18.919Z",
+        "hash": "31d6a70a95459dac3716276929721bd6",
+        "lines": 115,
+        "mtime": "2026-05-01T05:18:43.675Z",
         "className": "req-map",
         "methods": [
           "loadFileMap",
-          "loadTestMap",
-          "isTestNotRequired",
           "appendFiles",
           "reconcileFileMap",
           "parseTapOutput",
@@ -3470,8 +3468,6 @@
         ],
         "exports": [
           "loadFileMap",
-          "loadTestMap",
-          "isTestNotRequired",
           "appendFiles",
           "reconcileFileMap",
           "parseTapOutput",
@@ -3485,23 +3481,22 @@
           "src/flow/lib/set-files.js"
         ],
         "id": "4b112428",
-        "summary": "Manages persistence and analysis of file-map.json and test-map.json artifacts that link spec requirements to source/test files.",
-        "detail": "loadFileMap and loadTestMap read JSON maps from the spec directory, treating null entries as 'test not required' via isTestNotRequired. appendFiles updates file-map by associating requirement IDs with paths, validating against the loaded spec. reconcileFileMap diffs the recorded files against actual diff output to surface untracked changes. parseTapOutput parses TAP test output into per-test results, extractReqResults aggregates them by requirement ID, and evaluateReqByResults derives a pass/partial/fail verdict for each requirement. Imports normalizeRequirements from spec-json to keep requirement parsing centralized.",
+        "summary": "Helpers for managing requirement-to-file mappings and parsing TAP test results.",
+        "detail": "Provides loadFileMap/appendFiles/reconcileFileMap to persist file-map.json under the spec directory, mapping requirement IDs to implementation files. Parses TAP output via parseTapOutput, aggregates per-requirement pass/fail counts in extractReqResults, and classifies status with evaluateReqByResults (done/partial/not_done). Pure JSON I/O with mkdirSync ensuring parent directories exist; designed for retro and review consumers.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "req-map-helper",
         "enrich": {
-          "processedAt": "2026-04-30T05:51:02.221Z",
+          "processedAt": "2026-05-01T05:19:20.433Z",
           "attempts": 1
         },
         "keywords": [
+          "requirement map",
           "file map",
-          "test map",
-          "requirements",
-          "TAP parsing",
+          "TAP parser",
+          "test results",
+          "retro",
           "spec linkage",
-          "reconcile",
-          "req-map",
-          "test results"
+          "JSON persistence"
         ]
       },
       {
@@ -4400,9 +4395,9 @@
       },
       {
         "file": "src/flow/lib/run-retro.js",
-        "hash": "77ab5588c66d11097f3dfe488b8ca19a",
-        "lines": 382,
-        "mtime": "2026-04-30T06:10:20.701Z",
+        "hash": "2890f5a931b2f3e71a25dec278f0ea0c",
+        "lines": 421,
+        "mtime": "2026-05-01T05:18:43.675Z",
         "className": "run-retro",
         "methods": [
           "RunRetroCommand",
@@ -4424,6 +4419,7 @@
           "./base-command.js",
           "../../lib/flow-envelope.js",
           "./req-map.js",
+          "./test-headers.js",
           "../../lib/prompt-builder.js"
         ],
         "exports": [
@@ -4436,25 +4432,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "862e7d08",
-        "summary": "Implements the retro command that generates a JSON retrospective by diffing the branch and asking the AI to assess requirement coverage.",
-        "detail": "RunRetroCommand extends FlowCommand and produces retro.json under the spec directory. It loads spec.json, normalizes requirements, and gathers a git diff against baseBranch via runGit; if tests exist it parses TAP output via parseTapOutput and evaluates per-requirement status (done/partial/not_done/n/a) without AI. Otherwise it builds a JSON-schema constrained prompt via PromptBuilder, invokes the configured agent, and parses the response with repairJson fallback. Returns Envelope.fail for missing config/agent/baseBranch/requirements, supports a force flag to overwrite existing retros, and writes the merged retrospective JSON atomically.",
-        "chapter": "internal_design",
-        "role": "controller",
+        "summary": "FlowCommand that runs retrospective analysis comparing implementation diff against spec requirements via AI.",
+        "detail": "RunRetroCommand loads spec.json, computes git diff against the base branch, and prompts the configured agent with a structured RETRO_SCHEMA describing requirements, unplanned changes, and summary notes. Falls back to repairJson on malformed responses, optionally evaluates requirements from TAP test execution, and writes retro.json under the spec directory. Returns Envelope failures for missing config, agent, requirements, or base branch; supports a force flag to overwrite existing retro and integrates with test-headers utilities for req-to-files mapping.",
+        "chapter": "cli_commands",
+        "role": "flow-retro-command",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:30.473Z",
+          "processedAt": "2026-05-01T05:19:20.433Z",
           "attempts": 1
         },
         "keywords": [
-          "retro",
           "retrospective",
-          "TAP",
-          "test results",
-          "requirement coverage",
-          "git diff",
-          "AI prompt",
+          "retro.json",
+          "AI agent",
+          "diff analysis",
+          "requirements evaluation",
           "Envelope",
-          "spec.json",
-          "flow finalize"
+          "TAP",
+          "spec.json"
         ]
       },
       {
@@ -5041,14 +5035,16 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "ed9fee035f5fcd684063e6766e9c63c1",
-        "lines": 97,
-        "mtime": "2026-04-27T14:56:09.660Z",
+        "hash": "520deb5c6b811ef3001672d036f90246",
+        "lines": 138,
+        "mtime": "2026-05-01T05:18:43.675Z",
         "className": "set-step",
         "methods": [
-          "collectSideEffects"
+          "collectSideEffects",
+          "preValidateTestStep"
         ],
         "imports": [
+          "node:path",
           "./base-command.js",
           "../../lib/constants.js",
           "../../lib/container.js",
@@ -5056,7 +5052,9 @@
           "./sync-spec-tasks.js",
           "./run-auto-check.js",
           "./resolve-auto-check-input.js",
-          "../definition.js"
+          "../definition.js",
+          "./test-headers.js",
+          "../../lib/spec-json.js"
         ],
         "exports": [
           "default"
@@ -5064,22 +5062,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4cb8d93",
-        "summary": "FlowCommand that updates a step status with validation, runs side effects, and triggers spec/task sync and auto-check hooks.",
-        "detail": "Validates argument count and that the status is in VALID_STEP_STATUSES, returning structured Envelope.fail errors otherwise. Resolves the node via resolveNodeFor on FLOW_DEFINITION to collect declared sideEffects which are executed after the status update. Invokes syncSpecTasksToFlow to keep task definitions in sync and runAutoCheckCore plus resolveAutoCheckInput/buildSkipVerdict to drive automatic gate evaluation when applicable. Stderr warnings preserve resilience when downstream hooks fail without aborting the primary mutation.",
-        "chapter": "cli_commands",
-        "role": "controller",
+        "summary": "FlowCommand for setting step status with side-effect dispatch and pre-validation.",
+        "detail": "SetStepCommand validates step id and status against VALID_STEP_STATUSES, then resolves side effects via the flow definition node graph. Provides preValidateTestStep that runs validateTestHeaders before allowing transition to the test step, returning Envelope failures with formatted messages. Integrates syncSpecTasksToFlow and runAutoCheckCore for automatic gating, using resolveAutoCheckInput/buildSkipVerdict to decide whether to invoke the auto-check pipeline.",
+        "chapter": "internal_design",
+        "role": "flow-set-step-command",
         "enrich": {
-          "processedAt": "2026-04-27T14:57:15.101Z",
+          "processedAt": "2026-05-01T05:19:20.433Z",
           "attempts": 1
         },
         "keywords": [
           "set step",
           "step status",
           "side effects",
-          "auto check",
-          "spec sync",
-          "envelope",
-          "valid statuses"
+          "auto-check",
+          "test header validation",
+          "Envelope",
+          "flow state"
         ]
       },
       {
@@ -5157,6 +5155,61 @@
           "active flow guard",
           "spec path resolution",
           "orchestration helper"
+        ]
+      },
+      {
+        "file": "src/flow/lib/test-headers.js",
+        "hash": "5cf116a9d1b1a7ce1b776a32f3638173",
+        "lines": 326,
+        "mtime": "2026-05-01T05:18:43.675Z",
+        "className": "test-headers",
+        "methods": [
+          "parseHeader",
+          "scanFileHeader",
+          "getSpecTestFiles",
+          "extractTestNameReqIds",
+          "collectFileHeaders",
+          "buildReqToFilesMap",
+          "validateTestHeaders",
+          "formatValidationMessages",
+          "uniqueIds"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path"
+        ],
+        "exports": [
+          "parseHeader",
+          "scanFileHeader",
+          "getSpecTestFiles",
+          "extractTestNameReqIds",
+          "collectFileHeaders",
+          "buildReqToFilesMap",
+          "validateTestHeaders",
+          "formatValidationMessages"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-retro.js",
+          "src/flow/lib/set-step.js"
+        ],
+        "id": "dc8ef567",
+        "summary": "Test header parser and validator enforcing `// spec: Rn` annotations on spec test files.",
+        "detail": "Defines strict and candidate regexes to detect well-formed spec headers, with parseHeader returning typed verdicts (valid, malformed, mismatched-marker, not-a-candidate). scanFileHeader reads first non-shebang line; getSpecTestFiles walks tests/ recursively for .test/.spec.{js,ts,mjs}. extractTestNameReqIds also harvests Rn ids from it()/test() titles. collectFileHeaders and buildReqToFilesMap produce mappings consumed by retro and review; validateTestHeaders/formatValidationMessages produce human-readable diagnostics for set-step gating.",
+        "chapter": "internal_design",
+        "role": "test-header-validator",
+        "enrich": {
+          "processedAt": "2026-05-01T05:19:20.433Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "test headers",
+          "spec annotation",
+          "R-ids",
+          "header parser",
+          "test discovery",
+          "validation",
+          "req-to-files map"
         ]
       },
       {
@@ -10039,10 +10092,10 @@
       }
     ],
     "summary": {
-      "total": 286,
-      "totalMethods": 959
+      "total": 287,
+      "totalMethods": 967
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-01T02:55:29.411Z"
+  "enrichedAt": "2026-05-01T05:19:20.433Z"
 }
