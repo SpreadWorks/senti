@@ -637,7 +637,7 @@ async function runToken(rawArgs, container) {
 
   const root = container.get("root");
   const specsDir = path.join(root, "specs");
-  const cachePath = path.join(root, ".sdd-forge", "output", "metrics.json");
+  const cachePath = path.join(root, ".tmp", "metrics.json");
 
   let specsStat;
   try {
