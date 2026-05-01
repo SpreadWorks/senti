@@ -15,17 +15,24 @@ import { getSpecName } from "../../lib/flow-helpers.js";
 import { loadSpecJson, normalizeRequirements, resolveSpecDir } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { loadTestMap, isTestNotRequired, parseTapOutput, extractReqResults, evaluateReqByResults } from "./req-map.js";
+import { parseTapOutput, extractReqResults, evaluateReqByResults } from "./req-map.js";
+import { collectFileHeaders, buildReqToFilesMap } from "./test-headers.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 
 /**
  * Build the requirements text block from spec.json.requirements. Replaces the
  * former regex-based spec.md section extraction (spec 207 / T8).
+ *
+ * spec 249: testable: false requirements are kept in the text but annotated
+ * with ` (testing not required)` so the AI does not expect test results for them.
  */
 function requirementsAsText(reqs) {
   if (!Array.isArray(reqs) || reqs.length === 0) return "";
   return reqs
-    .map((r) => `- ${r.id}${r.priority ? ` [${r.priority}]` : ""}: ${r.desc}`)
+    .map((r) => {
+      const annotation = r.testable === false ? " (testing not required)" : "";
+      return `- ${r.id}${r.priority ? ` [${r.priority}]` : ""}: ${r.desc}${annotation}`;
+    })
     .join("\n");
 }
 
@@ -123,10 +130,20 @@ function parseRetroResponse(response, requirements) {
     data = JSON.parse(repairJson(cleaned));
   }
 
-  // Ensure requirements array matches flow.json length
-  const reqs = (data.requirements || []).slice(0, requirements.length);
-  while (reqs.length < requirements.length) {
-    reqs.push({ desc: requirements[reqs.length].desc, status: "not_done", note: "not evaluated" });
+  // spec 249: align AI response positionally with full requirements list,
+  // then drop testable: false entries to comply with retro.json schema.
+  const aligned = (data.requirements || []).slice(0, requirements.length);
+  while (aligned.length < requirements.length) {
+    aligned.push({ desc: requirements[aligned.length].desc, status: "not_done", note: "not evaluated" });
+  }
+  const reqs = [];
+  let naCount = 0;
+  for (let i = 0; i < requirements.length; i++) {
+    if (requirements[i].testable === false) {
+      naCount++;
+      continue;
+    }
+    reqs.push(aligned[i]);
   }
 
   // Compute summary stats
@@ -144,6 +161,8 @@ function parseRetroResponse(response, requirements) {
       done,
       partial,
       not_done: notDone,
+      na_count: naCount,
+      not_testable_count: naCount,
       rate: Math.round(rate * 100) / 100,
       notes: data.summary?.notes || "",
     },
@@ -301,27 +320,51 @@ export class RunRetroCommand extends FlowCommand {
     };
   }
 
+  /**
+   * spec 249: static evaluation now uses spec test file headers
+   * (`// spec: R1 R2 ...`) instead of test-map.json. testable: false
+   * requirements are excluded from requirements[] (kept in summary only)
+   * so the result complies with retro.json schema enum [done|partial|not_done].
+   */
   tryStaticEvaluation(root, specPath, requirements) {
     const specDir = resolveSpecDir(path.resolve(root, specPath));
-    const testMap = loadTestMap(specDir);
-    if (Object.keys(testMap).length === 0) return null;
+    const fileHeaders = collectFileHeaders(specDir);
+
+    const testableReqs = requirements.filter((r) => r.testable !== false);
+    const naCount = requirements.length - testableReqs.length;
+
+    // All-non-testable spec: deterministic empty result, no AI fallback.
+    if (testableReqs.length === 0) {
+      return {
+        requirements: [],
+        unplanned: [],
+        summary: {
+          total: 0,
+          done: 0,
+          partial: 0,
+          not_done: 0,
+          na_count: naCount,
+          not_testable_count: naCount,
+          rate: 0,
+          notes: "static evaluation: all requirements are testable: false",
+        },
+      };
+    }
+
+    const reqToFiles = buildReqToFilesMap(fileHeaders, specDir);
+    if (reqToFiles.size === 0) return null;
 
     const testsDir = path.join(specDir, "tests");
-
     const mappedFileNames = new Set();
-    for (const tests of Object.values(testMap)) {
-      if (isTestNotRequired(tests)) continue;
-      for (const t of tests) {
-        const file = t.split(" > ")[0]?.trim();
-        if (file) mappedFileNames.add(file);
-      }
+    for (const files of reqToFiles.values()) {
+      for (const f of files) mappedFileNames.add(f);
     }
 
     let reqResults = new Map();
     if (mappedFileNames.size > 0) {
       const fullPaths = [...mappedFileNames]
         .map((f) => path.join(testsDir, f))
-        .filter((p) => fs.existsSync(p));
+        .filter((p) => fs.existsSync(p) && /\.(test|spec)\.(js|mjs)$/.test(p));
       if (fullPaths.length === 0) return null;
 
       let tapOutput = "";
@@ -343,22 +386,17 @@ export class RunRetroCommand extends FlowCommand {
       if (reqResults.size === 0) return null;
     }
 
-    const reqs = requirements.map((r) => {
-      if (isTestNotRequired(testMap[r.id])) {
-        return { desc: r.desc, status: "n/a", note: "testing not required" };
-      }
+    const reqs = testableReqs.map((r) => {
       const counts = reqResults.get(r.id) || null;
       const status = evaluateReqByResults(counts);
-      const note = !counts ? "no tests mapped" : `${counts.passed + counts.failed} test(s)`;
+      const note = !counts ? "no header coverage" : `${counts.passed + counts.failed} test(s)`;
       return { desc: r.desc, status, note };
     });
 
-    const evaluated = reqs.filter((r) => r.status !== "n/a");
-    const naCount = reqs.length - evaluated.length;
-    const total = evaluated.length;
-    const done = evaluated.filter((r) => r.status === "done").length;
-    const partial = evaluated.filter((r) => r.status === "partial").length;
-    const notDone = evaluated.filter((r) => r.status === "not_done").length;
+    const total = reqs.length;
+    const done = reqs.filter((r) => r.status === "done").length;
+    const partial = reqs.filter((r) => r.status === "partial").length;
+    const notDone = reqs.filter((r) => r.status === "not_done").length;
     const rate = total > 0 ? (done + partial * 0.5) / total : 0;
 
     return {
@@ -370,8 +408,9 @@ export class RunRetroCommand extends FlowCommand {
         partial,
         not_done: notDone,
         na_count: naCount,
+        not_testable_count: naCount,
         rate: Math.round(rate * 100) / 100,
-        notes: "static evaluation from test-map.json",
+        notes: "static evaluation from file headers",
       },
     };
   }

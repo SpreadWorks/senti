@@ -17,9 +17,15 @@ import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
 
 async function loadReqMap(root, flow, kind) {
   try {
-    const { loadFileMap, loadTestMap } = await import("../lib/req-map.js");
+    const { loadFileMap } = await import("../lib/req-map.js");
     const specDir = resolveSpecDir(path.resolve(root, flow.spec));
-    return kind === "test" ? loadTestMap(specDir) : loadFileMap(specDir);
+    if (kind === "test") {
+      // spec 249: test coverage is determined by file headers, not test-map.json.
+      // Return null to disable the legacy test-map untested warning path; the
+      // header-based untested warning (below) supersedes it.
+      return null;
+    }
+    return loadFileMap(specDir);
   } catch (err) {
     process.stderr.write(`  [review] ${kind}-map load skipped: ${err.message}\n`);
     return null;
@@ -666,7 +672,10 @@ function extractRequirements(spec) {
   const items = Array.isArray(spec?.requirements) ? spec.requirements : [];
   if (items.length === 0) return "";
   return items
-    .map((r) => `- ${r.id}${r.priority ? ` [${r.priority}]` : ""}: ${r.desc}`)
+    .map((r) => {
+      const annotation = r.testable === false ? " (testing not required)" : "";
+      return `- ${r.id}${r.priority ? ` [${r.priority}]` : ""}: ${r.desc}${annotation}`;
+    })
     .join("\n");
 }
 
@@ -877,21 +886,25 @@ async function runTestReview(root, flow, config, dryRun) {
     process.exit(EXIT_ERROR);
   }
 
-  // spec 241 R8: check test-map.json for untested requirements
-  const testMap = await loadReqMap(root, flow, "test");
-  if (testMap && Object.keys(testMap).length > 0) {
-    const { isTestNotRequired } = await import("../lib/req-map.js");
-    const untested = requirements.filter((r) => {
-      if (isTestNotRequired(testMap[r.id])) return false;
-      const tests = testMap[r.id] || [];
-      return tests.length === 0;
-    });
+  // spec 249: untested requirement warning is derived from spec header coverage.
+  // testable === false requirements are excluded from the warning.
+  try {
+    const { collectFileHeaders } = await import("../lib/test-headers.js");
+    const fileHeaders = collectFileHeaders(path.resolve(root, specDir));
+    const declared = new Set();
+    for (const info of fileHeaders.values()) {
+      for (const id of info.headerIds) declared.add(id);
+    }
+    const reqItems = Array.isArray(spec?.requirements) ? spec.requirements : [];
+    const untested = reqItems.filter((r) => r.testable !== false && !declared.has(r.id));
     if (untested.length > 0) {
-      console.error(`  [test-review] test-map.json: ${untested.length} requirement(s) have no tests:`);
+      console.error(`  [test-review] header coverage: ${untested.length} requirement(s) not declared in any test file header:`);
       for (const r of untested) {
         console.error(`    - ${r.id}: ${r.desc}`);
       }
     }
+  } catch (err) {
+    process.stderr.write(`  [test-review] header coverage check skipped: ${err.message}\n`);
   }
 
   const agent = ensureAgent("flow.test.review");

@@ -1,0 +1,137 @@
+{
+  "devType": "refactor",
+  "goal": "test-map.json (AI 手書きの宣言ファイル) を廃止し、テストファイル先頭の `// spec: R1 R2 ...` (JS) / `# spec: R1 R2 ...` (markdown 等) コメントヘッダーに要件カバレッジ宣言を一本化する。",
+  "analysis": {
+    "problem": "retro の static 評価は test-map.json (R1, R2, ...) と TAP 出力のテスト名プレフィックス (^R\\d+\\b) という独立した 2 マッピングに依存しており、test-map.json は AI が手書きするためテスト本体との整合性が保証されない。spec 248 では it() 名から R4:/R5: が欠落して retro が 60% に低下した実例がある。",
+    "proposedApproach": "テストファイル先頭のコメントヘッダーで要件カバレッジを宣言する。retro の tryStaticEvaluation・review-test の未テスト要件警告はヘッダーから取得するように改修。test ステップ完了時にヘッダー coverage の静的検証を行う (TAP 実行は伴わない)。test-map.json の読み書き (req-map.js の loadTestMap / isTestNotRequired / TEST_MAP_NAME) は削除。テスト不要要件は spec.json の要件定義に `testable: false` を持たせる形に移行する。",
+    "validation": "ヘッダーはテストファイル本体と同じ場所にあるため AI の手書き整合維持コストが消え、欠落は静的検証で検出される。test-map.json と TAP プレフィックスの二重宣言が一つに集約され、整合不一致の根本原因が解消される。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] テストファイル先頭の `// spec: R1 R2 ...` / `# spec: R1 R2 ...` ヘッダー規約導入 (現在は spec verification tests = .test.js のみが現実対象だが、ヘッダー記法は言語非依存に設計)",
+      "[must] test ステップ (action=write-tests) 完了時のヘッダー coverage 静的検証 (TAP 実行なし、ヘッダーパース + spec.json 突き合わせのみ): spec verification test files (specs/<spec>/tests/) は (a) ヘッダー必須、(b) 全 testable 要件がヘッダー宣言を持つ少なくとも 1 ファイルでカバーされる、(c) ヘッダー R-ID は spec.json.requirements[].id に存在し malformed/重複/空でないこと",
+      "[must] src/flow/lib/run-retro.js: tryStaticEvaluation をヘッダーベースに改修",
+      "[must] src/flow/commands/review.js: 未テスト要件警告 (line 880-895) をヘッダーベースに改修",
+      "[must] src/flow/lib/req-map.js: loadTestMap / isTestNotRequired / TEST_MAP_NAME 関連ロジックの削除",
+      "[must] src/flow/schemas/spec.schema.json: requirements[].testable (boolean, optional) フィールド追加",
+      "[must] src/flow/prompts/plan/test.md の更新 (test-map.json 作成指示 → ヘッダー記述指示 + コメント例 + バリデーションエラーケースの記述)",
+      "[must] ヘッダー解析・カバレッジ集計の共通ヘルパー (src/flow/lib/test-headers.js) 新設 + tests/unit/flow/test-headers.test.js"
+    ],
+    "out": [
+      "file-map.json (gate-impl の per-requirement diff フィルタリング用) は対象外。残置する。",
+      "TAP 出力からの R-ID 抽出 (extractReqResults の `^(R\\d+)\\b` 方式) は廃止しない。retro でテストレベル判定として継続使用する。",
+      "既存 spec の test-map.json マイグレーション: 削除も書き換えもしない。新コードは test-map.json を読まないため事実上無視される。",
+      "新しい言語のコメント記号 (`--`, `;`, `<!--` 等) のサポート (現時点で需要無し。必要時に test-headers.js の正規表現を 1 箇所拡張すれば対応可能)",
+      "dcb2 (test runner externalization) との結合: 本 spec はヘッダー規約のみ用意。実際の非 Node 実行サポートは dcb2 spec の責務"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] retro の static 評価フロー: 入力ソースが test-map.json からテストファイルヘッダーに変わる。出力 (retro.json) のスキーマは不変。",
+    "[must] review-test の untested-requirement 警告: 入力ソースの変更のみ。警告メッセージ文言は更新。",
+    "[must] test ステップ (action=write-tests): ヘッダー coverage 静的検証が追加。spec verification test files でヘッダー欠落 / testable 要件未カバー / 不正 R-ID のいずれかがあれば step 完了不可。",
+    "[must] src/flow/prompts/plan/test.md: AI への指示が test-map.json 作成からヘッダー記述に変わる。",
+    "[must] spec.json スキーマ (src/flow/schemas/spec.schema.json): requirements[].testable (boolean, optional) を追加。default 値の埋め込みはせず consumer は `requirement.testable !== false` で判定する。",
+    "[must] src/flow/lib/req-map.js: TEST_MAP 系 export (loadTestMap, isTestNotRequired, TEST_MAP_NAME) の削除 (loadFileMap / parseTapOutput / extractReqResults / evaluateReqByResults / reconcileFileMap は残置)。",
+    "[should] 既存テスト: tests/ 配下で req-map.js の loadTestMap / isTestNotRequired をテストしている箇所があれば削除または header 版に置き換え。",
+    "[must] 観測可能な CLI 挙動変更: `sdd-forge flow set step test done` が新 spec で coverage 欠落時に Envelope.fail を返すようになる (意図的な stricter completion gate, 詳細は Q9)。"
+  ],
+  "qa": [
+    {
+      "question": "ヘッダーのコメント記号は何を許可するか。.js/.mjs/.ts で `# spec:` は許可されるか。",
+      "answer": "受理されるヘッダー形式は『コメント記号 + 空白 + spec: + 空白 + R-ID 列 (空白区切り)』の 1 行で、コメント記号は `//` または `#` のみ。`## spec:` / `/// spec:` 等の重ね打ちは受理しない。**拡張子別の追加制約**: `.js` / `.mjs` / `.ts` ファイルでは `# spec:` を MISMATCHED_MARKER として拒否する (理由: 当該言語で構文エラーとなり実行不可)。`# spec:` は `#` がコメント記号として有効な言語 (markdown / yaml 等、将来 dcb2 経由) のための予約形。",
+      "evidence": "Issue #305 本文に提示されているのは `# spec: R1 R2 R4 R5` の例のみ。test.md:10 の `node --test specs/<spec>/tests/*.test.js`。プロジェクトの既存 spec verification tests は全て .js。実装上の strict 正規表現案 (`^\\s*(\\/\\/|#)\\s+spec:\\s+(R\\d+(?:\\s+R\\d+)*)\\s*$`) は実装フェーズで決定する。",
+      "why": "コメント記号を 1 個に限定することで visual に紛らわしいヘッダーを排除し parser の正規表現が単純になる。拡張子ルールを加えることで JS で `# spec:` を書く typo を MISMATCHED_MARKER として明示エラーにし AI の self-correct を促す。`#` を残すのは dcb2 (test runner externalization) の前準備。",
+      "considered": "(a) `#+|//+` を許可 (`## spec:` 等を許す): ヘッダーが見出しと混同される。却下。 (b) `// spec:` のみ初期サポート: dcb2 後の言語拡張でまた spec 切り直し。却下。(c) JS で `# spec:` を silent skip: typo を見逃して missingHeaders 扱いとなり修正手がかりが減る。却下。"
+    },
+    {
+      "question": "ヘッダー位置・shebang・通常コメント・spec-looking コメントとの共存ルールは。",
+      "answer": "ヘッダーはファイル先頭付近に書かれることを要件とする。受理ルール: (1) Shebang (`#!`) の存在を許容する。(2) 通常コメント (license, TODO 等で spec キーワードを含まないもの) との共存を許容する。検出ルール: (3) spec-looking なコメント行 (例: `// spec R1` (コロン抜け)、`/// spec:` (記号過多)) は MALFORMED_HEADER として明示検出する (silent skip 禁止)。(4) 同一ファイルに 2 つ目の valid spec ヘッダーが出現した場合は DUPLICATE_HEADER として検出する。(5) ファイル先頭付近に valid header が見つからないまま実コード相当の領域に到達した場合は missingHeaders として検出する。",
+      "evidence": "Issue #305 本文: 『テストファイル先頭のコメントヘッダー』。実際のテストファイルには copyright / license / TODO コメントが先頭付近に書かれることが多いため共存ルールが必要。前回 review 指摘: silent skip ではなく明示エラーが必要。実装上の検出方針 (二段階パース、最初の non-empty non-comment 行で打ち切る等) は実装フェーズで決定する。",
+      "why": "spec-looking なミスを silent skip すると書き手の typo が missingHeaders に紛れて原因切り分けが困難になる。明示エラー化することで AI の self-correct を促す。Shebang 許容は将来の言語非依存設計を保つ。",
+      "considered": "(a) 通常コメントとの共存を許さず最初のコメントだけを評価: license ファイルでヘッダーが書けない。却下。(b) spec-looking コメントを silent skip: 書き手の typo を見逃す。却下。(c) shebang を skip しない: shebang ファイルでヘッダーが書けなくなる。却下。"
+    },
+    {
+      "question": "ヘッダーが無いテストファイルはどう扱うか。retro の status 判定マトリクスと testable: false 要件の扱いは (schema との整合)。",
+      "answer": "要件: (A) test ステップ完了時の新規バリデーション: spec verification test files にはヘッダーが必須であり、ヘッダー欠落・testable 要件未カバー・不正 R-ID・per-file mismatch のいずれかが検出されれば test step done は阻止される。formal tests (project 直下の tests/) は対象外。(B) retro の static 評価: ヘッダーから取得したマッピングが空の場合は AI 評価へフォールバックする (現行と同じ fallback 動作)。マッピング有りの場合は (i) testable === false の要件は requirements[] には含めず summary 集計に分離する (retro.json の現行 schema enum [done/partial/not_done] と整合させる)、(ii) testable 要件は『ヘッダー宣言の有無』『TAP 結果の pass/fail 件数』の組み合わせから観測可能な status を一意に決定する (header 宣言なし or test 結果なし → not_done、pass のみ → done、pass と fail 混在 → partial、fail のみ → not_done)。(C) 既存実装には null 評価結果を 'unverified' (schema enum 外) で返す経路がありこれは schema 違反のバグであるため、本 spec のリファクタで not_done に統一する (バグ修正を本 spec スコープに含める)。",
+      "evidence": "run-retro.js:60-87 (requirements item enum: done/partial/not_done — n/a / unverified を受け付けない)、run-retro.js:346-353 (現行の reqs に n/a が混入する状態は schema 違反)、run-retro.js:356-357 (`evaluated = reqs.filter(r => r.status !== 'n/a'); naCount`)、run-retro.js:307 (Object.keys(testMap).length === 0 で null 返却)、evaluateReqByResults (null → 'unverified' を返す箇所)。",
+      "why": "(A) は本 spec の主目的。(B) は schema との整合性確保 (現行は schema 違反のバグ)。requirements[] には schema enum の値のみ入れ、testable=false は summary 集計に分離することで一貫性が保てる。",
+      "considered": "(a) schema enum を 'n/a' / 'unverified' に拡張: 既存 spec の retro.json 互換性に影響、AI eval path にも追加対応が必要。却下。(b) testable=false を requirements[] に残し status='n/a': schema 違反継続。却下。"
+    },
+    {
+      "question": "テスト不要要件 (`testable: false`) の宣言場所・スキーマ・test 関連 consumer リストは (本 spec ではスコープを test 関連 path に限定)。",
+      "answer": "要件: (1) testable フラグは spec.json の `requirements[].testable` (boolean, optional) として宣言可能であること。spec.schema.json の requirements item properties に追加する。デフォルト動作は『フィールド未設定または true なら testable、false の場合のみ not testable』とし、既存 spec が壊れないことを保証する。(2) 本 spec で振る舞い更新する consumer は『test 関連の path』に限定する (header 検証、retro の TAP 評価、review-test の untested 警告、test 設計に関わる AI prompt builder)。spec.md rendering / PR description / 汎用 summary / gate prompt 等は別 spec で監査する。(3) Test 関連 consumer のうち observable な振る舞いとして要求する点: (a) ヘッダー静的検証で testable === false 要件はカバレッジ判定対象外、かつヘッダーで宣言された場合は明示エラーとして検出される。(b) retro の static 評価で testable === false 要件は要件レベル評価から除外され summary に件数のみ反映される。(c) review-test の untested 警告から testable === false 要件は除外される。(d) retro / test-review の AI prompt 出力では testable === false 要件に末尾 ` (testing not required)` 注釈が付与され、AI が non-testable に対するテスト設計を提案しなくなる。",
+      "evidence": "Issue #305 本文: 『テスト不要フラグは spec.json の要件定義に移動 (`\"testable\": false`)』。spec.schema.json (確認済み, requirements item は additionalProperties: false)。run-retro.js:25 (requirementsAsText), review.js:665 (extractRequirements), run-retro.js:347 / review.js:885 (現行 isTestNotRequired チェック)。src/lib/spec-json.js の normalizeRequirements。",
+      "why": "AI prompt builder (#4, #5) も consumer に含めないと AI が non-testable 要件にテストを設計してしまう。spec.md rendering (#6) は人間向け表示の整合性。`!== false` 判定により既存 spec が壊れない。",
+      "considered": "(a) 全 prompt path / rendering を audit して更新: 本 spec のスコープが拡大、Issue #305 の主目的 (test-map.json 廃止) と無関係な path も触ることになる。却下 (別 spec で扱う)。(b) AI prompt builder を consumer に含めない: AI が non-testable 要件のテストを設計し、test step で fail し再実行ループ。却下。(c) draft.json に `nonTestableRequirements: [\"R3\"]` を持たせる案: 要件 ID を 2 ファイルで参照することになる。却下。"
+    },
+    {
+      "question": "alpha 版方針 (後方互換コード禁止) のもとで、既存 spec の test-map.json はどう扱うか。",
+      "answer": "**既存 test-map.json ファイルは削除も書き換えもしない (touch しない)。新コード (loadTestMap 削除済み) は test-map.json を読まないため、ファイルが残っていても無視される。** 既存 spec で `flow run retro` を再実行した場合、ヘッダーが無いため static 評価がスキップされ AI 評価にフォールバックする (run-retro.js の既存 fallback 経路)。req-map.js から loadTestMap / isTestNotRequired / TEST_MAP_NAME を削除する。",
+      "evidence": "CLAUDE.md: 『alpha 版ポリシー: 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する』。run-retro.js:307 の現行フォールバック動作。",
+      "why": "既存 test-map.json を削除する意味は無い (新コードは読まない)、削除コミットは余計な diff を発生させる。fallback 経路 (AI 評価) で runtime エラーは起きない。",
+      "considered": "(a) 既存 spec の test-map.json をヘッダーに自動マイグレーションするスクリプト案: alpha ポリシー違反 + 1 回限り作業に対するコストが釣り合わない。却下。(b) 既存 test-map.json を一括削除: 不要な diff、過去の参考情報を失う。却下。"
+    },
+    {
+      "question": "ヘッダー静的検証はいつ走るべきか。失敗の伝達方法は。",
+      "answer": "要件: (1) `flow set step test done` を成功させるにはヘッダー coverage 検証に PASS している必要がある。検証 PASS まで done 状態は永続化されない (原子性)。(2) 失敗時は AI / CLI が再試行に必要な情報 (どのファイルがどの理由で失敗したか) を取得できる形で伝達されること。(3) ヘッダー検証ロジックは複数の参照元から共通利用され、重複実装を避けること。",
+      "evidence": "src/lib/flow-envelope.js:34 `Envelope.fail(type, key, code, messages, data)` (code は errors[0].code、messages は errors[0].messages、data は別フィールドという既存 API シグネチャ)。src/flow/lib/set-step.js:40 (updateStepStatus 呼び出し位置)、definition.js:137 (id='test', action='write-tests')、run-retro.js:18 (loadTestMap import)、review.js:883 (loadTestMap dynamic import) — これらが共有ヘルパーから呼び出される実装上の参照点になる。flow.js 方針: 『操作系: ユーザー起因の前提条件違反は Envelope.fail を return』。CLAUDE.md: 『同じパターンが 2 箇所以上で繰り返される場合、共通ヘルパーに抽出すること』。具体的な error code 文字列・関数名・data 構造の正確な shape は実装フェーズで決定する。",
+      "why": "pre-validation 性質は flow state の整合性 (失敗時に done が永続化されない) を保つ。人間可読サマリと構造化詳細の分離により、CLI は人間可読メッセージを表示でき、AI / プログラムは構造化情報を取得して再試行できる。共通ヘルパー化は req-map.js と同じパターン。",
+      "considered": "(a) post-hook 方式 (status=done を先に書いて後から rollback): 原子性確保が複雑化する。却下。(b) 全エラー文字列を 1 つの message に詰める: AI が再試行時に file: R-ID を抽出するパースが必要。却下。(c) 専用 CLI コマンド `flow run validate-headers`: ユーザーが手動で呼ばないと検証されないため整合性保証にならない。却下。(d) 各呼び出し元にインライン展開: 重複 3 箇所、修正漏れリスク。却下。"
+    },
+    {
+      "question": "ヘッダーと test 内部の `R-N:` 宣言の per-file mismatch (Issue #305 で明示) はどこで・どう検出するか。TAP 実行スコープは。",
+      "answer": "要件: (1) Issue #305 の動機 (『ファイルが R4 を宣言しているのに R4: で始まる it() が無い場合を検出できる』) を満たすため、test ステップ検証で per-file mismatch を検出する。検出されるべき不一致は 2 種類: (a) ヘッダーが R-N を宣言しているが同ファイルに『R-N:』で始まるテスト名が無い (headerNoTest)、(b) 同ファイルに『R-N:』で始まるテスト名があるがヘッダーが宣言していない (testNoHeader)。(2) test ステップ検証は静的 (TAP 実行なし) で完結する。(3) retro の static 評価は現行通り TAP 実行 (要件レベル pass/fail/partial 判定) を行う。retro では per-file mismatch を再検出しない (test ステップで阻止済みの前提)。(4) 既存 retro.json の `unplanned[]` フィールド (`{file, change}` スキーマで diff の要件未紐付き変更を表す) のスキーマ・意味は変更しない。per-file mismatch を unplanned[] に混入させない。",
+      "evidence": "Issue #305 本文: 『ファイルが R4 を宣言しているのに R4: で始まる it() が無い場合を検出できる』 (per-file mismatch 検出が動機として明示)。Issue #305 本文の write-tests 静的チェック節 (TAP 実行への言及無し)。run-retro.js:67-77 (unplanned schema `{file, change}`)、run-retro.js:331 (現行 execFileSync 複数ファイル一括)、run-retro.js:366 (`unplanned: []` static 評価では未使用)。プロジェクトの既存テスト命名規約: `it('R4: ...')`。実装上の正規表現案 (`it\\(\\s*['\\\"](R\\d+):`) は実装フェーズで決定する。",
+      "why": "Issue #305 の動機をストレートに反映するため per-file mismatch を test ステップで検出する。テキスト regex スキャンは TAP 実行 (秒単位) より高速 (ms 単位) で書き手のフィードバックループが速い。retro での再検出は不要 (test step で阻止済み)。unplanned スキーマを変更すると AI prompt / output schema の互換性に影響するため触らない。",
+      "considered": "(a) per-file mismatch 検出をスコープ外: Issue #305 の動機を満たさない。却下。(b) TAP 実行で per-file mismatch 検出: 実行コストが高く test step の責務 (静的整合) と矛盾。却下。(c) per-file mismatch 検出を retro に置く: test step で書いた直後にフィードバックが返らず再実行ループが長くなる。却下。(d) unplanned[] のセマンティクスを変える: AI prompt / schema 互換性破壊。却下。"
+    },
+    {
+      "question": "テストファイル発見ルール (test discovery) は何か。現状スコープと将来 dcb2 スコープの境界は。",
+      "answer": "Discovery 要件 (本 spec): ヘッダー検証対象は `specs/<spec>/tests/` 配下の Node.js 系テストファイルとし、拡張子は `.test.js` / `.spec.js` / `.test.ts` / `.spec.ts` / `.test.mjs` / `.spec.mjs` を許容する (混在許可、project `tests/` 配下は対象外)。現状スコープ: 拡張子は上記 6 種、ランナーは `node --test`。将来 dcb2 スコープ (本 spec 対象外): (1) 拡張子 / glob 拡張 (`.md`, `.yaml`, `.bats`, `.py` 等)、(2) ランナー抽象化、(3) 非 Node 言語サポート。本 spec はヘッダー記法 (`// spec:` / `# spec:`) のみ言語非依存に設計し、discovery / 実行は dcb2 spec で拡張する。",
+      "evidence": "src/flow/commands/review.js:680 collectTestsRecursive (`/\\.(test|spec)\\.(js|ts|mjs)$/`), review.js:684-696 collectTestFiles (project + spec-local 両方)、Issue #305 本文の dcb2 関連: 『dcb2 (テストランナー外部化) と組み合わせることで非 Node.js プロジェクトでも static 評価が可能になる』。test.md:10 の `node --test specs/<spec>/tests/*.test.js`。",
+      "why": "discovery ルールを review.js の既存実装に揃えることで、AI が `.spec.ts` で書いたテストもヘッダー検証対象になる (拡張子混在を許容)。dcb2 境界を明示することで本 spec のスコープが膨らまない。",
+      "considered": "(a) `*.test.js` のみに限定: `.spec.js`, `.test.ts`, `.mjs` 等で書かれたテストが見えない。却下。(b) project `tests/` 配下も対象に含める: spec とは独立した formal tests に spec ID マッピング義務が生じる。却下。(c) 本 spec で全言語サポート: dcb2 と本 spec のスコープが融合し巨大化。却下。実装時は review.js の既存 collectTestsRecursive と重複実装にならないよう共有化を検討する (実装フェーズで決定)。"
+    },
+    {
+      "question": "Backward-Compatible CLI Interface ガードレールとの関係。CLI シグネチャは不変だが `flow set step test done` の挙動が変わる点はどう扱うか。",
+      "answer": "コマンドシグネチャ・オプションは変更しないが、**`sdd-forge flow set step test done` が以前は無条件で成功したのが、本 spec 後は spec verification test files の coverage 検査に通らないと Envelope.fail を返すようになる**。これは observable な CLI behavior 変更で、意図的な stricter completion gate である。Migration flag は不要 — alpha 版方針 (後方互換コードは書かない)、かつ既存 spec は test step を既に通過済みで再実行の必要が無い (新規 spec から強制適用)。Fail 時の出力は Envelope.fail (errors[] に人間可読サマリ + data に構造化詳細, 詳細は Q6) で stderr に出力、exit code 非 0。修正手順は test.md prompt の更新で AI / 人間に明示する。",
+      "evidence": "draft の guardrail 全文 (sdd-forge flow get guardrail draft 出力)、特に 'Backward-Compatible CLI Interface'。CLAUDE.md alpha 版ポリシー。flow.js 方針: 操作系コマンドはユーザー起因の前提条件違反で Envelope.fail を return。",
+      "why": "stricter gate は本 spec の主目的 (整合性強制)。migration flag を入れると新方式が強制されず本 spec の効果が失われる。",
+      "considered": "(a) Migration flag (例: `--allow-missing-headers`) を提供: 一時しのぎが恒久化する。却下。 (b) Warning に留める: AI が無視するため本 spec の効果が出ない。却下。"
+    },
+    {
+      "question": "ヘッダーで参照する R-ID の妥当性検査ルールは。検出されるべき不一致種別は。",
+      "answer": "ヘッダー検証は以下の妥当性ルール違反を検出可能であることを要件とする (各違反は AI / CLI が個別に識別可能な形で報告される): (1) ヘッダー欠落 (test file にヘッダー候補が無い)、(2) testable 要件未カバー (testable な要件がどの test file のヘッダーでも宣言されない)、(3) 未知 R-ID (spec.json.requirements[].id 集合に含まれない ID をヘッダーで宣言)、(4) malformed ヘッダー (spec を含むコメント行のうち strict 形式に合致しないもの: コロン抜け、記号過多、不正な R-ID 形式 `R1a` / `R 1` / `r1` 等)、(5) 同一ファイル内 R-ID 重複、(6) 同一ファイルの複数ヘッダー、(7) testable === false の要件をヘッダーで宣言 (testable 状態と矛盾)、(8) JS 系拡張子で `# spec:` を使用 (構文ミスマッチ)、(9) ヘッダーで宣言した R-N に対し同ファイルに `R-N:` で始まるテスト名が存在しない、(10) 同ファイルに `R-N:` で始まるテスト名があるがヘッダーで宣言されていない。複数ファイル間で同一 R-ID をカバーするのは正常 (エラーにしない)。",
+      "evidence": "spec.schema.json の requirements[].id (string)。CLAUDE.md: 『バリデーションはシステム境界でのみ行う』 — header はテスト書き手 (AI / 人間) が書く外部入力なのでシステム境界として扱う。実装上の名前付きカテゴリ・データ shape は実装フェーズで決定する。",
+      "why": "明示的な fail ケースを定義しておくことで AI が誤ったヘッダーを書いた時に retry コストが下がる。Canonical な type を 1 箇所で定義し各カテゴリの追加先を一意にすることで実装の一貫性が保てる。",
+      "considered": "(a) 未知 ID を warning に留める: spec ID typo を見逃して silent failure。却下。(b) testable: false ID をヘッダー許可: ヘッダー宣言と spec 宣言が矛盾。却下。"
+    },
+    {
+      "question": "Edge case: `specs/<spec>/tests/` ディレクトリ不在 / テストファイル 0 件 / 全要件 testable: false の挙動は。",
+      "answer": "受理ルール: (1) ディレクトリ不在 / テストファイル 0 件: testable 要件が 1 つでもある場合は uncoveredRequirements に該当全件が含まれ、set step test done は失敗する。testable 要件が 0 件 (例: 全要件 testable: false の docs spec 等) の場合は uncoveredRequirements は空となり step done は成功する。(2) 全要件 testable: false: testable 要件が 0 件なので uncoveredRequirements は常に空。spec verification test files が存在しなくても step done は成功する (新規テストファイル不要)。(3) 一部要件 testable: false + 全 testable 要件カバー済み + 追加の test file あり: 追加 test file がヘッダー必須ルールに従う限り step done は成功する。ディレクトリ不在を専用エラーにはしない。",
+      "evidence": "Q8 の Discovery 要件。CLAUDE.md: 『過剰な防御コードを書かない』 — 不在ディレクトリは空配列で扱い特別なエラーにしない。",
+      "why": "edge case を明示することで実装と test の参照点が一意になる。docs / config 系の小さな spec で全要件が non-testable なケースを許容することで、本 spec の改修が既存の docs spec を壊さない。",
+      "considered": "(a) ディレクトリ不在を専用エラー (NO_TEST_DIR) にする: docs spec で test 不要なケースを fail させる副作用。却下。(b) 全 testable: false の場合に明示的に skip を要求 (例: spec.json に `skipTestStep: true`): 設定項目が増える。却下。"
+    },
+    {
+      "question": "新ヘルパーとバリデーション統合に必要なテストカバレッジ範囲は。テストの配置基準は。",
+      "answer": "要件: (1) ヘッダー parser / coverage evaluator のような long-lived な共有ロジックのテストは、長期 maintain される formal test (`npm test` で常時実行される配置先) に置く。(2) set-step / retro / review-test との統合 (本 spec 固有の振る舞い検証) のテストは spec-local の test 配置先に置く。(3) テストカバレッジは Q10 の妥当性検査ルール 10 種、Q3 の status 判定マトリクス、Q11 の edge cases、Q4 の testable: false consumer 振る舞いを網羅すること。テストファイル自身にも `// spec: R1 R2 ...` ヘッダーを記述する (本 spec がドッグフード)。",
+      "evidence": "CLAUDE.md テストルール: 『tests/ (formal tests, npm test で実行)』 vs 『specs/<spec>/tests/ (spec verification tests)』。test.md:5-8 の判定ルール。具体的なテストファイルパス・テストケースリスト・error code 文字列等は実装フェーズで決定する。",
+      "why": "long-lived テストは npm test に乗らないと regression を見逃す。spec verification は本 spec の振る舞い検証なので spec-local が適切。Q10 / Q3 / Q11 / Q4 で定義した観測可能な振る舞いを網羅することで実装の漏れを防ぐ。",
+      "considered": "(a) 全テストを specs/249-.../tests/ に置く案: parser のような long-lived テストが spec 廃棄と共に消える上 npm test に乗らない。却下。(b) 全テストを tests/ に置く案: 統合テストが spec 廃棄後も残り意味を失う。却下。"
+    },
+    {
+      "question": "Documentation / prompt obligations: test phase prompt (test.md) はどう書き換えるか。AI が見るバリデーションエラーは何か。",
+      "answer": "要件: test phase prompt は AI に対し以下の規約を明示的に教示すること: (a) test-map.json 作成指示は廃止され、代わりに spec verification test files の先頭に header コメント (`// spec: R1 R2 ...` (JS) または `# spec: R1 R2 ...` (md/yaml)) を記述する。(b) ヘッダー例コードブロックを prompt に含める。(c) testable === false 要件はヘッダーに含めない。(d) ヘッダーで宣言した R-N に対し『R-N:』で始まるテスト名を含める規約を必須要件として記述する。(e) JS 系拡張子では `// spec:` を使い、`# spec:` を書いた場合は明示エラー (構文不整合) になる旨を記述する。バリデーション失敗は Envelope.fail 経由で AI / CLI に伝達され、各失敗カテゴリ (Q10 の妥当性検査ルール、Q3/Q7 の coverage / mismatch 検出) ごとに分類された詳細が含まれる。",
+      "evidence": "Q6 canonical ValidationResult。src/flow/prompts/plan/test.md:11-26 (現行の test-map.json 作成指示)。test step は definition.js:137 で定義され step done で plan phase が gate に進む。",
+      "why": "AI / 人間がヘッダー記法を守れるよう明示指示が必要。Canonical ValidationResult を参照することで prompt と実装と test の参照点が一意になる。",
+      "considered": "エラーを 1 種類 (覆面 fail) にまとめる案: 修正手がかりが減り再試行コストが上がる。却下。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-01",
+    "notes": "autoApprove"
+  }
+}

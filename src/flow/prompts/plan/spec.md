@@ -5,6 +5,11 @@
        - If project structure is still unclear: `sdd-forge flow get context <path> --raw` for specific files; `sdd-forge flow get context --raw` only as a last resort.
      - If guardrail articles for spec have NOT been loaded in this session: `sdd-forge flow get guardrail spec`. If output is non-empty, follow these principles. Skip if already present in context.
    - Fill spec.json fields: `goal`, `scope`, `constraints`, `requirements`, `acceptance_criteria`, `alternatives_considered` (if applicable).
+   - **Requirement testability** (spec 249): each `requirements[]` entry may carry an optional `testable` boolean. Default behavior is testable (omit the field, or set `testable: true`). Set `testable: false` only when the requirement is inherently not verifiable through automated tests — for example, prompt rewrites, documentation updates, or configuration-only changes. Consumers (test step gate, retro static evaluation, review-test untested warning, AI prompt builders) treat `requirement.testable !== false` as testable. `testable: false` requirements are excluded from header coverage validation, retro test-result aggregation, and untested warnings; they appear in AI prompt requirement lists annotated with ` (testing not required)`.
+     - Example:
+       ```json
+       { "id": "R5", "desc": "rewrite the test phase prompt to teach header convention", "priority": "must", "testable": false }
+       ```
    - Generate `keywords`: an array of 5–15 English keywords derived from the spec content (goal, scope, requirements). These keywords are used by contextSearch for codebase relevance matching. Choose specific, concrete terms (function names, module names, domain concepts) over generic words.
    - If draft phase was done, transfer draft.json content to spec.json using the following field mapping:
      - `draft.json.analysis.problem` → `spec.json.background` (synthesize, do not copy verbatim)

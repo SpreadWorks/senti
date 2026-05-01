@@ -6,6 +6,7 @@
  * the definition's sideEffects attribute — not hardcoded step IDs.
  */
 
+import path from "node:path";
 import { FlowCommand } from "./base-command.js";
 import { VALID_STEP_STATUSES } from "../../lib/constants.js";
 import { container } from "../../lib/container.js";
@@ -14,10 +15,44 @@ import { syncSpecTasksToFlow } from "./sync-spec-tasks.js";
 import { runAutoCheckCore } from "./run-auto-check.js";
 import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-input.js";
 import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
+import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
+import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
 
 function collectSideEffects(stepId) {
   const node = resolveNodeFor(FLOW_DEFINITION, stepId);
   return node?.sideEffects || [];
+}
+
+/**
+ * spec 249: pre-validate spec verification test files when transitioning the
+ * `test` step to `done`. Returns a failed Envelope when validation fails so
+ * the step status is not persisted.
+ */
+function preValidateTestStep(ctx) {
+  const state = ctx.flowManager.load();
+  if (!state?.spec) return null;
+  let specJson;
+  try {
+    specJson = loadSpecJson(path.resolve(ctx.root, state.spec), { validate: false });
+  } catch (err) {
+    return Envelope.fail(
+      "set",
+      "step",
+      "TEST_HEADER_VALIDATION_FAILED",
+      [`failed to load spec.json: ${err.message}`],
+      { violations: [] },
+    );
+  }
+  const specDir = resolveSpecDir(path.resolve(ctx.root, state.spec));
+  const result = validateTestHeaders({ specDir, spec: specJson });
+  if (result.ok) return null;
+  return Envelope.fail(
+    "set",
+    "step",
+    "TEST_HEADER_VALIDATION_FAILED",
+    formatValidationMessages(result),
+    result,
+  );
 }
 
 export default class SetStepCommand extends FlowCommand {
@@ -35,6 +70,12 @@ export default class SetStepCommand extends FlowCommand {
         "INVALID_STATUS",
         `invalid status: ${status} (valid: ${VALID_STEP_STATUSES.join(", ")})`,
       );
+    }
+
+    // spec 249: pre-validate test step done before persisting state.
+    if (id === "test" && status === "done") {
+      const fail = preValidateTestStep(ctx);
+      if (fail) return fail;
     }
 
     ctx.flowManager.updateStepStatus(id, status);

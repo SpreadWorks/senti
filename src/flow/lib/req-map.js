@@ -1,9 +1,13 @@
 /**
  * src/flow/lib/req-map.js
  *
- * Shared utilities for file-map.json and test-map.json:
+ * Shared utilities for file-map.json:
  * load, save, append (with dedup), reconcile against git diff,
  * and evaluate per-requirement test results from TAP output.
+ *
+ * spec 249: legacy test-map.json related exports have been removed. Spec
+ * verification test coverage is now declared via file headers
+ * (`// spec: R1 R2 ...`) — see src/flow/lib/test-headers.js.
  */
 
 import fs from "node:fs";
@@ -11,7 +15,6 @@ import path from "node:path";
 import { loadSpecJson, normalizeRequirements } from "../../lib/spec-json.js";
 
 const FILE_MAP_NAME = "file-map.json";
-const TEST_MAP_NAME = "test-map.json";
 
 function loadJsonMap(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -25,15 +28,6 @@ function saveJsonMap(filePath, data) {
 
 export function loadFileMap(specDir) {
   return loadJsonMap(path.join(specDir, FILE_MAP_NAME));
-}
-
-export function loadTestMap(specDir) {
-  const testsDir = path.join(specDir, "tests");
-  return loadJsonMap(path.join(testsDir, TEST_MAP_NAME));
-}
-
-export function isTestNotRequired(entry) {
-  return entry === null;
 }
 
 export function appendFiles(specDir, reqId, paths, root, specPath) {
@@ -108,8 +102,12 @@ export function extractReqResults(tapResults) {
   return reqMap;
 }
 
+/**
+ * spec 249: returns 'not_done' (not 'unverified') for null counts to comply
+ * with retro.json schema enum [done|partial|not_done].
+ */
 export function evaluateReqByResults(counts) {
-  if (!counts) return "unverified";
+  if (!counts) return "not_done";
   if (counts.passed > 0 && counts.failed === 0) return "done";
   if (counts.failed > 0 && counts.passed === 0) return "not_done";
   return "partial";

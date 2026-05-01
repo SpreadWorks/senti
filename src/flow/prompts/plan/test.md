@@ -9,24 +9,26 @@
    - Write test code under `specs/<spec>/tests/`. Tests should fail initially (before implementation).
    - Run tests with `node --test specs/<spec>/tests/*.test.js` to verify they fail as expected.
    - **MUST: If a test reveals a production code bug that is outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step test --reason "..."`) before adjusting the test to match current behavior. Do not silently fix or skip the test.
-   - **MUST: Create `specs/<spec>/tests/test-map.json`** mapping requirement IDs to test names.
-     Schema: `{ [reqId: string]: string[] | null }` — keys are requirement IDs from spec.json, values are arrays of test names or `null`.
-     - `string[]` — tests that verify this requirement.
-     - `null` — this requirement does not need verification through tests (e.g. documentation updates, prompt changes, configuration-only changes).
-     Example:
-     ```json
-     {
-       "R1": ["241-set-files.test.js > should create file-map.json", "241-set-files.test.js > should deduplicate"],
-       "R2": ["241-set-files.test.js > should create file-map.json"],
-       "R3": null
-     }
-     ```
-     - Every requirement ID from spec.json must appear as a key.
-     - Use `null` for requirements that are inherently not testable (prompt/doc changes). Do not use `[]` for test-not-required requirements — `[]` means tests exist but none are mapped yet.
-     - Test names should match the `> ` separated format: `<file> > <test description>`.
+   - **MUST: Write a spec coverage header at the top of every spec verification test file.** This header replaces the legacy file-based mapping artifact (spec 249).
+     - JS / TS / MJS files: `// spec: R1 R2 ...`
+     - Markdown / YAML / shell files (future dcb2 runners): `# spec: R1 R2 ...`
+     - Read the testable requirement IDs from `spec.json` (NOT `spec.md`, which does not render the `testable` flag). For each `requirements[]` entry where `testable !== false`, you must declare it in at least one test file's header.
+     - Example (JS):
+       ```javascript
+       // spec: R1 R2 R4
+       import { test } from "node:test";
+       test("R1: parser accepts valid header", () => {});
+       test("R2: ...", () => {});
+       test("R4: ...", () => {});
+       ```
+     - **`R-N:` test name prefix is required.** Each requirement R-N declared in the header must have at least one `it(...)` or `test(...)` call whose name starts with `R-N:` in the same file.
+     - Do **not** include `testable: false` requirements in the header.
+   - **Validation contract** (enforced by `flow set step test done`): the command will fail with `Envelope.fail` (code: `TEST_HEADER_VALIDATION_FAILED`) if any of the following violations are found in `specs/<spec>/tests/*.{test,spec}.{js,ts,mjs}`:
+     - missing header / unknown R-ID / malformed header / duplicate IDs / multiple headers in one file / `testable: false` ID in header / `# spec:` in `.js` / `.mjs` / `.ts` / header declares R-N without an `R-N:` test name in the same file / `R-N:` test name without a corresponding header declaration / a testable requirement uncovered by all headers.
+     - Read `errors[].messages` and `data` from the Envelope to fix the violations and re-run.
    - **If no test environment**:
-     - AI performs spec-implementation alignment check after coding.
-     - Compare spec Requirements against actual code changes.
+     - This escape path is only valid when **every** requirement has `testable: false` (e.g., docs-only or prompt-only specs). Otherwise spec-local tests with headers are required by the test-step gate.
+     - When valid, AI performs spec-implementation alignment check after coding by comparing spec Requirements against actual code changes.
    - **If test environment needs to be set up**:
      - Treat as a separate spec (out of scope for current feature spec).
    - **On complete**:

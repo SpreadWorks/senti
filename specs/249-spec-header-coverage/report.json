@@ -1,0 +1,142 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/249-spec-header-coverage/draft-review.md     |  43 ++\n specs/249-spec-header-coverage/draft.json          | 137 ++++\n specs/249-spec-header-coverage/file-map.json       |  47 ++\n specs/249-spec-header-coverage/flow.json           | 786 +++++++++++++++++++++\n specs/249-spec-header-coverage/issue-log.json      | 379 ++++++++++\n specs/249-spec-header-coverage/issue.md            |  64 ++\n specs/249-spec-header-coverage/qa.md               |   9 +\n specs/249-spec-header-coverage/spec-review.md      |  33 +\n specs/249-spec-header-coverage/spec.json           | 450 ++++++++++++\n specs/249-spec-header-coverage/spec.md             | 162 +++++\n specs/249-spec-header-coverage/tasks/T-1.md        |  20 +\n specs/249-spec-header-coverage/tasks/T-10.md       |  20 +\n specs/249-spec-header-coverage/tasks/T-2.md        |  20 +\n specs/249-spec-header-coverage/tasks/T-3.md        |  21 +\n specs/249-spec-header-coverage/tasks/T-4.md        |  24 +\n specs/249-spec-header-coverage/tasks/T-5.md        |  20 +\n specs/249-spec-header-coverage/tasks/T-6.md        |  20 +\n specs/249-spec-header-coverage/tasks/T-7.md        |  21 +\n specs/249-spec-header-coverage/tasks/T-8.md        |  23 +\n specs/249-spec-header-coverage/tasks/T-9.md        |  23 +\n .../tests/set-step-headers.test.js                 | 136 ++++\n specs/249-spec-header-coverage/tests/test-map.json |  16 +\n src/flow/commands/review.js                        |  39 +-\n src/flow/lib/req-map.js                            |  22 +-\n src/flow/lib/run-retro.js                          |  95 ++-\n src/flow/lib/set-step.js                           |  41 ++\n src/flow/lib/test-headers.js                       | 325 +++++++++\n src/flow/prompts/plan/spec.md                      |   5 +\n src/flow/prompts/plan/test.md                      |  36 +-\n src/flow/schemas/spec.schema.json                  |   3 +-\n tests/unit/flow/test-headers.test.js               | 310 ++++++++\n 31 files changed, 3279 insertions(+), 71 deletions(-)",
+      "commits": [
+        "feat(249): replace test-map.json with spec header coverage"
+      ]
+    },
+    "retro": {
+      "total": 14,
+      "done": 14,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "rate": 1,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "spec verification test files (specs/<spec>/tests/ 配下の `.{test,spec}.{js,ts,mjs}`) の先頭付近に `// spec: R1 R2 ...` (JS) または `# spec: R1 R2 ...` (md/yaml) 形式のコメントヘッダーが書かれていれば valid header として受理される。`#!` shebang は許容、`spec` キーワードを含まない通常コメント (license header, タスクコメント等) との共存も許容する。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "`sdd-forge flow set step test done` は spec verification test files にヘッダー欠落・testable 要件未カバー・不正 R-ID・per-file mismatch のいずれかが検出された場合、Envelope.fail を返し flow state の test step status を更新しない (pre-validation 原子性)。検証 PASS 時のみ done が永続化される。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "spec.json の requirements[] 各要素は optional な testable (boolean) フィールドを持てる (src/flow/schemas/spec.schema.json の requirements item properties に追加、現行 additionalProperties: false)。consumer は `requirement.testable !== false` で testable 判定する (missing / true / undefined → testable, false のみ → not testable)。default 値の埋め込みは行わない。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "ヘッダー妥当性検査は以下 10 種の違反を検出可能で、AI / CLI が個別に識別できる形で報告する: (a) ヘッダー欠落、(b) testable 要件未カバー、(c) 未知 R-ID (spec.json.requirements[].id 集合に無い ID)、(d) malformed (spec を含むが strict 形式に合致しないコメント、コロン抜け / 記号過多 / 不正 R-ID 形式)、(e) 同一ファイル R-ID 重複、(f) 同一ファイル複数 valid ヘッダー、(g) testable: false 要件のヘッダー宣言、(h) JS 系拡張子で `# spec:` を使用、(i) ヘッダー宣言 R-N + 同ファイルに `R-N:` で始まるテスト名なし、(j) 同ファイルに `R-N:` で始まるテスト名あり + ヘッダー未宣言。複数ファイル間で同一 R-ID をカバーするのは正常。**(i) (j) のテスト名検出ルール**: ファイル全体を行単位でスキャンし、`(it|test)\\s*\\(\\s*['\"\\\\`]R(\\d+):` 正規表現にマッチした行から R-ID を抽出する (テスト関数 `it()` / `test()` の第 1 引数 string literal の先頭が `R<N>:`)。Comment 行 (parser が判定済) と template literal 内のネスト等は対象外。`describe()` 内の `it()` も対象。false-positive (テスト関数以外で同パターンが偶然出現) は許容する (現行 extractReqResults と同レベルの保守的 regex)。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "retro の static 評価 (run-retro.js:tryStaticEvaluation) はヘッダーから収集したマッピングをファイル→要件の対応として使う (test-map.json は読まない)。マッピングが空の場合は現行同様 null を返して AI 評価フォールバックする。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "retro の評価結果 (retro.json) において、testable === false の要件は requirements[] 配列に含めず summary 集計に分離する。これは static / AI fallback の両モードに適用する。AI モードでは buildRetroPrompt の入力からは除外せず R9 と整合する形で末尾注釈付きで含める (AI が non-testable 要件にテスト結果を期待しないように誘導)。parseRetroResponse は AI が返す requirements[] から testable: false を除外して retro.json に書き込む (defensive)。retro.json の requirements item status enum [done|partial|not_done] と整合させる。現行 evaluateReqByResults が null counts で 'unverified' を返す箇所は 'not_done' に統一する (schema 違反バグ修正)。retro.json の summary に testable: false 件数を表す新フィールドを追加する (フィールド名は実装フェーズで決定、report.js での render は別 spec)。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "review.js の untested-requirement 警告 (line 880-895) はヘッダーから取得したカバレッジに基づき、ヘッダー宣言が無い testable 要件のみを警告対象とする (testable === false は除外)。同時に loadReqMap (review.js 上部) の test 分岐は loadTestMap への依存から test-headers のカバレッジ評価に置き換え、loadFileMap への依存は impl review 用途で残置する。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "src/flow/lib/req-map.js から loadTestMap / isTestNotRequired / TEST_MAP_NAME を削除する。loadFileMap / parseTapOutput / extractReqResults / evaluateReqByResults / reconcileFileMap は残置する。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "AI prompt builder (run-retro.js:requirementsAsText、review.js:extractRequirements) は testable === false の要件を出力末尾に ` (testing not required)` 注釈付きで含める (要件自体を除外しない、AI が non-testable に対するテスト設計を提案しないように誘導)。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "src/flow/prompts/plan/test.md を更新する: (a) 現行の test-map.json 作成指示 (line 12-26) を削除し、ヘッダー記述指示 (構文・拡張子別ルール・testable 除外・`R-N:` テスト名規約・バリデーションエラー種別) に置換する。(b) 現行の『If no test environment』エスケープ経路 (line 27-29) を testable: false が全要件に設定されている場合のみ有効とし、それ以外では spec verification test files (ヘッダー必須) の作成を要求する旨に書き換える。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "ヘッダー解析・カバレッジ集計・妥当性検査の共通ヘルパー src/flow/lib/test-headers.js を新設し、set-step (test, done) の pre-validation、run-retro.js:tryStaticEvaluation、review.js:880-895 の 3 箇所から共有利用する (重複実装禁止)。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Edge case 動作: (a) `specs/<spec>/tests/` ディレクトリ不在またはテストファイル 0 件で、testable 要件が 1 つでもある場合は uncoveredRequirements に該当全件が含まれ test step done は失敗する。(b) 全要件 testable: false (testable 要件 0 件) なら spec verification test files が無くても step done は成功する。(c) retro: 全要件 testable: false の spec で retro を実行した場合、static 評価は決定的な結果を返す (requirements[] は空、summary は total=0 と testable: false 件数を含む)、AI 評価フォールバックは行わない。(d) review-test: 全要件 testable: false の spec で review-test を実行した場合、untested 警告は発生しない。AI test 設計を呼ぶか否かは現行動作維持 (本 spec のスコープ外)。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "src/flow/prompts/plan/spec.md を更新する: spec 作成時に AI が requirements[] のうち文書 / プロンプト / 設定変更のみで構成されるような要件には optional な testable: false フィールドを設定するよう教示する。default は testable === true 扱いで未設定なら省略可能、設定する場合の判定基準 (テスト可能 / 不可能) と表示時の意味 (review-test / retro でカバレッジ・テスト要求から除外される) を記述する。",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "src/flow/prompts/plan/test.md は AI に対し、spec.md ではなく spec.json を参照して requirements[].testable の値を取得するよう明示する (spec.md rendering は本 spec で testable を表示しないため、test 設計時には spec.json 参照が必須)。",
+          "status": "done",
+          "note": "1 test(s)"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 0,
+      "issueLog": 3
+    },
+    "tokenMetrics": {
+      "input": 800880,
+      "output": 159706,
+      "cacheRead": 5259799,
+      "cacheCreation": 1261497,
+      "cost": 7.28816065,
+      "callCount": 32,
+      "durationMs": 3312824,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 754028
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 883413
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 774628
+        },
+        {
+          "phase": "gate",
+          "durationMs": 36508
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 794386
+        },
+        {
+          "phase": "review",
+          "durationMs": 69861
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat(249): replace test-map.json with spec header coverage\n    31 files changed, 3279 insertions(+), 71 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (14 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 0\n    issue-log ................... 3\n    agent calls ................. 32\n    input tokens ................ 800,880\n    output tokens ............... 159,706\n    cache-read tokens ........... 5,259,799\n    cache-create tokens ......... 1,261,497\n    cost ........................ $7.2882\n    duration (total) ............ 3312.8s\n      review-draft .............. 754.0s\n      gate-draft ................ 883.4s\n      review-spec ............... 774.6s\n      gate ...................... 36.5s\n      gate-impl ................. 794.4s\n      review .................... 69.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}
