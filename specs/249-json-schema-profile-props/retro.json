@@ -1,0 +1,62 @@
+{
+  "spec": "specs/249-json-schema-profile-props/spec.json",
+  "date": "2026-05-01T02:53:43.553Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "`ClaudeProvider.builtinProfiles()` の各エントリに `jsonSchemaFlag: \"--json-schema\"` と `jsonSchemaMode: \"inline\"` プロパティを追加する",
+      "status": "done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "`CodexProvider.builtinProfiles()` の各エントリに `jsonSchemaFlag: \"--output-schema\"` と `jsonSchemaMode: \"file\"` プロパティを追加する",
+      "status": "done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "`Provider` 基底クラスおよび `ClaudeProvider`/`CodexProvider`/`UserProvider` から `jsonSchemaFlag()` メソッドを削除する",
+      "status": "done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "`agent.js` の `_buildInvocation` で `provider.jsonSchemaFlag()` 呼び出しを `profile.jsonSchemaFlag` プロパティ参照に置き換える。`jsonSchemaFlag` が falsy の場合は既存の `fmtFallback` パスを維持する",
+      "status": "done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "`agent.js` の `_buildInvocation` で `provider.constructor.key === 'codex'` 分岐を `profile.jsonSchemaMode === 'file'` に置き換える。未指定時は `'inline'` として扱う",
+      "status": "done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "`config.js` の `agent.providers` additionalProperties に `jsonSchemaFlag: { type: \"string\" }` と `jsonSchemaMode: { type: \"string\", enum: [\"file\", \"inline\"] }` を追加する",
+      "status": "done",
+      "note": "4 test(s)"
+    },
+    {
+      "desc": "`src/lib/types.js` の `AgentProvider` typedef に `jsonSchemaFlag?: string` と `jsonSchemaMode?: \"file\"|\"inline\"` を追加する",
+      "status": "n/a",
+      "note": "testing not required"
+    },
+    {
+      "desc": "`specs/249-json-schema-profile-props/tests/` に jsonSchemaMode: 'inline'（schema がインラインで渡される）、jsonSchemaMode: 'file'（schema がファイルパスで渡される）、jsonSchemaFlag なし + fmtFallback あり（fallback がプロンプトに prepend される）、および cross-provider（codex command + inline mode、非 codex command + file mode）のテストケースを追加する",
+      "status": "unverified",
+      "note": "no tests mapped"
+    },
+    {
+      "desc": "`specs/249-json-schema-profile-props/tests/` で builtin profile に `jsonSchemaFlag` と `jsonSchemaMode` プロパティが含まれることを検証し、config バリデーションで有効な値の受け入れと無効な `jsonSchemaMode` の拒否を検証するテストを追加する",
+      "status": "done",
+      "note": "1 test(s)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "rate": 0.88,
+    "notes": "static evaluation from test-map.json"
+  }
+}

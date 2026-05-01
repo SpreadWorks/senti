@@ -1,0 +1,123 @@
+{
+  "devType": "refactor",
+  "goal": "jsonSchemaFlag と jsonSchemaMode を Provider クラスのメソッドからプロファイルプロパティに移行し、agent.js の provider key ハードコード依存を除去する",
+  "analysis": {
+    "problem": "agent.js の _buildInvocation で provider.constructor.key === 'codex' というハードコード分岐がある。jsonSchemaFlag は Provider メソッドだが、UserProvider は既にプロファイルプロパティから読んでいる。builtin provider（Claude/Codex）だけがメソッドに固定されており、config.json での上書きができない非対称な設計になっている。",
+    "proposedApproach": "jsonSchemaFlag と jsonSchemaMode を profile プロパティとして定義可能にする。JSON schema の渡し方式（ファイルパス vs インライン）は provider key ではなく profile プロパティで制御する。ユーザーは config.json で jsonSchemaFlag と jsonSchemaMode を指定でき、builtin profile には適切なデフォルト値を持たせる。",
+    "validation": "UserProvider が既にこのパターン（profile プロパティから jsonSchemaFlag を読む）を実装済みであり、jsonOutputFlag も同様にプロファイルプロパティとして存在する。提案は既存パターンの統一であり、新たな設計概念を導入しない。provider key 分岐の除去により、将来のプロバイダ追加時にも agent.js の修正が不要になる。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] src/lib/provider.js — builtinProfiles() に jsonSchemaFlag, jsonSchemaMode プロパティ追加。Provider/ClaudeProvider/CodexProvider/UserProvider から jsonSchemaFlag() メソッド削除",
+      "[must] src/lib/agent.js — _buildInvocation の jsonSchema 処理を resolved.profile プロパティベースに変更。provider.constructor.key === 'codex' 分岐を除去",
+      "[must] src/lib/config.js — providers スキーマに jsonSchemaFlag, jsonSchemaMode プロパティ追加",
+      "[must] src/lib/types.js — AgentProvider typedef に jsonSchemaFlag, jsonSchemaMode を追加",
+      "[should] tests/unit/lib/agent-service.test.js — jsonSchemaFlag/jsonSchemaMode のプロファイルプロパティ経由テスト追加",
+      "[should] tests/unit/lib/provider.test.js — builtin profile プロパティのテスト更新",
+      "[should] tests/unit/lib/types.test.js — config バリデーションで jsonSchemaFlag/jsonSchemaMode の受け入れ・拒否を検証"
+    ],
+    "out": [
+      "systemPromptFlag() / workDirFlag() の移行（別 Issue で対応可能）",
+      "src/templates/ や src/presets/ の変更（profile 定義はこれらに含まれていない）",
+      "docs/ や src/AGENTS.md の更新（自動生成ドキュメントは sdd-forge build で再生成する）"
+    ]
+  },
+  "impactOnExisting": [
+    "agent.js の _buildInvocation: jsonSchema 処理ロジック変更。外部インターフェース（call メソッドの引数・戻り値）は不変",
+    "config.json の agent.providers: jsonSchemaFlag と jsonSchemaMode がスキーマで受け入れられるようになる。既存の config は影響なし（新規 optional プロパティ）",
+    "Provider.jsonSchemaFlag() メソッド削除: agent.js 以外に呼び出し箇所なし。外部プリセット・テンプレートにも参照なし",
+    "プリセット acceptance テスト fixtures の config.json: systemPromptFlag のみ使用しており jsonSchemaFlag は含まれていないため影響なし"
+  ],
+  "qa": [
+    {
+      "question": "jsonSchemaFlag() メソッドのプロダクションコード呼び出し箇所は agent.js 以外にあるか？テスト・docs・fixtures に旧メソッド表面を参照する箇所はあるか？",
+      "answer": "プロダクションコードでは agent.js の _buildInvocation のみ。テストでは tests/unit/lib/provider.test.js に jsonSchemaFlag() の検証がある場合は更新対象。docs/ は自動生成のためスコープ外。fixtures には jsonSchemaFlag への参照なし。",
+      "evidence": "grep -rn 'jsonSchemaFlag' src/ で確認: provider.js:28,44,103,167（定義）と agent.js:157（呼び出し）のみ。grep -rn 'jsonSchemaFlag' tests/ で provider.test.js の該当箇所を確認",
+      "why": "削除対象のメソッドが他で使われていないことを確認するため",
+      "considered": "メソッドを残してプロファイルプロパティへのフォールバックにする案もあるが、alpha 版ポリシーにより後方互換は不要"
+    },
+    {
+      "question": "jsonSchemaMode は新規概念か、既存コードに定義があるか？",
+      "answer": "新規プロパティ。現在のコードに jsonSchemaMode の定義・参照は存在しない。agent.js:161 の provider.constructor.key === 'codex' 分岐がこの概念を暗黙的に表現している。",
+      "evidence": "grep -rn 'jsonSchemaMode' src/ → 結果なし。agent.js の codex 分岐: schemaPath を fs.writeFile で書き出し（file モード）、それ以外は JSON.stringify でインライン渡し（inline モード）",
+      "why": "既存の暗黙分岐を明示的なプロパティに昇格させることで、provider key へのハードコード依存を除去する",
+      "considered": ""
+    },
+    {
+      "question": "builtinProfiles() への jsonSchemaFlag/jsonSchemaMode の具体的な定義は？",
+      "answer": "各 builtin profile エントリに追加: claude/opus と claude/sonnet に jsonSchemaFlag: '--json-schema', jsonSchemaMode: 'inline'。codex/gpt-5.4 と codex/gpt-5.3 に jsonSchemaFlag: '--output-schema', jsonSchemaMode: 'file'。",
+      "evidence": "ClaudeProvider.jsonSchemaFlag() は '--json-schema' を返す（provider.js:44-46）。CodexProvider.jsonSchemaFlag() は '--output-schema' を返す（provider.js:103-105）。agent.js:161 で codex の場合 fs.writeFile（file mode）、それ以外は JSON.stringify（inline mode）。jsonOutputFlag は既にこの形式でプロファイルプロパティとして定義済み",
+      "why": "jsonOutputFlag との一貫性を保つ。ユーザーは config.json の agent.providers で独自プロファイルを定義し、これらのプロパティを上書きできる",
+      "considered": ""
+    },
+    {
+      "question": "jsonSchemaMode の値域・デフォルト・無効値の扱いは？全組み合わせの挙動はどうなるか？",
+      "answer": "behavior matrix: (1) jsonSchemaFlag 未設定 + options.jsonSchema あり + fmtFallback あり → fmtFallback をプロンプトに prepend。schema suffix なし。(2) jsonSchemaFlag 未設定 + options.jsonSchema あり + fmtFallback なし → 何もしない（schema は渡されない）。(3) jsonSchemaFlag あり + jsonSchemaMode 未設定 → inline として扱う（JSON.stringify でインライン渡し）。(4) jsonSchemaFlag あり + jsonSchemaMode: 'inline' → JSON.stringify でインライン渡し。(5) jsonSchemaFlag あり + jsonSchemaMode: 'file' → ファイルに書き出し、パスを渡す。(6) jsonSchemaMode あり + jsonSchemaFlag 未設定 → jsonSchemaMode は無視され、ケース1 or 2 に入る。config.json の agent.providers では enum: ['file', 'inline'] で不正値を拒否。",
+      "evidence": "agent.js _buildInvocation: schemaFlag が null の場合は fmtFallback パスに入る。jsonSchemaMode は schemaFlag ありの場合のみ file/inline 分岐に使用される。現行の codex 分岐は provider key 依存なので、profile プロパティ化後は明示的な jsonSchemaMode: 'file' が必要",
+      "why": "jsonSchemaFlag の有無が先に評価され、jsonSchemaMode は flag ありの場合のみ意味を持つ。未指定 → inline は most-common-case デフォルト",
+      "considered": "boolean (useFile: true/false) で表現する案もあるが、文字列 enum の方がセマンティクスが明確。jsonSchemaMode を required にする案は、多くの profile で inline が暗黙のデフォルトとなるため不要な冗長性"
+    },
+    {
+      "question": "Agent が profile プロパティを直接参照する設計は Provider 抽象化を壊さないか？",
+      "answer": "壊さない。ProviderRegistry.resolveProfile() は既に { provider, profile } を返しており、Agent._buildInvocation は resolved.profile を直接参照している（profile.args、profile.command 等）。jsonSchemaFlag/jsonSchemaMode を profile から読むのは既存パターンの延長。",
+      "evidence": "agent.js _buildInvocation: const { provider, profile } = resolved; baseArgs = profile.args; jsonOutputFlag も _callOnce で profile.jsonOutputFlag として参照されている",
+      "why": "Provider の役割は parse() と systemPromptFlag()/workDirFlag() のランタイム振る舞い提供。CLI フラグの宣言は profile プロパティに属する",
+      "considered": "provider.jsonSchemaConfig() メソッドを新設する案は、既に profile が Agent の直接参照対象である以上、不要な間接層になる"
+    },
+    {
+      "question": "UserProvider の jsonSchemaFlag() メソッドはどうするか？",
+      "answer": "削除する。agent.js が resolved.profile から直接読むため、Provider メソッド経由のアクセスは不要になる。UserProvider のコンストラクタで profile を受け取る設計自体は維持（systemPromptFlag, workDirFlag で引き続き使用）。",
+      "evidence": "UserProvider.jsonSchemaFlag() は this._profile.jsonSchemaFlag を返すだけ。agent.js が resolved.profile.jsonSchemaFlag を参照すれば同じ値が得られる",
+      "why": "Provider 基底クラスから jsonSchemaFlag() を削除するなら、全サブクラスの実装も一貫して削除すべき",
+      "considered": "UserProvider だけ残す案は、基底クラスにメソッドがない状態で子だけに残すのは不整合"
+    },
+    {
+      "question": "config.json の providers スキーマに何を追加するか？",
+      "answer": "src/lib/config.js の agent.providers additionalProperties に jsonSchemaFlag: { type: 'string' } と jsonSchemaMode: { type: 'string', enum: ['file', 'inline'] } を追加。既存の jsonOutputFlag, systemPromptFlag と同列。",
+      "evidence": "config.js:189 に jsonOutputFlag: { type: 'string' } が既に存在。同じパターンで追加",
+      "why": "ユーザー定義プロファイルでこれらのプロパティを指定可能にするため。config バリデーションで不正な値を検出する",
+      "considered": ""
+    },
+    {
+      "question": "profile の上書きは全置換かプロパティ単位マージか？上書き時に jsonSchemaFlag/jsonSchemaMode を省略した場合の影響は？",
+      "answer": "全置換。ProviderRegistry._mergeProfiles() は Object.assign でトップレベルキー単位でマージする。同じキー（例: 'claude/opus'）を user config で再定義すると、builtin のエントリ全体が上書きされる。jsonSchemaFlag/jsonSchemaMode を省略すると schema flag なしとして fmtFallback パスに入る。これは alpha 版として受け入れる動作であり、ユーザーは必要なプロパティを全て再定義する必要がある。",
+      "evidence": "provider.js _mergeProfiles: Object.assign(merged, provider.builtinProfiles()); Object.assign(merged, userProviders);",
+      "why": "プロパティ単位の deep merge は config の予測可能性を下げる。全置換なら user は完全な profile を定義する。alpha 版なので挙動変更の互換コストは無視できる",
+      "considered": "deep merge に変更する案は本 Issue のスコープ外であり、既存動作を変更すべきではない"
+    },
+    {
+      "question": "テスト戦略の具体的な対象は？provider key ではなく profile プロパティで制御されていることをどう検証するか？",
+      "answer": "3ファイルを対象とする。tests/unit/lib/agent-service.test.js: (1) jsonSchemaMode: 'inline' → schema が args にインラインで渡される、(2) jsonSchemaMode: 'file' → schema がファイルパスとして渡される、(3) jsonSchemaFlag なし + fmtFallback あり → fallback がプロンプトに prepend される、(4) jsonSchemaMode 未指定 → 'inline' デフォルト動作。provider key 依存の除去を検証するため、双方向 cross-provider テスト: (a) codex command の profile に jsonSchemaMode: 'inline' → インライン渡し（旧 codex 分岐が残っていれば FAIL）、(b) 非 codex（custom/user）profile に jsonSchemaMode: 'file' → ファイルパス渡し + pendingSchemaWrite 生成（旧分岐が残っていれば FAIL）。tests/unit/lib/provider.test.js: builtin profile に jsonSchemaFlag, jsonSchemaMode プロパティが含まれることの確認。tests/unit/lib/types.test.js: config バリデーションで jsonSchemaFlag/jsonSchemaMode の受け入れ・拒否を検証。",
+      "evidence": "tests/unit/lib/agent-service.test.js, provider.test.js, types.test.js が既存のテストファイル",
+      "why": "cross-provider テスト（codex profile + inline mode）により、旧 provider.constructor.key 分岐が残っている場合にテストが FAIL することを保証する",
+      "considered": "E2E テスト（実際の CLI 呼び出し）は agent テストで既にカバーされているため、ユニットテストで十分"
+    },
+    {
+      "question": "テンプレート・プリセットに profile 定義が含まれているか？",
+      "answer": "含まれていない。profile 定義は src/lib/provider.js の builtinProfiles() にハードコードされている。プリセット acceptance テスト fixtures の config.json は systemPromptFlag のみ使用しており、jsonSchemaFlag/jsonOutputFlag/jsonSchemaMode は含まれていない。",
+      "evidence": "grep -rn 'jsonOutputFlag|agent\\.providers|systemPromptFlag|workDirFlag' src/templates/ src/presets/ で確認。結果は preset acceptance fixtures の config.json 内の systemPromptFlag のみ",
+      "why": "変更がテンプレート・プリセットに波及しないことを確認し、upgrade 不要を明示するため",
+      "considered": ""
+    },
+    {
+      "question": "src/AGENTS.md や docs/configuration.md の更新は本 spec のスコープに含めるか？",
+      "answer": "含めない。docs/ は sdd-forge build で自動生成される。src/AGENTS.md は手動更新だが、jsonSchemaFlag/jsonSchemaMode の profile プロパティ化は既存の jsonOutputFlag パターンの延長であり、AGENTS.md の provider-profile ガイダンスの根本的な変更にはならない。必要なら別 Issue で対応する。",
+      "evidence": "scope.out に 'docs/ や src/AGENTS.md の更新（自動生成ドキュメントは sdd-forge build で再生成する）' を明記済み",
+      "why": "docs 更新をスコープに含めると変更範囲が広がりレビュー負荷が増す。リファクタリングの本質（provider method → profile property）に集中する",
+      "considered": "同時に AGENTS.md を更新する案は、コード変更とドキュメント変更の関心が異なるため分離が適切"
+    },
+    {
+      "question": "file mode で書き出した schema ファイルのライフサイクル（cleanup）はどうなるか？",
+      "answer": "既存の挙動を維持する。agent.js の _callOnce で pendingSchemaWrite がある場合 fs.writeFile で書き出し、コマンド完了後の cleanup は行っていない（schema-<timestamp>.json が agentWorkDir に残る）。この挙動は本 spec で変更しない。profile プロパティ化後も pendingSchemaWrite の生成・書き出しロジックは同じであり、cleanup の追加はスコープ外。",
+      "evidence": "agent.js _callOnce: pendingSchemaWrite がある場合 await fs.writeFile(pendingSchemaWrite.path, pendingSchemaWrite.content) を実行。完了後の unlink/cleanup コードは存在しない",
+      "why": "本 spec のゴールは provider key 依存の除去であり、file mode の一時ファイル管理は既存挙動の維持で十分。cleanup の追加は別 Issue で対応可能",
+      "considered": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-01T02:00:00.000Z",
+    "notes": "autoApprove"
+  }
+}

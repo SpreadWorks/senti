@@ -1,0 +1,182 @@
+{
+  "goal": "jsonSchemaFlag と jsonSchemaMode を Provider クラスのメソッドからプロファイルプロパティに移行し、agent.js の provider.constructor.key ハードコード分岐を除去する",
+  "keywords": ["jsonSchemaFlag", "jsonSchemaMode", "builtinProfiles", "Provider", "ClaudeProvider", "CodexProvider", "UserProvider", "agent", "profile", "ProviderRegistry", "config schema", "schema flag", "inline", "file mode"],
+  "scope": {
+    "in": [
+      "[must] `src/lib/provider.js` — builtinProfiles() の各エントリに `jsonSchemaFlag` と `jsonSchemaMode` プロパティを追加。`Provider`/`ClaudeProvider`/`CodexProvider`/`UserProvider` から `jsonSchemaFlag()` メソッドを削除",
+      "[must] `src/lib/agent.js` — `_buildInvocation` の jsonSchema 処理を `resolved.profile` のプロパティベースに変更。`provider.constructor.key === 'codex'` 分岐を除去",
+      "[must] `src/lib/config.js` — `agent.providers` スキーマに `jsonSchemaFlag` と `jsonSchemaMode` プロパティを追加",
+      "[must] `src/lib/types.js` — `AgentProvider` typedef に `jsonSchemaFlag` と `jsonSchemaMode` を追加",
+      "[should] `specs/249-json-schema-profile-props/tests/` — jsonSchemaFlag/jsonSchemaMode のプロファイルプロパティ経由テスト（agent _buildInvocation、builtin profile プロパティ、config バリデーション）"
+    ],
+    "out": [
+      "`systemPromptFlag()` / `workDirFlag()` の同様の移行（別 Issue）",
+      "`src/templates/` や `src/presets/` の変更（profile 定義はこれらに含まれない）",
+      "`docs/` や `src/AGENTS.md` の更新（自動生成ドキュメントは `sdd-forge build` で再生成する）",
+      "過去の spec テスト（`specs/247-*/tests/` 等）の更新（旧 spec のテストは本 spec のスコープ外）"
+    ]
+  },
+  "constraints": [
+    "外部依存なし（Node.js 組み込みモジュールのみ）",
+    "alpha 版ポリシー: 後方互換コードは書かない",
+    "agent.call() の外部インターフェース（引数・戻り値）は変更しない"
+  ],
+  "design_principles": [],
+  "overview": {
+    "modules": [
+      { "text": "src/lib/provider.js — Provider 抽象化。builtinProfiles() で jsonSchemaFlag/jsonSchemaMode をプロファイルプロパティとして宣言する" },
+      { "text": "src/lib/agent.js — AI agent サービス。_buildInvocation で resolved.profile から jsonSchemaFlag/jsonSchemaMode を読み取り、schema 渡し方式を決定する" },
+      { "text": "src/lib/config.js — config.json バリデーション。agent.providers スキーマに新プロパティを追加する" }
+    ],
+    "data_flow": [
+      { "text": "builtinProfiles() → ProviderRegistry._mergeProfiles() → resolveProfile() → Agent._buildInvocation()" }
+    ],
+    "decisions": [
+      {
+        "text": "jsonSchemaFlag を Provider メソッドから profile プロパティに移行する。UserProvider が既にこのパターンを採用しており、jsonOutputFlag も同じ形式。統一することで provider 間の非対称性を解消する",
+        "evidence": "UserProvider.jsonSchemaFlag() は this._profile.jsonSchemaFlag を返す。jsonOutputFlag は全 builtin profile にプロパティとして存在する"
+      },
+      {
+        "text": "jsonSchemaMode: 'file' | 'inline' を新設し、provider.constructor.key 分岐を置き換える。未指定時は 'inline' デフォルト",
+        "evidence": "agent.js _buildInvocation: codex → fs.writeFile + schemaPath（file）、それ以外 → JSON.stringify（inline）。この暗黙分岐を明示的プロパティに昇格する"
+      },
+      {
+        "text": "profile の上書きは既存の全置換方式を維持する。deep merge には変更しない",
+        "evidence": "ProviderRegistry._mergeProfiles() は Object.assign で key 単位マージ。プロパティ単位 merge は本 spec のスコープ外"
+      }
+    ]
+  },
+  "background": "agent.js の _buildInvocation に provider.constructor.key === 'codex' というハードコード分岐があり、JSON schema の渡し方式（ファイルパス vs インライン）を provider key で判定している。jsonSchemaFlag は Provider クラスのメソッドだが、UserProvider は既にプロファイルプロパティから読む設計になっており、builtin provider（Claude/Codex）だけがメソッドに固定されている。この非対称性を解消し、全 provider で統一された profile プロパティベースの設計に移行する。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`ClaudeProvider.builtinProfiles()` の各エントリに `jsonSchemaFlag: \"--json-schema\"` と `jsonSchemaMode: \"inline\"` プロパティを追加する",
+      "priority": "must"
+    },
+    {
+      "id": "R2",
+      "desc": "`CodexProvider.builtinProfiles()` の各エントリに `jsonSchemaFlag: \"--output-schema\"` と `jsonSchemaMode: \"file\"` プロパティを追加する",
+      "priority": "must"
+    },
+    {
+      "id": "R3",
+      "desc": "`Provider` 基底クラスおよび `ClaudeProvider`/`CodexProvider`/`UserProvider` から `jsonSchemaFlag()` メソッドを削除する",
+      "priority": "must"
+    },
+    {
+      "id": "R4",
+      "desc": "`agent.js` の `_buildInvocation` で `provider.jsonSchemaFlag()` 呼び出しを `profile.jsonSchemaFlag` プロパティ参照に置き換える。`jsonSchemaFlag` が falsy の場合は既存の `fmtFallback` パスを維持する",
+      "priority": "must"
+    },
+    {
+      "id": "R5",
+      "desc": "`agent.js` の `_buildInvocation` で `provider.constructor.key === 'codex'` 分岐を `profile.jsonSchemaMode === 'file'` に置き換える。未指定時は `'inline'` として扱う",
+      "priority": "must"
+    },
+    {
+      "id": "R6",
+      "desc": "`config.js` の `agent.providers` additionalProperties に `jsonSchemaFlag: { type: \"string\" }` と `jsonSchemaMode: { type: \"string\", enum: [\"file\", \"inline\"] }` を追加する",
+      "priority": "must"
+    },
+    {
+      "id": "R7",
+      "desc": "`src/lib/types.js` の `AgentProvider` typedef に `jsonSchemaFlag?: string` と `jsonSchemaMode?: \"file\"|\"inline\"` を追加する",
+      "priority": "must"
+    },
+    {
+      "id": "R8",
+      "desc": "`specs/249-json-schema-profile-props/tests/` に jsonSchemaMode: 'inline'（schema がインラインで渡される）、jsonSchemaMode: 'file'（schema がファイルパスで渡される）、jsonSchemaFlag なし + fmtFallback あり（fallback がプロンプトに prepend される）、および cross-provider（codex command + inline mode、非 codex command + file mode）のテストケースを追加する",
+      "priority": "must"
+    },
+    {
+      "id": "R9",
+      "desc": "`specs/249-json-schema-profile-props/tests/` で builtin profile に `jsonSchemaFlag` と `jsonSchemaMode` プロパティが含まれることを検証し、config バリデーションで有効な値の受け入れと無効な `jsonSchemaMode` の拒否を検証するテストを追加する",
+      "priority": "must"
+    }
+  ],
+  "acceptance_criteria": [
+    "agent.js に `provider.constructor.key` への参照が存在しない（provider.js の ProviderRegistry.resolveByCommand() は対象外）",
+    "agent.js に `provider.jsonSchemaFlag()` メソッド呼び出しが存在しない",
+    "Provider/ClaudeProvider/CodexProvider/UserProvider に `jsonSchemaFlag()` メソッドが存在しない",
+    "全 builtin profile エントリに jsonSchemaFlag と jsonSchemaMode プロパティが存在する",
+    "config.json バリデーションが jsonSchemaFlag と jsonSchemaMode を受け入れる",
+    "既存の npm test が全て PASS する"
+  ],
+  "clarifications": [
+    {
+      "q": "既存機能への影響は？",
+      "a": "agent.call() の外部インターフェース（引数・戻り値）は不変。_buildInvocation 内部の jsonSchema 処理ロジックのみ変更。config.json の agent.providers に jsonSchemaFlag と jsonSchemaMode が新規 optional プロパティとして追加されるが、既存の config はバリデーションエラーなしで動作する。Provider.jsonSchemaFlag() メソッドは agent.js 以外に呼び出し箇所がないため削除しても外部影響なし。プリセット・テンプレートは jsonSchemaFlag を参照しておらず影響なし"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "jsonSchemaFlag() メソッドを残し、profile プロパティへのフォールバックにする",
+      "reason": "alpha 版ポリシーにより後方互換は不要。二重のアクセスパスは複雑性を増すだけ"
+    },
+    {
+      "option": "boolean (useFile: true/false) で schema mode を表現する",
+      "reason": "文字列 enum ('file' | 'inline') の方がセマンティクスが明確で可読性が高い"
+    },
+    {
+      "option": "systemPromptFlag/workDirFlag も同時に移行する",
+      "reason": "変更範囲が広がりレビュー負荷が増す。Issue #304 のスコープに従い jsonSchemaFlag/jsonSchemaMode のみを対象とする"
+    },
+    {
+      "option": "provider.jsonSchemaConfig() メソッドを新設して flag と mode を返す",
+      "reason": "agent.js は既に resolved.profile を直接参照するパターンを採用しており、不要な間接層になる"
+    }
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "builtinProfiles に jsonSchemaFlag/jsonSchemaMode プロパティを追加",
+      "goal": "ClaudeProvider と CodexProvider の builtinProfiles() 返却値に jsonSchemaFlag と jsonSchemaMode プロパティを追加する",
+      "acceptance": [
+        "claude/opus, claude/sonnet に jsonSchemaFlag: '--json-schema', jsonSchemaMode: 'inline' が存在する",
+        "codex/gpt-5.4, codex/gpt-5.3 に jsonSchemaFlag: '--output-schema', jsonSchemaMode: 'file' が存在する"
+      ],
+      "implementation_notes": "R1, R2 を実装。既存の jsonOutputFlag プロパティと同列に追加するだけ",
+      "test_strategy": "specs/249-json-schema-profile-props/tests/ で builtin profile プロパティの存在を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Provider から jsonSchemaFlag() メソッドを削除し agent.js を profile プロパティベースに移行",
+      "goal": "Provider/ClaudeProvider/CodexProvider/UserProvider から jsonSchemaFlag() メソッドを削除し、agent.js の _buildInvocation を profile.jsonSchemaFlag/jsonSchemaMode ベースに変更する",
+      "acceptance": [
+        "provider.js に jsonSchemaFlag() メソッド定義が存在しない",
+        "agent.js に provider.jsonSchemaFlag() 呼び出しが存在しない",
+        "agent.js に provider.constructor.key への参照が存在しない（provider.js の resolveByCommand は対象外）",
+        "profile.jsonSchemaMode === 'file' の場合はファイルパス渡し、それ以外はインライン渡し",
+        "profile.jsonSchemaFlag が falsy の場合は fmtFallback パスが動作する"
+      ],
+      "implementation_notes": "R3, R4, R5 を実装。_buildInvocation の jsonSchema 処理ブロックを書き換える。schemaFlag は profile.jsonSchemaFlag から取得、file/inline 分岐は profile.jsonSchemaMode で判定（デフォルト 'inline'）",
+      "test_strategy": "specs/249-json-schema-profile-props/tests/ で inline/file mode と cross-provider テストケース追加。fmtFallback パスも検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "config.js スキーマと types.js typedef に jsonSchemaFlag/jsonSchemaMode を追加",
+      "goal": "agent.providers の config スキーマと AgentProvider typedef に jsonSchemaFlag と jsonSchemaMode プロパティを追加する",
+      "acceptance": [
+        "agent.providers の additionalProperties に jsonSchemaFlag: { type: 'string' } が存在する",
+        "agent.providers の additionalProperties に jsonSchemaMode: { type: 'string', enum: ['file', 'inline'] } が存在する",
+        "AgentProvider typedef に jsonSchemaFlag と jsonSchemaMode が含まれる",
+        "specs/249-json-schema-profile-props/tests/ で有効な jsonSchemaFlag/jsonSchemaMode の受け入れと無効な jsonSchemaMode の拒否を検証するテストが存在する"
+      ],
+      "implementation_notes": "R6, R7 を実装。既存の jsonOutputFlag, systemPromptFlag と同列に追加",
+      "test_strategy": "specs/249-json-schema-profile-props/tests/ で config バリデーションの受け入れ・拒否を検証",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ]
+}

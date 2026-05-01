@@ -1,0 +1,41 @@
+{
+  "R1": [
+    "249-json-schema-profile-props.test.js > 249: builtin profile jsonSchemaFlag/jsonSchemaMode properties > R1: claude/opus has jsonSchemaFlag '--json-schema' and jsonSchemaMode 'inline'",
+    "249-json-schema-profile-props.test.js > 249: builtin profile jsonSchemaFlag/jsonSchemaMode properties > R1: claude/sonnet has jsonSchemaFlag '--json-schema' and jsonSchemaMode 'inline'"
+  ],
+  "R2": [
+    "249-json-schema-profile-props.test.js > 249: builtin profile jsonSchemaFlag/jsonSchemaMode properties > R2: codex/gpt-5.4 has jsonSchemaFlag '--output-schema' and jsonSchemaMode 'file'",
+    "249-json-schema-profile-props.test.js > 249: builtin profile jsonSchemaFlag/jsonSchemaMode properties > R2: codex/gpt-5.3 has jsonSchemaFlag '--output-schema' and jsonSchemaMode 'file'"
+  ],
+  "R3": [
+    "249-json-schema-profile-props.test.js > 249: jsonSchemaFlag() method removed from Provider classes > R3: ClaudeProvider does not have jsonSchemaFlag method",
+    "249-json-schema-profile-props.test.js > 249: jsonSchemaFlag() method removed from Provider classes > R3: CodexProvider does not have jsonSchemaFlag method"
+  ],
+  "R4": [
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R4/R8: inline mode — schema is passed inline as JSON string",
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R4/R8: file mode — schema is written to file and path is passed",
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R4/R8: fmtFallback — no jsonSchemaFlag means fallback is prepended to prompt"
+  ],
+  "R5": [
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R5/R8: cross-provider — codex command with jsonSchemaMode 'inline' uses inline",
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R5/R8: cross-provider — non-codex command with jsonSchemaMode 'file' uses file",
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R5: default jsonSchemaMode is 'inline' when not specified"
+  ],
+  "R6": [
+    "249-json-schema-profile-props.test.js > 249: config schema accepts jsonSchemaFlag/jsonSchemaMode > R6: accepts valid jsonSchemaFlag string",
+    "249-json-schema-profile-props.test.js > 249: config schema accepts jsonSchemaFlag/jsonSchemaMode > R6: accepts valid jsonSchemaMode 'inline'",
+    "249-json-schema-profile-props.test.js > 249: config schema accepts jsonSchemaFlag/jsonSchemaMode > R6: accepts valid jsonSchemaMode 'file'",
+    "249-json-schema-profile-props.test.js > 249: config schema accepts jsonSchemaFlag/jsonSchemaMode > R6: rejects invalid jsonSchemaMode value"
+  ],
+  "R7": null,
+  "R8": [
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R4/R8: inline mode — schema is passed inline as JSON string",
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R4/R8: file mode — schema is written to file and path is passed",
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R4/R8: fmtFallback — no jsonSchemaFlag means fallback is prepended to prompt",
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R5/R8: cross-provider — codex command with jsonSchemaMode 'inline' uses inline",
+    "249-json-schema-profile-props.test.js > 249: _buildInvocation jsonSchema via profile properties > R5/R8: cross-provider — non-codex command with jsonSchemaMode 'file' uses file"
+  ],
+  "R9": [
+    "249-json-schema-profile-props.test.js > 249: all builtin profiles have jsonSchemaFlag and jsonSchemaMode > R9: every builtin profile key has both properties"
+  ]
+}

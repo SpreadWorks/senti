@@ -1,0 +1,113 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../249-json-schema-profile-props/draft-review.md  |  38 ++\n specs/249-json-schema-profile-props/draft.json     | 123 ++++++\n specs/249-json-schema-profile-props/flow.json      | 435 +++++++++++++++++++++\n specs/249-json-schema-profile-props/issue-log.json | 149 +++++++\n specs/249-json-schema-profile-props/issue.md       |  12 +\n specs/249-json-schema-profile-props/qa.md          |   9 +\n specs/249-json-schema-profile-props/spec-review.md |  28 ++\n specs/249-json-schema-profile-props/spec.json      | 182 +++++++++\n specs/249-json-schema-profile-props/spec.md        |  99 +++++\n specs/249-json-schema-profile-props/tasks/T-1.md   |  19 +\n specs/249-json-schema-profile-props/tasks/T-2.md   |  22 ++\n specs/249-json-schema-profile-props/tasks/T-3.md   |  21 +\n .../tests/249-json-schema-profile-props.test.js    | 312 +++++++++++++++\n .../tests/test-map.json                            |  41 ++\n src/lib/agent.js                                   |   6 +-\n src/lib/config.js                                  |   2 +\n src/lib/provider.js                                |  23 +-\n src/lib/types.js                                   |   2 +\n 18 files changed, 1505 insertions(+), 18 deletions(-)",
+      "commits": [
+        "feat: feature/249-json-schema-profile-props"
+      ]
+    },
+    "retro": {
+      "total": 8,
+      "done": 7,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 1,
+      "rate": 0.88,
+      "notes": "static evaluation from test-map.json",
+      "requirements": [
+        {
+          "desc": "`ClaudeProvider.builtinProfiles()` の各エントリに `jsonSchemaFlag: \"--json-schema\"` と `jsonSchemaMode: \"inline\"` プロパティを追加する",
+          "status": "done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "`CodexProvider.builtinProfiles()` の各エントリに `jsonSchemaFlag: \"--output-schema\"` と `jsonSchemaMode: \"file\"` プロパティを追加する",
+          "status": "done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "`Provider` 基底クラスおよび `ClaudeProvider`/`CodexProvider`/`UserProvider` から `jsonSchemaFlag()` メソッドを削除する",
+          "status": "done",
+          "note": "2 test(s)"
+        },
+        {
+          "desc": "`agent.js` の `_buildInvocation` で `provider.jsonSchemaFlag()` 呼び出しを `profile.jsonSchemaFlag` プロパティ参照に置き換える。`jsonSchemaFlag` が falsy の場合は既存の `fmtFallback` パスを維持する",
+          "status": "done",
+          "note": "3 test(s)"
+        },
+        {
+          "desc": "`agent.js` の `_buildInvocation` で `provider.constructor.key === 'codex'` 分岐を `profile.jsonSchemaMode === 'file'` に置き換える。未指定時は `'inline'` として扱う",
+          "status": "done",
+          "note": "3 test(s)"
+        },
+        {
+          "desc": "`config.js` の `agent.providers` additionalProperties に `jsonSchemaFlag: { type: \"string\" }` と `jsonSchemaMode: { type: \"string\", enum: [\"file\", \"inline\"] }` を追加する",
+          "status": "done",
+          "note": "4 test(s)"
+        },
+        {
+          "desc": "`src/lib/types.js` の `AgentProvider` typedef に `jsonSchemaFlag?: string` と `jsonSchemaMode?: \"file\"|\"inline\"` を追加する",
+          "status": "n/a",
+          "note": "testing not required"
+        },
+        {
+          "desc": "`specs/249-json-schema-profile-props/tests/` に jsonSchemaMode: 'inline'（schema がインラインで渡される）、jsonSchemaMode: 'file'（schema がファイルパスで渡される）、jsonSchemaFlag なし + fmtFallback あり（fallback がプロンプトに prepend される）、および cross-provider（codex command + inline mode、非 codex command + file mode）のテストケースを追加する",
+          "status": "unverified",
+          "note": "no tests mapped"
+        },
+        {
+          "desc": "`specs/249-json-schema-profile-props/tests/` で builtin profile に `jsonSchemaFlag` と `jsonSchemaMode` プロパティが含まれることを検証し、config バリデーションで有効な値の受け入れと無効な `jsonSchemaMode` の拒否を検証するテストを追加する",
+          "status": "done",
+          "note": "1 test(s)"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 249408,
+      "output": 67790,
+      "cacheRead": 2298549,
+      "cacheCreation": 201382,
+      "cost": 1.6408612,
+      "callCount": 14,
+      "durationMs": 1290975,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 240472
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 342837
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 357965
+        },
+        {
+          "phase": "gate",
+          "durationMs": 192775
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 156926
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/249-json-schema-profile-props\n    18 files changed, 1505 insertions(+), 18 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ███████░ 88%  (7 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 0\n    agent calls ................. 14\n    input tokens ................ 249,408\n    output tokens ............... 67,790\n    cache-read tokens ........... 2,298,549\n    cache-create tokens ......... 201,382\n    cost ........................ $1.6409\n    duration (total) ............ 1291.0s\n      review-draft .............. 240.5s\n      gate-draft ................ 342.8s\n      review-spec ............... 358.0s\n      gate ...................... 192.8s\n      gate-impl ................. 156.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

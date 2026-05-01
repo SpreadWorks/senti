@@ -28,6 +28,8 @@
  * @property {string[]} args     - コマンド引数（{{PROMPT}} プレースホルダー対応）
  * @property {number} [timeout]  - タイムアウト (秒)
  * @property {string} [systemPromptFlag] - system prompt フラグ (例: "--system-prompt", "--system-prompt-file")
+ * @property {string} [jsonSchemaFlag] - JSON schema フラグ (例: "--json-schema", "--output-schema")
+ * @property {"file"|"inline"} [jsonSchemaMode] - schema 渡し方式 ("file": ファイルパス, "inline": インライン JSON)
  */
 
 /**

@@ -187,6 +187,8 @@ const CONFIG_SCHEMA = {
               args: { type: "array" },
               systemPromptFlag: { type: "string" },
               jsonOutputFlag: { type: "string" },
+              jsonSchemaFlag: { type: "string" },
+              jsonSchemaMode: { type: "string", enum: ["file", "inline"] },
             },
           },
         },

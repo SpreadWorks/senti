@@ -152,13 +152,13 @@ class Agent {
       ? `${systemPrompt}\n\n${prompt}`
       : prompt;
 
-    // jsonSchema handling: provider-specific flag or fmtFallback
+    // jsonSchema handling: profile-property-based flag or fmtFallback
     const jsonSchema = options.jsonSchema ?? null;
-    const schemaFlag = jsonSchema ? provider.jsonSchemaFlag() : null;
+    const schemaFlag = jsonSchema ? (profile.jsonSchemaFlag || null) : null;
     const schemaSuffix = [];
     let pendingSchemaWrite = null;
     if (jsonSchema && schemaFlag) {
-      if (provider.constructor.key === "codex") {
+      if (profile.jsonSchemaMode === "file") {
         const schemaPath = path.join(this._paths.agentWorkDir, `schema-${Date.now()}.json`);
         pendingSchemaWrite = { path: schemaPath, content: JSON.stringify(jsonSchema) };
         schemaSuffix.push(schemaFlag, schemaPath);

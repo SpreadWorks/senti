@@ -1,0 +1,154 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses exactly one concern: migrating jsonSchemaFlag and jsonSchemaMode from Provider class methods to profile properties, and removing the hardcoded provider key dependency in agent.js. The scope.out explicitly defers unrelated work (systemPromptFlag/workDirFlag migration, docs updates) to separate issues.; Unambiguous Requirements — Requirements name exact files, concrete property names (jsonSchemaFlag, jsonSchemaMode), specific string values ('file' | 'inline'), and specific operations (add, delete, remove). No vague adjectives such as 'appropriate', 'fast', or 'easy' are present.; Complete Context — Each requirement identifies a specific file and a concrete action (e.g., 'builtinProfiles() に jsonSchemaFlag, jsonSchemaMode プロパティ追加' with exact values in QA). Two independent reviewers could verify whether an implementation satisfies these requirements without subjective interpretation.; No Hardcoded Secrets — The draft discusses CLI flag strings ('--json-schema', '--output-schema') and enum values, not API keys, passwords, or tokens. No secrets are present.; Prioritize Requirements — scopeVerification.in contains 7 items (more than 3) and each is explicitly tagged [must] or [should], satisfying the prioritization requirement.; Impact on Existing Features — The impactOnExisting section explicitly covers agent.js _buildInvocation, config.json providers schema, Provider.jsonSchemaFlag() method callers, and preset acceptance test fixtures, including the explicit note that existing configs are unaffected.; Present Recommendations with Reasoning — Every QA entry leads with a concrete recommended answer followed by 'evidence' (code grep results / line references) and 'why' (rationale tied to existing patterns or alpha policy). The basis is clearly stated for each recommendation.; Explore Before Asking — QA entries cite specific grep results (e.g., 'grep -rn jsonSchemaFlag src/'), line numbers, and code observations. openQuestions is empty, indicating all questions were resolved through codebase exploration rather than deferred to the user.; Proactively Raise Related Implications — The draft proactively raises several non-obvious implications: profile full-replacement semantics causing silent omission when user overrides a builtin profile without specifying jsonSchemaFlag/jsonSchemaMode (QA 7), temporary schema file cleanup behavior (QA 11), and the behavior matrix covering all flag/mode combinations (QA 4).; Confirm Brainstorm vs. Decision Before Critiquing — The spec carries approval.approved: true with a confirmedAt timestamp, indicating it is a decided specification, not a brainstorm. Alternatives are captured in the 'considered' fields of each QA entry, showing they were evaluated before the decision was made.; Capture Digressions in draft.md — The draft is focused and self-contained. openQuestions is empty, the scope boundary (in/out) is explicit, and no unresolved tangents are visible. There is no evidence of uncaptured digressions.; Draft Stays at Requirements Level — The draft crosses into implementation detail in two places. (1) analysis.proposedApproach step 3 prescribes internal code changes: 'provider.jsonSchemaFlag() 呼び出しと provider.constructor.key 分岐を除去' — this describes internal control-flow removal, not a requirement. (2) The answer field of QA item 4 contains a six-case behavior matrix enumerating internal conditional logic (e.g., 'jsonSchemaFlag 未設定 + options.jsonSchema あり + fmtFallback あり → fmtFallback をプロンプトに prepend'). The guardrail exempts evidence/why/considered from this rule, but answer fields and proposedApproach are not exempted. These should be rewritten as observable requirements (e.g., 'when no jsonSchemaFlag is configured and a schema is provided, the fmtFallback value shall appear prepended to the prompt') rather than internal algorithm descriptions.; Backward-Compatible CLI Interface — This refactoring does not change any CLI commands or options. impactOnExisting explicitly states the external interface (call method signature and return value) is unchanged. No migration plan is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-01T02:02:35.738Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft crosses into implementation detail in two places. (1) analysis.proposedApproach step 3 prescribes internal code changes: 'provider.jsonSchemaFlag() 呼び出しと provider.constructor.key 分岐を除去' — this describes internal control-flow removal, not a requirement. (2) The answer field of QA item 4 contains a six-case behavior matrix enumerating internal conditional logic (e.g., 'jsonSchemaFlag 未設定 + options.jsonSchema あり + fmtFallback あり → fmtFallback をプロンプトに prepend'). The guardrail exempts evidence/why/considered from this rule, but answer fields and proposedApproach are not exempted. These should be rewritten as observable requirements (e.g., 'when no jsonSchemaFlag is configured and a schema is provided, the fmtFallback value shall appear prepended to the prompt') rather than internal algorithm descriptions."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Previously passed. The spec addresses a single concern: migrating jsonSchemaFlag/jsonSchemaMode from Provider methods to profile properties and removing the provider key hardcoding in agent.js. No new bundled concerns introduced.; Unambiguous Requirements — Previously passed. Scope items use [must]/[should] labels with specific, verifiable conditions (e.g., 'builtinProfiles() に jsonSchemaFlag, jsonSchemaMode プロパティ追加', 'provider.constructor.key 分岐を除去'). No vague adjectives like 'appropriate' or 'fast'.; Complete Context — Previously passed. The behavior matrix in QA #4 specifies exact input/output combinations for all 6 cases, and QA entries cite specific file locations and line numbers. Two independent reviewers would converge on the same implementation.; No Hardcoded Secrets — Previously passed. The spec contains no API keys, passwords, tokens, or other secrets. The hardcoded values discussed are CLI flag strings ('--json-schema', '--output-schema') and mode enums ('file', 'inline'), not credentials.; Prioritize Requirements — Previously passed. The scopeVerification.in section has 7 items, each prefixed with [must] or [should]. All items are explicitly prioritized.; Impact on Existing Features — Previously passed. The impactOnExisting section lists 4 specific impact points covering agent.js, config.json, Provider.jsonSchemaFlag() deletion, and preset acceptance test fixtures. Each entry notes whether external interfaces change.; Present Recommendations with Reasoning — Previously passed. Every QA entry includes a direct answer, evidence (grep results, line numbers), and why field citing project policies (alpha-version policy, existing patterns like jsonOutputFlag). No open questions remain unresolved.; Explore Before Asking — Previously passed. All QA entries cite specific grep commands and line-number evidence (e.g., 'grep -rn jsonSchemaFlag src/', 'agent.js:157', 'config.js:189') demonstrating codebase exploration was done before asking.; Proactively Raise Related Implications — Previously passed. The spec proactively raises implications including: profile merge semantics (whole-replace vs deep merge), file-mode schema cleanup lifecycle, UserProvider method deletion consistency, and behavior under missing jsonSchemaMode.; Confirm Brainstorm vs. Decision Before Critiquing — Previously passed. The spec is in a decided state (approval.approved: true). No ambiguity between brainstorming and final decisions.; Capture Digressions in draft.md — Previously passed. No digressions are evident; the spec stays on the provider-profile migration topic throughout. The scope.out section captures adjacent concerns (cleanup, docs) as deliberately excluded rather than as digressions.; Draft Stays at Requirements Level — The analysis.proposedApproach section describes internal implementation details that are outside the permitted scope boundary: (1) specific data structure changes ('builtinProfiles() の各エントリに jsonSchemaFlag プロパティを追加'); (2) internal control flow ('agent.js は resolved.profile オブジェクトから読み取り、provider.constructor.key 分岐を除去'); (3) API design ('Provider 基底クラスおよび全サブクラスから jsonSchemaFlag() メソッドを削除'). The guardrail permits mentioning file paths and function names as context, and exempts code references in QA evidence/why/considered fields — but proposedApproach is neither of those. Requirements should state what the system must do (e.g., 'jsonSchemaFlag and jsonSchemaMode shall be configurable per-profile in config.json') without prescribing internal method removal, data-structure layout, or control-flow ordering.; Backward-Compatible CLI Interface — Previously passed. This refactoring is purely internal; it changes no CLI commands, options, or their meanings. The public interface of the agent call method is explicitly noted as unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-01T02:04:21.752Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The analysis.proposedApproach section describes internal implementation details that are outside the permitted scope boundary: (1) specific data structure changes ('builtinProfiles() の各エントリに jsonSchemaFlag プロパティを追加'); (2) internal control flow ('agent.js は resolved.profile オブジェクトから読み取り、provider.constructor.key 分岐を除去'); (3) API design ('Provider 基底クラスおよび全サブクラスから jsonSchemaFlag() メソッドを削除'). The guardrail permits mentioning file paths and function names as context, and exempts code references in QA evidence/why/considered fields — but proposedApproach is neither of those. Requirements should state what the system must do (e.g., 'jsonSchemaFlag and jsonSchemaMode shall be configurable per-profile in config.json') without prescribing internal method removal, data-structure layout, or control-flow ordering."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses one coherent concern: migrating jsonSchemaFlag/jsonSchemaMode from Provider methods to profile properties and removing the provider.constructor.key hardcoded branch. scope.out explicitly excludes analogous migrations (systemPromptFlag, workDirFlag) as separate Issues.; Task Single Responsibility — T-1 adds profile properties; T-2 deletes the old methods and rewrites the calling code (two sides of the same migration, tightly coupled); T-3 adds schema/typedef entries. Each task's acceptance criteria span only related modules within its stated concern.; Unambiguous Requirements — All requirements state specific, literal values or actions: exact flag strings ('--json-schema', '--output-schema'), exact mode strings ('file'|'inline'), specific method names to delete, and specific property names/types to add. No vague adjectives are used.; Complete Context — Requirements are concrete enough that two independent reviewers would agree on PASS/FAIL. R4 specifies 'falsy → fmtFallback path'; R5 specifies default 'inline'; R6 specifies enum values and links to a test for rejection. No subjective terms like 'improve' or 'clean up' appear.; REQ Diff-Verifiability — Every requirement is verifiable by diffing source files: presence/absence of method definitions, presence of object properties with specific literal values, config schema shape, and typedef annotations. No requirement depends on future behavior guarantees or out-of-diff invariants.; No Hardcoded Secrets — The spec contains no API keys, passwords, tokens, or secrets. The strings '--json-schema' and '--output-schema' are CLI flag names, not credentials.; No Silent Error Swallowing — R4 explicitly preserves the fmtFallback path when jsonSchemaFlag is falsy, ensuring the code does not silently discard the case. No empty catch blocks or silent discard patterns are introduced or described.; Prioritize Requirements — Nine requirements are listed; each carries an explicit priority: R1–R7 are 'must', R8–R9 are 'should'. All requirements exceed the three-item threshold and all have assigned priorities.; Impact on Existing Features — The spec does not include an explicit section listing impact on existing features or a clear statement that no existing features are affected. The constraints note that agent.call()'s external interface is unchanged and the acceptance criteria require existing tests to pass, but neither constitutes an explicit impact assessment as required by this article.; Bounded Resource Usage — The spec involves property additions, method deletions, and conditional branching rewrites. No recursive processing, retry loops, or bulk data loading is introduced.; Spec Includes Test Strategy — Each task has a test_strategy field. R8 and R9 describe specific test cases (inline mode, file mode, fmtFallback path, cross-provider cases, builtin profile property presence). The corresponding test files are named explicitly.; Synthesize Draft, Do Not Copy — The spec is structured as a design document with background, decisions, evidence citations, and alternatives considered. The content is abstracted and organized, not a raw copy of draft material. No content appears to be invented beyond what the source evidence supports.; Record Unresolved Points as Open Questions — open_questions is empty and there are no unresolved points presented as resolved. Each decision in the decisions section cites concrete evidence from the existing codebase (e.g., 'UserProvider.jsonSchemaFlag() は this._profile.jsonSchemaFlag を返す').; Include 'Why This Approach' Rationale — The decisions section provides four entries, each with a rationale and a concrete evidence reference. The alternatives_considered section explains why four alternative approaches were rejected. The background section contextualizes the problem.; Spec Test Coverage — The guardrail requires test code to be written under specs/<specid>/tests/. The spec places all tests in tests/unit/lib/ (agent-service.test.js, provider.test.js, types.test.js), which does not satisfy the required test directory convention.; Backward-Compatible CLI Interface — No CLI commands or options are added, removed, or changed in meaning. The spec is a purely internal refactoring. The constraints explicitly state agent.call()'s external interface is unchanged, so no migration plan is needed.; Exit Code Contract — No CLI commands are added or modified. The spec refactors internal provider and agent logic only. Exit code behavior is not affected.; Validate User Input at Entry Point — No new user-facing CLI arguments are introduced. R6 adds jsonSchemaFlag and jsonSchemaMode to the config.js JSON Schema validation, which is the entry-point validation layer for user-provided configuration values, including enum enforcement for jsonSchemaMode.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-01T02:16:04.790Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "The spec does not include an explicit section listing impact on existing features or a clear statement that no existing features are affected. The constraints note that agent.call()'s external interface is unchanged and the acceptance criteria require existing tests to pass, but neither constitutes an explicit impact assessment as required by this article."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "The guardrail requires test code to be written under specs/<specid>/tests/. The spec places all tests in tests/unit/lib/ (agent-service.test.js, provider.test.js, types.test.js), which does not satisfy the required test directory convention."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Previously passed. The spec addresses one coherent concern: migrating jsonSchemaFlag/jsonSchemaMode from Provider methods to profile properties and removing the hardcoded provider.constructor.key branching.; Task Single Responsibility — Previously passed. T-1 adds profile properties, T-2 deletes methods and updates the caller (tightly coupled, shared concern), T-3 updates schema and typedef (same new properties). No unrelated concerns bundled.; Unambiguous Requirements — Previously passed. All requirements specify exact property names, values, and file locations with no vague adjectives.; Complete Context — Previously passed. Each requirement is precise enough (e.g., R1 specifies exact property values '--json-schema' and 'inline') that two reviewers would agree on compliance.; REQ Diff-Verifiability — Previously passed. All requirements (property additions, method deletions, code rewrites) are verifiable via diff and test execution.; No Hardcoded Secrets — Previously passed. No API keys, passwords, or tokens are present in the spec.; No Silent Error Swallowing — Previously passed. The spec is a refactor of conditional branching; no error handling changes are introduced.; Prioritize Requirements — Previously passed. Nine requirements exist and each is assigned a priority (must/should).; Impact on Existing Features — The clarifications section explicitly enumerates impact: agent.call() interface is unchanged, existing configs remain valid, Provider.jsonSchemaFlag() has no callers outside agent.js, presets/templates are unaffected.; Bounded Resource Usage — Previously passed. No recursive processing, retry loops, or bulk data loading is introduced.; Spec Includes Test Strategy — Previously passed. R8 and R9 specify test cases and locations; each task includes a test_strategy field.; Synthesize Draft, Do Not Copy — Previously passed. The spec organizes design decisions, evidence, and alternatives into structured sections rather than copying raw notes.; Record Unresolved Points as Open Questions — Previously passed. Design decisions cite code evidence. Open questions section is empty (no fabricated answers).; Include 'Why This Approach' Rationale — Previously passed. The decisions and alternatives_considered sections explain why profile properties over methods, why 'file'|'inline' enum over boolean, and why scope was limited to jsonSchemaFlag only.; Spec Test Coverage — R8 and R9 — the requirements that mandate writing tests under specs/249-json-schema-profile-props/tests/ — are both assigned 'should' priority. The guardrail states test code MUST be written under specs/<specid>/tests/. Marking the only test-writing requirements as 'should' leaves open the possibility that no spec-scoped tests are written, violating the MUST obligation. R8 and R9 should be elevated to 'must'.; Backward-Compatible CLI Interface — Previously passed. No CLI commands are removed or changed; the only interface change is an internal Provider method deletion with no external callers.; Exit Code Contract — Previously passed. No new CLI commands are added or modified; exit-code semantics are unaffected.; Validate User Input at Entry Point — Previously passed. No new CLI arguments are introduced. R6 adds config schema validation for the new optional properties.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-01T02:32:00.168Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "R8 and R9 — the requirements that mandate writing tests under specs/249-json-schema-profile-props/tests/ — are both assigned 'should' priority. The guardrail states test code MUST be written under specs/<specid>/tests/. Marking the only test-writing requirements as 'should' leaves open the possibility that no spec-scoped tests are written, violating the MUST obligation. R8 and R9 should be elevated to 'must'."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-01T02:41:01.568Z"
+    },
+    {
+      "step": "gate",
+      "reason": "evaluations[0]: unknown guardrail_id \"R1\"",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-01T02:42:33.769Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "evaluations[0]: unknown guardrail_id \"R1\"",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-01T02:53:03.664Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-01T02:54:00.126Z"
+    }
+  ]
+}

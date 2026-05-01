@@ -25,10 +25,6 @@ class Provider {
     return null;
   }
 
-  jsonSchemaFlag() {
-    return null;
-  }
-
   workDirFlag() {
     return null;
   }
@@ -40,10 +36,6 @@ class Provider {
 
 class ClaudeProvider extends Provider {
   static key = "claude";
-
-  jsonSchemaFlag() {
-    return "--json-schema";
-  }
 
   parse(stdout) {
     const parsed = JSON.parse(stdout);
@@ -87,11 +79,15 @@ class ClaudeProvider extends Provider {
         command: "claude",
         args: ["-p", "{{PROMPT}}", "--model", "opus", "--output-format", "json"],
         jsonOutputFlag: "--output-format json",
+        jsonSchemaFlag: "--json-schema",
+        jsonSchemaMode: "inline",
       },
       "claude/sonnet": {
         command: "claude",
         args: ["-p", "{{PROMPT}}", "--model", "sonnet", "--output-format", "json"],
         jsonOutputFlag: "--output-format json",
+        jsonSchemaFlag: "--json-schema",
+        jsonSchemaMode: "inline",
       },
     };
   }
@@ -99,10 +95,6 @@ class ClaudeProvider extends Provider {
 
 class CodexProvider extends Provider {
   static key = "codex";
-
-  jsonSchemaFlag() {
-    return "--output-schema";
-  }
 
   parse(stdout) {
     const lines = stdout.trim().split("\n");
@@ -143,11 +135,15 @@ class CodexProvider extends Provider {
         command: "codex",
         args: ["exec", "--json", "-m", "gpt-5.4", "--full-auto", "{{PROMPT}}"],
         jsonOutputFlag: "--json",
+        jsonSchemaFlag: "--output-schema",
+        jsonSchemaMode: "file",
       },
       "codex/gpt-5.3": {
         command: "codex",
         args: ["exec", "--json", "-m", "gpt-5.3-codex", "--full-auto", "{{PROMPT}}"],
         jsonOutputFlag: "--json",
+        jsonSchemaFlag: "--output-schema",
+        jsonSchemaMode: "file",
       },
     };
   }
@@ -163,9 +159,6 @@ class UserProvider extends Provider {
   }
   systemPromptFlag() {
     return this._profile.systemPromptFlag || null;
-  }
-  jsonSchemaFlag() {
-    return this._profile.jsonSchemaFlag || null;
   }
   workDirFlag() {
     return this._profile.workDirFlag || null;
