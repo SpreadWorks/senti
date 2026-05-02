@@ -40,12 +40,12 @@ src/spec/commands/    (cli)
 
 | Directory | Files | Role |
 | --- | --- | --- |
-| src/flow | 62 | controller, lib, flow-review-command, model, Flow command registry and hooks, cli, req-map-helper, Gate evaluation pipeline, flow-retro-command, Review subprocess dispatcher, flow-set-step-command, test-header-validator |
+| src/flow | 62 | controller, lib, Flow phase review executor, Flow state machine definition, Flow command registry and hooks, cli, Next-action resolver, req-map-helper, Guardrail gate executor, flow-retro-command, Review subprocess wrapper, flow-set-step-command, test-header-validator |
 | src/docs | 45 | controller, cli, model, lib |
 | src/lib | 34 | lib, AI agent invocation layer, route, model, Config loader and path helpers, config, middleware, view, AI provider abstraction, Shared type declarations placeholder |
 | src | 10 | cli |
 | src/check | 3 | cli |
-| src/metrics | 1 | Metrics aggregation command |
+| src/metrics | 1 | Metrics aggregator |
 | src/spec | 1 | cli |
 <!-- {{/data}} -->
 

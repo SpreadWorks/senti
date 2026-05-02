@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-01T05:18:48.119Z",
+  "analyzedAt": "2026-05-02T09:42:14.325Z",
   "package": {
     "entries": [
       {
@@ -2459,9 +2459,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "9ea4aa5dcf4751f99c44e76afc5f9b9b",
-        "lines": 1500,
-        "mtime": "2026-05-01T05:18:43.675Z",
+        "hash": "1445f860279b41fc79b55f04dcff8557",
+        "lines": 1504,
+        "mtime": "2026-05-02T09:24:13.453Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2573,31 +2573,32 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Flow review command orchestrating draft, spec, and test review phases with AI agents.",
-        "detail": "Implements multiple review pipelines (runDraftReview, runSpecReview, runTestReview, runReview) that load spec.json, build prompts via PromptBuilder, and dispatch to configured AI agents. Uses guardrails filtered by phase, collects diffs with git merge-base resolution, excludes docs/output paths, and writes review artifacts (review.md, spec-review.md, test-review.md, draft-review.md) to the spec directory. Supports loop review for large file sets via LOOP_REVIEW_THRESHOLD and groups files by diff content to chunk requests. Defines REVIEW_PHASE_NODE_MAP linking phases to flow definition nodes and enforces VALID_PHASES invariants.",
-        "chapter": "cli_commands",
-        "role": "flow-review-command",
+        "summary": "Flow review command orchestrating draft, spec, and test phase reviews against guardrails and diffs.",
+        "detail": "Defines runReview as the entry point, dispatching to runDraftReview, runSpecReview, or runTestReview based on phase. Each sub-flow loads spec/draft JSON, builds AI prompts with guardrails and requirements, parses proposals/gaps, and writes formatted markdown reports (review.md, spec-review.md, test-review.md). Implements loop review for large diffs (LOOP_REVIEW_THRESHOLD=10 files) with per-file grouping, cross-checking, and proposal expansion. Resolves merge bases via git, collects committed/staged/untracked diffs with path exclusions, and uses PromptBuilder + ensureAgent for AI calls. Exposes FlowReviewCommand class extending Command for integration with the flow dispatcher.",
+        "chapter": "internal_design",
+        "role": "Flow phase review executor",
         "enrich": {
-          "processedAt": "2026-05-01T05:19:20.433Z",
+          "processedAt": "2026-05-02T09:43:02.905Z",
           "attempts": 1
         },
         "keywords": [
-          "flow review",
-          "draft review",
-          "spec review",
-          "test review",
-          "AI agent",
+          "review",
+          "flow",
+          "draft",
+          "spec",
+          "test",
           "guardrail",
+          "proposals",
           "diff",
-          "prompt builder",
-          "merge-base"
+          "loop review",
+          "gap analysis"
         ]
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "bee96169b41c1e3c0e64d037d75a29a0",
-        "lines": 543,
-        "mtime": "2026-04-30T05:19:03.761Z",
+        "hash": "c14ffc9ce9404fdf99452b20eae13f7f",
+        "lines": 611,
+        "mtime": "2026-05-02T09:24:13.454Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2615,6 +2616,9 @@
           "promoteNextPendingLeaf",
           "derivePrereqs",
           "findBranchForLeaf",
+          "isPositiveInteger",
+          "isPlainObject",
+          "createMaxAttempts",
           "createPlanReviewNode",
           "assertDepth",
           "findBranchIndexForLeaf",
@@ -2644,23 +2648,25 @@
         "extends": null,
         "usedBy": null,
         "id": "2cb27b93",
-        "summary": "Defines the canonical SDD flow graph as nested FlowNode trees with helpers for traversal, prerequisite resolution, and step initialization.",
-        "detail": "Exports FLOW_DEFINITION and TASK_DEFINITION as frozen arrays of FlowNode instances, capped at MAX_DEPTH=3. Provides createPlanReviewNode for constructing review sub-nodes with shared context kinds. Helper functions walk the tree to derive phase maps, leaf IDs, gate phase entries, prerequisites, and active/in-progress nodes, supporting nested step state management. buildInitialNestedSteps and buildInitialTaskSteps convert the static definition into mutable status trees. promoteNextPendingLeaf and findFirstPendingLeaf drive forward progression through the flow, while resolveNodeFor and findBranchForLeaf provide id-based lookups.",
+        "summary": "Flow definition module declaring the nested FlowNode tree, task definition, and traversal/resolution helpers.",
+        "detail": "Introduces FlowNode plus ScalarMaxAttempts and ModeMaxAttempts classes that encode auto/manual retry budgets resolvable via context. Exports immutable FLOW_DEFINITION and TASK_DEFINITION arrays describing the planning, implementation, and review hierarchy with up to MAX_DEPTH=3 nesting. Provides traversal utilities: collectGatePhaseEntries, collectLeafIds, derivePhaseMap, resolveNodeFor, findActiveNode, findInProgressLeaf, deriveNextAction, plus pending/in-progress promotion helpers. Includes builders for initial nested step trees and prerequisite derivation across branches. Uses the OOP/discriminated-class pattern recommended in CLAUDE.md to enforce invariants in constructors.",
         "chapter": "internal_design",
-        "role": "model",
+        "role": "Flow state machine definition",
         "enrich": {
-          "processedAt": "2026-04-30T05:51:02.221Z",
+          "processedAt": "2026-05-02T09:43:02.905Z",
           "attempts": 1
         },
         "keywords": [
-          "flow definition",
           "FlowNode",
-          "phase graph",
-          "state machine",
-          "prerequisites",
-          "leaf nodes",
-          "task definition",
-          "nested steps"
+          "FLOW_DEFINITION",
+          "TASK_DEFINITION",
+          "maxAttempts",
+          "auto",
+          "manual",
+          "leaf",
+          "traversal",
+          "prereqs",
+          "state machine"
         ]
       },
       {
@@ -3124,9 +3130,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "25c814778d3c07bb56ad4e5f96a9ef1b",
-        "lines": 134,
-        "mtime": "2026-04-28T03:42:02.205Z",
+        "hash": "84c8cb547aee91b6f920b5dcf1179c66",
+        "lines": 141,
+        "mtime": "2026-05-02T09:24:13.454Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -3149,21 +3155,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "FlowCommand for `flow get next-action` that resolves the current step, loads its JSON schema, and returns the next instruction payload.",
-        "detail": "Determines the active task/step from flow state, falls back to a `completed` action when no work remains, and throws NO_RULE_FOR_STEP when a step lacks a definition entry. Loads per-step output schemas from `src/flow/schemas/` (overridable via SDD_FORGE_NEXT_ACTION_SCHEMA_DIR) and merges step instructions via getStepInstructions. Builds a context descriptor describing input kinds and resolved paths so callers know which artifacts to read. Drives the skill loop by signaling whether the next action requires user approval.",
-        "chapter": "cli_commands",
-        "role": "controller",
+        "summary": "GetNextActionCommand resolving the next executable flow step with instructions, schema, and context descriptors.",
+        "detail": "Loads JSON output schemas from a configurable directory (SDD_FORGE_NEXT_ACTION_SCHEMA_DIR) for action validation. findCurrentTask locates the active task; buildContextDescriptor packages required context kinds and resolved paths. The execute method handles three terminal states — no task, completed flow, or active step — and throws NO_RULE_FOR_STEP when the definition lacks a matching entry. Integrates with promoteNextPending and getStepInstructions to produce the unified next-action envelope consumed by the harness.",
+        "chapter": "internal_design",
+        "role": "Next-action resolver",
         "enrich": {
-          "processedAt": "2026-04-28T08:50:48.960Z",
+          "processedAt": "2026-05-02T09:43:02.905Z",
           "attempts": 1
         },
         "keywords": [
           "next action",
-          "step instructions",
-          "output schema",
-          "skill dispatcher",
-          "context descriptor",
-          "flow get"
+          "step",
+          "instructions",
+          "schema",
+          "task",
+          "context",
+          "FlowCommand",
+          "resolver"
         ]
       },
       {
@@ -3951,9 +3959,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "8865fb0da690ee533f44a6de5f9cb39e",
-        "lines": 1887,
-        "mtime": "2026-04-30T14:58:10.851Z",
+        "hash": "39c0c06189300aa5bbb5457619b4efb8",
+        "lines": 1889,
+        "mtime": "2026-05-02T09:24:13.454Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -3962,6 +3970,7 @@
           "EvaluationSchemaError",
           "parseEvaluationResponse",
           "buildGateReport",
+          "resolveRetryMax",
           "countGateRetry",
           "warnGateRetryBudget",
           "checkRetryBelowMax",
@@ -3994,7 +4003,6 @@
           "buildGuardrailPromptFromFiltered",
           "extractJsonCandidate",
           "checkGuardrail",
-          "resolveRetryMax",
           "readGateRetryCount",
           "isRetryHistoryGateEntry",
           "formatRetryHistory",
@@ -4039,6 +4047,7 @@
           "EvaluationSchemaError",
           "parseEvaluationResponse",
           "buildGateReport",
+          "resolveRetryMax",
           "countGateRetry",
           "warnGateRetryBudget",
           "checkRetryBelowMax",
@@ -4075,25 +4084,25 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Gate execution engine that runs guardrail evaluations against drafts, specs, and implementation diffs, with retry tracking and repeated-failure escalation.",
-        "detail": "Defines `RunGateCommand` plus `runGateFlow` which builds guardrail prompts via `PromptBuilder`, invokes the AI agent with a JSON evaluation schema, and parses results through `parseEvaluationResponse` enforcing strict schema validation. Tracks retries per phase against `node.maxAttempts`, implements `assertNoRepeatedFail` to escalate when identical fail pairs reoccur, and applies flip-overrides when previously-passed guardrails reappear on identical content. Collects committed/uncommitted/untracked diffs (with size and count caps), splits per-file diffs, and routes through phase-specific executors (draft/spec/task-spec/diff-based). Side effects include issue-log appends, file-map reconciliation, and step-status updates via container-resolved commands.",
+        "summary": "Gate execution engine performing guardrail evaluation, diff collection, and retry budget enforcement across flow phases.",
+        "detail": "RunGateCommand dispatches to phase-specific executors (draft, spec, task-spec, diff-based) and integrates PromptBuilder, loadMergedGuardrails, and filterByPhase to construct AI evaluation prompts with EvaluationSchemaError-validated JSON responses. Implements retry tracking via PHASE_TO_LEVEL, RETRY_TRACKED_PHASES, countGateRetry, and Envelope-based fail/pass envelopes; checkNoProgressSinceLastFail and assertNoRepeatedFail prevent stagnation by comparing headSha/worktreeHash and failure pair keys against issueLog history. Collects committed, uncommitted, and untracked diffs (with size/file caps UNTRACKED_DEFAULT_MAX_FILES=500) and reconciles per-requirement diffs through fileMap. Provides side-effect hooks (completeTask, promoteNextTask, mergeOverview) and applies flip-overrides when previously passing guardrails regress on identical content.",
         "chapter": "internal_design",
-        "role": "Gate evaluation pipeline",
+        "role": "Guardrail gate executor",
         "enrich": {
-          "processedAt": "2026-05-01T02:55:29.411Z",
+          "processedAt": "2026-05-02T09:43:02.905Z",
           "attempts": 1
         },
         "keywords": [
           "gate",
-          "guardrail evaluation",
-          "retry tracking",
-          "repeated fail",
+          "guardrail",
+          "evaluation",
+          "retry",
+          "diff",
+          "issueLog",
+          "Envelope",
           "flip override",
-          "diff collection",
-          "JSON schema",
-          "issue log",
           "escalation",
-          "flow phase"
+          "phase"
         ]
       },
       {
@@ -4453,9 +4462,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "9c659cd5435e6e9003b9e3bfc1c5e401",
-        "lines": 171,
-        "mtime": "2026-04-30T14:51:12.685Z",
+        "hash": "fb2cfdfb9e5995442697f6251011cdb4",
+        "lines": 172,
+        "mtime": "2026-05-02T09:24:13.454Z",
         "className": "run-review",
         "methods": [
           "runCmdWithRetry",
@@ -4484,23 +4493,24 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4e97204",
-        "summary": "Wrapper command that spawns the review.js subprocess for each review phase and parses its stdout/stderr into structured next-action envelopes.",
-        "detail": "Defines `RunReviewCommand` (FlowCommand subclass) that resolves the absolute path to `flow/commands/review.js`, validates the requested phase against `VALID_REVIEW_PHASES`, and shells out via `runCmd` with retry support (`runCmdWithRetry`, default 2 retries with 3s delay). The `PHASE_REVIEW_PARSERS` table maps each phase (draft/spec/test) to count patterns and label rules, with `parsePhaseReviewOutput` extracting issue counts and producing the appropriate next-state transition. Throws when the phase is unknown or when stdout doesn't match the expected count pattern, surfacing parse failures explicitly.",
+        "summary": "RunReviewCommand wrapper that shells out to the review.js subprocess and parses phase-specific output with retry support.",
+        "detail": "Defines PHASE_REVIEW_PARSERS for draft/spec/test phases and parsePhaseReviewOutput which extracts counts, labels, and next-action hints from stdout. parseTestReviewOutput, parseSpecReviewOutput, and parseProposalReviewOutput specialize the generic parser. runCmdWithRetry retries failing AI invocations up to DEFAULT_RETRY_COUNT=2 with DEFAULT_RETRY_DELAY_MS=3000 backoff. The execute method validates phase against VALID_REVIEW_PHASES, locates review.js relative to PKG_DIR, invokes it via runCmd, and returns the parsed envelope to the flow dispatcher.",
         "chapter": "internal_design",
-        "role": "Review subprocess dispatcher",
+        "role": "Review subprocess wrapper",
         "enrich": {
-          "processedAt": "2026-05-01T02:55:29.411Z",
+          "processedAt": "2026-05-02T09:43:02.905Z",
           "attempts": 1
         },
         "keywords": [
-          "review runner",
+          "review",
           "subprocess",
           "retry",
-          "phase parser",
-          "next action",
-          "FlowCommand",
-          "stdout parsing",
-          "review phases"
+          "parser",
+          "phase",
+          "draft",
+          "spec",
+          "test",
+          "RunReviewCommand"
         ]
       },
       {
@@ -6949,9 +6959,9 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "58d13170276984e9d9e255aa5751f2bd",
+        "hash": "e07917dd490cc352ba567c463b0804d0",
         "lines": 681,
-        "mtime": "2026-05-01T00:33:54.970Z",
+        "mtime": "2026-05-02T09:24:13.455Z",
         "className": "token",
         "methods": [
           "computePhaseSummary",
@@ -7017,25 +7027,25 @@
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "summary": "Metrics token command that aggregates per-spec finalize.json data into phase-grouped tables of token usage, cost, cache hit rate, and difficulty.",
-        "detail": "`runToken` walks the project's `specs/` directory (capped at `MAX_FLOW_FILES`=5000), reading each `flow.json`, computing `specDifficulty` from spec.json, tests, and issue-log evidence, and applying difficulty-normalized precision in `[PRECISION_MIN, PRECISION_MAX]`. Aggregates rows by `(phase, date)` via `buildRowsFromMetrics`, with caching to `.tmp/metrics.json` keyed by `CACHE_VERSION`=2 and `maxFinalizedAt` for incremental rebuilds. Renders output in three formats — text (padded table limited to `TEXT_MAX_ROWS`=7), JSON (with `phaseSummary`), and CSV — selectable via `--format`. Computes per-phase summary metrics including cache hit percentages, cost totals, and duration formatting.",
+        "summary": "Token metrics command aggregating per-phase token usage, cost, cache hits, and difficulty across flow.json files.",
+        "detail": "Walks specs/ for flow.json files (capped at MAX_FLOW_FILES=5000), normalizes per-phase metrics, and computes spec difficulty using DIFFICULTY_BASELINES with PRECISION_NORMALIZER/MIN/MAX clamping. Caches results to .sdd-forge/output/metrics.json with CACHE_VERSION=2 and skips rebuilds when maxFinalizedAt is unchanged. Renders output as text (fixed-width table, TABLE_WIDTH=107), JSON (with phaseSummary), or CSV via formatText/formatJson/formatCsv. Computes derived stats including cache hit rate, cost, request chars, requirement count, test file count, and issue-log entries; sorts rows by phase order then date.",
         "chapter": "cli_commands",
-        "role": "Metrics aggregation command",
+        "role": "Metrics aggregator",
         "enrich": {
-          "processedAt": "2026-05-01T02:55:29.411Z",
+          "processedAt": "2026-05-02T09:43:02.905Z",
           "attempts": 1
         },
         "keywords": [
           "metrics",
-          "token usage",
-          "cache hit rate",
+          "token",
           "cost",
-          "spec difficulty",
-          "phase summary",
+          "cache",
+          "difficulty",
+          "phase",
           "CSV",
           "JSON",
-          "incremental cache",
-          "finalized"
+          "flow.json",
+          "aggregation"
         ]
       },
       {
@@ -10093,9 +10103,9 @@
     ],
     "summary": {
       "total": 287,
-      "totalMethods": 967
+      "totalMethods": 970
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-01T05:19:20.433Z"
+  "enrichedAt": "2026-05-02T09:43:02.905Z"
 }
