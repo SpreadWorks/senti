@@ -1,0 +1,108 @@
+{
+  "spec": "specs/250-review-attempt-modes/spec.json",
+  "date": "2026-05-02T07:29:36.758Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "FlowNode.maxAttempts must accept either a positive integer or a mode-specific object with positive integer auto and manual properties.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "FlowNode construction must reject invalid maxAttempts values: 0, negative numbers, floats, NaN, non-number values, partial mode objects, and non-integer auto/manual values.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Scalar maxAttempts values must resolve to the same number in both auto and manual modes for any node.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Mode-specific maxAttempts values must resolve to auto when flow.autoApprove is true and manual when flow.autoApprove is false or absent.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Next-action envelopes and retry consumers must receive a resolved numeric maxAttempts value, never a raw mode-specific object.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Plan review nodes must be configured as review-draft { auto: 1, manual: 5 }, review-spec { auto: 3, manual: 3 }, and review-test { auto: 3, manual: 3 }.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Gate nodes and implementation review must keep their existing scalar retry limits.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "When review-draft reaches its maxAttempts limit, the flow must stop with review-draft incomplete and must not present approval or confirmation choices; approval choices are only available after review-draft PASS.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Regression tests should cover scalar compatibility, mode-specific validation, auto/manual resolution, configured review node values, resolved next-action payloads, retry consumers, and review-draft exhaustion behavior.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Task-scope next-action payloads must expose resolved numeric maxAttempts and task review must keep its existing scalar retry limit.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "run-review subprocess retry behavior must remain classified as mechanical process retry and must not consume node maxAttempts or retry review verdict FAIL as a subprocess failure.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "If dispatcher skill template text changes to describe retry limits, the template must describe resolved numeric maxAttempts from next-action and sdd-forge upgrade must be run.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "When flow get next-action has step:null because there is no active flow or all steps are complete, the response must omit maxAttempts.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "The dispatcher skill template must read retry limits from the resolved numeric maxAttempts in the next-action envelope when enforcing retry limits, and sdd-forge upgrade must be run after template edits.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Review prompt files for plan review, implementation review, and task review must describe retry limits as resolved numeric maxAttempts rather than raw definition values.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Review command maxAttempts resolution for draft/spec/test phases must use loaded flow.autoApprove or an equivalent explicit mode input.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Gate retry maxAttempts resolution must include flow/task scope or current task context before selecting a node definition.",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "Mode-specific maxAttempts object values must be plain objects with exactly own auto and manual keys, no extra keys, and positive-integer values.",
+      "status": "done",
+      "note": "1 test(s)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 18,
+    "done": 18,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "static evaluation from file headers"
+  }
+}

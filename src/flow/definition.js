@@ -13,6 +13,64 @@
 
 const MAX_DEPTH = 3;
 
+function isPositiveInteger(value) {
+  return Number.isInteger(value) && value > 0;
+}
+
+class ScalarMaxAttempts {
+  constructor(value) {
+    if (!isPositiveInteger(value)) {
+      throw new Error("invalid maxAttempts: expected a positive integer");
+    }
+    this.value = value;
+    Object.freeze(this);
+  }
+
+  resolve() {
+    return this.value;
+  }
+}
+
+class ModeMaxAttempts {
+  constructor(value) {
+    if (!isPlainObject(value)) {
+      throw new Error("invalid maxAttempts: expected exactly own auto/manual keys");
+    }
+    const keys = Object.keys(value);
+    if (
+      keys.length !== 2
+      || !Object.hasOwn(value, "auto")
+      || !Object.hasOwn(value, "manual")
+    ) {
+      throw new Error("invalid maxAttempts: expected exactly own auto/manual keys");
+    }
+    if (!isPositiveInteger(value.auto) || !isPositiveInteger(value.manual)) {
+      throw new Error("invalid maxAttempts: auto/manual must be positive integers");
+    }
+    this.auto = value.auto;
+    this.manual = value.manual;
+    Object.freeze(this);
+  }
+
+  resolve(context = {}) {
+    return context.autoApprove === true ? this.auto : this.manual;
+  }
+}
+
+function isPlainObject(value) {
+  return (
+    value !== null
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && Object.getPrototypeOf(value) === Object.prototype
+  );
+}
+
+function createMaxAttempts(value) {
+  if (typeof value === "number") return new ScalarMaxAttempts(value);
+  return new ModeMaxAttempts(value);
+}
+
 class FlowNode {
   constructor({
     id,
@@ -37,7 +95,7 @@ class FlowNode {
     this.outputSchemaRef = outputSchemaRef;
     this.requiresApproval = requiresApproval;
     this.skippable = skippable;
-    this.maxAttempts = maxAttempts;
+    this.maxAttempts = createMaxAttempts(maxAttempts);
     this.fallbacks = fallbacks ? Object.freeze([...fallbacks]) : null;
     this.children = children ? Object.freeze(children.map((c) => Object.freeze(c))) : null;
     this.sideEffects = sideEffects ? Object.freeze([...sideEffects]) : null;
@@ -46,11 +104,21 @@ class FlowNode {
 
   get isBranch() { return this.children != null; }
   get isLeaf() { return this.children == null; }
+
+  resolveMaxAttempts(context = {}) {
+    return this.maxAttempts.resolve(context);
+  }
 }
 
 const GATE_IMPL_SIDE_EFFECTS = Object.freeze(["completeTask", "promoteNextTask", "mergeOverview"]);
+const PLAN_REVIEW_MAX_ATTEMPTS_BY_ID = Object.freeze({
+  "review-draft": Object.freeze({ auto: 1, manual: 5 }),
+  "review-spec": Object.freeze({ auto: 3, manual: 3 }),
+  "review-test": Object.freeze({ auto: 3, manual: 3 }),
+});
 
 function createPlanReviewNode({ id, label, contextKinds }) {
+  const maxAttempts = PLAN_REVIEW_MAX_ATTEMPTS_BY_ID[id];
   return new FlowNode({
     id,
     label,
@@ -58,7 +126,7 @@ function createPlanReviewNode({ id, label, contextKinds }) {
     instructionsKey: `plan.${id}`,
     contextKinds,
     outputSchemaRef: "next-action/review.schema.json",
-    maxAttempts: 3,
+    maxAttempts,
   });
 }
 
@@ -380,7 +448,7 @@ export function findInProgressLeaf(steps, depth = 0) {
  * Returns `{ action, instructionsKey, contextKinds, outputSchemaRef, requiresApproval, maxAttempts }`
  * for the step identified by `scope` ("flow" or "task") and `stepId`.
  */
-export function deriveNextAction(scope, stepId) {
+export function deriveNextAction(scope, stepId, context = {}) {
   const def = scope === "task" ? TASK_DEFINITION : FLOW_DEFINITION;
   const node = resolveNodeFor(def, stepId);
   if (!node) return null;
@@ -390,7 +458,7 @@ export function deriveNextAction(scope, stepId) {
     contextKinds: [...node.contextKinds],
     outputSchemaRef: node.outputSchemaRef,
     requiresApproval: node.requiresApproval,
-    maxAttempts: node.maxAttempts,
+    maxAttempts: node.resolveMaxAttempts(context),
     sideEffects: node.sideEffects ? [...node.sideEffects] : null,
   };
 }

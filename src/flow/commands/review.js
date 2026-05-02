@@ -58,9 +58,13 @@ import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
 
 const REVIEW_PHASE_NODE_MAP = { draft: "review-draft", spec: "review-spec", test: "review-test" };
 
-function getReviewMaxAttempts(phase) {
-  const nodeId = REVIEW_PHASE_NODE_MAP[phase] || "review";
-  return resolveNodeFor(FLOW_DEFINITION, nodeId).maxAttempts;
+function getReviewMaxAttempts(phase, attemptContext) {
+  const nodeId = REVIEW_PHASE_NODE_MAP[phase];
+  if (!nodeId) throw new Error(`unsupported review maxAttempts phase: ${phase}`);
+  if (!attemptContext || typeof attemptContext !== "object") {
+    throw new Error(`review maxAttempts resolution requires explicit context for phase: ${phase}`);
+  }
+  return resolveNodeFor(FLOW_DEFINITION, nodeId).resolveMaxAttempts(attemptContext);
 }
 
 const LOOP_REVIEW_THRESHOLD = 10;
@@ -926,7 +930,7 @@ async function runTestReview(root, flow, config, dryRun) {
   // Step 2-3: Compare and retry loop (using common runReviewLoop)
   let testFiles = collectTestFiles(root, specDir);
 
-  const maxAttempts = getReviewMaxAttempts("test");
+  const maxAttempts = getReviewMaxAttempts("test", flow);
   const { history: gapHistory, finalIssues: finalGaps, verdict } = await runReviewLoop({
     maxRetries: maxAttempts,
     label: "test-review",

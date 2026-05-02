@@ -1,0 +1,77 @@
+{
+  "devType": "feature",
+  "goal": "Allow flow node retry limits to resolve from either scalar or mode-specific maxAttempts values, with draft review using a lower auto-mode retry budget while scalar nodes keep their current behavior.",
+  "analysis": {
+    "problem": "Review nodes currently expose a single fixed maxAttempts value. That makes draft review in auto mode use the same retry budget as manual mode even though auto retries are self-correction loops by the same agent, while manual retries include user judgment.",
+    "proposedApproach": "Allow maxAttempts to be either a scalar positive integer or a mode-specific object with positive integer auto and manual keys. Scalar values are used as-is for any node; mode-specific values resolve from flow.autoApprove. Public next-action and retry consumers receive the resolved numeric value. Configure review-draft as { auto: 1, manual: 5 }, review-spec as { auto: 3, manual: 3 }, and review-test as { auto: 3, manual: 3 }. Leave gate nodes and implementation review scalar so their retry budgets do not change. Specify that only draft review exhaustion stops without an extra confirmation prompt.",
+    "validation": "The approach addresses the root problem by reducing draft auto self-correction to one attempt while preserving manual draft review flexibility. It preserves existing scalar limits for nodes that do not opt into mode-specific behavior, keeps public retry contracts numeric, and limits the added no-confirmation exhaustion behavior to review-draft as requested."
+  },
+  "scopeVerification": {
+    "in": [
+      "must: FlowNode.maxAttempts accepts scalar positive integers and mode-specific { auto, manual } positive-integer values.",
+      "must: Scalar maxAttempts values are used directly for any node, including review nodes configured with a number.",
+      "must: Mode-specific maxAttempts values require both auto and manual positive-integer keys and resolve by flow.autoApprove.",
+      "must: Public next-action and retry consumers receive a resolved numeric maxAttempts value for the current mode.",
+      "must: Initial mode-specific settings: review-draft { auto: 1, manual: 5 }, review-spec { auto: 3, manual: 3 }, review-test { auto: 3, manual: 3 }.",
+      "must: Propagation of autoApprove into maxAttempts consumers that build next-action envelopes or enforce retry limits.",
+      "must: review-draft behavior when the maxAttempts limit is reached: no additional approval/confirmation options are presented.",
+      "should: Unit coverage for scalar and mode-specific maxAttempts resolution and invalid values."
+    ],
+    "out": [
+      "Changing gate retry limits; gate nodes stay scalar.",
+      "Changing implementation code review retry limits; implementation review stays scalar.",
+      "Applying the no-additional-confirmation exhaustion rule to review-spec or review-test.",
+      "Adding external dependencies."
+    ]
+  },
+  "impactOnExisting": [
+    "Manual draft review can run up to five attempts instead of the current fixed three.",
+    "Auto draft review stops after one attempt instead of using the current fixed three.",
+    "Spec review and test review keep an effective limit of three attempts in both modes while using the new object form.",
+    "Nodes that keep scalar maxAttempts, including gate nodes and implementation review, retain their existing retry budgets.",
+    "Existing consumers of next-action maxAttempts continue to see a number rather than a raw mode-specific object."
+  ],
+  "qa": [
+    {
+      "question": "draft review 上限到達時の仕様はこれで確定しますか？",
+      "answer": "はい。review-draft は maxAttempts 到達時に停止するが、追加のユーザー確認は出さない。step は done にしない。承認・確認の選択肢は PASS 後だけ表示する。この追加確認なし要件は review-draft のみに適用し、review-spec / review-test には広げない。",
+      "evidence": "src/flow/prompts/plan/review-draft.md defines maxAttempts reached as STOP and Do not set step done, and places the approval choice under Approval (after verdict=PASS). src/flow/commands/review.js runDraftReview only writes draft-review.md and prints PASS/FAIL. User selected review-draft only for no-additional-confirmation on 2026-05-01.",
+      "why": "This preserves the existing exhaustion stop, defines the observable control-flow boundary, and limits the added UI requirement to the phase the user confirmed.",
+      "considered": "Advancing to the next step after exhaustion was rejected because unresolved draft review issues would be bypassed. Applying the no-confirmation rule to review-spec/review-test was offered and not selected."
+    },
+    {
+      "question": "maxAttempts の形式・値 invariant・解決規則はどうしますか？",
+      "answer": "maxAttempts は positive integer または { auto: positive integer, manual: positive integer }。number は全 mode でその値を使う。object は flow.autoApprove=true なら auto、false または未設定なら manual を使う。object で auto/manual の片方が欠ける値、0、負数、float、NaN、非 number は FlowNode 構築時に不正とする。",
+      "evidence": "src/flow/definition.js currently constructs FlowNode instances and stores maxAttempts; project rules require meaningful value invariants to be represented by classes and constructor invariants.",
+      "why": "Attempts are loop limits, so positive integers are the only meaningful values. Resolving missing autoApprove as manual preserves the existing default mode where autoApprove is absent or false.",
+      "considered": "Allowing partial objects or non-positive values was rejected because it would make retry behavior ambiguous or non-terminating."
+    },
+    {
+      "question": "mode 別値を設定する review node と値はどうしますか？",
+      "answer": "review-draft: { auto: 1, manual: 5 }; review-spec: { auto: 3, manual: 3 }; review-test: { auto: 3, manual: 3 }. Implementation code review remains scalar 3.",
+      "evidence": "User specified the three plan review values in the review-draft follow-up on 2026-05-01; src/flow/definition.js currently has review-draft, review-spec, review-test via createPlanReviewNode and implementation review as a separate review node.",
+      "why": "This targets the draft auto-loop problem while keeping spec/test effective limits unchanged at three in both modes. Implementation review is outside the requested plan review configuration.",
+      "considered": "Applying mode-specific values to implementation review was offered but not selected."
+    },
+    {
+      "question": "downstream consumers receive raw maxAttempts or resolved maxAttempts?",
+      "answer": "Consumers receive a resolved numeric maxAttempts for the current mode. The internal definition may store the mode-specific object, but next-action envelopes, review retry loops, and gate retry resolution use a number.",
+      "evidence": "deriveNextAction currently returns maxAttempts to next-action envelope builders, and review/gate code consumes maxAttempts as retry counts. Keeping that boundary numeric preserves the existing consumer contract.",
+      "why": "This hides mode-resolution details behind the flow definition layer and prevents downstream code from branching on raw object shape.",
+      "considered": "Exposing the raw object in envelopes was rejected because it would force all consumers and schemas to understand both representations."
+    },
+    {
+      "question": "既存の scalar gate limit は変更しますか？",
+      "answer": "変更しない。gate-draft, gate, gate-impl は number のまま既存値を使う。",
+      "evidence": "src/flow/definition.js currently defines gate-draft maxAttempts 10, gate maxAttempts 20, and gate-impl maxAttempts 5; draft scope excludes changing gate retry limits.",
+      "why": "The issue concerns review retry behavior. Keeping gate nodes scalar avoids unrelated behavior changes while still allowing the shared resolver API to handle scalar values consistently.",
+      "considered": "Making all gate nodes mode-specific was rejected as outside the Issue #307 concern."
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-01T03:35:14Z",
+    "notes": "manual approval; updated during review-draft to address review gaps"
+  }
+}

@@ -24,4 +24,4 @@
      5. Re-run tests to confirm no regressions.
    - **If no proposals** (NO_PROPOSALS):
      - Display: "レビューの結果、修正の必要はありませんでした。"
-   - **Retry limit:** If review keeps producing new proposals beyond the definition's maxAttempts limit, STOP and return control to the user.
+   - **Retry limit:** If review keeps producing new proposals beyond the resolved numeric maxAttempts from next-action, STOP and return control to the user.

@@ -67,7 +67,8 @@ const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;
 
 /**
- * Run a command function with retry logic.
+ * Run a command function with mechanical subprocess retry logic.
+ * This does not consume the step retry budget; review verdict FAIL is handled separately.
  *
  * @param {function} cmdFn - Function that returns { ok, status, stdout, stderr, signal, killed }
  * @param {Object} [opts]

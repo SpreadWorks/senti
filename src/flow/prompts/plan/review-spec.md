@@ -4,6 +4,5 @@
    - The review does NOT modify spec.md or spec.json directly.
    - **If verdict=PASS** (no proposals): display "レビューの結果、修正の必要はありませんでした。" Then run `sdd-forge flow set step review-spec done`.
    - **If verdict=FAIL** (proposals exist): read spec-review.md and evaluate each proposal against the spec and codebase context. Reflect changes that are valid into the spec. Then re-run `sdd-forge flow run review --phase spec`.
-   - **Review loop:** repeat review → fix → re-review until verdict=PASS or maxAttempts reached.
-   - **maxAttempts reached:** STOP and return control to the user. Do not set step done.
-   - **On complete (verdict=PASS):** `sdd-forge flow set step review-spec done`
+   - **Review loop:** repeat review → fix → re-review until verdict=PASS or the resolved numeric maxAttempts from next-action is reached.
+   - **maxAttempts reached:** When the resolved numeric maxAttempts from next-action is reached, STOP and return control to the user. Do not set step done.

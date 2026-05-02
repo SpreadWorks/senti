@@ -2,6 +2,6 @@
    - The review generates a test design from spec requirements, compares against actual test code, and identifies gaps.
    - **If verdict=PASS** (no gaps): display "レビューの結果、修正の必要はありませんでした。" Then run `sdd-forge flow set step review-test done`.
    - **If verdict=FAIL** (gaps exist): display review summary and auto-fix test files. Then re-run `sdd-forge flow run review --phase test`.
-   - **Review loop:** repeat review → fix → re-review until verdict=PASS or maxAttempts reached.
-   - **maxAttempts reached:** STOP and return control to the user. Do not set step done.
+   - **Review loop:** repeat review → fix → re-review until verdict=PASS or the resolved numeric maxAttempts from next-action is reached.
+   - **maxAttempts reached:** When the resolved numeric maxAttempts from next-action is reached, STOP and return control to the user. Do not set step done.
    - **On complete (verdict=PASS):** `sdd-forge flow set step review-test done`

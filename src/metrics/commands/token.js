@@ -330,11 +330,11 @@ function computeMaxFinalizedAt(flowEntries) {
   return max;
 }
 
-async function isCacheFresh(cachePath, maxFinalizedAt) {
+async function isCacheFresh(metricsOutputPath, maxFinalizedAt) {
   if (!maxFinalizedAt) return false;
   let text;
   try {
-    text = await fs.readFile(cachePath, "utf8");
+    text = await fs.readFile(metricsOutputPath, "utf8");
   } catch (err) {
     if (err.code === "ENOENT") {
       // Cache miss on first run is expected; rebuild silently-but-visibly.
@@ -589,24 +589,24 @@ async function buildRows(flowEntries) {
   return sortRows([...rows.values()].map(finalizeRow));
 }
 
-async function readCacheRows(cachePath) {
-  const text = await fs.readFile(cachePath, "utf8");
+async function readCacheRows(metricsOutputPath) {
+  const text = await fs.readFile(metricsOutputPath, "utf8");
   const parsed = JSON.parse(text);
   if (!parsed || !Array.isArray(parsed.rows)) {
-    throw new Error(`invalid cache format: ${cachePath}`);
+    throw new Error(`invalid cache format: ${metricsOutputPath}`);
   }
   return sortRows(parsed.rows);
 }
 
-async function writeCache(cachePath, rows, maxFinalizedAt) {
-  await fs.mkdir(path.dirname(cachePath), { recursive: true });
+async function writeCache(metricsOutputPath, rows, maxFinalizedAt) {
+  await fs.mkdir(path.dirname(metricsOutputPath), { recursive: true });
   const payload = {
     version: CACHE_VERSION,
     generatedAt: new Date().toISOString(),
     maxFinalizedAt,
     rows: sortRows(rows),
   };
-  await fs.writeFile(cachePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  await fs.writeFile(metricsOutputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 }
 
 function render(rows, format) {
@@ -637,7 +637,7 @@ async function runToken(rawArgs, container) {
 
   const root = container.get("root");
   const specsDir = path.join(root, "specs");
-  const cachePath = path.join(root, ".tmp", "metrics.json");
+  const metricsOutputPath = path.join(root, ".sdd-forge", "output", "metrics.json");
 
   let specsStat;
   try {
@@ -661,12 +661,12 @@ async function runToken(rawArgs, container) {
   }
   const maxFinalizedAt = computeMaxFinalizedAt(flowEntries);
   let rows;
-  const canReuseCache = await isCacheFresh(cachePath, maxFinalizedAt);
+  const canReuseCache = await isCacheFresh(metricsOutputPath, maxFinalizedAt);
   if (canReuseCache) {
-    rows = await readCacheRows(cachePath);
+    rows = await readCacheRows(metricsOutputPath);
   } else {
     rows = await buildRows(flowEntries);
-    await writeCache(cachePath, rows, maxFinalizedAt);
+    await writeCache(metricsOutputPath, rows, maxFinalizedAt);
   }
 
   process.stdout.write(`${render(rows, format)}\n`);

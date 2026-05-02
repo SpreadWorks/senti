@@ -1,0 +1,167 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/250-review-attempt-modes/draft-review.md     |   28 +\n specs/250-review-attempt-modes/draft.json          |   77 ++\n specs/250-review-attempt-modes/file-map.json       |   64 ++\n specs/250-review-attempt-modes/flow.json           | 1208 ++++++++++++++++++++\n specs/250-review-attempt-modes/issue-log.json      |  130 +++\n specs/250-review-attempt-modes/issue.md            |   76 ++\n specs/250-review-attempt-modes/qa.md               |    9 +\n specs/250-review-attempt-modes/review.md           |   95 ++\n specs/250-review-attempt-modes/spec-review.md      |   28 +\n specs/250-review-attempt-modes/spec.json           |  613 ++++++++++\n specs/250-review-attempt-modes/spec.md             |  263 +++++\n .../tests/max-attempts-modes.test.js               |  293 +++++\n specs/250-review-attempt-modes/tests/spec.md       |  203 ++++\n src/flow/commands/review.js                        |   12 +-\n src/flow/definition.js                             |   76 +-\n src/flow/lib/get-next-action.js                    |    9 +-\n src/flow/lib/run-gate.js                           |   24 +-\n src/flow/lib/run-review.js                         |    3 +-\n src/flow/prompts/impl/review.md                    |    2 +-\n src/flow/prompts/plan/review-draft.md              |    4 +-\n src/flow/prompts/plan/review-spec.md               |    5 +-\n src/flow/prompts/plan/review-test.md               |    4 +-\n src/flow/prompts/task/review.md                    |    2 +-\n src/metrics/commands/token.js                      |   24 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |    2 +-\n 25 files changed, 3211 insertions(+), 43 deletions(-)",
+      "commits": [
+        "Implement mode-specific review maxAttempts"
+      ]
+    },
+    "retro": {
+      "total": 18,
+      "done": 18,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "static evaluation from file headers",
+      "requirements": [
+        {
+          "desc": "FlowNode.maxAttempts must accept either a positive integer or a mode-specific object with positive integer auto and manual properties.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "FlowNode construction must reject invalid maxAttempts values: 0, negative numbers, floats, NaN, non-number values, partial mode objects, and non-integer auto/manual values.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Scalar maxAttempts values must resolve to the same number in both auto and manual modes for any node.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Mode-specific maxAttempts values must resolve to auto when flow.autoApprove is true and manual when flow.autoApprove is false or absent.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Next-action envelopes and retry consumers must receive a resolved numeric maxAttempts value, never a raw mode-specific object.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Plan review nodes must be configured as review-draft { auto: 1, manual: 5 }, review-spec { auto: 3, manual: 3 }, and review-test { auto: 3, manual: 3 }.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Gate nodes and implementation review must keep their existing scalar retry limits.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "When review-draft reaches its maxAttempts limit, the flow must stop with review-draft incomplete and must not present approval or confirmation choices; approval choices are only available after review-draft PASS.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Regression tests should cover scalar compatibility, mode-specific validation, auto/manual resolution, configured review node values, resolved next-action payloads, retry consumers, and review-draft exhaustion behavior.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Task-scope next-action payloads must expose resolved numeric maxAttempts and task review must keep its existing scalar retry limit.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "run-review subprocess retry behavior must remain classified as mechanical process retry and must not consume node maxAttempts or retry review verdict FAIL as a subprocess failure.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "If dispatcher skill template text changes to describe retry limits, the template must describe resolved numeric maxAttempts from next-action and sdd-forge upgrade must be run.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "When flow get next-action has step:null because there is no active flow or all steps are complete, the response must omit maxAttempts.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "The dispatcher skill template must read retry limits from the resolved numeric maxAttempts in the next-action envelope when enforcing retry limits, and sdd-forge upgrade must be run after template edits.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Review prompt files for plan review, implementation review, and task review must describe retry limits as resolved numeric maxAttempts rather than raw definition values.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Review command maxAttempts resolution for draft/spec/test phases must use loaded flow.autoApprove or an equivalent explicit mode input.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Gate retry maxAttempts resolution must include flow/task scope or current task context before selecting a node definition.",
+          "status": "done",
+          "note": "1 test(s)"
+        },
+        {
+          "desc": "Mode-specific maxAttempts object values must be plain objects with exactly own auto and manual keys, no extra keys, and positive-integer values.",
+          "status": "done",
+          "note": "1 test(s)"
+        }
+      ]
+    },
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 5,
+      "question": 3,
+      "issueLog": 4
+    },
+    "tokenMetrics": {
+      "input": 510505,
+      "output": 93404,
+      "cacheRead": 2714984,
+      "cacheCreation": 1615262,
+      "cost": 8.258515099999999,
+      "callCount": 57,
+      "durationMs": 2115673,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 75991
+        },
+        {
+          "phase": "review",
+          "durationMs": 231698
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 57199
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 656951
+        },
+        {
+          "phase": "gate",
+          "durationMs": 77229
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 175085
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 841520
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Implement mode-specific review maxAttempts\n    25 files changed, 3211 insertions(+), 43 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (18 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 5\n    Q&A ......................... 3\n    issue-log ................... 4\n    agent calls ................. 57\n    input tokens ................ 510,505\n    output tokens ............... 93,404\n    cache-read tokens ........... 2,714,984\n    cache-create tokens ......... 1,615,262\n    cost ........................ $8.2585\n    duration (total) ............ 2115.7s\n      review-draft .............. 76.0s\n      review .................... 231.7s\n      gate-draft ................ 57.2s\n      review-spec ............... 657.0s\n      gate ...................... 77.2s\n      review-test ............... 175.1s\n      gate-impl ................. 841.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

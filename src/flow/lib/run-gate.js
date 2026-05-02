@@ -52,14 +52,13 @@ export { resolveGateStepId };
  */
 export async function executeGateSideEffects(ctx, phase) {
   const { deriveNextAction } = await import("../definition.js");
-  const stepId = resolveGateStepId(phase);
-  const scope = ctx.flowManager?.load()?.currentTaskId != null ? "task" : "flow";
-  const derived = deriveNextAction(scope, stepId);
-  const sideEffects = derived?.sideEffects;
-  if (!sideEffects || sideEffects.length === 0) return;
-
   const fm = ctx.flowManager;
   const state = fm.load();
+  const stepId = resolveGateStepId(phase);
+  const scope = state?.currentTaskId != null ? "task" : "flow";
+  const derived = deriveNextAction(scope, stepId, state);
+  const sideEffects = derived?.sideEffects;
+  if (!sideEffects || sideEffects.length === 0) return;
 
   for (const effect of sideEffects) {
     try {
@@ -805,11 +804,14 @@ import { resolveNodeFor, FLOW_DEFINITION, TASK_DEFINITION } from "../definition.
 
 const RETRY_TRACKED_PHASES = Object.freeze(["draft", "spec", "task-impl", "integration"]);
 
-function resolveRetryMax(config, phase) {
+export function resolveRetryMax(retryContext = {}, phase) {
   const stepId = resolveGateStepId(phase);
-  const node = resolveNodeFor(FLOW_DEFINITION, stepId)
-    || resolveNodeFor(TASK_DEFINITION, stepId);
-  return node?.maxAttempts ?? 5;
+  const flowState = retryContext.flowState || retryContext;
+  const scope = retryContext.scope
+    || (flowState?.currentTaskId != null ? "task" : "flow");
+  const definition = scope === "task" ? TASK_DEFINITION : FLOW_DEFINITION;
+  const node = resolveNodeFor(definition, stepId);
+  return node?.resolveMaxAttempts(flowState) ?? 5;
 }
 
 /**
@@ -872,7 +874,7 @@ function formatRetryHistory(root, specPath, limit, phase) {
 export function warnGateRetryBudget(ctx, phase) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) return;
   const used = readGateRetryCount(ctx.flowState, phase);
-  const max = resolveRetryMax(ctx.config, phase);
+  const max = resolveRetryMax(ctx, phase);
   const remaining = Math.max(0, max - used);
   process.stderr.write(
     `[sdd-forge] gate retry: ${used}/${max} used (${remaining} remaining) [AI-FAIL=${used}] for phase "${phase}"\n`,
@@ -888,7 +890,7 @@ export function warnGateRetryBudget(ctx, phase) {
 export function checkRetryBelowMax(ctx, phase) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
   const count = readGateRetryCount(ctx.flowState, phase);
-  const max = resolveRetryMax(ctx.config, phase);
+  const max = resolveRetryMax(ctx, phase);
   if (count < max) return null;
 
   const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max, phase);

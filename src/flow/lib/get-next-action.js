@@ -103,9 +103,15 @@ export default class GetNextActionCommand extends FlowCommand {
       return { taskId: null, step: null, action: "completed", instructions: null, context: null, output_schema: null, requires_approval: false };
     }
 
-    const derived = deriveNextAction(target.scope, target.stepId);
+    const derived = deriveNextAction(target.scope, target.stepId, state);
     if (!derived) {
       throw new Error(`NO_RULE_FOR_STEP: ${target.scope}.${target.stepId} has no entry in definition`);
+    }
+
+    if (!Number.isSafeInteger(derived.maxAttempts) || derived.maxAttempts < 1) {
+      throw new Error(
+        `INVALID_MAX_ATTEMPTS: ${target.scope}.${target.stepId} did not resolve numeric maxAttempts`,
+      );
     }
 
     const output_schema = derived.outputSchemaRef
@@ -124,6 +130,7 @@ export default class GetNextActionCommand extends FlowCommand {
       context,
       output_schema,
       requires_approval: derived.requiresApproval === true,
+      maxAttempts: derived.maxAttempts,
     };
     if (state.autoUpgrade?.available === true) {
       result.autoUpgrade = state.autoUpgrade;
