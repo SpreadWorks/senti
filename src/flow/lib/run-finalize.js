@@ -141,23 +141,14 @@ export function runMigrationHook(root, specRelPath) {
 }
 
 /**
- * Post-commit hook implementation: run retro, generate report, commit artifacts.
+ * Post-commit hook implementation: generate report, commit artifacts.
+ * retro is no longer invoked here — it runs as a mainline impl-phase step
+ * before finalize-commit (spec 251).
  */
 export async function executeCommitPost(ctx) {
   const { root } = ctx;
   const state = ctx.flowState;
   const results = ctx._results || {};
-
-  // retro
-  try {
-    const RetroCommand = (await import("./run-retro.js")).default;
-    const retroResult = await new RetroCommand().run(container, { force: true });
-    const summary = retroResult?.artifacts?.summary;
-    const retroRequirements = retroResult?.artifacts?.requirements;
-    results.retro = { status: "done", ...(summary ? { summary } : {}), ...(retroRequirements ? { requirements: retroRequirements } : {}) };
-  } catch (e) {
-    results.retro = { status: "failed", message: String(e.message) };
-  }
 
   // report
   try {
