@@ -160,10 +160,9 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 
 <!-- include("@templates/partials/worktree-mode.md") -->
 - Before merge, consider running `git rebase <baseBranch>` in the worktree to incorporate upstream changes and avoid post-merge test failures.
-- The finalize phase is decomposed into 4 independent leaf steps driven by the dispatcher: `finalize-commit` → `finalize-merge` → `finalize-sync` → `finalize-cleanup`. Each step has its own CLI command (`sdd-forge flow run finalize-commit`, etc.) and prompt.
+- The finalize phase is decomposed into 4 independent leaf steps driven by the dispatcher: `finalize-commit` → `finalize-merge` → `finalize-sync` → `finalize-cleanup`. Each step has its own CLI command (`sdd-forge flow run finalize-commit`, etc.) and prompt. Each command's post hook normalizes its own step status to `done` on success — do not advance these steps manually.
 - **MUST: Do NOT run `sdd-forge flow run finalize-cleanup` in background.** Run it in the foreground and wait for it to complete before proceeding.
-- **MUST: After `sdd-forge flow run finalize-cleanup` completes in worktree mode**, the worktree directory is deleted by cleanup, invalidating the shell's cwd. Immediately run `cd <mainRepoPath>` to restore a valid working directory. Get `mainRepoPath` from `sdd-forge flow get resolve-context` (run this BEFORE finalize-cleanup).
-- **MUST: After `sdd-forge flow run finalize-cleanup` completes successfully (and the cwd has been restored to `mainRepoPath`)**, run `sdd-forge flow report show` and place the command's stdout verbatim inside a fenced code block so the user sees the finalize Report. The command reads the authoritative `report.json` via the `.sdd-forge/last-finalized-spec` pointer that finalize cleanup wrote. If `sdd-forge flow report show` exits non-zero, surface stderr to the user instead of fabricating report contents.
+- **MUST: After `sdd-forge flow run finalize-cleanup` completes successfully**, the response envelope's `data.report.text` field contains the finalize Report. Place that text verbatim inside a fenced code block so the user sees the Report. If `data.report` is `null`, an envelope `errors` entry with code `REPORT_MISSING` explains why — surface that warning to the user instead of fabricating Report contents. The cleanup command itself removes the worktree and writes `.sdd-forge/last-finalized-spec`; the next `sdd-forge` command runs from the main repository.
 
 ### Draft-return for mid-implementation task additions
 

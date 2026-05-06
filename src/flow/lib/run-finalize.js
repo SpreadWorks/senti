@@ -21,8 +21,6 @@ import {
 import { container } from "../../lib/container.js";
 import { POINTER_REL_PATH as LAST_FINALIZED_SPEC_POINTER_REL_PATH } from "./run-report-show.js";
 
-export const REPORT_SHOW_COMMAND = "sdd-forge flow report show";
-
 export function finalizeOnError(stepName, trigger) {
   return (ctx, err) => {
     try {
@@ -68,7 +66,7 @@ function buildFinalizePreflightError(err) {
     "Help:",
     "- This environment cannot write under .git (lock file creation failed).",
     "- Run finalize in a writable shell or with elevated permissions.",
-    "- Run: sdd-forge flow run finalize --help",
+    "- Run: sdd-forge flow run finalize-commit --help",
   ].join("\n");
   const e = new Error(msg);
   e.code = "FINALIZE_PREFLIGHT_FAILED";

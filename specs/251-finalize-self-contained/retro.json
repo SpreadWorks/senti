@@ -1,0 +1,128 @@
+{
+  "spec": "specs/251-finalize-self-contained/spec.json",
+  "date": "2026-05-06T19:21:43.147Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "registry.js の finalize-commit / finalize-merge / finalize-sync の post hook で command result status を flow step status に正規化する処理を追加する。'done'/'completed'/'skipped' → 'done'、'failed'/'preflight_failed' → 据え置き。finalize-cleanup は本体内で更新するため post hook では idempotent な再 set のみ。",
+      "status": "done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "merge 後の post hook (finalize-merge / finalize-sync / finalize-cleanup) は ctx.flowManager.forRoot(mainRepoPath) 経由で main repo 側 flow.json を更新する。worktree 側 flow.json は finalize-commit までしか更新しない。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "flow get next-action は authority 解決ルール (D4) に従う: (a) flow state metadata から worktree:true / mainRepoPath を取得、(b) main repo 側 specs/<id>/flow.json の存在をファイルシステムでチェック、(c) 存在すれば main authority、無ければ現 cwd 側 authority、(d) worktree 削除済みなら last-finalized-spec pointer fallback。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "finalize-cleanup の envelope の data に { path, text } を持つ report オブジェクトを含める。既存 nextCommand フィールドは廃止する。report 不在時は data.report = null + Envelope.addWarning('REPORT_MISSING', message) を呼ぶ (ok:true 維持)。render ロジックは flow report show と共通ヘルパーから呼ぶ。",
+      "status": "done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "finalize-cleanup 本体ロジックは transactional 順序で実行: (i) main repo の specs/<id>/flow.json で finalize-cleanup step を 'done' に更新 (working tree dirty)、(ii) git add + git commit を試行、(iii) commit 失敗時は step を 'in_progress' に rollback + git checkout で working tree の flow.json を復元 + return failure (worktree は削除しない)、(iv) commit 成功時のみ worktree remove + branch delete を実行、(v) report.json から text を render → envelope に embed。これにより「単一 commit に最終状態 'done' が含まれる」かつ「commit 失敗時は再実行可能」の両立を達成する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "finalize-commit の post hook は command result が 'failed' / 'preflight_failed' の場合、step 遷移だけでなく executeCommitPost (retro / report 等の成功時 side effect) 全体を skip する。成功 status ('done' / 'completed' / 'skipped') の場合のみ正規パスを実行する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "flow get status / flow get resolve-context (および ctx.flowState を解決する共通レイヤ) は flow get next-action と同じ authority 解決ルール (R3 / D4) を共有する。merge 後は main repo authority を読み、cleanup 後は last-finalized-spec pointer fallback を使う。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "src/flow/prompts/impl/finalize-{commit,merge,sync,cleanup}.md の AI 向け prompt から旧手順 (`cd <mainRepoPath>`, `flow report show`, finalize-* に対する手動 `flow set step`) を削除する。finalize-cleanup.md は envelope.data.report.text を読んで貼る手順に書き換える。",
+      "status": "done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "tests/unit/flow/skill-report-show-wiring.test.js の既存 assertion (SKILL.md に旧 'flow report show' MUST 記述が含まれることを要求) を削除し、新 assertion (a) 旧文字列が SKILL.md に含まれない、(b) cleanup 後手順が data.report.text を扱う形に置き換わっている、を追加する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "report path と text の解決ロジックは src/flow/lib/run-report-show.js にある既存ヘルパー (resolveLatestReportPath / readReportText 等) を共通化する。finalize-cleanup の envelope 生成と flow report show コマンドは同じヘルパーを呼ぶ。重複実装は禁止。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "src/flow/lib/flow-context.js の resolveFlowContext() で authority resolver を呼び、ctx.flowState を統一されたソース (merge 後 main / cleanup 後 pointer / merge 前 cwd) から構成する。これにより registry hook / 各 FlowCommand / get-status / get-resolve-context / run-resume が同じ ctx.flowState を共有する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "post-cleanup active-flow セマンティクス: cleanup 完了後は flow get status が active:false を返す。src/lib/flow-manager.js の resolveActiveFlow() (もしくは同等のスキャンロジック) は `.active-flow` がクリアされ last-finalized-spec が書かれた spec を再 active 化しない。run-resume も同じく active:false を返し再開対象にしない。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "src/templates/partials/worktree-mode.md の post-cleanup `cd <main-repository-path>` MUST 記述を envelope ベース 1 ステップ運用に書き換える。tests/unit/templates/ 配下に worktree-mode.md の旧記述を assert する test がある場合は更新する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "PR merge route (commands.gh enabled AND gh available) の挙動は本 spec のスコープ外。PR 作成までで finalize-merge を 'done' に正規化したあと、finalize-sync / finalize-cleanup の post-merge セマンティクスは現状仕様 (PR route では各 leaf 個別実行) を温存する。本 spec の self-contained 化は squash merge route のみを対象とする。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "finalize-cleanup envelope の warning 注入: run-finalize-cleanup.js は plain object を return する既存規約から、failure-on-report-only 時のみ Envelope オブジェクトを直接 return する形に拡張する (dispatcher は plain object と Envelope の両方を受け付ける)。または run コマンドの post-execute hook で warning 付与のフックを設ける。実装方針は impl 段階で確定するが、いずれの場合も dispatcher が wrap 後の envelope に warning を含められる経路が必要。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "failed merge retry 経路で finalize-merge を再実行する際、registry.js:466-467 が書き込む 'skipped' status の dirty flow.json が pre-sync dirty check を阻害しない設計とする。具体的には: (a) onError による status 書き込みを git tracked file の dirty 判定対象から除外する preflight、または (b) retry 開始前に sync/cleanup の skipped を pending に reset する pre-hook、のいずれかで実装する。impl 段階で具体策を確定。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "src/flow/lib/run-finalize.js の buildFinalizePreflightError() のエラーメッセージ内コマンド参照を `sdd-forge flow run finalize --help` から `sdd-forge flow run finalize-commit --help` に更新する。対応する unit test の expectation も同時に更新する。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "failed merge の retry 成功時、finalize-merge の post hook は finalize-merge を 'done' に正規化すると同時に、同一 flow.json 内の finalize-sync / finalize-cleanup の status が 'skipped' なら 'pending' に reset する。これにより promoteNextPendingLeaf が次の finalize-sync を in_progress に進められる。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "src/templates/skills/sdd-forge.flow/SKILL.md の cleanup 後 MUST 手順 (cd <mainRepoPath> + flow report show + fenced block 貼り付け) を envelope 経由 1 ステップ運用に書き換える。同 SKILL.md の 'flow set step を AI が打つ' 案内のうち finalize 文脈に該当する部分を削除する。partials/flow-tracking.md は「finalize-* を除く」を明示する。",
+      "status": "done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "tests/e2e/flow/commands/ 配下に worktree finalize の通し e2e を 1 件追加する。検証項目: 各 leaf 完了後の step 'done' 遷移、merge 後の main repo authority、flow get next-action の expected step、cleanup envelope の data.report、main repo working tree clean、worktree/branch 削除、active flow 解消。実行 cwd は finalize-* が worktree、cleanup 後の status/report は main repo cwd。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "registry レベルの単体または統合 test を 1 件追加する。検証内容: finalize-merge 失敗 → finalize-sync/cleanup の 'skipped' 設定 → finalize-merge retry 成功 → finalize-sync/cleanup が 'pending' に reset → next-action が finalize-sync を返す。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "tests/unit/templates/ 配下に finalize self-contained 化の template 検証 test を追加する: src/templates/skills/sdd-forge.flow/SKILL.md および src/templates/partials/worktree-mode.md に対して `flow report show` / `cd <mainRepoPath>` / `flow set step.*finalize-` の 3 パターンを正規表現で検査し全て 0 件であることを assert する。",
+      "status": "done",
+      "note": "1 test(s)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 22,
+    "done": 22,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "static evaluation from file headers"
+  }
+}

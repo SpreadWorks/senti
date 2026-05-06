@@ -1,1 +1,1 @@
-**MUST: Run `sdd-forge flow set step <id> <val>` upon completion of each step to record flow progress.**
+**MUST: Run `sdd-forge flow set step <id> <val>` upon completion of each step to record flow progress.** Exception: the `finalize-*` leaves (`finalize-commit`, `finalize-merge`, `finalize-sync`, `finalize-cleanup`) are advanced by their own CLI commands' post hooks — do not advance them manually.

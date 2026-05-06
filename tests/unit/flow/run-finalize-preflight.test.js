@@ -24,7 +24,7 @@ describe("run-finalize preflight", () => {
         (err) => {
           assert.equal(err.code, "FINALIZE_PREFLIGHT_FAILED");
           assert.match(err.message, /Help:/);
-          assert.match(err.message, /flow run finalize --help/);
+          assert.match(err.message, /flow run finalize-commit --help/);
           return true;
         },
       );

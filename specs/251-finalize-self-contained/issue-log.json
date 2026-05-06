@@ -1,0 +1,148 @@
+{
+  "entries": [
+    {
+      "step": "review-draft",
+      "reason": "draft review maxAttempts=5 到達後も verdict=FAIL のままユーザー判断で review-draft を done にして gate-draft へ進める。review が毎巡新規論点を提示し収束に至らず。",
+      "trigger": "review attempt 5 終了時点で 9 件指摘。残論点は finalize-commit step 更新タイミング、cleanup 責務、authority signal 根拠、中間 dirty state、retry 契約テスト等",
+      "resolution": "ユーザーが選択肢 B を選択し draft を現状維持で gate-draft に進めることを決定",
+      "guardrailCandidate": "review が new 系論点を出し続けるケースでは maxAttempts 到達時の判定軸を別途設ける (新規論点比率 / 既存指摘修正回避率 等)",
+      "taskId": null,
+      "timestamp": "2026-05-06T13:59:24.424Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one concern: making finalize-* leaves self-contained by wiring post-hook step transitions, clarifying state authority, enriching the cleanup envelope with report data, and adding e2e coverage. All items trace back to this single deficiency identified in Issue #308.; Unambiguous Requirements — Requirements use verifiable conditions throughout: specific registry.js line references, named status values ('done'/'skipped'/'in_progress'/'pending'), concrete API calls (forRoot, updateStepStatus, addWarning), exact envelope schema fields (data.report.path, data.report.text), and grep-based verification commands with expected counts.; Complete Context — Each requirement is backed by evidence (file paths, line numbers, existing API names) and Q&A entries that resolve ambiguity. The normalization table in Q1 and the authority resolution rules in Q5 provide independent reviewers enough detail to agree on satisfaction.; No Hardcoded Secrets — The draft is a requirements specification with no source code, API keys, passwords, or tokens present.; Prioritize Requirements — scopeVerification.in lists 8 items without any priority assignment (must/should/nice-to-have). The guardrail requires prioritization when requirements exceed three items.; Impact on Existing Features — impactOnExisting explicitly lists all affected files and modules (registry.js, flow-manager.js, next-action.js, run-finalize-cleanup.js, flow-envelope.js, skill templates, e2e tests) with descriptions of what changes and what is preserved.; Present Recommendations with Reasoning — Every QA entry leads with a recommended answer, states the basis (code evidence with file:line references, existing gate/review patterns), and explains why alternatives were rejected in the 'considered' field.; Explore Before Asking — All answers cite specific source file paths and line numbers (e.g., registry.js:466-467, run-finalize-sync.js:20, flow-manager.js:62), demonstrating codebase exploration before formulating each answer. The single open question is explicitly deferred to the implementation phase as a design detail, not an unexplored prerequisite.; Proactively Raise Related Implications — The draft proactively raises several cross-cutting implications: failed-merge retry contract and its effect on promoteNextPendingLeaf (Q1), the authority-switch needed in next-action.js not just in post hooks (Q5), atomicity requirements for cleanup failure recovery (Q2), and the need to run sdd-forge upgrade after template changes (scopeVerification.in item 8).; Confirm Brainstorm vs. Decision Before Critiquing — The approval block shows confirmed decisions (approved:true, confirmedAt). QA entries are presented as resolved decisions with rationale, not open brainstorming. The single open question is explicitly scoped to implementation-phase detail.; Capture Digressions in draft.md — No evidence of discussion digressions in the provided artifact; this guardrail requires runtime conversation evidence to evaluate.; Draft Stays at Requirements Level — The draft stays at requirements level. File paths and line numbers appear only as evidence and justification (in 'evidence' and 'why' fields), not as algorithmic or control-flow descriptions. The QA entries describe contracts and expected behaviors, not internal data structures or algorithms.; Backward-Compatible CLI Interface — The spec explicitly marks 'finalize-* CLI argument spec changes (path argument removal)' as out-of-scope and explains that path arguments are not removed due to CLI compatibility impact, ensuring no breaking CLI changes are introduced without a migration plan.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-06T14:00:02.173Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in lists 8 items without any priority assignment (must/should/nice-to-have). The guardrail requires prioritization when requirements exceed three items."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "review-spec",
+      "reason": "spec review maxAttempts=3 到達後も verdict=FAIL のまま。3 巡で 6→9→10 件と新規論点が積み上がり収束に至らず",
+      "trigger": "review attempt 3 終了時点で 10 件指摘 (resolve-context-envelope, base-command の double-resolution, get-next-action の write path authority, cleanup post hook 矛盾, transactional 詳細, removal failure semantics, PR route 詳細, onError hooks, normalization 優先順位, prompt test)",
+      "resolution": "STOP し選択肢を提示してユーザー判断待ち",
+      "guardrailCandidate": "spec review maxAttempts 到達時の判定軸を別途設ける (新規論点比率 / 既存指摘修正回避率)",
+      "taskId": null,
+      "timestamp": "2026-05-06T14:25:37.040Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses a single concern: making finalize-* leaf commands self-contained by automating step status transitions, fixing state authority after merge, embedding report text in the cleanup envelope, and adding regression tests. All items are tightly coupled to one feature boundary defined by the user.; Task Single Responsibility — All 21 tasks (T-1 through T-21) each target a single cohesive concern. No task title or acceptance criteria spans unrelated modules without a shared concern (e.g., T-4 and T-12 are kept separate; T-7 and T-13 are separate template vs. prompt changes).; Unambiguous Requirements — Requirements specify concrete status values ('done'/'completed'/'skipped' → 'done', 'failed'/'preflight_failed' → hold), named fields (data.report.path, data.report.text), and exact transactional steps (R5's (i)-(v) sequence). No vague adjectives like 'appropriate' or 'fast' appear.; Complete Context — Requirements reference specific file paths, status strings, and field names. The acceptance criteria provide concrete verifiable conditions that two reviewers could independently assess. Subjective phrases are absent.; REQ Diff-Verifiability — R10 is explicitly marked 'testable: false' and requires 目視確認 (manual visual confirmation) after sdd-forge upgrade. Its PASS/FAIL cannot be decided from a diff or test execution summary alone, violating the verifiability requirement.; No Hardcoded Secrets — The spec is a design document containing no source code, API keys, passwords, or tokens.; No Silent Error Swallowing — The spec explicitly mandates error surfacing: R5 requires rollback and 'return failure' on commit failure; R11 requires skipping side effects (not swallowing) on preflight_failed; R4 uses Envelope.addWarning for missing reports rather than discarding the condition.; Prioritize Requirements — There are more than three requirements (R1–R22) and each carries an explicit priority: 'must', 'should', or 'nice-to-have'.; Impact on Existing Features — There is no dedicated, consolidated 'impact on existing features' section. Impact is scattered across scope.out, alternatives_considered, and design decisions, but the spec never explicitly enumerates which existing features are affected vs. unaffected as a single list, as the guardrail requires.; Bounded Resource Usage — The retry mechanism (R6, R21) is manual (user/AI re-invokes the command), not an automatic loop. There is no recursive processing or bulk data loading described. The transactional cleanup (R5) is a single-pass operation with defined rollback.; Spec Includes Test Strategy — Every task has a test_strategy field. R8 and R9 are dedicated test requirements. Acceptance criteria are comprehensive and cross-reference tests. T-8 adds an e2e suite; T-9 adds a registry integration test.; Synthesize Draft, Do Not Copy — The spec is organized into structured sections (goal, background, scope, requirements, tasks, alternatives, open questions) with abstracted technical language. No raw draft text is copied verbatim; content is synthesized with evidence references.; Record Unresolved Points as Open Questions — Unresolved points are placed in the open_questions section (e.g., exact files for authority resolver). Design decisions include evidence references to real file paths and line numbers. No answers are invented for open items.; Include 'Why This Approach' Rationale — The spec contains a rich alternatives_considered section with explicit reasons for each rejected option, a design_principles section, and a decisions array in the overview where each entry has a text explanation and evidence field citing specific source lines.; Spec Test Coverage — Tests are planned under tests/e2e/flow/commands/ (T-8) and tests/unit/ (T-1, T-2, T-3, T-4, T-5, T-6, T-9, T-10, T-11, T-12, T-14, T-15, T-16, T-19, T-20, T-21). Each task has a test_strategy. R14 updates an existing test to the new contract.; Backward-Compatible CLI Interface — No CLI commands or options are removed or renamed. Scope.out explicitly excludes finalize-* CLI argument changes. R19 preserves the PR merge route's existing behavior. The removed 'nextCommand' field is an internal envelope data property, not a CLI argument, and the alpha policy permits such changes.; Exit Code Contract — The spec modifies multiple CLI commands (flow run finalize-commit/merge/sync/cleanup, flow get next-action/status) but nowhere states what constitutes success vs. failure for each command in terms of process exit codes, nor mandates non-zero exit codes on defined failure conditions.; Validate User Input at Entry Point — No new user-facing CLI arguments are introduced. Scope.out explicitly excludes finalize-* argument spec changes. R22 changes only an error message string. The guardrail is inapplicable to purely internal behavior changes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-06T14:36:50.609Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "R10 is explicitly marked 'testable: false' and requires 目視確認 (manual visual confirmation) after sdd-forge upgrade. Its PASS/FAIL cannot be decided from a diff or test execution summary alone, violating the verifiability requirement."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "There is no dedicated, consolidated 'impact on existing features' section. Impact is scattered across scope.out, alternatives_considered, and design decisions, but the spec never explicitly enumerates which existing features are affected vs. unaffected as a single list, as the guardrail requires."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "The spec modifies multiple CLI commands (flow run finalize-commit/merge/sync/cleanup, flow get next-action/status) but nowhere states what constitutes success vs. failure for each command in terms of process exit codes, nor mandates non-zero exit codes on defined failure conditions."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "review-test",
+      "reason": "test review が codex CLI の 1MB 入力上限 (Input exceeds the maximum length of 1048576 characters) で fail。spec が大規模 (R1-R22, T-1〜T-21) のため context size が agent 上限を超えた",
+      "trigger": "sdd-forge flow run review --phase test 実行時に 3 回リトライ全て失敗",
+      "resolution": "review-test を skipped 扱いで done にし plan phase を完了する",
+      "guardrailCandidate": "test review の input size を spec の規模に応じて分割するか agent provider 制約を尊重した chunk 化を導入",
+      "taskId": null,
+      "timestamp": "2026-05-06T14:46:47.491Z"
+    },
+    {
+      "step": "implement",
+      "reason": "spec tests R1 finalize-merge/sync regex was unsatisfiable: requires literal in split segment which split removes",
+      "trigger": "running spec tests during impl phase",
+      "resolution": "aligned merge/sync R1 regex with finalize-commit's keyword-alt pattern (tryUpdateStepStatus|updateStepStatus...done)",
+      "guardrailCandidate": "spec test regexes that embed split separators in their pattern cannot match — review for that anti-pattern at gate-spec/test-review",
+      "taskId": null,
+      "timestamp": "2026-05-06T18:51:50.050Z"
+    },
+    {
+      "step": "gate",
+      "phase": "impl",
+      "reason": "invalid phase: impl (valid: draft, spec, task-spec, task-impl, integration). legacy names pre/post/impl have been retired — use spec / task-spec / task-impl / integration.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-06T19:03:14.350Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-05-06T19:24:43.299Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-06T19:27:16.959Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-06T19:27:43.960Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-06T19:30:16.018Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-06T19:31:08.154Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-05-06T19:31:20.444Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-05-06T19:31:51.134Z"
+    }
+  ]
+}
