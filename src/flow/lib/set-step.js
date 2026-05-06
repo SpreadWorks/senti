@@ -78,7 +78,10 @@ export default class SetStepCommand extends FlowCommand {
       if (fail) return fail;
     }
 
-    ctx.flowManager.updateStepStatus(id, status);
+    // Pass specId so the mutator can locate flow.json by path even when the
+    // current flowManager root has no .active-flow entry for this spec
+    // (spec 251: main-repo authority during finalize-merge / sync / cleanup).
+    ctx.flowManager.updateStepStatus(id, status, ctx.specId ? { specId: ctx.specId } : undefined);
     if (container.has("logger")) {
       container.get("logger").event("flow-step-change", { step: id, status });
     }
