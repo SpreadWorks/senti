@@ -247,8 +247,13 @@ export class FlowStore {
     fs.writeFileSync(p, JSON.stringify(state, null, 2) + "\n", "utf8");
   }
 
-  mutate(mutator) {
-    const state = this.load();
+  mutate(mutator, opts) {
+    // Spec 251: merge-onward post hooks operate on the main repo's flow.json
+    // before .active-flow has been registered there. They pass an explicit
+    // specId via opts so we can load by path without going through the
+    // active-flow registry.
+    const specId = opts?.specId;
+    const state = specId ? this.load(specId) : this.load();
     if (!state) throw new Error("no active flow (flow.json not found)");
     mutator(state);
     this.save(state);
@@ -292,6 +297,8 @@ export class FlowStore {
   // ── targeted setters (scope-aware) ──────────────────────────────────────────
 
   updateStepStatus(stepId, status, opts) {
+    // opts may carry { specId } so the mutate path loads the file directly
+    // (spec 251: main-repo authority before .active-flow is registered).
     this.mutate((state) => {
       const scope = resolveMutationScope(state, opts);
       if (!Array.isArray(scope.steps)) {
@@ -323,7 +330,7 @@ export class FlowStore {
           promoteFirstPending(scope.steps);
         }
       }
-    });
+    }, opts);
   }
 
   setTestSummary(summary, opts) {

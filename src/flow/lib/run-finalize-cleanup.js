@@ -72,8 +72,9 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
     const flowJsonRel = `specs/${specId}/flow.json`;
 
     // (i) finalize-cleanup → 'done' so the snapshot we are about to commit
-    // contains the terminal state.
-    targetFm.updateStepStatus("finalize-cleanup", "done");
+    // contains the terminal state. We pass specId so updates land on the main
+    // repo flow.json even before .active-flow registers the spec there.
+    targetFm.updateStepStatus("finalize-cleanup", "done", { specId });
 
     // (ii) stage + commit. specs/<id>/flow.json is the only intentionally
     // dirty file at this point (set by prior post hooks for finalize-merge /
@@ -88,7 +89,7 @@ export class RunFinalizeCleanupCommand extends FlowCommand {
       // updates from prior post hooks remain in working-tree memory, ready
       // for the next attempt.
       try {
-        targetFm.updateStepStatus("finalize-cleanup", "in_progress");
+        targetFm.updateStepStatus("finalize-cleanup", "in_progress", { specId });
       } catch (rollbackErr) {
         process.stderr.write(`[sdd-forge] cleanup rollback failed: ${rollbackErr.message}\n`);
       }

@@ -52,15 +52,15 @@ const FINALIZE_DOWNSTREAM_LEAVES = ["sync", "cleanup"].map((s) => `finalize-${s}
 /**
  * @returns {boolean} true when at least one leaf was reset, false when no-op.
  */
-function resetSkippedDownstreamSteps(targetFm) {
-  const state = targetFm.load();
+function resetSkippedDownstreamSteps(targetFm, opts) {
+  const state = opts?.specId ? targetFm.load(opts.specId) : targetFm.load();
   if (!state) return false;
   const flat = flattenSteps(state.steps || []);
   let mutated = false;
   for (const id of FINALIZE_DOWNSTREAM_LEAVES) {
     const step = flat.find((s) => s.id === id);
     if (step?.status === "skipped") {
-      tryUpdateStepStatus(targetFm, id, "pending");
+      tryUpdateStepStatus(targetFm, id, "pending", opts);
       mutated = true;
     }
   }
@@ -86,15 +86,19 @@ function deriveActivePhase(ctx) {
  * FlowManager directly — the latter form is used by merge-onward finalize
  * hooks which target the main repo flow.json via forRoot().
  */
-function tryUpdateStepStatus(target, stepId, status) {
+function tryUpdateStepStatus(target, stepId, status, opts) {
   const fm = (target && typeof target === "object" && target.flowManager)
     ? target.flowManager
     : target;
   try {
-    fm.updateStepStatus(stepId, status);
+    fm.updateStepStatus(stepId, status, opts);
   } catch (err) {
     if (err?.code === "ERR_MISSING_FILE") {
       process.stderr.write(`[sdd-forge] step-status update skipped (${stepId}=${status}): ${err.message}\n`);
+      return;
+    }
+    if (err.message === "no active flow (flow.json not found)") {
+      process.stderr.write(`[sdd-forge] step-status update skipped (${stepId}=${status}): no active flow\n`);
       return;
     }
     throw err;
@@ -555,11 +559,12 @@ export const FLOW_COMMANDS = {
         // by execute()). The worktree's flow.json is left alone; from this
         // point on it is no longer the authoritative copy.
         const targetFm = resolveMainRepoFlowManager(ctx);
-        tryUpdateStepStatus(targetFm, "finalize-merge", "done");
+        const opts = { specId: ctx.specId };
+        tryUpdateStepStatus(targetFm, "finalize-merge", "done", opts);
         // R6: on retry success, reset any 'skipped' finalize-sync /
         // finalize-cleanup back to 'pending' so the dispatcher can promote
         // finalize-sync as the next leaf.
-        resetSkippedDownstreamSteps(targetFm);
+        resetSkippedDownstreamSteps(targetFm, opts);
       },
       async onError(ctx, err) {
         const m = await import("./lib/run-finalize.js");
@@ -585,7 +590,7 @@ export const FLOW_COMMANDS = {
         if (!isFinalizeSuccess(result)) return;
         // R2: post-merge authority is the main repo flow.json.
         const targetFm = resolveMainRepoFlowManager(ctx);
-        tryUpdateStepStatus(targetFm, "finalize-sync", "done");
+        tryUpdateStepStatus(targetFm, "finalize-sync", "done", { specId: ctx.specId });
       },
       async onError(ctx, err) {
         const m = await import("./lib/run-finalize.js");
@@ -607,7 +612,7 @@ export const FLOW_COMMANDS = {
         // dispatcher still ran post for some unforeseen reason.
         if (!isFinalizeSuccess(result)) return;
         const targetFm = resolveMainRepoFlowManager(ctx);
-        tryUpdateStepStatus(targetFm, "finalize-cleanup", "done");
+        tryUpdateStepStatus(targetFm, "finalize-cleanup", "done", { specId: ctx.specId });
       },
       async onError(ctx, err) {
         const m = await import("./lib/run-finalize.js");
