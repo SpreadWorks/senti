@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-05-06T13:59:16.982Z",
+  "analyzedAt": "2026-05-06T23:30:58.735Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "b9c1e43500827bd7a9e171f1650513ce",
+        "hash": "aae72f67dcff51da9d81599fc5f86815",
         "lines": 41,
-        "mtime": "2026-05-06T13:58:50.634Z",
+        "mtime": "2026-05-06T14:00:46.636Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -20,25 +20,7 @@
           "test:all": "node tests/run.js --all"
         },
         "composerDeps": null,
-        "id": "451a9f25",
-        "summary": "npm package manifest for sdd-forge, an alpha-version Spec-Driven Development CLI distributed via the sdd-forge bin entry point.",
-        "detail": "Defines an ES module Node.js package (>=18.19.0) with no runtime dependencies, exposing a single CLI binary at src/sdd-forge.js. The files field publishes only src/ while excluding preset test fixtures, keeping the npm tarball lean. Test scripts are organized by scope (unit/e2e/acceptance/agent/all) and dispatched through tests/run.js with flags. Version follows the alpha.N convention (alpha.775) and uses pnpm 10.33.0 as the package manager.",
-        "chapter": "stack_and_ops",
-        "role": "manifest",
-        "enrich": {
-          "processedAt": "2026-05-06T14:00:00.244Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "package.json",
-          "npm",
-          "ES modules",
-          "bin entry",
-          "Node.js 18",
-          "alpha versioning",
-          "pnpm",
-          "test scripts"
-        ]
+        "id": "451a9f25"
       }
     ],
     "summary": {
@@ -115,7 +97,8 @@
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "1b9f6fe7",
         "summary": "This command validates `config.json` and reports schema or structure issues in text or JSON format. It is the dedicated configuration health check under `sdd-forge check config`.",
@@ -2596,9 +2579,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "50be1ebc2a1497252f20d7833ba0458c",
-        "lines": 611,
-        "mtime": "2026-05-06T13:59:13.008Z",
+        "hash": "8b70c926a6ec0b9dd7325a25d3e8cf6d",
+        "lines": 638,
+        "mtime": "2026-05-06T22:57:54.572Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2646,27 +2629,10 @@
           "TASK_DEFINITION"
         ],
         "extends": null,
-        "usedBy": null,
-        "id": "2cb27b93",
-        "summary": "Defines the SDD flow as a tree of FlowNode instances with depth-bounded traversal helpers for resolving steps, prerequisites, and next actions.",
-        "detail": "Models the flow definition with FlowNode and two MaxAttempts variants (ScalarMaxAttempts, ModeMaxAttempts) where ModeMaxAttempts resolves auto vs. manual retry budgets based on context.autoApprove. Exports two frozen forests FLOW_DEFINITION and TASK_DEFINITION enforced to MAX_DEPTH=3, plus traversal helpers (collectLeafIds, derivePhaseMap, resolveNodeFor, findActiveNode, findInProgressLeaf). Derives nested step state via buildInitialNestedSteps/buildInitialTaskSteps and provides leaf-promotion logic (promoteNextPendingLeaf) to advance status across pending/in_progress states. Also computes prerequisites and branch indices to support deriveNextAction dispatching.",
-        "chapter": "internal_design",
-        "role": "flow-definition",
-        "enrich": {
-          "processedAt": "2026-05-06T14:00:00.244Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "FlowNode",
-          "FLOW_DEFINITION",
-          "TASK_DEFINITION",
-          "maxAttempts",
-          "autoApprove",
-          "leaf promotion",
-          "phase map",
-          "prereqs",
-          "step tree"
-        ]
+        "usedBy": [
+          "src/flow/registry.js"
+        ],
+        "id": "2cb27b93"
       },
       {
         "file": "src/flow/lib/auto-check-static.js",
@@ -2769,7 +2735,9 @@
           "src/flow/lib/run-finalize-commit.js",
           "src/flow/lib/run-finalize-merge.js",
           "src/flow/lib/run-finalize-sync.js",
-          "src/flow/lib/set-files.js"
+          "src/flow/lib/set-files.js",
+          "src/flow/lib/run-test-execute.js",
+          "src/flow/lib/run-test-result-review.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -2862,14 +2830,17 @@
       },
       {
         "file": "src/flow/lib/flow-context.js",
-        "hash": "8b2e2ce017ef0a324a345d55fe70a1da",
-        "lines": 24,
-        "mtime": "2026-04-17T12:39:55.910Z",
+        "hash": "394eb4f100d06d4c6dd361c9d1a3c33e",
+        "lines": 62,
+        "mtime": "2026-05-06T23:21:44.541Z",
         "className": "flow-context",
         "methods": [
-          "resolveFlowContext"
+          "resolveFlowContext",
+          "resolveAuthorityFlowState"
         ],
         "imports": [
+          "fs",
+          "path",
           "../../lib/flow-helpers.js"
         ],
         "exports": [
@@ -2883,21 +2854,7 @@
           "src/flow.js",
           "src/flow/lib/base-command.js"
         ],
-        "id": "e296da98",
-        "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Resolves and returns normalized flow runtime context from container state. It exposes derived identifiers and root-level references used by flow commands.",
-        "detail": "The function maps flow state into a compact object containing spec identifiers, resolved paths, and config references. It uses helper functions to derive stable IDs from spec paths. By centralizing this shape, downstream commands avoid repeated context assembly code. The module keeps command implementations focused on behavior instead of plumbing.",
-        "chapter": "project_structure",
-        "role": "lib",
-        "keywords": [
-          "flow context",
-          "spec id",
-          "context resolver",
-          "runtime state"
-        ]
+        "id": "e296da98"
       },
       {
         "file": "src/flow/lib/gate-step.js",
@@ -3558,9 +3515,9 @@
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
-        "hash": "3d313b95dde6470114075eec223882ab",
-        "lines": 105,
-        "mtime": "2026-04-25T06:04:46.289Z",
+        "hash": "5d0e22c4946cedabe36923ce73939c22",
+        "lines": 107,
+        "mtime": "2026-05-06T14:00:46.636Z",
         "className": "resolve-context-envelope",
         "methods": [
           "buildResolvedFlowContext",
@@ -3582,26 +3539,7 @@
           "src/flow/lib/get-resolve-context.js",
           "src/flow/lib/run-resume.js"
         ],
-        "id": "d569f2a6",
-        "summary": "This module resolves and normalizes the runtime context envelope for an active SDD flow. It consolidates flow state, repository state, and spec-derived data into a single object consumed by downstream flow logic.",
-        "detail": "The implementation maps flow phases to skills through a small lookup table with a default fallback, so phase-specific behavior stays explicit and extensible. It resolves key paths such as `flow.json` and spec files relative to either the current worktree or the main repository, selecting the effective root based on existence checks. It loads and parses spec content when present, then enriches the returned context with Git metadata via helper functions (branch, ahead count, last commit, worktree status, and GitHub CLI availability). The module also includes section-extraction utility logic for parsing text by heading, enabling targeted retrieval of structured content from spec-like markdown. It fails fast when no active flow is found, enforcing strict flow-state preconditions before any command continues.",
-        "chapter": "cli_commands",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-04-25T06:05:00.437Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow context resolution",
-          "context envelope",
-          "phase-to-skill mapping",
-          "worktree detection",
-          "spec loading",
-          "git status helpers",
-          "repository metadata",
-          "path resolution",
-          "flow state validation"
-        ]
+        "id": "d569f2a6"
       },
       {
         "file": "src/flow/lib/resolve-preparing-run-id.js",
@@ -3741,19 +3679,23 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "0afd0f85c83440e5e672adb496b78e7e",
-        "lines": 39,
-        "mtime": "2026-04-28T02:36:29.319Z",
+        "hash": "8bc6faacf0fb7748098602efd10f5392",
+        "lines": 123,
+        "mtime": "2026-05-06T23:21:44.541Z",
         "className": "run-finalize-cleanup",
         "methods": [
-          "RunFinalizeCleanupCommand"
+          "RunFinalizeCleanupCommand",
+          "buildReportField",
+          "attachReport"
         ],
         "imports": [
           "fs",
+          "../../lib/flow-envelope.js",
           "../../lib/flow-helpers.js",
           "../../lib/git-helpers.js",
           "./base-command.js",
-          "./run-finalize.js"
+          "./run-finalize.js",
+          "./run-report-show.js"
         ],
         "exports": [
           "RunFinalizeCleanupCommand",
@@ -3761,22 +3703,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "40e4daa5",
-        "summary": "Finalize-cleanup subcommand that removes the worktree after merge and points users to the report show command.",
-        "detail": "RunFinalizeCleanupCommand extends FlowCommand and is the last leaf of the finalize phase. In spec-only mode it short-circuits with a status of 'done' and the REPORT_SHOW_COMMAND as nextCommand. Otherwise it deletes the worktree directory if it exists and uses runGit to perform the worktree removal. Always returns nextCommand pointing back to the report show command so users can review the finalized output.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-04-28T02:37:04.616Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow finalize",
-          "cleanup",
-          "worktree remove",
-          "report show",
-          "spec-only"
-        ]
+        "id": "40e4daa5"
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
@@ -3818,9 +3745,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize-merge.js",
-        "hash": "745683d39ced53ea23525b47b1e3c009",
-        "lines": 29,
-        "mtime": "2026-04-28T02:36:29.319Z",
+        "hash": "2657cfc4283ad9899d27e0f2c582643d",
+        "lines": 38,
+        "mtime": "2026-05-06T23:21:44.541Z",
         "className": "run-finalize-merge",
         "methods": [
           "RunFinalizeMergeCommand"
@@ -3835,22 +3762,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "29dc124e",
-        "summary": "Finalize-merge subcommand that merges the feature branch via the configured merge strategy from the DI container.",
-        "detail": "RunFinalizeMergeCommand extends FlowCommand and resolves the merge strategy through the container abstraction. When merge is disabled it returns status 'skipped' with strategy 'skip'. On success it returns status 'done' and the strategy used (defaulting to 'squash' when not reported). The command is invoked as a finalize leaf and is wrapped by registry-level onError to log step-status update failures.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-04-28T02:37:04.616Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow finalize",
-          "merge",
-          "squash",
-          "container",
-          "merge strategy"
-        ]
+        "id": "29dc124e"
       },
       {
         "file": "src/flow/lib/run-finalize-sync.js",
@@ -3894,9 +3806,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "d2e7159533d983fb4f394850e9daf800",
-        "lines": 215,
-        "mtime": "2026-04-28T03:23:16.008Z",
+        "hash": "c46a956c123289f955b44478712728b8",
+        "lines": 204,
+        "mtime": "2026-05-06T23:21:44.541Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -3929,8 +3841,7 @@
           "runFinalizePreflight",
           "runPreflightChecks",
           "runMigrationHook",
-          "executeCommitPost",
-          "REPORT_SHOW_COMMAND"
+          "executeCommitPost"
         ],
         "extends": null,
         "usedBy": [
@@ -3938,24 +3849,7 @@
           "src/flow/lib/run-finalize-commit.js",
           "src/flow/lib/run-finalize-sync.js"
         ],
-        "id": "c711309b",
-        "summary": "Helpers for the finalize phase: preflight checks, commit handling, last-finalized pointer, and migration hooks.",
-        "detail": "Exports utilities used by the finalize flow: `runFinalizePreflight` validates git write access via a temporary lock file in the git common dir, `runPreflightChecks` distinguishes spec-only vs. dirty-worktree states, and `commitOrSkip` wraps commit execution. `writeLastFinalizedPointer` persists the most recently finalized spec path, `runMigrationHook` invokes per-spec `scripts/finalize-migration.js` when present, and `executeCommitPost` handles post-commit bookkeeping. `finalizeOnError` returns a closure for error-path step handlers.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-04-28T03:24:26.497Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "finalize",
-          "preflight",
-          "commit",
-          "git lock",
-          "migration hook",
-          "last finalized pointer",
-          "flow finalize"
-        ]
+        "id": "c711309b"
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -4306,7 +4200,8 @@
         ],
         "extends": "Command",
         "usedBy": [
-          "src/flow/lib/run-finalize.js"
+          "src/flow/lib/run-finalize.js",
+          "src/flow/lib/run-finalize-cleanup.js"
         ],
         "id": "3754ab40",
         "summary": "Provides the flow report show command by resolving the latest finalized report path and printing report text. It validates pointer and report integrity with typed error codes.",
@@ -4371,9 +4266,9 @@
       },
       {
         "file": "src/flow/lib/run-resume.js",
-        "hash": "94a776c5bfa12c04ff49691130c7a153",
-        "lines": 26,
-        "mtime": "2026-04-27T03:02:21.757Z",
+        "hash": "0c083226ac0c81e8429bee5a8a7f72d3",
+        "lines": 28,
+        "mtime": "2026-05-06T14:00:46.636Z",
         "className": "run-resume",
         "methods": [],
         "imports": [
@@ -4385,80 +4280,33 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "abe5ac21",
-        "summary": "Provides `flow resume` command behavior by resolving and returning the active flow context envelope. It acts as a lightweight bridge to shared context-resolution logic.",
-        "detail": "The command class delegates almost all behavior to `buildResolvedFlowContext`, keeping the command surface minimal. It returns a standardized object payload suitable for downstream automation and user-facing status views. By centralizing resolution in a shared helper, the file avoids duplicating state-loading rules across commands. This pattern improves consistency and keeps command modules thin where orchestration is trivial.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "enrich": {
-          "processedAt": "2026-04-27T03:03:14.026Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "resume flow",
-          "context envelope",
-          "command delegation",
-          "state resolution",
-          "lightweight command"
-        ]
+        "id": "abe5ac21"
       },
       {
         "file": "src/flow/lib/run-retro.js",
-        "hash": "2890f5a931b2f3e71a25dec278f0ea0c",
-        "lines": 421,
-        "mtime": "2026-05-01T05:18:43.675Z",
+        "hash": "cd5d8bc486886883a544b3350568b039",
+        "lines": 158,
+        "mtime": "2026-05-06T23:01:30.428Z",
         "className": "run-retro",
         "methods": [
           "RunRetroCommand",
-          "requirementsAsText",
-          "getDiff",
-          "getDetailedDiff",
-          "buildRetroPrompt",
-          "parseRetroResponse"
+          "readJson",
+          "aggregate"
         ],
         "imports": [
           "fs",
           "path",
-          "child_process",
-          "../../lib/git-helpers.js",
-          "../../lib/container.js",
-          "../../lib/json-parse.js",
-          "../../lib/flow-helpers.js",
           "../../lib/spec-json.js",
           "./base-command.js",
-          "../../lib/flow-envelope.js",
-          "./req-map.js",
-          "./test-headers.js",
-          "../../lib/prompt-builder.js"
+          "../../lib/flow-envelope.js"
         ],
         "exports": [
           "RunRetroCommand",
-          "default",
-          "requirementsAsText",
-          "buildRetroPrompt",
-          "parseRetroResponse"
+          "default"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "862e7d08",
-        "summary": "FlowCommand that runs retrospective analysis comparing implementation diff against spec requirements via AI.",
-        "detail": "RunRetroCommand loads spec.json, computes git diff against the base branch, and prompts the configured agent with a structured RETRO_SCHEMA describing requirements, unplanned changes, and summary notes. Falls back to repairJson on malformed responses, optionally evaluates requirements from TAP test execution, and writes retro.json under the spec directory. Returns Envelope failures for missing config, agent, requirements, or base branch; supports a force flag to overwrite existing retro and integrates with test-headers utilities for req-to-files mapping.",
-        "chapter": "cli_commands",
-        "role": "flow-retro-command",
-        "enrich": {
-          "processedAt": "2026-05-01T05:19:20.433Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "retrospective",
-          "retro.json",
-          "AI agent",
-          "diff analysis",
-          "requirements evaluation",
-          "Envelope",
-          "TAP",
-          "spec.json"
-        ]
+        "id": "862e7d08"
       },
       {
         "file": "src/flow/lib/run-review.js",
@@ -4586,6 +4434,57 @@
           "git validation",
           "command orchestration"
         ]
+      },
+      {
+        "file": "src/flow/lib/run-test-execute.js",
+        "hash": "94a638f1d5ea484ac74b182e24290e51",
+        "lines": 100,
+        "mtime": "2026-05-06T23:00:20.598Z",
+        "className": "run-test-execute",
+        "methods": [
+          "ensureAgent",
+          "buildPrompt"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "../../lib/container.js",
+          "../../lib/json-parse.js",
+          "../../lib/spec-json.js",
+          "./base-command.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "41745e8b"
+      },
+      {
+        "file": "src/flow/lib/run-test-result-review.js",
+        "hash": "ad1809c539b05c90ed8844f96563764c",
+        "lines": 127,
+        "mtime": "2026-05-06T23:00:44.602Z",
+        "className": "run-test-result-review",
+        "methods": [
+          "ensureAgent",
+          "buildPrompt",
+          "writeMarkdown"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "../../lib/container.js",
+          "../../lib/json-parse.js",
+          "../../lib/spec-json.js",
+          "./base-command.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "c1fba537"
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
@@ -5223,11 +5122,14 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "d3bb66dd6b147a2f1d9f18a03e5354fe",
-        "lines": 629,
-        "mtime": "2026-05-06T13:59:13.009Z",
+        "hash": "a2c85a4901de5ccb20808e2503c950eb",
+        "lines": 780,
+        "mtime": "2026-05-06T23:21:44.541Z",
         "className": "registry",
         "methods": [
+          "isFinalizeSuccess",
+          "resolveMainRepoFlowManager",
+          "resetSkippedDownstreamSteps",
           "deriveActivePhase",
           "tryUpdateStepStatus",
           "tryAppendIssueLog"
@@ -5235,32 +5137,15 @@
         "imports": [
           "../lib/flow-helpers.js",
           "../lib/constants.js",
-          "./lib/gate-step.js"
+          "./lib/gate-step.js",
+          "./definition.js"
         ],
         "exports": [
           "FLOW_COMMANDS"
         ],
         "extends": null,
         "usedBy": null,
-        "id": "d64f4095",
-        "summary": "Central FLOW_COMMANDS registry mapping flow CLI verbs to handlers with help text, gate side-effect orchestration, and step-status updates.",
-        "detail": "Aggregates flow get/set/run command definitions including help strings, validation against VALID_PHASES/VALID_METRIC_COUNTERS/VALID_GATE_PHASES/VALID_REVIEW_PHASES. Provides shared utilities deriveActivePhase (delegating to derivePhase from flow-helpers), tryUpdateStepStatus, and tryAppendIssueLog that wrap operations with stderr warnings on failure. Coordinates post-gate side effects via executeGateSideEffects and post-commit hooks via executeCommitPost, and surfaces finalize-merge errors without aborting the parent flow when step-status updates fail.",
-        "chapter": "internal_design",
-        "role": "command-registry",
-        "enrich": {
-          "processedAt": "2026-05-06T14:00:00.244Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "FLOW_COMMANDS",
-          "registry",
-          "flow CLI",
-          "gate side effects",
-          "step status",
-          "issue log",
-          "derivePhase",
-          "help text"
-        ]
+        "id": "d64f4095"
       },
       {
         "file": "src/help.js",
@@ -5626,7 +5511,8 @@
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
           "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
           "src/setup.js",
-          "src/upgrade.js"
+          "src/upgrade.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "dff6e5b4",
         "summary": "Configuration loader that validates .sdd-forge/config.json against a schema and exposes path/concurrency/lang resolution helpers.",
@@ -5930,9 +5816,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "e44a807fdc0cc1f3b0a8e68f983b231c",
-        "lines": 316,
-        "mtime": "2026-04-28T08:49:24.176Z",
+        "hash": "2bc0577ecd7017e9cda9f60e18861796",
+        "lines": 393,
+        "mtime": "2026-05-06T23:21:44.541Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -5941,6 +5827,7 @@
           "fs",
           "path",
           "./git-helpers.js",
+          "./config.js",
           "./flow-store.js",
           "./active-flow-registry.js",
           "./preparing-flow-store.js",
@@ -5954,24 +5841,7 @@
         "usedBy": [
           "src/lib/container.js"
         ],
-        "id": "3d2ed4c0",
-        "summary": "FlowManager façade aggregating FlowStore, ActiveFlowRegistry, and PreparingFlowStore for state, scan, and worktree resolution.",
-        "detail": "Wraps a per-root FlowStore and exposes navigation helpers: current task/step lookup, step status updates, and agent metric accumulation. Implements scanAllFlows to traverse specs/ in both the main repo and registered worktrees, parsing flow.json at HEAD via `git show` with bounded entries (SCAN_FLOWS_LIMIT) and warning on invalid JSON. Resolves the active flow by combining registry data and on-disk specId→worktreePath mapping, throwing if the worktree is missing. Uses findInProgressLeaf to surface the live step within the current task tree.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "enrich": {
-          "processedAt": "2026-04-28T08:50:48.960Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow manager",
-          "scan flows",
-          "active registry",
-          "worktree",
-          "flow store",
-          "specs directory",
-          "state aggregation"
-        ]
+        "id": "3d2ed4c0"
       },
       {
         "file": "src/lib/flow-store.js",
@@ -7153,7 +7023,8 @@
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "4cbf369b"
       },
@@ -7282,7 +7153,8 @@
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "447924de"
       },
@@ -7785,7 +7657,8 @@
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "6a9e614f"
       },
@@ -8245,7 +8118,8 @@
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "b881aa88"
       },
@@ -8372,7 +8246,8 @@
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "ace46527"
       },
@@ -9197,7 +9072,8 @@
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "b96d9baa"
       },
@@ -9469,7 +9345,8 @@
           "src/presets/base/tests/acceptance/fixtures/src/index.js",
           "src/presets/cli/tests/acceptance/fixtures/src/cli.js",
           "src/presets/js-webapp/tests/acceptance/fixtures/src/index.js",
-          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js"
+          "src/presets/node-cli/tests/acceptance/fixtures/src/cli.js",
+          "src/lib/flow-manager.js"
         ],
         "id": "f27da358"
       },
@@ -10101,8 +9978,8 @@
       }
     ],
     "summary": {
-      "total": 287,
-      "totalMethods": 970
+      "total": 289,
+      "totalMethods": 978
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },

@@ -40,7 +40,7 @@ src/spec/commands/    (cli)
 
 | ディレクトリ | ファイル数 | 役割 |
 | --- | --- | --- |
-| src/flow | 62 | controller, lib, Flow phase review executor, flow-definition, command-registry, phase-resolution, cli, Next-action resolver, req-map-helper, gate-runner, flow-retro-command, review-runner, flow-set-step-command, test-header-validator |
+| src/flow | 64 | controller, lib, Flow phase review executor, phase-resolution, cli, Next-action resolver, req-map-helper, gate-runner, review-runner, flow-set-step-command, test-header-validator |
 | src/docs | 45 | controller, cli, model, lib |
 | src/lib | 34 | lib, AI agent invocation layer, route, model, Config loader and path helpers, config, middleware, view, AI provider abstraction, Shared type declarations placeholder |
 | src | 10 | cli |
