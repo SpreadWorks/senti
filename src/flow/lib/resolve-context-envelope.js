@@ -45,7 +45,9 @@ function phaseToSkill(phase) {
 export function buildResolvedFlowContext(ctx) {
   const { root, mainRoot, flowManager } = ctx;
 
-  const resolved = flowManager.resolveActiveFlow(ctx.flowState);
+  const resolved = flowManager.resolveActiveFlow(ctx.flowState, {
+    selectSpecId: ctx.spec || undefined,
+  });
   if (!resolved) {
     throw new Error("no active flow found");
   }

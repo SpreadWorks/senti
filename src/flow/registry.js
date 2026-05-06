@@ -63,10 +63,12 @@ export const FLOW_COMMANDS = {
     helpPath: "sdd-forge flow resume --help",
     requiresFlow: false,
     command: () => import("./lib/run-resume.js"),
+    args: { options: ["--spec"] },
     help: [
-      "Usage: sdd-forge flow resume",
+      "Usage: sdd-forge flow resume [--spec <specId>]",
       "",
       "Discover and display active flow context for recovery.",
+      "When multiple flows are active concurrently, pass --spec to select one.",
       "Use `sdd-forge flow get status` for current-context status display.",
     ].join("\n"),
   },

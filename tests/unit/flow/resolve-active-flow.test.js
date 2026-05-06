@@ -70,4 +70,32 @@ describe("resolveActiveFlow", () => {
       /multiple active flows/i,
     );
   });
+
+  it("selects a specific flow via opts.selectSpecId when multiple are active", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "001-first");
+    const state2 = {
+      spec: "specs/002-second/spec.md",
+      baseBranch: "main",
+      featureBranch: "feature/002-second",
+      steps: buildInitialSteps(),
+      requirements: [],
+    };
+    makeFlowManager(tmp).save(state2);
+    makeFlowManager(tmp).addActiveFlow("002-second", "local");
+
+    const result = makeFlowManager(tmp).resolveActiveFlow(null, { selectSpecId: "002-second" });
+    assert.ok(result);
+    assert.equal(result.specId, "002-second");
+  });
+
+  it("throws a clear error when selectSpecId is not in active flows", () => {
+    tmp = createTmpDir();
+    setupFlow(tmp, "001-first");
+
+    assert.throws(
+      () => makeFlowManager(tmp).resolveActiveFlow(null, { selectSpecId: "999-bogus" }),
+      /spec '999-bogus' is not in active flows/,
+    );
+  });
 });

@@ -13,6 +13,7 @@
 import fs from "fs";
 import path from "path";
 import { runGit } from "./git-helpers.js";
+import { sddDir } from "./config.js";
 import { FlowStore } from "./flow-store.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
@@ -243,9 +244,12 @@ export class FlowManager {
    * 3-stage fallback to resolve the single active flow.
    *
    * @param {object|null} flowState - pre-loaded flow state (may be null)
+   * @param {object} [opts]
+   * @param {string} [opts.selectSpecId] - explicit spec to disambiguate when
+   *   multiple flows are active concurrently
    * @returns {{ state: object, specId: string, worktreePath: string|null } | null}
    */
-  resolveActiveFlow(flowState) {
+  resolveActiveFlow(flowState, opts = {}) {
     if (flowState) {
       const specId = specIdFromPath(flowState.spec);
       let worktreePath = null;
@@ -256,28 +260,23 @@ export class FlowManager {
     }
 
     const activeFlows = this._activeFlows.load();
-    if (activeFlows.length === 1) {
-      const specId = activeFlows[0].spec;
-      let state = this._store.load(specId);
-      let worktreePath = null;
-      if (state?.worktree) {
-        const resolved = this._store.resolveWorktreePaths(state);
-        worktreePath = resolved.worktreePath;
-        if (worktreePath && fs.existsSync(worktreePath)) {
-          // Re-load from the worktree's own specs/ dir.
-          const wtStore = new FlowStore({
-            root: worktreePath,
-            mainRoot: this._mainRoot,
-            inWorktree: true,
-            activeFlowsProvider: () => this._activeFlows,
-          });
-          state = wtStore.load(specId) ?? state;
-        }
+    if (opts.selectSpecId) {
+      const match = activeFlows.find((f) => f.spec === opts.selectSpecId);
+      if (!match) {
+        const known = activeFlows.map((f) => f.spec).join(", ") || "(none)";
+        throw new Error(`spec '${opts.selectSpecId}' is not in active flows. Active: ${known}`);
       }
-      if (state) return { state, specId, worktreePath };
+      const resolved = this._loadActiveFlowState(match.spec);
+      if (resolved) return resolved;
+      throw new Error(`spec '${opts.selectSpecId}' is registered as active but flow.json was not found`);
+    }
+
+    if (activeFlows.length === 1) {
+      const resolved = this._loadActiveFlowState(activeFlows[0].spec);
+      if (resolved) return resolved;
     } else if (activeFlows.length > 1) {
       throw new Error(
-        `multiple active flows: ${activeFlows.map((f) => `${f.spec} (${f.mode})`).join(", ")}`,
+        `multiple active flows: ${activeFlows.map((f) => `${f.spec} (${f.mode})`).join(", ")}. Pass --spec <specId> to select one.`,
       );
     }
 
@@ -294,6 +293,55 @@ export class FlowManager {
     }
 
     return null;
+  }
+
+  /**
+   * Load an active flow's state, redirecting to its worktree's specs/ dir
+   * when the flow is registered as worktree mode. Returns null if the
+   * spec's flow.json cannot be found in either location.
+   *
+   * @param {string} specId
+   * @returns {{ state: object, specId: string, worktreePath: string|null } | null}
+   */
+  _loadActiveFlowState(specId) {
+    let state = this._store.load(specId);
+    let worktreePath = null;
+
+    // worktree mode: the flow.json lives inside the worktree, not main repo.
+    // First check the active-flows registry to know whether to look there.
+    if (!state) {
+      const entry = this._activeFlows.load().find((f) => f.spec === specId);
+      if (entry?.mode === "worktree") {
+        const probe = path.join(sddDir(this._mainRoot), "worktree", `feature-${specId}`);
+        if (fs.existsSync(probe)) {
+          const wtStore = new FlowStore({
+            root: probe,
+            mainRoot: this._mainRoot,
+            inWorktree: true,
+            activeFlowsProvider: () => this._activeFlows,
+          });
+          state = wtStore.load(specId);
+          if (state) worktreePath = probe;
+        }
+      }
+    }
+
+    if (state?.worktree && !worktreePath) {
+      const resolved = this._store.resolveWorktreePaths(state);
+      worktreePath = resolved.worktreePath;
+      if (worktreePath && fs.existsSync(worktreePath)) {
+        const wtStore = new FlowStore({
+          root: worktreePath,
+          mainRoot: this._mainRoot,
+          inWorktree: true,
+          activeFlowsProvider: () => this._activeFlows,
+        });
+        state = wtStore.load(specId) ?? state;
+      }
+    }
+
+    if (!state) return null;
+    return { state, specId, worktreePath };
   }
 
   /**

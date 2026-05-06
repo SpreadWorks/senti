@@ -16,7 +16,9 @@ export default class RunResumeCommand extends FlowCommand {
 
   execute(ctx) {
     const base = buildResolvedFlowContext(ctx);
-    const state = ctx.flowManager.resolveActiveFlow(ctx.flowState).state;
+    const state = ctx.flowManager.resolveActiveFlow(ctx.flowState, {
+      selectSpecId: ctx.spec || undefined,
+    }).state;
     return {
       ...base,
       runId: state.runId || null,

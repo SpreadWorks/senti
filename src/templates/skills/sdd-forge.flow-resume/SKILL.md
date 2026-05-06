@@ -11,6 +11,7 @@ Use this skill when context has been lost (e.g. after compaction) and you need t
 
 1. Run `sdd-forge flow resume` and read the output.
    - If it reports "no active flow", tell the user there is no flow to resume and stop.
+   - If it reports "multiple active flows", ask the user which spec to resume and re-run with `sdd-forge flow resume --spec <specId>`.
 
 2. Display the resume summary to the user in a concise format:
    - What was being worked on (Request)
