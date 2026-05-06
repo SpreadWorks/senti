@@ -580,7 +580,36 @@ export const FLOW_COMMANDS = {
         "  --base <branch>  Base branch for git diff (auto-resolved from flow.json)",
       ].join("\n"),
     },
-    // retro is a post-flow analysis; it does not own the finalize step.
+    "test-execute": {
+      helpKey: "flow.run.test-execute",
+      command: () => import("./lib/run-test-execute.js"),
+      args: { flags: [], options: [] },
+      help: [
+        "Usage: sdd-forge flow run test-execute",
+        "",
+        "Execute the project's test runner via AI agent and persist:",
+        "  specs/<spec>/test-execute-result.json (machine-readable summary)",
+        "  specs/<spec>/tests/.raw/test-execution.log (raw stdout/stderr)",
+      ].join("\n"),
+      post(ctx) {
+        tryUpdateStepStatus(ctx, "test-execute", "done");
+      },
+    },
+    "test-result-review": {
+      helpKey: "flow.run.test-result-review",
+      command: () => import("./lib/run-test-result-review.js"),
+      args: { flags: [], options: [] },
+      help: [
+        "Usage: sdd-forge flow run test-result-review",
+        "",
+        "Verify test-execute-result.json integrity against raw output and code.",
+        "Persists specs/<spec>/test-result-review.json and test-result-review.md.",
+      ].join("\n"),
+      post(ctx) {
+        tryUpdateStepStatus(ctx, "test-result-review", "done");
+      },
+    },
+    // retro is a mainline impl-phase step that aggregates test-execute results.
     retro: {
       helpKey: "flow.run.retro",
       command: () => import("./lib/run-retro.js"),
@@ -588,13 +617,17 @@ export const FLOW_COMMANDS = {
       help: [
         "Usage: sdd-forge flow run retro [options]",
         "",
-        "Evaluate spec accuracy after implementation.",
-        "Compares spec requirements against git diff and saves retro.json.",
+        "Aggregate test-execute results per requirement and save retro.json.",
+        "Reads test-result-review.json and test-execute-result.json (produced",
+        "by earlier impl steps); does not execute tests.",
         "",
         "Options:",
-        "  --force     Overwrite existing retro.json",
+        "  --force     Overwrite existing retro.json (default: always overwrites)",
         "  --dry-run   Preview only, do not write retro.json",
       ].join("\n"),
+      post(ctx) {
+        tryUpdateStepStatus(ctx, "retro", "done");
+      },
     },
     // report generates a work report from the current flow state.
     report: {

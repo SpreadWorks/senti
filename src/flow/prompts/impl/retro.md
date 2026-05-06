@@ -1,0 +1,19 @@
+   - **Goal:** aggregate test results per requirement and produce `retro.json`.
+   - **Read-only over test artifacts.** This step does NOT execute tests. It reads:
+     - `specs/<spec>/test-result-review.json` (must have `verdict: "pass"`)
+     - `specs/<spec>/test-execute-result.json` (per-requirement summary)
+     - `specs/<spec>/spec.json` (requirements with testable flag)
+   - **Preconditions:**
+     - If `test-result-review.json` is absent or `verdict !== "pass"`: write an explicit error and exit non-zero. Do not produce `retro.json`. Message: `"test-result-review verdict is not pass; cannot aggregate results"`.
+     - If `test-execute-result.json` is absent: write `"test-execute step has not been run"` and exit non-zero.
+     - If either file fails JSON schema validation (or `version != "1"`): exit with explicit error.
+   - **Aggregation rules:**
+     - For each testable requirement (`requirements[].testable !== false`):
+       - Look up the matching `summary[]` entry by `id`.
+       - `result: "pass"` → `status: "done"`.
+       - `result: "fail"` → `status: "not_done"` (carry the `error` text into `note`).
+     - `testable: false` requirements are excluded from aggregation entirely.
+     - The legacy `partial` status is no longer produced.
+   - **Output:** `specs/<spec>/retro.json` (schema = `src/flow/schemas/retro.schema.json`).
+   - **Invocation:** run `sdd-forge flow run retro` (the runner is responsible for reading artifacts and writing `retro.json`). The mainline run unconditionally overwrites the existing file.
+   - **On complete:** the registry post-hook marks this step done automatically.
