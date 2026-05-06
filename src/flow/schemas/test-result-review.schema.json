@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "required": ["verdict", "checked_items", "result_file_path", "raw_output_path"],
+  "additionalProperties": false,
+  "properties": {
+    "verdict": { "type": "string", "enum": ["pass", "fail"] },
+    "checked_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["check", "result", "detail"],
+        "additionalProperties": false,
+        "properties": {
+          "check": { "type": "string" },
+          "result": { "type": "string", "enum": ["pass", "fail"] },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "invalid_reason": { "type": "string" },
+    "result_file_path": { "type": "string" },
+    "raw_output_path": { "type": "string" }
+  }
+}

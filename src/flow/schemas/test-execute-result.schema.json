@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "required": ["version", "raw_output_path", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "string", "const": "1" },
+    "raw_output_path": { "type": "string" },
+    "summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "result", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "result": { "type": "string", "enum": ["pass", "fail"] },
+          "error": { "type": "string" },
+          "evidence": {
+            "type": "object",
+            "required": ["test_file", "test_name", "command", "raw_output_lines"],
+            "additionalProperties": false,
+            "properties": {
+              "test_file": { "type": "string" },
+              "test_name": { "type": "string" },
+              "command": { "type": "string" },
+              "raw_output_lines": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

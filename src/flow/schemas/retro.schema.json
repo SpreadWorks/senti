@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "required": ["requirements", "summary"],
+  "additionalProperties": true,
+  "properties": {
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["desc", "status"],
+        "additionalProperties": true,
+        "properties": {
+          "desc": { "type": "string" },
+          "status": { "type": "string", "enum": ["done", "not_done"] },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "done": { "type": "integer", "minimum": 0 },
+        "not_done": { "type": "integer", "minimum": 0 },
+        "rate": { "type": "number" }
+      }
+    },
+    "unplanned": { "type": "array" }
+  }
+}
