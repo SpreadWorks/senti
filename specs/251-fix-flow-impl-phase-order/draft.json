@@ -1,0 +1,93 @@
+{
+  "devType": "bugfix",
+  "goal": "FLOW_DEFINITION の impl phase 配列順を `implement → gate-impl → review → finalize` から `implement → review → gate-impl → finalize` に修正し、TASK_DEFINITION と整合させる。",
+  "analysis": {
+    "problem": "src/flow/definition.js の FLOW_DEFINITION では integration impl phase が `implement → gate-impl → review → finalize` の順で定義されており、gate-impl (最終 PASS/FAIL 判定とその副作用 `completeTask`/`promoteNextTask`/`mergeOverview` を発火するゲート) の後に review (auto-correction で code を変更し得るステップ) が走る。結果として「gate を通過した後に review がコードを書き換える」状態が発生し、ゲートの意味が壊れる。一方 TASK_DEFINITION は `impl → review → gate-impl` の順で正しく整合している。",
+    "proposedApproach": "src/flow/definition.js の FLOW_DEFINITION 内、`impl` ブランチの `children` 配列で `gate-impl` ノードと `review` ノードの位置を入れ替える。FLOW_DEFINITION のステップ進行は `findFirstPendingLeaf` / `promoteNextPendingLeaf` が document order に従って遷移を計算するため、配列順序の変更だけで実行順が `implement → review → gate-impl → finalize` になる。`gate-impl` ノード自身の属性 (sideEffects, gatePhase, maxAttempts 等) は変更不要。同時に user-facing なテンプレート (`src/templates/skills/sdd-forge.flow/SKILL.md`) の旧順序記述も更新する。",
+    "validation": "順序逆転は配列上の position だけに起因するため、配列順を入れ替えれば「gate 通過後に review がコードを変更する」根本問題は解消される。TASK 側との整合性も同時に達成される。副作用 (completeTask / promoteNextTask / mergeOverview) は gate-impl PASS で発火する設計のままだが、発火タイミングは「review 完了後 + gate-impl PASS」となり、レビュー反映後の状態で overview merge / task complete が走る正しい挙動に変わる。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[MUST] src/flow/definition.js の FLOW_DEFINITION impl phase 内で `gate-impl` と `review` の配列位置を入れ替える (本 issue の根本修正)",
+      "[MUST] FLOW_DEFINITION impl children の exact order を assert する unit test を追加する (回帰防止の主軸)",
+      "[SHOULD] flow state ベースの実動作 (implement done → next-action.step が review、review done → next-action.step が gate-impl) を検証する unit test を追加する (runtime 進行の補強)",
+      "[SHOULD] src/templates/skills/sdd-forge.flow/SKILL.md の旧順序を反映する記述を新順序に更新する (frontmatter description と line 157 の `re-PASSed after review auto-corrections` 削除)",
+      "[SHOULD] テンプレート更新を反映するため `sdd-forge upgrade` を実行し `.claude/skills/sdd-forge.flow/SKILL.md` を同期する"
+    ],
+    "out": [
+      "TASK_DEFINITION の変更 (既に正しい順序)",
+      "gate-impl / review ノードの属性 (sideEffects, maxAttempts, contextKinds, gatePhase) の変更",
+      "プロンプト (impl.gate-impl, impl.review) の本文変更",
+      "registry.js の post-hook ロジック変更",
+      "review コマンドや gate コマンド実装の変更",
+      "STEP_TO_PHASE / PHASE_TO_STEP のマッピングロジック変更 (順序入れ替えで影響しないことを Q3 で確認)",
+      "既存の active flow.json (旧順序で初期化された state) の migration / 再初期化 (alpha 版ポリシーに従い後方互換コードは追加しない)",
+      "docs/ ローカライズドキュメントの本文更新 (現状 grep で旧順序を直接記述している箇所は無し。あれば docs build で追従する想定)"
+    ]
+  },
+  "impactOnExisting": [
+    "FLOW_STEPS (collectLeafIds で導出される flat な ID 配列) の review/gate-impl の index が入れ替わる",
+    "FLOW_DEFINITION を import する全 runtime モジュール (flow-helpers.js, get-next-action.js, commands/review.js, lib/run-gate.js, lib/gate-step.js, lib/get-check.js, lib/set-step.js, lib/resolve-auto-check-input.js) は order-sensitive なものも含めすべて document order ベースのトラバース (collectLeafIds / derivePhaseMap / findFirstPendingLeaf 等) を経由するため、配列順の変更で自動追従する",
+    "STEP_TO_PHASE のマッピング (gate-step.js) は collectGatePhaseEntries が gate ノードの gatePhase 属性を順に収集する仕組み。FLOW_DEFINITION の gate-impl の `gatePhase: [\"task-impl\", \"integration\"]` 順は不変なので `STEP_TO_PHASE[\"gate-impl\"] = \"task-impl\"` も不変",
+    "gate-impl PASS 時の side effects (completeTask, promoteNextTask, mergeOverview) の発火タイミングが review 完了後に変わる (これが本修正の意図)",
+    "skill SKILL.md の description が `code → gate → review` から `code → review → gate` に変わる。ユーザーが skill 経由で flow を起動する際の説明文・hard stop 文言が新順序に整合する",
+    "alpha 版ポリシーに従い、既存の active flow.json (旧順序の state.steps を持つもの) は migrate しない。新規 flow から新順序で初期化される"
+  ],
+  "qa": [
+    {
+      "question": "Q1. 配列順入れ替え以外に変更が必要な箇所はあるか? FLOW_DEFINITION の全 importer を網羅して order-sensitive かどうか分類せよ。",
+      "answer": "FLOW_DEFINITION を import している runtime ファイルは 8 つ: (1) `src/lib/flow-helpers.js` — collectLeafIds, derivePhaseMap, buildInitialNestedSteps を呼ぶ。order-sensitive だが document order ベースで自動追従。(2) `src/flow/lib/get-next-action.js` — resolveNodeFor / findActiveNode 経由。document order ベース。(3) `src/flow/commands/review.js` — resolveNodeFor で id 検索のみ。order-insensitive。(4) `src/flow/lib/run-gate.js` — `scope === \"task\" ? TASK_DEFINITION : FLOW_DEFINITION` で resolveNodeFor 経由。order-insensitive。(5) `src/flow/lib/gate-step.js` — collectLeafIds, collectGatePhaseEntries を使う。order-sensitive だが gate-impl の gatePhase 順 (`[\"task-impl\", \"integration\"]`) は不変なので STEP_TO_PHASE は変わらない。FLOW gate node 自体の最新 in_progress 選択は配列内順序で決まるが、impl branch には gate-impl が 1 つしかないので影響なし。(6) `src/flow/lib/get-check.js` — derivePrereqs を使う。targetBranchIdx より前のトップレベル branch の last leaf を集める仕様で、impl branch 内の入れ替えは prereqs に影響しない。(7) `src/flow/lib/set-step.js` — resolveNodeFor で id 検索のみ。order-insensitive。(8) `src/flow/lib/resolve-auto-check-input.js` — resolveNodeFor で特定ノード参照のみ。order-insensitive。結論: production code の追加修正は不要。order-sensitive な consumer もすべて document order ベースで自動追従する。`FLOW_DEFINITION[N]` のような index 直アクセスは src / tests 全体に存在しない (grep 確認済み)。",
+      "evidence": "(1) `grep -rn \"FLOW_DEFINITION\" src/` の結果から 8 ファイルすべて列挙。(2) `grep -rn \"FLOW_DEFINITION\\[\" src/ tests/` = 0 件。(3) src/flow/definition.js の `derivePrereqs` 実装はトップレベル branch index 比較で動作し、branch 内の swap には反応しない。(4) collectGatePhaseEntries は gate-impl の `gatePhase` 配列順 (`[\"task-impl\", \"integration\"]`) をそのまま収集するので、`STEP_TO_PHASE[\"gate-impl\"] = \"task-impl\"` は不変。",
+      "why": "原因が「配列上の位置」に閉じているため、修正もそこに閉じるのが最小スコープで安全。",
+      "considered": "(a) review ノードを移動させずに gate-impl の post-hook で review を呼ぶ案 → 副作用を gate に集約してしまい責務が膨らむ。(b) 順序を保ったまま gate-impl の side effects を review の後に移す案 → side effects は gate PASS と論理的に一体であり、ゲートと分離するのは設計の劣化。"
+    },
+    {
+      "question": "Q2. side effects (completeTask / promoteNextTask / mergeOverview) のタイミング変更で問題は起きないか? side effects は gate step done の正しいタイミングで走るか?",
+      "answer": "問題ない。registry.js の gate post-hook は (a) gate result が pass の場合 step を done に更新し、(b) `executeGateSideEffects(ctx, phase)` を呼ぶ。executeGateSideEffects は phase から resolveGateStepId で stepId を導出し、`deriveNextAction(scope, stepId)` で sideEffects を取得して dispatch する。順序入れ替えで影響を受けるのは flow.json 内の `state.steps` 走査順 (これは buildInitialNestedSteps が初期化時に作るので order-sensitive) のみ。executeGateSideEffects 自体は phase 起点の lookup なので影響なし。task-level (TASK_DEFINITION) は既に `review → gate-impl` 順で副作用が review 後に発火する設計が確立しており、FLOW (integration phase) も同じ順にすることで一貫する。",
+      "evidence": "(1) src/flow/registry.js (line 341-360) の gate post-hook は `tryUpdateStepStatus → updateGateRetryCounter → (FAIL の場合 issueLog) → (PASS の場合 executeGateSideEffects)` の順。(2) src/flow/lib/run-gate.js executeGateSideEffects (line 53-83) は phase → stepId → deriveNextAction(scope, stepId) → sideEffects の経路で参照する汎用実装。(3) TASK_DEFINITION (src/flow/definition.js line 304-320) は `impl → review → gate-impl` 順で gate-impl ノードに同じ side effects を持つ。",
+      "why": "`mergeOverview` は実装スナップショットを overview に反映する操作。review が auto-correction でコードを変えた直後に走るのが望ましい。",
+      "considered": "side effects のタイミングを別ノードに切り出す案も考えたが、現行設計 (gate ノードの sideEffects 属性で宣言) は spec 226 で確立しており、変更不要。"
+    },
+    {
+      "question": "Q3. flow-level `gate-impl` の phase 解決 (task-impl vs integration) は順序入れ替えで変わるか?",
+      "answer": "変わらない。gate-impl ノードの `gatePhase: [\"task-impl\", \"integration\"]` 配列順が不変なので、`collectGatePhaseEntries` が生成する entries 順 = `[[\"task-impl\", \"gate-impl\"], [\"integration\", \"gate-impl\"]]` も不変。`STEP_TO_PHASE` は first-wins で `gate-impl → \"task-impl\"` をそのまま維持する。`PHASE_TO_STEP[\"task-impl\"] = \"gate-impl\"` と `PHASE_TO_STEP[\"integration\"] = \"gate-impl\"` の両方も維持される。`--phase` 省略時は `resolveGatePhaseFromState` が flow-level gate-impl の in_progress を検出し phase = \"task-impl\" を返す既存挙動が継続する。`--phase integration` を明示した場合に integration phase で実行される挙動も継続する。",
+      "evidence": "(1) src/flow/lib/gate-step.js の `STEP_TO_PHASE` 構築は `PHASE_TO_STEP_ENTRIES.reduce` で first-wins (`if (!(step in acc)) acc[step] = phase;`)。(2) `collectGatePhaseEntries` (src/flow/definition.js line 326-345) は walk(FLOW_DEFINITION, 1) → walk(TASK_DEFINITION, 1) の順で gate ノードを訪問し、各ノードの gatePhase 配列を順に展開する。impl branch 内の review/gate-impl の position は collectGatePhaseEntries の出力順に影響しない (gate-impl は impl branch 内に 1 つしかないため)。",
+      "why": "phase 解決ロジックは順序ではなく gatePhase 属性自身に依存するため、配列内位置の入れ替えで影響を受けない。",
+      "considered": "もし STEP_TO_PHASE を `\"integration\"` に変えるなら gatePhase 配列を `[\"integration\", \"task-impl\"]` に並び替える案もあるが、これは別概念の変更で本 issue のスコープ外。"
+    },
+    {
+      "question": "Q4. テスト戦略は何か? 既存 test (implIdx < reviewIdx < finalIdx) は回帰検知として十分か?",
+      "answer": "既存 test だけでは不十分。`implement < review < finalize-commit` という不等式は旧順序 `implement → gate-impl → review → finalize-commit` でも PASS してしまうため、Issue #310 の回帰検知として機能しない。新規テストを 2 つ追加する: (a) FLOW_DEFINITION の impl branch children が exact に `[\"implement\", \"review\", \"gate-impl\", \"finalize\"]` 順であることを assert (TASK_DEFINITION 側の既存テストと同じパターン)。(b) 新規 flow state を `buildInitialNestedSteps` で生成し、`implement` を done にした次の next-action.step が `review` であること、続けて `review` を done にした次の next-action.step が `gate-impl` であることを検証 (state-based 動作確認、CLI envelope レベル)。これにより static 順と runtime 進行の両軸で固定する。",
+      "evidence": "tests/unit/226-task-decomp-wiring/t6-step-redesign-and-cli.test.js が既に TASK_DEFINITION の順序 `[\"impl\", \"review\", \"gate-impl\"]` を assert している (line 33)。tests/unit/flow/get-next-action.test.js は flow state を組み立てて next-action を検証する既存パターンを持つ。",
+      "why": "順序逆転が再発しないよう exact-order と state-based の 2 軸で固定する。一方が崩れてももう一方が catch する。新規 init される flow state に対する検証なので migration 不要 (alpha ポリシー)。",
+      "considered": "e2e テストでフロー全体を通す案もあるが、配列順の検証はユニットレベルで十分かつ高速。"
+    },
+    {
+      "question": "Q5. 旧順序を前提にした index 直アクセス・fixture・ドキュメントが残っていないか?",
+      "answer": "残っていない (grep 確認済み)。runtime コードでの index 直アクセス (`FLOW_DEFINITION[1].children[1]` 等) は皆無。tests/ 配下では `[\"implement\", \"gate-impl\", \"review\", ...]` のように set 包含チェックで使われている箇所が `tests/e2e/231-task-e2e-full-lifecycle.test.js` (line 185, 239) と `tests/e2e/227-forest-e2e.test.js` (line 159) にあるが、いずれも `.includes(na.data.step)` の引数として使われており順序非依存。`docs/` 内には旧順序を直接記述している箇所はない (grep `gate-impl.*review`, `re-PASS` 等で 0 hits)。",
+      "evidence": "(1) `grep -rn \"FLOW_DEFINITION\\[\" src/ tests/` = 0 hits。(2) `grep -rn '\"implement\", \"gate-impl\", \"review\"' tests/` の hits は `.includes` 引数のみ。(3) `grep -rn \"implement.*gate-impl.*review\\|gate-impl.*review.*finalize\" docs/` = 0 hits。",
+      "why": "順序依存のロジックを各所に分散させない設計が確立しているため、回帰リスクは限定的。",
+      "considered": "なし"
+    },
+    {
+      "question": "Q6. user-facing なテンプレート (skill / SKILL.md) に旧順序の記述があるか? あれば本 spec で更新するか?",
+      "answer": "ある。`src/templates/skills/sdd-forge.flow/SKILL.md` に 2 箇所: (a) frontmatter description: `implementation (code → gate → review)` → `implementation (code → review → gate)` に変更。(b) line 157 の Hard Stops 項: `Do not finalize before the impl-phase gate has PASSed (and re-PASSed after review auto-corrections).` → `Do not finalize before the impl-phase gate has PASSed.` に変更 (`re-PASSed after review auto-corrections` の workaround 文言を削除。新順序では review が gate より前に走るので不要)。template 変更後は `sdd-forge upgrade` を実行して `.claude/skills/sdd-forge.flow/SKILL.md` に反映する。",
+      "evidence": "`grep -rn \"code → gate → review\\|re-PASSed after review\" src/templates/` の結果 src/templates/skills/sdd-forge.flow/SKILL.md の 2 箇所のみ。CLAUDE.md プロジェクトルール: 「`src/templates/` を変更した場合は `sdd-forge upgrade` を実行する」。",
+      "why": "user-facing な指示文書が新順序と矛盾しないことが回帰防止と SDD 文化の維持に必須。template 更新は本 spec のスコープ内 (Issue #310 の趣旨は flow 順序の整合)。",
+      "considered": "テンプレート更新を別 spec に分離する案 → スコープ規律を尊重する一方で、本 spec の修正と template 更新が分離するとリリース時に文書と実装がズレる期間が発生する。同一コミット (本 spec 内) で完結させる方が安全。"
+    },
+    {
+      "question": "Q7. 既存の active flow.json (旧順序で初期化された state.steps を持つもの) は migrate するか?",
+      "answer": "migrate しない。alpha 版ポリシー (CLAUDE.md: 「後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する」) に従い、既存の旧順序 state は migration しない。新規 flow から新順序で初期化される。テストも新規 init される state に対する検証のみ行う。",
+      "evidence": "CLAUDE.md `### コーディング` セクション: 「**alpha 版ポリシー**: 後方互換コードは書かない。旧フォーマット・非推奨パスは保持せず削除する。」",
+      "why": "alpha 期間は破壊的変更を許容する設計。migration コードは負債になる。",
+      "considered": "migration スクリプトを追加する案 → alpha ポリシー違反。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-06",
+    "notes": "autoApprove (post draft-review iteration 2: incorporated feedback on consumer inventory, phase resolution, template updates, and migration policy)"
+  }
+}

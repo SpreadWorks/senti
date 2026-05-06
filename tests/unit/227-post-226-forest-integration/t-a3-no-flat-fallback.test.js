@@ -41,7 +41,7 @@ describe("REQ-A3: get-next-action assumes non-empty tasks", () => {
       tasks: [task],
       currentTaskId: "T-1",
     });
-    setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval", "test", "implement", "gate-impl", "review");
+    setStepDone(state, "branch", "prepare-spec", "draft", "gate-draft", "spec", "gate", "approval", "test", "implement", "review", "gate-impl");
     const step = findStepById(state.steps, "finalize-commit");
     if (step) step.status = "in_progress";
     const fm = makeFlowManager(tmp);

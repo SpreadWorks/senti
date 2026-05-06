@@ -1,4 +1,4 @@
-   - `sdd-forge flow run gate --phase task-impl` (step status is automatically managed by hooks: pre sets gate-impl to in_progress, post sets done on PASS)
+   - `sdd-forge flow run gate` (step status is automatically managed by hooks: pre sets gate-impl to in_progress, post sets done on PASS. The CLI auto-resolves the gate phase from the in-progress step: when the active impl step is the overall flow's gate-impl, phase resolves to `integration`; when it is a task's gate-impl, phase resolves to `task-impl`.)
    - Checks spec requirements against `git diff baseBranch...HEAD` + guardrail compliance via AI.
    - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.reasons`. Fix using only the failure reasons and `git diff baseBranch...HEAD` — do NOT re-read the full spec, context, or guardrail. Re-run gate.
    - **MUST: Before re-running gate after a FAIL, record in the issue-log what was fixed (or the rationale for not fixing).** Use `sdd-forge flow set issue-log --step gate-impl --reason "fix: <what changed>" --resolution "<why this addresses the FAIL reasons>"`. This keeps the FAIL → fix → PASS trace auditable.

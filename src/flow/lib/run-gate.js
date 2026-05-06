@@ -1249,8 +1249,8 @@ const PASS_NEXT = {
   "draft": "spec",
   "spec": "approval",
   "task-spec": "task-impl",
-  "task-impl": "review",
-  "integration": "review",
+  "task-impl": null,
+  "integration": "finalize-commit",
 };
 const FAIL_NEXT = {
   "draft": "draft",

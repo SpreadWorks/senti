@@ -11,4 +11,4 @@ Use this guidance for the per-task code review step. Mirrors the flow-level revi
   5. Re-run the task tests to confirm no regressions.
 - **If no proposals** (NO_PROPOSALS): Display "レビューの結果、修正の必要はありませんでした。"
 - **Retry limit:** If review keeps producing new proposals beyond the resolved numeric maxAttempts from next-action, STOP and return control to the user.
-- On complete, the next-action CLI advances to `task.update-overview`.
+- On complete, the next-action CLI advances to `gate-impl`.

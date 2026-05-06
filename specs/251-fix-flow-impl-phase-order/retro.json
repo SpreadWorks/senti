@@ -1,0 +1,43 @@
+{
+  "spec": "specs/251-fix-flow-impl-phase-order/spec.json",
+  "date": "2026-05-06T06:36:00.626Z",
+  "mode": "static",
+  "requirements": [
+    {
+      "desc": "src/flow/definition.js の FLOW_DEFINITION (line 220-244 周辺) で、impl branch の children 配列内の `gate-impl` ノードと `review` ノードの位置を入れ替える。結果として children の id 順が `[\"implement\", \"review\", \"gate-impl\", \"finalize\"]` になる。各ノードの属性 (id, label, action, instructionsKey, contextKinds, outputSchemaRef, maxAttempts, sideEffects, gatePhase) は変更しない。",
+      "status": "done",
+      "note": "6 test(s)"
+    },
+    {
+      "desc": "src/flow/lib/run-review.js の impl review 結果 (line 159 周辺) で `next: \"finalize\"` を `next: \"gate-impl\"` に変更する。review の次は finalize ではなく gate-impl のため。",
+      "status": "done",
+      "note": "1 test(s)"
+    },
+    {
+      "desc": "src/flow/lib/run-gate.js の PASS_NEXT マッピングを新順序に整合させる: `\"task-impl\": \"review\"` → `\"task-impl\": null` (gate-impl は task の最後のステップで PASS 後は task 完了)、`\"integration\": \"review\"` → `\"integration\": \"finalize-commit\"` (gate-impl の次は finalize-commit)。",
+      "status": "done",
+      "note": "2 test(s)"
+    },
+    {
+      "desc": "src/flow/definition.js の FLOW gate-impl ノード `gatePhase` 配列を `[\"task-impl\", \"integration\"]` から `[\"integration\", \"task-impl\"]` に reorder し、`STEP_TO_PHASE[\"gate-impl\"]` (first-wins) が flow scope で `\"integration\"` を返すようにする。同時に src/flow/lib/gate-step.js の `TASK_STEP_TO_PHASE` に `\"gate-impl\": \"task-impl\"` を追加し、task scope で gate-impl 自動解決が `task-impl` を返すようにする。これにより flow-level gate-impl は integration phase、task-level gate-impl は task-impl phase で実行される。",
+      "status": "done",
+      "note": "3 test(s)"
+    },
+    {
+      "desc": "flow-level gate-impl が `--phase` 省略時に integration phase で実行され、PASS 時の envelope `next` が `\"finalize-commit\"` を返すことを検証する e2e/integration テストを追加する。",
+      "status": "done",
+      "note": "1 test(s)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 11,
+    "not_testable_count": 11,
+    "rate": 1,
+    "notes": "static evaluation from file headers"
+  }
+}

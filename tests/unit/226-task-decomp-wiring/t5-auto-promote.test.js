@@ -257,11 +257,11 @@ describe("T-5: auto-promote function and callers", () => {
       makeDoneTask("T-2"),
     ];
     const steps = buildInitialSteps();
-    // Mark flow steps up through review as done, finalize as in_progress.
+    // Mark flow steps up through gate-impl as done, finalize as in_progress.
     const doneStepIds = [
       "branch", "prepare-spec", "draft", "gate-draft", "spec",
-      "gate", "approval", "test", "implement", "gate-impl",
-      "review",
+      "gate", "approval", "test", "implement", "review",
+      "gate-impl",
     ];
     for (const s of flattenSteps(steps)) {
       if (doneStepIds.includes(s.id)) s.status = "done";

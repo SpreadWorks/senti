@@ -1,6 +1,6 @@
 ---
 name: sdd-forge.flow
-description: Run the SDD flow end-to-end — planning (draft → spec → approval → test), implementation (code → gate → review), and finalization (commit → merge → cleanup → docs sync). Thin dispatcher over the CLI's next-action facility; use this for any feature or fix request.
+description: Run the SDD flow end-to-end — planning (draft → spec → approval → test), implementation (code → review → gate), and finalization (commit → merge → sync → cleanup). Thin dispatcher over the CLI's next-action facility; use this for any feature or fix request.
 ---
 
 # SDD Flow
@@ -154,7 +154,7 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 ### No-auto-promote
 
 - Do not implement code before the spec gate has PASSed, tests are written, and the user has approved the spec (plan-phase gate chain).
-- Do not finalize before the impl-phase gate has PASSed (and re-PASSed after review auto-corrections).
+- Do not finalize before the impl-phase gate has PASSed.
 
 ### Worktree boundary
 
@@ -214,7 +214,7 @@ sdd-forge flow set issue <number>
 sdd-forge flow set metric <phase> <counter>
 sdd-forge flow set issue-log --step <id> --reason "<text>" [--trigger "<text>"] [--resolution "<text>"] [--guardrail-candidate "<text>"]
 sdd-forge flow prepare --title "..." [--base branch] [--worktree] [--no-branch] [--issue N] [--request "..."] [--run-id <id>]
-sdd-forge flow run gate [--phase <draft|spec|task-impl>]
+sdd-forge flow run gate [--phase <draft|spec|task-spec|task-impl|integration>]
 sdd-forge flow run review
 sdd-forge flow run impl-confirm --mode <overview|detail>
 sdd-forge flow run finalize-commit [--message "<msg>"]

@@ -53,7 +53,7 @@ describe("gate-step.js: step <-> phase round-trip (AC6/R5)", () => {
 // -----------------------------------------------------------------------------
 
 describe("resolveGatePhaseFromState: single in_progress (AC1/R1)", () => {
-  it("resolves gate-impl in_progress to task-impl", () => {
+  it("resolves flow-level gate-impl in_progress to integration", () => {
     const state = {
       steps: [
         { id: "branch", status: "done" },
@@ -72,7 +72,7 @@ describe("resolveGatePhaseFromState: single in_progress (AC1/R1)", () => {
     };
     const result = resolveGatePhaseFromState(state);
     assert.ok(result, "expected non-null result");
-    assert.equal(result.phase, "task-impl");
+    assert.equal(result.phase, "integration");
     assert.deepEqual(result.staleSteps, []);
   });
 
@@ -147,7 +147,7 @@ describe("resolveGatePhaseFromState: multiple flow-level in_progress (AC3/R3)", 
     };
     const result = resolveGatePhaseFromState(state);
     assert.ok(result);
-    assert.equal(result.phase, "task-impl");
+    assert.equal(result.phase, "integration");
     assert.deepEqual(result.staleSteps, ["gate"]);
   });
 
@@ -163,7 +163,7 @@ describe("resolveGatePhaseFromState: multiple flow-level in_progress (AC3/R3)", 
     };
     const result = resolveGatePhaseFromState(state);
     assert.ok(result);
-    assert.equal(result.phase, "task-impl");
+    assert.equal(result.phase, "integration");
     // stale order should reflect the scan order we choose to expose; the set
     // matters. The flow-level spec only requires that staleSteps contains the
     // non-chosen in_progress gate steps.
@@ -176,6 +176,30 @@ describe("resolveGatePhaseFromState: multiple flow-level in_progress (AC3/R3)", 
 // -----------------------------------------------------------------------------
 
 describe("resolveGatePhaseFromState: task-level takes precedence (AC4/R3)", () => {
+  it("picks task-impl when active task's gate-impl step is in_progress", () => {
+    const state = {
+      steps: [
+        { id: "gate-impl", status: "pending" },
+      ],
+      tasks: [
+        {
+          id: "T1",
+          status: "in_progress",
+          steps: [
+            { id: "impl", status: "done" },
+            { id: "review", status: "done" },
+            { id: "gate-impl", status: "in_progress" },
+          ],
+        },
+      ],
+      currentTaskId: "T1",
+    };
+    const result = resolveGatePhaseFromState(state);
+    assert.ok(result, "expected non-null result");
+    assert.equal(result.phase, "task-impl");
+    assert.deepEqual(result.staleSteps, []);
+  });
+
   it("picks task-spec when active task's gate step is in_progress, even if flow-level gate is too", () => {
     const state = {
       steps: [
@@ -245,7 +269,7 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
     assert.ok(json.errors?.[0]?.code === "NO_GATE_STEP_IN_PROGRESS", `unexpected code: ${errorMsg}`);
   });
 
-  it("AC3: transitions stale flow-level gate step to done and emits stderr warning when resolving task-impl from gate+gate-impl both in_progress", async () => {
+  it("AC3: transitions stale flow-level gate step to done and emits stderr warning when resolving integration from gate+gate-impl both in_progress", async () => {
     // In-process test: drive RunGateCommand.execute directly with a mock
     // flow state and a stub flowManager. This verifies the stale-step
     // recovery side effect without spawning external processes.

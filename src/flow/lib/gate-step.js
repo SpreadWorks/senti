@@ -26,6 +26,7 @@ export function resolveGateStepId(phase) {
 
 const TASK_STEP_TO_PHASE = Object.freeze({
   "gate": "task-spec",
+  "gate-impl": "task-impl",
 });
 
 const FLOW_GATE_STEP_IDS = Object.freeze(Object.keys(STEP_TO_PHASE));

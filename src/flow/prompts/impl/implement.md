@@ -2,7 +2,7 @@
    - **Test-only spec detection (autoApprove mode):** If the spec's Goal, Scope, and Requirements indicate that only tests are being added (no production code changes), and `autoApprove: true`:
      1. Set `sdd-forge flow set step implement skipped`
      2. Set `sdd-forge flow set step gate-impl skipped`
-     3. Skip to step 3 (review).
+     3. Skip to the review step (the dispatcher will promote it as the next pending leaf in the impl phase).
      4. Display: "auto: test-only spec detected — impl phase skipped"
      - If unsure whether the spec is test-only, proceed with normal implementation (err on the side of caution).
    - **Context gathering (supplement-first):** Build understanding in tiers — stop as soon as sufficient. Do NOT re-read material already in context.

@@ -335,7 +335,7 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         "  --spec <path>                 Path to spec (directory / spec.json / legacy spec.md; auto-resolved from flow.json)",
-        "  --phase <draft|pre|post|impl> Gate phase (default: pre)",
+        `  --phase <${VALID_GATE_PHASES.join("|")}>  Gate phase (default: auto-resolve from in-progress step)`,
         "  --skip-guardrail              Skip AI guardrail compliance check",
       ].join("\n"),
       async post(ctx, result) {

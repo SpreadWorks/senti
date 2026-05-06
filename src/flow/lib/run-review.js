@@ -156,7 +156,7 @@ export class RunReviewCommand extends FlowCommand {
     const changed = [];
     if (reviewPathMatch) changed.push(reviewPathMatch[1]);
 
-    const next = noChanges || noProposals || proposalCount === 0 ? "finalize" : "apply";
+    const next = noChanges || noProposals || proposalCount === 0 ? "gate-impl" : "apply";
 
     return {
       result: noChanges ? "no-changes" : noProposals ? "no-proposals" : "ok",

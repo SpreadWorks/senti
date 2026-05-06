@@ -227,6 +227,15 @@ export const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 3,
       }),
       new FlowNode({
+        id: "review",
+        label: "Review",
+        action: "run-review",
+        instructionsKey: "impl.review",
+        contextKinds: ["spec", "diff", "testlog"],
+        outputSchemaRef: "next-action/review.schema.json",
+        maxAttempts: 3,
+      }),
+      new FlowNode({
         id: "gate-impl",
         label: "Gate (impl)",
         action: "run-gate",
@@ -235,16 +244,7 @@ export const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/gate.schema.json",
         maxAttempts: 5,
         sideEffects: GATE_IMPL_SIDE_EFFECTS,
-        gatePhase: ["task-impl", "integration"],
-      }),
-      new FlowNode({
-        id: "review",
-        label: "Review",
-        action: "run-review",
-        instructionsKey: "impl.review",
-        contextKinds: ["spec", "diff", "testlog"],
-        outputSchemaRef: "next-action/review.schema.json",
-        maxAttempts: 3,
+        gatePhase: ["integration", "task-impl"],
       }),
       new FlowNode({
         id: "finalize",
