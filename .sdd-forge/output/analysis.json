@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-06T23:30:58.735Z",
+  "analyzedAt": "2026-05-07T00:16:34.570Z",
   "package": {
     "entries": [
       {
@@ -20,7 +20,26 @@
           "test:all": "node tests/run.js --all"
         },
         "composerDeps": null,
-        "id": "451a9f25"
+        "id": "451a9f25",
+        "summary": "npm package manifest for sdd-forge CLI tool with zero external dependencies and Node.js 18.19+ requirement.",
+        "detail": "Defines sdd-forge as an ES module npm package with version 0.1.0-alpha.775, exposing a single bin entry pointing to src/sdd-forge.js. The package follows a strict no-external-dependencies policy and ships only the src/ directory (excluding preset tests). Test scripts are organized into unit, e2e, acceptance, agent, and combined scopes. Engine constraint requires Node.js >=18.19.0, and the package uses pnpm 10.33.2 as its package manager.",
+        "chapter": "stack_and_ops",
+        "role": "manifest",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "package.json",
+          "npm",
+          "manifest",
+          "ES modules",
+          "Node.js engines",
+          "bin entry",
+          "dependencies",
+          "sdd-forge",
+          "alpha versioning"
+        ]
       }
     ],
     "summary": {
@@ -2400,9 +2419,9 @@
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "99ee2c4acb9bf80466f561537fec3a88",
-        "lines": 211,
-        "mtime": "2026-04-28T03:23:16.008Z",
+        "hash": "6aee67ff7575cb5650638fb14c8df3b3",
+        "lines": 230,
+        "mtime": "2026-05-07T00:14:18.344Z",
         "className": "report",
         "methods": [
           "generateReport",
@@ -2423,28 +2442,30 @@
         "extends": null,
         "usedBy": null,
         "id": "5f80ffd2",
-        "summary": "Generates SDD flow report data and text output, persisting structured report.json next to the spec.",
-        "detail": "Exports `generateReport(input)` which composes report data plus a formatted text representation, and `saveReport(root, specPath, reportData)` which writes `report.json` into the spec directory. Uses `loadIssueLog` for issue history and `buildMetricsSummary` / `buildReportTotals` from `get-status.js` to assemble metrics. Text formatting leverages shared `pushSection`, `DIVIDER`, and `formatDurationSeconds` helpers from the formatter module. Output is a labelled, dot-aligned summary plus a JSON sidecar for downstream consumption.",
+        "summary": "Generates and persists flow report data combining metrics summary and totals into JSON and human-readable text formats.",
+        "detail": "Exports generateReport(input) which builds both structured data and formatted text representations from issue log entries, leveraging buildMetricsSummary and buildReportTotals from get-status.js. The text formatter uses dotted alignment for label/value pairs to produce CLI-friendly output. saveReport(root, specPath, reportData) writes report.json next to the spec file with stable JSON serialization. Relies on shared formatter utilities (pushSection, DIVIDER, formatDurationSeconds) for consistent presentation across flow outputs.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "flow-command",
         "enrich": {
-          "processedAt": "2026-04-28T03:24:26.497Z",
+          "processedAt": "2026-05-07T00:18:30.711Z",
           "attempts": 1
         },
         "keywords": [
-          "flow report",
           "report generation",
           "metrics summary",
           "issue log",
-          "spec report",
-          "report.json"
+          "JSON output",
+          "flow report",
+          "saveReport",
+          "spec directory",
+          "formatter"
         ]
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "1445f860279b41fc79b55f04dcff8557",
-        "lines": 1504,
-        "mtime": "2026-05-02T09:24:13.453Z",
+        "hash": "de827d64cda85882c5e4196c4d2da8df",
+        "lines": 1535,
+        "mtime": "2026-05-07T00:14:18.344Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2556,25 +2577,28 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Flow review command orchestrating draft, spec, and test phase reviews against guardrails and diffs.",
-        "detail": "Defines runReview as the entry point, dispatching to runDraftReview, runSpecReview, or runTestReview based on phase. Each sub-flow loads spec/draft JSON, builds AI prompts with guardrails and requirements, parses proposals/gaps, and writes formatted markdown reports (review.md, spec-review.md, test-review.md). Implements loop review for large diffs (LOOP_REVIEW_THRESHOLD=10 files) with per-file grouping, cross-checking, and proposal expansion. Resolves merge bases via git, collects committed/staged/untracked diffs with path exclusions, and uses PromptBuilder + ensureAgent for AI calls. Exposes FlowReviewCommand class extending Command for integration with the flow dispatcher.",
+        "summary": "Implements the multi-phase flow review command (draft, spec, test, impl) using AI agents and guardrails to produce review markdown artifacts.",
+        "detail": "Orchestrates four review subcommands keyed by phase (draft, spec, test, impl), each loading appropriate context (draft.json, spec.md, requirements, test files) and dispatching to AI agents via PromptBuilder with merged guardrails. Implements diff scoping using git merge-base, REVIEW_EXCLUDE_PATHS to skip docs/output, and a loop-review mode triggered when touched file count exceeds LOOP_REVIEW_THRESHOLD (10). Builds per-file diffs grouped by content hash and inverts file-map.json to attach requirement IDs to each chunk. Applies retry-bounded review loops via runReviewLoop with configurable maxAttempts resolved from FLOW_DEFINITION nodes (review-draft, review-spec, review-test). Writes results to review.md, draft-review.md, spec-review.md, or test-review.md depending on phase.",
         "chapter": "internal_design",
-        "role": "Flow phase review executor",
+        "role": "flow-command",
         "enrich": {
-          "processedAt": "2026-05-02T09:43:02.905Z",
+          "processedAt": "2026-05-07T00:18:30.711Z",
           "attempts": 1
         },
         "keywords": [
-          "review",
-          "flow",
-          "draft",
-          "spec",
-          "test",
-          "guardrail",
-          "proposals",
-          "diff",
+          "flow review",
+          "draft review",
+          "spec review",
+          "test review",
+          "impl review",
+          "guardrails",
+          "diff scoping",
+          "merge-base",
           "loop review",
-          "gap analysis"
+          "file-map",
+          "gap analysis",
+          "AI agent",
+          "PromptBuilder"
         ]
       },
       {
@@ -2632,7 +2656,29 @@
         "usedBy": [
           "src/flow/registry.js"
         ],
-        "id": "2cb27b93"
+        "id": "2cb27b93",
+        "summary": "Defines the FLOW_DEFINITION and TASK_DEFINITION node trees with maxAttempts policies, plus traversal/derivation utilities used across the flow engine.",
+        "detail": "Models the flow as a frozen array of FlowNode objects with up to MAX_DEPTH=3 nesting and per-node maxAttempts encoded as either ScalarMaxAttempts or ModeMaxAttempts (auto/manual context-dependent). GATE_IMPL_SIDE_EFFECTS lists post-gate actions (completeTask, promoteNextTask, mergeOverview), and PLAN_REVIEW_MAX_ATTEMPTS_BY_ID configures phase-specific review limits via createPlanReviewNode. Exports a comprehensive set of pure helpers: collectGatePhaseEntries, collectLeafIds, derivePhaseMap, resolveNodeFor, findActiveNode/findInProgressLeaf, deriveNextAction, buildInitialNestedSteps, flattenSteps, findStepById, findFirstPendingLeaf, promoteNextPendingLeaf, derivePrereqs, and findBranchForLeaf. The OOP-style FlowNode/MaxAttempts classes enforce invariants in constructors and expose a resolve(context) method to pick auto vs manual limits.",
+        "chapter": "internal_design",
+        "role": "definition",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "FLOW_DEFINITION",
+          "TASK_DEFINITION",
+          "FlowNode",
+          "maxAttempts",
+          "ScalarMaxAttempts",
+          "ModeMaxAttempts",
+          "gate phases",
+          "derivePhaseMap",
+          "derivePrereqs",
+          "step traversal",
+          "auto mode",
+          "manual mode"
+        ]
       },
       {
         "file": "src/flow/lib/auto-check-static.js",
@@ -2854,7 +2900,26 @@
           "src/flow.js",
           "src/flow/lib/base-command.js"
         ],
-        "id": "e296da98"
+        "id": "e296da98",
+        "summary": "Resolves authoritative flow state by preferring the main repo's specs/<id>/flow.json over the worktree's local copy.",
+        "detail": "resolveAuthorityFlowState locates the main-repo flow.json at specs/<specId>/STATE_FILE and uses it as the authoritative source when available, falling back to the worktree's flow state otherwise. specIdFromPath extracts the spec ID from the current spec path to construct the lookup. resolveFlowContext bundles the resolved flowManager, flowState, and authorityRoot for downstream consumers. This separation handles the worktree-vs-main-repo authority concern central to concurrent flows.",
+        "chapter": "internal_design",
+        "role": "flow-context",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow context",
+          "authority root",
+          "main repo",
+          "worktree",
+          "flow.json",
+          "specIdFromPath",
+          "STATE_FILE",
+          "concurrent flows",
+          "flow state resolution"
+        ]
       },
       {
         "file": "src/flow/lib/gate-step.js",
@@ -3133,9 +3198,9 @@
       },
       {
         "file": "src/flow/lib/get-prompt.js",
-        "hash": "fa65c8ba31b81f4484d1b6bc6537c0f3",
-        "lines": 326,
-        "mtime": "2026-04-23T00:13:09.700Z",
+        "hash": "b7d706da29e031e7d64f1a9eb0da9831",
+        "lines": 328,
+        "mtime": "2026-05-07T00:14:18.345Z",
         "className": "get-prompt",
         "methods": [
           "validKinds"
@@ -3149,20 +3214,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "410dfcc9",
+        "summary": "Implements the flow get-prompt command that returns localized prompt text by kind for use in skills.",
+        "detail": "Exposes a PROMPTS_BY_LANG table keyed by language (ja by default), validating the requested kind against the ja key set. Throws descriptive errors when kind is missing or unknown, listing valid options. Inherits from FlowCommand to participate in the standard envelope-returning command protocol. Used by skills/CLI to fetch human-readable prompt strings without hardcoding them in skill markdown.",
+        "chapter": "internal_design",
+        "role": "flow-command",
         "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
-          "attempts": 2
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
         },
-        "summary": "Provides a flow command that returns localized prompt templates by kind. It validates prompt type and emits structured prompt payloads.",
-        "detail": "A language-keyed prompt map stores prompt strings categorized by command intent. The command validates that `kind` is provided and belongs to known keys, throwing explicit errors otherwise. It derives valid kinds from the Japanese map as canonical key source. The class extends `FlowCommand` and returns a uniform response object for downstream consumers. The module is intentionally small and focused on deterministic prompt lookup.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "keywords": [
-          "prompt registry",
-          "localized prompts",
-          "flow command",
-          "kind validation",
-          "template lookup"
+          "get-prompt",
+          "FlowCommand",
+          "localization",
+          "prompt kinds",
+          "Japanese",
+          "skill prompts",
+          "validation"
         ]
       },
       {
@@ -3238,9 +3305,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "1505f5c959fc986cb645e5b2a5d366aa",
-        "lines": 147,
-        "mtime": "2026-04-27T03:02:21.757Z",
+        "hash": "cc9a2f385293e73e0b9f784d06ccefcc",
+        "lines": 152,
+        "mtime": "2026-05-07T00:14:18.345Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -3252,6 +3319,7 @@
         "imports": [
           "../../lib/flow-helpers.js",
           "../../lib/spec-json.js",
+          "../definition.js",
           "./base-command.js"
         ],
         "exports": [
@@ -3266,22 +3334,24 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "Provides flow status aggregation logic and the command entrypoint for reporting current or historical run state. It summarizes token usage and activity counters into a normalized status payload.",
-        "detail": "The file defines canonical token and activity keys, plus zero-initialization helpers for predictable metrics output. It folds metric entries into bucketed summaries and computes report totals for display and downstream consumers. Status output includes derived phase information and requirement-aware context from the active flow state. The command supports querying by `runId`, with explicit errors for missing runs, and returns inactive status when no flow is active. The implementation keeps formatting and aggregation logic separated from command orchestration.",
-        "chapter": "cli_commands",
-        "role": "cli",
+        "summary": "Implements flow status reporting with token/activity metrics aggregation derived from issue log entries.",
+        "detail": "Defines TOKEN_KEYS (input/output/cacheRead/cacheCreation) and ACTIVITY_COUNTERS (docsRead/srcRead/question/issueLog) as the canonical metric dimensions. buildMetricsSummary walks issue log entries and applies them to per-phase buckets, while buildReportTotals collapses the summary into flat activity/tokens objects for reporting. buildStatusOutput composes the runtime view including spec phase (via derivePhase), requirements (via loadSpecRequirements), and flattened steps. GetStatusCommand resolves the requested run by ID or falls back to the active flow state, returning {active:false} when none is found.",
+        "chapter": "internal_design",
+        "role": "flow-command",
         "enrich": {
-          "processedAt": "2026-04-27T03:03:14.026Z",
+          "processedAt": "2026-05-07T00:18:30.711Z",
           "attempts": 1
         },
         "keywords": [
           "flow status",
           "metrics summary",
-          "token counters",
+          "token tracking",
           "activity counters",
-          "run id lookup",
-          "phase derivation",
-          "status reporting"
+          "issue log",
+          "derivePhase",
+          "run ID",
+          "flow state",
+          "report totals"
         ]
       },
       {
@@ -3412,17 +3482,14 @@
       },
       {
         "file": "src/flow/lib/req-map.js",
-        "hash": "31d6a70a95459dac3716276929721bd6",
-        "lines": 115,
-        "mtime": "2026-05-01T05:18:43.675Z",
+        "hash": "b3851c5b91c8d670ca4dc026c0342695",
+        "lines": 76,
+        "mtime": "2026-05-07T00:14:18.345Z",
         "className": "req-map",
         "methods": [
           "loadFileMap",
           "appendFiles",
           "reconcileFileMap",
-          "parseTapOutput",
-          "extractReqResults",
-          "evaluateReqByResults",
           "loadJsonMap",
           "saveJsonMap"
         ],
@@ -3434,33 +3501,30 @@
         "exports": [
           "loadFileMap",
           "appendFiles",
-          "reconcileFileMap",
-          "parseTapOutput",
-          "extractReqResults",
-          "evaluateReqByResults"
+          "reconcileFileMap"
         ],
         "extends": null,
         "usedBy": [
           "src/flow/lib/run-gate.js",
-          "src/flow/lib/run-retro.js",
           "src/flow/lib/set-files.js"
         ],
         "id": "4b112428",
-        "summary": "Helpers for managing requirement-to-file mappings and parsing TAP test results.",
-        "detail": "Provides loadFileMap/appendFiles/reconcileFileMap to persist file-map.json under the spec directory, mapping requirement IDs to implementation files. Parses TAP output via parseTapOutput, aggregates per-requirement pass/fail counts in extractReqResults, and classifies status with evaluateReqByResults (done/partial/not_done). Pure JSON I/O with mkdirSync ensuring parent directories exist; designed for retro and review consumers.",
+        "summary": "Manages file-map.json which records the spec requirement → source file association used during gate reconciliation.",
+        "detail": "Provides loadFileMap/saveJsonMap helpers to read and persist file-map.json under the spec directory with consistent JSON formatting and trailing newline. appendFiles attaches paths to a given requirement ID, validating against requirements normalized from spec.json. reconcileFileMap returns files present in a diff but not yet recorded, used by gate checks to surface untracked changes. The module is a thin persistence wrapper while keeping derivation logic at the call sites.",
         "chapter": "internal_design",
-        "role": "req-map-helper",
+        "role": "library",
         "enrich": {
-          "processedAt": "2026-05-01T05:19:20.433Z",
+          "processedAt": "2026-05-07T00:18:30.711Z",
           "attempts": 1
         },
         "keywords": [
-          "requirement map",
-          "file map",
-          "TAP parser",
-          "test results",
-          "retro",
-          "spec linkage",
+          "file-map",
+          "req-map",
+          "requirement tracking",
+          "spec.json",
+          "reconcileFileMap",
+          "appendFiles",
+          "gate reconciliation",
           "JSON persistence"
         ]
       },
@@ -3515,9 +3579,9 @@
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
-        "hash": "5d0e22c4946cedabe36923ce73939c22",
-        "lines": 107,
-        "mtime": "2026-05-06T14:00:46.636Z",
+        "hash": "541a04d41825c6db6d9cd2b1308b2e34",
+        "lines": 112,
+        "mtime": "2026-05-07T00:14:18.345Z",
         "className": "resolve-context-envelope",
         "methods": [
           "buildResolvedFlowContext",
@@ -3529,7 +3593,8 @@
           "path",
           "../../lib/git-helpers.js",
           "../../lib/flow-helpers.js",
-          "../../lib/spec-json.js"
+          "../../lib/spec-json.js",
+          "../definition.js"
         ],
         "exports": [
           "buildResolvedFlowContext"
@@ -3539,7 +3604,26 @@
           "src/flow/lib/get-resolve-context.js",
           "src/flow/lib/run-resume.js"
         ],
-        "id": "d569f2a6"
+        "id": "d569f2a6",
+        "summary": "Builds the resolved flow context envelope containing branch, worktree, spec, requirements, and skill routing for a running flow.",
+        "detail": "buildResolvedFlowContext locates the main repo and effective worktree path (preferring worktreePath when it exists), reads the flow.json state, and assembles git metadata via git-helpers (branch, ahead count, last commit, gh availability). Extracts a section from the spec markdown via extractSection and includes flattened steps and normalized requirements. phaseToSkill maps phase to skill name, with sync routing to sdd-forge.flow-sync and everything else defaulting to sdd-forge.flow (DEFAULT_SKILL); per project memory, phase-to-skill is largely a dead reference now that flow skills are unified. Returns a single envelope-shaped object consumed by resume and other context-emitting commands.",
+        "chapter": "internal_design",
+        "role": "flow-context",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow context envelope",
+          "worktree resolution",
+          "spec extraction",
+          "git metadata",
+          "phaseToSkill",
+          "sdd-forge.flow-sync",
+          "resume",
+          "branch info",
+          "ahead count"
+        ]
       },
       {
         "file": "src/flow/lib/resolve-preparing-run-id.js",
@@ -3703,18 +3787,38 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "40e4daa5"
+        "id": "40e4daa5",
+        "summary": "Implements the finalize cleanup step which removes the worktree, writes the last-finalized pointer, and attaches the latest report to the envelope.",
+        "detail": "RunFinalizeCleanupCommand removes the worktree directory after a successful finalize, attaches the most recent report (path + text) via attachReport using resolveLatestReportPath/readReportText, and writes a pointer for subsequent resume operations. On commit failure it returns an Envelope.fail with code COMMIT_FAILED including a rollback attempt; rollback errors are written to stderr but do not mask the original failure. The function buildReportField gracefully handles missing reports by returning a missing error rather than throwing, so cleanup can proceed even without a report.",
+        "chapter": "internal_design",
+        "role": "flow-command",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "finalize cleanup",
+          "worktree removal",
+          "last finalized pointer",
+          "report attachment",
+          "Envelope.fail",
+          "COMMIT_FAILED",
+          "rollback",
+          "resolveLatestReportPath"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
-        "hash": "3f431df2c276674ab36e4a52c643b475",
-        "lines": 56,
-        "mtime": "2026-04-28T02:36:29.319Z",
+        "hash": "d8108c640b4734f72125023822520c0f",
+        "lines": 84,
+        "mtime": "2026-05-07T00:14:18.345Z",
         "className": "run-finalize-commit",
         "methods": [
-          "RunFinalizeCommitCommand"
+          "RunFinalizeCommitCommand",
+          "specArtifactPathspecs"
         ],
         "imports": [
+          "path",
           "../../lib/flow-helpers.js",
           "../../lib/git-helpers.js",
           "./base-command.js",
@@ -3727,20 +3831,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "1e686d63",
-        "summary": "Finalize-commit subcommand that runs preflight checks and creates the finalize commit on the feature branch.",
-        "detail": "RunFinalizeCommitCommand extends FlowCommand and executes runFinalizePreflight against the project root before performing the commit. It delegates the actual git commit to shared helpers in run-finalize.js and augments the result with a human-readable message. specIdFromPath is used to derive the spec identifier for messaging. The command is one of the leaf nodes of the finalize phase invoked through the registry dispatcher.",
-        "chapter": "cli_commands",
-        "role": "controller",
+        "summary": "Implements the finalize commit step which runs preflight checks and stages spec/test artifacts before committing.",
+        "detail": "RunFinalizeCommitCommand calls runFinalizePreflight to assert git write access (lock file probe in .git directory), then commits using TEST_ARTIFACT_RELATIVE_PATHS scoped under specs/<specId>/. specArtifactPathspecs builds POSIX pathspecs for the spec directory's known test artifacts. The command returns the commit result with the formatted message attached, supporting commit-or-skip semantics consistent with the broader finalize chain.",
+        "chapter": "internal_design",
+        "role": "flow-command",
         "enrich": {
-          "processedAt": "2026-04-28T02:37:04.616Z",
+          "processedAt": "2026-05-07T00:18:30.711Z",
           "attempts": 1
         },
         "keywords": [
-          "flow finalize",
-          "commit",
+          "finalize commit",
           "preflight",
-          "spec id",
-          "feature branch"
+          "test artifacts",
+          "specArtifactPathspecs",
+          "git commit",
+          "commit-or-skip",
+          "lock probe"
         ]
       },
       {
@@ -3762,7 +3868,23 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "29dc124e"
+        "id": "29dc124e",
+        "summary": "Implements the finalize merge step that delegates to the configured merge strategy or skips when disabled.",
+        "detail": "RunFinalizeMergeCommand consults the container-resolved merge service and either returns {status:'skipped', strategy:'skip'} when merging is disabled or {status:'done', strategy:<strategy>} after a successful merge defaulting to squash. The implementation is intentionally thin, deferring all branch/PR semantics to the underlying merge service injected via the container. This separation keeps the flow command pure while allowing pluggable merge strategies (gh PR vs local squash).",
+        "chapter": "internal_design",
+        "role": "flow-command",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "finalize merge",
+          "squash",
+          "merge strategy",
+          "container injection",
+          "skipped",
+          "merge service"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-sync.js",
@@ -3849,13 +3971,32 @@
           "src/flow/lib/run-finalize-commit.js",
           "src/flow/lib/run-finalize-sync.js"
         ],
-        "id": "c711309b"
+        "id": "c711309b",
+        "summary": "Provides finalize lifecycle helpers including preflight checks, commit-or-skip, migration hooks, and last-finalized pointer writes.",
+        "detail": "writeLastFinalizedPointer persists the spec path under POINTER_REL_PATH so subsequent resumes can locate the most recent finalized work. commitOrSkip wraps git commit returning skipped when nothing is staged. assertGitWriteAccess probes write access by creating and removing a .finalize-preflight-<pid>-<ts>.lock file inside the resolved git common directory; failures are wrapped via buildFinalizePreflightError. runPreflightChecks classifies the worktree state into ok/spec-only/dirty-worktree/<other reasons>. runMigrationHook conditionally executes specs/<dir>/scripts/finalize-migration.js when present. finalizeOnError builds an onError handler factory returning (ctx, err) => for the step machinery. executeCommitPost handles post-commit bookkeeping under specs/<id>.",
+        "chapter": "internal_design",
+        "role": "flow-helpers",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "finalize preflight",
+          "writeLastFinalizedPointer",
+          "commitOrSkip",
+          "assertGitWriteAccess",
+          "runPreflightChecks",
+          "runMigrationHook",
+          "onError handler",
+          "spec-only",
+          "dirty worktree"
+        ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "2051c70b0844715af6ca54b77b3c9d25",
-        "lines": 1889,
-        "mtime": "2026-05-06T13:59:13.008Z",
+        "hash": "5693348f2197efcbacf5eb96c4f61f70",
+        "lines": 1960,
+        "mtime": "2026-05-07T00:14:18.345Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -3882,6 +4023,7 @@
           "RunGateCommand",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
+          "checkIntegrationTestArtifacts",
           "runGitDiff",
           "splitDiffByFile",
           "collectPerFileDiffsForGate",
@@ -3978,25 +4120,30 @@
           "src/flow/lib/set-gate-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the guardrail-based gate command: collects diffs, builds AI evaluation prompts, parses results, and enforces retry/no-progress policies.",
-        "detail": "RunGateCommand orchestrates phase-specific gate flows (draft, spec, task-spec, task-impl, integration) by loading targets (draft.json, spec.json, spec.md), filtering guardrails by phase/role, and invoking AI evaluation via PromptBuilder. parseEvaluationResponse extracts JSON candidates and validates them against ALLOWED_RESULT_VALUES with EvaluationSchemaError. Enforces retry budgets through resolveRetryMax/checkRetryBelowMax, detects no-progress regressions via git head SHA + worktree hash comparison, and prevents repeated identical failures with assertNoRepeatedFail. Supports flip overrides for previously-passed guardrails on identical content and writes outcomes to issue-log via appendIssueLogFromGateResult/Error. Also includes diff collection helpers (collectUntrackedDiff with size/file caps, splitDiffByFile) and per-requirement diff scoping for task-impl/integration phases.",
+        "summary": "Implements the flow gate engine: AI guardrail evaluation, retry tracking, repeated-fail detection, and side effects for draft/spec/task-impl/integration phases.",
+        "detail": "RunGateCommand dispatches to phase-specific executors (executeDraft, executeSpec, executeTaskSpec, executeDiffBasedGate) and runs guardrails through PromptBuilder + AI agent, parsing responses with parseEvaluationResponse and a strict JSON schema (GUARDRAIL_EVAL_SCHEMA). Implements multi-layer protections: assertNoRepeatedFail compares current failed evaluations against issue-log history using normalized reason keys, checkNoProgressSinceLastFail compares current git state (head SHA + worktree hash) to the previous fail snapshot, and applyFlipOverride flips fail→pass when the same content previously passed. Retry budget is enforced via resolveRetryMax (resolves FlowNode.maxAttempts under autoApprove context) with countGateRetry counting prior gate-retry entries, and warnGateRetryBudget emits stderr warnings as the budget approaches. executeGateSideEffects runs GATE_IMPL_SIDE_EFFECTS (completeTask, promoteNextTask, mergeOverview) with stderr-only error reporting. Excludes docs/, README.md, AGENTS.md, .sdd-forge/output/ from diff-scoped phases via IMPL_DIFF_SCOPE_LINES. Untracked diffs are collected with size/file-count caps (1MiB / 500 files).",
         "chapter": "internal_design",
-        "role": "gate-runner",
+        "role": "flow-command",
         "enrich": {
-          "processedAt": "2026-05-06T14:00:00.244Z",
+          "processedAt": "2026-05-07T00:18:30.711Z",
           "attempts": 1
         },
         "keywords": [
-          "RunGateCommand",
-          "guardrail",
-          "gate evaluation",
+          "flow gate",
+          "guardrails",
           "AI evaluation",
-          "retry budget",
-          "no-progress detection",
+          "JSON schema",
+          "repeated fail",
           "flip override",
-          "diff scoping",
-          "issue log",
-          "worktree hash"
+          "retry budget",
+          "side effects",
+          "completeTask",
+          "promoteNextTask",
+          "diff scope",
+          "untracked diff",
+          "spec.json check",
+          "draft.json check",
+          "integration test artifacts"
         ]
       },
       {
@@ -4225,12 +4372,13 @@
       },
       {
         "file": "src/flow/lib/run-report.js",
-        "hash": "409370c265880fcbda1c185a22dd6ad7",
-        "lines": 72,
-        "mtime": "2026-04-28T03:23:16.008Z",
+        "hash": "0bad578d25a568a201f23dfe7a896aaa",
+        "lines": 104,
+        "mtime": "2026-05-07T00:14:18.345Z",
         "className": "run-report",
         "methods": [
-          "RunReportCommand"
+          "RunReportCommand",
+          "readJsonIfExists"
         ],
         "imports": [
           "fs",
@@ -4247,21 +4395,24 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "43872d6b",
-        "summary": "FlowCommand that produces the report.json artifact by combining git summary, issue log, and retro data.",
-        "detail": "`RunReportCommand` validates `baseBranch` from flow.json, then calls `generateReport` with git summary (`collectGitSummary`), issue log entries, and optional retro data loaded from `retro.json` next to the spec. Persists output via `saveReport` and reports the changed file path (`<specDir>/report.json`) in the result envelope. Acts as the orchestration layer over the pure `report.js` command module.",
+        "summary": "Implements the flow report run step that aggregates retro, test results, git summary, and issue log into report.json.",
+        "detail": "RunReportCommand requires baseBranch from flow.json, then loads retro.json, test-execute-result.json, and test-result-review.json from the spec directory along with collectGitSummary output. Combines the data via generateReport (from commands/report.js) and persists via saveReport, returning a changed[] array containing the report.json path relative to the repo root. readJsonIfExists tolerates missing files by returning null and logs parse errors to stderr without throwing, keeping the report generation resilient to incomplete artifacts.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "flow-command",
         "enrich": {
-          "processedAt": "2026-04-28T03:24:26.497Z",
+          "processedAt": "2026-05-07T00:18:30.711Z",
           "attempts": 1
         },
         "keywords": [
-          "run report",
-          "report command",
+          "run-report",
+          "report.json",
           "retro",
-          "git summary",
+          "test-execute-result",
+          "test-result-review",
+          "baseBranch",
+          "collectGitSummary",
           "issue log",
-          "flow report"
+          "generateReport"
         ]
       },
       {
@@ -4280,7 +4431,23 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "abe5ac21"
+        "id": "abe5ac21",
+        "summary": "Implements the run resume command returning the resolved flow context envelope to drive skill re-entry after compaction.",
+        "detail": "RunResumeCommand is a thin wrapper around buildResolvedFlowContext that returns the same envelope used by status/resume consumers. Inheriting from FlowCommand provides the standard envelope contract. The command lets the flow-resume skill restore branch, worktree, spec, requirement, and step context after a context compaction event without re-deriving from scratch.",
+        "chapter": "internal_design",
+        "role": "flow-command",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "run-resume",
+          "flow resume",
+          "context envelope",
+          "buildResolvedFlowContext",
+          "compaction recovery",
+          "skill re-entry"
+        ]
       },
       {
         "file": "src/flow/lib/run-retro.js",
@@ -4306,7 +4473,26 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "862e7d08"
+        "id": "862e7d08",
+        "summary": "Implements the retro step that aggregates test execution results against requirements and persists retro.json.",
+        "detail": "RunRetroCommand requires both test-execute-result.json and test-result-review.json to be present, returning Envelope.fail with descriptive codes when either is missing or unparseable. It loads spec.json, normalizes requirements via normalizeRequirements, and aggregates each requirement's status (done/not_done) by matching against the summary[] entries from test-execute-result.json — using evidence.test_name on success and error/test_name on failure as the note. The aggregated retro is written to specs/<id>/retro.json and the path is reported in changed[].",
+        "chapter": "internal_design",
+        "role": "flow-command",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "retro",
+          "run-retro",
+          "test-execute-result",
+          "test-result-review",
+          "retro.json",
+          "requirement aggregation",
+          "done",
+          "not_done",
+          "Envelope.fail"
+        ]
       },
       {
         "file": "src/flow/lib/run-review.js",
@@ -4458,7 +4644,26 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "41745e8b"
+        "id": "41745e8b",
+        "summary": "Implements the test-execute step that delegates test execution to an AI agent and persists structured results.",
+        "detail": "RunTestExecuteCommand prepares specs/<id>/tests/.raw/ for raw output, loads spec.json requirements, and builds a prompt instructing the AI agent (resolved via container) to execute tests and write test-execute-result.json plus a raw log. The agent's text response is parsed with repairJson tolerance, and the resulting JSON's result_path/raw_output_path are surfaced in the envelope alongside the changed[] list. ensureAgent throws when no AI agent is configured for the command id, enforcing explicit agent.default configuration.",
+        "chapter": "internal_design",
+        "role": "flow-command",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "run-test-execute",
+          "test execution",
+          "AI agent",
+          "test-execute-result.json",
+          "raw output",
+          "repairJson",
+          "container",
+          "ensureAgent",
+          "spec requirements"
+        ]
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
@@ -4484,7 +4689,25 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "c1fba537"
+        "id": "c1fba537",
+        "summary": "Implements the test-result-review step where an AI agent evaluates test execution output and emits both JSON and Markdown reviews.",
+        "detail": "RunTestResultReviewCommand requires test-execute-result.json to exist, loads spec.json requirements, and prompts the agent to write test-result-review.json with a strict verdict structure plus a derived test-result-review.md summary. The agent response goes through repairJson before JSON.parse, and an explicit verdict-shape check throws when missing, preventing silent malformed reviews from advancing the flow. writeMarkdown converts the structured review into a human-readable document under the spec directory. ensureAgent enforces the agent.default configuration requirement consistent with the rest of the flow command suite.",
+        "chapter": "internal_design",
+        "role": "flow-command",
+        "enrich": {
+          "processedAt": "2026-05-07T00:18:30.711Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "run-test-result-review",
+          "test review",
+          "AI agent",
+          "test-result-review.json",
+          "verdict",
+          "Markdown output",
+          "repairJson",
+          "ensureAgent"
+        ]
       },
       {
         "file": "src/flow/lib/run-update-overview.js",
@@ -5145,7 +5368,26 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "d64f4095"
+        "id": "d64f4095",
+        "summary": "Central registry for sdd-forge flow subcommands, defining help text, side-effect handlers, and gate-step coordination across phases.",
+        "detail": "Exports `FLOW_COMMANDS`, a dispatch map consumed by the flow command layer that registers `get`/`set` operations and lifecycle hooks. Provides helpers for resolving the active phase (`deriveActivePhase`), updating step status with structured error logging (`tryUpdateStepStatus`), and appending issue-log entries (`tryAppendIssueLog`). Manages finalize downstream skip/reset logic via `FINALIZE_DOWNSTREAM_LEAVES` and `resetSkippedDownstreamSteps`, and bridges worktree contexts back to the main repo through `resolveMainRepoFlowManager`. Coordinates gate side effects, commit-post hooks, and finalize-merge error recovery while writing diagnostic warnings to stderr.",
+        "chapter": "cli_commands",
+        "role": "Flow command registry and dispatch map",
+        "enrich": {
+          "processedAt": "2026-05-07T00:16:52.636Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "flow registry",
+          "FLOW_COMMANDS",
+          "gate step",
+          "finalize",
+          "phase derivation",
+          "issue log",
+          "step status",
+          "dispatcher",
+          "side effects"
+        ]
       },
       {
         "file": "src/help.js",
@@ -5841,7 +6083,26 @@
         "usedBy": [
           "src/lib/container.js"
         ],
-        "id": "3d2ed4c0"
+        "id": "3d2ed4c0",
+        "summary": "FlowManager aggregates flow state access across the main repo and worktrees, scanning specs/branches to enumerate active and preparing flows.",
+        "detail": "Wraps `FlowStore`, `ActiveFlowRegistry`, and `PreparingFlowStore` to expose task/step queries (`currentTaskId`, `findInProgressLeaf`) and metric accumulation. Provides `forRoot()` to clone the manager bound to a different working tree while preserving the main repo reference, enabling worktree-aware operations. Scans `specs/` directories on disk and across git branches up to `SCAN_FLOWS_LIMIT`, parsing each `flow.json` and warning on malformed JSON via stderr. Resolves the last-finalized spec via a pointer file (`.sdd-forge/last-finalized-spec`) and validates spec selection against the active registry, throwing descriptive errors when targets are missing or unregistered.",
+        "chapter": "internal_design",
+        "role": "Flow state aggregator across worktrees",
+        "enrich": {
+          "processedAt": "2026-05-07T00:16:52.636Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "FlowManager",
+          "worktree",
+          "flow state",
+          "spec scan",
+          "active registry",
+          "preparing flow",
+          "git branches",
+          "flow.json",
+          "last finalized spec"
+        ]
       },
       {
         "file": "src/lib/flow-store.js",
@@ -9983,5 +10244,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-06T14:00:00.244Z"
+  "enrichedAt": "2026-05-07T00:18:30.711Z"
 }
