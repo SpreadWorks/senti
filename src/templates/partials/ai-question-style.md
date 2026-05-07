@@ -70,3 +70,24 @@ regardless of which model renders it.
   [1] 共通パーシャル化（推奨）
   [2] コピー埋め込み
 ```
+
+### 4. Turn Structure for User Decisions (Required)
+
+Although these rules are written in English, perform reasoning AND user-facing output in the user's response language. The only tokens that may remain in the source language are: code identifiers (function/class/variable names, file paths, command names, CLI flags, error codes), library/package names, and proper product/brand names. Every other token MUST be translated into the response language.
+
+Every turn that asks the user to choose, decide, or confirm MUST contain all five sections below in order:
+
+1. **Decision statement** (REQUIRED, 1 sentence): explicitly state what is being decided.
+2. **Recommendation + rationale** (REQUIRED, 1-3 sentences): name the recommended option and give the reason. If no recommendation is possible, REQUIRED to explicitly state that no recommendation is possible, with the reason — do not skip this section.
+3. **Comparison** (REQUIRED, one short paragraph or 2-4 bullets): how the recommended option differs from each alternative. This section is mandatory even when options are equivalent — in that case, state how they differ in trade-offs.
+4. **Options block** (REQUIRED): list every option as "label — one-line note". Each option MUST appear. Mark the recommended one explicitly.
+5. **Response instruction** (REQUIRED, 1 sentence): tell the user exactly what to type/say to advance.
+
+ABSOLUTELY PROHIBITED:
+
+- Skipping any of the 5 sections above.
+- Producing a single-line response when a decision is being asked.
+- Listing facts and asking "which one?" without providing the recommendation section.
+- Leaving foreign-language tokens in prose that have natural equivalents in the response language.
+
+This rule is targeted at literal-interpretation models (Claude Opus 4.7+). All sections marked REQUIRED must appear regardless of whether the AI internally judges them necessary; the structure itself is the contract.
