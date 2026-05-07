@@ -90,4 +90,4 @@ ABSOLUTELY PROHIBITED:
 - Listing facts and asking "which one?" without providing the recommendation section.
 - Leaving foreign-language tokens in prose that have natural equivalents in the response language.
 
-This rule is targeted at literal-interpretation models (Claude Opus 4.7+). All sections marked REQUIRED must appear regardless of whether the AI internally judges them necessary; the structure itself is the contract.
+All sections marked REQUIRED must appear regardless of whether the AI internally judges them necessary; the structure itself is the contract.
