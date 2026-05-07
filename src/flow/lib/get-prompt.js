@@ -126,13 +126,14 @@ const PROMPTS_BY_LANG = {
       phase: "finalize", step: "steps",
       description: "実行するステップを選択してください。番号をカンマ区切りで入力（例: 1,2,3）",
       recommendation: null,
+      // spec 251: retro is a mainline impl-phase step that runs before finalize.
+      // It is no longer a finalize-time choice.
       choices: [
         { id: 1, label: "コミット", description: "", recommended: false },
         { id: 2, label: "マージ / PR 作成", description: "", recommended: false },
-        { id: 3, label: "振り返り（retro）", description: "", recommended: false },
-        { id: 4, label: "ドキュメント同期", description: "", recommended: false },
-        { id: 5, label: "ブランチ削除", description: "", recommended: false },
-        { id: 6, label: "作業の記録を保存", description: "", recommended: false },
+        { id: 3, label: "ドキュメント同期", description: "", recommended: false },
+        { id: 4, label: "ブランチ削除", description: "", recommended: false },
+        { id: 5, label: "作業の記録を保存", description: "", recommended: false },
       ],
     },
     "finalize.cleanup": {
@@ -255,13 +256,14 @@ const PROMPTS_BY_LANG = {
       phase: "finalize", step: "steps",
       description: "Select steps to execute. Enter numbers separated by commas (e.g., 1,2,3).",
       recommendation: null,
+      // spec 251: retro is a mainline impl-phase step that runs before finalize.
+      // It is no longer a finalize-time choice.
       choices: [
         { id: 1, label: "Commit", description: "", recommended: false },
         { id: 2, label: "Merge / PR creation", description: "", recommended: false },
-        { id: 3, label: "Retrospective (retro)", description: "", recommended: false },
-        { id: 4, label: "Documentation sync", description: "", recommended: false },
-        { id: 5, label: "Branch cleanup", description: "", recommended: false },
-        { id: 6, label: "Save work record", description: "", recommended: false },
+        { id: 3, label: "Documentation sync", description: "", recommended: false },
+        { id: 4, label: "Branch cleanup", description: "", recommended: false },
+        { id: 5, label: "Save work record", description: "", recommended: false },
       ],
     },
     "finalize.cleanup": {

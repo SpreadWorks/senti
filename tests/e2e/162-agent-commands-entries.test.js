@@ -17,16 +17,14 @@ describe("162 — agent.commands entries migration", () => {
       );
     });
 
-    // GAP-2b: run-retro.js error mentions agent.profiles, not agent.commands
-    it("run-retro.js error mentions agent.profiles, not agent.commands", () => {
+    // spec 251: run-retro.js is now a result-file aggregator (no AI agent
+    // invocation). The legacy 'agent.commands' message is no longer present;
+    // the GAP-2b assertion is satisfied by absence of 'agent.commands'.
+    it("run-retro.js does not reference legacy 'agent.commands'", () => {
       const src = fs.readFileSync("src/flow/lib/run-retro.js", "utf8");
       assert.ok(
-        src.includes("agent.profiles"),
-        'error message should reference "agent.profiles"'
-      );
-      assert.ok(
         !src.includes("agent.commands"),
-        'error message must not reference "agent.commands"'
+        'run-retro.js must not reference "agent.commands"'
       );
     });
   });

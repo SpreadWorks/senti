@@ -11,6 +11,7 @@ import path from "path";
 import { getWorktreeStatus, getCurrentBranch, getAheadCount, getLastCommit, isGhAvailable } from "../../lib/git-helpers.js";
 import { derivePhase } from "../../lib/flow-helpers.js";
 import { loadSpecRequirements } from "../../lib/spec-json.js";
+import { flattenSteps } from "../definition.js";
 
 function extractSection(text, heading) {
   const lines = text.split("\n");
@@ -58,8 +59,12 @@ export function buildResolvedFlowContext(ctx) {
 
   const steps = state.steps || [];
   const phase = derivePhase(state);
-  const currentStep = steps.find((s) => s.status === "in_progress");
-  const doneSteps = steps.filter((s) => s.status === "done" || s.status === "skipped");
+  // spec 251 R42: flatten nested children so impl-phase leaves
+  // (test-execute, test-result-review, retro, finalize-*) participate in
+  // currentStep / progress reporting consumed by skills.
+  const leafSteps = flattenSteps(steps);
+  const currentStep = leafSteps.find((s) => s.status === "in_progress");
+  const doneSteps = leafSteps.filter((s) => s.status === "done" || s.status === "skipped");
 
   let goal = null;
   let scope = null;
@@ -89,7 +94,7 @@ export function buildResolvedFlowContext(ctx) {
     issue: state.issue || null,
     phase,
     currentStep: currentStep?.id || null,
-    progress: { done: doneSteps.length, total: steps.length },
+    progress: { done: doneSteps.length, total: leafSteps.length },
     request: state.request || null,
     goal,
     scope,

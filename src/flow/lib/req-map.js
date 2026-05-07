@@ -1,13 +1,16 @@
 /**
  * src/flow/lib/req-map.js
  *
- * Shared utilities for file-map.json:
- * load, save, append (with dedup), reconcile against git diff,
- * and evaluate per-requirement test results from TAP output.
+ * Shared utilities for file-map.json: load, save, append (with dedup),
+ * reconcile against git diff.
  *
- * spec 249: legacy test-map.json related exports have been removed. Spec
+ * spec 249: legacy test-map.json related exports were removed; spec
  * verification test coverage is now declared via file headers
  * (`// spec: R1 R2 ...`) — see src/flow/lib/test-headers.js.
+ *
+ * spec 251: TAP-output parsing helpers (parseTapOutput / extractReqResults /
+ * evaluateReqByResults) were removed when retro switched to consuming
+ * test-execute-result.json directly. No consumer remains.
  */
 
 import fs from "node:fs";
@@ -70,45 +73,3 @@ export function reconcileFileMap(fileMap, diffFiles) {
   return diffFiles.filter((f) => !recorded.has(f));
 }
 
-export function parseTapOutput(tap) {
-  const results = new Map();
-  for (const line of tap.split("\n")) {
-    const match = line.match(/^\s*(ok|not ok)\s+\d+\s+-\s+(.+)$/);
-    if (!match) continue;
-    const status = match[1] === "ok";
-    let name = match[2].trim();
-    const dirIdx = name.indexOf(" # ");
-    if (dirIdx !== -1) {
-      const directive = name.slice(dirIdx + 3).trim().toUpperCase();
-      if (directive.startsWith("SKIP")) continue;
-      name = name.slice(0, dirIdx).trim();
-    }
-    results.set(name, status);
-  }
-  return results;
-}
-
-export function extractReqResults(tapResults) {
-  const reqMap = new Map();
-  for (const [name, passed] of tapResults) {
-    const m = name.match(/^(R\d+)\b/);
-    if (!m) continue;
-    const id = m[1];
-    if (!reqMap.has(id)) reqMap.set(id, { passed: 0, failed: 0 });
-    const entry = reqMap.get(id);
-    if (passed) entry.passed++;
-    else entry.failed++;
-  }
-  return reqMap;
-}
-
-/**
- * spec 249: returns 'not_done' (not 'unverified') for null counts to comply
- * with retro.json schema enum [done|partial|not_done].
- */
-export function evaluateReqByResults(counts) {
-  if (!counts) return "not_done";
-  if (counts.passed > 0 && counts.failed === 0) return "done";
-  if (counts.failed > 0 && counts.passed === 0) return "not_done";
-  return "partial";
-}

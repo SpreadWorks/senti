@@ -890,25 +890,51 @@ async function runTestReview(root, flow, config, dryRun) {
     process.exit(EXIT_ERROR);
   }
 
-  // spec 249: untested requirement warning is derived from spec header coverage.
-  // testable === false requirements are excluded from the warning.
+  // spec 251: header coverage and header lie detection are deterministic FAIL
+  // conditions for test-review. The result of validateTestHeaders is converted
+  // into structured gaps that participate in the verdict alongside AI gaps.
+  let deterministicHeaderGaps = [];
   try {
-    const { collectFileHeaders } = await import("../lib/test-headers.js");
-    const fileHeaders = collectFileHeaders(path.resolve(root, specDir));
-    const declared = new Set();
-    for (const info of fileHeaders.values()) {
-      for (const id of info.headerIds) declared.add(id);
+    const { validateTestHeaders } = await import("../lib/test-headers.js");
+    const headerResult = validateTestHeaders({
+      specDir: path.resolve(root, specDir),
+      spec,
+    });
+    const reqDescById = new Map(
+      (Array.isArray(spec?.requirements) ? spec.requirements : []).map((r) => [r.id, r.desc]),
+    );
+    for (const id of headerResult.uncoveredRequirements || []) {
+      deterministicHeaderGaps.push({
+        type: "missing-header",
+        reqId: id,
+        desc: reqDescById.get(id) || "",
+        suggestion: `Add '// spec: ${id}' header (and an 'R-N: ...' test) to a file under specs/<spec>/tests/`,
+      });
     }
-    const reqItems = Array.isArray(spec?.requirements) ? spec.requirements : [];
-    const untested = reqItems.filter((r) => r.testable !== false && !declared.has(r.id));
-    if (untested.length > 0) {
-      console.error(`  [test-review] header coverage: ${untested.length} requirement(s) not declared in any test file header:`);
-      for (const r of untested) {
-        console.error(`    - ${r.id}: ${r.desc}`);
+    for (const entry of headerResult.headerNoTest || []) {
+      deterministicHeaderGaps.push({
+        type: "header-lie",
+        reqId: entry.id,
+        file: entry.file,
+        detail: `Header declares ${entry.id} but the file has no matching '${entry.id}: ...' test name`,
+      });
+    }
+    for (const entry of headerResult.testNoHeader || []) {
+      deterministicHeaderGaps.push({
+        type: "header-lie",
+        reqId: entry.id,
+        file: entry.file,
+        detail: `Test name references ${entry.id} but the file header does not declare it`,
+      });
+    }
+    if (deterministicHeaderGaps.length > 0) {
+      console.error(`  [test-review] header validation: ${deterministicHeaderGaps.length} deterministic gap(s):`);
+      for (const g of deterministicHeaderGaps) {
+        console.error(`    - ${g.type} ${g.reqId}${g.file ? ` (${g.file})` : ""}`);
       }
     }
   } catch (err) {
-    process.stderr.write(`  [test-review] header coverage check skipped: ${err.message}\n`);
+    process.stderr.write(`  [test-review] header validation skipped: ${err.message}\n`);
   }
 
   const agent = ensureAgent("flow.test.review");
@@ -958,16 +984,21 @@ async function runTestReview(root, flow, config, dryRun) {
       testFiles = collectTestFiles(root, specDir);
     },
   });
+  // spec 251: merge deterministic header gaps into the final verdict. AI gap
+  // analysis covers semantic alignment; validateTestHeaders covers
+  // missing-header / header-lie deterministically. Either category FAILs.
+  const mergedGaps = [...finalGaps, ...deterministicHeaderGaps];
+  const finalVerdict = mergedGaps.length === 0 ? "PASS" : "FAIL";
   const testReviewPath = path.join(path.resolve(root, specDir), "test-review.md");
-  fs.writeFileSync(testReviewPath, formatTestReviewMd(testDesign, gapHistory, verdict, finalGaps));
+  fs.writeFileSync(testReviewPath, formatTestReviewMd(testDesign, gapHistory, finalVerdict, mergedGaps));
   console.error(`  [test-review] Results saved to ${path.relative(root, testReviewPath)}`);
 
-  if (verdict === "PASS") {
+  if (finalVerdict === "PASS") {
     console.error(`  [test-review] verdict=PASS gaps=0`);
     console.log("Test review PASS. All test cases are adequately covered.");
   } else {
-    console.error(`  [test-review] verdict=FAIL gaps=${finalGaps.length}`);
-    console.log(`Test review FAIL. ${finalGaps.length} gap(s) remaining after ${maxAttempts} attempts.`);
+    console.error(`  [test-review] verdict=FAIL gaps=${mergedGaps.length} (ai=${finalGaps.length} header=${deterministicHeaderGaps.length})`);
+    console.log(`Test review FAIL. ${mergedGaps.length} gap(s) remaining after ${maxAttempts} attempts.`);
   }
 }
 

@@ -1,0 +1,74 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Q1 でスコープ分割（dcb2-A/B）を検討した上でユーザー判断として 1 spec に統合。test-execute 新設・retro 簡素化・test-review FAIL 昇格はすべて『テスト実行を言語非依存の単一実行点に集約する』という一つの関心事に帰着し、ユーザーが承認済み。; Unambiguous Requirements — scopeVerification.in の各項目はファイル・関数・ステップ名を明示し、QA 各エントリには検証可能な条件（スキーマ定義・フロー遷移条件・grep 検査等）が記載されている。「言語非依存」も Q20 で発見手順・明示エラー条件として具体化されている。; Complete Context — Q4 でスキーマを型まで含めて明示、Q2/Q3 でフロー遷移条件を列挙、Q5/Q19 で三層 enforcement の検査方法を具体化。二人の独立したレビュアーが実装の適合を判断できる粒度に達している。; No Hardcoded Secrets — ドキュメントはリファクタ要件のみを記述し、API キー・パスワード・トークン等の機密情報は一切含まれない。; Prioritize Requirements — scopeVerification.in に 9 件の要件が列挙されているが、いずれにも must / should / nice-to-have の優先度ラベルが付与されていない。in/out の二値分類はスコープ境界を示すが、in スコープ内での優先順位を示さない。; Impact on Existing Features — impactOnExisting フィールドに 8 件の変更対象ファイル・行番号・変更内容が列挙されており、既存機能への影響が明示されている。; Present Recommendations with Reasoning — 全 QA エントリが answer（推奨）・evidence（プロジェクトコード行番号を含む根拠）・why（選定理由）・considered（却下案）の四要素を備えており、推奨の根拠が一貫して示されている。; Explore Before Asking — 回答には run-retro.js:374、review.js:893-912、definition.js:236、run-finalize.js:151-159 など具体的なファイルパスと行番号が示されており、コードベース探索を経た上で設問に答えていることが確認できる。; Proactively Raise Related Implications — Q11（TASK_DEFINITION への波及）、Q17（dispatcher/metrics/report 等の周辺機能）、Q19（enforcement の三層化）、Q16（summary 完備性の検証責任）、Q21（plan phase の言語非依存化）など、主要設計変更から派生する関連事項が先回りして提起されている。; Confirm Brainstorm vs. Decision Before Critiquing — approval フィールドに approved:true と confirmedAt が記録されており、ドラフトは決定済みの仕様として位置づけられている。各 QA の answer も決定ステートメントとして書かれており、ブレインストーミングとの混同はない。; Capture Digressions in draft.md — '[Q14 統合]' '[Q18 統合]' などのマーカーにより、議論中に発生した論点が QA エントリへ統合・記録されていることが確認できる。; Draft Stays at Requirements Level — ファイルパス・関数名は文脈情報として明示的に許可されている。スキーマ定義（Q4）は出力成果物の契約仕様（要件）であり実装詳細ではない。QA の evidence/why/considered 内のコード参照は根拠提示として免除対象。; Backward-Compatible CLI Interface — 変更はフロー内部ステップの追加・再配置と実装ファイルの削除に限定される。ユーザー向け CLI コマンド（sdd-forge flow run 等）のインターフェースは変更されないため本条項は実質的に非該当。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-06T14:01:00.186Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in に 9 件の要件が列挙されているが、いずれにも must / should / nice-to-have の優先度ラベルが付与されていない。in/out の二値分類はスコープ境界を示すが、in スコープ内での優先順位を示さない。"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec addresses one concern: consolidating test execution into a dedicated impl-phase step (test-execute) and restructuring related responsibilities. All changes (retro simplification, header coverage, req-map cleanup) are directly coupled to this single concern.; Task Single Responsibility — All 44 tasks address single concerns. Overlaps between T-8/T-35 and T-34/T-42 represent scoping differences (base preset vs all presets, retro removal vs report maintenance), not unrelated concerns bundled together.; Unambiguous Requirements — Requirements use verifiable conditions: specific file paths, function names, schema definitions, and deterministic verdicts (e.g., R4 enumerates exact failure conditions for missing/duplicate/unknown IDs). R9/R24 involve AI semantic checking which is inherently contextual but adequately bounded by the spec.; Complete Context — Requirements specify concrete artifacts, schemas (R2 defines the full JSON schema inline), file paths, and function names sufficient for independent reviewers to agree on conformance. R16's 'fix applied' detection mechanism is clarified in T-17 implementation notes.; REQ Diff-Verifiability — All requirements are decidable from diff + test execution. R22/R49 require sdd-forge upgrade, but the resulting SKILL.md changes appear in the diff. No requirements depend on future extensibility contracts or out-of-diff invariants.; No Hardcoded Secrets — Spec contains no API keys, tokens, passwords, or other secrets. File paths and command names are implementation references, not credentials.; No Silent Error Swallowing — Spec explicitly prohibits fallback evaluation (constraint: 'result file 不在時は明示的エラー、AI フォールバック評価は行わない'). R5, R17, R41 all require explicit errors on missing files, invalid JSON, and schema violations.; Prioritize Requirements — All 51 requirements (R1–R51) carry explicit priority fields ('must' or 'should'), satisfying the requirement for prioritization when more than three items are present.; Impact on Existing Features — Impacts on existing features are listed throughout: R6 (finalize post-hook), R7/R29/R30 (prompt changes), R9/R10 (req-map.js deletion), R16/R18 (review behavior), R19 (commit boundary), R20/R28 (report generation). The overview.modules section enumerates all affected files.; Bounded Resource Usage — Gate-impl reuses existing maxAttempts=5 bound. The spec explicitly states 'test-execute が呼ばれたら必ず実行' with no new retry budget. Raw output size bounds are acknowledged as an open question but raw output storage is not recursive processing or retry logic.; Spec Includes Test Strategy — Every task has an explicit test_strategy field. The spec also adds dedicated regression tests (T-14, R14) and specifies test header annotations linking test files to requirements.; Synthesize Draft, Do Not Copy — Spec is clearly organized into goal/background/scope/constraints/design_principles/requirements/acceptance_criteria/alternatives/overview/tasks. Content is abstracted from Issue #309 design discussion rather than copied verbatim.; Record Unresolved Points as Open Questions — Three unresolved points (agent profile/session separation details, raw output lifecycle/size limit, migration strategy for existing tests without headers) are explicitly placed in open_questions rather than being answered speculatively.; Include 'Why This Approach' Rationale — Rationale is provided in design_principles, alternatives_considered (7 rejected options with reasons), and overview.decisions (6 explicit decisions with evidence references to source files and line numbers).; Spec Test Coverage — Task test strategies direct test files to tests/unit/flow/*.test.js rather than specs/<specid>/tests/ as required by the guardrail. The spec header annotation mechanism (// spec: R...) links existing project tests to requirements but does not place test code under the spec-scoped directory.; Backward-Compatible CLI Interface — Spec changes the meaning of existing commands without migration plans: sdd-forge flow run retro changes from post-commit hook invocation to mainline step semantics; finalize-commit post-hook behavior changes; review next-transition changes. No migration plan is included. The project's alpha policy (no backward compatibility) is a project convention, not an exemption in the guardrail.; Exit Code Contract — New commands (flow run test-execute, flow run test-result-review) and modified commands (flow run retro as mainline step) do not have explicit exit code contracts. Failure conditions are described as internal verdicts and 'explicit errors' but no mapping to non-zero exit codes is stated.; Validate User Input at Entry Point — New CLI commands (sdd-forge flow run test-execute, sdd-forge flow run test-result-review) are added via registry.js (R11, T-13) but the spec does not list user-facing arguments or their validation requirements, nor explicitly marks them as internal-only automation arguments.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-06T15:07:50.983Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Task test strategies direct test files to tests/unit/flow/*.test.js rather than specs/<specid>/tests/ as required by the guardrail. The spec header annotation mechanism (// spec: R...) links existing project tests to requirements but does not place test code under the spec-scoped directory."
+        },
+        {
+          "guardrail_id": "backward-compatible-cli-interface",
+          "reason": "Spec changes the meaning of existing commands without migration plans: sdd-forge flow run retro changes from post-commit hook invocation to mainline step semantics; finalize-commit post-hook behavior changes; review next-transition changes. No migration plan is included. The project's alpha policy (no backward compatibility) is a project convention, not an exemption in the guardrail."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "New commands (flow run test-execute, flow run test-result-review) and modified commands (flow run retro as mainline step) do not have explicit exit code contracts. Failure conditions are described as internal verdicts and 'explicit errors' but no mapping to non-zero exit codes is stated."
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "New CLI commands (sdd-forge flow run test-execute, sdd-forge flow run test-result-review) are added via registry.js (R11, T-13) but the spec does not list user-facing arguments or their validation requirements, nor explicitly marks them as internal-only automation arguments."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale"
+      ]
+    }
+  ]
+}

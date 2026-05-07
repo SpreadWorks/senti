@@ -1,10 +1,17 @@
 /**
  * tests/unit/flow/run-retro-no-missing-requirements.test.js
  *
- * spec 219 R2: spec.json に requirements があり、diff も存在する状態で retro を
- * 実行したとき、`no requirements found` 系エラーで落ちないこと (dry-run で検証)。
+ * spec 251: retro is now a result-file aggregator that requires the artifacts
+ * produced by the upstream test-execute and test-result-review steps. The
+ * dry-run path returns an aggregated result without writing retro.json. The
+ * fail path returns an Envelope.fail when an upstream artifact is missing.
+ *
+ * Historical context (spec 219 R2): retro used to call AI/diff on spec.md.
+ * That entrypoint was replaced; this test now verifies the new artifact
+ * dependency contract.
  */
 
+// spec: R5 R52
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -47,11 +54,59 @@ function writeSpec(tmp, specId, requirements) {
   return specDir;
 }
 
-describe("spec 219 R2: retro does not fail when spec.json.requirements is populated", () => {
+function writeArtifacts(specDir, summary, verdict = "pass") {
+  const rawOutput = path.join(specDir, "tests", ".raw", "test-execution.log");
+  fs.mkdirSync(path.dirname(rawOutput), { recursive: true });
+  fs.writeFileSync(rawOutput, "raw output\n");
+  fs.writeFileSync(path.join(specDir, "test-execute-result.json"), JSON.stringify({
+    version: "1",
+    raw_output_path: path.relative(path.dirname(specDir), rawOutput),
+    summary,
+  }, null, 2));
+  fs.writeFileSync(path.join(specDir, "test-result-review.json"), JSON.stringify({
+    verdict,
+    checked_items: [],
+    result_file_path: path.join(specDir, "test-execute-result.json"),
+    raw_output_path: rawOutput,
+  }, null, 2));
+}
+
+describe("R5: retro reads test-execute-result.json (spec 251)", () => {
   let tmp;
   afterEach(() => tmp && fs.rmSync(tmp, { recursive: true, force: true }));
 
-  it("dry-run retro succeeds with requirements in spec.json and diff present", async () => {
+  it("R5: dry-run retro aggregates pass/fail per requirement when artifacts exist", async () => {
+    tmp = createRepo();
+    const specId = "001-test";
+    const specDir = writeSpec(tmp, specId, [
+      { id: "R1", desc: "first", priority: "must", status: "pending" },
+    ]);
+    writeArtifacts(specDir, [
+      {
+        id: "R1",
+        result: "pass",
+        evidence: { test_file: "f.test.js", test_name: "R1: works", command: "node --test", raw_output_lines: [1, 2] },
+      },
+    ]);
+
+    const ctx = {
+      root: tmp,
+      dryRun: true,
+      flowState: {
+        spec: `specs/${specId}/spec.md`,
+        baseBranch: "main",
+        requirements: [],
+      },
+    };
+
+    const cmd = new RunRetroCommand();
+    const out = await cmd.execute(ctx);
+    assert.equal(out.result, "dry-run");
+    assert.equal(out.artifacts.summary.total, 1);
+    assert.equal(out.artifacts.summary.done, 1);
+  });
+
+  it("R5: returns Envelope.fail when test-execute-result.json is missing", async () => {
     tmp = createRepo();
     const specId = "001-test";
     writeSpec(tmp, specId, [
@@ -69,31 +124,12 @@ describe("spec 219 R2: retro does not fail when spec.json.requirements is popula
     };
 
     const cmd = new RunRetroCommand();
-    const out = await cmd.execute(ctx);
-    assert.equal(out.result, "dry-run");
-    assert.equal(out.artifacts.requirementsCount, 1);
-  });
-
-  it("returns Envelope.fail referring to spec.json when requirements are absent", async () => {
-    tmp = createRepo();
-    const specId = "001-test";
-    writeSpec(tmp, specId, []);
-
-    const ctx = {
-      root: tmp,
-      dryRun: true,
-      flowState: {
-        spec: `specs/${specId}/spec.md`,
-        baseBranch: "main",
-        requirements: [],
-      },
-    };
-
-    const cmd = new RunRetroCommand();
     const result = await cmd.execute(ctx);
-    assert.equal(result.ok, false, "should return ok:false");
+    assert.equal(result.ok, false);
     const msgs = result.errors.flatMap((e) => e.messages);
-    assert.ok(msgs.some((m) => /spec\.json|requirements/i.test(m)), "error references spec.json");
-    assert.ok(!msgs.some((m) => /flow\.json/.test(m)), "error must not reference flow.json");
+    assert.ok(
+      msgs.some((m) => /test-result-review|test-execute/i.test(m)),
+      `error must reference upstream artifact: ${msgs.join("; ")}`,
+    );
   });
 });

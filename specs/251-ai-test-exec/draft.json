@@ -1,0 +1,185 @@
+{
+  "devType": "refactor",
+  "goal": "テスト実行を impl phase の専用 step (test-execute) に集約して AI agent に委託し、結果検証を test-result-review で行う。retro は結果ファイルを読むだけにして言語非依存にする。",
+  "analysis": {
+    "problem": "現状 retro (run-retro.js:374) が `node --test` を直接 execFileSync で呼び、`.test.js` / `.spec.js` / `.mjs` 拡張子フィルタ (line 367) で Node.js プロジェクトを前提にしている。spec 249 でヘッダー宣言ベースに移行した後も Node 前提が retro 側に残り、PHP/Python では static path が機能しない。さらに retro が TAP 出力をパースして要件カバレッジを検証するのは責務の重複であり、テスト実行と判定が複数 step で散逸している。",
+    "proposedApproach": "1) impl phase に test-execute step (AI agent が任意の framework を実行→独自最小スキーマで結果ファイル + raw output を保存) を新設。2) test-result-review step を新設して raw output と実コードを突合しハルシネーション検出。3) test-review (plan phase) のヘッダーカバレッジ警告を FAIL 条件に昇格し、ヘッダー嘘検出も追加。4) retro tryStaticEvaluation を簡素化、結果ファイルを読むだけにする。fallback AI 評価と TAP パース依存を撤廃。5) req-map.js の参照孤立した parseTapOutput / extractReqResults / evaluateReqByResults を削除。",
+    "validation": "問題の根本原因は『テスト実行系が言語依存で複数 step に分散している』こと。提案アプローチは (a) 言語依存を AI agent に委譲することで preset 側にランナー定義を持たない設計、(b) 単一実行点 (test-execute) に集約することで複数評価の不一致を構造的に排除、(c) ハルシネーション対策を test-result-review に集約することで追加機構不要、を実現するため根本対処になっている。ただし AI agent の信頼性 (tool 呼び出し捏造) は raw output 整合性検証で対処を試みるが理論的に整合的捏造は可能、これは Issue 本文で許容済みの限界。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] 新規 step: test-execute (impl phase, AI agent によるテスト実行 + 結果ファイル + raw output 保存)",
+      "[must] 新規 step: test-result-review (impl phase, raw output と実コード突合でハルシネーション検出)",
+      "[must] retro tryStaticEvaluation 簡素化: node --test 実行・TAP パース・拡張子フィルタ削除、結果ファイル read only",
+      "[must] retro を post-commit hook から impl phase の mainline step に昇格",
+      "[must] impl phase step 順序を implement → test-execute → test-result-review → review-impl → gate-impl → retro に再構成",
+      "[must] implement step prompt から `npm test` / `node --test` 実行指示を削除 (単一実行点ルール)",
+      "[should] test-review (plan phase) の header coverage 警告を FAIL 条件に昇格",
+      "[should] test-review に header lie detection を追加 (ヘッダー宣言と実テスト内容の不整合検出)",
+      "[should] req-map.js の dead 関数削除 (parseTapOutput / extractReqResults / evaluateReqByResults)"
+    ],
+    "out": [
+      "CI 専用テスト (本番 DB / API キー必須) の agent 環境実行サポート",
+      "agent 多様化 (低透明性 LLM 利用) 時の追加ハルシネーション対策 (canary 注入等)",
+      "JUnit / TAP 等の既存フォーマット互換 (独自最小スキーマ採用)",
+      "30 分超 e2e テストの timeout 制御の本 spec での確定 (agent.timeout 既存設定流用)"
+    ]
+  },
+  "impactOnExisting": [
+    "src/flow/lib/run-retro.js: tryStaticEvaluation を結果ファイル読み取りに置換、execFileSync('node --test') 削除",
+    "src/flow/lib/run-finalize.js:151: post-commit hook から retro 呼び出し削除 (mainline step 化)",
+    "src/flow/definition.js: impl phase children に test-execute / test-result-review / retro を追加、順序変更",
+    "src/flow/commands/review.js:893-912: header coverage warning を FAIL に昇格",
+    "src/flow/prompts/impl/implement.md:48: `npm test` / `node --test` 実行指示削除",
+    "src/flow/lib/req-map.js: parseTapOutput / extractReqResults / evaluateReqByResults 削除",
+    "新規 prompt: src/flow/prompts/impl/test-execute.md, test-result-review.md",
+    "新規 schema: src/flow/schemas/test-execute-result.schema.json (or 同等)",
+    "既存テストの header 宣言が無い spec: 既に finalize 済みなので影響なし。進行中の flow は本変更マージ後に再 review-test 必要"
+  ],
+  "qa": [
+    {
+      "question": "Issue #309 の設計をそのまま 1 spec で全面採用するか、構造変更 (retro mainline 化) を別 spec に分離するか",
+      "answer": "Issue 設計を全面採用 (test-execute / test-result-review 新設、retro mainline 化、test-review FAIL 昇格、retro 簡素化、impl phase step 順序再構成) を 1 spec で実施",
+      "evidence": "Issue #309 末尾『スコープ分割の検討』で dcb2-A → dcb2-B の 2 段階分割案も明記されており、分離自体は valid な選択肢。本 spec が 1 spec を選ぶ判断は『過渡状態回避』『調整コスト削減』『責務分離の一貫性確保』を優先した結果。Issue 設計上、retro が『結果ファイルを読むだけ』の前提として test-execute / test-result-review が揃っている必要がある",
+      "why": "実装コスト削減目的の 2 段階分割よりも、責務分離設計の一貫性と過渡的な mixed 動作の回避を優先する判断。スコープリスクが高すぎる場合は dcb2-A → dcb2-B の段階適用も Issue で許容されている",
+      "considered": "(a) dcb2-A (test-execute + test-result-review) と dcb2-B (retro 簡素化 + test-review 強化 + req-map.js cleanup) に分割: 実装規模軽減できるが、A 完了後 B 完了までの過渡期間で retro が post-commit hook と新 step の二重実装になる。却下。(b) 構造変更のみ別 spec: 同上。却下。"
+    },
+    {
+      "question": "test-execute step でテスト失敗 (要件未達) が発生した場合の flow 制御",
+      "answer": "judgment 責務は責務別に分離: test-execute = 実行 + 生 artifact 保存 (判定なし)、test-result-review = artifact 整合性判定 (raw output が信頼できるか)、gate-impl = 要件カバレッジ判定 (validated result file から要件 PASS/FAIL を集計判断)。テスト失敗 (要件未達) シナリオでは test-execute は実行のみで done、test-result-review は artifact 整合性 OK なら done、gate-impl が要件未達を FAIL 判定 → skill が implement step を in_progress に戻し下流 step (test-execute / test-result-review / review-impl / gate-impl) を pending にリセット → 再 cycle。retry budget は既存 gate-impl maxAttempts=5 を流用",
+      "evidence": "src/flow/lib/run-gate.js:874-906 (warnGateRetryBudget / checkRetryBelowMax) で gate phase 別 retry counter を管理、最大到達で ESCALATE_RETRY_EXHAUSTED。src/flow/definition.js:236 で gate-impl maxAttempts=5。実装巻き戻しは flow を駆動する skill が `flow set step implement in_progress` で行う既存パターン",
+      "why": "既存の implement → gate-impl → FAIL → rewind → implement ループを再利用することで engine の retry 制御を一元化。test-execute の責務を「実行 + 結果保存」に限定することで step の単一責務を保つ",
+      "considered": "(a) test-execute 自体に verdict 機構: レビュー系をスキップして短絡 rewind できコスト効率は良いが、テスト失敗時のコード品質チェック (review-impl) が 1 度も走らないリスク。却下。(b) gate-impl に自動 rewind sideEffect: engine 側制御を複雑化、現行の skill 駆動 retry パターンから逸脱。却下。"
+    },
+    {
+      "question": "test-result-review でハルシネーション疑い (報告された結果と raw output の不整合) を検出した場合の flow 制御",
+      "answer": "「信頼できる結果が無い = 実質的にテスト失敗」として扱う。state transition の具体: test-result-review が FAIL → 同 step は status=done で artifact (test-result-review.md) に verdict=FAIL を書く → 既存 gate flow と同様に skill が後続 step (review-impl, gate-impl) を進めずに implement step を in_progress に戻し下流 step を pending にリセット → 再 cycle。test-execute だけ rewind するのではなく implement から rewind する理由: test-execute の単一実行点ルール上、テストランナー側の問題なら implement で fix、agent ハルシネーションなら別 executor 起動でも結局 implement までは変更不要だが、retry budget は gate-impl と同じ最大 5 で管理し budget 消費の単一ソースを保つ",
+      "evidence": "Issue #309 reviewer 検算項目 (raw output 整合性 5 項目) はテスト報告の真偽判定。NG なら『報告は無効』を意味し、無効な報告に基づく『要件 pass』判定はそのまま無効になる。gate-impl は結果ファイルの真偽を信じる前提で動くため、test-result-review FAIL 時は結果ファイルを invalid マーク (もしくは全要件 FAIL 化) すれば既存の FAIL 経路に流れる",
+      "why": "test-result-review FAIL とテスト failure を別ルートで処理すると、flow 制御が二重化し責務分離設計が崩れる。判定の意味 (信頼できない結果 = 失敗扱い) を素直に flow に反映することで設計が一貫する",
+      "considered": "(a) FAIL 専用 ESCALATE 経路を持たせて人間判断を仰ぐ: ハルシネーションを fail-safe として扱う案だが、本物のテスト失敗とハルシネーションを区別する flow 制御が複雑化。Q2 と独立させた経路は不要。却下。(b) verdict=FAIL でも後続 step に進める: ハルシネーション検出の意味が失われる。却下。"
+    },
+    {
+      "question": "test-execute の result file (要件 pass/fail を保持するファイル) の契約: パス、スキーマ、raw output の場所、不在/破損時の挙動",
+      "answer": "[Q14 統合] 全 artifact 契約を本 QA に集約: (1) test-execute 出力 = specs/<spec>/test-execute-result.json (schema: version: '1', raw_output_path: string, summary: [{ id: string, result: 'pass'|'fail', error?: string, evidence: { test_file: string, test_name: string, command: string, raw_output_lines: [number, number] } }]) — evidence は MUST 必須。(2) raw output = .tmp/test-execution-<spec>.log (生 stdout/stderr 連結、AI 要約禁止)。(3) test-result-review 出力 = specs/<spec>/test-result-review.json (schema: verdict: 'pass'|'fail', checked_items: [{ check: string, result: 'pass'|'fail', detail: string }], invalid_reason?: string, result_file_path: string, raw_output_path: string)。(4) 人間可読 = specs/<spec>/test-result-review.md。(5) downstream 契約: gate-impl と retro は『test-result-review.json.verdict == pass を確認 → test-execute-result.json を読んで要件 PASS/FAIL を集計』の順。verdict != pass や test-result-review.json 不在の場合は明示エラー (test-result-review step が done になる前に進まない構造的保証)。test-execute は呼ばれたら必ず実行 (キャッシュ無し)、result file は無条件上書き",
+      "evidence": "Issue #309 『結果ファイルスキーマ』『キャッシュ・invalidation は持たない』『retro は結果ファイル不在時には実行せず明示的エラー、fallback 無し』",
+      "why": "Issue が明示している契約。downstream (test-result-review / review-impl / gate-impl / retro) が共通の最小スキーマを参照することで言語非依存性を保つ。fallback 排除でデバッグ容易性を確保",
+      "considered": "(a) JUnit / TAP 互換: 言語非依存性を損なう。Issue で明示的に却下済み。(b) result file 不在時に AI fallback: 現状の retro 設計と同じ問題が再発。却下。"
+    },
+    {
+      "question": "[Q18 統合] テスト実行を test-execute に集約する MUST ルールの三層 enforcement",
+      "answer": "(1) prompt 層: implement / review-impl / gate-impl / retro の各 prompt から test 実行指示を全削除、結果ファイル read-only を明記。(2) コード層: run-retro.js から execFileSync('node --test') 削除、req-map.js から TAP 系関数削除。(3) 静的検査層 (regression test): 単一テスト 1 件で『known non-test step (run-retro.js / run-gate.js / 各 review コマンド) が node --test / npm test / jest / pytest / phpunit を直接 invoke していない』を grep 検査。flow 全体で child_process / spawn / execFileSync の使用は禁止しない (一般的な subprocess 用途は許容)。検査対象は既知 non-test step ファイルに限定し false positive を避ける",
+      "evidence": "Issue #309 『MUST: テスト実行は impl フェーズの専用ステップでのみ行う』。現状 src/flow/prompts/impl/implement.md:48 が npm test 実行を AI に指示、src/flow/lib/run-retro.js:374 が execFileSync で node --test を呼ぶ",
+      "why": "MUST ルールはコード・prompt・context の三層で同時に enforce しないと AI が他 step でテスト実行を始める余地が残る。静的検査を既知 non-test step に限定することで一般的な subprocess 使用との衝突を避ける",
+      "considered": "(a) prompt 削除のみ: 既存コード違反のまま。却下。(b) flow 全体で child_process / spawn 禁止: 一般用途と衝突。検査範囲を non-test step に限定。"
+    },
+    {
+      "question": "test-review の header coverage FAIL 昇格と header 嘘検出の判定ルール",
+      "answer": "判定ルール: (1) testable 要件のうちヘッダー宣言が 1 件以上欠落 → FAIL (現行の警告止まりを昇格)。testable: false 要件はカウント対象外。(2) ヘッダーで宣言された要件 ID が、当該テストファイルの内容で実際に verify されていない場合 → 'header lie' として FAIL (新規)。検出は AI agent の buildGapAnalysisPrompt に「ヘッダー宣言要件と実テスト内容の照合」を追加。リトライは既存の review fix 機構 (file write back) で対応。本 spec のテストもこのルールに従って header 宣言を持つ",
+      "evidence": "Issue #309 『review.js:893-912 の警告止まりを FAIL 条件に昇格』『buildGapAnalysisPrompt にヘッダー嘘検出を追加』。src/flow/commands/review.js:893-912 で現状の untested.length > 0 を console.error 警告のみに留めている実装",
+      "why": "ヘッダー宣言が無い要件があると retro が要件カバレッジを判定できず、その要件は『未検証のまま finalize される』リスクがある。FAIL 昇格で flow が前進しないことを保証。lie 検出は AI が header だけ書いて中身を伴わない『偽装 pass』を防ぐ",
+      "considered": "(a) 警告止まりのまま運用: 現状と同じで未検証要件が放置される。却下。(b) lie 検出を別 step に分離: review コストが増す。test-review に統合する方が responsibility が明確。却下。"
+    },
+    {
+      "question": "retro の結果集計セマンティクス (retro が test-execute の result file から要件単位の done/not_done をどう導出するか)",
+      "answer": "マッピング: result == 'pass' → done。result == 'fail' → not_done。要件 ID が summary に存在しない場合は header coverage で test-review が既に FAIL を出しているため、retro 到達時には全要件が summary に含まれる前提。それでも欠落があれば retro は明示的エラー (no fallback)。testable: false 要件は test-execute の対象外で、retro は集計から除外 (現行 run-retro.js と同じ扱い)。'partial' 状態は廃止 (Issue で fallback 評価を撤廃するため、要件単位の部分 pass という曖昧な状態を持つ意味が無い)。result file 不在 / JSON 不正 / version != '1' は retro が明示的エラーで停止",
+      "evidence": "Issue #309 『役割: test-execute が出力した結果ファイルを読み、要件ごとの pass/fail を集計するだけ』『結果ファイル不在時は明示的エラー、fallback 無し』。現行 run-retro.js:391 evaluateReqByResults が done/partial/not_done を返すが、Issue 設計では partial の根拠が無くなるため廃止",
+      "why": "シンプルな pass/fail マッピングで責務を最小化。retro が結果の信頼性を再判定する責務は test-result-review に分離されているため、retro は素直に集計するのみで良い",
+      "considered": "(a) partial 状態を維持: Issue で TAP パース・部分 pass 評価を撤廃するため根拠が無い。却下。(b) 要件 ID 欠落時に retro が AI fallback で評価: Issue で明示的に却下済み。"
+    },
+    {
+      "question": "req-map.js の dead code 削除基準",
+      "answer": "削除対象: parseTapOutput / extractReqResults / evaluateReqByResults。削除手順: (1) コード全体を grep してこれらの consumer を列挙。(2) retro 以外の consumer が無い場合は削除。(3) 単体テスト (tests/unit/flow/req-map*.test.js) も合わせて削除。(4) regression テストで「retro が TAP / .test.js フィルタに依存していない」を verify する単体テスト 1 件を追加",
+      "evidence": "Issue #309 『retro から呼ばれなくなった parseTapOutput / extractReqResults / evaluateReqByResults の他消費者を確認し、無ければ削除』",
+      "why": "dead code 維持は将来の混乱の元 (alpha 期間ポリシー: 後方互換コードを残さない)。retro 簡素化と一緒に削除することで本 spec のスコープ内で完結",
+      "considered": "(a) 削除を別 spec に分離: alpha 期間ポリシーで段階削除を避ける方針に反する。却下。(b) deprecated として残す: alpha 期間で deprecated 維持しないルール。却下。"
+    },
+    {
+      "question": "retro の配置 (FLOW_DEFINITION の mainline leaf step として追加するか、finalize の post-commit hook として残すか)",
+      "answer": "retro を FLOW_DEFINITION の impl phase children の最後尾 leaf step として追加する。src/flow/lib/run-finalize.js:151-159 から retro 呼び出しを削除し、retro 専用 instructionsKey 'impl.retro' / contextKinds ['spec', 'test-result'] / outputSchemaRef を持つ FlowNode として定義する。retro が結果ファイルから集計し retro.json を出力する処理は維持。retro が done してから finalize-commit が走る順序になるため、test-execute が走っていない (=結果ファイル不在) 状態で finalize に到達することは構造的にあり得ない",
+      "evidence": "Issue #309 『flow ステップの並び (変更後)』で retro を impl phase の連続フローの末尾に明示。現状 src/flow/lib/run-finalize.js:153-159 で post-commit hook として実行される実装になっているのが Issue 設計と乖離している",
+      "why": "retro が結果ファイルを読むだけの single-source step になる以上、post-commit という finalize 内部に隠す意味は無い。flow definition の mainline に置けば skill の dispatcher loop で扱われ、retro 失敗時に finalize に進まない gate が自然に成立する",
+      "considered": "(a) retro を post-commit hook のまま維持: finalize と test-execute の責務が混在し、retro 失敗で finalize 完了済みなのに retro.json 不在というずれが起こる。却下。(b) retro を gate-impl 内に統合: gate-impl と retro はそれぞれ verdict (gate) と集計レポート (retro) で目的が異なる。statement of concerns 違反。却下。"
+    },
+    {
+      "question": "TASK_DEFINITION (task subflow) への影響範囲",
+      "answer": "task subflow (TASK_DEFINITION) は task 単位の impl/review でテスト実行は行わない。test-execute / test-result-review は task subflow に追加せず、FLOW_DEFINITION の impl phase 統合 step (= 全 task 完了後の総合検証) のみで実行する。task subflow の review はコードレビューのみで verdict を返し、テスト結果検証は妨げない。理由: テスト実行を task ごとに行うと AI agent invocation コストが task 数倍に膨らむ上、task 間で要件カバレッジを再合算する複雑性が増す。spec 単位で 1 回実行する Issue 設計と整合させる",
+      "evidence": "src/flow/definition.js:294-309 の TASK_DEFINITION は impl/review のみで test 関連 step を持たない。Issue #309 『テスト実行が spec ごとに 1 回のみ』",
+      "why": "task subflow は spec 内部の段階分割で、要件カバレッジの最終判定は spec 単位の test-execute → gate-impl が責務。task 単位で重複実行すると単一実行点ルールが崩れる",
+      "considered": "(a) task ごとに test-execute を持たせる: AI invocation コスト task 数倍 + 要件 ID が task をまたいで分散する場合の集計が複雑化。却下。(b) task review にテスト実行を含める: 単一実行点ルール違反。却下。"
+    },
+    {
+      "question": "test-result-review の verdict 検算が前提とする raw output の形式 (要件 ID が raw output に visible である必要)",
+      "answer": "test-execute の AI agent prompt に『テスト名や出力に要件 ID (R1, R2 等) が含まれることを優先する』指示を入れる。具体: agent は (a) verbose / non-quiet モードでランナーを実行 (例: --reporter spec, --verbose, jest --verbose 等)、(b) テスト名に要件 ID が含まれない場合は当該テストファイルの spec ヘッダー (`// spec: R1 R2`) を raw output と照合する根拠とする。test-review 段階のヘッダー宣言検証 (Q6) と組み合わせることで、raw output に明示的な ID 出力が無いランナーでもヘッダー経由で対応関係を検算可能",
+      "evidence": "Issue #309 reviewer 検算項目『pass 報告された要件 ID が raw output に出現するか』。spec 249 で導入されたヘッダー規約 (// spec: R-ID) は raw output と要件の対応関係を確立する仕組み。test-review FAIL 昇格 (本 spec) と組み合わさればヘッダーカバレッジが保証される",
+      "why": "verbose 実行と spec ヘッダーで二重に対応関係を担保することで、ランナー (Node test, Jest, PHPUnit, pytest 等) ごとの出力形式差を吸収しつつ requirement ID 出現確認が成立する",
+      "considered": "(a) test runner ごとの出力フォーマット解析を実装: 言語非依存性を損なう。Issue で却下済み。(b) 要件 ID をテスト名に含める強制ルール: テスト命名規約として AI に prompt 経由で指示する方法を採用済み。検算は spec ヘッダーで補完するため強制必須ではない"
+    },
+    {
+      "question": "result file (test-execute-result.json) と raw output ログの freshness / 上書き / cleanup ポリシー",
+      "answer": "result file 名は固定 (specs/<spec>/test-execute-result.json) で、test-execute が呼ばれるたびに無条件上書き。raw output (.tmp/test-execution-<spec>.log) も同様に無条件上書き。stale 防止メカニズム: skill が implement rewind 時に下流 step を pending リセットするため、test-execute が pending/in_progress の状態で gate-impl / retro が結果ファイルを読むことはない (definition.js のステップ依存関係で保証)。万一 status と file が不整合 (test-execute pending なのに古い結果ファイルが残っている) でも、test-execute step が呼ばれた時点で先頭で result file を削除→新規生成するため過渡的不整合は発生しない。downstream step は『status=done を信用して読む』のが契約",
+      "evidence": "Issue #309 『キャッシュ・invalidation は持たない: test-execute が呼ばれたら必ず実行する』『実行のタイミングは flow が制御する』。src/lib/flow-store.js promoteFirstPending 等の既存 step status 制御で stale 防止は構造的に成立済み",
+      "why": "stale 検出を artifact 側 (headSha 等のメタデータ) でやると複雑化し、status 駆動の既存設計と二重管理になる。step status を single source of truth として運用する方が一貫する",
+      "considered": "(a) result file に headSha を持たせて downstream で照合: 二重管理。却下。(b) test-execute step 完了時に finalize で削除: spec 内に retro.json と並んで保持される方が後で人間が確認しやすい。却下。"
+    },
+    {
+      "question": "test-review の missing-header / header-lie 検出を review verdict に組み込む方法",
+      "answer": "判定 semantics と実装方針を統合: (1) missing-header semantics — testable 要件のうちヘッダー宣言が 1 件以上欠落 → review が finalGaps に { type: 'missing-header', reqId, desc, suggestion: '...' } を inject、verdict=FAIL。(2) header-lie semantics — ヘッダー宣言した要件 ID をテスト内容で実際に verify していない場合 → finalGaps に { type: 'header-lie', reqId, file, content_excerpt } を inject、verdict=FAIL。(3) buildGapAnalysisPrompt に header-lie 検出指示を追加。(4) review fix attempt は既存の file write back loop (review.js review-fix) で対応",
+      "evidence": "Issue #309 『review.js:893-912 の警告止まりを FAIL 条件に昇格』『buildGapAnalysisPrompt にヘッダー嘘検出を追加』。現行の review.js は finalGaps による verdict 算出機構を持つので新タイプ gap を inject する形で統合可能",
+      "why": "console.error 単体では step 失敗にならず flow が前進してしまう。finalGaps に inject することで既存の verdict 算出経路に乗り、retry / fix loop も既存機構に統合できる",
+      "considered": "(a) header validation を fatal precondition として review 開始前に exit: review の他チェックも合わせて実行する方が AI 1 回の invocation で全体を判定でき効率的。却下。(b) judgment semantics と実装方針を別 QA 化: 同じ関心 (test-review FAIL 昇格) を分散させると spec 作成時に判断点が分散する。1 QA に統合。"
+    },
+    {
+      "question": "test-execute / test-result-review の AI agent abstraction、timeout、failure handling",
+      "answer": "設計要件: (1) 両 step は既存 src/lib/agent.js を流用 (新規 agent class は作らない)。scope ID 命名は既存 'flow.test.review' (review.js:914 で実装済み) に倣い、test-execute は新規 scope 'flow.test.execute'、test-result-review は 'flow.test.result-review' を新設。(2) session 分離 = test-execute と test-result-review は別の agent.call() 呼び出しで実行され、prompt context を共有しない (= reviewer が executor の途中状態を見ない)。実装上の保証は src/lib/agent.js の挙動を確認してから。(3) timeout は config.agent.timeout (秒、resolveAgent で *1000 して timeoutMs に付与) を流用。default は DEFAULT_AGENT_TIMEOUT_MS=300秒。長時間 e2e は agent.timeout 設定で個別調整。(4) AI agent failure handling: non-zero exit / timeout / malformed output → step を error 化、verdict 不在で gate-impl に進ませない。skill が retry budget 内で再 invoke。executor / reviewer のモデル差異化は config.agent.providers でユーザーが任意設定 (Issue 推奨)",
+      "evidence": "src/lib/agent.js の既存パターン、src/flow/commands/review.js:914 で ensureAgent('flow.test.review') の既存利用、src/lib/config.js DEFAULT_AGENT_TIMEOUT_MS。具体的な ensureAgent / session 動作仕様の確認は spec 段階で行う",
+      "why": "既存 agent abstraction を流用することで session 分離・timeout・retry を再実装せず一貫性を保つ。session 分離の operational 定義 (別 call、context 非共有) を明示することで実装時のあいまいさを排除",
+      "considered": "(a) 専用 agent class を新設: 既存抽象と機能重複。却下。(b) timeout を本 spec で個別固定値: e2e に対応できない。agent.timeout 流用。"
+    },
+    {
+      "question": "summary 完備性 (要件 ID 完備・重複・未知 ID) の検証責任",
+      "answer": "test-result-review の責務に追加: (a) summary に spec.json.requirements の testable 要件 ID が全て含まれているか (欠落検出)、(b) 重複 ID の検出、(c) spec.json に存在しない未知 ID の検出。いずれも NG なら verdict=FAIL。retro はこれらの検査を行わず、test-result-review が PASS した結果ファイルを信頼して集計する",
+      "evidence": "Issue #309 retro tryStaticEvaluation 簡素化方針『結果ファイルを読み、要件ごとの pass/fail を集計するだけ』。完備性検査を retro に持たせると retro の責務が増え単純化できない",
+      "why": "summary 完備性は『結果ファイルが信頼できるか』の判定であり、test-result-review の整合性検算と同じ責務領域。retro まで遅らせると finalize 直前の判定になり修正コストが大きい",
+      "considered": "(a) 完備性検査を retro 側に: retro 単純化方針に反する。却下。(b) test-execute 自身が完備性を保証: AI agent が自己検証する形になり信頼できない。reviewer (別 session) で検算する方が確実。"
+    },
+    {
+      "question": "新 step 追加による周辺 dispatcher / context / schema / metrics への波及範囲",
+      "answer": "更新が必要な周辺機能: (1) src/flow/lib/get-next-action.js: 新 step (test-execute, test-result-review, retro) の instructionsKey マッピング登録。(2) src/flow/registry.js: run-test-execute, run-test-result-review コマンドの登録。(3) src/flow/prompts/impl/: test-execute.md, test-result-review.md, retro.md の新規作成。(4) src/flow/schemas/next-action/: 新 step の schema (output_schema 用) 追加または既存流用。(5) src/flow/lib/metrics.js (もしくは flow set metric): test-execute / test-result-review / retro の phase 別 metrics 集計対象に追加。(6) src/flow/lib/run-finalize.js: retro 呼び出しを削除 (mainline 化に伴う)。(7) src/flow/lib/run-report.js: report.md に test-execute / test-result-review の verdict と raw output ログパスを記載するよう拡張。(8) gate-step / step lifecycle hook: 新 step の status 遷移が既存 sideEffects (autoUpgradeReeval 等) と競合しないか検証",
+      "evidence": "src/flow/definition.js の FLOW_DEFINITION 構造、src/flow/registry.js のコマンド登録パターン、src/flow/lib/run-finalize.js:144-159 の retro 呼び出し",
+      "why": "新 step を definition.js に追加するだけでは dispatcher / metrics / report 等が認識せず、本変更が機能しない部分が出る。spec 段階で更新範囲を明示することで実装漏れを防ぐ",
+      "considered": "(a) 周辺機能は実装中に発見次第対応: 漏れによる回帰リスクが高い。却下。"
+    },
+    {
+      "question": "test 実行禁止の enforcement (prompt 改修だけでは不十分) の実装",
+      "answer": "三層 enforcement: (1) prompt 層: implement / review-impl / gate-impl / retro の各 prompt から test 実行指示を削除し『結果ファイルを読むだけ』を明記。(2) コード層: run-retro.js から execFileSync('node --test') を削除、req-map.js から TAP 系関数削除。(3) 静的検査層 (regression test): tests/unit/flow/ に新規テストを追加し、test-execute.js / test-result-review.js 以外の src/flow/ 配下ソースが直接 child_process / spawn / execFileSync で test runner (node --test, npm test, jest, pytest, phpunit) を invoke していないことを grep / AST 検査で verify。CI で違反を自動検出",
+      "evidence": "Issue #309 『MUST: テスト実行は impl phase の専用 step でのみ行う』。prompt と code の二層だけでは将来の追加コードが違反する余地が残る。静的検査で恒久化",
+      "why": "MUST ルールは『現状の違反を直す』だけでなく『将来の違反を防ぐ』ことが重要。CI 検査が無いと半年後に新人開発者が違反コードを追加して気付かない事態が発生する",
+      "considered": "(a) prompt と code 削除のみ: 将来追加コードへの抑止力が無い。却下。(b) eslint plugin 化: alpha 期間で外部依存追加禁止。Node 標準で書ける grep / AST チェックで代替。"
+    },
+    {
+      "question": "test-execute の言語非依存実行方針 (任意 framework を AI agent がどう発見・実行するか)",
+      "answer": "test-execute の AI agent prompt に以下の発見手順を記載: (1) プロジェクトの package.json scripts.test / Makefile / composer.json scripts / setup.cfg / pyproject.toml 等から既定の test command を発見、(2) sdd-forge config (config.test.command) で明示的に指定があればそれを優先、(3) docs/ または README.md にテスト実行コマンドの記載があればそれを参照、(4) 上記いずれも無い場合は AI agent が試行錯誤せず、明示的エラー『test command を特定できません。config.test.command に設定してください』を返す。発見した command を Bash tool で実行し、stdout/stderr を raw output として保存",
+      "evidence": "Issue #309 『agent はプロジェクトのテストランナーを判断し Bash tool で実行』『agent は Claude / Codex CLI など実 Bash tool 呼び出しを行うものを使用』",
+      "why": "言語非依存とは『AI agent が任意 framework を実行できる』ことであり、agent の判断は当てずっぽうではなくプロジェクトの宣言的設定 (package.json scripts 等) に基づくべき。発見できない場合の fallback 動作 (試行錯誤せず明示エラー) を定義することで agent invocation コスト爆発を防ぐ",
+      "considered": "(a) preset / config に test runner 必須化: ユーザー負荷増、Issue の『preset 側にランナー定義を持たない』方針に反する。却下。(b) agent に試行錯誤を許容: invocation コスト爆発、不確実性増。却下。"
+    },
+    {
+      "question": "plan phase の test write step (現状 node --test 前提) の言語非依存化",
+      "answer": "plan phase の test step の AI prompt は『現状 sdd-forge 自身は Node.js プロジェクトとして開発されているため、本 spec のテストは既存の JS convention (`*.test.js` / spec ヘッダー `// spec: R1`) で書く』ことを継続する。一方、test-execute は preset 設定や AI agent の判断で任意ランナーを実行可能なので、PHP / Python / Ruby 等のプロジェクトでもプロジェクト固有のテスト規約 (例: PHPUnit, pytest) で書ける。本 spec のスコープでは sdd-forge 自身のテストを書くため JS のままで良い。将来の他言語プロジェクト対応のためのテストファイル discovery / 命名規約 / ヘッダー規約の拡張は別 spec で扱う",
+      "evidence": "Issue #309 『test execution が真に言語非依存 (AI agent が任意の framework を吸収)』。plan phase の test write は本 spec のスコープ外 (sdd-forge 自身のテスト記述は JS で済む)",
+      "why": "本 spec のスコープは『test-execute / test-result-review / retro 簡素化』。plan phase の test write の言語非依存化は別問題で、優先度的にも後追いで良い",
+      "considered": "(a) 本 spec で plan phase test write も多言語対応化: スコープ拡大、Issue の責務外。却下。"
+    }
+  ],
+  "openQuestions": [
+    "test-execute の AI agent profile / session 分離の実装詳細 (executor / reviewer の config 設計、別モデル切替メカニズム)",
+    "test-execute の result file 詳細スキーマ (Issue 提案 { id, result, error } の拡張要否)",
+    "raw output ログのライフサイクル (1 spec 完了後の保管方針、サイズ上限)",
+    "既存テストのうち header 宣言が無いものへのマイグレーション戦略 (本 spec では新規/進行中 spec のみ対象、既存 finalize 済みは触らない方針)"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-06T00:00:00.000Z",
+    "notes": "User override after draft review maxAttempts (5/5) reached without convergence. Reviewer kept demanding impl-level details that exceed draft phase scope. User judgment: draft has sufficient requirements-level information."
+  }
+}

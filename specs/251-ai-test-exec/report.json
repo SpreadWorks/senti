@@ -1,0 +1,71 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/251-ai-test-exec/draft-review.md             |   53 +\n specs/251-ai-test-exec/draft.json                  |  185 +++\n specs/251-ai-test-exec/file-map.json               |   57 +\n specs/251-ai-test-exec/flow.json                   | 1066 ++++++++++++++++\n specs/251-ai-test-exec/issue-log.json              |   74 ++\n specs/251-ai-test-exec/issue.md                    |  288 +++++\n specs/251-ai-test-exec/qa.md                       |    9 +\n specs/251-ai-test-exec/spec-review.md              |   48 +\n specs/251-ai-test-exec/spec.json                   | 1332 ++++++++++++++++++++\n specs/251-ai-test-exec/spec.md                     |  338 +++++\n specs/251-ai-test-exec/tasks/T-1.md                |   19 +\n specs/251-ai-test-exec/tasks/T-10.md               |   21 +\n specs/251-ai-test-exec/tasks/T-11.md               |   23 +\n specs/251-ai-test-exec/tasks/T-12.md               |   22 +\n specs/251-ai-test-exec/tasks/T-13.md               |   22 +\n specs/251-ai-test-exec/tasks/T-14.md               |   22 +\n specs/251-ai-test-exec/tasks/T-15.md               |   20 +\n specs/251-ai-test-exec/tasks/T-16.md               |   22 +\n specs/251-ai-test-exec/tasks/T-17.md               |   22 +\n specs/251-ai-test-exec/tasks/T-18.md               |   20 +\n specs/251-ai-test-exec/tasks/T-19.md               |   21 +\n specs/251-ai-test-exec/tasks/T-2.md                |   19 +\n specs/251-ai-test-exec/tasks/T-20.md               |   21 +\n specs/251-ai-test-exec/tasks/T-21.md               |   21 +\n specs/251-ai-test-exec/tasks/T-22.md               |   21 +\n specs/251-ai-test-exec/tasks/T-23.md               |   20 +\n specs/251-ai-test-exec/tasks/T-24.md               |   21 +\n specs/251-ai-test-exec/tasks/T-25.md               |   21 +\n specs/251-ai-test-exec/tasks/T-26.md               |   21 +\n specs/251-ai-test-exec/tasks/T-27.md               |   22 +\n specs/251-ai-test-exec/tasks/T-28.md               |   20 +\n specs/251-ai-test-exec/tasks/T-29.md               |   20 +\n specs/251-ai-test-exec/tasks/T-3.md                |   19 +\n specs/251-ai-test-exec/tasks/T-30.md               |   22 +\n specs/251-ai-test-exec/tasks/T-31.md               |   21 +\n specs/251-ai-test-exec/tasks/T-32.md               |   22 +\n specs/251-ai-test-exec/tasks/T-33.md               |   21 +\n specs/251-ai-test-exec/tasks/T-34.md               |   20 +\n specs/251-ai-test-exec/tasks/T-35.md               |   21 +\n specs/251-ai-test-exec/tasks/T-36.md               |   21 +\n specs/251-ai-test-exec/tasks/T-37.md               |   20 +\n specs/251-ai-test-exec/tasks/T-38.md               |   23 +\n specs/251-ai-test-exec/tasks/T-39.md               |   21 +\n specs/251-ai-test-exec/tasks/T-4.md                |   19 +\n specs/251-ai-test-exec/tasks/T-40.md               |   20 +\n specs/251-ai-test-exec/tasks/T-41.md               |   21 +\n specs/251-ai-test-exec/tasks/T-42.md               |   21 +\n specs/251-ai-test-exec/tasks/T-43.md               |   21 +\n specs/251-ai-test-exec/tasks/T-44.md               |   21 +\n specs/251-ai-test-exec/tasks/T-5.md                |   23 +\n specs/251-ai-test-exec/tasks/T-6.md                |   23 +\n specs/251-ai-test-exec/tasks/T-7.md                |   23 +\n specs/251-ai-test-exec/tasks/T-8.md                |   21 +\n specs/251-ai-test-exec/tasks/T-9.md                |   22 +\n specs/251-ai-test-exec/test-execute-result.json    |   70 +\n specs/251-ai-test-exec/test-result-review.json     |   12 +\n .../251-ai-test-exec/tests/.raw/test-execution.log |    1 +\n .../tests/artifacts-policy.test.js                 |   74 ++\n .../tests/enforcement-static.test.js               |   24 +\n .../tests/finalize-and-report.test.js              |   49 +\n .../251-ai-test-exec/tests/flow-definition.test.js |   53 +\n .../251-ai-test-exec/tests/prompts-cleanup.test.js |   52 +\n .../251-ai-test-exec/tests/req-map-cleanup.test.js |   23 +\n .../tests/retro-simplification.test.js             |   37 +\n .../251-ai-test-exec/tests/review-routing.test.js  |   64 +\n .../251-ai-test-exec/tests/skill-and-tests.test.js |   70 +\n specs/251-ai-test-exec/tests/spec.md               |  293 +++++\n specs/251-ai-test-exec/tests/task-subflow.test.js  |   57 +\n specs/251-ai-test-exec/tests/test-execute.test.js  |   40 +\n .../tests/test-result-review.test.js               |   34 +\n .../tests/test-review-headers.test.js              |   29 +\n src/flow/commands/report.js                        |   37 +-\n src/flow/commands/review.js                        |   67 +-\n src/flow/lib/get-prompt.js                         |   18 +-\n src/flow/lib/get-status.js                         |    9 +-\n src/flow/lib/req-map.js                            |   53 +-\n src/flow/lib/resolve-context-envelope.js           |   11 +-\n src/flow/lib/run-finalize-commit.js                |   28 +\n src/flow/lib/run-gate.js                           |   73 +-\n src/flow/lib/run-report.js                         |   60 +-\n src/flow/prompts/impl/finalize-commit.md           |    4 +-\n src/flow/prompts/impl/implement.md                 |   14 +-\n src/flow/prompts/impl/review.md                    |    2 +-\n src/flow/prompts/plan/test.md                      |    2 +-\n src/flow/prompts/task/impl.md                      |    8 +-\n src/flow/prompts/task/review.md                    |    2 +-\n src/presets/base/guardrail.json                    |    6 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |    6 +-\n tests/e2e/162-agent-commands-entries.test.js       |   12 +-\n tests/unit/flow/gate-phase-inference.test.js       |   16 +-\n .../flow/run-finalize-retro-invocation.test.js     |   38 +-\n .../flow/run-retro-no-missing-requirements.test.js |   58 +-\n tests/unit/flow/throw-to-envelope-codes.test.js    |   34 +-\n 93 files changed, 5726 insertions(+), 191 deletions(-)",
+      "commits": [
+        "feat: centralize test execution at the test-execute step",
+        "align finalize choices, test-only skip, and base guardrail with mainline retro",
+        "gate-impl integration check + flatten nested step progress",
+        "integrate test-execute artifacts into report and split finalize commits",
+        "add spec 251-ai-test-exec plan-phase artifacts",
+        "remove TAP helpers and centralize test execution to test-execute step"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 4,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 1928862,
+      "output": 143944,
+      "cacheRead": 12234133,
+      "cacheCreation": 309198,
+      "cost": 1.8149774,
+      "callCount": 53,
+      "durationMs": 3269297,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 412964
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 121799
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 1493760
+        },
+        {
+          "phase": "gate",
+          "durationMs": 301417
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 287674
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 55759
+        },
+        {
+          "phase": "review",
+          "durationMs": 595924
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: centralize test execution at the test-execute step\n    align finalize choices, test-only skip, and base guardrail with mainline retro\n    gate-impl integration check + flatten nested step progress\n    integrate test-execute artifacts into report and split finalize commits\n    add spec 251-ai-test-exec plan-phase artifacts\n    remove TAP helpers and centralize test execution to test-execute step\n    93 files changed, 5726 insertions(+), 191 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 4\n    issue-log ................... 0\n    agent calls ................. 53\n    input tokens ................ 1,928,862\n    output tokens ............... 143,944\n    cache-read tokens ........... 12,234,133\n    cache-create tokens ......... 309,198\n    cost ........................ $1.8150\n    duration (total) ............ 3269.3s\n      review-draft .............. 413.0s\n      gate-draft ................ 121.8s\n      review-spec ............... 1493.8s\n      gate ...................... 301.4s\n      review-test ............... 287.7s\n      gate-impl ................. 55.8s\n      review .................... 595.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

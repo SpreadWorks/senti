@@ -130,47 +130,51 @@ function writeMinimalSpec(tmp) {
   );
 }
 
-describe("R2: run retro → RETRO_EXISTS / NO_CHANGES", () => {
+describe("R2: run retro → upstream-artifact preconditions (spec 251)", () => {
   let tmp;
   afterEach(() => tmp && fs.rmSync(tmp, { recursive: true, force: true }));
 
-  it("R2a: returns RETRO_EXISTS with hint when retro.json already exists", () => {
+  it("R2a: returns TEST_RESULT_REVIEW_MISSING when test-result-review.json is absent", () => {
     tmp = createTmpProject();
     createFlowState(tmp, {
       requirements: [{ id: "R1", desc: "x", priority: "must", status: "done" }],
     });
     writeMinimalSpec(tmp);
-    // Write a pre-existing retro.json
-    const retroPath = path.join(tmp, "specs", "001-test", "retro.json");
-    fs.writeFileSync(retroPath, JSON.stringify({ summary: "prev" }));
+    // No upstream artifact prepared → retro must refuse to aggregate.
     const res = run(tmp, ["flow", "run", "retro"]);
     assert.notEqual(res.status, 0);
     const env = parseEnvelope(res);
     assert.equal(env.ok, false);
-    assert.equal(env.errors[0].code, "RETRO_EXISTS");
+    assert.equal(env.errors[0].code, "TEST_RESULT_REVIEW_MISSING");
     assert.ok(
-      env.errors[0].messages.some((m) => /--force/.test(m)),
-      "messages should include --force hint",
+      env.errors[0].messages.some((m) => /test-result-review/i.test(m)),
+      "messages should reference test-result-review",
     );
   });
 
-  it("R2b: returns NO_CHANGES with commit-after hint when no diff against base", () => {
+  it("R2b: returns TEST_EXECUTE_RESULT_MISSING when only test-result-review.json exists", () => {
     tmp = createTmpProject();
     createFlowState(tmp, {
       requirements: [{ id: "R1", desc: "x", priority: "must", status: "done" }],
     });
     writeMinimalSpec(tmp);
-    // Point baseBranch at the current branch so diff == empty (no extra commits).
-    const branch = execFileSync("git", ["-C", tmp, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim();
-    makeFlowManager(tmp).mutate((s) => { s.baseBranch = branch; });
+    fs.writeFileSync(
+      path.join(tmp, "specs", "001-test", "test-result-review.json"),
+      JSON.stringify({
+        verdict: "pass",
+        checked_items: [],
+        result_file_path: path.join(tmp, "specs", "001-test", "test-execute-result.json"),
+        raw_output_path: path.join(tmp, "specs", "001-test", "tests", ".raw", "test-execution.log"),
+      }),
+    );
     const res = run(tmp, ["flow", "run", "retro"]);
     assert.notEqual(res.status, 0);
     const env = parseEnvelope(res);
     assert.equal(env.ok, false);
-    assert.equal(env.errors[0].code, "NO_CHANGES");
+    assert.equal(env.errors[0].code, "TEST_EXECUTE_RESULT_MISSING");
     assert.ok(
-      env.errors[0].messages.some((m) => /commit/i.test(m)),
-      "messages should include commit-after hint",
+      env.errors[0].messages.some((m) => /test-execute/i.test(m)),
+      "messages should reference test-execute",
     );
   });
 });

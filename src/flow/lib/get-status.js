@@ -7,6 +7,7 @@
 
 import { derivePhase } from "../../lib/flow-helpers.js";
 import { loadSpecRequirements } from "../../lib/spec-json.js";
+import { flattenSteps } from "../definition.js";
 import { FlowCommand } from "./base-command.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
@@ -88,8 +89,12 @@ export function buildReportTotals(summaryTotal) {
 
 function buildStatusOutput(state, root) {
   const phase = state.steps ? derivePhase(state) : null;
-  const doneSteps = state.steps ? state.steps.filter((s) => s.status === "done").length : 0;
-  const totalSteps = state.steps ? state.steps.length : 0;
+  // spec 251 R42: count leaf steps via flattenSteps so nested impl-phase
+  // children (test-execute, test-result-review, retro, finalize-*) are
+  // reflected accurately in stepsProgress.
+  const leafSteps = state.steps ? flattenSteps(state.steps) : [];
+  const doneSteps = leafSteps.filter((s) => s.status === "done" || s.status === "skipped").length;
+  const totalSteps = leafSteps.length;
   const requirements = loadSpecRequirements(root, state.spec);
   const doneReqs = requirements.filter((r) => r.status === "done").length;
   const totalReqs = requirements.length;

@@ -1,3 +1,4 @@
+import path from "path";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
@@ -7,6 +8,26 @@ import {
   commitOrSkip,
   runMigrationHook,
 } from "./run-finalize.js";
+
+/**
+ * spec 251: paths under specs/<spec>/ that hold test/retro/report artifacts
+ * produced by impl-phase mainline steps. They are committed in a separate
+ * "chore: add test artifacts" commit so the implementation commit stays
+ * focused on production code + spec definition.
+ */
+const TEST_ARTIFACT_RELATIVE_PATHS = [
+  "test-execute-result.json",
+  "test-result-review.json",
+  "test-result-review.md",
+  "retro.json",
+  "report.json",
+  "tests/.raw",
+];
+
+function specArtifactPathspecs(specId) {
+  const base = path.posix.join("specs", specId);
+  return TEST_ARTIFACT_RELATIVE_PATHS.map((p) => path.posix.join(base, p));
+}
 
 export class RunFinalizeCommitCommand extends FlowCommand {
   async execute(ctx) {
@@ -45,7 +66,14 @@ export class RunFinalizeCommitCommand extends FlowCommand {
     runMigrationHook(root, state.spec);
     const specId = specIdFromPath(state.spec);
     ctx.flowManager.saveFinalizedAt(specId, new Date().toISOString());
+
+    // spec 251: stage everything EXCEPT test artifacts under the spec dir; the
+    // executeCommitPost hook follows up with a separate commit for those.
     runGit(["add", "-A"], { cwd: root });
+    const excludePathspecs = specArtifactPathspecs(specId);
+    const resetArgs = ["reset", "HEAD", "--", ...excludePathspecs];
+    runGit(resetArgs, { cwd: root });
+
     const msg = message || `feat: ${state.featureBranch || "finalize"}`;
     const res = commitOrSkip(["-m", msg], { cwd: root });
     return { ...res, message: msg };

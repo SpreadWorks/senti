@@ -21,7 +21,7 @@
               理由: <対応不要な理由>
         ```
      4. Apply the proposals you judged to be valid.
-     5. Re-run tests to confirm no regressions.
+     5. **Do NOT re-run tests here.** When code changes are applied during review, the dispatcher resets the downstream `test-execute` / `test-result-review` / `gate-impl` / `retro` steps and reruns them through the single execution point.
    - **If no proposals** (NO_PROPOSALS):
      - Display: "レビューの結果、修正の必要はありませんでした。"
    - **Retry limit:** If review keeps producing new proposals beyond the resolved numeric maxAttempts from next-action, STOP and return control to the user.

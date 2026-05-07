@@ -8,7 +8,7 @@ Use this guidance for the per-task code review step. Mirrors the flow-level revi
   2. For each proposal, determine whether it improves quality, risks breakage, and is within scope.
   3. Display review summary listing proposals you will apply (problem + fix) and proposals you will skip (with reasoning).
   4. Apply the proposals you judged to be valid.
-  5. Re-run the task tests to confirm no regressions.
+  5. **Do NOT re-run tests here.** Test execution belongs to the spec-level `test-execute` step (TASK_DEFINITION does not run tests).
 - **If no proposals** (NO_PROPOSALS): Display "レビューの結果、修正の必要はありませんでした。"
 - **Retry limit:** If review keeps producing new proposals beyond the resolved numeric maxAttempts from next-action, STOP and return control to the user.
 - On complete, the next-action CLI advances to `gate-impl`.

@@ -1,9 +1,10 @@
    - Read the spec to understand requirements.
    - **Test-only spec detection (autoApprove mode):** If the spec's Goal, Scope, and Requirements indicate that only tests are being added (no production code changes), and `autoApprove: true`:
-     1. Set `sdd-forge flow set step implement skipped`
-     2. Set `sdd-forge flow set step gate-impl skipped`
-     3. Skip to the review step (the dispatcher will promote it as the next pending leaf in the impl phase).
-     4. Display: "auto: test-only spec detected — impl phase skipped"
+     1. Set `sdd-forge flow set step implement skipped`.
+     2. Set `sdd-forge flow set step gate-impl skipped`.
+     3. **Do NOT skip `test-execute` or `test-result-review`.** They run regardless because the spec's tests still need to be executed and their results verified — that is the entire point of a test-only spec (spec 251 single-execution-point rule).
+     4. The dispatcher promotes `test-execute` next.
+     5. Display: "auto: test-only spec detected — implement / gate-impl skipped; test-execute will run"
      - If unsure whether the spec is test-only, proceed with normal implementation (err on the side of caution).
    - **Context gathering (supplement-first):** Build understanding in tiers — stop as soon as sufficient. Do NOT re-read material already in context.
      1. The spec (just read above) and test files from the plan phase are the primary inputs. Proceed if they are sufficient.
@@ -45,9 +46,8 @@
    - Code only after confirming gate PASS, test phase completion, and approach approval.
    - Aim to make tests pass.
    - **Update requirements as you go**: `sdd-forge flow set req <index> done` for each completed requirement.
-   - Run `npm test` to verify existing tests pass. Run spec tests with `node --test specs/<spec>/tests/*.test.js` to verify spec requirements are met.
-   - **MUST: If test failures are caused by pre-existing bugs (not the current spec's changes)**, record them in issue-log (`sdd-forge flow set issue-log --step implement --reason "..."`) before applying a workaround or adjusting the test.
-   - **Retry limit for test fixes:** If tests do not pass within a reasonable number of fix-and-rerun cycles, STOP and return control to the user.
+   - **Do NOT run tests in this step.** Test execution is centralized in the `test-execute` step that runs after `implement` completes. Implement code so it is self-consistent; the dispatcher will invoke `test-execute` next.
+   - **MUST: If implementation reveals a pre-existing bug outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step implement --reason "..."`) before adjusting the spec or applying a workaround.
    - **On complete**:
      - Run guardrail lint check: `sdd-forge flow run lint`. If violations are found, fix them before proceeding. If lint passes with no guardrail articles defined, this is normal — proceed.
      - `sdd-forge flow set step implement done`

@@ -267,12 +267,12 @@
     {
       "id": "spec-test-coverage",
       "title": "Spec Test Coverage",
-      "body": "Verify that the implementation conforms to requirements and specifications. Test code MUST be written under specs/<specid>/tests/ and all tests MUST pass.",
+      "body": "Verify that the implementation conforms to requirements and specifications. Test code MUST be written under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file. Per spec 251 (single-execution-point rule), runtime test pass/fail is verified at the integration scope by test-execute and test-result-review; task-impl gates inspect diff and header coverage only.",
       "meta": {
         "phase": [
           "spec",
-          "task-impl",
-          "test"
+          "test",
+          "integration"
         ],
         "category": "testing"
       }

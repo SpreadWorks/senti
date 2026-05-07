@@ -97,6 +97,65 @@ export const PHASE_TO_LEVEL = Object.freeze({
 });
 
 /**
+ * spec 251 R17: precheck for integration gate. Verifies the artifacts
+ * produced by test-execute and test-result-review are present, valid, and
+ * carry verdict="pass". Returns a gateFail envelope when the precheck fails;
+ * returns null when the gate may proceed to the AI guardrail pipeline.
+ */
+function checkIntegrationTestArtifacts(root, state, level, phase) {
+  const specPath = state.spec;
+  const specDir = path.dirname(path.resolve(root, specPath));
+  const reviewPath = path.join(specDir, "test-result-review.json");
+  const resultPath = path.join(specDir, "test-execute-result.json");
+
+  if (!fs.existsSync(reviewPath)) {
+    return gateFail(level, phase, specPath, [], [
+      "test-result-review.json missing — run test-result-review step before integration gate",
+    ]);
+  }
+  if (!fs.existsSync(resultPath)) {
+    return gateFail(level, phase, specPath, [], [
+      "test-execute-result.json missing — run test-execute step before integration gate",
+    ]);
+  }
+  let review;
+  try {
+    review = JSON.parse(fs.readFileSync(reviewPath, "utf8"));
+  } catch (err) {
+    return gateFail(level, phase, specPath, [], [
+      `test-result-review.json is not valid JSON: ${err.message}`,
+    ]);
+  }
+  if (review?.verdict !== "pass") {
+    const reason = review?.invalid_reason || "verdict is not 'pass'";
+    return gateFail(level, phase, specPath, [], [
+      `test-result-review verdict='${review?.verdict}' (${reason}); test artifacts cannot be trusted`,
+    ]);
+  }
+  let result;
+  try {
+    result = JSON.parse(fs.readFileSync(resultPath, "utf8"));
+  } catch (err) {
+    return gateFail(level, phase, specPath, [], [
+      `test-execute-result.json is not valid JSON: ${err.message}`,
+    ]);
+  }
+  if (result?.version !== "1") {
+    return gateFail(level, phase, specPath, [], [
+      `test-execute-result.json version='${result?.version}', expected '1'`,
+    ]);
+  }
+  const failed = (result.summary || []).filter((s) => s?.result === "fail");
+  if (failed.length > 0) {
+    const ids = failed.map((s) => s.id).filter(Boolean).join(", ");
+    return gateFail(level, phase, specPath, [], [
+      `test-execute-result.json reports ${failed.length} failed requirement(s): ${ids}`,
+    ]);
+  }
+  return null;
+}
+
+/**
  * Validate a (level, phase) pair against the allowed combinations.
  * Throws Error if invalid.
  */
@@ -1245,12 +1304,15 @@ function extractRequirementIds(specText) {
 // Phase → next-step mapping
 // ---------------------------------------------------------------------------
 
+// spec 251: integration PASS now advances to retro (mainline impl-phase
+// step), not directly to finalize-commit. retro reads the test-execute /
+// test-result-review artifacts and writes retro.json before finalize.
 const PASS_NEXT = {
   "draft": "spec",
   "spec": "approval",
   "task-spec": "task-impl",
   "task-impl": null,
-  "integration": "finalize-commit",
+  "integration": "retro",
 };
 const FAIL_NEXT = {
   "draft": "draft",
@@ -1624,6 +1686,15 @@ export class RunGateCommand extends FlowCommand {
     const state = ctx.flowState;
     if (!state?.spec) throw new Error("no active flow found");
     if (!state.baseBranch) throw new Error("baseBranch not set in flow.json");
+
+    // spec 251 R17: integration gate verifies the upstream test-execute /
+    // test-result-review artifacts before delegating to the AI guardrail
+    // pipeline. Missing / unverified results are treated as FAIL with no
+    // retry budget consumption, since the failure is structural.
+    if (phase === "integration") {
+      const integrationCheck = checkIntegrationTestArtifacts(root, state, level, phase);
+      if (integrationCheck) return integrationCheck;
+    }
 
     // spec 209 REQ-6: surface remaining retry budget before running the gate.
     warnGateRetryBudget(ctx, phase);

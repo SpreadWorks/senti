@@ -76,14 +76,24 @@ export function generateReport(input) {
     };
   }
 
-  // Tests (R1, R3)
-  const testSummary = state.test?.summary;
+  // Tests (spec 251): consume test-execute-result.json + test-result-review.json
+  // via results.testExecute / results.testResultReview, populated by
+  // run-report.js. Legacy state.test.summary is no longer the source of truth.
   let tests = null;
-  if (testSummary) {
-    const unit = testSummary.unit || 0;
-    const integration = testSummary.integration || 0;
-    const acceptance = testSummary.acceptance || 0;
-    tests = { unit, integration, acceptance, total: unit + integration + acceptance };
+  const testExecute = results.testExecute;
+  const testResultReview = results.testResultReview;
+  if (testExecute || testResultReview) {
+    const summary = Array.isArray(testExecute?.summary) ? testExecute.summary : [];
+    const passed = summary.filter((s) => s.result === "pass").length;
+    const failed = summary.filter((s) => s.result === "fail").length;
+    tests = {
+      total: summary.length,
+      passed,
+      failed,
+      verdict: testResultReview?.verdict || null,
+      invalidReason: testResultReview?.invalidReason || null,
+      rawOutputPath: testExecute?.rawOutputPath || null,
+    };
   }
 
   const data = { implementation, retro, issueLog: issueLogData, metrics, tokenMetrics, tests, sync };
@@ -177,11 +187,20 @@ function formatText(data) {
     }
   }
 
-  // Tests (always shown)
+  // Tests (always shown) — spec 251: per-requirement test-execute summary +
+  // test-result-review verdict. Categorical unit/integration/acceptance counts
+  // are no longer surfaced (the runner is language-agnostic).
   pushSection(lines, "Tests", thin);
   if (data.tests) {
     const t = data.tests;
-    lines.push(`    unit ${t.unit}  integration ${t.integration}  acceptance ${t.acceptance}  total ${t.total}`);
+    const verdict = t.verdict ? ` verdict=${t.verdict}` : "";
+    lines.push(`    total ${t.total}  passed ${t.passed}  failed ${t.failed}${verdict}`);
+    if (t.invalidReason) {
+      lines.push(`    invalid_reason: ${t.invalidReason}`);
+    }
+    if (t.rawOutputPath) {
+      lines.push(`    raw_output: ${t.rawOutputPath}`);
+    }
   } else {
     lines.push("    No test data");
   }

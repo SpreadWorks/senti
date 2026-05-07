@@ -28,7 +28,7 @@ All flow step IDs are defined in the CLI schema. The dispatcher obtains the curr
 - After reading `docs/` files: `sdd-forge flow set metric <current-phase> docsRead`
 - After reading `src/` files: `sdd-forge flow set metric <current-phase> srcRead`
 
-The current phase can be determined from the current step (e.g. `draft`, `spec`, `gate`, `test`, `implement`, `review`, `finalize`).
+The current phase can be determined from the current step (e.g. `draft`, `spec`, `gate`, `test`, `implement`, `test-execute`, `test-result-review`, `review`, `gate-impl`, `retro`, `finalize`).
 
 Note: `sdd-forge flow get context` automatically records these metrics via hooks — manual recording is only needed for direct Read tool usage.
 
@@ -99,7 +99,7 @@ B.4. **Prepare spec (silent)**
 
 Proceed to **C. Dispatcher loop**.
 
-Note: Baseline test capture is handled lazily by `flow run tests` (head mode) — when `test.baseline` is not yet recorded, the CLI automatically captures it via a detached worktree before running head tests. This capture is best-effort: if it fails, head tests proceed normally and gate-impl falls back to head-only evaluation. No explicit baseline step is needed here.
+Note: Test execution is centralized in the impl-phase `test-execute` step (spec 251). The dispatcher invokes it after `implement` and persists `test-execute-result.json` + raw output. Subsequent steps (`test-result-review`, `review`, `gate-impl`, `retro`) read those artifacts and do not re-run tests.
 
 ### C. Dispatcher loop
 
@@ -215,6 +215,8 @@ sdd-forge flow set issue-log --step <id> --reason "<text>" [--trigger "<text>"] 
 sdd-forge flow prepare --title "..." [--base branch] [--worktree] [--no-branch] [--issue N] [--request "..."] [--run-id <id>]
 sdd-forge flow run gate [--phase <draft|spec|task-spec|task-impl|integration>]
 sdd-forge flow run review
+sdd-forge flow run test-execute
+sdd-forge flow run test-result-review
 sdd-forge flow run impl-confirm --mode <overview|detail>
 sdd-forge flow run finalize-commit [--message "<msg>"]
 sdd-forge flow run finalize-merge

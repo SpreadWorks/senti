@@ -329,19 +329,21 @@ describe("RunGateCommand.execute (in-process, AC2/AC3)", () => {
       // (ctx.config, ctx.root) are not reached before the stale-step update.
       const ctx = { flowState: state, phase: undefined, root: tmp, config: {} };
       // The recovery side effects (stale-step transition, stderr warning)
-      // fire before execute() proceeds into the actual gate evaluation,
-      // which needs git/config we intentionally did not set up. We therefore
-      // expect an error from the downstream gate path; record it so nothing
-      // is silently discarded, and assert the recovery happened regardless.
+      // fire before execute() proceeds into the actual gate evaluation. The
+      // downstream path may either (a) throw because git/config are missing
+      // or (b) return a gateFail envelope when the integration precheck
+      // (spec 251 R17) detects the missing test artifacts. Either outcome
+      // exercises the same recovery path; record both.
       let downstreamError = null;
+      let downstreamResult = null;
       try {
-        await cmd.execute(ctx);
+        downstreamResult = await cmd.execute(ctx);
       } catch (err) {
         downstreamError = err;
       }
       assert.ok(
-        downstreamError !== null,
-        "downstream gate evaluation is expected to throw in this harness (no git/config); if it starts succeeding, update the assertion",
+        downstreamError !== null || downstreamResult !== null,
+        "downstream gate evaluation must produce an outcome (throw or gateFail); got neither",
       );
     } finally {
       containerMod.container.get = originalGet;
