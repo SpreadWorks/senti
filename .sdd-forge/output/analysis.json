@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-08T14:47:31.829Z",
+  "analyzedAt": "2026-05-08T23:40:00.164Z",
   "package": {
     "entries": [
       {
@@ -2817,7 +2817,8 @@
           "src/flow/lib/run-finalize-sync.js",
           "src/flow/lib/set-files.js",
           "src/flow/lib/run-test-execute.js",
-          "src/flow/lib/run-test-result-review.js"
+          "src/flow/lib/run-test-result-review.js",
+          "src/flow/lib/set-retry.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -3341,9 +3342,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "cc9a2f385293e73e0b9f784d06ccefcc",
-        "lines": 152,
-        "mtime": "2026-05-07T00:14:18.345Z",
+        "hash": "a0ed61cf917900c34bf12dfbc4c2af59",
+        "lines": 159,
+        "mtime": "2026-05-08T23:39:55.623Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -3370,24 +3371,23 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "Implements flow status reporting with token/activity metrics aggregation derived from issue log entries.",
-        "detail": "Defines TOKEN_KEYS (input/output/cacheRead/cacheCreation) and ACTIVITY_COUNTERS (docsRead/srcRead/question/issueLog) as the canonical metric dimensions. buildMetricsSummary walks issue log entries and applies them to per-phase buckets, while buildReportTotals collapses the summary into flat activity/tokens objects for reporting. buildStatusOutput composes the runtime view including spec phase (via derivePhase), requirements (via loadSpecRequirements), and flattened steps. GetStatusCommand resolves the requested run by ID or falls back to the active flow state, returning {active:false} when none is found.",
+        "summary": "Implements the GetStatusCommand that aggregates flow state, requirements, and metric totals into a structured status report.",
+        "detail": "Defines TOKEN_KEYS and ACTIVITY_COUNTERS constants for metric aggregation, plus helpers like zeroTokens, buildMetricsSummary, and applyEntry to fold issue-log entries into per-bucket sums. buildReportTotals returns activity counters and token totals from a summary object, while buildStatusOutput composes the final shape including phase derivation via derivePhase and spec requirements via loadSpecRequirements. The exported GetStatusCommand class extends FlowCommand and handles both targeted runId lookups (throwing RUN_ID_NOT_FOUND) and the active-flow case, returning {active:false} when no flow exists. It is the data backbone of the flow-status skill display.",
         "chapter": "internal_design",
-        "role": "flow-command",
+        "role": "Flow status aggregator",
         "enrich": {
-          "processedAt": "2026-05-07T00:18:30.711Z",
+          "processedAt": "2026-05-08T23:40:35.893Z",
           "attempts": 1
         },
         "keywords": [
           "flow status",
           "metrics summary",
-          "token tracking",
+          "token counters",
           "activity counters",
           "issue log",
           "derivePhase",
-          "run ID",
-          "flow state",
-          "report totals"
+          "FlowCommand",
+          "run id"
         ]
       },
       {
@@ -4165,7 +4165,8 @@
         ],
         "extends": "Error",
         "usedBy": [
-          "src/flow/lib/set-gate-retry.js"
+          "src/flow/lib/set-gate-retry.js",
+          "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
         "summary": "Implements the gate evaluation engine that validates artifacts against guardrails using AI evaluation, manages retry budgets, and detects no-progress/repeated-fail conditions across SDD flow phases.",
@@ -4539,13 +4540,19 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "b4da1776fc4ad57efbcb41fc4796a194",
-        "lines": 172,
-        "mtime": "2026-05-06T13:59:13.008Z",
+        "hash": "8b0d3e41017077de9d9ff96c110e5aa7",
+        "lines": 296,
+        "mtime": "2026-05-08T23:39:55.624Z",
         "className": "run-review",
         "methods": [
+          "countReviewRetry",
+          "resolveReviewRetryMax",
+          "checkReviewRetryBelowMax",
+          "updateReviewRetryCounter",
           "runCmdWithRetry",
           "RunReviewCommand",
+          "persistedPhaseKey",
+          "isImplPass",
           "parsePhaseReviewOutput",
           "parseTestReviewOutput",
           "parseSpecReviewOutput",
@@ -4556,37 +4563,46 @@
           "../../lib/process.js",
           "../../lib/constants.js",
           "./base-command.js",
+          "../../lib/flow-envelope.js",
+          "../definition.js",
           "path"
         ],
         "exports": [
+          "countReviewRetry",
+          "resolveReviewRetryMax",
+          "checkReviewRetryBelowMax",
+          "updateReviewRetryCounter",
           "runCmdWithRetry",
           "RunReviewCommand",
           "default",
+          "REVIEW_PHASE_KEYS",
           "PHASE_REVIEW_PARSERS",
           "parseTestReviewOutput",
           "parseSpecReviewOutput",
           "parseProposalReviewOutput"
         ],
         "extends": "FlowCommand",
-        "usedBy": null,
+        "usedBy": [
+          "src/flow/lib/set-retry.js"
+        ],
         "id": "d4e97204",
-        "summary": "Runs phase-specific code review commands by spawning review.js, parsing issue counts from stdout, and retrying transient failures.",
-        "detail": "RunReviewCommand validates the requested phase against VALID_REVIEW_PHASES and dispatches to flow/commands/review.js via runCmdWithRetry, which retries up to DEFAULT_RETRY_COUNT=2 times with DEFAULT_RETRY_DELAY_MS=3000 between attempts. Phase-specific output parsers (draft/spec/test) are registered in PHASE_REVIEW_PARSERS and unified through parsePhaseReviewOutput, which extracts issue counts via configured countPattern and chooses the next step (pass vs. retry). Throws when stdout doesn't match the expected count pattern, surfacing review.js failures clearly upstream.",
+        "summary": "Defines RunReviewCommand and review-phase parsing utilities that execute review subcommands, parse their output, and enforce retry limits per phase.",
+        "detail": "Maintains a frozen REVIEW_NODE_ID_BY_PHASE map and a PHASE_REVIEW_PARSERS table to drive phase-specific output parsing through a shared parsePhaseReviewOutput helper used by parseTestReviewOutput, parseSpecReviewOutput, and parseProposalReviewOutput. countReviewRetry, resolveReviewRetryMax, checkReviewRetryBelowMax, and updateReviewRetryCounter manage retry accounting against the FLOW_DEFINITION node's resolveMaxAttempts (default 5), returning Envelope failures like UNKNOWN_REVIEW_PHASE and REVIEW_MAX_ATTEMPTS_EXCEEDED. runCmdWithRetry wraps runCmd with a configurable retry count (default 2) and delay (3s), writing progress to stderr. RunReviewCommand spawns review.js via PKG_DIR path resolution and dispatches to the appropriate phase parser.",
         "chapter": "internal_design",
-        "role": "review-runner",
+        "role": "Review phase runner",
         "enrich": {
-          "processedAt": "2026-05-06T14:00:00.244Z",
+          "processedAt": "2026-05-08T23:40:35.893Z",
           "attempts": 1
         },
         "keywords": [
-          "RunReviewCommand",
-          "review parser",
-          "retry",
-          "draft review",
-          "spec review",
-          "test review",
-          "phase dispatch",
-          "subprocess"
+          "review retry",
+          "Envelope failure",
+          "review phase",
+          "parser dispatch",
+          "runCmd",
+          "FLOW_DEFINITION",
+          "max attempts",
+          "review.js"
         ]
       },
       {
@@ -4917,40 +4933,6 @@
         ]
       },
       {
-        "file": "src/flow/lib/set-gate-retry.js",
-        "hash": "4d280be1e1bbe106e2407bac1c77189a",
-        "lines": 71,
-        "mtime": "2026-04-22T14:34:07.553Z",
-        "className": "set-gate-retry",
-        "methods": [],
-        "imports": [
-          "./base-command.js",
-          "./run-gate.js",
-          "../../lib/flow-envelope.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "FlowCommand",
-        "usedBy": null,
-        "id": "52f5b29b",
-        "summary": "Implements gate retry counter maintenance commands, currently focused on reset actions per tracked phase. It prevents invalid operations and reports retry-related diagnostics.",
-        "detail": "The command restricts allowed actions through a fixed action set and validates target phase support. It reads existing retry counts via shared gate logic to ensure resets are meaningful and safe. Error branches produce explicit envelope failures for invalid usage, unknown phase, or no-op scenarios. A successful reset returns structured metadata describing the action and phase. This module acts as a narrow operational control surface for retry-budget management.",
-        "chapter": "cli_commands",
-        "role": "controller",
-        "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "retry reset",
-          "gate retries",
-          "phase counters",
-          "flow metrics",
-          "command validation"
-        ]
-      },
-      {
         "file": "src/flow/lib/set-init.js",
         "hash": "5c1095b8d3c1b04a2fd372dae4b9cde5",
         "lines": 54,
@@ -5209,6 +5191,43 @@
         ]
       },
       {
+        "file": "src/flow/lib/set-retry.js",
+        "hash": "88429726817c529f21444d7dc68ab0f0",
+        "lines": 94,
+        "mtime": "2026-05-08T23:39:55.624Z",
+        "className": "set-retry",
+        "methods": [],
+        "imports": [
+          "./base-command.js",
+          "../../lib/flow-envelope.js",
+          "./run-gate.js",
+          "./run-review.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "ee559b7a",
+        "summary": "Implements SetRetryCommand which validates retry-reset requests for gate or review counters and persists the reset operation.",
+        "detail": "Freezes VALID_ACTIONS (only 'reset') and VALID_KINDS ('gate','review'), then maps each kind to allowed phases (PHASES_BY_KIND), counter names (COUNTER_BY_KIND), and counting functions (COUNT_FN_BY_KIND) that delegate to countGateRetry / countReviewRetry. The command extends FlowCommand and emits Envelope.fail responses for invalid action/kind/phase combinations or persistence errors before returning {action,kind,phase,counter,reset:true} on success. This provides the manual escape hatch for clearing retry counters when an operator needs to retry past the configured ceiling.",
+        "chapter": "internal_design",
+        "role": "Retry counter reset",
+        "enrich": {
+          "processedAt": "2026-05-08T23:40:35.893Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "retry reset",
+          "gate retry",
+          "review retry",
+          "Envelope",
+          "SetRetryCommand",
+          "counter",
+          "phase validation"
+        ]
+      },
+      {
         "file": "src/flow/lib/set-step.js",
         "hash": "d58996f33b517f661b81e59b17d2275f",
         "lines": 141,
@@ -5388,9 +5407,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "d32774b01188365fd938058c77cb9dcd",
-        "lines": 812,
-        "mtime": "2026-05-08T14:47:26.780Z",
+        "hash": "7cf1bafbb7534537f0abaa966eabfcaa",
+        "lines": 819,
+        "mtime": "2026-05-08T23:39:55.624Z",
         "className": "registry",
         "methods": [
           "isFinalizeSuccess",
@@ -5412,22 +5431,24 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Central flow command registry that maps subcommand keys to args/help/handler triples and finalize lifecycle hooks.",
-        "detail": "Defines FLOW_COMMANDS dictionary used by the dispatcher, including get/set/run subcommands. Tracks finalize success statuses (done/completed/skipped) and resets skipped downstream steps (sync, cleanup) so re-runs work correctly. Resolves the main repo FlowManager from a worktree context and provides defensive helpers tryUpdateStepStatus and tryAppendIssueLog that swallow non-fatal errors with stderr logging. Wires post-hooks for gate side effects, commit follow-ups, and merge outcome persistence — the integration point for cross-command coordination.",
-        "chapter": "internal_design",
-        "role": "flow command registry",
+        "summary": "Central registry that wires flow subcommands to their FlowCommand classes and orchestrates side effects like step status updates and issue-log appends.",
+        "detail": "Exports FLOW_COMMANDS containing args, help text, and command bindings; helpers like resolveMainRepoFlowManager, deriveActivePhase, tryUpdateStepStatus, and tryAppendIssueLog isolate cross-cutting concerns and downgrade non-fatal errors to stderr warnings. resetSkippedDownstreamSteps walks FINALIZE_DOWNSTREAM_LEAVES (sync/cleanup) to revert skipped downstream nodes, while isFinalizeSuccess accepts done/completed/skipped statuses. The finalize pipeline triggers gate side effects (executeGateSideEffects), commit post-hooks (executeCommitPost), and merge outcome persistence (setMergeOutcome), each wrapped in try-style helpers that log but do not abort. This file is the dispatch hub that registry.js's docstring calls 'args, help, command 定義を集約'.",
+        "chapter": "project_structure",
+        "role": "Flow command registry",
         "enrich": {
-          "processedAt": "2026-05-08T14:48:07.627Z",
+          "processedAt": "2026-05-08T23:40:35.893Z",
           "attempts": 1
         },
         "keywords": [
-          "flow registry",
           "FLOW_COMMANDS",
-          "finalize hooks",
-          "gate phase",
+          "registry",
+          "dispatcher",
           "step status",
           "issue log",
-          "command dispatch"
+          "finalize",
+          "gate side effects",
+          "downstream reset",
+          "FlowManager"
         ]
       },
       {
@@ -5819,9 +5840,9 @@
       },
       {
         "file": "src/lib/constants.js",
-        "hash": "d886397c1d37cda1e492f5cdc462f3f2",
-        "lines": 158,
-        "mtime": "2026-04-29T11:18:22.047Z",
+        "hash": "446a4171a6ef519ab4121423175ad99a",
+        "lines": 159,
+        "mtime": "2026-05-08T23:39:55.624Z",
         "className": "constants",
         "methods": [],
         "imports": [],
@@ -5856,21 +5877,24 @@
           "src/upgrade.js"
         ],
         "id": "74b5e1c3",
-        "summary": "Constants module exporting frozen enum-like arrays for phases, statuses, gate levels, guardrail categories, and exit codes.",
-        "detail": "Single source of truth for valid string values used across the flow system: VALID_PHASES, VALID_STEP_STATUSES, VALID_GATE_PHASES, VALID_GATE_LEVELS, VALID_LEVEL_PHASE_COMBINATIONS, VALID_GUARDRAIL_CATEGORIES, VALID_GUARDRAIL_PHASES, VALID_METRIC_COUNTERS, VALID_CHECK_TARGETS, VALID_REVIEW_PHASES, VALID_IMPL_CONFIRM_MODES, VALID_AUTO_VALUES, and VALID_REQ_STATUSES. All arrays are frozen via Object.freeze to prevent mutation. Also exports EXIT_SUCCESS (0) and EXIT_ERROR (1) for consistent process exit codes across CLI commands.",
+        "summary": "Centralizes frozen enums for valid phases, statuses, gate levels, metric counters, and review phases used across the flow subsystem.",
+        "detail": "Each export is an Object.freeze'd array acting as a single source of truth for validation: VALID_PHASES, VALID_STEP_STATUSES, VALID_GATE_PHASES, VALID_GATE_LEVELS, VALID_LEVEL_PHASE_COMBINATIONS, VALID_GUARDRAIL_CATEGORIES, VALID_GUARDRAIL_PHASES, VALID_METRIC_COUNTERS, VALID_CHECK_TARGETS, VALID_REVIEW_PHASES, VALID_IMPL_CONFIRM_MODES, VALID_AUTO_VALUES, and VALID_REQ_STATUSES. EXIT_SUCCESS (0) and EXIT_ERROR (1) standardize CLI exit codes. Other modules import these to validate command arguments and reject unknown values via Envelope.fail patterns, ensuring consistent vocabulary across registry.js, set-retry.js, run-review.js, and gate logic.",
         "chapter": "configuration",
-        "role": "config",
+        "role": "Validation constants",
         "enrich": {
-          "processedAt": "2026-04-29T11:19:24.011Z",
+          "processedAt": "2026-05-08T23:40:35.893Z",
           "attempts": 1
         },
         "keywords": [
           "constants",
           "enums",
+          "Object.freeze",
           "valid phases",
           "exit codes",
-          "frozen",
-          "validation"
+          "gate levels",
+          "metric counters",
+          "review phases",
+          "single source of truth"
         ]
       },
       {
@@ -10344,9 +10368,9 @@
     ],
     "summary": {
       "total": 291,
-      "totalMethods": 1001
+      "totalMethods": 1007
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-08T14:48:07.627Z"
+  "enrichedAt": "2026-05-08T23:40:35.893Z"
 }
