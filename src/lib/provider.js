@@ -133,14 +133,14 @@ class CodexProvider extends Provider {
     return {
       "codex/gpt-5.4": {
         command: "codex",
-        args: ["exec", "--json", "-m", "gpt-5.4", "--full-auto", "{{PROMPT}}"],
+        args: ["exec", "--json", "-m", "gpt-5.4", "--sandbox", "workspace-write", "{{PROMPT}}"],
         jsonOutputFlag: "--json",
         jsonSchemaFlag: "--output-schema",
         jsonSchemaMode: "file",
       },
       "codex/gpt-5.3": {
         command: "codex",
-        args: ["exec", "--json", "-m", "gpt-5.3-codex", "--full-auto", "{{PROMPT}}"],
+        args: ["exec", "--json", "-m", "gpt-5.3-codex", "--sandbox", "workspace-write", "{{PROMPT}}"],
         jsonOutputFlag: "--json",
         jsonSchemaFlag: "--output-schema",
         jsonSchemaMode: "file",

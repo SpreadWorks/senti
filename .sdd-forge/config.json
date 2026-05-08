@@ -85,11 +85,11 @@
     "merge": "squash"
   },
   "agent": {
-    "default": "codex/gpt-5.5",
+    "default": "claude",
     "workDir": ".tmp",
     "timeout": 600,
     "retryCount": 2,
-    "useProfile": "codex",
+    "useProfile": "default",
     "providers": {
       "claude/sonnet": {
         "command": "claude",
@@ -105,17 +105,17 @@
       },
       "codex/gpt-5.5": {
         "command": "codex",
-        "args": ["exec", "--json", "--full-auto", "-m", "gpt-5.5", "-C", ".tmp", "{{PROMPT}}"],
+        "args": ["exec", "--json", "--sandbox", "workspace-write", "-m", "gpt-5.5", "-C", ".tmp", "{{PROMPT}}"],
         "jsonOutputFlag": "--json"
       },
       "codex/gpt-5.4": {
         "command": "codex",
-        "args": ["exec", "--json", "--full-auto", "-m", "gpt-5.4", "-C", ".tmp", "{{PROMPT}}"],
+        "args": ["exec", "--json", "--sandbox", "workspace-write", "-m", "gpt-5.4", "-C", ".tmp", "{{PROMPT}}"],
         "jsonOutputFlag": "--json"
       },
       "codex/gpt-5.3": {
         "command": "codex",
-        "args": ["exec", "--json", "--full-auto", "-m", "gpt-5.3-codex", "-C", ".tmp", "{{PROMPT}}"],
+        "args": ["exec", "--json", "--sandbox", "workspace-write", "-m", "gpt-5.3-codex", "-C", ".tmp", "{{PROMPT}}"],
         "jsonOutputFlag": "--json"
       }
     },
@@ -136,7 +136,40 @@
         "flow.impl.review.final": "claude/opus",
         "flow.test.review":       "codex/gpt-5.5",
         "flow.finalize.retro":    "claude/sonnet",
-        "flow.context.search":    "claude/sonnet"
+        "flow.context.search":    "claude/sonnet",
+        "experimental.workflow.publish": "claude/sonnet"
+      },
+      "codex-main": {
+        "docs.init":                 "claude/sonnet",
+        "docs.enrich":               "claude/opus",
+        "docs.text":                 "claude/opus",
+        "docs.forge":                "claude/opus",
+        "docs.readme":               "claude/sonnet",
+        "docs.agents":               "claude/opus",
+        "docs.translate":            "codex/gpt-5.5",
+        "flow.auto-check":           "claude/sonnet",
+        "flow.spec.gate":            "claude/sonnet",
+        "flow.spec.review.propose":  "claude/opus",
+        "flow.draft.review.propose": "claude/opus",
+        "flow.impl.review.propose":  "claude/opus",
+        "flow.impl.review.final":    "claude/opus",
+        "flow.test.review":          "claude/opus",
+        "flow.finalize.retro":       "claude/sonnet",
+        "flow.context.search":       "claude/sonnet",
+        "experimental.workflow.publish": "claude/sonnet"
+      },
+      "claude": {
+        "docs":                      "claude/sonnet",
+        "flow.auto-check":           "claude/sonnet",
+        "flow.spec.gate":            "claude/sonnet",
+        "flow.spec.review.propose":  "claude/opus",
+        "flow.draft.review.propose": "claude/opus",
+        "flow.impl.review.propose":  "claude/opus",
+        "flow.impl.review.final":    "claude/opus",
+        "flow.test.review":          "claude/opus",
+        "flow.finalize.retro":       "claude/sonnet",
+        "flow.context.search":       "claude/sonnet",
+        "experimental.workflow.publish": "claude/sonnet"
       },
       "codex": {
         "docs": "codex/gpt-5.3",
