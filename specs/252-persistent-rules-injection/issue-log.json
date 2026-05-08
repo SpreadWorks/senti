@@ -1,0 +1,171 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one tightly-coupled concern: injecting phase/state-filtered persistent rules into every `flow get next-action` response, with SSOT migration as the enabling prerequisite. The scope boundary (in/out) is explicitly defined, and no user-defined Issue is proposed for splitting.; Unambiguous Requirements — Requirements express verifiable conditions throughout: 'throws UnknownSkillRuleError(id)', 'exits non-zero', exact filter semantics (phase=OR, state=AND), enumerated canonical phase strings (24 entries), regex for id format (`/^[a-z][a-z0-9-]*/`). No vague adjectives like 'appropriate' or 'fast' are used.; Complete Context — Each QA entry provides evidence (file paths, line numbers, verified behaviors) and contracts precise enough that two independent reviewers could agree on satisfaction — e.g. unknown-id behavior, zero-match no-op, pipeline order, envelope field invariance.; No Hardcoded Secrets — No API keys, passwords, tokens, or secrets appear anywhere in this draft. Not applicable by nature of the content.; Prioritize Requirements — scopeVerification.in lists 15+ in-scope items (new files, loader, DataSource, pipeline wiring, state derivation, 10-rule migration, guardrail addition, CLAUDE.md additions, unit tests, etc.) with no must/should/nice-to-have priority assignment. The guardrail requires prioritization when items exceed three.; Impact on Existing Features — The `impactOnExisting` section explicitly lists each affected file/component (SKILL.md, skills.js, get-next-action.js, guardrail.json, CLAUDE.md, MEMORY.md, existing AI sessions) and describes the nature of each change. The last bullet explicitly states no public CLI surface change.; Present Recommendations with Reasoning — Every QA entry provides a concrete recommended answer (answer field), supporting evidence (code locations with line numbers), reasoning basis (why field), and rejected alternatives (considered field). Basis is drawn from existing code patterns and docs throughout.; Explore Before Asking — QA entries cite specific findings from code exploration: resolver-factory.js:144-150, skills.js sync path, collectLeafIds results, directive parser behavior, constants.js VALID_GUARDRAIL_CATEGORIES. Open questions are deferred only for genuinely spec-stage decisions (rule body wording, exact ids).; Proactively Raise Related Implications — The draft proactively raises: the resolver null-on-error implication for other DataSource consumers (Q4), sync/async propagation impact on callers (Q10), package files field needed to ship rules.json (Q5), impact on existing AI sessions observing larger payloads (impactOnExisting), and the need to update the Issue #311 body as a commit deliverable (Q13).; Confirm Brainstorm vs. Decision Before Critiquing — The approval field records `approved: true` with notes about two rounds of Q&A review, factual corrections, and narrowing over-specifications. The content is unambiguously a decided spec, not brainstorming.; Capture Digressions in draft.md — Key digressions are captured: the 8→10 rule count correction is recorded ('flow set note B: 10 entries'), openQuestions explicitly capture items deferred to spec stage, and the structural-rename deferral to issue 7da8 is recorded with rationale.; Draft Stays at Requirements Level — Multiple QA answer fields contain implementation-level detail that exceeds requirements level: Q4 includes the function signature `expandSkillRulesDirectives(content): string` with an algorithmic description ('Walks parsed directives, filters to source===skills && method===rule'); Q9 describes internal API extension ('extending resolveFn and resolveDataDirectives which threads it'); Q10 gives numbered pipeline steps with control-flow specifics ('parser normalizes multiline comment blocks into a single open/close pair'). These appear in answer fields, not in the evidence/why/considered fields where code references are permitted as justification.; Backward-Compatible CLI Interface — The impactOnExisting section explicitly states 'No public CLI surface change: no new commands, no flag rename.' No existing commands are removed or have their meaning changed, so no migration plan is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-07T13:44:57.070Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in lists 15+ in-scope items (new files, loader, DataSource, pipeline wiring, state derivation, 10-rule migration, guardrail addition, CLAUDE.md additions, unit tests, etc.) with no must/should/nice-to-have priority assignment. The guardrail requires prioritization when items exceed three."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Multiple QA answer fields contain implementation-level detail that exceeds requirements level: Q4 includes the function signature `expandSkillRulesDirectives(content): string` with an algorithmic description ('Walks parsed directives, filters to source===skills && method===rule'); Q9 describes internal API extension ('extending resolveFn and resolveDataDirectives which threads it'); Q10 gives numbered pipeline steps with control-flow specifics ('parser normalizes multiline comment blocks into a single open/close pair'). These appear in answer fields, not in the evidence/why/considered fields where code references are permitted as justification."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one concern: injecting persistent rules into flow get next-action and migrating rule bodies to a single SSOT. All items trace to that concern.; Unambiguous Requirements — Requirements use verifiable conditions: 'phase OR / state AND filter semantics', 'non-zero exit on unknown id', 'no {{data}} markers in deployed SKILL.md', kebab-case regex, etc. No vague adjectives like 'fast' or 'appropriate'.; Complete Context — Requirements are specific enough for independent agreement: exact filter logic, canonical phase enum (24 entries), state derivation rule (worktree===true → worktreeActive), pipeline ordering, schema field requirements, test assertions with named files.; No Hardcoded Secrets — No API keys, passwords, tokens, or secrets are present in the content.; Prioritize Requirements — scopeVerification.in items are prefixed with [must] or [should], providing explicit priority tiers for all requirements.; Impact on Existing Features — impactOnExisting lists 9 explicitly affected files/systems and notes 'No public CLI surface change: no new commands, no flag rename'.; Present Recommendations with Reasoning — Every QA entry includes an 'answer' (recommendation), 'why' (basis), and 'considered' (alternatives), grounded in existing code patterns and project docs.; Explore Before Asking — Evidence fields cite verified file reads (e.g., src/lib/constants.js:70-89, src/flow/lib/get-next-action.js:62, resolver-factory.js:144-150) rather than asking the user about discoverable facts.; Proactively Raise Related Implications — Implications are raised proactively: unknown-id strict failure mode, async/sync boundary issue for deploySkills, npm package files field must include rules.json, existing null-on-error resolver conflict, CLAUDE.md vs AGENTS.md distinction.; Confirm Brainstorm vs. Decision Before Critiquing — approval section shows user confirmed design decisions through structured Q&A rounds; draft distinguishes open questions (spec-stage) from decided design points.; Capture Digressions in draft.md — Round 2 factual corrections (directive parser 3-part, source name=filename, kebab code-quality, task-impl vs impl) are captured in approval.notes and reflected in relevant QA entries.; Draft Stays at Requirements Level — Multiple QA entries cross into implementation detail territory beyond requirements level: Q10 describes the two-path architecture with internal control flow ('Path A inherits tolerant null-on-error... Path B must be strict'), Q11 specifies pipeline ordering invariants ('include resolution runs first... skill-rule expansion runs after... marker strip runs after expansion'), Q14 specifies caching strategy ('read once on demand and cached in-process for the lifetime of the Node process') and 'test-only seam (finalized at spec)'. These describe internal algorithms and data structures rather than requirements.; Backward-Compatible CLI Interface — No existing CLI commands or options are removed or changed. The spec explicitly states 'No public CLI surface change: no new commands, no flag rename'. Alpha policy of no backward compat shims applies only to internal rule placement, not CLI surface.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-07T13:48:36.418Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Multiple QA entries cross into implementation detail territory beyond requirements level: Q10 describes the two-path architecture with internal control flow ('Path A inherits tolerant null-on-error... Path B must be strict'), Q11 specifies pipeline ordering invariants ('include resolution runs first... skill-rule expansion runs after... marker strip runs after expansion'), Q14 specifies caching strategy ('read once on demand and cached in-process for the lifetime of the Node process') and 'test-only seam (finalized at spec)'. These describe internal algorithms and data structures rather than requirements."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Spec addresses one concern: injecting phase/state-filtered persistent rules into flow get next-action via a rules.json SSOT. The migration and injection are tightly coupled sub-concerns of the same feature. Previously passed; no new violation.; Unambiguous Requirements — Requirements in scopeVerification.in use [must]/[should] prefixes and state verifiable conditions (specific file names, filter semantics, exact phase enum). No vague adjectives like 'fast' or 'appropriate'. Previously passed; no new violation.; Complete Context — Each requirement is specific enough for independent reviewers to agree on satisfaction: file locations, schema constraints, filter logic (OR/AND semantics), pipeline steps, and test assertions are all enumerated. Previously passed; no new violation.; No Hardcoded Secrets — No API keys, passwords, or tokens present in the draft. Previously passed; inapplicable by nature.; Prioritize Requirements — 12 [must] and 4 [should] items appear in scopeVerification.in. The out-of-scope list further clarifies priorities. Previously passed; no new violation.; Impact on Existing Features — impactOnExisting enumerates 9 specific affected files/surfaces with explicit descriptions of how each is affected, and notes 'No public CLI surface change'. Previously passed; no new violation.; Present Recommendations with Reasoning — Each QA entry leads with a recommended answer, cites evidence from codebase exploration (file paths, line numbers), explains why, and lists considered alternatives. Previously passed; no new violation.; Explore Before Asking — QA evidence fields cite concrete file paths and line numbers (e.g. src/flow/lib/get-next-action.js:62, src/docs/lib/resolver-factory.js:144-150), showing codebase was explored before answers were provided. Previously passed; no new violation.; Proactively Raise Related Implications — Draft proactively raises null-on-error resolver impact (Q4), sync/async propagation risk (Q10), unknown-id failure surface (Q4), and auto-promotion path edge case (Q16). Previously passed; no new violation.; Confirm Brainstorm vs. Decision Before Critiquing — No design critiques are leveled without confirmation context. All QA entries reflect confirmed decisions per the approval record. Previously passed; no new violation.; Capture Digressions in draft.md — Q14 records the digression resolution ('flow set note: B: 10 entries') and the Issue body tally discrepancy is captured inline with an explicit deliverable. Previously passed; no new violation.; Draft Stays at Requirements Level — Multiple answer sections cross from requirements into implementation design: Q6 answer names an internal constant `DRIFT_PRONE_RULE_IDS` and describes the loader's verification algorithm; Q9 answer specifies the return type as 'Renderable wrapper' (API design) and prescribes a two-path internal architecture ('strict expansion path' vs. 'tolerant default'); Q10 answer prescribes the sync/async implementation architecture ('Skill rule loader is allowed to be synchronous; that allowance is what makes the no-async-propagation contract feasible'). These details belong in a design doc, not a requirements-level draft. File path and function name references in evidence/why/considered are explicitly exempted, but the answer sections themselves contain algorithmic and API-design specifications.; Backward-Compatible CLI Interface — impactOnExisting explicitly states 'No public CLI surface change: no new commands, no flag rename'. Previously passed; no new violation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-07T13:51:13.157Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Multiple answer sections cross from requirements into implementation design: Q6 answer names an internal constant `DRIFT_PRONE_RULE_IDS` and describes the loader's verification algorithm; Q9 answer specifies the return type as 'Renderable wrapper' (API design) and prescribes a two-path internal architecture ('strict expansion path' vs. 'tolerant default'); Q10 answer prescribes the sync/async implementation architecture ('Skill rule loader is allowed to be synchronous; that allowance is what makes the no-async-propagation contract feasible'). These details belong in a design doc, not a requirements-level draft. File path and function name references in evidence/why/considered are explicitly exempted, but the answer sections themselves contain algorithmic and API-design specifications."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one cohesive concern: injecting phase/state-filtered persistent rules into every flow get next-action response and consolidating rule bodies into a single SSOT. No unrelated concerns bundled in.; Unambiguous Requirements — All scope items use verifiable, concrete conditions (file names, boolean field semantics, exit codes, grep-able markers). No vague adjectives like 'fast' or 'easy' present.; Complete Context — Each requirement is specific enough for independent reviewers to verify (e.g., 'deployed SKILL.md must contain no <!-- {{data...}} --> markers', '10 rules in rules.json', 'non-zero exit on unknown id'). No subjective criteria left unmeasured.; No Hardcoded Secrets — No API keys, passwords, tokens, or secrets appear anywhere in the draft content.; Prioritize Requirements — All scope items are labeled [must] or [should], satisfying the priority-assignment requirement for a list exceeding three items.; Impact on Existing Features — The impactOnExisting section explicitly enumerates all affected files and surfaces (SKILL.md templates, skills.js pipeline, get-next-action.js, guardrail.json, CLAUDE.md), and states 'No public CLI surface change'.; Present Recommendations with Reasoning — Every QA entry provides a recommendation with basis grounded in existing code patterns, project docs, or empirical evidence. The 'why' and 'considered' fields consistently explain the rationale.; Explore Before Asking — QA entries demonstrate codebase exploration before answering (e.g., verifying collectLeafIds output, reading resolver-factory.js lines 144-150, checking constants.js for VALID_GUARDRAIL_PHASES) rather than deferring to the user.; Proactively Raise Related Implications — The draft proactively surfaces implications: effects on existing AI sessions (larger instructions.content), the need to re-run sdd-forge upgrade, CLAUDE.md duplication risk, npm pack file inclusion, and downstream consumer behavior changes.; Confirm Brainstorm vs. Decision Before Critiquing — The approval section confirms decisions are settled (approved: true, confirmedAt set). QA rounds 1 and 2 show a iterative review-and-confirm loop rather than unilateral finalization.; Capture Digressions in draft.md — Key digression decisions (filename rules.js → skills.js, tally correction from 8 to 10 entries, partial #14/#15/#16 extraction) are captured in the relevant QA answers and noted as flow set notes.; Draft Stays at Requirements Level — Multiple sections cross from requirements into implementation prescriptions: (1) analysis.proposedApproach names internal functions (expandSkillRulesDirectives, createResolver, stripDataMarkers) and prescribes control flow ('NOT used here because it catches errors and is async'); (2) QA answer bodies (outside evidence/why/considered) name specific internal helpers (deriveState(flowState), findActiveNode().scope) and define full data-structure invariants (Q9 lists 6 loader invariants including regex for id format); (3) Q11 answer body decides the sync/async architecture of the pipeline (synchronous end-to-end, no await propagation) — an internal API design choice, not a verifiable requirement. These go beyond 'mentioning file paths or function names as context' into prescribing algorithms, data structures, and API shape.; Backward-Compatible CLI Interface — The impactOnExisting section explicitly states 'No public CLI surface change: no new commands, no flag rename.' No migration plan is needed because no existing commands or options are removed or altered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-07T13:53:30.825Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Multiple sections cross from requirements into implementation prescriptions: (1) analysis.proposedApproach names internal functions (expandSkillRulesDirectives, createResolver, stripDataMarkers) and prescribes control flow ('NOT used here because it catches errors and is async'); (2) QA answer bodies (outside evidence/why/considered) name specific internal helpers (deriveState(flowState), findActiveNode().scope) and define full data-structure invariants (Q9 lists 6 loader invariants including regex for id format); (3) Q11 answer body decides the sync/async architecture of the pipeline (synchronous end-to-end, no await propagation) — an internal API design choice, not a verifiable requirement. These go beyond 'mentioning file paths or function names as context' into prescribing algorithms, data structures, and API shape."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses one cohesive concern — injecting persistent rules into every `flow get next-action` response and consolidating rule bodies into a single `rules.json` SSOT. All sub-deliverables (loader, DataSource adapter, deploy pipeline, migration, guardrail entry) serve that single goal. Issue #252 defined the scope boundary; the AI did not propose splitting.; Task Single Responsibility — Each task targets one concern. T-6 combines expansion + marker strip, but both steps are unified under 'produce clean deployed SKILL.md', a shared concern within the deploy pipeline. No task title connects unrelated actions, and no task's acceptance criteria span unrelated modules without a shared rationale.; Unambiguous Requirements — R2, R3, R5, and partially R7 use 'recognizable error' without defining what qualifies — specific message pattern, error class, required substring, or exit code. 'Recognizable' is a subjective adjective analogous to 'appropriate'. R7 partially qualifies it ('identifying the offending id') but R2, R3, and R5 do not. These should be rewritten with verifiable conditions (e.g., 'throws an Error whose message contains the unknown id').; Complete Context — The undefined 'recognizable error' criterion (R2, R3, R5) means two independent reviewers cannot reliably agree on whether an implementation satisfies those requirements. Additionally, R14 defers the exact heading text and R15 defers the paragraph wording to implementation time, leaving those requirements under-specified at spec-review time.; REQ Diff-Verifiability — The vast majority of requirements are verifiable by diff and test execution. Requirements that cannot be verified this way (R14, R18, R26, R33, R38) are explicitly flagged with `testable: false` and assigned `nice-to-have` or `should` priority, or declared out of scope, satisfying the intent of the guardrail.; No Hardcoded Secrets — The spec document contains no API keys, passwords, tokens, or other secrets. Not applicable to spec prose content.; No Silent Error Swallowing — The design mandates fail-fast throughout: D4 explicitly rejects silent-skip+warn; R7 requires non-zero exit on unknown id; R24 and R30 require pipeline atomicity with failure propagation; R5 requires the marker-strip helper to throw on unexpanded blocks. No silent discard of errors is specified.; Prioritize Requirements — All 39 requirements (R1–R39) carry an explicit priority field: must, should, or nice-to-have. This satisfies the guardrail's requirement for prioritization when items exceed three.; Impact on Existing Features — Impacts on existing features are addressed throughout: R4 (existing DataSource methods unaffected), R17 (public deploy-pipeline surface unchanged), R20 (callers invoke synchronously as before), R21 (existing next-action tests updated for suffix semantics), R22 (existing template tests updated), R23 (label-injection behaviors preserved), R29 (e2e tests updated). No existing features are silently broken.; Bounded Resource Usage — rules.json is bounded to exactly 10 entries (R11). Phase and state filters bound per-call payload. No recursive processing, unbounded retries, or bulk data loading is introduced. R31 resolves a single file; R30 pre-expands all skills in memory with no looping without termination.; Spec Includes Test Strategy — Every task includes a `test_strategy` field. R16 mandates test file location and header convention. R28 requires the test runner to discover specs/*/tests/ automatically. Acceptance criteria double as integration-level test assertions.; Synthesize Draft, Do Not Copy — The spec synthesizes background empirical data (149-session analysis, v5b/v6 prompt experiments), design decisions (D1–D10), and scope boundaries into structured requirements. No raw draft text appears to be copied verbatim; content is organized and abstracted. No content appears invented beyond what the background provides.; Record Unresolved Points as Open Questions — All unresolved points are recorded in the explicit `open_questions` section: exact rule body wording, final kebab-case ids, CLAUDE.md Japanese prose, and R18 priority. No open questions are answered with fabricated specifics.; Include 'Why This Approach' Rationale — The spec provides extensive rationale: the `background` section cites the 149-session empirical investigation and prompt experiments. The `design_principles` section states the SSOT and filter philosophy. Decisions D1–D10 each include an `evidence` field and `consideredAlternatives`. The `alternatives_considered` array covers 15 rejected options with reasons.; Spec Test Coverage — R16 mandates `// spec: R<N>` headers in every test file under `specs/252-persistent-rules-injection/tests/`. R28 extends the runner's search path. Each task has a `test_strategy`. Acceptance criteria enumerate the integration assertions required. Coverage spans loader, DataSource, resolver plumbing, deploy pipeline, next-action injection, guardrail loading, package-files inclusion, and path resolution.; Backward-Compatible CLI Interface — No existing CLI commands or options are removed or have their meaning changed. The `flow get next-action` and `sdd-forge upgrade` commands retain the same subcommand structure and flags; only response content and failure semantics are extended. Behavior changes are acknowledged and handled via test updates (R21, R22, R29). The alpha-policy constraint is explicitly declared in the spec.; Exit Code Contract — R7 explicitly requires `sdd-forge upgrade` to exit with a non-zero status on unknown rule id. R24 and R30 define the atomicity/failure propagation contract for the deploy pipeline. What constitutes success (clean deploy, no markers, all expansions valid) and failure (unknown id, marker leftover, body-quality failure) is defined.; Validate User Input at Entry Point — This spec modifies existing commands without adding new user-facing CLI arguments. No new flags, positional arguments, or command variants are introduced. Internal state derivation (worktree, autoApprove from flow.json) is not user-facing CLI input. The guardrail is inapplicable by nature of the changes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T00:17:03.490Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R2, R3, R5, and partially R7 use 'recognizable error' without defining what qualifies — specific message pattern, error class, required substring, or exit code. 'Recognizable' is a subjective adjective analogous to 'appropriate'. R7 partially qualifies it ('identifying the offending id') but R2, R3, and R5 do not. These should be rewritten with verifiable conditions (e.g., 'throws an Error whose message contains the unknown id')."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The undefined 'recognizable error' criterion (R2, R3, R5) means two independent reviewers cannot reliably agree on whether an implementation satisfies those requirements. Additionally, R14 defers the exact heading text and R15 defers the paragraph wording to implementation time, leaving those requirements under-specified at spec-review time."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test-execute-result.json version='undefined', expected '1'",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T01:50:08.724Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "phase": "integration",
+      "reason": "exit=1 | {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":429,\"duration_ms\":448,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"You've hit your limit · resets 5am (UTC)\",\"stop_reason\":\"stop_sequence\",\"session_id\":\"f6be9f54-771e-457b-9de0-554525445f72\",\"total_cost_usd\":0,\"usage\":{\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"6c412e12-91e9-431c-b3db-144a0dfcc1a6\"}",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-08T02:01:06.257Z"
+    }
+  ]
+}

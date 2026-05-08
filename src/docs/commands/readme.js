@@ -128,11 +128,11 @@ async function runReadme(ctx, rawArgs) {
 
   const resolveResult = resolveDataDirectives(
     templateContent,
-    (preset, source, method, labels) => {
+    (preset, source, method, labels, params) => {
       if (source === "docs" && method === "langSwitcher") {
-        return resolveFn(preset, source, method, {}, [labels[0] || "relative", readmeRelPath]);
+        return resolveFn(preset, source, method, {}, [labels[0] || "relative", readmeRelPath], params);
       }
-      return resolveFn(preset, source, method, {}, labels);
+      return resolveFn(preset, source, method, {}, labels, params);
     },
   );
   let resolved = resolveResult.text;

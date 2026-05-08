@@ -146,6 +146,9 @@ function parseOptions(optStr) {
  * @param {string} optsStr - Options string (e.g. 'labels: "A|B", ignoreError: true')
  * @returns {Object|null} { preset, source, method, labels, params } or null
  */
+/** Parser-owned option keys that the resolver layer consumes directly. */
+const PARSER_OWNED_OPTION_KEYS = new Set(["labels", "header", "footer", "ignoreError"]);
+
 function buildDataFields(pathStr, optsStr) {
   const parts = pathStr.split(".");
   if (parts.length < 3) return null;
@@ -156,10 +159,22 @@ function buildDataFields(pathStr, optsStr) {
 
   const opts = parseOptions(optsStr);
   const labels = opts.labels ? opts.labels.split("|").map((l) => l.trim()) : [];
+  // Backward-compatible: `params` contains all directive options minus `labels`.
+  // Parser-owned controls (header/footer/ignoreError) remain readable via params for
+  // existing tests; resolveFn receives a filtered subset (userParams) per spec R23.
   const params = { ...opts };
   delete params.labels;
 
   return { preset, source, method, labels, params };
+}
+
+function extractUserParams(params) {
+  if (!params) return {};
+  const out = {};
+  for (const k of Object.keys(params)) {
+    if (!PARSER_OWNED_OPTION_KEYS.has(k)) out[k] = params[k];
+  }
+  return out;
 }
 
 /**
@@ -365,7 +380,10 @@ function replaceInlineDirective(lines, d, content) {
  * テンプレート内の {{data}} ディレクティブを一括解決する。
  *
  * @param {string} text - テンプレート全文
- * @param {function} resolveFn - (preset, source, method, labels) => rendered string | null
+ * @param {function} resolveFn - (preset, source, method, labels, params) => rendered string | null
+ *   params is an object with directive option keys other than parser-owned controls
+ *   (labels, header, footer, ignoreError). Parser-owned controls remain on d.params for the
+ *   resolver layer's own use and are NOT forwarded to resolveFn.
  * @param {Object} [opts]
  * @param {function} [opts.onResolve] - (directive, rendered) => void
  * @param {function} [opts.onSkip] - (directive) => void — data 以外のディレクティブ時
@@ -388,7 +406,8 @@ export function resolveDataDirectives(text, resolveFn, opts) {
       continue;
     }
 
-    const resolved = resolveFn(d.preset, d.source, d.method, d.labels);
+    const userParams = extractUserParams(d.params);
+    const resolved = resolveFn(d.preset, d.source, d.method, d.labels, userParams);
     const rendered = resolved instanceof Renderable ? resolved.toMarkdown() : null;
     if (resolved === null || resolved === undefined || rendered === null) {
       if (d.params?.ignoreError === true) {
@@ -404,7 +423,7 @@ export function resolveDataDirectives(text, resolveFn, opts) {
       continue;
     }
 
-    // Build content with optional header/footer
+    // Build content with optional header/footer (parser-owned controls live on d.params)
     const { header, footer } = d.params || {};
     const parts = [];
     if (header) parts.push(header);
@@ -424,6 +443,66 @@ export function resolveDataDirectives(text, resolveFn, opts) {
   }
 
   return { text: lines.join("\n"), replaced };
+}
+
+// ---------------------------------------------------------------------------
+// Marker strip (for skill deploy pipeline)
+// ---------------------------------------------------------------------------
+
+const DATA_OPEN_LINE_RE = /^<!--\s*\{\{data\(/;
+const DATA_CLOSE_LINE_RE = /^<!--\s*\{\{\/data\}\}\s*-->\s*$/;
+
+/**
+ * Remove paired `<!-- {{data(...)}} -->` ... `<!-- {{/data}} -->` markers from the
+ * already-expanded markdown, preserving the body content between them and all surrounding
+ * lines. Idempotent. Throws when an unexpanded data directive remains (paired marker
+ * bracketing content that itself contains an unprocessed `<!-- {{data(...)}} -->` line).
+ *
+ * @param {string} content
+ * @returns {string}
+ */
+export function stripDataMarkers(content) {
+  const lines = content.split("\n");
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (DATA_OPEN_LINE_RE.test(trimmed)) {
+      // Find the matching close
+      let depth = 1;
+      let j = i + 1;
+      let body = [];
+      while (j < lines.length && depth > 0) {
+        const s = lines[j].trim();
+        if (DATA_OPEN_LINE_RE.test(s)) {
+          throw new Error(
+            `unexpanded data directive at line ${j + 1}: nested {{data}} marker found inside an enclosing block`,
+          );
+        }
+        if (DATA_CLOSE_LINE_RE.test(s)) {
+          depth = 0;
+          break;
+        }
+        body.push(lines[j]);
+        j++;
+      }
+      if (depth !== 0) {
+        throw new Error(`unexpanded data directive at line ${i + 1}: missing closing marker`);
+      }
+      // Output the body (markers dropped)
+      for (const b of body) out.push(b);
+      i = j + 1;
+      continue;
+    }
+    if (DATA_CLOSE_LINE_RE.test(trimmed)) {
+      // Stray close without an open
+      throw new Error(`unexpanded data directive at line ${i + 1}: stray closing marker without opening`);
+    }
+    out.push(line);
+    i++;
+  }
+  return out.join("\n");
 }
 
 // ---------------------------------------------------------------------------

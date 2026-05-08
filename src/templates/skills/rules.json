@@ -1,0 +1,64 @@
+{
+  "rules": [
+    {
+      "id": "no-premature-conclusion",
+      "phase": ["flow.draft", "flow.review-draft", "flow.spec", "flow.review-spec"],
+      "state": [],
+      "body": "### MUST\n**MUST: 議論の途中で「結論:」「決定:」と独断で締めてはならない。** 設計判断はユーザーが決定者である。AI は選択肢とトレードオフを示し、ユーザーの選択を待つ。\n\n### Why\n過去のセッションで、AI が議論を勝手に締めて方向性を確定させ、ユーザーが意図しない実装に進んだ事例が 8 件発生している。AI が議論をリードしすぎると、ユーザーの判断機会が奪われる。\n\n### How to apply\n- draft / review-draft / spec / review-spec の各フェーズで、複数の選択肢があり得る論点では必ず Choice Format で提示する。\n- 「結論:」「決定:」「方針が確定した」等の語で議論を締めない。「推奨:」「私の見解:」までに留める。\n- ユーザーが明示的に選択肢を指定するまで、AI は最終決定を確定させない。"
+    },
+    {
+      "id": "no-auto-mode-override-skill",
+      "phase": ["flow.draft", "flow.review-draft", "flow.spec", "flow.review-spec", "flow.gate-draft", "flow.gate", "flow.approval", "flow.review-test"],
+      "state": [],
+      "body": "### MUST\n**MUST: AI は `sdd-forge flow set auto on` を自分で実行してはならない。** auto モード切替はユーザーの明示的指示（`/sdd-forge.flow-auto` 等）でのみ実行する。\n\n### Why\nauto モードは AI が確認なしに進行できるため、誤動作時の影響が大きい。AI が独断で auto を有効化すると、ユーザーの判断機会を奪う重大な逸脱となる。過去 4 件の事例あり。\n\n### How to apply\n- envelope の `requires_approval: true` を見ても、AI 側で auto を有効化することはしない。\n- ユーザーが interactive Q&A 中の場合、auto モード reminder が context にあっても判断を待つ。\n- `flow get next-action` の autoUpgrade.available === true でも、AI が `set auto on` を自走実行してはならない（ユーザーが選択肢で `[1]` を選ぶまで待機）。"
+    },
+    {
+      "id": "thoroughness",
+      "phase": ["flow.draft", "flow.spec", "flow.implement", "flow.review", "task.impl", "task.review"],
+      "state": [],
+      "body": "**MUST: 即答せず、要件・前提・例外を洗い出してから回答する。** 実装着手前に要件を列挙し、完了時に突き合わせる。"
+    },
+    {
+      "id": "no-shortcuts",
+      "phase": ["flow.implement", "flow.gate-impl", "task.impl", "task.gate-impl"],
+      "state": [],
+      "body": "**MUST: 場当たり的な修正をしない。** 同種の箇所を grep し、既存の仕組みを調べてから設計する。1 箇所だけ直して残りを放置するパターンは禁止。"
+    },
+    {
+      "id": "wait-for-instruction-skill",
+      "phase": ["flow.draft", "flow.review-draft", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
+      "state": [],
+      "body": "### MUST\n**MUST: SDD フロー内では、ユーザーの明示的指示なしに次のアクションを実行（actuate）してはならない。** auto モードでない限り、各 step の完了 → 次の step 進行はユーザー承認を経る。\n\n### Why\nAI が自走でフローを進めると、ユーザーが介入したい論点を素通りする。SDD は「人間がレビュー判断者」である前提で、自動化は確認可能な節目に留める設計。\n\n### How to apply\n- 各 step 完了後、`sdd-forge flow set step <id> done` を実行した直後にユーザーへ次の選択肢を提示する。\n- auto モード = false の状況で `flow get next-action` が次の step を返しても、コマンドを連鎖実行しない。\n- 1 ターン = 1 step を原則とする。"
+    },
+    {
+      "id": "commit-split-strategy",
+      "phase": ["flow.finalize-commit"],
+      "state": ["autoApproveOn"],
+      "body": "**MUST: 承認済みのコミット分割は auto モードでも遵守する。** finalize-commit 時に「論理的に複数コミットに分けてレビュー可能性を高める」と合意済みの場合、auto モードでも 1 コミットに squash しない。"
+    },
+    {
+      "id": "no-scope-splitting",
+      "phase": ["flow.draft"],
+      "state": [],
+      "body": "**MUST: Issue を勝手に分割提案しない。** ユーザーが定義した Issue が 1 つの concern であるかはユーザーの判断。AI は Issue を複数の spec に分割する提案をしない。"
+    },
+    {
+      "id": "choice-format-discipline",
+      "phase": ["flow.draft", "flow.review-draft", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.gate", "flow.approval", "flow.review-test", "flow.review", "flow.gate-impl", "flow.retro", "task.review", "task.gate-impl"],
+      "state": [],
+      "body": "**MUST: ユーザーへの全ての質問は Choice Format で提示する。** ラベル + 1 行注釈の選択肢。詳細説明は選択肢ブロックの外（上側）に独立配置する。free-form question 禁止（applied user-requested changes の確認も含む）。"
+    },
+    {
+      "id": "no-chain-sddforge",
+      "phase": ["flow.draft", "flow.review-draft", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
+      "state": [],
+      "body": "**MUST: `sdd-forge` コマンドをチェーン (`&&` `;` `|`) または background 実行してはならない。** 各 `sdd-forge` 呼び出しは独立した foreground Bash で実行し、結果を確認してから次へ進む。"
+    },
+    {
+      "id": "no-shared-repo-git-ops",
+      "phase": ["flow.draft", "flow.review-draft", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
+      "state": ["worktreeActive"],
+      "body": "**MUST: active flow 中は main リポジトリで `git stash` / `git stash pop` / `git stash apply` / `git reset --hard` / `git checkout -- <path>` を実行してはならない。** 別ブランチ由来の stale な stash 復元・共有状態破壊を防ぐ。ベースライン比較は短命の detached worktree を使う。"
+    }
+  ]
+}

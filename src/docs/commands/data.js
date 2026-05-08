@@ -48,7 +48,7 @@ function processTemplate(text, analysis, fileName, resolveFn) {
 
   const result = resolveDataDirectives(
     text,
-    (preset, source, method, labels) => resolveFn(preset, source, method, analysis, labels),
+    (preset, source, method, labels, params) => resolveFn(preset, source, method, analysis, labels, params),
     {
       onSkip(d) {
         if (d.type === "text") {
@@ -133,7 +133,7 @@ async function runData(ctx, rawArgs) {
   let resolveFn;
   try {
     const resolver = await createResolver(type, root, { docsDir, configChapters: ctx.config?.chapters });
-    resolveFn = (preset, source, method, a, labels) => resolver.resolve(preset, source, method, a, labels);
+    resolveFn = (preset, source, method, a, labels, params) => resolver.resolve(preset, source, method, a, labels, params);
     logger.verbose(`resolver: ${type}`);
   } catch (err) {
     throw new Error(t("messages:data.resolverFailed", { message: err.message }));
@@ -158,10 +158,10 @@ async function runData(ctx, rawArgs) {
       "docs.langSwitcher": (labels) => [labels[0] || "relative", fileRelPath],
       "docs.nav":          (_labels) => [fileRelPath],
     };
-    const wrappedResolveFn = (preset, source, method, a, labels) => {
+    const wrappedResolveFn = (preset, source, method, a, labels, params) => {
       const rule = FILE_CONTEXT_RULES[`${source}.${method}`];
-      if (rule) return resolveFn(preset, source, method, a, rule(labels));
-      return resolveFn(preset, source, method, a, labels);
+      if (rule) return resolveFn(preset, source, method, a, rule(labels), params);
+      return resolveFn(preset, source, method, a, labels, params);
     };
     const result = processTemplate(original, analysis, file, wrappedResolveFn);
 

@@ -298,6 +298,19 @@
         ],
         "category": "code-quality"
       }
+    },
+    {
+      "id": "no-overengineering",
+      "title": "Avoid Overengineering",
+      "body": "Do not introduce indirection layers that have a single caller. Prefer DRY: when the same code shape appears in two or more places, extract a helper rather than duplicating. Before implementing a non-trivial change, present the design direction (data flow, layer boundaries, chosen pattern) to the user; only proceed after confirmation. text indicates a code-quality concern surfaced during integration- and task-level impl gate evaluations.",
+      "meta": {
+        "phase": [
+          "integration",
+          "task-impl"
+        ],
+        "category": "code-quality"
+      },
+      "text": "Do not introduce indirection layers that have a single caller. Prefer DRY: when the same code shape appears in two or more places, extract a helper rather than duplicating. Before implementing a non-trivial change, present the design direction (data flow, layer boundaries, chosen pattern) to the user; only proceed after confirmation."
     }
   ]
 }

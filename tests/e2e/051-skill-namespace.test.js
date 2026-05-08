@@ -5,6 +5,8 @@ import { join } from "path";
 import { spawnSync } from "child_process";
 import { createTmpDir, removeTmpDir, writeJson } from "../helpers/tmp-dir.js";
 import { resolveIncludes } from "../../src/lib/include.js";
+import { stripDataMarkers } from "../../src/docs/lib/directive-parser.js";
+import { loadRules, expandSkillRulesDirectives } from "../../src/lib/skill-rules.js";
 
 const CMD = join(process.cwd(), "src/sdd-forge.js");
 const CMD_ARGS_PREFIX = ["setup"];
@@ -139,8 +141,8 @@ describe("051: skill namespace with dot separator", () => {
           : join(templatesDir, d, "SKILL.en.md");
         if (!fs.existsSync(templateFile)) continue;
         const rawContent = fs.readFileSync(templateFile, "utf8");
-        // Resolve includes to match what deploySkills actually writes
-        const templateContent = resolveIncludes(rawContent, {
+        // Resolve includes + skill-rule expansion + marker strip to match what deploySkills actually writes (spec 252).
+        const includedContent = resolveIncludes(rawContent, {
           baseDir: join(templatesDir, d),
           pkgDir: PKG_DIR,
           templatesDir: join(PKG_DIR, "templates"),
@@ -148,6 +150,8 @@ describe("051: skill namespace with dot separator", () => {
           lang: "en",
           sourceFile: templateFile,
         });
+        const expandedContent = expandSkillRulesDirectives(includedContent, loadRules());
+        const templateContent = stripDataMarkers(expandedContent);
         const claudeContent = fs.readFileSync(join(tmp, ".claude", "skills", d, "SKILL.md"), "utf8");
         const agentsContent = fs.readFileSync(join(tmp, ".agents", "skills", d, "SKILL.md"), "utf8");
         assert.equal(claudeContent, templateContent, `.claude/skills/${d}/SKILL.md should match template`);

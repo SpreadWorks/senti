@@ -373,7 +373,7 @@ describe("flow get next-action", () => {
       assert.ok(ins.content.length > 0, "content non-empty for task.impl");
     });
 
-    it("content matches the on-disk prompt file for the resolved key", () => {
+    it("content has on-disk prompt file as suffix (rule block may be prepended for matching phase+state)", () => {
       tmp = createTmpDir();
       const state = setupActiveFlow(tmp);
       setFlowStepInProgress(state, "draft");
@@ -385,7 +385,9 @@ describe("flow get next-action", () => {
       const stepName = parts.pop();
       const filePath = pathMod.join(process.cwd(), "src", "flow", "prompts", ...parts, `${stepName}.md`);
       const onDisk = fs.readFileSync(filePath, "utf8");
-      assert.equal(ins.content, onDisk, "CLI returns exact file content");
+      // Per spec 252: persistent rules may be prepended to instructions.content. The on-disk prompt
+      // remains as the suffix. When zero rules match the active phase+state, content is byte-equal.
+      assert.ok(ins.content.endsWith(onDisk), "CLI prompt content must end with the on-disk file content");
     });
   });
 });

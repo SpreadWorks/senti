@@ -78,7 +78,7 @@ function resolveAgentsDirectives(text, resolveFn) {
 
   const result = resolveDataDirectives(
     text,
-    (preset, source, method, labels) => resolveFn(preset, source, method, {}, labels),
+    (preset, source, method, labels, params) => resolveFn(preset, source, method, {}, labels, params),
     {
       onResolve(d, rendered) {
         if (d.source === "agents" && d.method === "sdd") sddContent = rendered;
@@ -173,7 +173,7 @@ async function runAgents(ctx, rawArgs) {
   // Create resolver and resolve {{data}} directives
   const resolvedType = config.type || "base";
   const resolver = await createResolver(resolvedType, root, { configChapters: config.chapters });
-  const resolveFn = (preset, source, method, a, labels) => resolver.resolve(preset, source, method, analysis, labels);
+  const resolveFn = (preset, source, method, a, labels, params) => resolver.resolve(preset, source, method, analysis, labels, params);
 
   let content = fs.readFileSync(agentsPath, "utf8");
   const { text: resolved, sddContent, projectContent } = resolveAgentsDirectives(content, resolveFn);

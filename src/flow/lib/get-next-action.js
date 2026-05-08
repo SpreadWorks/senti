@@ -23,6 +23,7 @@ import {
   findStepById,
 } from "../definition.js";
 import { promoteNextPending } from "../../lib/flow-helpers.js";
+import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -38,6 +39,37 @@ function loadSchema(relPath) {
 function findCurrentTask(state) {
   if (state.currentTaskId == null) return null;
   return state.tasks.find((t) => t.id === state.currentTaskId) || null;
+}
+
+function deriveStateSet(state) {
+  const result = [];
+  if (state?.worktree === true) result.push("worktreeActive");
+  if (state?.autoApprove === true) result.push("autoApproveOn");
+  return result;
+}
+
+let _cachedRules = null;
+function getRulesCached() {
+  if (_cachedRules === null) {
+    try {
+      _cachedRules = loadRules();
+    } catch (err) {
+      // If rules.json is missing or invalid, fail loudly — drift mitigation is a core
+      // package guarantee per spec D7.
+      throw err;
+    }
+  }
+  return _cachedRules;
+}
+
+function injectPersistentRules(baseContent, target, state) {
+  const rules = getRulesCached();
+  const phaseId = `${target.scope}.${target.stepId}`;
+  const stateSet = deriveStateSet(state);
+  const matched = filterRules(rules, { phase: phaseId, state: stateSet });
+  if (matched.length === 0) return baseContent;
+  const block = renderRuleBlock(matched);
+  return `${block}\n${baseContent}`;
 }
 
 function buildContextDescriptor(kinds, target, state) {
@@ -119,13 +151,16 @@ export default class GetNextActionCommand extends FlowCommand {
       : {};
     const context = buildContextDescriptor(derived.contextKinds, target, state);
 
+    const baseInstructions = getStepInstructions(derived.instructionsKey);
+    const injectedContent = injectPersistentRules(baseInstructions, target, state);
+
     const result = {
       taskId: target.taskId,
       step: target.stepId,
       action: derived.action,
       instructions: {
         key: derived.instructionsKey,
-        content: getStepInstructions(derived.instructionsKey),
+        content: injectedContent,
       },
       context,
       output_schema,

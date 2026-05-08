@@ -126,9 +126,10 @@ export async function createResolver(type, root, opts) {
      * @param {string} method - メソッド名
      * @param {Object} analysis - analysis.json データ
      * @param {string[]} labels - ラベル配列
+     * @param {Object} [params] - directive option object (excluding parser-owned controls)
      * @returns {string|null}
      */
-    resolve(preset, source, method, analysis, labels) {
+    resolve(preset, source, method, analysis, labels, params) {
       let dataSources = resolverMap.get(preset);
       // 先祖プリセット名で指定された場合、leaf の DataSource マップにフォールバック
       if (!dataSources) {
@@ -143,7 +144,7 @@ export async function createResolver(type, root, opts) {
       const ds = dataSources.get(source);
       if (ds && typeof ds[method] === "function") {
         try {
-          return ds[method](analysis, labels);
+          return ds[method](analysis, labels, params);
         } catch (err) {
           logger.log(`error in ${preset}.${source}.${method}: ${err.message}`);
           return null;

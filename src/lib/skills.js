@@ -6,6 +6,8 @@ import fs from "fs";
 import path from "path";
 import { PKG_DIR } from "./cli.js";
 import { resolveIncludes } from "./include.js";
+import { stripDataMarkers } from "../docs/lib/directive-parser.js";
+import { loadRules, expandSkillRulesDirectives } from "./skill-rules.js";
 
 /** Canonical path to the bundled main skill templates directory. */
 export const MAIN_SKILLS_TEMPLATES_DIR = path.join(PKG_DIR, "templates", "skills");
@@ -46,7 +48,7 @@ function removeIfSymlink(filePath) {
  * @param {boolean} [args.dryRun=false]
  * @returns {{ name: string, status: "updated" | "unchanged" }[]}
  */
-function deploySkillsFromDir({ templatesDir, workRoot, lang, dryRun = false }) {
+function deploySkillsFromDir({ templatesDir, workRoot, lang, dryRun = false, _ruleCache = null }) {
   if (!fs.existsSync(templatesDir)) return [];
 
   const agentsSkillsDir = path.join(workRoot, SKILL_TARGET_BASES[0], "skills");
@@ -56,16 +58,15 @@ function deploySkillsFromDir({ templatesDir, workRoot, lang, dryRun = false }) {
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
 
-  const results = [];
-
+  // Phase 1: pre-expand all skills in memory. Throws on any rule expansion error
+  // (atomicity per R24/R30: no file is written if any expansion fails).
+  const rules = _ruleCache || loadRules();
+  const planned = [];
   for (const name of skillDirs) {
     const srcPath = resolveSkillFile(path.join(templatesDir, name));
     if (!srcPath) continue;
-
-    const agentsDest = path.join(agentsSkillsDir, name, "SKILL.md");
-    const claudeDest = path.join(claudeSkillsDir, name, "SKILL.md");
     const rawContent = fs.readFileSync(srcPath, "utf8");
-    const srcContent = resolveIncludes(rawContent, {
+    const includedContent = resolveIncludes(rawContent, {
       baseDir: path.dirname(srcPath),
       pkgDir: PKG_DIR,
       templatesDir: path.join(PKG_DIR, "templates"),
@@ -73,32 +74,54 @@ function deploySkillsFromDir({ templatesDir, workRoot, lang, dryRun = false }) {
       lang: lang || "en",
       sourceFile: srcPath,
     });
+    const expandedContent = expandSkillRulesDirectives(includedContent, rules);
+    const finalContent = stripDataMarkers(expandedContent);
+    planned.push({ name, srcPath, finalContent });
+  }
 
-    // Check if update is needed (compare against .agents/ copy)
-    let needsUpdate = true;
+  // Phase 2: write outputs (no further failure expected here).
+  const results = [];
+  for (const { name, finalContent } of planned) {
+    const agentsDest = path.join(agentsSkillsDir, name, "SKILL.md");
+    const claudeDest = path.join(claudeSkillsDir, name, "SKILL.md");
+
+    let needsUpdateAgents = true;
+    let needsUpdateClaude = true;
     try {
       const stat = fs.lstatSync(agentsDest);
       if (!stat.isSymbolicLink()) {
         const existing = fs.readFileSync(agentsDest, "utf8");
-        if (existing === srcContent) needsUpdate = false;
+        if (existing === finalContent) needsUpdateAgents = false;
+      }
+    } catch (err) {
+      if (err.code !== "ENOENT") console.error(err);
+    }
+    try {
+      const stat = fs.lstatSync(claudeDest);
+      if (!stat.isSymbolicLink()) {
+        const existing = fs.readFileSync(claudeDest, "utf8");
+        if (existing === finalContent) needsUpdateClaude = false;
       }
     } catch (err) {
       if (err.code !== "ENOENT") console.error(err);
     }
 
-    if (!needsUpdate) {
+    if (!needsUpdateAgents && !needsUpdateClaude) {
       results.push({ name, status: "unchanged" });
       continue;
     }
 
     if (!dryRun) {
-      removeIfSymlink(agentsDest);
-      fs.mkdirSync(path.dirname(agentsDest), { recursive: true });
-      fs.writeFileSync(agentsDest, srcContent, "utf8");
-
-      removeIfSymlink(claudeDest);
-      fs.mkdirSync(path.dirname(claudeDest), { recursive: true });
-      fs.writeFileSync(claudeDest, srcContent, "utf8");
+      if (needsUpdateAgents) {
+        removeIfSymlink(agentsDest);
+        fs.mkdirSync(path.dirname(agentsDest), { recursive: true });
+        fs.writeFileSync(agentsDest, finalContent, "utf8");
+      }
+      if (needsUpdateClaude) {
+        removeIfSymlink(claudeDest);
+        fs.mkdirSync(path.dirname(claudeDest), { recursive: true });
+        fs.writeFileSync(claudeDest, finalContent, "utf8");
+      }
     }
 
     results.push({ name, status: "updated" });

@@ -91,3 +91,6 @@ ABSOLUTELY PROHIBITED:
 - Leaving foreign-language tokens in prose that have natural equivalents in the response language.
 
 All sections marked REQUIRED must appear regardless of whether the AI internally judges them necessary; the structure itself is the contract.
+
+<!-- {{data("base.skills.rule", {id: "no-premature-conclusion"})}} -->
+<!-- {{/data}} -->

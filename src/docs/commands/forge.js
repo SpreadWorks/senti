@@ -224,7 +224,7 @@ async function runForge(rawArgs, container) {
     let resolveFn = null;
     try {
       const resolver = await createResolver(type, root, { configChapters: config.chapters });
-      resolveFn = (preset, source, method, analysis, labels) => resolver.resolve(preset, source, method, analysis, labels);
+      resolveFn = (preset, source, method, analysis, labels, params) => resolver.resolve(preset, source, method, analysis, labels, params);
     } catch (err) {
       console.log(`[forge] WARN: resolver not available (${err.message}), skipping {{data}} population`);
     }

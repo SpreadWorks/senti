@@ -1,0 +1,667 @@
+{
+  "goal": "Inject phase- and state-filtered persistent rules into every `flow get next-action` response, and migrate dispersed rule bodies to a single `rules.json` SSOT bundled with the package (file path: `src/templates/skills/rules.json`), to mitigate long-session AI drift away from skill rules.",
+  "background": "Long sessions show repeated AI norm violations (Q&A structure collapse, worktree boundary crossing, premature conclusion, sycophancy, auto-mode runaway). Empirical investigation of 149 sessions (Issue #311) found that rules written directly in CLAUDE.md show 0 violations while rules referenced via memory feedback files show 15 violations — the dominant failure is initial-load failure rather than mid-session drift. Rule placement (loaded layer vs. dormant link) determines deterrence by an order of magnitude. Promoting dormant rules into the layer the AI reads on every step turn (skill instructions injected by `flow get next-action`) is therefore expected to attack the primary drift cases. Empirical prompt experiments (v5b verbose ~800 tokens vs v6 terse ~250 tokens) confirm verbose well-structured prompts maintain effect even at 168K context, while over-compression collapses; the design therefore retains expressive markdown bodies while filtering by phase + state to keep the per-call payload bounded.",
+  "scope": {
+    "in": [
+      "Rule SSOT file shipped with the package (single JSON file under existing skills templates location).",
+      "Rule loader that enforces the schema and applies a phase=any-match (OR), state=all-required (AND) filter. `state: []` means always-on. Drift-prone rules (curated set) require body containing MUST + 'why' + 'how to apply'.",
+      "DataSource adapter file `skills.js` (under `src/docs/data/`) registering source name `skills`, method `rule`, returning a Renderable for `params.id`.",
+      "Prerequisite plumbing extending the existing data-directive resolver path so directive option objects (e.g. `{id: \"...\"}`) reach the DataSource method.",
+      "Marker-strip helper exposed by the directive parser module; strips paired data-directive comment markers; idempotent; throws on any unexpanded data block remaining at strip time.",
+      "Integration of the skill-rule expansion + marker strip into the existing skill deploy pipeline. Public surface (functions called by setup / upgrade) keeps its current call shape.",
+      "Modification of `flow get next-action` so `instructions.content` is prepended with the phase- and state-filtered rule block. The state set is derived from flow.json: `worktree === true → 'worktreeActive'`; `autoApprove === true → 'autoApproveOn'`. Other envelope fields are unchanged. When zero rules match, no prepend occurs.",
+      "Migration of 10 rule bodies (per Issue #311 inventory + user-confirmed merge of partials #14/#15/#16 into separate entries) out of partials and into `rules.json`. Partials retain non-rule prose plus the new directive placeholders.",
+      "Addition of a `code-quality` guardrail entry (covering 'no single-caller indirection / DRY first / present design direction') to `src/presets/base/guardrail.json`, with `meta.phase: ['integration', 'task-impl']`.",
+      "Append 6 personal-principle rules (Issue #311 rows #1, #4, #5-abstract, #6, #7, #10-abstract) to project-root `CLAUDE.md` (separate file from `AGENTS.md`).",
+      "Add skill > memory precedence statement (non-rule prose) to `partials/core-principle.md` so it is included into deployed SKILL.md.",
+      "Tests in `specs/252-persistent-rules-injection/tests/` with `// spec: R<N>` header per file: loader schema and filter, DataSource adapter, parser/resolver param plumbing, deploy pipeline integration, get-next-action injection (including auto-promotion path), guardrail loading, package-files inclusion, loader path resolution.",
+      "Issue #311 body update post-merge to reflect the user-confirmed 10-rule inventory and the rules.js → skills.js filename override (deliverable acknowledged in spec).",
+      "Re-run `sdd-forge upgrade` post-implementation to materialize SKILL.md / CLAUDE skill copies."
+    ],
+    "out": [
+      "Structural renames `src/templates/` → `src/skill/` and `src/docs/data/` → `src/data/` (deferred to issue 7da8).",
+      "Real-time violation detection / auto-correction (deferred to issue 6f7d).",
+      "Static enforcement of finalize PR route (separate issue, Issue #311 #12).",
+      "Backward-compatibility shims for prior rule placement (alpha policy: no compat shims).",
+      "Adding state values beyond `worktreeActive` / `autoApproveOn` (extensible array — additions can come later without schema change).",
+      "Wildcards or parent-id aliases in the phase enum.",
+      "Project-local override of rules.json (would re-introduce the drift this spec eliminates).",
+      "Re-implementation of guardrail loading (skill-rules and guardrails are separate domains).",
+      "Conversion of the skill deploy pipeline's public call shape from sync to async."
+    ]
+  },
+  "constraints": [
+    "External-dependency-free: only Node.js built-in modules.",
+    "Alpha-policy: no backward-compat shims, no preserved deprecated paths.",
+    "OOP-typed values: structural value classes (Renderables, etc.) instead of `{type: \"...\"}` dispatch objects, per existing project policy.",
+    "`src/` content must remain project-agnostic (no project-specific values inlined).",
+    "Tests must not be modified to pass; product code is the variable.",
+    "Commit messages in English; no sign-off lines, no co-authored-by trailers.",
+    "Bundled `rules.json` must be included in the npm `files` field so it ships in `node_modules/sdd-forge/`."
+  ],
+  "design_principles": [
+    "Single source of truth (SSOT) for the 10 Issue #311 persistent skill rule bodies: `rules.json` is the only place where the wording for those 10 rules lives. Rule-like wording in skill structural prose (e.g. SKILL.md narrative sections) and in non-migrated partials remains in place, per R34's explicit out-of-scope list.",
+    "Strict-by-default for skill rules: unknown id, malformed schema, or unexpanded marker each cause build failure.",
+    "Tolerant default preserved for general DataSource consumers (no behavior change for opportunistic data lookups).",
+    "Filter by phase (any-match) and state (all-required) — bounded payload per call, expressive enough to differentiate drift-prone state-dependent rules.",
+    "Scope-aware leaf id strings (`flow.<step>` / `task.<step>`) for unambiguous filtering across the FLOW vs TASK definition collisions.",
+    "Author-controlled order: matched rules emit in the order they are authored in `rules.json`."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "rules-ssot — Holds the canonical, schema-validated set of skill rule entries. Bundled with the package."
+      },
+      {
+        "text": "skill-rules-loader — Loads and validates rules.json; exposes filter (phase + state) and the strict skill-rule directive expander used by the skill deploy pipeline."
+      },
+      {
+        "text": "skills-datasource-adapter — Registers the docs-style DataSource (filename `skills.js`, source `skills`, method `rule`) so partials/SKILL.md directives can be expanded by the existing resolver path. Returns a Renderable for `params.id`."
+      },
+      {
+        "text": "directive-resolver-params-plumbing — Carries directive option objects through resolveDataDirectives and resolver.resolve so DataSource methods can receive `{id: ...}`. Existing call sites are migrated; existing DataSources that ignore the new argument are unaffected."
+      },
+      {
+        "text": "marker-strip-helper — Removes paired data-directive comment markers from an already-expanded markdown string. Idempotent. Throws if any unexpanded data block remains."
+      },
+      {
+        "text": "skill-deploy-pipeline-integration — Wires skill-rule expansion + marker strip into the existing skill deploy pipeline so deployed SKILL.md contains rule bodies and no markers. Public surface unchanged."
+      },
+      {
+        "text": "next-action-rule-injection — Modifies the next-action assembler to derive state from flow.json (worktree → worktreeActive, autoApprove → autoApproveOn) and prepend the filtered rule block to instructions.content. Other envelope fields are unchanged."
+      },
+      {
+        "text": "rule-migration — Moves 10 rule bodies from existing partials into rules.json; partials retain non-rule prose plus the new directive placeholders."
+      },
+      {
+        "text": "preset-guardrail-extension — Adds one `code-quality` guardrail entry to base preset, covering integration and task-impl phases."
+      },
+      {
+        "text": "claude-md-extension — Appends the 6 personal-principle rules to project-root CLAUDE.md as a single contiguous Japanese section."
+      },
+      {
+        "text": "skill-memory-precedence-statement — Adds non-rule prose to core-principle.md partial stating that skill rules take precedence over conflicting memory entries."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Source: rules.json is loaded once at deploy time by the skill pipeline and at request time by the next-action assembler."
+      },
+      {
+        "text": "Skill deploy: include resolution → skill-rule directive expansion (loader) → marker strip → write to .agents/skills/, .claude/skills/."
+      },
+      {
+        "text": "Next-action: flow.json (worktree, autoApprove) → state set → loader filters rules by phase + state → assembled rule block → prepended to instructions.content."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "D1 State derivation: derive state set from existing flow.json boolean fields (worktree → worktreeActive, autoApprove → autoApproveOn). Missing/false fields contribute nothing. Reuses existing SSOT, avoids duplicate-source drift.",
+        "evidence": "flow.json sample fixture confirms top-level booleans. findActiveNode already yields scope/stepId so state computation is local.",
+        "consideredAlternatives": "Adding a flow.json `state[]` field — duplicates SSOT and requires synchronous updates."
+      },
+      {
+        "text": "D2 Filter semantics: phase=any-match (OR), state=all-required (AND), state=[] or absent means always-on. Phase is required and non-empty. No wildcards, no parent aliases.",
+        "evidence": "src/lib/guardrail.js filterByPhase uses phases.includes(phase) — any-match precedent.",
+        "consideredAlternatives": "phase/state both OR (cannot express AND); both AND (multi-phase rules become dead)."
+      },
+      {
+        "text": "D3 Injection point: prepend the rule block to instructions.content. No new envelope field. Zero-match → no prepend. Other envelope fields byte-equal to baseline.",
+        "evidence": "Issue #311 Proposal explicitly specifies prepending. Existing skill consumers treat instructions.content as authoritative.",
+        "consideredAlternatives": "New persistentRules envelope field — schema migration, consumer churn. Stuffed into context — wrong shape."
+      },
+      {
+        "text": "D4 Unknown-id failure: fails fast wherever rendered. Skill deploy caller propagates failure to non-zero exit. DataSource throws when invoked directly. General docs-style resolver path keeps its existing tolerant-null behavior so other DataSource consumers are unaffected.",
+        "evidence": "src/docs/lib/resolver-factory.js wraps DataSource calls in try/catch + null. CLAUDE.md src/ policy mandates fail-fast.",
+        "consideredAlternatives": "Silent skip + warn (easy to miss in CI). Caller-by-caller policy (drift-prone). Make resolver strict by default (breaks consumers)."
+      },
+      {
+        "text": "D5 DataSource file naming override: adapter file is named skills.js (not rules.js as Issue originally named it). Loader derives source name from filename, so the directive source segment `skills` requires the file to be named skills.js. User-confirmed at draft Q&A round 2.",
+        "evidence": "src/docs/lib/data-source-loader.js:55-56 derives source name from filename.",
+        "consideredAlternatives": "Keep file rules.js + directive base.rules.rule (stutter). Encode rule id as method name (synthetic methods)."
+      },
+      {
+        "text": "D6 Phase enum: scope-aware leaf ids. Each rule.phase entry is exactly one of 24 strings (21 flow.<leaf> + 3 task.<leaf>). FLOW_DEFINITION and TASK_DEFINITION share leaf ids `review` and `gate-impl`; scope prefix disambiguates. No wildcards.",
+        "evidence": "Verified collectLeafIds(FLOW_DEFINITION) returns 21 leaves; collectLeafIds(TASK_DEFINITION) returns ['impl', 'review', 'gate-impl'].",
+        "consideredAlternatives": "Bare leaf ids — ambiguous between flow and task review steps."
+      },
+      {
+        "text": "D7 Strict file format for rules.json: unique kebab-case ids; required non-empty phase/body; optional state; no extra/unknown fields; no meta.section.",
+        "evidence": "preset/base/guardrail.json uses similar shape; src/lib/guardrail.js rejects invalid phase/category.",
+        "consideredAlternatives": "Lenient unknown-field policy (typos eat author intent). meta.section field (duplicates partial layout)."
+      },
+      {
+        "text": "D8 Strict marker handling at deploy time: deployed SKILL.md must contain no {{data}} markers. Any unexpanded data block remaining at strip time triggers a build failure.",
+        "evidence": "src/docs/lib/directive-parser.js exposes the marker shapes; CLAUDE.md src/ policy mandates fail-fast.",
+        "consideredAlternatives": "Allow unexpanded markers in deployed output (visible to AI readers, noisy)."
+      },
+      {
+        "text": "D9 Body-quality criteria for drift-prone rules: must contain MUST + brief why + brief how-to-apply. Other rules may be a single MUST line. Mechanical loader check, not AI judgment.",
+        "evidence": "Issue #311 'Primary drift' list identifies empirically drift-prone rules. v5b/v6 prompt experiments confirm verbose+structured wins for those.",
+        "consideredAlternatives": "Mandatory must/why/how on every rule (adds noise). Free-form with no enforcement (regression to v6)."
+      },
+      {
+        "text": "D10 Memory-vs-skill precedence: stated as non-rule prose in partials/core-principle.md, not as a rule entry in rules.json. Meta about rule application, not itself an injected behavior.",
+        "evidence": "Issue #311 explicitly requires 'when skill and memory conflict, skill wins' in the skill itself.",
+        "consideredAlternatives": "Add as a rule entry with phase=all 24 (redundant once SKILL.md is read). Place in CLAUDE.md (wrong scope; this is sdd-forge skill internal precedence)."
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "A package-bundled rules SSOT file ships under `src/templates/skills/` (filename irrelevant to consumers; verifiable by `npm pack --dry-run` listing it). Each rule entry has unique kebab-case id, required non-empty `phase` array of canonical scope-aware leaf ids, optional `state` array of documented state names, and required non-empty markdown `body`. Unknown / extra fields cause load failure.",
+      "priority": "must"
+    },
+    {
+      "id": "R2",
+      "desc": "The rules loader applies filter semantics: phase=any-match (OR), state=all-required (AND), state empty/absent means always-on. Loading an invalid file fails by throwing an `Error` whose message contains both (a) the literal substring `rules.json` and (b) a description of the offending field/value (e.g. for an unknown phase: the literal substring `unknown phase` plus the bad phase string; for a duplicate id: the literal substring `duplicate id` plus the duplicated id string). The same convention applies to: missing required field, unknown phase value, unknown state value, duplicate id, malformed kebab-case id, extra unknown field. Tests assert each case raises an `Error` whose message contains the expected literal substrings.",
+      "priority": "must"
+    },
+    {
+      "id": "R3",
+      "desc": "A DataSource adapter named `skills` registers under preset `base` and exposes a method `rule` that returns a Renderable for the rule body when given a valid id via the directive option object. Direct invocation with an unknown id throws an `Error` whose message contains the literal substring `unknown skill rule id` plus the offending id string. Direct invocation with no `id` option throws an `Error` whose message contains the literal substring `missing skill rule id`.",
+      "priority": "must"
+    },
+    {
+      "id": "R4",
+      "desc": "The data-directive resolver path forwards directive option objects (e.g. `{id: \"foo\"}`) to DataSource methods. Existing DataSource methods that did not previously consume options keep working unchanged.",
+      "priority": "must"
+    },
+    {
+      "id": "R5",
+      "desc": "A marker-strip helper exists in the directive parser module. Given expanded markdown that still contains paired data-directive comment markers, calling the helper produces output where the markers are removed and surrounding markdown is byte-equal to the input minus those markers. Calling it twice is a no-op. If the input still contains an unexpanded data directive (paired marker bracketing content that itself is or contains an unprocessed data marker — i.e. expansion did not run), the helper throws an `Error` whose message contains the literal substring `unexpanded data directive` plus the line number of the offending opening marker.",
+      "priority": "must"
+    },
+    {
+      "id": "R6",
+      "desc": "Deployed SKILL.md (in `.agents/skills/<name>/SKILL.md` and `.claude/skills/<name>/SKILL.md`) contains the rule bodies referenced from the source partials/SKILL.md, AND contains zero matches for the regex `<!--\\s*\\{\\{data\\(` (no opening data-directive markers), AND contains zero matches for the regex `<!--\\s*\\{\\{/data\\}\\}` (no closing data-directive markers), after `sdd-forge upgrade` runs successfully. The grep-style regexes above are the canonical assertion form used by the verification test.",
+      "priority": "must"
+    },
+    {
+      "id": "R7",
+      "desc": "When a skill source template references a non-existent rule id, `sdd-forge upgrade` exits with a non-zero status code and emits an error message to stderr containing the literal substring `unknown skill rule id` plus the offending id string. No deployed SKILL.md file is updated as a side effect of the failed run.",
+      "priority": "must"
+    },
+    {
+      "id": "R8",
+      "desc": "The `flow get next-action` envelope's `instructions.content` is prepended with a markdown rule block listing all rules whose phase array contains the active scope-aware step id (`flow.<stepId>` or `task.<stepId>`) and whose state array is satisfied by the current state set derived from flow.json. State derivation: `worktree === true` adds `worktreeActive`; `autoApprove === true` adds `autoApproveOn`; absence/false fields contribute nothing. Other envelope fields (`taskId`, `step`, `action`, `instructions.key`, `context`, `output_schema`, `requires_approval`, `maxAttempts`, `autoUpgrade`) are byte-equal to a no-rules baseline for the same step.",
+      "priority": "must"
+    },
+    {
+      "id": "R9",
+      "desc": "When zero rules match the active phase + state, `instructions.content` is byte-equal to a no-rules baseline (no heading, no separator).",
+      "priority": "must"
+    },
+    {
+      "id": "R10",
+      "desc": "When `flow get next-action` is invoked with no `in_progress` step (auto-promotion path), the envelope reflects the promoted step's id and the rule block is filtered against the promoted step's id (not against a stale or null state).",
+      "priority": "must"
+    },
+    {
+      "id": "R11",
+      "desc": "rules.json contains exactly 10 rule entries with these literal `id` values (kebab-case, in this order): `no-premature-conclusion`, `no-auto-mode-override-skill`, `thoroughness`, `no-shortcuts`, `wait-for-instruction-skill`, `commit-split-strategy`, `no-scope-splitting`, `choice-format-discipline`, `no-chain-sddforge`, `no-shared-repo-git-ops`. Each entry's source row in Issue #311, phase array, and state array per the draft Q14 inventory table — modified by R36 (no-auto-mode-override-skill state is `[]` not `['autoApproveOn']`). A test asserts the loaded rules' id list equals the literal list above in order.",
+      "priority": "must"
+    },
+    {
+      "id": "R12",
+      "desc": "Drift-prone rule entries (id list curated initially as `no-premature-conclusion`, `no-auto-mode-override-skill`, `wait-for-instruction-skill`) have `body` markdown that contains three explicit headed sections in this order: an `### MUST` heading followed by the constraint, a `### Why` heading followed by the rationale, and a `### How to apply` heading followed by operational guidance. The loader rejects a drift-prone rule whose body is missing any of these three exact heading strings (case-sensitive). Localized headings (e.g. Japanese variants) are NOT supported — the headings are deliberately English to enable a single deterministic regex check.",
+      "priority": "must"
+    },
+    {
+      "id": "R13",
+      "desc": "`src/presets/base/guardrail.json` contains a new entry with `meta.category: \"code-quality\"` and `meta.phase` array containing `integration` and `task-impl`. The entry is loaded by `loadMergedGuardrails` and surfaces in `filterByPhase(_, 'integration')` and `filterByPhase(_, 'task-impl')`. It does NOT surface in `filterByPhase(_, 'spec')` or `filterByPhase(_, 'draft')`.",
+      "priority": "must"
+    },
+    {
+      "id": "R14",
+      "desc": "Project-root `CLAUDE.md` (separate file from `AGENTS.md`) gains a single contiguous Japanese section appended at end-of-file with the EXACT literal heading `## AI との協働原則`. Under that heading the section contains exactly 6 sub-headings written as `### <タイトル>` lines, in this order and with these literal titles: `### 一貫したコミュニケーション`, `### 独立分析`, `### AI 判断権の限界`, `### ファシリテートのキャッチボール`, `### 過去判断の推測禁止`, `### 指示なしに行動しない`. Each sub-heading is followed by 1-3 sentences of body text expressing the principle from the corresponding Issue #311 row (#1, #4, #5-abstract, #6, #7, #10-abstract respectively). After running `sdd-forge upgrade`, this section remains in CLAUDE.md unchanged. A grep test asserts the exact literal heading and exactly 6 `### ` lines under it.",
+      "priority": "must"
+    },
+    {
+      "id": "R15",
+      "desc": "`partials/core-principle.md` contains a non-rule-prose paragraph that begins with the literal string `**MUST: When a rule in this skill conflicts with a memory entry` and contains the literal substring `the skill rule takes precedence`. After `sdd-forge upgrade`, deployed `.agents/skills/sdd-forge.flow/SKILL.md` contains this paragraph verbatim. A grep test asserts both source partial and deployed SKILL.md contain these literal substrings.",
+      "priority": "must"
+    },
+    {
+      "id": "R16",
+      "desc": "All test files added by this spec live under `specs/252-persistent-rules-injection/tests/` and each carries a `// spec: R<N>` header naming the requirement(s) it covers.",
+      "priority": "must"
+    },
+    {
+      "id": "R17",
+      "desc": "The skill deploy pipeline's public surface (functions called by setup / upgrade) keeps its existing call shape — callers do not need to migrate from sync to async invocations and existing tests of those callers continue to pass without signature changes.",
+      "priority": "must"
+    },
+    {
+      "id": "R18",
+      "desc": "Issue #311 body is updated post-merge to (a) reflect the user-confirmed 10-rule inventory and (b) note the rules.js → skills.js filename override.",
+      "priority": "should",
+      "testable": false
+    },
+    {
+      "id": "R19",
+      "desc": "The canonical scope-aware phase enum (24 strings) is derived programmatically from `collectLeafIds(FLOW_DEFINITION)` and `collectLeafIds(TASK_DEFINITION)` rather than hardcoded as a literal list. A test asserts that the loader's accepted-phase set equals `{flow.<id>: id ∈ collectLeafIds(FLOW_DEFINITION)} ∪ {task.<id>: id ∈ collectLeafIds(TASK_DEFINITION)}` so the enum stays in sync if leaves are added/removed.",
+      "priority": "must"
+    },
+    {
+      "id": "R20",
+      "desc": "The skill deploy pipeline uses the synchronous skill-rules-loader expander directly (NOT the async docs-style resolver). The `skills` DataSource adapter is registered for docs-style directive compatibility but is not invoked during skill deploy. Existing setup/upgrade callers continue to invoke `deploySkills*` synchronously without `await`.",
+      "priority": "must"
+    },
+    {
+      "id": "R21",
+      "desc": "Existing tests under `tests/unit/flow/` that assert byte equality of `instructions.content` against on-disk prompt files are updated: in cases where rules match, the assertion is changed to require the on-disk prompt content as a suffix of `instructions.content` (i.e. the injected rule block is a prefix). Existing tests where zero rules match keep their byte-equality assertion.",
+      "priority": "must"
+    },
+    {
+      "id": "R22",
+      "desc": "Existing tests under `tests/unit/templates/` (e.g. `worktree-mode.test.js`) that asserted specific rule-body MUST text inside source partials are updated: assertions now target either the new `rules.json` body or the deployed SKILL.md (post-`sdd-forge upgrade`) rather than the source partial. Source partials are expected to retain only non-rule prose plus directive placeholders.",
+      "priority": "must"
+    },
+    {
+      "id": "R23",
+      "desc": "Directive option params plumbing has a defined contract for which keys go where: (a) parser-owned controls (`labels`, `header`, `footer`, `ignoreError` and any other existing parse-side option) continue to be processed by the parser/resolver layer with no behavior change, (b) any other key (e.g. `id`) is forwarded to the DataSource method via the params argument. Every `resolveDataDirectives` caller and `resolver.resolve(...)` signature is updated to thread params through. Existing synthetic label injection behavior in `src/docs/commands/data.js`, `readme.js`, `agents.js`, and `forge.js` (e.g. `docs.nav`, `docs.langSwitcher`, `lang.links` label rewriting) is preserved. A test asserts that `header` / `footer` / `ignoreError` continue to behave unchanged AND that `{id: \"foo\"}` reaches `skills.rule`'s params argument.",
+      "priority": "must"
+    },
+    {
+      "id": "R24",
+      "desc": "The skill deploy pipeline is atomic with respect to rule expansion failure: it expands and validates every skill's output in memory before writing any target file or removing obsolete skills. If any expansion fails (unknown id, marker leftover, body-quality failure), no `.agents/skills/` or `.claude/skills/` file is created or modified by that run.",
+      "priority": "must"
+    },
+    {
+      "id": "R25",
+      "desc": "The CLAUDE.md additions in R14 are scoped to this repository's `CLAUDE.md` only (sdd-forge project root). They are NOT propagated to user projects via `sdd-forge setup` or `sdd-forge upgrade`. The package's `src/` content remains project-agnostic.",
+      "priority": "must"
+    },
+    {
+      "id": "R26",
+      "desc": "Stale references to non-existent task step ids (e.g. `task.run-tests` in `src/flow/prompts/task/impl.md`) introduced by earlier specs are explicitly out of scope for this spec and tracked separately. This spec does not add or remove such references.",
+      "priority": "nice-to-have",
+      "testable": false
+    },
+    {
+      "id": "R27",
+      "desc": "The canonical SSOT file path is exactly `src/templates/skills/rules.json` (the on-disk filename is `rules.json`; the conceptual name 'skill-rules.json' from the Issue body is a working name that does NOT match the on-disk file). All references in source code, tests, prompts, error messages, and documentation use `rules.json` as the filename. The Issue #311 body update (R18) acknowledges this filename.",
+      "priority": "must"
+    },
+    {
+      "id": "R28",
+      "desc": "Spec tests under `specs/252-persistent-rules-injection/tests/` are runnable via the standard node:test runner with an explicit path: `node --test specs/252-persistent-rules-injection/tests/*.test.js`. They are NOT added to the default `npm test` search-directory list — adding `specs/` globally would surface unrelated stale spec tests across the repository. Spec-test colocation under `specs/<id>/tests/` is mandated by the Spec Test Coverage guardrail; the explicit-path invocation honors that location without polluting the default suite.",
+      "priority": "must"
+    },
+    {
+      "id": "R29",
+      "desc": "Existing e2e tests under `tests/e2e/` that compare deployed SKILL.md bytes against `resolveIncludes(rawTemplate)` (e.g. `tests/e2e/051-skill-namespace.test.js`) are updated to compare against the full skill deploy rendering path (include resolution + skill-rule expansion + marker strip) so they remain meaningful after rule injection changes deployed content.",
+      "priority": "must"
+    },
+    {
+      "id": "R30",
+      "desc": "Upgrade-phase atomicity: `sdd-forge upgrade`'s skill phase pre-expands and validates ALL skills (both main and project/experimental skills covered by `deploySkills` and `deployProjectSkills`) in memory before writing any skill target file or running cleanup. A failure during expansion of any one skill aborts the upgrade phase before any file is written or removed, leaving `.agents/skills/` and `.claude/skills/` in their pre-upgrade state.",
+      "priority": "must"
+    },
+    {
+      "id": "R31",
+      "desc": "The rules loader resolves `rules.json` relative to the bundled package directory (e.g. via `PKG_DIR` / `import.meta.url`-derived path) rather than relative to the current working directory. This ensures correctness whether sdd-forge is invoked from a development checkout, an `npm install`-ed `node_modules/sdd-forge/`, an npx invocation, or any user project root. A test asserts the loader succeeds from a temporary fixture cwd that is unrelated to the package root.",
+      "priority": "must"
+    },
+    {
+      "id": "R32",
+      "desc": "spec.md (rendered by `sdd-forge spec render`) and/or implementation_notes for T-8 contain a complete migration mapping table with the following columns per rule entry: `rule id` (working), Issue #311 row, source file path + section/line range, replacement directive placeholder (i.e. the directive form to be added at that location), phase array (per Q14 inventory), state array, and drift-prone flag. This table is the authoritative reference during implementation; implementers do not invent additional rules nor leave stale rule prose in source partials.",
+      "priority": "must"
+    },
+    {
+      "id": "R33",
+      "desc": "Existing prompts that reference the deprecated guardrail phase value `impl` (e.g. `src/flow/prompts/impl/implement.md` may invoke `sdd-forge flow get guardrail impl` while the new guardrail uses `task-impl` / `integration`) are either updated within this spec to reference the active phase value(s), OR explicitly declared out of scope with a follow-up issue link. This spec chooses to declare it OUT OF SCOPE; rationale: the existing prompts have been functional under the current phase enum since spec 184 and changing them is independent of this spec's deliverables. The new guardrail will surface in `gate-impl` evaluations regardless of the prompts' wording, and follow-up issue 7da8 (or a sibling) tracks prompt-text cleanup.",
+      "priority": "nice-to-have",
+      "testable": false
+    },
+    {
+      "id": "R34",
+      "desc": "rules.json's SSOT scope is narrowed to 'Issue #311 persistent skill rules' (the 10 entries listed in R11). Other rule-like wording that currently lives elsewhere is EXPLICITLY OUT OF SCOPE for migration in this spec and remains in place — including: (a) sections inside `src/templates/skills/sdd-forge.flow/SKILL.md` such as 'Approval-gated transitions', 'No-auto-promote', 'Worktree boundary', 'Command execution discipline', 'Hard Stops' (these stay as direct skill prose because they are skill-structural narrative, not migrate-able rule entries); (b) rule-like prose in partials not on the migration list (flow-tracking.md, context-recording.md, issue-log-recording.md, plus any non-#14/#15/#16 prose remaining in core-principle.md or worktree-mode.md after migration). A future spec may migrate any of these following the same pattern; this spec does not.",
+      "priority": "must"
+    },
+    {
+      "id": "R35",
+      "desc": "Generated AGENTS templates `src/presets/base/templates/ja/AGENTS.sdd.md` and `src/presets/base/templates/en/AGENTS.sdd.md` are NOT modified by this spec. Any rule-like wording that currently exists in those templates is intentionally left as project-agent guidance independent of skill-rules.json (different audience, different lifecycle). `{{data(\"base.skills.rule\", ...)}}` placeholders are FORBIDDEN inside `AGENTS.sdd.md` because `loadSddTemplate` reads them raw during setup without running the docs resolver — the spec adds a test or lint asserting no skill-rule directive appears in `AGENTS.sdd.md` to enforce this prohibition.",
+      "priority": "must"
+    },
+    {
+      "id": "R36",
+      "desc": "Rule entry `no-auto-mode-override-skill` (sourced from Issue #311 row #5-skill — the `skill-rules.json` half of the dual-destination split) has `state: []` (always-on), NOT `state: ['autoApproveOn']` as initially proposed in the draft inventory. Rationale: the rule must apply BEFORE auto mode is enabled — its constraint is 'do not enable auto mode yourself / do not bypass user choice in interactive flows', which is most critical when auto is OFF. The inventory table in spec.md and the migration notes in T-1 reflect this state assignment. R11's reference to 'phase and state assignments per the draft inventory table (Q14)' is interpreted with this R36 override.",
+      "priority": "must"
+    },
+    {
+      "id": "R37",
+      "desc": "The injected rule block in `instructions.content` has an exact, deterministic markdown shape:\n- Line 1: the literal heading text `## Persistent Rules`.\n- Line 2: blank line.\n- For each matched rule, in author order from rules.json: one HTML comment line of the literal form `<!-- rule: ID -->` (where ID is the rule's id field, with no surrounding whitespace inside the comment beyond the single spaces shown), followed by the rule's body markdown verbatim (with `body.trimEnd()` applied — see R39), followed by exactly one blank-line separator.\n- After the last rule's separator, one additional blank line, then the original prompt content (existing instructions.content) appended verbatim.\n- When zero rules match, no heading and no block are emitted; `instructions.content` equals the original prompt content byte-for-byte.\nA test asserts the exact rendered shape for a fixture with two rules (one drift-prone, one not) and a fixture with zero matches.",
+      "priority": "must"
+    },
+    {
+      "id": "R38",
+      "desc": "The generated docs under `docs/` are NOT regenerated as part of this spec. Following the project rule that 'docs and code may diverge; code is authoritative', a follow-up `sdd-forge build` run is left to a separate cleanup pass and is OUT OF SCOPE here. Rationale: docs regeneration runs AI prompts and would expand the cost of this spec materially; the affected sections (next-action envelope, directive parsing, DataSource behavior) are documented sufficiently in this spec's own files (spec.md, draft.json) for downstream readers.",
+      "priority": "nice-to-have",
+      "testable": false
+    },
+    {
+      "id": "R39",
+      "desc": "Rule body normalization: the loader rejects rule entries whose `body` field starts or ends with a blank line (i.e. `body !== body.trim()` would discard whitespace at either end). Renderers (the next-action assembler in R37 and the deploy-time expander) emit the body with `body.trimEnd()` applied so a trailing newline does not produce an extra blank line in the output. Leading whitespace is preserved as authored. This ensures the deterministic markdown shape in R37 is stable regardless of JSON authoring quirks (e.g. accidental trailing newline in a rule body).",
+      "priority": "must"
+    }
+  ],
+  "acceptance_criteria": [
+    "Running `sdd-forge upgrade` after applying this spec produces deployed `SKILL.md` files that contain rule bodies inline and contain no data-directive markers.",
+    "An integration test invoking `flow get next-action` against a fixture with `worktree: true` and step `flow.draft` yields an `instructions.content` whose top contains exactly the rule bodies that match those filters in the order they appear in rules.json; with `worktree: false`, the worktreeActive-tagged rule is absent.",
+    "An integration test where SKILL.md references a non-existent rule id confirms `sdd-forge upgrade` exits non-zero with a recognizable error.",
+    "Unit test confirms loader rejects (a) duplicate id, (b) unknown phase entry, (c) missing required field, (d) extra unknown field, (e) invalid kebab-case id, (f) drift-prone rule missing why/how.",
+    "Unit test confirms DataSource adapter throws on unknown id when invoked directly.",
+    "Unit test confirms parser/resolver param plumbing carries `{id: \"foo\"}` from a directive into the DataSource method's call.",
+    "Test confirms `npm pack --dry-run` includes the bundled rules.json file.",
+    "Test confirms the `code-quality` guardrail loads and filters as specified in R13.",
+    "Test confirms deployed SKILL.md contains the skill > memory precedence statement (R15).",
+    "Auto-promotion test (no `in_progress` step) confirms rule injection uses the promoted step's id (R10)."
+  ],
+  "clarifications": [
+    {
+      "q": "Where does the rule filter derive 'state' (worktreeActive / autoApproveOn) from?",
+      "a": "From existing flow.json boolean fields (worktree, autoApprove). User-confirmed at draft Q&A round 1."
+    },
+    {
+      "q": "What filter semantics for phase + state?",
+      "a": "phase=any-match (OR), state=all-required (AND), state=[] or absent means always-on. User-confirmed at draft Q&A round 1."
+    },
+    {
+      "q": "Where is the rule block injected in the next-action envelope?",
+      "a": "Prepended to instructions.content. User-confirmed at draft Q&A round 1."
+    },
+    {
+      "q": "What happens if a directive references an unknown rule id during sdd-forge upgrade?",
+      "a": "Build fails fast with a recognizable error. User-confirmed at draft Q&A round 1."
+    },
+    {
+      "q": "Where do new tests live?",
+      "a": "Under specs/252-persistent-rules-injection/tests/ per the Spec Test Coverage guardrail; each file carries // spec: R<N> header. (Earlier draft mentioned tests/unit/ siblings; the spec guardrail mandates the specs/ location.)"
+    },
+    {
+      "q": "What rule body format?",
+      "a": "Free-form markdown overall; drift-prone subset (curated, initially three rules) must include MUST + why + how-to-apply. User-confirmed at draft Q&A round 1; refined at draft Q&A round 2."
+    },
+    {
+      "q": "Should the DataSource adapter file be named rules.js (per Issue) or skills.js?",
+      "a": "skills.js — loader convention derives source name from filename, and the directive's source segment must be `skills`. User-confirmed at draft Q&A round 2 as override of Issue body."
+    },
+    {
+      "q": "Should partial integrations #14/#15/#16 be folded into existing rule bodies (8 total) or extracted as separate rule entries (10 total)?",
+      "a": "Extracted as separate entries: 10 total rules.json entries. User-confirmed at draft Q&A round 2 as override of Issue body's 8 tally."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Add a flow.json `state[]` field instead of deriving state from existing booleans",
+      "reason": "Duplicates SSOT; requires synchronous updates on every transition; drift-prone."
+    },
+    {
+      "option": "Filter semantics where both phase and state use OR",
+      "reason": "Cannot express AND across multiple state requirements."
+    },
+    {
+      "option": "New top-level envelope field `persistentRules`",
+      "reason": "Schema migration; consumers may not read it; defeats the goal of guaranteed visibility."
+    },
+    {
+      "option": "Silent skip + warn on unknown rule id",
+      "reason": "Easy to miss in CI; ships broken markers in deployed artifacts."
+    },
+    {
+      "option": "Reuse the existing tolerant resolver for skill rules",
+      "reason": "Resolver catches errors and returns null, silently leaving unexpanded markers in SKILL.md."
+    },
+    {
+      "option": "Keep the file named rules.js and use directive `base.rules.rule`",
+      "reason": "Directive reads as a stutter; Issue body intent was `base.skills.rule`."
+    },
+    {
+      "option": "Encode rule id as a method name (e.g. `base.skills.<rule-id>`)",
+      "reason": "Requires runtime dynamic method dispatch; clutters the class with synthetic methods; harder static analysis."
+    },
+    {
+      "option": "Mandatory must/why/how on every rule (not just drift-prone subset)",
+      "reason": "Adds noise to mechanical rules whose constraint is fully self-explanatory; v6 over-compression failure was content-driven, not template-driven."
+    },
+    {
+      "option": "Allow `*` wildcard in phase array",
+      "reason": "Marginal author convenience; introduces a parsing edge case and obscures coverage."
+    },
+    {
+      "option": "Permit project-local override of rules.json (`.sdd-forge/skill-rules.json`)",
+      "reason": "Re-introduces the multi-source drift the issue is trying to remove."
+    },
+    {
+      "option": "Generate CLAUDE.md additions from a `personal-rules.json`",
+      "reason": "Overkill for 6 short paragraphs; adds another generation pipeline."
+    },
+    {
+      "option": "Append the 6 personal-principle rules automatically via `sdd-forge upgrade`",
+      "reason": "Risks duplicate inserts and silent overwrites of user edits."
+    },
+    {
+      "option": "Convert deploySkills* to async to use createResolver",
+      "reason": "Propagates `await` upward through setup/upgrade; cost not justified for a static-asset transform."
+    },
+    {
+      "option": "Make the existing resolver strict by default",
+      "reason": "Breaks current consumers that rely on null-on-error tolerant behavior."
+    },
+    {
+      "option": "Ship the precedence rule as a rule entry in rules.json with phase=all 24",
+      "reason": "Redundant once the AI has read SKILL.md; meta-rules belong as non-rule prose, not injected per step."
+    }
+  ],
+  "open_questions": [
+    "Exact rule body markdown wording for each entry in rules.json — drafted at implementation time by extracting/tightening the current partial prose. Constraints (R12, R39) bound the shape; exact prose is content authoring.",
+    "Whether the Issue body update (R18) is mandatory or nice-to-have — flagged should-priority pending user direction post-merge."
+  ],
+  "keywords": [
+    "skill-rules",
+    "next-action",
+    "rules-injection",
+    "data-directive",
+    "DataSource",
+    "deploySkills",
+    "stripDataMarkers",
+    "skill-rules.json",
+    "directive-parser",
+    "guardrail",
+    "phase-filter",
+    "state-filter",
+    "worktreeActive",
+    "autoApproveOn",
+    "core-principle"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add rules.json SSOT file with the 10 migrated rule entries",
+      "goal": "Bundle the canonical rule SSOT with the package, populated with the 10 entries per the inventory table.",
+      "acceptance": [
+        "File exists at the package's skills templates location.",
+        "Contains exactly 10 entries with valid id, phase, state, body fields.",
+        "Each drift-prone entry's body contains MUST + why + how-to-apply elements.",
+        "`npm pack --dry-run` lists the file."
+      ],
+      "implementation_notes": "Author wording extracted from the existing partials being deprecated; tighten to skill-rules house style.",
+      "test_strategy": "Schema fixture loaded by loader test (T-2). Package-files test asserts inclusion in pack.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Add the rules loader module",
+      "goal": "Provide schema validation and phase+state filter capabilities for rules.json. Surface a strict expander for the skill deploy pipeline.",
+      "acceptance": [
+        "Loader rejects malformed rules.json with a recognizable error.",
+        "Filter returns rules whose phase array contains the queried scope-aware step id and whose state array is a subset of the queried state set.",
+        "state=[] is treated as always-on.",
+        "Drift-prone rule body validation runs at load time."
+      ],
+      "implementation_notes": "Strict-by-default; no project-local override; resolves rules.json relative to the package.",
+      "test_strategy": "Unit tests covering each invariant in `specs/252-persistent-rules-injection/tests/loader.test.js`.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Add the skills DataSource adapter",
+      "goal": "Register a docs-style DataSource so partials and SKILL.md directives can resolve `base.skills.rule`.",
+      "acceptance": [
+        "Method `rule` returns a Renderable for the body of the rule whose id is given.",
+        "Throws on unknown id when invoked directly.",
+        "File is named `skills.js` so loader-derived source name is `skills`."
+      ],
+      "implementation_notes": "Factory `register(container)` shape; obtain `DataSource` and `Paragraph` from container.",
+      "test_strategy": "Unit test covers PASS, missing-id, and unknown-id paths.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Extend the data-directive resolver path to forward directive option objects",
+      "goal": "Make `{id: \"...\"}` (and any other future option) reach DataSource methods through `resolveDataDirectives` and `resolver.resolve`.",
+      "acceptance": [
+        "Parsing of an existing 3-part directive with an option object produces params that reach `ds[method]`.",
+        "Existing call sites (agents.js, readme.js, data.js, forge.js) continue to function without behavior change.",
+        "An end-to-end fixture confirms `{id: \"foo\"}` reaches a DataSource method invocation."
+      ],
+      "implementation_notes": "Extend `resolveFn` and `resolver.resolve` signatures; update call sites; existing DataSources whose methods do not consume options ignore the extra argument.",
+      "test_strategy": "Targeted parser/resolver test asserting params plumbing; smoke run of agents.js still passes existing tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-5",
+      "title": "Add stripDataMarkers helper to the directive parser",
+      "goal": "Expose a pure helper that strips paired data-directive markers from already-expanded markdown and throws on any unexpanded data block remaining.",
+      "acceptance": [
+        "Strip removes opening + closing data marker comment lines.",
+        "Surrounding markdown is byte-equal to the input minus those markers.",
+        "Idempotent.",
+        "Throws on unexpanded data block."
+      ],
+      "implementation_notes": "Reuses existing INLINE_DATA_RE / ENDDATA_RE regex shapes.",
+      "test_strategy": "Unit test covering pure-strip, idempotent, and throw-on-unexpanded cases.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-6",
+      "title": "Wire skill-rule expansion + marker strip into the skill deploy pipeline",
+      "goal": "Deployed SKILL.md contains rule bodies inline and no data-directive markers.",
+      "acceptance": [
+        "Pipeline runs include resolution → skill-rule expansion → marker strip → write.",
+        "Public surface (functions called by setup / upgrade) keeps its existing call shape.",
+        "Unknown id propagates as a build failure with non-zero exit."
+      ],
+      "implementation_notes": "Integration is into `src/lib/skills.js` `deploySkillsFromDir`. Avoids the existing tolerant resolver to preserve fail-fast behavior.",
+      "test_strategy": "Integration test that runs the deploy pipeline against a fixture with valid and invalid (unknown id) source content.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-7",
+      "title": "Inject filtered rule block into get-next-action instructions.content",
+      "goal": "Every `flow get next-action` response prepends the phase- and state-filtered rule block to instructions.content; other envelope fields are unchanged.",
+      "acceptance": [
+        "State derivation: worktree → worktreeActive, autoApprove → autoApproveOn.",
+        "Filter against the active scope-aware step id.",
+        "Zero-match yields no prepend.",
+        "Auto-promotion path injects rules for the promoted step id."
+      ],
+      "implementation_notes": "Modify `src/flow/lib/get-next-action.js`; call into the loader; do not break existing snapshot tests of envelope shape.",
+      "test_strategy": "Integration tests with multiple flow.json fixtures (worktree on/off, autoApprove on/off, no in_progress step).",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-8",
+      "title": "Migrate rule bodies from existing partials into rules.json with placeholders",
+      "goal": "Move rule bodies out of partials' prose into rules.json. Partials retain non-rule prose plus the directive placeholders that point to the migrated entries.",
+      "acceptance": [
+        "Each of the 10 inventory rows has its body in rules.json.",
+        "Each origin partial contains `<!-- {{data(\"base.skills.rule\", {id: \"<id>\"})}} --> ... <!-- {{/data}} -->` placeholders at the location previously occupied by the rule body.",
+        "After `sdd-forge upgrade`, deployed SKILL.md contains the rule body inline (no markers, no missing rules)."
+      ],
+      "implementation_notes": "Touched partials per inventory: ai-question-style.md, choice-format.md, core-principle.md, worktree-mode.md.",
+      "test_strategy": "Integration test that runs upgrade against a snapshot of source partials + rules.json and asserts deployed SKILL.md contents.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-9",
+      "title": "Add code-quality guardrail entry to base preset",
+      "goal": "Inherit a single composite `code-quality` rule (no single-caller indirection / DRY first / present design direction) at integration and task-impl phases for every project on sdd-forge.",
+      "acceptance": [
+        "`src/presets/base/guardrail.json` gains a new entry with `meta.category: \"code-quality\"` and `meta.phase: [\"integration\", \"task-impl\"]`.",
+        "`loadMergedGuardrails` returns the entry.",
+        "filterByPhase positively matches `integration` and `task-impl`; negatively matches `spec` and `draft`."
+      ],
+      "implementation_notes": "Compose the three concerns into a single rule body so gate output reads as one principle.",
+      "test_strategy": "Unit test on guardrail-load filter behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-10",
+      "title": "Append 6 personal-principle rules to project CLAUDE.md",
+      "goal": "Project-root CLAUDE.md gains a single contiguous Japanese section with 6 sub-headings, one per Issue #311 personal-principle row.",
+      "acceptance": [
+        "Section heading appended at end-of-file.",
+        "Six sub-headings (### or ####) under the section.",
+        "Body text per Issue table rows #1, #4, #5-abstract, #6, #7, #10-abstract."
+      ],
+      "implementation_notes": "Manual append; not generated. Style matches existing Japanese sections in CLAUDE.md.",
+      "test_strategy": "Manual visual review + integration test that greps for the section heading and counts sub-headings under it.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-11",
+      "title": "Add skill > memory precedence statement to core-principle.md partial",
+      "goal": "Deployed SKILL.md contains a non-rule-prose paragraph stating that skill rules take precedence over conflicting memory entries.",
+      "acceptance": [
+        "Paragraph appears in `src/templates/partials/core-principle.md` source.",
+        "After `sdd-forge upgrade`, deployed `.agents/skills/sdd-forge.flow/SKILL.md` contains the paragraph verbatim.",
+        "Paragraph is positioned BEFORE any data-directive placeholders in the partial so it acts as a framing statement."
+      ],
+      "implementation_notes": "Non-rule prose, NOT a rules.json entry. Wording finalized during implementation.",
+      "test_strategy": "Grep test on source partial; integration test on deployed SKILL.md after upgrade.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-08T00:25:54.588Z",
+    "notes": "User approved at 2026-05-08 after gate-spec PASS. Plan: 11 tasks, 39 requirements, scope locked."
+  }
+}
