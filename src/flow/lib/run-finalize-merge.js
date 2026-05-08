@@ -21,7 +21,7 @@ export class RunFinalizeMergeCommand extends FlowCommand {
     const strategy = resolveMergeStrategy(state, cfg);
 
     if (strategy === "skip") {
-      return { status: "skipped", strategy: "skip" };
+      return { status: "skipped", strategy: "skip", mergedFromSha: null };
     }
 
     const mergeResult = runMerge({
@@ -30,7 +30,11 @@ export class RunFinalizeMergeCommand extends FlowCommand {
       worktreePath,
       mainRepoPath,
     });
-    return { status: "done", strategy: mergeResult?.strategy || "squash" };
+    return {
+      status: "done",
+      strategy: mergeResult?.strategy || "squash",
+      mergedFromSha: mergeResult?.mergedFromSha ?? null,
+    };
   }
 }
 

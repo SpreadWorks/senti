@@ -1,0 +1,597 @@
+{
+  "spec": "specs/253-finalize-orphan-rescue/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/253-finalize-orphan-rescue",
+  "runId": "7b49733d-a4a5-40e1-8a05-72d45c4cfeab",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-05-08T13:02:17.045Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-05-08T13:02:17.045Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-05-08T13:02:17.045Z",
+          "finishedAt": "2026-05-08T13:05:31.525Z"
+        },
+        {
+          "id": "review-draft",
+          "status": "done",
+          "startedAt": "2026-05-08T13:05:31.525Z",
+          "finishedAt": "2026-05-08T13:46:13.780Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-05-08T13:46:13.780Z",
+          "finishedAt": "2026-05-08T14:01:11.192Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-05-08T14:01:11.192Z",
+          "finishedAt": "2026-05-08T14:04:32.651Z"
+        },
+        {
+          "id": "review-spec",
+          "status": "done",
+          "startedAt": "2026-05-08T14:04:32.651Z",
+          "finishedAt": "2026-05-08T14:18:12.682Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-05-08T14:18:12.682Z",
+          "finishedAt": "2026-05-08T14:21:45.897Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-05-08T14:21:45.897Z",
+          "finishedAt": "2026-05-08T14:22:36.065Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-05-08T14:22:36.065Z",
+          "finishedAt": "2026-05-08T14:25:27.582Z"
+        },
+        {
+          "id": "review-test",
+          "status": "done",
+          "startedAt": "2026-05-08T14:25:27.582Z",
+          "finishedAt": "2026-05-08T14:29:57.642Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-05-08T14:29:57.642Z",
+          "finishedAt": "2026-05-08T14:36:51.854Z"
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "startedAt": "2026-05-08T14:36:51.854Z",
+          "finishedAt": "2026-05-08T14:40:09.539Z"
+        },
+        {
+          "id": "test-result-review",
+          "status": "done",
+          "startedAt": "2026-05-08T14:40:09.539Z",
+          "finishedAt": "2026-05-08T14:41:37.076Z"
+        },
+        {
+          "id": "review",
+          "status": "done",
+          "startedAt": "2026-05-08T14:41:37.076Z",
+          "finishedAt": "2026-05-08T14:44:07.830Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-05-08T14:44:07.830Z",
+          "finishedAt": "2026-05-08T14:46:59.512Z"
+        },
+        {
+          "id": "retro",
+          "status": "done",
+          "startedAt": "2026-05-08T14:46:59.512Z",
+          "finishedAt": "2026-05-08T14:47:07.512Z"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "startedAt": "2026-05-08T14:47:07.512Z",
+              "finishedAt": "2026-05-08T14:47:16.020Z"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-05-08T14:47:16.020Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 316,
+  "request": "[ENHANCE] finalize squash 後の feature branch fix の喪失防止 (orphan commit 検出 / 凍結)",
+  "autoApprove": true,
+  "autoCheck": {
+    "eligible": true,
+    "skipped": true,
+    "reason": "spec approved"
+  },
+  "worktree": true,
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T13:02:29.561Z"
+    },
+    {
+      "phase": "review-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3443,
+      "durationMs": 90104,
+      "tokens": {
+        "input": 13998,
+        "output": 4476,
+        "cacheRead": 46208,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T13:07:08.395Z"
+    },
+    {
+      "phase": "review-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 4041,
+      "durationMs": 150099,
+      "tokens": {
+        "input": 59087,
+        "output": 6956,
+        "cacheRead": 341248,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T13:12:54.532Z"
+    },
+    {
+      "phase": "review-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3870,
+      "durationMs": 158938,
+      "tokens": {
+        "input": 74111,
+        "output": 7430,
+        "cacheRead": 258944,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T13:32:57.264Z"
+    },
+    {
+      "phase": "review-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 6335,
+      "durationMs": 114138,
+      "tokens": {
+        "input": 36681,
+        "output": 5175,
+        "cacheRead": 247296,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T13:37:52.811Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2197,
+      "durationMs": 24085,
+      "tokens": {
+        "input": 23020,
+        "output": 979,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T13:46:46.279Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T13:46:46.300Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2232,
+      "durationMs": 22212,
+      "tokens": {
+        "input": 17426,
+        "output": 971,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T13:50:33.074Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T13:50:33.101Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2035,
+      "durationMs": 20747,
+      "tokens": {
+        "input": 11780,
+        "output": 869,
+        "cacheRead": 12160,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T13:53:56.853Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T13:53:56.889Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2179,
+      "durationMs": 23647,
+      "tokens": {
+        "input": 11647,
+        "output": 978,
+        "cacheRead": 12160,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T13:55:48.662Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T13:55:48.685Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2146,
+      "durationMs": 23118,
+      "tokens": {
+        "input": 16101,
+        "output": 967,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T13:59:10.549Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T13:59:10.577Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2092,
+      "durationMs": 23220,
+      "tokens": {
+        "input": 15766,
+        "output": 956,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T14:01:11.183Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-08T14:01:11.204Z"
+    },
+    {
+      "phase": "review-spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 4562,
+      "durationMs": 201852,
+      "tokens": {
+        "input": 100729,
+        "output": 8658,
+        "cacheRead": 572288,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T14:09:45.198Z"
+    },
+    {
+      "phase": "review-spec",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 5687,
+      "durationMs": 233133,
+      "tokens": {
+        "input": 107643,
+        "output": 10372,
+        "cacheRead": 1182464,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T14:15:55.714Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 3355,
+      "durationMs": 26991,
+      "tokens": {
+        "input": 20297,
+        "output": 1217,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T14:18:45.865Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T14:18:45.886Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 2778,
+      "durationMs": 26953,
+      "tokens": {
+        "input": 21686,
+        "output": 1108,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T14:21:45.886Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-08T14:21:45.915Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 8585,
+      "durationMs": 70059,
+      "tokens": {
+        "input": 3324,
+        "output": 3544,
+        "cacheRead": 15744,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-08T14:26:48.809Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 12030,
+      "taskId": null,
+      "ts": "2026-05-08T14:27:00.872Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 25425,
+      "taskId": null,
+      "ts": "2026-05-08T14:27:29.448Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 24201,
+      "taskId": null,
+      "ts": "2026-05-08T14:27:56.960Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 25712,
+      "taskId": null,
+      "ts": "2026-05-08T14:28:26.562Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 24662,
+      "taskId": null,
+      "ts": "2026-05-08T14:28:54.392Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 29036,
+      "taskId": null,
+      "ts": "2026-05-08T14:29:26.574Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T14:29:34.948Z"
+    },
+    {
+      "phase": "test-execute",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 25206,
+      "taskId": null,
+      "ts": "2026-05-08T14:39:51.212Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T14:40:05.807Z"
+    },
+    {
+      "phase": "test-result-review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 25192,
+      "taskId": null,
+      "ts": "2026-05-08T14:40:48.395Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 26336,
+      "taskId": null,
+      "ts": "2026-05-08T14:43:01.234Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 28442,
+      "taskId": null,
+      "ts": "2026-05-08T14:43:33.063Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 26175,
+      "taskId": null,
+      "ts": "2026-05-08T14:44:02.606Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 24945,
+      "taskId": null,
+      "ts": "2026-05-08T14:44:40.008Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T14:45:16.711Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "callCount": 1,
+      "responseChars": 0,
+      "durationMs": 24917,
+      "taskId": null,
+      "ts": "2026-05-08T14:45:46.883Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-08T14:46:53.092Z"
+    }
+  ],
+  "state": {
+    "finalizedAt": "2026-05-08T14:47:15.921Z"
+  }
+}

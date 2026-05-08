@@ -1,0 +1,147 @@
+{
+  "devType": "feature",
+  "goal": "finalize-cleanup が feature branch を削除する前に、squash merge 直後の HEAD から進んだ commit (squash baseline から到達不能で branch 削除により失われる commit。本 spec で『orphan commit』と定義) を検出して喪失を防ぐ。Issue 提案 (a) を採用し、検出 + 3 つの recovery 経路 (cherry-pick / abort / force-continue) を user に提示する。",
+  "analysis": {
+    "problem": "spec 251 (#308) post-squash 段階で発覚した bug: finalize-merge の squash 完了 → 直後の post hook が新たな bug を踏み、AI/user が feature branch 上で fix commit を作成 → finalize-cleanup の branch 削除でその commit が永久消失する。今回 user は手動 cherry-pick で救済したが、cleanup には検出ロジックが皆無で自動化されていない。",
+    "proposedApproach": "Issue 提示 (a) cleanup-only detection を採用する。cleanup の branch 削除前に『squash 時点で取り込まれた状態』と『現在の feature branch 状態』を比較し、差分が残っていれば default で halt して user に 3 択 recovery (cherry-pick / abort / force-continue) を提示する。PR route と spec-only mode は本検出の対象外。(b) freeze 案は Q1 で不採用。",
+    "validation": "本案は『squash 後に feature branch で commit が増えた状態が検出されないまま削除される』という根本構造を直接解消する。Q1 で freeze 案を運用面で不採用、Q2-Q12 で各論点 (検出方針、SHA 記録 timing、CLI 契約、route 判定、auto-rescue の安全要件、recovery 手順、テスト戦略、issue-log 永続化、user-facing メッセージ、payload 規約、schema 追加) を要件レベルで決着。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] finalize-cleanup は squash route で squash baseline からの orphan commit を検出する",
+      "[must] orphan 検出時は default で halt し、worktree と feature branch を保持する",
+      "[must] envelope に orphan commit list (上限あり) と recovery options を含める",
+      "[must] PR route と spec-only mode では検出をスキップする",
+      "[must] squash baseline 記録の欠落 (旧 flow.json 等) は halt 扱いとし silent skip しない",
+      "[must] 全 success path で finalize report を維持する",
+      "[must] AI skill prompt は orphan 検出時 user に 3 択を提示する (autoApprove でも silent bypass しない)",
+      "[should] --auto-rescue: baseBranch への自動 cherry-pick 試行 (lock fallback / dirty 検出 / conflict 復元)",
+      "[should] --force: 削除強行 + audit log への自動記録",
+      "[should] --auto-rescue と --force は同時指定不可",
+      "[should] user-facing recovery 案内は envelope を canonical channel とする",
+      "[should] BASELINE 記録欠落時の手動 recovery 手順を envelope に明示",
+      "[should] テスト: 検出ロジック / SHA 永続化 / CLI 登録 / skill prompt 応答の網羅",
+      "[nice-to-have] orphan commit の subject 取得 (失敗時は件数のみ保持)",
+      "[nice-to-have] cherry-pick の重複適用 (empty patch) を skip 経由で許容"
+    ],
+    "out": [
+      "PR merge route の本検出適用 (Issue Out of Scope)",
+      "spec-only mode (squash も branch 削除も発生しない)",
+      "提案 (b) post-squash commit 凍結 (Q1 で不採用)",
+      "merge 前の通常 commit (squash で base に取り込まれるため orphan ではない)",
+      "main repo 側の commit (cleanup 対象外)",
+      "旧 flow.json schema migration (alpha ポリシー)",
+      "recoveryOptions の自動実行 (envelope はオプション提示のみ)",
+      "stderr への recovery guidance 重複出力 (envelope を canonical に統一)"
+    ]
+  },
+  "impactOnExisting": [
+    "merge command — squash 完了時点の feature branch HEAD 取得経路を追加",
+    "finalize-merge command — squash baseline を後段に伝搬する戻り値拡張",
+    "registry — finalize-merge post hook で baseline と merge route 種別を flow state に永続化、finalize-cleanup エントリに新 flag を登録",
+    "finalize-cleanup command — args 検証・route 判定・orphan 検出・既存 teardown の段階構造を導入、新 flag ハンドリング、既存 report 添付を維持",
+    "finalize-cleanup skill prompt — orphan 検出時の AI 対応手順 (3 択提示 + autoApprove 例外)",
+    "flow state schema — baseline と merge route 種別の永続化",
+    "tests/unit/flow/ 配下に検出 / SHA 永続化 / CLI 登録 / skill prompt 応答のテストを追加",
+    "spec 251 の既存 transactional ordering / pre-merge dirty check / retry contract には介入しない"
+  ],
+  "qa": [
+    {
+      "question": "(a) orphan 検出 vs (b) commit 凍結 のどちらを採用するか? Issue 本文が示唆する『fix を main repo 側で実装する運用』との比較を含めて。",
+      "answer": "(a) cleanup-only detection を採用する。(b) は『main repo 側で fix する運用』前提だが、worktree-bound state を読む post-hook bug ではこの前提が成り立たないため不採用。",
+      "evidence": "src/flow/lib/run-finalize-cleanup.js:110 は無条件 `git branch -D` で検出ロジック皆無。spec 251 の現実シナリオでは post hook 内 specId 解決 bug が発火し、worktree の flow state を参照する fix を feature branch で commit する必要があった。仮に hook 設置型 freeze を実装しても user が `git commit --no-verify` で迂回可能で実効性が弱い。",
+      "why": "(a) は purely additive で clean ケースの挙動不変。(b) は実効性が弱いか副作用が大きい。検出は flag 設置の手間なしに副作用を排除できる。",
+      "considered": "(a)+(b) 併用 / hook 型 / flow-state freeze 型 全てを検討。検出があれば予防は冗長。"
+    },
+    {
+      "question": "orphan の判定要件は? 単純な SHA 比較は rebase / amend / force-update も検出してしまう。",
+      "answer": "history の書き換え状態 (amend / rebase / force-update) と通常の post-squash 追加とを区別できる判定方針とする。orphan の意味は『baseline から到達不能で branch 削除により失われる commit』とし、『base に含まれていない』という強い断定はしない (post-squash commit が別経路で base に cherry-pick 済の可能性を許容するため)。",
+      "evidence": "review 第1回 #1 / #8 / 第4回 #5 で false positive とメッセージ overclaim のリスクを指摘。`git merge-base --is-ancestor` のような ancestry check が標準的な判定手段として利用可能。",
+      "why": "history 書き換え状態は自動 rescue 不能のため別の halt 経路で扱い、通常の post-squash 追加と区別する必要がある。message wording を緩和することで『base に既に取り込まれているかも』という曖昧性を user に正直に伝える。",
+      "considered": "tree diff は空 commit / no-op merge を検知できない。timestamp 比較は同秒 commit / clock skew で fragile。patch-equivalence (`git cherry`) は squash で patch-id 不安定。"
+    },
+    {
+      "question": "squash baseline はいつの時点の状態を記録すべきか? pre-sync が feature branch を変える可能性に追従できるか?",
+      "answer": "記録される baseline は『実際に squash された対象』と一致する必要がある。pre-sync 後の state を記録対象とすることで、pre-sync が feature branch を進めた場合でも乖離しないことを要件とする。",
+      "evidence": "src/flow/commands/merge.js:260-291 の `runPreSync` は feature branch を rebase する処理で、成功時に feature HEAD は新しい SHA に進む。3 つの squash path が分岐するため timing の指定は path ごとに必要。",
+      "why": "review 第1回 #2 / 第2回 #6 / 第3回 #1 / 第4回 #4 全てが同じ問題を指摘。記録された状態は『実際に squash された対象』として一意に決まる必要がある。",
+      "considered": "execute 内で直接 flow state を書く案は責務分離を崩す。post 内で再取得する案は race window の弱点。冒頭 1 回取得は pre-sync rebase で stale 化。"
+    },
+    {
+      "question": "cleanup の検証・判定が既存 teardown と矛盾しないための要件は?",
+      "answer": "検出または検証で halt した場合は副作用を残さないこと (worktree/branch を保持し、step 状態や永続化先の更新が起きない)。これにより retry が clean に行え、user は手動対応の選択肢を保持する。",
+      "evidence": "src/flow/lib/run-finalize-cleanup.js:60-103 の transactional ordering R5 が teardown 順序を定義済。",
+      "why": "review 第4回 #3 で順序の曖昧性を指摘。副作用なし halt を要件として明示することで、内部順序の議論なしに retry semantics を保証できる。",
+      "considered": "halt 後も部分的に副作用を許容する案は retry semantics が壊れるため不採用。"
+    },
+    {
+      "question": "--auto-rescue と --force の CLI 契約 (default / 同時指定 / help)?",
+      "answer": "両 flag は default off とし、user が明示指定しない限り MVP の検出+halt 挙動を保つ。両者の同時指定は許可しない。help 出力に両 flag の説明を含める。",
+      "evidence": "src/flow/registry.js:148 で boolean flag の既存登録パターンを確認。command-level での argument 検証は src/flow/lib/run-finalize-commit.js:46 の preflight fail パターンで前例あり。",
+      "why": "review 第2回 #3 / 第3回 #2 指摘通り、dispatcher 拡張なしの最小実装で要件を満たす。両 flag default off は user が明示指定しない限り MVP 挙動を保つため。",
+      "considered": "registry の pre hook で検証する案は責務 (flow state 操作) と合わない。dispatcher schema 拡張は影響範囲が大きく本 spec のスコープを越える。"
+    },
+    {
+      "question": "PR route と spec-only mode は本検出の対象か? merge route 種別の記録欠落時の挙動は?",
+      "answer": "実行マトリクス: squash route → 検出実行、PR route → 検出スキップ + 通常 teardown 続行、spec-only → 既存早期 return、記録欠落 → halt (--force 明示時のみ通過)。記録欠落は『baseline の信頼性が無い』状態として halt し、user に明示判断を要求する (silent skip + delete は本機能の goal に反するため不可)。",
+      "evidence": "src/flow/lib/run-finalize-merge.js:23-33 で skip strategy は早期 return、squash strategy は default fallback。同 file:6-12 のコメント R19 で『PR route returns after PR creation and leaves the post-merge sub-steps for an out-of-process flow』と明記。",
+      "why": "review 第2回 #2 で PR route 手動 cleanup と baseline missing の衝突を指摘されたが、route 判定を baseline check より先に評価することで衝突解消。記録欠落の扱いは『silent skip + delete』を排除して本機能の goal を守る (review 第3回 #3 / 第4回 #1)。",
+      "considered": "全 route で一律検出は PR route で誤検知 100%。記録欠落を warning 通過は本機能の goal に反する。記録欠落を別 warning code として残すは挙動同一なので冗長。"
+    },
+    {
+      "question": "--auto-rescue が安全に成立する前提条件と失敗時の状態は?",
+      "answer": "auto-rescue は worktree のファイル状態を変更しないこと、共有リポジトリの dirty な状態を改変しないこと (CLAUDE.md `no-shared-repo-git-ops` 遵守)、競合発生時は worktree/branch を保持して user の手動対応に委ねること、重複適用は safe な no-op として扱うこと。",
+      "evidence": "src/flow/commands/merge.js:197-241 で worktree + baseBranch lock 時の既存処理が利用可能。`cherry-pick --skip` は git 標準コマンド。",
+      "why": "review 第2回 #4 で実行コンテキスト未指定問題を指摘、第4回 #11 で重複適用の扱いを指摘。auto-rescue が user の手動 fix と同じ安全条件を満たすことを要件として明示する。",
+      "considered": "stash 経由で dirty を一時退避する案は CLAUDE.md `no-shared-repo-git-ops` rule に違反。重複適用を fail 扱いは過剰反応。"
+    },
+    {
+      "question": "BASELINE 記録欠落時の安全な recovery 案内は? 単純に範囲指定 cherry-pick を案内すると重複適用や cherry-pick state 未消化のリスクがある。",
+      "answer": "user-facing 案内では feature branch を削除前に別名で退避し、commit 一覧の patch 内容を手動で確認した上で post-squash の fix のみを個別取り込む手順を示す。空 patch (重複適用) や conflict による cherry-pick state を user が解消する方法も併記する。範囲指定 cherry-pick の blind 適用や finalize-merge 再実行は推奨しない。",
+      "evidence": "review 第2回 #5 / 第3回 #4 / 第4回 #11 の累積指摘。`git cherry-pick --skip` / `--abort` は git 標準コマンド。`<baseBranch>..<featureBranch>` 範囲は squash 履歴非保存により squash 前の original commit も含むため重複適用リスクあり。",
+      "why": "alpha 期間中の旧 flow 互換は最小限にし、user に明示的な手動経路を強制する方が安全。範囲を archive 後の手動 patch 確認に切り替えることで squash 履歴非保存問題を回避。cherry-pick state 解消手順を明示することで user が混乱状態に陥るのを避ける。",
+      "considered": "finalize-merge 再実行を許可は黙って no-op 化で混乱。`git cherry` は patch-id ベースで squash には不安定。stderr 重複は machine-readable な envelope を canonical にすることで snapshot test 等を壊さない (review 第4回 #10)。"
+    },
+    {
+      "question": "テスト戦略の網羅範囲は (file 構成 / fixture / 記録欠落 / CLI 登録 / skill prompt)?",
+      "answer": "新規 4 系統のテストを用意する: 検出ロジック + flag 動作 (route × flag × 状態の主要セルを網羅)、squash baseline 永続化 (worktree squash / detached fallback / branch mode / pre-sync rebase / PR route / skip route)、CLI 引数登録 (registry / parser / help)、skill prompt 応答 (Choice Format 提示と autoApprove 例外)。fixture helper は既存パターンを流用する。",
+      "evidence": "tests/unit/flow/finalize-merge-retry.test.js:23-26 で `createTmpDir, setupFlow, makeFlowManager` import 済。tests/unit/flow/prompt-impl-finalize.test.js が既存 (skill prompt 検証 pattern)。",
+      "why": "review 第2回 #6 / 第3回 #9 / 第4回 #8 #9 を統合カバー。記録欠落のテストを Q6 の halt 統一に合わせて修正、CLI 登録 / skill prompt のテストを別 file で独立化。",
+      "considered": "agent test (tests/agent/) 経由は AI 介入のテストで本機能には不要 (CLI 完結機能 + skill prompt は既存 prompt-impl pattern で十分)。"
+    },
+    {
+      "question": "issue-log の audit 要件 (保存先 / 失敗時の状態 / 並行 retry / 記録要否)?",
+      "answer": "audit log は teardown 後も読み出せる場所に残ること、書き込み失敗時に並行追記下でも正確に巻き戻せること、auto-rescue 中断後の retry が log の存在によってブロックされないこと、削除強行と auto-rescue 中断は必須記録、純粋な validation/detection エラーは記録不要 (audit ノイズ削減)。",
+      "evidence": "src/flow/lib/set-issue-log.js:44 の `saveIssueLog` が永続化先を引数で受けられる構造。",
+      "why": "review 第3回 #6 / 第4回 #6 / #7 / #12 を要件として一体化。永続化先・rollback 整合性・dirty 干渉・per-code 必須範囲を全て要件レベルで明示することで、内部設計の議論なしに振る舞い境界を固定できる。",
+      "considered": "全 fail で必須記録は audit ノイズ増。teardown 対象に保存は消失する致命的問題。"
+    },
+    {
+      "question": "ORPHAN 検出時の user-facing 仕様? canonical channel は envelope か stderr か?",
+      "answer": "canonical channel は envelope のみ (stderr 重複は廃止)。message wording は『baseline から到達不能で branch 削除により失われる』として base 包含の強い断定を避ける。AI 側は skill prompt で 3 択を Choice Format で user に提示する。autoApprove=true でも本選択肢は必ず user に提示する (silent loss 防止のため例外)。",
+      "evidence": "Issue #316 本文に『user に cherry-pick / 中断 / 強制続行 の選択肢を提示』と明記。src/flow/prompts/impl/finalize-cleanup.md は skill 応答仕様の単一 source。既存 sdd-forge dispatcher は envelope を表示する設計。",
+      "why": "review 第3回 #7 / 第4回 #10 を解消。stderr 重複は snapshot test を壊すリスク + canonical channel 二重化で複雑度増。silent loss を防ぐため auto モード時も必ず user に確認させる例外を明記。",
+      "considered": "auto モードで cherry-pick を default 自動選択は conflict 時に再 user 介入が必要で実質 auto 化できない。auto モードで force を default 自動選択は silent loss 直結で本機能の goal に反する。"
+    },
+    {
+      "question": "envelope payload の per-code 要件 (status / data / report / issue-log mandatory)?",
+      "answer": "warning は既存 envelope の warn-level 規約に従う。Issue 要求の orphan commit list と recovery options を fail/warning に含める。全 success path で既存の finalize report 添付を維持し、fail path では添付不要。orphan commit 件数には上限を設け、超過時は明示する。issue-log の必須/不要は前 Q で定めた per-code 規則に従う。",
+      "evidence": "src/lib/flow-envelope.js:49-63 で `Envelope.warn` と `addWarning` の API 確認済。src/flow/lib/run-finalize-cleanup.js:40-47 の `attachReport` 既存実装。Issue 本文で payload 構造を要求。",
+      "why": "review 第2回 #1 / #7、第3回 #5、第4回 #1 / #12 を一体解消。recoveryOptions を全 fail/warning code に含めることで AI/user が次のアクションを envelope 単独で判断できる。issue-log を destructive action 限定にして audit ノイズを削減。",
+      "considered": "warning を data に入れる案は envelope schema 違反。記録欠落用に専用 warning を残す案は halt と挙動同一で冗長。全 fail で issue-log 必須は audit ノイズ増。"
+    },
+    {
+      "question": "flow state に新規追加する永続化情報は何か? その整合性要件は?",
+      "answer": "本機能は 2 種の永続化情報を必要とする: orphan 判定の baseline と、cleanup 時に検出を実行すべきかを判定するための merge route 種別。両者は cleanup の retry を跨いで保持されること、route 種別と baseline の値域が整合する (squash 成功時のみ baseline が値を持つ) ことを要件とする。",
+      "evidence": "src/flow/registry.js:556-568 の finalize-merge post hook が main repo flow.json への書き込み経路を提供。src/lib/flow-manager.js が flow state schema を管理。",
+      "why": "review 第4回 #2 で『複数 QA が schema 情報に依存しているのに schema 自体が定義されていない』と指摘。永続化情報を独立要件として固定することで、検出方針 (Q2)、route 判定 (Q6)、payload 規約 (Q11) の一貫性を保証する。",
+      "considered": "schema を分散して各 Q に埋め込む案は散逸して内部矛盾の温床になる。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-08T00:00:00Z",
+    "notes": "autoApprove (review 第1-4回 全対応 + gate fail (priority / scope-boundary) 対応; scope 不変)"
+  }
+}

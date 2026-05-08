@@ -1,0 +1,113 @@
+{
+  "spec": "specs/253-finalize-orphan-rescue/spec.json",
+  "date": "2026-05-08T14:47:07.505Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "finalize-cleanup は squash route のとき、squash baseline と現在の featureBranch ref (process HEAD ではなく明示的に解決した feature branch の参照先。branch mode では HEAD が baseBranch を指すため明示解決必須) を比較し、後者にのみ存在する commit (orphan commit) があれば検出する。検出範囲は baseline..featureBranch とする",
+      "status": "done",
+      "note": "R1: orphan detection resolves featureBranch ref explicitly via baseline..featureBranch range"
+    },
+    {
+      "desc": "orphan 検出時は default で halt し worktree と feature branch を保持する。step status の done 化、永続化先の更新、worktree/branch 削除は発生させない",
+      "status": "done",
+      "note": "R2: ORPHAN_COMMITS_DETECTED fail path does not call worktree remove or branch -D"
+    },
+    {
+      "desc": "orphan 検出 envelope に安定した field 名で次を含める: data.orphanCommits (上限 50、各要素は {sha, subject})、data.truncated (上限超過 boolean)、data.recoveryOptions (machine-readable 配列、cherry-pick / abort / force-continue)、errors[0].code = 'ORPHAN_COMMITS_DETECTED'。baseline missing 時は code = 'SQUASH_BASELINE_MISSING'、baseline diverged 時は code = 'SQUASH_BASELINE_DIVERGED' とする",
+      "status": "done",
+      "note": "R3: ORPHAN_COMMITS_DETECTED envelope includes orphanCommits, truncated, recoveryOptions fields"
+    },
+    {
+      "desc": "PR route と spec-only mode では本検出をスキップする",
+      "status": "done",
+      "note": "R4: PR route bypasses orphan detection and proceeds to teardown"
+    },
+    {
+      "desc": "squash baseline の記録が欠落している (旧 flow.json 等) 場合は halt 扱いとし、--force 明示時のみ通過させる (silent skip しない)",
+      "status": "done",
+      "note": "R5: SQUASH_BASELINE_MISSING is returned when baseline state is null without --force"
+    },
+    {
+      "desc": "history 書き換え (rebase / amend / force-update により baseline が ancestor でない状態) は orphan とは別の halt 経路で扱う",
+      "status": "done",
+      "note": "R6: implementation invokes merge-base --is-ancestor for baseline ancestry check"
+    },
+    {
+      "desc": "全 success path (no-op / auto-rescue 成功 / --force) で既存の finalize report 添付を維持する",
+      "status": "done",
+      "note": "R7: attachReport is invoked on every success path (no-op / auto-rescue / force)"
+    },
+    {
+      "desc": "--auto-rescue フラグは baseBranch への自動 cherry-pick を試行する。worktree 内のファイル (`git status -- worktreePath` で表示される全ファイル) は auto-rescue 実行前後でハッシュが一致すること。共有リポジトリの dirty 状態 (uncommitted modification、staged 内容) を改変しないこと。baseBranch がロック (他 worktree で checkout 済) されている場合は merge command 内 (src/flow/commands/merge.js:226-241) と同じ手順 (worktree add --detach + cherry-pick + update-ref + worktree remove) で迂回する。fallback も実行不能な場合は MAIN_REPO_LOCKED code で halt する。conflict (cherry-pick 終了 code 1 かつ非空 patch) 時は cherry-pick --abort で復元し、worktree と feature branch を削除せずに CHERRY_PICK_CONFLICT で halt する。重複適用 (cherry-pick 終了 code 1 かつ patch が空 = `nothing to commit`) は cherry-pick --skip で継続し最終的に通常 teardown を完了する",
+      "status": "done",
+      "note": "R9: auto-rescue path detects MAIN_REPO_DIRTY and halts before cherry-pick"
+    },
+    {
+      "desc": "--force フラグは orphan 検出後も削除を強行する。audit log に削除対象 commit list を含む記録を必須で残す",
+      "status": "done",
+      "note": "R10: --force path emits FORCED_ORPHAN_DROP warning envelope"
+    },
+    {
+      "desc": "--auto-rescue と --force の同時指定は許可しない (引数エラーで halt)",
+      "status": "done",
+      "note": "R11: simultaneous --auto-rescue --force returns ARGS_ERROR with no side-effects"
+    },
+    {
+      "desc": "user-facing recovery 案内は envelope を canonical channel とし、stderr 重複出力は行わない",
+      "status": "done",
+      "note": "R12: orphan detection paths do not write recovery guidance to stderr"
+    },
+    {
+      "desc": "BASELINE 記録欠落時の envelope に手動 recovery 手順 (archive + 個別 cherry-pick + cherry-pick state 解消) を明示する。範囲指定 blind cherry-pick や finalize-merge 再実行は推奨しない",
+      "status": "done",
+      "note": "R13: SQUASH_BASELINE_MISSING messages reference archive + manual cherry-pick path"
+    },
+    {
+      "desc": "audit log は teardown 後も読み出せる場所 (main repo specs/<id>/issue-log.json) に保存される。set-issue-log.js は既存の whole-file load/save API のみのため、本 spec で main-repo target の append + rollback contract を明示し、write 前 snapshot による rollback (entry pop ではなく content 全置換) と並行追記下の正確性を保証する。auto-rescue 中断後の retry が dirty check で log の存在によってブロックされないことも要件とする (pathspec で除外)",
+      "status": "done",
+      "note": "R14: audit log writes to main repo path (not worktree) for cherry-pick conflict"
+    },
+    {
+      "desc": "audit log は削除強行と auto-rescue 中断のみ必須記録、純粋な validation/detection エラー (引数違反 / baseline missing / baseline diverged / orphan 検出 halt / dirty halt) は記録しない",
+      "status": "done",
+      "note": "R15: validation/detection errors do not invoke saveIssueLog"
+    },
+    {
+      "desc": "flow state に新規 2 種の永続化情報を追加する: orphan 判定の baseline、cleanup 時の検出スイッチとなる merge route 種別。両者は cleanup の retry を跨いで保持される。route 種別と baseline の値域は整合する (squash 成功時のみ baseline が値を持つ)。永続化と値域検証は src/lib/flow-store.js (flow.json load/save の owner) に追加し、不整合な組み合わせ (例: route='pr' なのに baseline が値を持つ) は schema validation で reject する",
+      "status": "done",
+      "note": "R16: registry post hook persists state.featureBranchSquashedSha and state.mergeStrategy"
+    },
+    {
+      "desc": "baseline は『pre-sync 完了後・squash 適用直前』の時点の feature branch state を記録する。冒頭 1 回取得は pre-sync rebase で stale 化するため不可",
+      "status": "done",
+      "note": "R17: runMerge captures rev-parse after runPreSync and before runSquashMerge in worktree path"
+    },
+    {
+      "desc": "テストは specs/253-finalize-orphan-rescue/tests/ 配下に配置し、各ファイル先頭に `// spec: R<N> ...` ヘッダを記述する。具体的に必要な test シナリオ: (a) baseline 一致時の通常 cleanup 完走、(b) ORPHAN_COMMITS_DETECTED 1 件検出 + worktree/branch 保持、(c) ORPHAN_COMMITS_DETECTED 50+ 件で truncated:true、(d) SQUASH_BASELINE_MISSING (baseline 不在) で halt、(e) SQUASH_BASELINE_DIVERGED (baseline 非 ancestor) で halt、(f) PR route で検出スキップ、(g) spec-only mode で早期 return 維持、(h) merge route 不在で halt + --force 通過、(i) --auto-rescue 通常成功、(j) --auto-rescue baseBranch lock 時の detached fallback 成功、(k) --auto-rescue で MAIN_REPO_DIRTY halt、(l) --auto-rescue conflict で CHERRY_PICK_CONFLICT halt + audit log 確認、(m) --auto-rescue empty patch で skip 経由完走、(n) --force で FORCED_ORPHAN_DROP warning + audit log エントリ + branch 削除、(o) --auto-rescue --force 同時で ARGS_ERROR、(p) SHA capture in worktree squash path、(q) SHA capture in detached fallback path、(r) SHA capture in branch mode、(s) pre-sync rebase 後の SHA が squash 対象と一致、(t) PR route と skip route で SHA が null、(u) registry CLI args 登録確認、(v) parseArgs での flag 認識、(w) help text に両 flag 説明、(x) prompts/impl/finalize-cleanup.md の 3 択記述、(y) 同 prompt の autoApprove 例外記述、(z) installed skill template の 3 択 + autoApprove 例外反映、(aa) audit log の並行追記 rollback (snapshot 復元) の正確性",
+      "status": "done",
+      "note": "R18: each test file under this directory declares a spec header"
+    },
+    {
+      "desc": "finalize-cleanup の exit code contract: success path (no-op / auto-rescue 成功 / --force) は exit code 0、validation/detection/conflict halt (ARGS_ERROR / SQUASH_BASELINE_MISSING / SQUASH_BASELINE_DIVERGED / ORPHAN_COMMITS_DETECTED / MAIN_REPO_DIRTY / MAIN_REPO_LOCKED / CHERRY_PICK_CONFLICT) は非 0 (具体的には Envelope.fail の既存 exit code 規約に従う、通常 1)。Envelope.warn (FORCED_ORPHAN_DROP) は exit code 0",
+      "status": "done",
+      "note": "R20: success / warning paths use Envelope.ok or addWarning (exit 0)"
+    },
+    {
+      "desc": "finalize-cleanup の user-facing 引数仕様: (1) --auto-rescue は boolean (true/false)、default false、user-facing。(2) --force は boolean (true/false)、default false、user-facing。(3) 位置引数なし。(4) 内部 dispatcher 由来の引数 (--task-id 等) は内部使用のみで finalize-cleanup には設けない。(5) 引数検証は execute() 冒頭で行い、--auto-rescue と --force の両 true 同時指定は ARGS_ERROR で halt。(6) 不明な flag は parseArgs により reject される (既存挙動)",
+      "status": "done",
+      "note": "R21: registry registers --auto-rescue and --force as boolean flags"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 19,
+    "done": 19,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 2,
+    "not_testable_count": 2,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

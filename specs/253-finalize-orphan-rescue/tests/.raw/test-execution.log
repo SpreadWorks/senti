@@ -1,0 +1,81 @@
+▶ R9: --auto-rescue cherry-picks safely with proper preconditions
+  ✔ R9: auto-rescue path detects MAIN_REPO_DIRTY and halts before cherry-pick (3.943981ms)
+  ✔ R9: auto-rescue handles baseBranch lock with detached worktree fallback or MAIN_REPO_LOCKED (0.395922ms)
+  ✔ R9: cherry-pick conflict triggers --abort and CHERRY_PICK_CONFLICT halt (0.627843ms)
+  ✔ R9: empty patch (duplicate apply) is handled via cherry-pick --skip (0.348801ms)
+✔ R9: --auto-rescue cherry-picks safely with proper preconditions (8.878486ms)
+▶ R14: audit log durability and dirty-check exclusion
+  ✔ R14: audit log writes to main repo path (not worktree) for cherry-pick conflict (0.758244ms)
+  ✔ R14: dirty-check excludes issue-log.json via pathspec when retrying after conflict (0.656524ms)
+  ✔ R14: audit log rollback uses content snapshot (not entry pop) for concurrent safety (1.431527ms)
+✔ R14: audit log durability and dirty-check exclusion (3.645298ms)
+▶ R10: --force forces deletion with audit log
+  ✔ R10: --force path emits FORCED_ORPHAN_DROP warning envelope (1.96689ms)
+  ✔ R10: --force path proceeds to branch deletion (calls branch -D after warning) (0.597243ms)
+  ✔ R10: --force path persists audit log with droppedCommits metadata (0.828604ms)
+✔ R10: --force forces deletion with audit log (4.724944ms)
+▶ R15: per-code mandatory audit log policy
+  ✔ R15: validation/detection errors do not invoke saveIssueLog (0.609283ms)
+  ✔ R15: destructive paths (FORCED_ORPHAN_DROP, CHERRY_PICK_CONFLICT) write audit log (0.657403ms)
+✔ R15: per-code mandatory audit log policy (1.495248ms)
+▶ R18: spec tests are placed under specs/<spec>/tests/ with R-N headers
+  ✔ R18: each test file under this directory declares a spec header (1.711608ms)
+✔ R18: spec tests are placed under specs/<spec>/tests/ with R-N headers (2.816415ms)
+▶ R1: finalize-cleanup detects orphan commits using featureBranch ref (not process HEAD)
+  ✔ R1: orphan detection resolves featureBranch ref explicitly via baseline..featureBranch range (52.71899ms)
+✔ R1: finalize-cleanup detects orphan commits using featureBranch ref (not process HEAD) (53.139353ms)
+▶ R2: orphan detection halts default with worktree/branch retention
+  ✔ R2: ORPHAN_COMMITS_DETECTED fail path does not call worktree remove or branch -D (0.342642ms)
+✔ R2: orphan detection halts default with worktree/branch retention (0.509443ms)
+▶ R3: envelope payload schema for orphan detection codes
+  ✔ R3: ORPHAN_COMMITS_DETECTED envelope includes orphanCommits, truncated, recoveryOptions fields (0.422522ms)
+  ✔ R3: SQUASH_BASELINE_MISSING and SQUASH_BASELINE_DIVERGED codes are defined (0.628443ms)
+✔ R3: envelope payload schema for orphan detection codes (2.162171ms)
+▶ R6: ancestry check distinguishes orphan from history rewrite
+  ✔ R6: implementation invokes merge-base --is-ancestor for baseline ancestry check (0.557763ms)
+✔ R6: ancestry check distinguishes orphan from history rewrite (0.939565ms)
+▶ R7: success paths preserve finalize report attachment
+  ✔ R7: attachReport is invoked on every success path (no-op / auto-rescue / force) (0.390922ms)
+✔ R7: success paths preserve finalize report attachment (0.811364ms)
+▶ R12: envelope canonical channel without stderr duplication
+  ✔ R12: orphan detection paths do not write recovery guidance to stderr (0.466882ms)
+✔ R12: envelope canonical channel without stderr duplication (0.577403ms)
+▶ R13: BASELINE_MISSING envelope contains manual recovery guidance
+  ✔ R13: SQUASH_BASELINE_MISSING messages reference archive + manual cherry-pick path (0.781884ms)
+✔ R13: BASELINE_MISSING envelope contains manual recovery guidance (1.129765ms)
+▶ R4: PR route and spec-only mode skip orphan detection
+  ✔ R4: PR route bypasses orphan detection and proceeds to teardown (1.373967ms)
+  ✔ R4: spec-only mode (featureBranch===baseBranch) keeps existing early-return (0.582643ms)
+✔ R4: PR route and spec-only mode skip orphan detection (3.041136ms)
+▶ R5: missing squash baseline halts and only --force passes
+  ✔ R5: SQUASH_BASELINE_MISSING is returned when baseline state is null without --force (0.390722ms)
+✔ R5: missing squash baseline halts and only --force passes (0.594323ms)
+▶ R11: --auto-rescue and --force are mutually exclusive
+  ✔ R11: simultaneous --auto-rescue --force returns ARGS_ERROR with no side-effects (0.616763ms)
+✔ R11: --auto-rescue and --force are mutually exclusive (0.853525ms)
+▶ R20: exit code contract for finalize-cleanup
+  ✔ R20: success / warning paths use Envelope.ok or addWarning (exit 0) (0.679724ms)
+  ✔ R20: validation/detection halt paths use Envelope.fail (non-zero exit) (2.375332ms)
+✔ R20: exit code contract for finalize-cleanup (3.685579ms)
+▶ R21: user-facing argument validation for finalize-cleanup
+  ✔ R21: registry registers --auto-rescue and --force as boolean flags (0.517243ms)
+  ✔ R21: execute() validates flag combinations at entry point (0.419122ms)
+✔ R21: user-facing argument validation for finalize-cleanup (1.393488ms)
+▶ R16: flow state schema includes baseline and merge route
+  ✔ R16: registry post hook persists state.featureBranchSquashedSha and state.mergeStrategy (2.880335ms)
+  ✔ R16: schema validation rejects invalid route/baseline combinations (0.458843ms)
+✔ R16: flow state schema includes baseline and merge route (4.645704ms)
+▶ R17: baseline captured at pre-sync completion / squash apply boundary
+  ✔ R17: runMerge captures rev-parse after runPreSync and before runSquashMerge in worktree path (0.599563ms)
+  ✔ R17: runMerge return value carries mergedFromSha for downstream persistence (0.294041ms)
+  ✔ R17: run-finalize-merge propagates mergedFromSha to upper layers (0.560403ms)
+  ✔ R17: detached fallback path also captures baseline pre-squash (0.394762ms)
+✔ R17: baseline captured at pre-sync completion / squash apply boundary (2.397812ms)
+ℹ tests 35
+ℹ suites 19
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 566.119189

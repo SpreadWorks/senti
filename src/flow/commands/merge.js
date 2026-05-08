@@ -214,11 +214,17 @@ function runMerge(ctx) {
       throw err;
     }
 
+    // R17: capture squash baseline after runPreSync (which may have rebased feature HEAD)
+    // and before runSquashMerge, so the recorded SHA matches what is actually squashed.
+    const baselineRes = runGit(["-C", mainRepoPath, "rev-parse", featureBranch]);
+    assertOk(baselineRes, "failed to capture squash baseline (rev-parse featureBranch)");
+    const mergedFromSha = baselineRes.stdout.trim();
+
     const mergeHint = `Run 'git rebase ${baseBranch}' in the worktree and retry finalize.`;
     const checkoutRes = runGit(["-C", mainRepoPath, "checkout", baseBranch]);
     if (checkoutRes.ok) {
       runSquashMerge(["-C", mainRepoPath], mergeHint);
-      return { strategy: "squash" };
+      return { strategy: "squash", mergedFromSha };
     }
 
     // baseBranch is locked (e.g. checked out in another worktree) — fall back to
@@ -232,7 +238,7 @@ function runMerge(ctx) {
       assertOk(headRes, "failed to read HEAD of temporary worktree");
       const updateRes = runGit(["-C", mainRepoPath, "update-ref", `refs/heads/${baseBranch}`, headRes.stdout.trim()]);
       assertOk(updateRes, `failed to update ${baseBranch} ref`);
-      return { strategy: "squash" };
+      return { strategy: "squash", mergedFromSha };
     } finally {
       const removeRes = runGit(["-C", mainRepoPath, "worktree", "remove", "--force", tmpWorktree]);
       if (!removeRes.ok) {
@@ -242,10 +248,14 @@ function runMerge(ctx) {
   }
 
   // Branch mode
+  // R17: capture squash baseline before checkout so the recorded SHA matches the squash target.
+  const baselineRes = runGit(["rev-parse", featureBranch]);
+  assertOk(baselineRes, "failed to capture squash baseline (rev-parse featureBranch)");
+  const mergedFromSha = baselineRes.stdout.trim();
   const checkoutRes = runGit(["checkout", baseBranch]);
   assertOk(checkoutRes, "git checkout failed");
   runSquashMerge([], `Run 'git rebase ${baseBranch}' and retry finalize.`);
-  return { strategy: "squash" };
+  return { strategy: "squash", mergedFromSha };
 }
 
 /**

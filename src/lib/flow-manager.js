@@ -69,6 +69,7 @@ export class FlowManager {
   }
 
   updateStepStatus(stepId, status, opts) { return this._store.updateStepStatus(stepId, status, opts); }
+  setMergeOutcome(outcome, opts) { return this._store.setMergeOutcome(outcome, opts); }
   setTestSummary(summary, opts) { return this._store.setTestSummary(summary, opts); }
   setRequest(text) { return this._store.setRequest(text); }
   setIssue(issue) { return this._store.setIssue(issue); }

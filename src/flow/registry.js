@@ -561,6 +561,21 @@ export const FLOW_COMMANDS = {
         const targetFm = resolveMainRepoFlowManager(ctx);
         const opts = { specId: ctx.specId };
         tryUpdateStepStatus(targetFm, "finalize-merge", "done", opts);
+        // Spec 253 R16/R17: persist squash baseline + merge route on main repo
+        // flow.json so finalize-cleanup can detect orphan commits later.
+        // result.strategy is "squash" | "pr" | "skip"; "skip" means spec-only
+        // mode, which is treated as null route (no detection applies).
+        const strategy = result?.strategy === "skip" ? null : (result?.strategy ?? null);
+        const baseline =
+          strategy === "squash" ? (result?.mergedFromSha ?? null) : null;
+        try {
+          targetFm.setMergeOutcome(
+            { mergeStrategy: strategy, featureBranchSquashedSha: baseline },
+            opts,
+          );
+        } catch (err) {
+          process.stderr.write(`[sdd-forge] finalize-merge: setMergeOutcome failed: ${err.message}\n`);
+        }
         // R6: on retry success, reset any 'skipped' finalize-sync /
         // finalize-cleanup back to 'pending' so the dispatcher can promote
         // finalize-sync as the next leaf.
@@ -600,10 +615,22 @@ export const FLOW_COMMANDS = {
     "finalize-cleanup": {
       helpKey: "flow.run.finalize-cleanup",
       command: () => import("./lib/run-finalize-cleanup.js"),
+      args: { flags: ["--auto-rescue", "--force"] },
       help: [
-        "Usage: sdd-forge flow run finalize-cleanup",
+        "Usage: sdd-forge flow run finalize-cleanup [--auto-rescue | --force]",
         "",
         "Clear flow state, remove worktree/branch, write last-finalized-spec pointer.",
+        "",
+        "Spec 253 orphan commit handling (squash route only):",
+        "  --auto-rescue  Cherry-pick orphan commits onto baseBranch before deletion.",
+        "                 Aborts on conflict; halts on main repo dirty/locked.",
+        "  --force        Delete feature branch even if orphan commits exist.",
+        "                 Records the dropped commit list to issue-log.",
+        "  (no flag)      Detect orphan commits and halt (worktree/branch retained).",
+        "                 The user must re-run with --auto-rescue or --force, or",
+        "                 archive the branch and run --force after manual recovery.",
+        "",
+        "--auto-rescue and --force are mutually exclusive.",
       ].join("\n"),
       async post(ctx, result) {
         // The cleanup body owns the step transition (it must be done inside

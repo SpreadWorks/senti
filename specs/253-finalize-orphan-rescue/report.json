@@ -1,0 +1,74 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/253-finalize-orphan-rescue/draft-review.md   |  63 ++\n specs/253-finalize-orphan-rescue/draft.json        | 147 +++++\n specs/253-finalize-orphan-rescue/file-map.json     |  77 +++\n specs/253-finalize-orphan-rescue/flow.json         | 595 +++++++++++++++++++\n specs/253-finalize-orphan-rescue/issue-log.json    | 240 ++++++++\n specs/253-finalize-orphan-rescue/issue.md          |  60 ++\n specs/253-finalize-orphan-rescue/qa.md             |   9 +\n specs/253-finalize-orphan-rescue/spec-review.md    |  43 ++\n specs/253-finalize-orphan-rescue/spec.json         | 513 ++++++++++++++++\n specs/253-finalize-orphan-rescue/spec.md           |  58 ++\n .../tests/auto-rescue.test.js                      |  77 +++\n .../tests/force-flag.test.js                       |  77 +++\n .../tests/orphan-detection.test.js                 | 139 +++++\n .../tests/route-routing.test.js                    | 104 ++++\n .../tests/sha-capture.test.js                      |  91 +++\n specs/253-finalize-orphan-rescue/tests/spec.md     | 228 ++++++++\n src/flow/commands/merge.js                         |  16 +-\n src/flow/lib/run-finalize-cleanup.js               | 649 +++++++++++++++++++--\n src/flow/lib/run-finalize-merge.js                 |   8 +-\n src/flow/prompts/impl/finalize-cleanup.md          |  33 +-\n src/flow/registry.js                               |  29 +-\n src/lib/flow-manager.js                            |   1 +\n src/lib/flow-store.js                              |  35 ++\n src/templates/partials/core-principle.md           |   5 +\n src/templates/partials/worktree-mode.md            |   3 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |   1 +\n 26 files changed, 3238 insertions(+), 63 deletions(-)",
+      "commits": [
+        "feat: feature/253-finalize-orphan-rescue"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 4
+    },
+    "tokenMetrics": {
+      "input": 533296,
+      "output": 54656,
+      "cacheRead": 2733824,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 28,
+      "durationMs": 1531575,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 513279
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 137029
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 434985
+        },
+        {
+          "phase": "gate",
+          "durationMs": 53944
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 211125
+        },
+        {
+          "phase": "test-execute",
+          "durationMs": 25206
+        },
+        {
+          "phase": "test-result-review",
+          "durationMs": 25192
+        },
+        {
+          "phase": "review",
+          "durationMs": 80953
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 49862
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/253-finalize-orphan-rescue\n    26 files changed, 3238 insertions(+), 63 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 4\n    agent calls ................. 28\n    input tokens ................ 533,296\n    output tokens ............... 54,656\n    cache-read tokens ........... 2,733,824\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1531.6s\n      review-draft .............. 513.3s\n      gate-draft ................ 137.0s\n      review-spec ............... 435.0s\n      gate ...................... 53.9s\n      review-test ............... 211.1s\n      test-execute .............. 25.2s\n      test-result-review ........ 25.2s\n      review .................... 81.0s\n      gate-impl ................. 49.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

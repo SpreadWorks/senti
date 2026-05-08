@@ -11,6 +11,11 @@ Before presenting any choice to the user, you MUST run `sdd-forge flow get statu
 - Continue to the next step without waiting for user input only when `autoApprove: true`.
 - If a step fails (command error, gate FAIL, test failure), apply the retry limits defined in each skill. If the retry limit is reached, STOP and return control to the user.
 
+**autoApprove exceptions (MUST present to user even when `autoApprove: true`):**
+The following user-facing choices are explicit exceptions to the auto-select rule because silently picking `[1]` would risk irreversible loss:
+- `finalize-cleanup` orphan-commit recovery prompt (`ORPHAN_COMMITS_DETECTED`): always present the cherry-pick / abort / force-continue choice to the user. Do not auto-select. See `flow.run.finalize-cleanup` for details.
+- Any choice whose envelope error code begins with `SQUASH_BASELINE_` or `FORCED_ORPHAN_`: surface the recovery guidance verbatim and let the user decide.
+
 <!-- {{data("base.skills.rule", {id: "no-auto-mode-override-skill"})}} -->
 <!-- {{/data}} -->
 

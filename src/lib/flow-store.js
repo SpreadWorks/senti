@@ -280,6 +280,41 @@ export class FlowStore {
     };
   }
 
+  /**
+   * Spec 253 R16/R17: persist squash baseline SHA and merge route discriminator
+   * on the main repo flow.json after finalize-merge succeeds. Called from the
+   * registry post hook with explicit specId.
+   *
+   * Invariants enforced here:
+   *  - mergeStrategy ∈ {"squash", "pr", null}
+   *  - featureBranchSquashedSha is a non-empty string OR null
+   *  - if mergeStrategy !== "squash" then featureBranchSquashedSha must be null
+   */
+  setMergeOutcome({ mergeStrategy, featureBranchSquashedSha }, opts) {
+    const allowedStrategies = new Set(["squash", "pr", null]);
+    if (!allowedStrategies.has(mergeStrategy)) {
+      throw new Error(`invalid mergeStrategy: ${mergeStrategy}`);
+    }
+    if (
+      featureBranchSquashedSha !== null &&
+      (typeof featureBranchSquashedSha !== "string" || featureBranchSquashedSha.length === 0)
+    ) {
+      throw new Error(
+        `invalid featureBranchSquashedSha: must be non-empty string or null`,
+      );
+    }
+    if (mergeStrategy !== "squash" && featureBranchSquashedSha !== null) {
+      throw new Error(
+        `featureBranchSquashedSha must be null when mergeStrategy is ${mergeStrategy}`,
+      );
+    }
+    this.mutate((state) => {
+      if (!state.state || typeof state.state !== "object") state.state = {};
+      state.state.mergeStrategy = mergeStrategy;
+      state.state.featureBranchSquashedSha = featureBranchSquashedSha;
+    }, opts);
+  }
+
   saveFinalizedAt(specId, iso) {
     if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(iso)) {
       throw new Error(`invalid finalizedAt: expected ISO 8601 UTC (e.g. 2026-04-17T10:00:00.000Z), got ${iso}`);
