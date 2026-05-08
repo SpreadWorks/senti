@@ -85,11 +85,11 @@
     "merge": "squash"
   },
   "agent": {
-    "default": "claude/sonnet",
+    "default": "codex/gpt-5.5",
     "workDir": ".tmp",
     "timeout": 600,
     "retryCount": 2,
-    "useProfile": "default",
+    "useProfile": "codex",
     "providers": {
       "claude/sonnet": {
         "command": "claude",
@@ -140,7 +140,7 @@
       },
       "codex": {
         "docs": "codex/gpt-5.3",
-        "flow": "codex/gpt-5.3"
+        "flow": "codex/gpt-5.5"
       }
     }
   }
