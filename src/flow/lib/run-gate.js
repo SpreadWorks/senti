@@ -1105,24 +1105,52 @@ export function checkNoProgressSinceLastFail({ flowState, issueLog, phase, curre
 }
 
 // ---------------------------------------------------------------------------
-// Repeated-identical-FAIL escalation guard (spec 212)
+// Repeated-similar-FAIL escalation guard (spec 253; supersedes spec 212's
+// byte-equal comparison with word-set Jaccard similarity)
 // ---------------------------------------------------------------------------
 
+const STOPWORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "of", "in", "on", "at", "to", "for",
+  "by", "with", "from", "is", "are", "was", "were", "be", "been", "being",
+  "it", "this", "that", "these", "those", "as", "if", "than",
+]);
+
+const JACCARD_THRESHOLD = 0.5;
+
 /**
- * Normalize a reason string for identity comparison: trim, collapse any
- * consecutive whitespace to a single space, lowercase ASCII. Semantic
- * similarity (Levenshtein / embedding) is intentionally excluded — the
- * guard compares decision-level text produced by the same model with
- * matching inputs, so exact-after-normalization suffices (REQ-6).
+ * Tokenize and filter a reason string into a word set for Jaccard
+ * comparison. ASCII-only: non-word non-space non-hyphen characters are
+ * replaced with whitespace, so CJK and other non-ASCII text degrades to
+ * an English-keyword view. Hyphen is preserved inside tokens (e.g.
+ * "REQ-7" stays a single token). Tokens of length < 2 and pure
+ * punctuation tokens are dropped, then Tier-1 STOPWORDS are removed.
  */
-export function normalizeReason(text) {
-  if (text == null) return "";
-  return String(text).trim().replace(/\s+/g, " ").toLowerCase();
+export function normalize(text) {
+  if (text == null) return new Set();
+  const replaced = String(text).toLowerCase().replace(/[^\w\s-]/g, " ");
+  const tokens = replaced
+    .split(/\s+/)
+    .filter((t) => t.length >= 2 && /\w/.test(t) && !STOPWORDS.has(t));
+  return new Set(tokens);
+}
+
+/**
+ * Jaccard similarity of two word sets: |A ∩ B| / |A ∪ B|. Returns 0 when
+ * either set is empty (intentional deviation from the issue's pseudocode
+ * `union==0 ? 1`: empty reasons are AI-anomaly signals, not "same
+ * complaint" — escalating on empty-vs-empty would be a false positive).
+ */
+export function jaccard(a, b) {
+  if (a.size === 0 || b.size === 0) return 0;
+  let inter = 0;
+  for (const x of a) if (b.has(x)) inter++;
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
 }
 
 /**
  * Extract FAIL-only evaluations as `{ guardrail_id, reason }` pairs for
- * persistence in issue-log and for identity comparison. PASS / SKIP are
+ * persistence in issue-log and for similarity comparison. PASS / SKIP are
  * dropped.
  */
 export function buildFailedEvaluations(evaluations) {
@@ -1133,53 +1161,71 @@ export function buildFailedEvaluations(evaluations) {
 }
 
 /**
- * Return the most recent same-phase FAIL entry's `failedEvaluations`, or
- * null when no such entry exists. Legacy entries without the field are
- * skipped so pre-212 issue-logs cannot cause false matches.
+ * Return all prior same-phase FAIL entries' `failedEvaluations` flattened
+ * in chronological (oldest-first) order. Returns an empty array when no
+ * prior matching entries exist. Legacy entries without `failedEvaluations`
+ * are skipped so pre-212 issue-logs cannot cause false matches.
  */
 export function findPreviousFailedEvaluations({ issueLog, phase }) {
   const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
-  for (let i = entries.length - 1; i >= 0; i--) {
-    const e = entries[i];
-    if (e.phase !== phase) continue;
+  const flat = [];
+  for (const e of entries) {
+    if (!e || e.phase !== phase) continue;
     if (!Array.isArray(e.failedEvaluations) || e.failedEvaluations.length === 0) continue;
-    return e.failedEvaluations;
+    for (const fe of e.failedEvaluations) flat.push(fe);
   }
-  return null;
+  return flat;
 }
 
 /**
- * Throw `Error` with `err.code = "ESCALATE_REPEATED_FAIL"` when any FAIL
- * pair in the current evaluation matches a pair recorded in the previous
- * same-phase FAIL entry (guardrail_id exact match + normalized reason
- * exact match). The caller runs this after AI evaluation but before the
- * gateFail return, so the registry's POST-hook (which increments
- * `gateRetry`) never fires — retry budget is preserved (REQ-2).
+ * Throw `Error` with `err.code = "ESCALATE_REPEATED_FAIL"` when any
+ * current FAIL has Jaccard similarity ≥ JACCARD_THRESHOLD against at
+ * least one same-`guardrail_id` prior FAIL in the same phase. Per current
+ * FAIL we report only the single most-similar prior; ties are broken by
+ * scan order (oldest entry wins). The caller runs this after AI
+ * evaluation but before the gateFail return, so the registry's POST-hook
+ * (which increments `gateRetry`) never fires — retry budget is preserved.
  */
-function buildFailPairKey({ guardrail_id, reason }) {
-  return `${guardrail_id}|${normalizeReason(reason)}`;
-}
-
 export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations }) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) return;
   const current = buildFailedEvaluations(currentEvaluations);
   if (current.length === 0) return;
   const previous = findPreviousFailedEvaluations({ issueLog, phase });
-  if (!previous) return;
+  if (previous.length === 0) return;
 
-  const priorKeys = new Set(previous.map(buildFailPairKey));
-  const matched = current.filter((c) => priorKeys.has(buildFailPairKey(c)));
+  const matched = [];
+  for (const c of current) {
+    const currSet = normalize(c.reason);
+    let bestSim = -1;
+    let bestPrior = null;
+    for (const p of previous) {
+      if (p.guardrail_id !== c.guardrail_id) continue;
+      const sim = jaccard(currSet, normalize(p.reason));
+      if (sim > bestSim) {
+        bestSim = sim;
+        bestPrior = p;
+      }
+    }
+    if (bestPrior !== null && bestSim >= JACCARD_THRESHOLD) {
+      matched.push({
+        guardrail_id: c.guardrail_id,
+        currentReason: c.reason,
+        priorReason: bestPrior.reason,
+        similarity: bestSim,
+      });
+    }
+  }
   if (matched.length === 0) return;
 
   const detail = matched
-    .map((m) => `  ${m.guardrail_id}: ${m.reason}`)
+    .map((m) => `  ${m.guardrail_id} (jaccard=${m.similarity.toFixed(2)}): ${m.currentReason} ↔ ${m.priorReason}`)
     .join("\n");
   const msg = [
-    `gate-impl escalation: repeated identical FAIL detected for phase "${phase}".`,
-    "Matching (guardrail, reason) pairs:",
+    `gate-impl escalation: repeated similar FAIL detected for phase "${phase}".`,
+    "Matching (guardrail, similar prior reason) pairs:",
     detail,
     "",
-    "The AI has failed on the same requirement(s) for the same reason as the previous attempt.",
+    "The AI has failed on a semantically similar requirement to a previous attempt.",
     "Fix the spec wording or implementation so the failure mode changes, then retry.",
   ].join("\n");
   const err = new Error(msg);

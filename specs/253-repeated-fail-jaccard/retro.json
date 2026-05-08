@@ -1,0 +1,58 @@
+{
+  "spec": "specs/253-repeated-fail-jaccard/spec.json",
+  "date": "2026-05-08T14:38:24.095Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "src/flow/lib/run-gate.js に normalize(text) 関数を追加する。手順は (1) String(text).toLowerCase()、(2) replace(/[^\\w\\s-]/g, ' ')、(3) split(/\\s+/)、(4) token フィルタとして「length >= 2」かつ「token が word 文字を 1 つ以上含む (regex /[\\w]/.test(token) === true)」の両方を満たすもののみ採用 (これにより '---' のような punctuation-only / hyphen-only token を除外)、(5) STOPWORDS に含まれる token を除外、(6) Set<string> を返す。hyphen は token 内に保持する設計 (例: 'foo-bar' は単一 token、'REQ-7' は単一 token)。STOPWORDS は { a, an, the, and, or, but, of, in, on, at, to, for, by, with, from, is, are, was, were, be, been, being, it, this, that, these, those, as, if, than } の 30 語。normalize は named export する。",
+      "status": "done",
+      "note": "R1: normalize (basic, hyphen, punctuation, nullish, stopwords, length filter, meaning-bearing words)"
+    },
+    {
+      "desc": "src/flow/lib/run-gate.js に jaccard(a, b) 関数を追加する。a, b はいずれも Set<string>。a.size === 0 && b.size === 0 のときは 0 を返す (issue 擬似コードからの意図的逸脱)、それ以外は |A∩B| / |A∪B| を返す。raw float を返し丸めない。jaccard は named export する。",
+      "status": "done",
+      "note": "R2: jaccard (identical, disjoint, partial overlap, empty, raw float)"
+    },
+    {
+      "desc": "src/flow/lib/run-gate.js に内部定数 JACCARD_THRESHOLD = 0.5 を定義する (export しない、内部のみ参照)。",
+      "status": "done",
+      "note": "R3: JACCARD_THRESHOLD contract value 0.5 (boundary inclusive, below threshold passes)"
+    },
+    {
+      "desc": "src/flow/lib/run-gate.js の findPreviousFailedEvaluations({issueLog, phase}) を以下の挙動に変更する: issueLog.entries を登場順 (古い順) に走査、phase 一致かつ failedEvaluations が非空のエントリすべての failedEvaluations をその順で flatten した配列を返す (現行は最初に見つけた 1 件のみ)。failedEvaluations が無い/空の entry は対象外、phase 不一致は対象外。マッチが 1 件もないとき (issueLog なし / 同 phase entry なし / すべて legacy・空 entry) は空配列 [] を返す (null は返さない)。",
+      "status": "done",
+      "note": "R4: findPreviousFailedEvaluations flatten + empty array (chronological, skip empty, null issueLog)"
+    },
+    {
+      "desc": "src/flow/lib/run-gate.js の assertNoRepeatedFail({issueLog, phase, currentEvaluations}) を以下の挙動に変更する: (1) RETRY_TRACKED_PHASES 外なら no-op、(2) findPreviousFailedEvaluations から priorFails を取得、(3) 各 current FAIL に対し、priorFails のうち guardrail_id 一致のもの全件と jaccard(normalize(curr.reason), normalize(prior.reason)) を計算、(4) 最大類似度 maxSim を取得、同点は走査順で最初の prior を採用、(5) maxSim >= JACCARD_THRESHOLD なら {guardrail_id, currentReason, priorReason, similarity: maxSim} を matched[] に追加、(6) matched[] が非空なら Error を throw (err.code = 'ESCALATE_REPEATED_FAIL', err.data = {phase, matched})。matched[] の順序は current FAIL の登場順。",
+      "status": "done",
+      "note": "R5: assertNoRepeatedFail behavior (escalate, guardrail mismatch, RETRY phase no-op, oldest tie-break)"
+    },
+    {
+      "desc": "src/flow/lib/run-gate.js の assertNoRepeatedFail の error message を 'repeated similar FAIL' 系の文言に書き換え、各 match の guardrail_id / similarity (表示時 .toFixed(2)) / currentReason / priorReason を含める。message 文言の exact 一致は要求せず key substring (phase 値、'similar' / 'jaccard' 等のキーワード、guardrail_id) の存在で test する。",
+      "status": "done",
+      "note": "R6: escalation error message contains key information"
+    },
+    {
+      "desc": "src/flow/lib/run-gate.js から obsolete 関数 normalizeReason / buildFailPairKey を削除する (alpha 政策、利用箇所が全て本タスクで置き換え対象)。",
+      "status": "done",
+      "note": "R7: obsolete normalizeReason / buildFailPairKey are removed"
+    },
+    {
+      "desc": "tests/unit/flow/gate-repeat-escalate.test.js に synthetic fixture によるシナリオテストを追加する: (i) 高類似度ペア (例: 'Spec mandates deleting tests without user approval' 系を 3-5 件、いずれも jaccard >= 0.5 になるように設計) → assertNoRepeatedFail で escalate、(ii) 低類似度ペア (例: 異なる主題・語彙の reason 3-5 件、いずれも jaccard < 0.5) → escalate しない、(iii) 境界ペア (jaccard ちょうど 0.5 になる組) → escalate する。閾値 0.5 が正しく機能することを確認する目的。issue 本文の 11 ケースは閾値根拠の参考情報として spec 内に残すが、自動テスト fixture には組み込まない (issue 本文の数値は本実装の normalize 規則と乖離するため、機械的な回帰検知に使えない)。",
+      "status": "done",
+      "note": "R10: synthetic high/low/boundary similarity fixtures"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 2,
+    "not_testable_count": 2,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

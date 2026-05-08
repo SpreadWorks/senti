@@ -4,7 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import {
-  normalizeReason,
+  normalize,
+  jaccard,
   findPreviousFailedEvaluations,
   assertNoRepeatedFail,
   buildFailedEvaluations,
@@ -12,34 +13,35 @@ import {
 } from "../../../src/flow/lib/run-gate.js";
 
 // -----------------------------------------------------------------------------
-// spec 212: detect repeated identical FAIL in gate-impl and escalate
+// spec 253: detect repeated similar FAIL via word-set Jaccard similarity
 // -----------------------------------------------------------------------------
 
-describe("normalizeReason (REQ-6)", () => {
-  it("trims leading and trailing whitespace", () => {
-    assert.equal(normalizeReason("  hello  "), "hello");
+describe("normalize (spec 253)", () => {
+  it("lowercases and strips punctuation", () => {
+    const s = normalize("Hello, World!");
+    assert.deepEqual([...s].sort(), ["hello", "world"]);
   });
 
-  it("collapses consecutive whitespace into a single space", () => {
-    assert.equal(normalizeReason("foo   bar\t\tbaz\nqux"), "foo bar baz qux");
+  it("preserves hyphens within tokens, splits on slash", () => {
+    assert.deepEqual([...normalize("REQ-7/REQ-8")].sort(), ["req-7", "req-8"]);
   });
 
-  it("lowercases ASCII letters", () => {
-    assert.equal(normalizeReason("Foo BAR"), "foo bar");
+  it("returns empty Set for null / undefined / empty", () => {
+    assert.equal(normalize(null).size, 0);
+    assert.equal(normalize(undefined).size, 0);
+    assert.equal(normalize("").size, 0);
+  });
+});
+
+describe("jaccard (spec 253)", () => {
+  it("returns intersection / union for non-empty sets", () => {
+    const v = jaccard(new Set(["xx", "yy"]), new Set(["xx", "zz"]));
+    assert.ok(Math.abs(v - 1 / 3) < 1e-9);
   });
 
-  it("treats '  Foo Bar  ' and 'foo   bar' as equal after normalization", () => {
-    assert.equal(normalizeReason("  Foo Bar  "), normalizeReason("foo   bar"));
-  });
-
-  it("distinguishes different content (foo bar vs foo baz)", () => {
-    assert.notEqual(normalizeReason("foo bar"), normalizeReason("foo baz"));
-  });
-
-  it("returns empty string for empty / nullish input", () => {
-    assert.equal(normalizeReason(""), "");
-    assert.equal(normalizeReason(null), "");
-    assert.equal(normalizeReason(undefined), "");
+  it("returns 0 when either set is empty", () => {
+    assert.equal(jaccard(new Set(), new Set()), 0);
+    assert.equal(jaccard(new Set(["a"]), new Set()), 0);
   });
 });
 
@@ -70,10 +72,10 @@ describe("buildFailedEvaluations (REQ-4)", () => {
   });
 });
 
-describe("findPreviousFailedEvaluations (REQ-1 helper)", () => {
+describe("findPreviousFailedEvaluations (spec 253: flatten all prior)", () => {
   const phase = "task-impl";
 
-  it("returns the most recent FAIL entry's failedEvaluations for the same phase", () => {
+  it("flattens all same-phase failedEvaluations in chronological order", () => {
     const issueLog = {
       entries: [
         {
@@ -89,6 +91,7 @@ describe("findPreviousFailedEvaluations (REQ-1 helper)", () => {
       ],
     };
     assert.deepEqual(findPreviousFailedEvaluations({ issueLog, phase }), [
+      { guardrail_id: "old", reason: "old reason" },
       { guardrail_id: "new", reason: "new reason" },
     ]);
   });
@@ -113,18 +116,18 @@ describe("findPreviousFailedEvaluations (REQ-1 helper)", () => {
     ]);
   });
 
-  it("returns null when there is no prior entry with failedEvaluations for this phase", () => {
+  it("returns [] when there is no prior entry with failedEvaluations for this phase", () => {
     const issueLog = {
       entries: [
         { step: "gate-impl", phase, reason: "legacy fail without field" },
       ],
     };
-    assert.equal(findPreviousFailedEvaluations({ issueLog, phase }), null);
+    assert.deepEqual(findPreviousFailedEvaluations({ issueLog, phase }), []);
   });
 
-  it("returns null for an empty issue-log", () => {
-    assert.equal(findPreviousFailedEvaluations({ issueLog: { entries: [] }, phase }), null);
-    assert.equal(findPreviousFailedEvaluations({ issueLog: null, phase }), null);
+  it("returns [] for an empty / null issue-log", () => {
+    assert.deepEqual(findPreviousFailedEvaluations({ issueLog: { entries: [] }, phase }), []);
+    assert.deepEqual(findPreviousFailedEvaluations({ issueLog: null, phase }), []);
   });
 });
 

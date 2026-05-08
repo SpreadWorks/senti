@@ -1,0 +1,86 @@
+{
+  "devType": "feature",
+  "goal": "重複 FAIL 検出を、現行の文字列完全一致から「同じ guardrail で意味的に類似した reason」を検出する方式に変更し、AI 生成 reason の wording 揺れに対しても escalation が機能するようにする。",
+  "analysis": {
+    "problem": "現行の重複 FAIL 検出は reason 文字列の完全一致比較。AI 生成 reason は iter ごとに wording が微妙に揺れるため、人間には同じ指摘でも escalate せず retry budget を最大 5 iter まで浪費する。これによりもぐら叩きループ対策（dbf7 / b808 / 44e2 系）の主目的が満たされない。",
+    "proposedApproach": "比較を「reason の意味的類似度」ベースに置き換え、類似度が指定の閾値（0.4）以上で escalate する。issue 本文の根拠データから決まる固定値を使う。外部依存の追加は禁止。",
+    "validation": "issue 本文の閾値根拠データで A 群（同問題の言い換え 6 件）が全て 0.41 以上、B 群（もぐら叩き 5 件）が全て 0.37 以下と分布し、0.4 で明確に分離する。新方式は wording 揺れを吸収しつつ、もぐら叩き型の正常 retry を阻害しない。Issue の主問題に root レベルで対応する。"
+  },
+  "scopeVerification": {
+    "in": [
+      "重複 FAIL 検出の比較方式を文字列完全一致から意味的類似度に変更",
+      "比較対象の範囲を、過去の同 phase FAIL すべてに広げる",
+      "閾値 0.4 を escalation の境界として採用",
+      "guardrail 識別子の完全一致を escalate の必要条件として保持",
+      "既存の重複 FAIL 検出ユニットテストの更新",
+      "issue 本文の 11 ケースを fixture として組み込み、A 群 / B 群分離を回帰検知"
+    ],
+    "out": [
+      "もぐら叩き型ループ対策（dbf7 / b808 / 44e2 系）の追加・改修",
+      "acknowledged exception 機構の改修",
+      "高度な意味類似度（Levenshtein / embedding 等）",
+      "閾値の動的設定",
+      "重複 FAIL 検出対象の phase 範囲変更",
+      "issue-log 永続スキーマの変更",
+      "外部依存の追加",
+      "非 ASCII 文字の本格対応"
+    ]
+  },
+  "priorities": {
+    "must": [
+      "重複 FAIL 検出を意味的類似度ベースに変更",
+      "比較対象を過去の同 phase FAIL すべてに広げる",
+      "閾値 0.4 で escalate 判定",
+      "guardrail 識別子の完全一致を必要条件として保持"
+    ],
+    "should": [
+      "issue 本文の 11 ケースを fixture として組み込み、A 群 / B 群分離を回帰検知"
+    ],
+    "niceToHave": [
+      "閾値判定の境界値の test 追加"
+    ]
+  },
+  "impactOnExisting": [
+    "重複 FAIL escalation を担う既存ロジックの判定部分が置き換えられる",
+    "重複 FAIL を検証する既存ユニットテストが更新される",
+    "重複 FAIL の判定挙動の変化により、極端に短い差分のみで passing していた既存 spec ローカルテストの fixture が更新される",
+    "重複 FAIL escalation の外部観測点（error 識別）は既存どおり維持される",
+    "issue-log 永続データには影響なし"
+  ],
+  "qa": [
+    {
+      "question": "比較対象を過去の同 phase FAIL すべてに広げるか、現状どおり直近 1 件のみに留めるか。",
+      "answer": "過去すべての同 phase FAIL に広げる。",
+      "evidence": "issue #313 本文「判定範囲: 直前との比較ではなく、過去の同 phase FAIL すべてとの最大類似度が閾値超で escalate」。",
+      "why": "iter ごとに wording が少しずつ離れるパターンで、直近 1 件比較だと類似度が漸減して逃げ切られる。広げれば遠距離 iter 比較もカバーできる。",
+      "considered": "直近 1 件のみ（既存スコープ維持）: 範囲は最小だが wording drift で漏れる。"
+    },
+    {
+      "question": "guardrail 識別子の一致は escalate の必要条件か？",
+      "answer": "必要条件。識別子が完全一致しない場合は wording がどれだけ似ていても escalate しない。",
+      "evidence": "issue #313 本文で「(guardrail_id 一致 AND jaccard(...) >= 0.4)」と AND 条件を明示。",
+      "why": "別 guardrail で類似 wording の reason が異なる根本原因に対して出されることがある。識別子一致を必須にしないと、関係ない別問題で escalate して正常な retry を阻害する。",
+      "considered": "識別子不一致でも高類似度なら警告: 誤検知リスクが高い。"
+    },
+    {
+      "question": "閾値の境界判定: 類似度ちょうど 0.4 のとき escalate するか？",
+      "answer": "境界含む（>= 0.4 で escalate）。",
+      "evidence": "issue #313 本文の擬似コードで `>= 0.4` を明示。",
+      "why": "閾値設計データで A 群最低 0.41 / B 群最高 0.37 のため、0.4 ちょうどは実測ではほぼ起きない。issue 著者の意図が境界含むことが擬似コードから明確。",
+      "considered": "境界除外（> 0.4）: issue 擬似コードと不一致。"
+    },
+    {
+      "question": "テスト fixture は何を採用するか？",
+      "answer": "issue 本文に列挙された 11 ケース（A 群 6 / B 群 5）を採用。各 fixture は当該 spec の issue-log の reason 列をそのまま使う。",
+      "evidence": "issue 本文の閾値根拠は spec 群の issue-log を全数解析した結果。同じ source を fixture 化することで spec/test と issue 著者の根拠データを一致させる。",
+      "why": "閾値の妥当性根拠を spec で固定しないと、後の調整で根拠が崩れる回帰を検知できない。",
+      "considered": "人工的代表ケースのみ: 閾値設計の根拠を spec で担保できない。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-08T13:13:00.000Z",
+    "notes": "User-directed force-PASS after draft review reached maxAttempts. Detailed design (algorithm, normalization, error payload, helper APIs, deletion targets) moved to spec phase per draft-scope-boundary."
+  }
+}

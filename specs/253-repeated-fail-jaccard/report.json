@@ -1,0 +1,74 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../tests/plan-phase-gate-guards.test.js           |   7 +-\n specs/253-repeated-fail-jaccard/draft-review.md    |  38 ++\n specs/253-repeated-fail-jaccard/draft.json         |  86 +++\n specs/253-repeated-fail-jaccard/flow.json          | 693 +++++++++++++++++++++\n specs/253-repeated-fail-jaccard/issue-log.json     | 287 +++++++++\n specs/253-repeated-fail-jaccard/issue.md           | 170 +++++\n specs/253-repeated-fail-jaccard/qa.md              |   9 +\n specs/253-repeated-fail-jaccard/spec-review.md     |  28 +\n specs/253-repeated-fail-jaccard/spec.json          | 403 ++++++++++++\n specs/253-repeated-fail-jaccard/spec.md            | 180 ++++++\n specs/253-repeated-fail-jaccard/tasks/T-1.md       |  21 +\n specs/253-repeated-fail-jaccard/tasks/T-2.md       |  19 +\n specs/253-repeated-fail-jaccard/tasks/T-3.md       |  21 +\n specs/253-repeated-fail-jaccard/tasks/T-4.md       |  18 +\n specs/253-repeated-fail-jaccard/tasks/T-4b.md      |  18 +\n specs/253-repeated-fail-jaccard/tasks/T-5.md       |  21 +\n specs/253-repeated-fail-jaccard/tasks/T-5b.md      |  21 +\n specs/253-repeated-fail-jaccard/tasks/T-6.md       |  19 +\n specs/253-repeated-fail-jaccard/tasks/T-7.md       |  19 +\n .../tests/253-jaccard.test.js                      | 453 ++++++++++++++\n specs/253-repeated-fail-jaccard/tests/spec.md      | 173 +++++\n src/flow/lib/run-gate.js                           | 118 ++--\n tests/unit/flow/gate-repeat-escalate.test.js       |  55 +-\n 23 files changed, 2813 insertions(+), 64 deletions(-)",
+      "commits": [
+        "feat: feature/253-repeated-fail-jaccard"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 5,
+      "issueLog": 9
+    },
+    "tokenMetrics": {
+      "input": 794687,
+      "output": 65700,
+      "cacheRead": 4028800,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 26,
+      "durationMs": 1671858,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 22430
+        },
+        {
+          "phase": "review-draft",
+          "durationMs": 409531
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 128524
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 815680
+        },
+        {
+          "phase": "gate",
+          "durationMs": 104387
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 112208
+        },
+        {
+          "phase": "test-execute",
+          "durationMs": 24052
+        },
+        {
+          "phase": "test-result-review",
+          "durationMs": 26503
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 28543
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/253-repeated-fail-jaccard\n    23 files changed, 2813 insertions(+), 64 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 5\n    issue-log ................... 9\n    agent calls ................. 26\n    input tokens ................ 794,687\n    output tokens ............... 65,700\n    cache-read tokens ........... 4,028,800\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1671.9s\n      draft ..................... 22.4s\n      review-draft .............. 409.5s\n      gate-draft ................ 128.5s\n      review-spec ............... 815.7s\n      gate ...................... 104.4s\n      review-test ............... 112.2s\n      test-execute .............. 24.1s\n      test-result-review ........ 26.5s\n      gate-impl ................. 28.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

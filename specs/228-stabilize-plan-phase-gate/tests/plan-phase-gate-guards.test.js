@@ -155,16 +155,19 @@ describe("REQ-3: repeated-fail detection for plan phase", () => {
   });
 
   it("assertNoRepeatedFail does not throw for spec phase with different reason", () => {
+    // Updated for spec 253 (Jaccard similarity): single-letter differences ('A' vs 'B')
+    // would normalize to identical {'reason'} sets and erroneously escalate.
+    // Use distinct meaningful words so similarity stays below the 0.5 threshold.
     const issueLog = {
       entries: [
         {
           step: "gate", phase: "spec",
-          failedEvaluations: [{ guardrail_id: "g1", reason: "reason A" }],
+          failedEvaluations: [{ guardrail_id: "g1", reason: "critical infra blocker fails on rollback path" }],
         },
       ],
     };
     const currentEvaluations = [
-      { guardrail_id: "g1", result: "fail", reason: "reason B" },
+      { guardrail_id: "g1", result: "fail", reason: "unrelated coverage gap detected during routing review" },
     ];
     assertNoRepeatedFail({ issueLog, phase: "spec", currentEvaluations });
   });
