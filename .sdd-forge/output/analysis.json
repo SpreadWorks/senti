@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-08T09:02:07.105Z",
+  "analyzedAt": "2026-05-08T14:38:45.200Z",
   "package": {
     "entries": [
       {
@@ -4028,9 +4028,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "9a04bc713043d163e0fdbf22cd15328c",
-        "lines": 1962,
-        "mtime": "2026-05-08T09:01:53.208Z",
+        "hash": "3ff3c321551ec0a2898c8dde69219bc5",
+        "lines": 2008,
+        "mtime": "2026-05-08T14:38:41.346Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4047,7 +4047,8 @@
           "computeGitState",
           "findPreviousFailState",
           "checkNoProgressSinceLastFail",
-          "normalizeReason",
+          "normalize",
+          "jaccard",
           "buildFailedEvaluations",
           "findPreviousFailedEvaluations",
           "assertNoRepeatedFail",
@@ -4078,7 +4079,6 @@
           "formatRetryHistory",
           "appendGateEscalationIssueLog",
           "findPreviousFailEntry",
-          "buildFailPairKey",
           "buildImplCheckPrompt",
           "buildPerRequirementDiffs",
           "extractRequirementIds",
@@ -4125,7 +4125,8 @@
           "computeGitState",
           "findPreviousFailState",
           "checkNoProgressSinceLastFail",
-          "normalizeReason",
+          "normalize",
+          "jaccard",
           "buildFailedEvaluations",
           "findPreviousFailedEvaluations",
           "assertNoRepeatedFail",
@@ -4153,7 +4154,27 @@
         "usedBy": [
           "src/flow/lib/set-gate-retry.js"
         ],
-        "id": "b4aa4dad"
+        "id": "b4aa4dad",
+        "summary": "Implements the gate evaluation engine that validates artifacts against guardrails using AI evaluation, manages retry budgets, and detects no-progress/repeated-fail conditions across SDD flow phases.",
+        "detail": "Defines RunGateCommand which dispatches to phase-specific executors (draft, spec, task-spec, diff-based) and orchestrates guardrail checking via PromptBuilder + AI agents. Includes parseEvaluationResponse with strict JSON schema validation (EvaluationSchemaError), buildGateReport, and gatePass/gateFail result builders. Manages retry tracking via issue-log entries (countGateRetry, resolveRetryMax, warnGateRetryBudget) and computes git state (HEAD sha + worktree hash) to detect no-progress retries via Jaccard similarity on failed evaluations. Collects per-file diffs (committed/uncommitted/untracked) for diff-scoped phases, reconciles req-map file mappings, and validates integration test artifacts. Applies flip-override logic to preserve previously-passed guardrails on identical content.",
+        "chapter": "internal_design",
+        "role": "flow-gate-engine",
+        "enrich": {
+          "processedAt": "2026-05-08T14:39:07.219Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "gate",
+          "guardrail",
+          "evaluation",
+          "retry budget",
+          "issue log",
+          "diff scope",
+          "AI evaluation",
+          "Jaccard similarity",
+          "flip override",
+          "no-progress detection"
+        ]
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -6847,9 +6868,9 @@
       },
       {
         "file": "src/lib/provider.js",
-        "hash": "1a99cf19603a360dd896e8a1fd34bb08",
+        "hash": "b079bfc9248cce5fb056c72cc10fb4d9",
         "lines": 221,
-        "mtime": "2026-05-01T02:54:14.263Z",
+        "mtime": "2026-05-08T12:21:29.148Z",
         "className": "provider",
         "methods": [],
         "imports": [],
@@ -6866,24 +6887,24 @@
           "src/lib/container.js"
         ],
         "id": "0e966da6",
-        "summary": "Provider abstraction defining the contract for AI CLI integrations with concrete Claude, Codex, and User provider subclasses plus a registry.",
-        "detail": "Base `Provider` class declares `parse(stdout)` (must be overridden), `systemPromptFlag()`, and `workDirFlag()` returning null by default. `ClaudeProvider` parses Claude CLI's array envelope to extract the `result` event with structured output handling and exposes `--system-prompt`. `CodexProvider` parses line-delimited JSON events and uses `-C` for work directory. `UserProvider` is a passthrough returning raw stdout, configurable via profile flags. `ProviderRegistry` merges built-in and user-defined profiles, resolves `(provider, profile)` pairs by name, and lists available profile keys.",
+        "summary": "Defines the Provider abstraction and concrete implementations (Claude, Codex, User) that adapt different AI CLIs into a unified parse/invoke interface, plus a ProviderRegistry for profile resolution.",
+        "detail": "Provider is an abstract base requiring parse() implementation. ClaudeProvider parses JSON envelope arrays looking for the 'result' event and serializes structured_output. CodexProvider parses line-delimited JSON events. UserProvider returns stdout as plain text without parsing. Each provider exposes systemPromptFlag and workDirFlag for CLI argument shaping. ProviderRegistry merges profiles and resolves a (provider, profile) pair by name for downstream invocation.",
         "chapter": "internal_design",
-        "role": "AI provider abstraction",
+        "role": "provider-adapter",
         "enrich": {
-          "processedAt": "2026-05-01T02:55:29.411Z",
+          "processedAt": "2026-05-08T14:39:07.219Z",
           "attempts": 1
         },
         "keywords": [
           "provider",
-          "Claude",
-          "Codex",
-          "User provider",
+          "Claude CLI",
+          "Codex CLI",
           "registry",
+          "profile",
+          "JSON envelope",
           "stdout parsing",
           "system prompt flag",
-          "work dir flag",
-          "profile"
+          "AI adapter"
         ]
       },
       {
@@ -7073,7 +7094,26 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "e288cfbd"
+        "id": "e288cfbd",
+        "summary": "Provides loading, saving, validation, and querying utilities for spec.json files, the structured representation of SDD specifications.",
+        "detail": "resolveSpecJsonPath and resolveSpecDir normalize input paths (file or directory) to canonical spec.json locations. loadSpecJson/saveSpecJson run JSON schema validation against a cached schema and throw descriptive errors on parse or validation failure. Helpers like normalizeRequirements default missing status to 'pending', enumerateUsableRequirementIds collects requirement IDs, and updateSpecRequirementStatus mutates a single requirement by index with bounds checking. specJsonToPromptText renders a spec into plain-text prompt form, and emptySpecStub returns a blank scaffold.",
+        "chapter": "internal_design",
+        "role": "spec-json-io",
+        "enrich": {
+          "processedAt": "2026-05-08T14:39:07.219Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "spec.json",
+          "schema validation",
+          "requirements",
+          "load",
+          "save",
+          "normalize",
+          "prompt rendering",
+          "JSON schema",
+          "spec stub"
+        ]
       },
       {
         "file": "src/lib/types.js",
@@ -10293,5 +10333,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-08T07:46:01.311Z"
+  "enrichedAt": "2026-05-08T14:39:07.219Z"
 }
