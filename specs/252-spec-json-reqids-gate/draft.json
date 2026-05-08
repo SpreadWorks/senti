@@ -1,0 +1,59 @@
+{
+  "devType": "bugfix",
+  "goal": "Fix the implementation gate so requirement IDs are enumerated from spec.json whether file-map.json is absent or present, falling back to spec.md only when spec.json cannot be loaded or no requirement IDs are defined.",
+  "analysis": {
+    "problem": "The task-impl gate currently reads spec.json requirement IDs only when file-map.json exists. Specs without file-map.json can incorrectly fall back to REQ-SPEC extracted from spec.md, even though spec.json contains concrete requirement IDs.",
+    "proposedApproach": "Make spec.json the priority source for task-impl requirement IDs regardless of file-map.json presence. Preserve the existing spec.md extraction as a last fallback when spec.json cannot supply requirement IDs. Update gate-impl e2e coverage for the spec.json-priority path with file-map.json absent and present, plus fallback paths.",
+    "validation": "This addresses the root problem because file-map.json is only needed for per-requirement diff splitting, not for requirement ID enumeration. Testing both file-map absent and present proves the source selection is independent of file-map presence. Additional fallback regression coverage ensures the retained spec.md fallback still works when spec.json cannot be loaded or no requirements are defined."
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] task-impl requirement ID enumeration uses spec.json requirements when available",
+      "[must] spec.json requirement ID enumeration is independent of file-map.json presence",
+      "[must] spec.md requirement marker extraction remains the fallback when spec.json cannot supply requirement IDs",
+      "[must] e2e coverage verifies spec.json-priority behavior with file-map.json absent and present",
+      "[should] fallback regression coverage verifies spec.md markers are used when spec.json cannot supply IDs"
+    ],
+    "out": [
+      "[must not] per-requirement diff splitting semantics driven by file-map.json",
+      "[must not] guardrail prompt schema or evaluation parsing behavior",
+      "[must not] removal of the spec.md regex fallback",
+      "[must not] new validation policy for malformed requirement entries"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] task-impl gate requirement evaluation will use concrete spec.json requirement IDs for specs with or without file-map.json",
+    "[must] e2e tests will use fixture cases that reach AI requirement evaluation without --skip-guardrail so R1 from spec.json passes and stale REQ-SPEC responses fail",
+    "[should] fallback tests will confirm spec.md requirement markers are still used when spec.json cannot be loaded or requirements is missing/empty",
+    "[should] tests/helpers/stub-agent.js default task-impl PASS response may need to match the new fixture expectation"
+  ],
+  "qa": [
+    {
+      "question": "テスト方針をどれにしますか？",
+      "answer": "[must] AI requirement-evaluation path に到達する新しい/更新済み e2e ケースで、file-map.json が存在しない fixture と存在する fixture の両方を検証する。どちらも spec.json に R1 を置き、spec.md 側には stale marker **REQ-SPEC** を置く。R1 response は通り、REQ-SPEC response は unknown guardrail_id として拒否されることを確認する。",
+      "evidence": "tests/e2e/flow/gate-impl-integration.test.js minimalSpecJson() includes requirements [{ id: \"R1\" }] and setupFixture does not create file-map.json unless a new variant adds it. src/flow/lib/run-gate.js extractRequirementIds reads **REQ-...** markers from spec.md, and parseEvaluationResponse rejects guardrail_id values outside knownIds.",
+      "why": "The existing fixture already represents the no-file-map regression condition. Adding the file-map-present variant proves the same source selection holds regardless of file-map.json presence. Explicit stale-REQ-SPEC rejection proves reqIds came from spec.json rather than spec.md fallback.",
+      "considered": "Updating only --skip-guardrail cases would not exercise requirement evaluation. Reusing the current R3 case was rejected because retry-limit checks stop before AI evaluation. Testing detailed diff splitting was rejected because it belongs to the file-map concern, not Issue #312."
+    },
+    {
+      "question": "source selection 契約と非対象範囲をどう定義しますか？",
+      "answer": "[must] task-impl gate は file-map.json の有無に関係なく、利用可能な spec.json requirements ID を優先する。[must] spec.json ファイル未作成、JSON parse failure、requirements 未定義、requirements 空配列では spec.md regex fallback を使う。[must not] requirements 配列内に id 欠落/空文字などの malformed entry がある場合の新規補正や validation は対象外にする。[must not] file-map.json は per-requirement diff splitting 以外の source selection 条件にしない。[must not] spec.md fallback は廃止しない。",
+      "evidence": "Issue #312 says file-map.json is only needed for per-requirement diff splitting and regex fallback remains as a last resort. src/flow/lib/run-gate.js currently wraps loadSpecJson(absSpecPath, { validate: false }) in try/catch and falls back to extractRequirementIds(specText) when reqIds is unset or empty. src/lib/spec-json.js loadSpecJson throws when spec.json is missing or JSON parsing fails.",
+      "why": "The root defect is the hasFileMap guard around spec.json ID enumeration. The acceptance condition is that reqIds are loaded from spec.json in both file-map absent and present cases, while per-requirement diff splitting still depends on file-map.json.",
+      "considered": "Expanding into file-map diff splitting was rejected as a separate concern. Removing spec.md fallback was rejected because the Issue explicitly keeps it as a last resort. Treating malformed requirement entries as fallback was rejected because it adds new validation behavior outside this Issue."
+    },
+    {
+      "question": "fallback regression のテスト要件を追加しますか？",
+      "answer": "[should] missing と empty を両方追加する。spec.json が未作成、JSON parse failure、requirements 未定義、requirements 空配列の場合に、spec.md の **REQ-...** marker から reqIds が作られ、その ID の AI response が pass することを検証する。[must not] requirements 配列内の malformed entry はこの fallback regression の対象にしない。",
+      "evidence": "src/lib/spec-json.js loadSpecJson throws when spec.json is missing or JSON parsing fails. src/flow/lib/run-gate.js catches loadSpecJson errors during reqId resolution and falls back when reqIds is unset or empty. extractRequirementIds(specText) returns marker IDs from spec.md, or REQ-SPEC only when no marker IDs exist.",
+      "why": "The Issue explicitly preserves spec.md fallback as a last resort. Naming each fallback condition preserves current missing/parse-error and empty-requirements behavior without adding new malformed-entry handling.",
+      "considered": "Testing only empty requirements would leave the loadSpecJson throw path unprotected. Adding malformed-entry fallback was rejected because it would be a new validation policy."
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-08T02:56:00.000Z",
+    "notes": "User confirmed test migration, scope boundary, fallback contract, and manual review-draft override after maxAttempts."
+  }
+}

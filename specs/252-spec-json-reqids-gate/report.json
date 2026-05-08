@@ -1,0 +1,82 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/config.json                             |    2 +-\n specs/252-spec-json-reqids-gate/draft-review.md    |   23 +\n specs/252-spec-json-reqids-gate/draft.json         |   59 ++\n specs/252-spec-json-reqids-gate/file-map.json      |   66 ++\n specs/252-spec-json-reqids-gate/flow.json          | 1050 ++++++++++++++++++++\n specs/252-spec-json-reqids-gate/issue-log.json     |  178 ++++\n specs/252-spec-json-reqids-gate/issue.md           |  146 +++\n specs/252-spec-json-reqids-gate/qa.md              |    9 +\n specs/252-spec-json-reqids-gate/review.md          |   21 +\n specs/252-spec-json-reqids-gate/spec-review.md     |   28 +\n specs/252-spec-json-reqids-gate/spec.json          |  323 ++++++\n specs/252-spec-json-reqids-gate/spec.md            |  146 +++\n specs/252-spec-json-reqids-gate/tasks/T-1.md       |   25 +\n specs/252-spec-json-reqids-gate/tasks/T-2.md       |   22 +\n .../tests/source-selection.test.js                 |  156 +++\n specs/252-spec-json-reqids-gate/tests/spec.md      |  104 ++\n src/flow/lib/run-gate.js                           |   22 +-\n src/lib/spec-json.js                               |   19 +\n tests/e2e/flow/gate-impl-integration.test.js       |  139 ++-\n tests/unit/lib/spec-json-requirement-ids.test.js   |   62 ++\n 20 files changed, 2572 insertions(+), 28 deletions(-)",
+      "commits": [
+        "fix: use spec json ids for impl gate"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 5,
+      "question": 4,
+      "issueLog": 12
+    },
+    "tokenMetrics": {
+      "input": 1129734,
+      "output": 103924,
+      "cacheRead": 4633216,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 41,
+      "durationMs": 2410797,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 14950
+        },
+        {
+          "phase": "review-draft",
+          "durationMs": 313035
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 54894
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 575257
+        },
+        {
+          "phase": "gate",
+          "durationMs": 91319
+        },
+        {
+          "phase": "approval",
+          "durationMs": 10484
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 172812
+        },
+        {
+          "phase": "test-execute",
+          "durationMs": 352794
+        },
+        {
+          "phase": "test-result-review",
+          "durationMs": 617188
+        },
+        {
+          "phase": "review",
+          "durationMs": 35950
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 172114
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: use spec json ids for impl gate\n    20 files changed, 2572 insertions(+), 28 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 5\n    Q&A ......................... 4\n    issue-log ................... 12\n    agent calls ................. 41\n    input tokens ................ 1,129,734\n    output tokens ............... 103,924\n    cache-read tokens ........... 4,633,216\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 2410.8s\n      draft ..................... 14.9s\n      review-draft .............. 313.0s\n      gate-draft ................ 54.9s\n      review-spec ............... 575.3s\n      gate ...................... 91.3s\n      approval .................. 10.5s\n      review-test ............... 172.8s\n      test-execute .............. 352.8s\n      test-result-review ........ 617.2s\n      review .................... 36.0s\n      gate-impl ................. 172.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

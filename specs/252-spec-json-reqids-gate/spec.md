@@ -1,0 +1,146 @@
+# Feature Specification: 252-spec-json-reqids-gate
+
+**Feature Branch**: `feature/252-spec-json-reqids-gate`
+**Created**: 2026-05-08
+**Status**: Draft
+**Input**: GitHub Issue #312
+
+## Goal
+Make diff-based gate requirement ID enumeration use spec.json requirements regardless of file-map.json presence, while preserving spec.md fallback when spec.json cannot provide usable requirement IDs.
+
+## Background
+The diff-based gate path currently couples requirement ID enumeration to file-map.json presence. Specs that have concrete requirements in spec.json but no generated file-map.json can fall back to synthetic or marker-derived spec.md IDs, causing stale guardrail IDs such as REQ-SPEC to be accepted in scenarios where spec.json has a real requirement ID such as R1.
+
+## Scope
+- diff-based gate requirement ID enumeration in src/flow/lib/run-gate.js
+- shared usable requirement ID helper in src/lib/spec-json.js
+- spec.json-priority behavior when file-map.json is absent
+- spec.json-priority behavior when file-map.json is present
+- spec.md fallback when spec.json cannot provide usable requirement IDs
+- e2e coverage for task-impl requirement ID source selection
+- explicit documentation of the shared integration phase impact
+
+## Out of Scope
+- per-requirement diff splitting semantics driven by file-map.json
+- flow review file-map requirements in src/flow/commands/review.js
+- requirement progress comparison in src/flow/lib/run-impl-confirm.js
+- retro aggregation behavior in src/flow/lib/run-retro.js
+- test header ID format policy in src/flow/lib/test-headers.js
+- guardrail prompt schema or evaluation parsing behavior
+- removal of the spec.md regex fallback
+- new schema validation policy for malformed requirement entries
+
+## Constraints
+- Do not add external dependencies.
+- Do not change CLI command names, options, or exit-code contracts.
+- Keep file-map.json semantics limited to per-requirement diff splitting and file-map reconciliation.
+- Keep spec.md fallback as a last resort for legacy or incomplete specs.
+- Do not change flow review behavior that requires file-map.json for review-specific workflows.
+
+## Design Principles
+- Source of truth: spec.json requirements are the preferred source for requirement IDs.
+- Usable ID definition: a usable requirement ID for gate source selection is a trimmed non-empty string in spec.json requirements[].id.
+- Shared rule: usable ID enumeration should live in src/lib/spec-json.js so gate code does not define ad hoc ID filtering.
+- Stable enumeration: usable IDs should be returned in first-seen order after trimming and duplicate removal.
+- Single concern: this spec changes requirement ID source selection only.
+- Regression protection: tests must cover both file-map absent and present source-selection cases.
+
+## Overview
+### Modules
+- src/flow/lib/run-gate.js runs draft/spec/diff-based gates and builds task-impl/integration requirement evaluations from spec content and git diff.
+- src/lib/spec-json.js owns shared spec.json loading and requirement utility behavior.
+- tests/e2e/flow/gate-impl-integration.test.js exercises task-impl gate wiring through the CLI with fixture repositories and stubbed AI responses.
+- tests/helpers/stub-agent.js provides deterministic AI evaluation responses for e2e gate tests.
+- src/flow/commands/review.js has separate review behavior around file-map.json and is not changed by this spec.
+- src/flow/lib/run-impl-confirm.js, src/flow/lib/run-retro.js, src/flow/lib/test-headers.js, and malformed file-map handling are related behaviors but are not changed by this spec.
+
+### Data Flow
+- When spec.json provides usable requirement IDs, diff-based gate evaluation uses trimmed, de-duplicated IDs whether file-map.json is absent or present.
+- file-map.json continues to control only how diffs are split by requirement; it does not control whether spec.json is read for reqIds.
+- When spec.json cannot provide usable requirement IDs, the gate falls back to requirement markers parsed from spec.md.
+- Tests use explicit stub response IDs for each source-selection case so REQ-SPEC defaults do not mask whether spec.json IDs were selected.
+- Integration gate applies this source-selection rule only after its existing test artifact prechecks pass.
+
+### Decisions
+- Use spec.json requirements as the priority source for reqIds in both file-map absent and present cases.
+- Preserve spec.md fallback for missing or incomplete spec.json cases.
+- Do not introduce a new malformed-requirements validation policy in this spec.
+- Keep flow review file-map behavior unchanged.
+- Protect integration source-selection behavior through shared helper and common-path tests rather than adding broad integration fixture coverage.
+- Do not change shared stub default behavior.
+
+## Clarifications (Q&A)
+- Q: Should file-map diff splitting be changed?
+  - A: No. file-map.json remains only a diff-splitting input; this spec changes reqId source selection.
+- Q: Should spec.md fallback be removed?
+  - A: No. The fallback remains a last resort.
+- Q: Should malformed requirement entries be normalized or newly rejected?
+  - A: No new schema validation is added. For source selection only, usable IDs are non-empty strings; if spec.json provides no usable IDs, the existing spec.md fallback is used.
+- Q: Does this change flow review file-map behavior?
+  - A: No. flow review behavior in src/flow/commands/review.js remains outside this spec.
+- Q: Does the shared diff-based gate behavior affect integration phase?
+  - A: Yes. The source-selection contract is documented for the shared diff-based gate path, including integration, while required e2e coverage focuses on task-impl.
+- Q: Does usable ID mean all modules accept any non-empty string ID?
+  - A: No. The trimmed non-empty string rule is only for gate source selection. Existing test-header ID format policy remains unchanged.
+- Q: Should duplicate spec.json requirement IDs produce duplicate gate evaluations?
+  - A: No. The shared helper returns first-seen de-duplicated usable IDs for stable gate prompt IDs.
+- Q: Should malformed or unreadable file-map.json be recovered from in this spec?
+  - A: No. file-map read/error behavior remains unchanged and is not a requirement-ID fallback trigger.
+
+## Alternatives Considered
+- Keep the existing REQ-SPEC fallback-oriented e2e fixture unchanged — Rejected because it preserves the stale premise instead of verifying spec.json-priority behavior.
+- Expand into file-map diff splitting behavior — Rejected because per-requirement diff splitting is a separate concern already covered by its own specifications.
+- Remove spec.md fallback — Rejected because Issue #312 explicitly keeps regex fallback as a last resort.
+- Treat malformed requirement entries as fallback candidates — Partially rejected: this spec does not add schema validation, but source selection treats only non-empty string IDs as usable.
+- Harmonize flow review behavior with gate behavior — Rejected because review.js has separate file-map requirements outside the gate reqId source-selection concern.
+- Change run-impl-confirm, retro, or test-header behavior in the same spec — Rejected because these consumers are outside the gate source-selection bug and would add separate behavior changes.
+- Change defaultPassResponse to R1 globally — Rejected because the helper default may be used by unrelated tests; source-selection tests should use local explicit payloads instead.
+- Recover from malformed or unreadable file-map.json — Rejected because file-map error handling is outside requirement ID source selection.
+
+## User Confirmation
+- [x] User approved this spec
+- Confirmed at: 2026-05-08T07:56:26.739Z
+- Notes: User approved gate-passed spec after review overrides and final spec gate PASS.
+
+## Requirements
+- R1 [must]: diff-based gate evaluation must use spec.json requirements as the source of requirement IDs when spec.json provides one or more usable requirement IDs after trimming, regardless of whether file-map.json is absent or present.
+- R2 [must]: file-map.json must remain scoped to per-requirement diff splitting and must not decide whether spec.json is read for requirement ID enumeration.
+- R3 [must]: diff-based gate evaluation must continue falling back to requirement markers parsed from spec.md when spec.json cannot provide usable requirement IDs because spec.json cannot be loaded, requirements is missing, requirements is empty, or no requirement entry has a trimmed non-empty string id.
+- R4 [must]: The change must not introduce new schema validation behavior for malformed requirement entries; entries without usable IDs only affect source selection fallback.
+- R5 [must]: e2e coverage must verify the task-impl spec.json-priority path with file-map.json absent and present, including acceptance of a spec.json ID response and rejection of a stale spec.md marker response.
+- R6 [must]: fallback regression coverage must verify spec.md marker IDs are used when spec.json cannot provide usable requirement IDs.
+- R7 [should]: Integration phase must keep its existing test artifact prechecks before requirement ID source selection; after those prechecks pass, integration uses the same shared source-selection rule as task-impl.
+- R8 [must]: Usable requirement ID enumeration must be implemented as a shared spec-json utility that trims IDs, ignores whitespace-only values, de-duplicates duplicates in first-seen order, and is used by gate source selection instead of ad hoc filtering in run-gate.js.
+- R9 [must]: Source-selection tests must use explicit per-case stub response IDs for spec.json-priority and spec.md-fallback cases and must not change defaultPassResponse's shared REQ-SPEC default.
+- R10 [must]: Unit coverage must verify the shared usable-ID helper for normal IDs, whitespace trimming, whitespace-only omission, duplicate de-duplication, missing/empty requirements, and malformed entries without usable IDs.
+- R11 [must]: Malformed or unreadable file-map.json behavior must remain unchanged and must not be used as a fallback trigger for requirement ID enumeration in this spec.
+- R12 [must]: Spec-local tests must be written under specs/252-spec-json-reqids-gate/tests/ with per-file // spec: R<N> headers covering the shared helper and source-selection behavior.
+
+## Acceptance Criteria
+- With spec.json requirements [{ id: "R1" }] and no file-map.json, task-impl requirement evaluation accepts guardrail_id "R1" and rejects stale guardrail_id "REQ-SPEC".
+- With spec.json requirements [{ id: "R1" }] and a non-empty file-map.json, task-impl requirement evaluation accepts guardrail_id "R1" and continues using file-map.json only for diff splitting.
+- When spec.json cannot provide usable requirement IDs, spec.md **REQ-...** markers remain usable as fallback reqIds.
+- Source-selection tests use explicit per-case stub guardrail IDs instead of relying on the helper default REQ-SPEC response.
+- A shared spec-json utility enumerates trimmed usable non-empty string requirement IDs, removes duplicates in first-seen order, and reports when none are available.
+- run-impl-confirm, run-retro, flow review, and test-header format policy behavior remain unchanged.
+- Malformed/unreadable file-map.json behavior remains unchanged.
+- defaultPassResponse() remains unchanged; source-selection tests use local explicit stub payloads.
+- Integration source selection is documented as applying after existing integration artifact prechecks pass.
+- Spec-local tests are added under specs/252-spec-json-reqids-gate/tests/ with // spec: R<N> headers.
+- Existing CLI invocation shape for `sdd-forge flow run gate --phase task-impl` is unchanged.
+- No external dependency is added.
+
+## Implementation Targets
+-
+
+## Open Questions
+- [ ]
+
+## Tasks
+### Round 0
+- **T-1** [pending]: Update reqId source selection
+  - Make diff-based gate evaluation enumerate requirement IDs from spec.json independently of file-map.json while preserving the current spec.md fallback contract.
+  - see `tasks/T-1.md` for full spec
+- **T-2** [pending]: Update gate-impl e2e coverage
+  - Adjust gate-impl integration fixtures and stub responses so tests prove reqIds come from spec.json when available and from spec.md only as fallback.
+  - see `tasks/T-2.md` for full spec

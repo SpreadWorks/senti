@@ -41,9 +41,50 @@ function minimalSpecJson() {
   };
 }
 
-function setupFixture(tmp, { initialTest, modifiedTest, gateRetry = 0, seedIssueLog = false } = {}) {
+function buildPassResponseJson(...ids) {
+  return JSON.stringify({
+    evaluations: ids.map((id) => ({
+      guardrail_id: id,
+      result: "pass",
+      reason: `stub pass for ${id}`,
+    })),
+  });
+}
+
+const DEFAULT_SPEC_MD = [
+  "# Fixture Spec",
+  "",
+  "## Goal",
+  "Fixture for integration test.",
+  "",
+  "## Requirements",
+  "Anything goes.",
+  "",
+].join("\n");
+
+const SPEC_MD_WITH_MARKER = [
+  "# Fixture Spec",
+  "",
+  "## Goal",
+  "Fixture for integration test.",
+  "",
+  "## Requirements",
+  "**REQ-SPEC** Anything goes.",
+  "",
+].join("\n");
+
+function setupFixture(tmp, {
+  initialTest,
+  modifiedTest,
+  gateRetry = 0,
+  seedIssueLog = false,
+  stubResponse = buildPassResponseJson("R1"),
+  specJson = minimalSpecJson(),
+  specMarkdown = DEFAULT_SPEC_MD,
+  fileMap = null,
+} = {}) {
   // Stub AI provider
-  const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", defaultPassResponse());
+  const stubPath = writeStubAgentScript(tmp, ".stub-agent.js", stubResponse);
   writeJson(tmp, ".sdd-forge/config.json", {
     lang: "ja",
     type: "base",
@@ -52,19 +93,10 @@ function setupFixture(tmp, { initialTest, modifiedTest, gateRetry = 0, seedIssue
   });
   writeJson(tmp, "package.json", { name: "fixture", version: "0.0.0" });
 
-  // Minimal spec.md — no **REQ-XXX** markers so extractRequirementIds falls back to REQ-SPEC.
-  writeFile(tmp, SPEC_PATH, [
-    "# Fixture Spec",
-    "",
-    "## Goal",
-    "Fixture for integration test.",
-    "",
-    "## Requirements",
-    "Anything goes.",
-    "",
-  ].join("\n"));
+  writeFile(tmp, SPEC_PATH, specMarkdown);
   // Post-T8: run-gate loads spec.json via the single validated load path.
-  writeJson(tmp, `specs/${SPEC_ID}/spec.json`, minimalSpecJson());
+  writeJson(tmp, `specs/${SPEC_ID}/spec.json`, specJson);
+  if (fileMap) writeJson(tmp, `specs/${SPEC_ID}/file-map.json`, fileMap);
 
   // Initial test file
   writeFile(tmp, "tests/dummy.test.js", initialTest);
@@ -166,7 +198,7 @@ describe("gate-impl integration (spec 202)", () => {
     ].join("\n");
     setupFixture(tmp, { initialTest: BASE_TEST, modifiedTest: modified });
 
-    const res = runGate(tmp, ["--skip-guardrail"]);
+    const res = runGate(tmp);
     assert.equal(res.status, 0, `expected exit 0, got ${res.status}. stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.ok, true);
@@ -193,7 +225,7 @@ describe("gate-impl integration (spec 202)", () => {
       seedIssueLog: true,
     });
 
-    const res = runGate(tmp);
+    const res = runGate(tmp, ["--skip-guardrail"]);
     assert.notEqual(res.status, 0, `expected non-zero exit, got ${res.status}`);
     const out = (res.stdout || "") + (res.stderr || "");
     assert.match(out, /gate retry limit exhausted/, "expected retry limit message");
@@ -230,5 +262,78 @@ describe("gate-impl integration (spec 202)", () => {
     assert.equal(env.data.result, "pass", "identical test file should not trigger mechanical FAIL");
   });
 
-});
+  it("R5a-312: task-impl accepts explicit spec.json ID without file-map", () => {
+    tmp = createTmpDir();
+    setupFixture(tmp, {
+      initialTest: BASE_TEST,
+      modifiedTest: BASE_TEST + "// spec-json id source\n",
+      specMarkdown: SPEC_MD_WITH_MARKER,
+      stubResponse: buildPassResponseJson("R1"),
+    });
 
+    const res = runGate(tmp, ["--skip-guardrail"]);
+    assert.equal(res.status, 0, `stderr=${res.stderr}`);
+    const env = parseEnvelope(res.stdout);
+    assert.equal(env.data.result, "pass");
+  });
+
+  for (const { name, fileMap, stubResponse, expectPass } of [
+    {
+      name: "R5b-312: task-impl rejects stale spec.md marker ID without file-map",
+      fileMap: null,
+      stubResponse: defaultPassResponse(),
+      expectPass: false,
+    },
+    {
+      name: "R5c-312: task-impl accepts explicit spec.json ID with file-map",
+      fileMap: { R1: ["tests/dummy.test.js"] },
+      stubResponse: buildPassResponseJson("R1"),
+      expectPass: true,
+    },
+    {
+      name: "R5d-312: task-impl rejects stale spec.md marker ID with file-map",
+      fileMap: { R1: ["tests/dummy.test.js"] },
+      stubResponse: defaultPassResponse(),
+      expectPass: false,
+    },
+  ]) {
+    it(name, () => {
+      tmp = createTmpDir();
+      setupFixture(tmp, {
+        initialTest: BASE_TEST,
+        modifiedTest: BASE_TEST + `// ${name}\n`,
+        specMarkdown: SPEC_MD_WITH_MARKER,
+        fileMap,
+        stubResponse,
+      });
+
+      const res = runGate(tmp, ["--skip-guardrail"]);
+      if (expectPass) {
+        assert.equal(res.status, 0, `stderr=${res.stderr}`);
+        const env = parseEnvelope(res.stdout);
+        assert.equal(env.data.result, "pass");
+      } else {
+        assert.notEqual(res.status, 0, "stale spec.md marker response should fail");
+        assert.match(`${res.stdout}\n${res.stderr}`, /unknown guardrail_id "REQ-SPEC"/);
+      }
+    });
+  }
+  });
+
+  it("R6-312: task-impl falls back to spec.md marker when spec.json has no usable IDs", () => {
+    tmp = createTmpDir();
+    setupFixture(tmp, {
+      initialTest: BASE_TEST,
+      modifiedTest: BASE_TEST + "// fallback marker\n",
+      specJson: { ...minimalSpecJson(), requirements: [{ id: "   ", desc: "no usable id" }] },
+      specMarkdown: SPEC_MD_WITH_MARKER.replace("REQ-SPEC", "REQ-FALLBACK"),
+      stubResponse: buildPassResponseJson("REQ-FALLBACK"),
+    });
+
+    const res = runGate(tmp, ["--skip-guardrail"]);
+    assert.equal(res.status, 0, `stderr=${res.stderr}`);
+    const env = parseEnvelope(res.stdout);
+    assert.equal(env.data.result, "pass");
+  });
+
+});

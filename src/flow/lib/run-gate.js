@@ -27,7 +27,12 @@ import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { filterByPhase, loadMergedGuardrails } from "../../lib/guardrail.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
-import { loadSpecJson, resolveSpecJsonPath, resolveSpecDir } from "../../lib/spec-json.js";
+import {
+  enumerateUsableRequirementIds,
+  loadSpecJson,
+  resolveSpecJsonPath,
+  resolveSpecDir,
+} from "../../lib/spec-json.js";
 import { loadFileMap, reconcileFileMap } from "./req-map.js";
 import { checkTasksMonotonic } from "./check-tasks-monotonic.js";
 import {
@@ -1748,23 +1753,20 @@ export class RunGateCommand extends FlowCommand {
 
     const specDir = resolveSpecDir(absSpecPath);
     const fileMap = loadFileMap(specDir);
-    const hasFileMap = Object.keys(fileMap).length > 0;
 
     let reqIds;
-    if (hasFileMap) {
-      try {
-        const specJson = loadSpecJson(absSpecPath, { validate: false });
-        reqIds = (specJson.requirements || []).map((r) => r.id);
-      } catch (err) {
-        process.stderr.write(`[sdd-forge] spec.json load failed, falling back to spec.md: ${err.message}\n`);
-      }
+    try {
+      const specJson = loadSpecJson(absSpecPath, { validate: false });
+      reqIds = enumerateUsableRequirementIds(specJson);
+    } catch (err) {
+      process.stderr.write(`[sdd-forge] spec.json load failed, falling back to spec.md: ${err.message}\n`);
     }
     if (!reqIds || reqIds.length === 0) {
       reqIds = extractRequirementIds(specText);
     }
 
     let perReqDiffs = null;
-    if (hasFileMap) {
+    if (Object.keys(fileMap).length > 0) {
       const perFileDiffs = collectPerFileDiffsForGate(committed, uncommitted, untracked);
       perReqDiffs = buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, diff);
     }

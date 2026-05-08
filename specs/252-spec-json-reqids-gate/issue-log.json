@@ -1,0 +1,178 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "draft.json patch initially targeted the main repository relative path instead of the active worktree path",
+      "trigger": "apply_patch resolved specs/252-spec-json-reqids-gate/draft.json outside the active worktree",
+      "resolution": "reapplied the same draft update using an absolute path under the active worktree",
+      "guardrailCandidate": "during worktree flows, use worktree absolute paths for apply_patch edits",
+      "taskId": null,
+      "timestamp": "2026-05-08T02:48:41.510Z"
+    },
+    {
+      "step": "review-draft",
+      "reason": "draft review failed inside sandbox while resolving git common directory during CLI initialization",
+      "trigger": "sdd-forge flow run review --phase draft returned failed to resolve git-common-dir with exit=0",
+      "resolution": "reran the same review command with escalated process permissions and obtained the draft review report",
+      "guardrailCandidate": "rerun required SDD review commands with escalation when sandbox git initialization fails",
+      "taskId": null,
+      "timestamp": "2026-05-08T02:57:00.876Z"
+    },
+    {
+      "step": "review-draft",
+      "reason": "draft review reached maxAttempts with remaining issues after five review runs",
+      "trigger": "review-draft final report still flagged evidence and fallback-scope issues at maxAttempts",
+      "resolution": "user approved manual correction and override; draft was updated to remove the incorrect R3 evidence, merge file-map coverage, and define malformed requirements as out of scope",
+      "guardrailCandidate": "when review reaches maxAttempts, require explicit user approval before overriding the review step",
+      "taskId": null,
+      "timestamp": "2026-05-08T04:18:00.517Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Draft stays focused on one bugfix concern: reqId source selection and fallback behavior.; Unambiguous Requirements — Acceptance conditions are concrete and testable (specific source-selection and fallback cases).; Complete Context — Scope, non-scope, validation, and fallback conditions are specified enough for consistent review.; No Hardcoded Secrets — No secrets or credential values are introduced; article is inapplicable to this draft content.; Prioritize Requirements — More than three requirement-like items are listed without must/should/nice-to-have priority labels.; Impact on Existing Features — Explicit impact list is provided, including behavior and test/fixture effects.; Present Recommendations with Reasoning — Each QA item gives a recommended answer first with evidence/why/considered rationale from code/issue context.; Explore Before Asking — Draft cites concrete code locations and issue context; no unresolved exploratory questions remain.; Proactively Raise Related Implications — Related implications are proactively called out (test fixture changes, fallback regression coverage).; Confirm Brainstorm vs. Decision Before Critiquing — Decision state is confirmed via approval metadata and explicit user confirmation notes.; Capture Digressions in draft.md — No digression is evident in the provided content, so no capture action was required.; Draft Stays at Requirements Level — Draft includes implementation/control-flow directions (e.g., moving guards and fallback branching), exceeding pure requirements level.; Backward-Compatible CLI Interface — No CLI command/option semantic change is proposed, so migration planning is not triggered.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T04:19:40.611Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three requirement-like items are listed without must/should/nice-to-have priority labels."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes implementation/control-flow directions (e.g., moving guards and fallback branching), exceeding pure requirements level."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed because requirement-like items lacked priority labels and draft wording included implementation-level control-flow directions",
+      "trigger": "sdd-forge flow run gate --phase draft returned FAIL for prioritize-requirements and draft-scope-boundary",
+      "resolution": "rewrite draft requirements as prioritized behavior-level outcomes and move specific control-flow wording into evidence only",
+      "guardrailCandidate": "draft artifacts should express prioritized behavior requirements, not implementation movement instructions",
+      "taskId": null,
+      "timestamp": "2026-05-08T04:19:46.816Z"
+    },
+    {
+      "step": "spec",
+      "reason": "spec render failed inside sandbox while resolving git common directory during CLI initialization",
+      "trigger": "sdd-forge spec render returned failed to resolve git-common-dir with exit=0",
+      "resolution": "rerun spec render with escalated process permissions in the active worktree",
+      "guardrailCandidate": "run required sdd-forge CLI commands with escalation when sandbox git initialization fails in a worktree",
+      "taskId": null,
+      "timestamp": "2026-05-08T04:22:54.066Z"
+    },
+    {
+      "step": "review-spec",
+      "reason": "spec review reached maxAttempts with remaining proposals after three review runs",
+      "trigger": "review-spec final report still proposed helper normalization, unit coverage, integration precheck, file-map error boundary, and stub default protections",
+      "resolution": "user approved manual correction and override; spec was updated to include all final proposals and re-rendered",
+      "guardrailCandidate": "when spec review reaches maxAttempts, require explicit user approval before overriding the review step",
+      "taskId": null,
+      "timestamp": "2026-05-08T04:39:43.875Z"
+    },
+    {
+      "step": "gate",
+      "reason": "exit=1 | warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.\nReading additional input from stdin...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-08T04:40:23.021Z"
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate failed because codex profile provider command exited before returning an evaluation response",
+      "trigger": "sdd-forge flow run gate returned exit=1 with codex warning and Reading additional input from stdin",
+      "resolution": "investigate codex provider invocation and adjust flow configuration or command usage before rerunning gate",
+      "guardrailCandidate": "verify selected agent profile with a minimal command before running AI-backed gates",
+      "taskId": null,
+      "timestamp": "2026-05-08T04:40:33.705Z"
+    },
+    {
+      "step": "review-spec",
+      "reason": "spec review maxAttempts override required final manual updates to spec requirements and boundaries",
+      "trigger": "user requested manual reflection and review-spec override after final review proposals",
+      "resolution": "added usable-id normalization, helper unit coverage, integration precheck ordering, malformed file-map out-of-scope, and stub default protection; rendered spec artifacts",
+      "guardrailCandidate": "before overriding spec review, reflect all concrete final proposals into spec artifacts and record the override",
+      "taskId": null,
+      "timestamp": "2026-05-08T07:43:42.030Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Goal, scope, and principles consistently target one concern: reqId source selection for diff-based gate.; Task Single Responsibility — Both tasks are focused on the same concern (source-selection logic and its test coverage) without unrelated bundled work.; Unambiguous Requirements — R7 includes subjective wording (e.g., 'make direct coverage practical'), which is not fully verifiable.; Complete Context — Most requirements are specific, but R7 leaves room for interpretation, so independent reviewers may disagree.; REQ Diff-Verifiability — Requirements are largely decidable from code diff plus test outcomes (logic, fallback behavior, and coverage expectations).; No Hardcoded Secrets — No secrets, credentials, or hardcoded sensitive values are introduced in this spec content.; No Silent Error Swallowing — No instruction in the spec suggests swallowing errors; article is not implicated by the proposed changes.; Prioritize Requirements — There are more than three requirements and each includes a priority (must/should).; Impact on Existing Features — Impact and non-impact are explicitly documented (unchanged modules/behaviors and integration-phase note).; Bounded Resource Usage — Spec does not introduce recursive/retry/bulk-unbounded processing patterns; no unbounded design is proposed.; Spec Includes Test Strategy — Test strategy is explicitly included in tasks and acceptance criteria with concrete coverage targets.; Synthesize Draft, Do Not Copy — Cannot verify draft synthesis vs direct copying without the original draft source for comparison.; Record Unresolved Points as Open Questions — Open questions are explicitly represented (empty) and decisions are tied to stated evidence/scope.; Include 'Why This Approach' Rationale — Rationale is present via decisions with evidence and alternatives considered/rejected.; Spec Test Coverage — Spec does not require tests under specs/<specid>/tests/ with per-file '// spec: R<N> ...' headers as mandated.; Backward-Compatible CLI Interface — Spec explicitly states no CLI command/option meaning changes, so migration plan is not required.; Exit Code Contract — No CLI command is added/modified; constraints explicitly preserve existing exit-code contracts.; Validate User Input at Entry Point — No new or modified user-facing CLI arguments are introduced in this change scope.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T07:44:44.400Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "R7 includes subjective wording (e.g., 'make direct coverage practical'), which is not fully verifiable."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Most requirements are specific, but R7 leaves room for interpretation, so independent reviewers may disagree."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Spec does not require tests under specs/<specid>/tests/ with per-file '// spec: R<N> ...' headers as mandated."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate failed because R7 contained subjective coverage wording and spec-local test coverage was not required",
+      "trigger": "sdd-forge flow run gate returned FAIL for unambiguous-requirements, complete-context, and spec-test-coverage",
+      "resolution": "rewrite R7 as a concrete integration precheck ordering requirement and add spec-local tests under specs/252-spec-json-reqids-gate/tests with headers as required coverage",
+      "guardrailCandidate": "spec requirements must avoid conditional subjective phrases and must explicitly require spec-local tests with headers",
+      "taskId": null,
+      "timestamp": "2026-05-08T07:45:02.054Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "review-test failed before verdict because flow.test.review prompt exceeded Codex input limit; runTestReview collects all project tests plus spec-local tests, producing 1298236 chars over the 1048576 provider limit.",
+      "taskId": null,
+      "timestamp": "2026-05-08T08:04:45.826Z"
+    },
+    {
+      "step": "test-result-review",
+      "reason": "test-result-review reached maxAttempts without a valid schema response. All attempts either returned pass semantics with wrong checked_items keys or an empty array; test-execute raw output shows 12 pass / 0 fail and summary covers R1-R12.",
+      "taskId": null,
+      "timestamp": "2026-05-08T08:26:37.008Z"
+    },
+    {
+      "step": "test-result-review",
+      "reason": "after review fixes, test-result-review again returned pass semantics with invalid checked_items keys; raw output remains pass 12/fail 0 and summary covers R1-R12, so existing valid manual review artifacts remain authoritative.",
+      "taskId": null,
+      "timestamp": "2026-05-08T08:53:23.316Z"
+    }
+  ]
+}

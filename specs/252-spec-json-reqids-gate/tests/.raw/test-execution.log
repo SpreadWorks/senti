@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: R1: spec.json IDs are usable without file-map.json
+ok 1 - R1: spec.json IDs are usable without file-map.json
+  ---
+  duration_ms: 2.644694
+  type: 'test'
+  ...
+# Subtest: R2: file-map presence is not part of usable ID enumeration
+ok 2 - R2: file-map presence is not part of usable ID enumeration
+  ---
+  duration_ms: 0.297481
+  type: 'test'
+  ...
+# Subtest: R3: empty usable ID results allow callers to fall back to spec.md markers
+ok 3 - R3: empty usable ID results allow callers to fall back to spec.md markers
+  ---
+  duration_ms: 0.382762
+  type: 'test'
+  ...
+# Subtest: R4: malformed requirement entries do not throw or introduce schema validation
+ok 4 - R4: malformed requirement entries do not throw or introduce schema validation
+  ---
+  duration_ms: 0.239881
+  type: 'test'
+  ...
+# Subtest: R5: spec.json ID response is accepted and stale marker response is rejected
+ok 5 - R5: spec.json ID response is accepted and stale marker response is rejected
+  ---
+  duration_ms: 0.762124
+  type: 'test'
+  ...
+# Subtest: R6: spec.md fallback marker IDs remain accepted when spec.json has no usable IDs
+ok 6 - R6: spec.md fallback marker IDs remain accepted when spec.json has no usable IDs
+  ---
+  duration_ms: 0.229561
+  type: 'test'
+  ...
+# Subtest: R7: integration prechecks stay before shared source selection
+ok 7 - R7: integration prechecks stay before shared source selection
+  ---
+  duration_ms: 0.710644
+  type: 'test'
+  ...
+# Subtest: R8: shared helper trims, omits blanks, and de-dupes in first-seen order
+ok 8 - R8: shared helper trims, omits blanks, and de-dupes in first-seen order
+  ---
+  duration_ms: 0.329402
+  type: 'test'
+  ...
+# Subtest: R9: source-selection tests use local IDs without changing defaultPassResponse
+ok 9 - R9: source-selection tests use local IDs without changing defaultPassResponse
+  ---
+  duration_ms: 0.908565
+  type: 'test'
+  ...
+# Subtest: R10: helper covers missing, empty, whitespace-only, duplicate, and malformed IDs
+ok 10 - R10: helper covers missing, empty, whitespace-only, duplicate, and malformed IDs
+  ---
+  duration_ms: 1.019205
+  type: 'test'
+  ...
+# Subtest: R11: malformed file-map content is not a requirement-ID fallback trigger
+ok 11 - R11: malformed file-map content is not a requirement-ID fallback trigger
+  ---
+  duration_ms: 0.355842
+  type: 'test'
+  ...
+# Subtest: R12: this spec-local test file declares every testable requirement in its header
+ok 12 - R12: this spec-local test file declares every testable requirement in its header
+  ---
+  duration_ms: 0.620323
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27.737261

@@ -134,6 +134,25 @@ export function normalizeRequirements(reqs) {
 }
 
 /**
+ * Enumerate requirement IDs from spec.json for gate source selection.
+ * Usable IDs are trimmed non-empty strings, de-duplicated in first-seen order.
+ */
+export function enumerateUsableRequirementIds(spec) {
+  const reqs = Array.isArray(spec?.requirements) ? spec.requirements : [];
+  const ids = [];
+  const seen = new Set();
+  for (const req of reqs) {
+    if (!req || typeof req !== "object") continue;
+    if (typeof req.id !== "string") continue;
+    const id = req.id.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids;
+}
+
+/**
  * Load and normalize `spec.json.requirements` for a given flow context.
  * Returns [] when spec.json does not yet exist (e.g. preparing flow) so
  * callers in the status/resume paths never have to guard the read.

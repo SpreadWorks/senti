@@ -1,0 +1,78 @@
+{
+  "spec": "specs/252-spec-json-reqids-gate/spec.json",
+  "date": "2026-05-08T08:56:42.194Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "diff-based gate evaluation must use spec.json requirements as the source of requirement IDs when spec.json provides one or more usable requirement IDs after trimming, regardless of whether file-map.json is absent or present.",
+      "status": "done",
+      "note": "R1: spec.json IDs are usable without file-map.json"
+    },
+    {
+      "desc": "file-map.json must remain scoped to per-requirement diff splitting and must not decide whether spec.json is read for requirement ID enumeration.",
+      "status": "done",
+      "note": "R2: file-map presence is not part of usable ID enumeration"
+    },
+    {
+      "desc": "diff-based gate evaluation must continue falling back to requirement markers parsed from spec.md when spec.json cannot provide usable requirement IDs because spec.json cannot be loaded, requirements is missing, requirements is empty, or no requirement entry has a trimmed non-empty string id.",
+      "status": "done",
+      "note": "R3: empty usable ID results allow callers to fall back to spec.md markers"
+    },
+    {
+      "desc": "The change must not introduce new schema validation behavior for malformed requirement entries; entries without usable IDs only affect source selection fallback.",
+      "status": "done",
+      "note": "R4: malformed requirement entries do not throw or introduce schema validation"
+    },
+    {
+      "desc": "e2e coverage must verify the task-impl spec.json-priority path with file-map.json absent and present, including acceptance of a spec.json ID response and rejection of a stale spec.md marker response.",
+      "status": "done",
+      "note": "R5: spec.json ID response is accepted and stale marker response is rejected"
+    },
+    {
+      "desc": "fallback regression coverage must verify spec.md marker IDs are used when spec.json cannot provide usable requirement IDs.",
+      "status": "done",
+      "note": "R6: spec.md fallback marker IDs remain accepted when spec.json has no usable IDs"
+    },
+    {
+      "desc": "Integration phase must keep its existing test artifact prechecks before requirement ID source selection; after those prechecks pass, integration uses the same shared source-selection rule as task-impl.",
+      "status": "done",
+      "note": "R7: integration prechecks stay before shared source selection"
+    },
+    {
+      "desc": "Usable requirement ID enumeration must be implemented as a shared spec-json utility that trims IDs, ignores whitespace-only values, de-duplicates duplicates in first-seen order, and is used by gate source selection instead of ad hoc filtering in run-gate.js.",
+      "status": "done",
+      "note": "R8: shared helper trims, omits blanks, and de-dupes in first-seen order"
+    },
+    {
+      "desc": "Source-selection tests must use explicit per-case stub response IDs for spec.json-priority and spec.md-fallback cases and must not change defaultPassResponse's shared REQ-SPEC default.",
+      "status": "done",
+      "note": "R9: source-selection tests use local IDs without changing defaultPassResponse"
+    },
+    {
+      "desc": "Unit coverage must verify the shared usable-ID helper for normal IDs, whitespace trimming, whitespace-only omission, duplicate de-duplication, missing/empty requirements, and malformed entries without usable IDs.",
+      "status": "done",
+      "note": "R10: helper covers missing, empty, whitespace-only, duplicate, and malformed IDs"
+    },
+    {
+      "desc": "Malformed or unreadable file-map.json behavior must remain unchanged and must not be used as a fallback trigger for requirement ID enumeration in this spec.",
+      "status": "done",
+      "note": "R11: malformed file-map content is not a requirement-ID fallback trigger"
+    },
+    {
+      "desc": "Spec-local tests must be written under specs/252-spec-json-reqids-gate/tests/ with per-file // spec: R<N> headers covering the shared helper and source-selection behavior.",
+      "status": "done",
+      "note": "R12: this spec-local test file declares every testable requirement in its header"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 12,
+    "done": 12,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
