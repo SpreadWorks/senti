@@ -40,9 +40,9 @@ src/spec/commands/    (cli)
 
 | ディレクトリ | ファイル数 | 役割 |
 | --- | --- | --- |
-| src/flow | 64 | controller, flow-command, definition, Flow command registry and dispatch map, lib, flow-context, phase-resolution, cli, Next-action resolver, library, flow-helpers, review-runner, flow-set-step-command, test-header-validator |
-| src/docs | 45 | controller, cli, model, lib |
-| src/lib | 34 | lib, AI agent invocation layer, route, model, Config loader and path helpers, config, Flow state aggregator across worktrees, middleware, view, AI provider abstraction, Shared type declarations placeholder |
+| src/flow | 64 | controller, flow-command, definition, flow command registry, lib, flow-context, phase-resolution, cli, flow decision engine, library, flow finalize cleanup, flow-helpers, review-runner, flow mutation command, test-header-validator |
+| src/docs | 46 | docs command, cli, controller, docs orchestration command, model, DataSource implementation, lib, parser and transformer, resolver composition |
+| src/lib | 35 | lib, AI agent invocation layer, route, model, Config loader and path helpers, config, Flow state aggregator across worktrees, state persistence layer, middleware, view, AI provider abstraction, rules validation and rendering, skill deployment pipeline, Shared type declarations placeholder |
 | src | 10 | cli |
 | src/check | 3 | cli |
 | src/metrics | 1 | Metrics aggregator |

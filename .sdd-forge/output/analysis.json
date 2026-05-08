@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-05-07T00:16:34.570Z",
+  "analyzedAt": "2026-05-08T07:44:52.724Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "aae72f67dcff51da9d81599fc5f86815",
+        "hash": "855c30b346ecd6e726d9a6ca17c12325",
         "lines": 41,
-        "mtime": "2026-05-06T14:00:46.636Z",
+        "mtime": "2026-05-08T02:39:27.021Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -21,24 +21,23 @@
         },
         "composerDeps": null,
         "id": "451a9f25",
-        "summary": "npm package manifest for sdd-forge CLI tool with zero external dependencies and Node.js 18.19+ requirement.",
-        "detail": "Defines sdd-forge as an ES module npm package with version 0.1.0-alpha.775, exposing a single bin entry pointing to src/sdd-forge.js. The package follows a strict no-external-dependencies policy and ships only the src/ directory (excluding preset tests). Test scripts are organized into unit, e2e, acceptance, agent, and combined scopes. Engine constraint requires Node.js >=18.19.0, and the package uses pnpm 10.33.2 as its package manager.",
+        "summary": "The package manifest defines sdd-forge as an ESM Node.js CLI for spec-driven documentation workflows. It specifies runtime constraints, distributable files, and test entrypoints.",
+        "detail": "The package is published as `sdd-forge` and exposes a CLI binary mapped to `src/sdd-forge.js` with matching top-level exports. It enforces a Node.js runtime floor of `>=18.19.0`, aligning with modern built-in APIs and the no-external-dependency policy. Distribution is restricted to `src/` while excluding preset test fixtures from publish output. Scripts split validation into unit, e2e, acceptance, agent, and full test scopes, supporting targeted and comprehensive checks. The alpha versioning and pinned package manager metadata indicate controlled reproducibility for development and release workflows.",
         "chapter": "stack_and_ops",
-        "role": "manifest",
+        "role": "package manifest",
         "enrich": {
-          "processedAt": "2026-05-07T00:18:30.711Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
           "package.json",
-          "npm",
-          "manifest",
+          "Node.js CLI",
           "ES modules",
-          "Node.js engines",
-          "bin entry",
-          "dependencies",
-          "sdd-forge",
-          "alpha versioning"
+          "engine requirement",
+          "npm scripts",
+          "alpha versioning",
+          "distribution files",
+          "bin entrypoint"
         ]
       }
     ],
@@ -270,9 +269,9 @@
       },
       {
         "file": "src/docs/commands/agents.js",
-        "hash": "504bef3094b0cc35606d45d4f6da22b6",
+        "hash": "f7cda0fc88fedcc63070ebb8decff8e2",
         "lines": 227,
-        "mtime": "2026-04-30T06:10:20.699Z",
+        "mtime": "2026-05-08T07:44:34.909Z",
         "className": "agents",
         "methods": [
           "buildAgentsPromptBuilder",
@@ -305,23 +304,21 @@
           "src/docs/commands/build.js"
         ],
         "id": "5684c584",
-        "summary": "Implements the `docs agents` command that generates and updates the project's AGENTS.md by combining analysis data, docs chapters, and an AI agent.",
-        "detail": "Loads existing AGENTS.md (or creates a stub from package basename) and reads README, full analysis, and concatenated chapter docs. Builds a PromptBuilder with package.json scripts and project/docs context, then resolves `{{data}}` directives and invokes the configured default agent. Replaces project content blocks via `replaceBlockDirective` and writes the refined content back to AGENTS.md. Throws explicit errors when analysis.json is missing or no default agent is configured.",
+        "summary": "This command generates or updates `AGENTS.md` using project analysis, docs content, and an AI agent. It resolves directives and rewrites only the managed sections.",
+        "detail": "The implementation parses CLI arguments, resolves project paths, and bootstraps `AGENTS.md` from a template when missing. It requires prior analysis output and loads docs chapters plus README context to construct a rich prompt. Directive handling is split into parsing, data resolution, and targeted block replacement so unmanaged text can be preserved. The command uses container-based agent resolution and fails fast if no default agent is configured. Final output is written back to disk after successful generation and refinement.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "docs command",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
-          "agents.md",
-          "docs agents",
-          "AGENTS generation",
+          "AGENTS.md generation",
+          "AI prompt builder",
           "directive resolution",
-          "AI agent",
-          "PromptBuilder",
-          "analysis.json",
-          "project context"
+          "analysis.json dependency",
+          "docs automation",
+          "command handler"
         ]
       },
       {
@@ -431,9 +428,9 @@
       },
       {
         "file": "src/docs/commands/data.js",
-        "hash": "94be6b299220c2ee50ea802b4d273b4e",
+        "hash": "53d6321d903ae92311aa9e47aeb5fab6",
         "lines": 200,
-        "mtime": "2026-04-18T20:35:29.038Z",
+        "mtime": "2026-05-08T07:44:34.910Z",
         "className": "data",
         "methods": [
           "populateFromAnalysis",
@@ -465,21 +462,21 @@
           "src/docs/commands/forge.js"
         ],
         "id": "83404fb1",
-        "summary": "This command resolves `{{data}}` directives in docs files using analysis and DataSource resolvers. It is the data-population stage of template rendering.",
-        "detail": "It loads analysis artifacts, applies docs-exclude filtering, and constructs a resolver factory before processing files. Each file is read, directives are expanded, and unchanged files are skipped to minimize churn. A dedicated helper returns structured results with changed file lists for downstream commands. The runner supports dry-run mode and uses translated logging for user feedback. Error paths handle missing analysis and resolver construction failures explicitly.",
-        "chapter": "internal_design",
-        "role": "controller",
+        "summary": "This module populates docs from analysis by expanding `{{data(...)}}` directives through a resolver pipeline. It supports both reusable function-level population and CLI execution.",
+        "detail": "`processTemplate` enforces resolver availability and returns both transformed text and replacement metadata. `populateFromAnalysis` iterates target docs files, applies transformations, and persists only changed outputs. The CLI path validates `analysis.json`, loads and filters analysis data, and constructs resolver context with localization-aware logging. File-context labels are normalized so relative paths can influence directive resolution behavior consistently. The design separates scanning/filtering from rendering, enabling controlled updates and clearer failure messages.",
+        "chapter": "cli_commands",
+        "role": "docs command",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
           "data directives",
           "template population",
-          "analysis filter",
+          "analysis filtering",
           "resolver factory",
-          "docs rendering",
-          "dry run"
+          "docs sync",
+          "incremental file update"
         ]
       },
       {
@@ -560,9 +557,9 @@
       },
       {
         "file": "src/docs/commands/forge.js",
-        "hash": "fd49ad0d8ea2f4be5f4c095194844fd8",
+        "hash": "c9143ca4db93979141763dd5d0f58d75",
         "lines": 454,
-        "mtime": "2026-04-30T06:10:20.699Z",
+        "mtime": "2026-05-08T07:44:34.910Z",
         "className": "forge",
         "methods": [
           "getTargetFiles",
@@ -601,23 +598,22 @@
         "extends": "Command",
         "usedBy": null,
         "id": "ef4fa5d9",
-        "summary": "Implements the `docs forge` command that drives an iterative spec-driven docs generation loop combining data/text fills, AI agent calls, and review.",
-        "detail": "Parses CLI options for spec, prompt, mode (local/assist/agent), max-runs, and concurrency. Estimates relevant chapter files by matching basenames against spec text, then alternates between agent invocations and `sdd-forge docs review` until review passes or max-runs is exhausted. Per-file processing runs concurrently with a heartbeat dot indicator while waiting on the agent. After success it regenerates README and translates docs; failure sets EXIT_ERROR.",
+        "summary": "`forge` is an orchestrator command that runs multi-round AI-assisted docs refinement with review feedback loops. It supports local, assist, and agent execution modes.",
+        "detail": "The module parses strict CLI options including run limits, concurrency, mode, prompt inputs, and spec references with explicit validation. It builds per-file prompts, estimates relevant targets, and executes parallelized updates using bounded concurrency utilities. Agent invocation streams optional stdout/stderr and supports labeled calls for traceability during long runs. Each round can include review-command feedback and retries until success or max-run termination. Post-processing steps regenerate README and translated docs, and the command sets failure exit codes on unresolved review states.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "docs orchestration command",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
           "docs forge",
-          "spec-driven docs",
-          "iterative review loop",
-          "max-runs",
-          "per-file concurrency",
-          "agent invocation",
-          "spec.json",
-          "review feedback"
+          "multi-pass refinement",
+          "review loop",
+          "concurrency control",
+          "agent mode",
+          "spec-aware prompting",
+          "CLI options"
         ]
       },
       {
@@ -675,9 +671,9 @@
       },
       {
         "file": "src/docs/commands/readme.js",
-        "hash": "4b4b4d0d7189d9dea5952d53e16fc946",
+        "hash": "add9a274e8e7c7bfd4f188f7c175098d",
         "lines": 198,
-        "mtime": "2026-04-19T01:49:14.513Z",
+        "mtime": "2026-05-08T07:44:34.911Z",
         "className": "readme",
         "methods": [
           "runReadme"
@@ -706,21 +702,21 @@
           "src/docs/commands/build.js"
         ],
         "id": "26628ac2",
-        "summary": "This command generates `README.md` from docs templates, directives, and optional AI text filling. It aligns README content with docs context and language settings.",
-        "detail": "It resolves templates similarly to docs init, then runs data directive expansion with README-specific label handling. The command supports alternate output paths and language-targeted rendering contexts. If text directives require AI generation, it invokes shared text-processing logic and writes the final markdown. Existing README content is compared before write to avoid unnecessary updates. Agent configuration is validated before AI-dependent paths execute.",
-        "chapter": "internal_design",
-        "role": "controller",
+        "summary": "This command generates `README.md` by merging templates, resolving directives, and optionally using AI text processing. It adapts resolution context to the README output location.",
+        "detail": "It computes project-local template directories, output paths, and resolver context so relative references are evaluated correctly. Template merging honors chapter order and translation utilities before directive stripping and expansion. Data directives are resolved with path-aware labels, especially when output is redirected from the default root README. If AI enrichment is enabled, the command requires a configured default agent and uses system-prompt construction for controlled rewriting. The file is written only when content changes, reducing unnecessary churn.",
+        "chapter": "cli_commands",
+        "role": "docs command",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:02.294Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
           "README generation",
-          "template rendering",
-          "directive parsing",
-          "language output",
-          "content sync",
-          "AI text fill"
+          "template merger",
+          "directive parser",
+          "path-aware resolver",
+          "AI text processing",
+          "chapter ordering"
         ]
       },
       {
@@ -1106,6 +1102,39 @@
         ]
       },
       {
+        "file": "src/docs/data/skills.js",
+        "hash": "bdb77feb535ae3df3c634707aa334c3a",
+        "lines": 37,
+        "mtime": "2026-05-08T07:44:34.911Z",
+        "className": "skills",
+        "methods": [],
+        "imports": [
+          "../../lib/skill-rules.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "DataSource",
+        "usedBy": null,
+        "id": "60c84ff6",
+        "summary": "This file registers a `skills` DataSource backed by validated skill-rule definitions. It exposes rule bodies as renderable paragraph content by rule ID.",
+        "detail": "Rules are loaded lazily and cached to avoid repeated disk parsing across multiple resolver calls. The DataSource enforces required parameters and throws explicit errors for missing or unknown rule IDs. Matched rules are converted into `Paragraph` renderables after trimming trailing blank lines. Registration follows the container-based DataSource lifecycle used by the docs resolver system. The module keeps lookup logic minimal and delegates rule validation to the skill-rules library.",
+        "chapter": "internal_design",
+        "role": "DataSource implementation",
+        "enrich": {
+          "processedAt": "2026-05-08T07:46:01.311Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "DataSource",
+          "skill rules",
+          "rule lookup",
+          "container registration",
+          "renderable paragraph",
+          "lazy cache"
+        ]
+      },
+      {
         "file": "src/docs/data/text.js",
         "hash": "6e0e8e4c9a25576b8767c43cbc03e1a9",
         "lines": 25,
@@ -1415,19 +1444,21 @@
       },
       {
         "file": "src/docs/lib/directive-parser.js",
-        "hash": "5b129d469e341758d944e8a57f9fabbd",
-        "lines": 516,
-        "mtime": "2026-04-22T23:27:14.750Z",
+        "hash": "9fd56f0c88315b3fd5ea627344bd33b5",
+        "lines": 595,
+        "mtime": "2026-05-08T07:44:34.911Z",
         "className": "directive-parser",
         "methods": [
           "parseDirectives",
           "replaceBlockDirective",
           "resolveDataDirectives",
+          "stripDataMarkers",
           "stripBlockDirectives",
           "parseBlocks",
           "extractCommentBlock",
           "parseOptions",
           "buildDataFields",
+          "extractUserParams",
           "parseDataCall",
           "parseTextCall",
           "parseInlineData",
@@ -1441,6 +1472,7 @@
           "parseDirectives",
           "replaceBlockDirective",
           "resolveDataDirectives",
+          "stripDataMarkers",
           "stripBlockDirectives",
           "parseBlocks",
           "TEXT_OPEN_RE",
@@ -1453,21 +1485,21 @@
           "src/docs/lib/template-merger.js"
         ],
         "id": "bbb893ea",
-        "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
-          "attempts": 2
-        },
-        "summary": "Implements parsing and replacement for custom docs directives such as `data`, `text`, `block`, and `extends`. It is the core parser for the template-like directive system.",
-        "detail": "The module defines regex-driven parsing primitives for inline and block directives, including robust open/close matching with explicit unclosed-tag errors. It extracts options, path fields, labels, and parameters into normalized directive objects. Utility functions replace parsed directives with resolved content and can strip or isolate block directives for composition workflows. `parseBlocks` additionally captures inheritance metadata (`extends`) plus preamble/postamble segments. The implementation uses line-based scanning with deterministic transformations, enabling predictable preprocessing before markdown rendering.",
+        "summary": "The directive parser provides core parsing and transformation utilities for `data`, `text`, and block directives embedded in HTML comments. It also validates marker structure and extracts block inheritance metadata.",
+        "detail": "It defines strict regexes for opening and closing tags, including inline and multiline comment block extraction. Parsing normalizes directive paths into `preset/source/method`, separates parser-owned options, and preserves user parameters for resolver calls. Replacement helpers update either block ranges or inline regions while tracking replacements. Marker-stripping logic detects malformed or unexpanded directives and reports exact line-based errors. Block parsing supports `extends` and named block sections, enabling template composition workflows.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "parser and transformer",
+        "enrich": {
+          "processedAt": "2026-05-08T07:46:01.311Z",
+          "attempts": 1
+        },
         "keywords": [
           "directive parser",
-          "template engine",
-          "regex parser",
+          "template directives",
           "block inheritance",
-          "inline directives",
-          "content replacement"
+          "data/text tags",
+          "marker validation",
+          "AST-like extraction"
         ]
       },
       {
@@ -1980,9 +2012,9 @@
       },
       {
         "file": "src/docs/lib/resolver-factory.js",
-        "hash": "f23e067f6741852bb757f8928d94b4b5",
-        "lines": 163,
-        "mtime": "2026-04-19T12:12:39.676Z",
+        "hash": "9316a94135519b648e025a0b178bb630",
+        "lines": 164,
+        "mtime": "2026-05-08T07:44:34.911Z",
         "className": "resolver-factory",
         "methods": [
           "createResolver",
@@ -2005,19 +2037,21 @@
         "extends": null,
         "usedBy": null,
         "id": "cb355898",
+        "summary": "The resolver factory builds callable data resolvers by combining built-in, preset-chain, and project-specific DataSources. It handles overrides and deprecation warnings for legacy paths.",
+        "detail": "It loads DataSources from common directories and resolved preset chains, wiring each source with context, logger hooks, and descriptor helpers. Project-level overrides are cached from `.sdd-forge/overrides.json` and exposed through a small descriptor factory. Legacy `.sdd-forge/data` usage triggers a warning to guide migration toward preset-scoped data directories. The returned resolver safely resolves chains and dispatches methods only when available, returning null on unresolved routes. The factory also exposes discoverability helpers such as available resolver keys.",
+        "chapter": "internal_design",
+        "role": "resolver composition",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
+          "processedAt": "2026-05-08T07:46:01.311Z",
+          "attempts": 1
         },
-        "summary": "Builds resolver instances that connect presets, DataSources, and directive resolution behavior. It handles chain loading, overrides, and deprecated path warnings.",
-        "detail": "The factory loads common and preset-specific data directories, then registers sources into a resolver map keyed by source name. It caches overrides from .sdd-forge/overrides.json and exposes a description lookup helper for DataSource subclasses. Resolver methods safely invoke source methods and return null on absent handlers to keep pipeline failures localized. It also supports multi-chain preset resolution and reports deprecated data directory usage.",
-        "chapter": "creating_presets",
-        "role": "lib",
         "keywords": [
           "resolver factory",
+          "DataSource loading",
           "preset chain",
-          "data source registry",
-          "overrides cache"
+          "overrides.json",
+          "deprecated path warning",
+          "dynamic dispatch"
         ]
       },
       {
@@ -3152,14 +3186,17 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "84c8cb547aee91b6f920b5dcf1179c66",
-        "lines": 141,
-        "mtime": "2026-05-02T09:24:13.454Z",
+        "hash": "9601d066d5283bffbe696cbb35b30d66",
+        "lines": 176,
+        "mtime": "2026-05-08T07:44:34.911Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
           "loadSchema",
           "findCurrentTask",
+          "deriveStateSet",
+          "getRulesCached",
+          "injectPersistentRules",
           "buildContextDescriptor"
         ],
         "imports": [
@@ -3169,7 +3206,8 @@
           "./base-command.js",
           "./get-step-instructions.js",
           "../definition.js",
-          "../../lib/flow-helpers.js"
+          "../../lib/flow-helpers.js",
+          "../../lib/skill-rules.js"
         ],
         "exports": [
           "default"
@@ -3177,23 +3215,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "GetNextActionCommand resolving the next executable flow step with instructions, schema, and context descriptors.",
-        "detail": "Loads JSON output schemas from a configurable directory (SDD_FORGE_NEXT_ACTION_SCHEMA_DIR) for action validation. findCurrentTask locates the active task; buildContextDescriptor packages required context kinds and resolved paths. The execute method handles three terminal states — no task, completed flow, or active step — and throws NO_RULE_FOR_STEP when the definition lacks a matching entry. Integrates with promoteNextPending and getStepInstructions to produce the unified next-action envelope consumed by the harness.",
+        "summary": "`get-next-action` computes the next flow instruction payload, including context and output schema hints. It derives decisions from flow state, step definitions, and persistent skill rules.",
+        "detail": "The command loads JSON schemas from a configurable directory and resolves the active task and state-set flags. It can promote pending tasks and determines step-specific instructions through flow definition mappings. Cached rule loading is used to inject persistent rule blocks into generated guidance content. Missing rule coverage for a step is treated as a hard error to prevent ambiguous execution. The result structure includes action, instructions, context descriptors, schema, and approval requirements.",
         "chapter": "internal_design",
-        "role": "Next-action resolver",
+        "role": "flow decision engine",
         "enrich": {
-          "processedAt": "2026-05-02T09:43:02.905Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
           "next action",
-          "step",
-          "instructions",
-          "schema",
-          "task",
-          "context",
-          "FlowCommand",
-          "resolver"
+          "flow state machine",
+          "schema loading",
+          "rule injection",
+          "task promotion",
+          "step instruction resolution"
         ]
       },
       {
@@ -3763,9 +3799,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "8bc6faacf0fb7748098602efd10f5392",
-        "lines": 123,
-        "mtime": "2026-05-06T23:21:44.541Z",
+        "hash": "fb778ce679d97df6a1402f2213712235",
+        "lines": 124,
+        "mtime": "2026-05-07T00:37:21.557Z",
         "className": "run-finalize-cleanup",
         "methods": [
           "RunFinalizeCleanupCommand",
@@ -3788,23 +3824,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40e4daa5",
-        "summary": "Implements the finalize cleanup step which removes the worktree, writes the last-finalized pointer, and attaches the latest report to the envelope.",
-        "detail": "RunFinalizeCleanupCommand removes the worktree directory after a successful finalize, attaches the most recent report (path + text) via attachReport using resolveLatestReportPath/readReportText, and writes a pointer for subsequent resume operations. On commit failure it returns an Envelope.fail with code COMMIT_FAILED including a rollback attempt; rollback errors are written to stderr but do not mask the original failure. The function buildReportField gracefully handles missing reports by returning a missing error rather than throwing, so cleanup can proceed even without a report.",
+        "summary": "This finalize cleanup command finalizes worktree teardown and enriches responses with report content. It uses envelope-based success/failure responses and guarded rollback paths.",
+        "detail": "It builds a report field from the latest report artifact and attaches it to returned envelopes when available. On failures, it attempts rollback and logs secondary rollback errors without masking primary failure codes. Commit-related failures are mapped to explicit envelope error categories for downstream handling. Cleanup removes worktree paths conditionally and returns structured completion data. The design favors resilient post-finalize behavior with best-effort diagnostics.",
         "chapter": "internal_design",
-        "role": "flow-command",
+        "role": "flow finalize cleanup",
         "enrich": {
-          "processedAt": "2026-05-07T00:18:30.711Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
           "finalize cleanup",
+          "flow envelope",
+          "rollback handling",
           "worktree removal",
-          "last finalized pointer",
           "report attachment",
-          "Envelope.fail",
-          "COMMIT_FAILED",
-          "rollback",
-          "resolveLatestReportPath"
+          "error categorization"
         ]
       },
       {
@@ -5166,9 +5200,9 @@
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "520deb5c6b811ef3001672d036f90246",
-        "lines": 138,
-        "mtime": "2026-05-01T05:18:43.675Z",
+        "hash": "d58996f33b517f661b81e59b17d2275f",
+        "lines": 141,
+        "mtime": "2026-05-07T00:37:21.571Z",
         "className": "set-step",
         "methods": [
           "collectSideEffects",
@@ -5193,22 +5227,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4cb8d93",
-        "summary": "FlowCommand for setting step status with side-effect dispatch and pre-validation.",
-        "detail": "SetStepCommand validates step id and status against VALID_STEP_STATUSES, then resolves side effects via the flow definition node graph. Provides preValidateTestStep that runs validateTestHeaders before allowing transition to the test step, returning Envelope failures with formatted messages. Integrates syncSpecTasksToFlow and runAutoCheckCore for automatic gating, using resolveAutoCheckInput/buildSkipVerdict to decide whether to invoke the auto-check pipeline.",
+        "summary": "`set-step` updates flow step status with validation, side-effect orchestration, and optional auto-check execution. It also performs pre-validation for test-related transitions.",
+        "detail": "The command validates usage and status values against known constants and flow definitions before mutation. It resolves mutation scope and synchronizes spec tasks so state remains consistent across task and step views. Test-step transitions can run header validation, and failures are returned as structured envelopes rather than raw exceptions. Auto-check input resolution and skip verdict handling integrate policy-driven gating into status changes. Logging is explicit for skipped or guarded operations to preserve traceability.",
         "chapter": "internal_design",
-        "role": "flow-set-step-command",
+        "role": "flow mutation command",
         "enrich": {
-          "processedAt": "2026-05-01T05:19:20.433Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
           "set step",
-          "step status",
-          "side effects",
+          "status transition",
           "auto-check",
           "test header validation",
-          "Envelope",
-          "flow state"
+          "flow envelope",
+          "side effects"
         ]
       },
       {
@@ -5345,9 +5378,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "a2c85a4901de5ccb20808e2503c950eb",
-        "lines": 780,
-        "mtime": "2026-05-06T23:21:44.541Z",
+        "hash": "6a55c156c14ac981a48877a06d412822",
+        "lines": 785,
+        "mtime": "2026-05-07T00:37:21.557Z",
         "className": "registry",
         "methods": [
           "isFinalizeSuccess",
@@ -5369,24 +5402,21 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Central registry for sdd-forge flow subcommands, defining help text, side-effect handlers, and gate-step coordination across phases.",
-        "detail": "Exports `FLOW_COMMANDS`, a dispatch map consumed by the flow command layer that registers `get`/`set` operations and lifecycle hooks. Provides helpers for resolving the active phase (`deriveActivePhase`), updating step status with structured error logging (`tryUpdateStepStatus`), and appending issue-log entries (`tryAppendIssueLog`). Manages finalize downstream skip/reset logic via `FINALIZE_DOWNSTREAM_LEAVES` and `resetSkippedDownstreamSteps`, and bridges worktree contexts back to the main repo through `resolveMainRepoFlowManager`. Coordinates gate side effects, commit-post hooks, and finalize-merge error recovery while writing diagnostic warnings to stderr.",
-        "chapter": "cli_commands",
-        "role": "Flow command registry and dispatch map",
+        "summary": "The flow registry is the central dispatch table for flow commands and cross-command lifecycle hooks. It coordinates finalize behavior, gate retries, and safe best-effort status updates.",
+        "detail": "It defines success-state semantics for finalize phases and provides helpers to resolve managers across main repo and worktree contexts. Downstream finalize leaves can be reset when necessary to reopen the correct execution path. Wrapper utilities attempt step updates and issue-log writes while downgrading non-critical failures to stderr diagnostics. Command entries include usage/help text and integrate pre/post hooks such as gate side-effects and commit post-processing. This module acts as the operational backbone for the flow CLI command suite.",
+        "chapter": "internal_design",
+        "role": "flow command registry",
         "enrich": {
-          "processedAt": "2026-05-07T00:16:52.636Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
-          "flow registry",
-          "FLOW_COMMANDS",
-          "gate step",
-          "finalize",
-          "phase derivation",
-          "issue log",
-          "step status",
-          "dispatcher",
-          "side effects"
+          "command registry",
+          "flow lifecycle",
+          "finalize hooks",
+          "gate side effects",
+          "best-effort updates",
+          "issue log integration"
         ]
       },
       {
@@ -6106,9 +6136,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "593e6b2d615cdbef4f8bff5cdce4b896",
-        "lines": 579,
-        "mtime": "2026-04-29T11:08:04.868Z",
+        "hash": "e4d77d2daa3881c1054b762d9f52377a",
+        "lines": 586,
+        "mtime": "2026-05-07T00:37:21.557Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -6141,23 +6171,21 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "FlowStore class providing persistent flow state I/O at specs/<id>/flow.json with task scoping and schema assertion.",
-        "detail": "Manages per-spec flow.json files, exposing load, mutate, save, and read-only access patterns with JSON schema validation via assertFlowStateSchema. Resolves task scope through resolveTaskIdForEntry and resolveMutationScope, supporting nested task hierarchies with parent aggregation via aggregateTaskSummaryIntoParent. Validates new tasks with validateTaskShape (id, spec, origin, parent, status, steps, requirements). Provides worktree path resolution distinguishing main repo from isolated worktrees, and finalize timestamps in strict ISO 8601 UTC format. Promotes pending steps to in_progress via promoteFirstPending and integrates with FlowNode tree definitions.",
+        "summary": "`flow-store` implements persistent flow state storage, schema validation, and mutation helpers for tasks and steps. It supports both main-repo and worktree-aware path resolution.",
+        "detail": "The module derives spec flow paths, optionally infers spec IDs from branch naming, and strictly validates state shape before use. Read/write operations handle malformed JSON defensively and emit diagnostics for read-only loads. Mutation helpers resolve task scope, promote pending steps, and enforce invariants around current task and unique task IDs. It validates timestamps, status enums, and nested task/requirement structures with explicit error messages. The class encapsulates flow file lifecycle management across spec directories and worktree metadata.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "state persistence layer",
         "enrich": {
-          "processedAt": "2026-04-29T11:19:24.011Z",
+          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
         },
         "keywords": [
           "flow store",
-          "flow state",
-          "tasks",
-          "scope",
-          "worktree",
-          "schema validation",
-          "persistence",
-          "ISO 8601"
+          "state schema validation",
+          "task management",
+          "step promotion",
+          "worktree metadata",
+          "JSON persistence"
         ]
       },
       {
@@ -6921,10 +6949,68 @@
         ]
       },
       {
+        "file": "src/lib/skill-rules.js",
+        "hash": "4a1aa6dcfbaa3c612b8ce059a4affa86",
+        "lines": 212,
+        "mtime": "2026-05-08T07:44:34.911Z",
+        "className": "skill-rules",
+        "methods": [
+          "loadRules",
+          "loadRulesFromFile",
+          "loadRulesFromString",
+          "filterRules",
+          "renderRuleBlock",
+          "expandSkillRulesDirectives",
+          "fail",
+          "validateRule",
+          "validateAndNormalize"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "url",
+          "../flow/definition.js",
+          "../docs/lib/directive-parser.js"
+        ],
+        "exports": [
+          "loadRules",
+          "loadRulesFromFile",
+          "loadRulesFromString",
+          "filterRules",
+          "renderRuleBlock",
+          "expandSkillRulesDirectives",
+          "RULES_JSON_PATH",
+          "VALID_SKILL_RULE_PHASES",
+          "VALID_SKILL_RULE_STATES",
+          "DRIFT_PRONE_RULE_IDS"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/skills.js"
+        ],
+        "id": "a3560f5e",
+        "summary": "The skill-rules library validates, filters, and renders rule definitions used by skill templates and flow guidance. It enforces strict schema rules and known enum sets.",
+        "detail": "Rules are loaded from a canonical JSON file or arbitrary text/file inputs, then normalized through a central validator. Validation checks allowed fields, ID formatting, phase/state enums, and duplicate IDs to prevent drift. Filtering selects applicable rules by phase and state flags for contextual injection. Rendering converts rule objects into markdown-like blocks for prompt/template consumption. Directive expansion replaces rule references in content and throws line-aware errors for unknown IDs.",
+        "chapter": "internal_design",
+        "role": "rules validation and rendering",
+        "enrich": {
+          "processedAt": "2026-05-08T07:46:01.311Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "skill rules",
+          "JSON schema-like validation",
+          "rule filtering",
+          "directive expansion",
+          "phase state gating",
+          "template injection"
+        ]
+      },
+      {
         "file": "src/lib/skills.js",
-        "hash": "b0c956452f6a4eaa04549b3e92dc3f98",
-        "lines": 194,
-        "mtime": "2026-04-09T03:25:40.412Z",
+        "hash": "f9dc0c00e3180be19204d8a66af72b4b",
+        "lines": 217,
+        "mtime": "2026-05-08T07:44:34.911Z",
         "className": "skills",
         "methods": [
           "deploySkills",
@@ -6938,7 +7024,9 @@
           "fs",
           "path",
           "./cli.js",
-          "./include.js"
+          "./include.js",
+          "../docs/lib/directive-parser.js",
+          "./skill-rules.js"
         ],
         "exports": [
           "deploySkills",
@@ -6952,20 +7040,21 @@
           "src/upgrade.js"
         ],
         "id": "a1344e4a",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 8
-        },
-        "summary": "This module deploys and cleans up skill templates into project-specific target directories. It synchronizes `.agents` and `.claude` skill files from template sources.",
-        "detail": "It resolves source `SKILL.md`, expands includes, and writes normalized output to both target trees. Existing symlinks are handled safely, and dry-run mode reports planned actions without mutation. Cleanup logic removes obsolete skills not present in valid template sets. The module implements deterministic skill distribution and lifecycle management.",
+        "summary": "This module deploys skill templates into project skill directories for multiple agent ecosystems. It handles includes, rule expansion, synchronization, and cleanup of obsolete skills.",
+        "detail": "It resolves template skill files, expands includes, strips unresolved data markers, and applies skill-rule directives before writing outputs. Deployment targets both `.agents/skills` and `.claude/skills`, with dry-run support and content-diff checks to avoid unnecessary writes. Existing symlinks are removed safely so real files can be managed consistently. It exposes project-scoped deployment and default template deployment entrypoints. Cleanup scans installed skills and removes directories not present in valid template sources.",
         "chapter": "development",
-        "role": "lib",
+        "role": "skill deployment pipeline",
+        "enrich": {
+          "processedAt": "2026-05-08T07:46:01.311Z",
+          "attempts": 1
+        },
         "keywords": [
           "skill deployment",
-          "template sync",
+          "template synchronization",
           "include resolution",
-          "dry run",
-          "obsolete cleanup"
+          "obsolete cleanup",
+          "multi-target install",
+          ".agents and .claude"
         ]
       },
       {
@@ -10239,10 +10328,10 @@
       }
     ],
     "summary": {
-      "total": 289,
-      "totalMethods": 978
+      "total": 291,
+      "totalMethods": 992
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-07T00:18:30.711Z"
+  "enrichedAt": "2026-05-08T07:46:01.311Z"
 }
