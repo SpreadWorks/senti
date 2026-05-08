@@ -352,16 +352,18 @@ export const FLOW_COMMANDS = {
         "  --request <text>   User request text to seed into preparing state",
       ].join("\n"),
     },
-    "gate-retry": {
-      helpKey: "flow.set.gate-retry",
-      command: () => import("./lib/set-gate-retry.js"),
-      args: { positional: ["action", "phase"], flags: ["--yes"] },
+    retry: {
+      helpKey: "flow.set.retry",
+      command: () => import("./lib/set-retry.js"),
+      args: { positional: ["action", "kind", "phase"], flags: ["--yes"] },
       help: [
-        "Usage: sdd-forge flow set gate-retry reset <phase> --yes",
+        "Usage: sdd-forge flow set retry reset <gate|review> <phase> --yes",
         "",
-        "Reset the gateRetry counter for <phase> (task-impl | integration).",
-        "Appends a reset metric entry so countGateRetry returns 0 on the",
-        "next evaluation. --yes is required to avoid accidental resets.",
+        "Reset a retry counter (gateRetry or reviewRetry) for <phase>.",
+        "  gate   phases: task-impl | integration",
+        "  review phases: draft | spec | test | impl",
+        "Appends a reset metric entry so the counter returns 0 on the next",
+        "evaluation. --yes is required to avoid accidental resets.",
       ].join("\n"),
     },
     auto: {
@@ -448,7 +450,12 @@ export const FLOW_COMMANDS = {
         "  --dry-run        Show proposals without applying",
         "  --skip-confirm   Skip initial confirmation prompt",
       ].join("\n"),
-      post(ctx, result) {
+      async post(ctx, result) {
+        // spec 253: counter update first (R29: precedence). Errors propagate
+        // to dispatcher (R22) so POST_HOOK_FAILED warning surfaces.
+        const reviewMod = await import("./lib/run-review.js");
+        reviewMod.updateReviewRetryCounter(ctx, result);
+
         const planPhases = ["draft", "spec", "test"];
         if (planPhases.includes(ctx.phase)) return;
         const stepId = "review";

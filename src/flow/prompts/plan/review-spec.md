@@ -4,5 +4,6 @@
    - The review does NOT modify spec.md or spec.json directly.
    - **If verdict=PASS** (no proposals): display "レビューの結果、修正の必要はありませんでした。" Then run `sdd-forge flow set step review-spec done`.
    - **If verdict=FAIL** (proposals exist): read spec-review.md and evaluate each proposal against the spec and codebase context. Reflect changes that are valid into the spec. Then re-run `sdd-forge flow run review --phase spec`.
-   - **Review loop:** repeat review → fix → re-review until verdict=PASS or the resolved numeric maxAttempts from next-action is reached.
-   - **maxAttempts reached:** When the resolved numeric maxAttempts from next-action is reached, STOP and return control to the user. Do not set step done.
+   - **Review loop:** repeat review → fix → re-review until verdict=PASS or the resolved numeric maxAttempts from next-action is reached. Each `sdd-forge flow run review --phase spec` invocation = 1 attempt (CLI invocation level, not internal AI iteration).
+   - **CLI enforcement (spec 253):** the CLI now enforces this limit. When count >= max, `sdd-forge flow run review --phase spec` returns `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` and `data === { phase, attempts, max }`. Do NOT attempt to bypass it.
+   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover, the user can run `sdd-forge flow set retry reset review spec --yes` and then resume the loop.

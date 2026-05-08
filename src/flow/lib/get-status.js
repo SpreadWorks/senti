@@ -27,6 +27,13 @@ function zeroTokens() {
  * where each leaf is `{ <phase>: { <counter>: N, ... } }` with agent-call
  * aggregates (callCount, responseChars, durationMs, tokens, cost, models)
  * summed when present.
+ *
+ * spec 253 R28: This summary is **audit-only raw totals**. Reset entries
+ * (e.g. `{ counter: "gateRetry"|"reviewRetry", reset: true }` from
+ * `flow set retry reset ...`) are NOT interpreted here — the raw FAIL
+ * count accumulates across resets so the audit trail is preserved.
+ * Consumers needing the *current* retry count (post-reset) must call
+ * `countGateRetry` / `countReviewRetry` instead.
  */
 export function buildMetricsSummary(entries) {
   const summary = { flow: {}, tasks: {}, total: {} };

@@ -1,0 +1,113 @@
+{
+  "devType": "feature",
+  "goal": "review steps の maxAttempts を CLI 側で強制し、AI の自走による retry 上限超過を invariant として防止する。",
+  "analysis": {
+    "problem": "review (plan.review-draft / plan.review-spec / plan.review-test / impl.review) の maxAttempts は現状 AI が自主的に守る soft rule で、AI が誤って自走した場合に止める仕組みがない。spec 251 (Issue #310) の draft で auto:1 のところを 3 回イテレーションした事例が発生した。",
+    "proposedApproach": "既存 gate の retry 強制機構と同形を review にも導入する。CLI ラッパー層のみで完結させ、review の AI 評価ロジック自体は変更しない。",
+    "validation": "Issue 本文の期待動作 (counter 記録 / max 超過時 Envelope.fail / phase ごとの max 解決 / PASS でリセット) を全て満たす。CLI ラッパー層のみで完結し、review 本体の変更は不要というスコープ宣言とも整合する。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] review attempt counter を flow.json に永続化する",
+      "[must] `sdd-forge flow run review --phase <p>` 開始時に count >= max なら短絡し、AI 評価を実行しない",
+      "[must] 短絡時のエラーは安定したエラーコードと、phase / attempts / max を含む構造化データで返す",
+      "[must] review verdict=PASS で counter をリセット、verdict=FAIL で counter を加算する",
+      "[must] max 値は phase ごとに定義から導出し、auto/manual モードで切り替わる",
+      "[must] 対象は plan.review-draft / plan.review-spec / plan.review-test / impl.review の 4 phase",
+      "[must] max 超過後の recovery 経路 (counter リセット手段) を提供する",
+      "[should] テストで CLI 強制が phase 別に独立に動くこと、PASS reset / FAIL increment が永続化されることを検証する"
+    ],
+    "out": [
+      "review コマンド本体の AI 評価ロジック自体の変更",
+      "task scope (TASK_DEFINITION の task/review) の enforcement",
+      "CLI の --phase に 'impl' を新規追加すること",
+      "spec 251 (Issue #310) の flow integration phase 順序修正",
+      "skill instructions / memory 側の文言改善"
+    ]
+  },
+  "impactOnExisting": [
+    "[must] flow.json の metrics に新カウンタ種別が増える。metrics 集計を読む箇所が新カウンタ種別を許容できる必要がある。",
+    "[must] `sdd-forge flow run review` の挙動: count >= max のとき従来は無条件で AI 起動していたのが短絡するようになる。",
+    "[should] 既存の counter リセット CLI のスコープが拡張される (review counter にも同等手段を提供)。",
+    "[nice-to-have] AI 自走防止に依存していた skill instructions の表現が CLI 強制に置き換わる (skill 側の文言は本 spec 範囲外)。",
+    "[nice-to-have] テストファイル群に同シリーズの新規テストが追加される。"
+  ],
+  "qa": [
+    {
+      "question": "review の retry counter を保存する場所はどうする？state.reviewAttempts のような独立 dict か、既存 metrics と同形か？",
+      "answer": "既存 gate retry counter と同じ永続化形式を採用する。Issue 本文は 'state.reviewAttempts または同等のキー' と記載しており、既存パターンとの対称性を優先する。",
+      "evidence": "src/flow/lib/run-gate.js の countGateRetry / updateGateRetryCounter は state.metrics 配列を append-only で操作する。src/lib/flow-store.js の appendMetric は generic な API でカウンタ種別を文字列で識別する。src/lib/constants.js#VALID_METRIC_COUNTERS の enum に新カウンタ名を追加すれば既存 store がそのまま再利用できる。",
+      "why": "(1) 同形にすることで読み手が把握しやすく、reset 履歴も保存され audit trail が確保される。(2) 既存 store 実装を流用でき新規 schema 不要。(3) Issue は同等キーを許容している。",
+      "considered": "state.reviewAttempts という可変 dict 案。append-only でない構造は reset 履歴の追跡が困難で既存 gate パターンから外れる。"
+    },
+    {
+      "question": "対象とする CLI phase の範囲はどうする？--phase に 'impl' を追加する？",
+      "answer": "draft / spec / test / impl の 4 phase を対象とする。CLI 表面では従来どおり draft / spec / test のみ受け付け、impl は --phase 省略で起動する既存仕様を維持する。",
+      "evidence": "Issue 本文が plan.review-draft / plan.review-spec / plan.review-test / impl.review の 4 phase を明示。src/lib/constants.js#VALID_REVIEW_PHASES は現状 draft / spec / test のみ。src/flow/lib/run-review.js の RunReviewCommand.execute は phase=null のとき impl review path に流れる。",
+      "why": "(1) --phase impl を新規受け入れすると、既存の plan path / impl path 分岐ロジックの再設計が必要となりスコープ拡大する。(2) CLI 表面の意味論 (phase = レビュー成果物の種類) を保つことが目的で、機械的な後方互換性のためではない。",
+      "considered": "--phase impl を追加する案。run-review.js の plan/impl 分岐の再設計が必要でスコープ外。"
+    },
+    {
+      "question": "task scope (currentTaskId が非 null) で `flow run review` が走る invocation path は存在するか？",
+      "answer": "存在しない。review コマンドは現状 currentTaskId に分岐しない。本 spec の max 解決は flow scope に固定する。task scope を invariant として強制するかは別 Issue で扱う。",
+      "evidence": "src/flow/lib/run-review.js の RunReviewCommand.execute は ctx.phase / ctx.dryRun / ctx.skipConfirm のみ参照し currentTaskId を見ない。src/flow/registry.js の review エントリも task 分岐なし。src/flow/definition.js#TASK_DEFINITION の task/review ノードは task driver からのみ参照される。",
+      "why": "Issue #315 が言及するのは plan.* と impl.review の 4 phase のみで task scope は範囲外。task scope を本 spec で扱うとスコープが拡大し、かつ TASK_DEFINITION の task/review default maxAttempts=1 が突然有効化されてユーザー UX を変えてしまう。",
+      "considered": "(1) scope 自動判定で TASK_DEFINITION も拾う → task/review が有効化され UX 変化。(2) currentTaskId 非 null で fail-closed → 既存 unreachable path への防衛コードで YAGNI。"
+    },
+    {
+      "question": "各 phase の PASS / FAIL 判定はどう定義する？fail-closed をどう守る？",
+      "answer": "plan 系 (draft / spec / test) は既存の verdict (PASS / FAIL) を再利用。impl は明示的な既知 PASS 値のみを reset 条件とし、それ以外 (未知 result を含む) は FAIL として retry を消費する。",
+      "evidence": "src/flow/lib/run-review.js の plan 系 review parse 関数は artifacts.verdict に PASS/FAIL を詰める。impl path は result 文字列を 'no-changes' / 'no-proposals' / 'ok' の 3 値で固定し、proposalCount===0 のときは 'no-proposals' に集約される。",
+      "why": "(1) Issue の 'review が PASS したらリセット' を 4 phase で機械的に判定可能にする。(2) impl は元々 verdict 概念がないため正規化された PASS 条件が必要。(3) 未知 result を FAIL 扱いにすることで AI が予期しない result を返したときの誤 reset を防ぐ (fail-closed)。",
+      "considered": "(1) impl は always FAIL カウントだけ扱う案 → PASS リセットがなく counter が残り続ける。(2) proposalCount===0 を独立 reset 条件にする → 未知 result との fail-closed 矛盾を生む。"
+    },
+    {
+      "question": "max 超過チェックのタイミングと off-by-one、exhaustion 時の必須契約は何か？",
+      "answer": "現在の count を読み、count >= max なら AI 評価を実行する前に短絡する。境界条件は gate と同一: max=N のとき N 回試行可能、N 回目で FAIL したら次回呼び出しから拒否される。短絡時は安定エラーコードと phase / attempts / max を含む構造化データを返す。messages の文面はテストで exact match を要求しない。",
+      "evidence": "src/lib/flow-envelope.js の Envelope.fail シグネチャは type, key, code, messages, data を受け取る。src/flow/lib/run-gate.js の checkRetryBelowMax は `if (count < max) return null;` で同じ境界条件を採用。",
+      "why": "(1) Issue 本文の '>= maxAttempts なら Envelope.fail' に従う。(2) gate と境界条件・契約形式を揃えることで運用一貫性を確保。(3) message テキストを契約から外すことで spec brittleness を避け、エラーコードと構造化データのみを安定 contract とする。",
+      "considered": "post hook で先に increment してから比較する順番 → mechanical retry が count に乗ってしまう。AI verdict ベースの gate 流儀が優れる。"
+    },
+    {
+      "question": "subprocess 起動失敗 (review CLI 自体のエラー) は counter に加算するか？",
+      "answer": "加算しない。subprocess 起動失敗は AI の自走でなく環境問題なので retry budget を消費すべきでない。",
+      "evidence": "src/flow/lib/run-review.js の parsePhaseReviewOutput は subprocess 異常時に throw する。dispatcher は ok:true 時のみ post hook を実行する契約。runCmdWithRetry は subprocess level の mechanical retry を別途持つ。",
+      "why": "gate と同じセマンティクスで運用一貫性を確保。subprocess level の mechanical retry と二重カウントしないためにも、AI verdict が取れた経路のみで increment する。",
+      "considered": "全 invocation で加算する案 → gate と対称性が崩れ、subprocess retry と二重消費する。"
+    },
+    {
+      "question": "max 超過チェックや counter 更新の副作用契約はどうする？短絡時は副作用を発生させないことを invariant 化するか？",
+      "answer": "短絡時は副作用 (subprocess 起動 / counter 更新 / step 状態変更) を一切発生させない。これを invariant として明示しテストでも検証する。",
+      "evidence": "src/lib/dispatcher.js は ok:false 時に post hook をスキップする (skipPost フラグ) ため、ok:false envelope を返すだけで counter 更新側の post hook は発火しない。",
+      "why": "短絡時に副作用が発生すると、'max を超えた状態でリセットしないと回復できない' 想定が崩れたり、step 状態が想定外に進んだりする。invariant にしておけば運用とテストが単純化される。",
+      "considered": "短絡時にも 'attempt 試行記録' を残す案 → メトリクスの意味が混乱する。"
+    },
+    {
+      "question": "post hook 失敗時の挙動は？counter 更新が silent に外れて enforcement が無効化される懸念は？",
+      "answer": "gate post hook と同じ扱い (warning 化) とする。counter 更新失敗を fatal にすると軽微な永続化失敗で review ループ全体を止めることになり UX が悪化する。永続化失敗の検知は test 層で担保する。",
+      "evidence": "src/flow/registry.js の gate post hook は updateGateRetryCounter 失敗時に stderr 書き込みのみ。src/lib/dispatcher.js は post hook 例外を envelope warning として記録し ok 判定には影響させない。",
+      "why": "(1) gate と対称で運用一貫性を確保。(2) silent failure 懸念は妥当だが、永続化失敗は典型的に file lock 等の一時的事象であり、次回呼び出しで再試行されるため 'permanent な' enforcement 喪失にはなりにくい。(3) 永続化失敗パターンの早期発見は test 層で担保する。",
+      "considered": "post hook 失敗を fatal 化する → gate と非対称で UX 悪化。"
+    },
+    {
+      "question": "max 超過後の recovery 経路はどうする？永久ブロック懸念への対策は？",
+      "answer": "既存の counter リセット CLI のスコープを拡張し、review counter にも同等のリセット手段を提供する。alpha 期間ポリシーに従い後方互換 alias は付けない。CLI の表面形式は spec フェーズで決定する。",
+      "evidence": "src/flow/lib/set-gate-retry.js は現状 gate counter のみを reset する CLI として既に存在し、--yes 確認フラグの仕組みが集約されている。",
+      "why": "(1) max 超過後に recovery 経路がないと永久ブロックされる。(2) gate counter と同シリーズの既存 CLI に統合する方が同型コマンド 2 つを並列メンテするより deeper module。(3) 後方互換 alias を付けないのは alpha 期間ポリシー (CLAUDE.md) に従うため。",
+      "considered": "(1) recovery を out of scope にして手動で flow.json を編集 → UX が悪く append-only 書式知識を要求する。(2) review-retry reset を独立 CLI にする → 同型コマンド分散で DRY 違反。"
+    },
+    {
+      "question": "テスト戦略は？単体と end-to-end 永続化の二層で何を検証する？",
+      "answer": "単体層では count 計算 / max 解決 / 短絡判定 / counter 更新ロジックを直接検証する。end-to-end 層では実 flow.json への永続化と count 再構成、後続呼び出しの短絡を検証する。短絡時の副作用ゼロも invariant として検証する。",
+      "evidence": "tests/unit/flow/gate-retry-counter*.test.js と set-gate-retry.test.js が同シリーズの単体・統合パターンとして既に存在。flow-store.appendMetric は taskId / ts を auto-populate するため永続化結果を読み戻すテストは store 経由を必ず通す。src/flow/definition.js の ModeMaxAttempts.resolve は context.autoApprove を見るため、テストもこのフィールド名で書く。",
+      "why": "(1) Issue が要求する 'CLI 強制 invariant' は 'count を読み戻したときに次回が短絡する' という end-to-end 振る舞いで証明できる。(2) 短絡判定 helper は read-only なので、永続化 simulate には counter 更新側のヘルパか post hook を直接叩く必要がある (混同しない)。(3) ヘルパを純粋に切り出すと AI subprocess を mock 不要で網羅できる。",
+      "considered": "結合テストのみで完結する案 → AI 呼び出しを伴うため重く、CI で flaky になる。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-08T13:36:00Z",
+    "notes": "user-approved after review-draft hit manual max=5; remaining reviewer findings absorbed into draft restructure (priorities + scope-boundary cleanup) and spec phase"
+  }
+}

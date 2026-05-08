@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/253-review-max-attempts/draft-review.md      |  43 ++\n specs/253-review-max-attempts/draft.json           | 113 +++\n specs/253-review-max-attempts/flow.json            | 805 +++++++++++++++++++++\n specs/253-review-max-attempts/issue-log.json       | 531 ++++++++++++++\n specs/253-review-max-attempts/issue.md             |  54 ++\n specs/253-review-max-attempts/qa.md                |   9 +\n specs/253-review-max-attempts/spec-review.md       |  33 +\n specs/253-review-max-attempts/spec.json            | 507 +++++++++++++\n specs/253-review-max-attempts/spec.md              |  58 ++\n .../tests/metrics-summary-audit.test.js            |  42 ++\n .../tests/review-retry-helpers.test.js             | 210 ++++++\n .../tests/run-review-enforcement.test.js           | 270 +++++++\n .../tests/set-retry-cli.test.js                    | 284 ++++++++\n src/flow/lib/get-status.js                         |   7 +\n src/flow/lib/run-review.js                         | 126 +++-\n src/flow/lib/set-gate-retry.js                     |  70 --\n src/flow/lib/set-retry.js                          |  93 +++\n src/flow/prompts/impl/review.md                    |   3 +-\n src/flow/prompts/plan/review-draft.md              |   5 +-\n src/flow/prompts/plan/review-spec.md               |   5 +-\n src/flow/prompts/plan/review-test.md               |   5 +-\n src/flow/prompts/task/review.md                    |   2 +-\n src/flow/registry.js                               |  25 +-\n src/lib/constants.js                               |   1 +\n src/templates/skills/sdd-forge.flow/SKILL.md       |   1 +\n tests/unit/flow/set-gate-retry.test.js             | 124 ----\n 26 files changed, 3214 insertions(+), 212 deletions(-)",
+      "commits": [
+        "feat: feature/253-review-max-attempts"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 7
+    },
+    "tokenMetrics": {
+      "input": 1111045,
+      "output": 76519,
+      "cacheRead": 5676032,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 35,
+      "durationMs": 2044947,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 421984
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 137399
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 761727
+        },
+        {
+          "phase": "gate",
+          "durationMs": 134843
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 170037
+        },
+        {
+          "phase": "test-execute",
+          "durationMs": 51036
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 367921
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/253-review-max-attempts\n    26 files changed, 3214 insertions(+), 212 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 7\n    agent calls ................. 35\n    input tokens ................ 1,111,045\n    output tokens ............... 76,519\n    cache-read tokens ........... 5,676,032\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 2044.9s\n      review-draft .............. 422.0s\n      gate-draft ................ 137.4s\n      review-spec ............... 761.7s\n      gate ...................... 134.8s\n      review-test ............... 170.0s\n      test-execute .............. 51.0s\n      gate-impl ................. 367.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

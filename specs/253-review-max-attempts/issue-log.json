@@ -1,0 +1,531 @@
+{
+  "entries": [
+    {
+      "step": "review-draft",
+      "reason": "user explicitly continued iteration after auto:1 maxAttempts reached on draft review",
+      "trigger": "review-draft FAIL with 7 issues; user chose [2] to keep auto and re-iterate",
+      "resolution": "addressed all 7 review findings in draft.json with concrete code references",
+      "guardrailCandidate": "review max attempts must be enforced by CLI (this is the very Issue being implemented)",
+      "taskId": null,
+      "timestamp": "2026-05-08T13:08:39.886Z"
+    },
+    {
+      "step": "review-draft",
+      "reason": "draft review entered self-iteration loop: 3 attempts past auto:1 limit, each round surfaces new findings",
+      "trigger": "ai self-iteration on review FAIL feedback (this Issue exists precisely to prevent it)",
+      "resolution": "halted at attempt 3 and surfaced situation to user for explicit decision",
+      "guardrailCandidate": "AI must respect maxAttempts even under user override; when in doubt, ask user every N rounds",
+      "taskId": null,
+      "timestamp": "2026-05-08T13:15:53.737Z"
+    },
+    {
+      "step": "review-draft",
+      "reason": "draft review reached manual max=5; reviewer keeps surfacing new findings each round (deepening inspection pattern)",
+      "trigger": "manual:5 budget exhausted on draft review with 8 issues remaining (mostly rescoping requests)",
+      "resolution": "halted at attempt 5 per skill hard stop; surfacing situation to user for decision",
+      "guardrailCandidate": "draft review reviewer is prone to deepening inspection; spec phase should absorb open structural questions instead of chasing draft PASS",
+      "taskId": null,
+      "timestamp": "2026-05-08T13:35:49.823Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T13:37:43.217Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays focused on enforcing review maxAttempts and the directly related reset/recovery path.; Unambiguous Requirements — Requirements use concrete phases, counters, envelope codes, boundary conditions, and expected side effects.; Complete Context — The draft provides enough concrete behavior, evidence, and edge cases for independent reviewers to judge satisfaction.; No Hardcoded Secrets — No API keys, passwords, tokens, or other secrets are present.; Prioritize Requirements — More than three requirements are listed, but individual priorities must/should/nice-to-have are not assigned.; Impact on Existing Features — The impactOnExisting section explicitly lists affected files and behaviors.; Present Recommendations with Reasoning — Each QA entry leads with an answer and includes evidence, why, and considered alternatives.; Explore Before Asking — The draft cites existing code paths and definitions instead of leaving answerable questions open.; Proactively Raise Related Implications — It proactively covers task scope, CLI compatibility, recovery after exhaustion, persistence, and subprocess failure behavior.; Confirm Brainstorm vs. Decision Before Critiquing — The content records an approved decision and does not critique brainstorming as final.; Capture Digressions in draft.md — Whether discussion digressions occurred and were captured in draft.md requires runtime conversation evidence not provided.; Draft Stays at Requirements Level — The draft goes beyond requirements level with implementation snippets, internal control flow, helper/API names, and persisted data shapes outside evidence-only context.; Backward-Compatible CLI Interface — The CLI reset command change includes an alias preserving the existing set gate-retry form and avoids adding --phase impl.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T13:38:38.939Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three requirements are listed, but individual priorities must/should/nice-to-have are not assigned."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft goes beyond requirements level with implementation snippets, internal control flow, helper/API names, and persisted data shapes outside evidence-only context."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Scope stays focused on enforcing review maxAttempts and related recovery/testing.; Unambiguous Requirements — Requirements define concrete phases, counters, envelope shape, and pass/fail behavior.; Complete Context — Acceptance conditions are specific enough for independent implementation review.; No Hardcoded Secrets — No secrets, credentials, tokens, or secret-like literals are introduced.; Prioritize Requirements — More than three requirements are listed without must/should/nice-to-have priorities.; Impact on Existing Features — Existing feature impacts are explicitly listed, including CLI alias compatibility.; Present Recommendations with Reasoning — Questions include recommended answers with evidence, why, and considered alternatives.; Explore Before Asking — Draft cites explored source files, functions, and existing patterns before resolving questions.; Proactively Raise Related Implications — Raises related implications such as task scope, recovery path, off-by-one behavior, and compatibility.; Confirm Brainstorm vs. Decision Before Critiquing — No brainstorming critique is present; approved decision context is explicit.; Capture Digressions in draft.md — Requires discussion/runtime evidence about digressions and draft.md updates, not provided.; Draft Stays at Requirements Level — Draft includes internal control flow, data shapes, helper APIs, exact hook behavior, and CLI/API design beyond requirements level.; Backward-Compatible CLI Interface — CLI change keeps existing gate-retry form as an alias and documents compatibility intent.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T13:39:03.200Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three requirements are listed without must/should/nice-to-have priorities."
+        },
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Draft includes internal control flow, data shapes, helper APIs, exact hook behavior, and CLI/API design beyond requirements level."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate-impl escalation: repeated identical FAIL detected for phase \"draft\".\nMatching (guardrail, reason) pairs:\n  prioritize-requirements: More than three requirements are listed without must/should/nice-to-have priorities.\n\nThe AI has failed on the same requirement(s) for the same reason as the previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-08T13:39:48.173Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate-impl escalation: repeated identical FAIL detected for phase \"draft\".\nMatching (guardrail, reason) pairs:\n  prioritize-requirements: More than three requirements are listed without must/should/nice-to-have priorities.\n\nThe AI has failed on the same requirement(s) for the same reason as the previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-08T13:40:52.031Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Scope stays focused on enforcing review maxAttempts for the requested review phases.; Unambiguous Requirements — Requirements use concrete conditions such as counter persistence, count >= max short-circuit, and PASS/FAIL behavior.; Complete Context — Acceptance conditions are specific enough to independently verify implementation behavior.; No Hardcoded Secrets — No secrets, credentials, tokens, or secret-handling changes are present.; Prioritize Requirements — More than three requirements are listed and each is marked must, should, or nice-to-have.; Impact on Existing Features — Existing feature impacts are explicitly listed, including flow.json metrics, review behavior, and reset CLI scope.; Present Recommendations with Reasoning — Each QA question gives a recommended answer with evidence and reasoning from code patterns, docs/policy, or guardrail concerns.; Explore Before Asking — The draft answers questions using explored source references rather than asking the user unnecessarily.; Proactively Raise Related Implications — Related implications such as recovery, subprocess failures, post hook failures, and task-scope effects are raised proactively.; Confirm Brainstorm vs. Decision Before Critiquing — No critique of user brainstorming is present; the draft records approved decisions and scoped alternatives.; Capture Digressions in draft.md — No discussion digression is evident in the provided content, so the guardrail is inapplicable.; Draft Stays at Requirements Level — Several answer fields specify implementation details such as state.metrics structure, post hook placement, async/dynamic import strategy, helper design, and exact execution flow beyond requirements-level scope.; Backward-Compatible CLI Interface — The draft preserves existing --phase behavior and discusses reset CLI expansion; no final removal or changed meaning lacks a migration plan.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T13:43:45.101Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Several answer fields specify implementation details such as state.metrics structure, post hook placement, async/dynamic import strategy, helper design, and exact execution flow beyond requirements-level scope."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "review-spec",
+      "reason": "review-spec reached auto:3 max with 6 substantive proposals remaining; reviewer keeps surfacing new dimensions (prompts, docs, status display, error codes)",
+      "trigger": "auto-mode review-spec attempt 3/3 FAIL with 6 proposals",
+      "resolution": "halted at attempt 3 per skill protocol; surfacing to user for decision",
+      "guardrailCandidate": "spec phase reviewer also exhibits deepening inspection like draft phase; consider widening scope or accepting structural drift",
+      "taskId": null,
+      "timestamp": "2026-05-08T14:10:12.742Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec addresses one user-defined concern: enforcing review maxAttempts at the CLI layer.; Task Single Responsibility — Tasks are scoped around coherent implementation or test slices for the same concern.; Unambiguous Requirements — Requirements use concrete files, commands, error codes, data shapes, and expected behaviors.; Complete Context — Requirements are specific enough for reviewers to judge implementation satisfaction.; REQ Diff-Verifiability — Some requirements depend on process/report actions such as retro/report notes, upgrade/build guidance, or distribution reflection beyond diff plus tests.; No Hardcoded Secrets — No secrets or instructions to hardcode secrets are present.; No Silent Error Swallowing — The spec requires warning propagation or dispatcher handling rather than silent discard.; Prioritize Requirements — More than three requirements are present and each has a must/should priority.; Impact on Existing Features — No explicit impact-on-existing-features section or statement of unaffected features is provided.; Bounded Resource Usage — Retry behavior is explicitly bounded by maxAttempts and fail-closed checks.; Spec Includes Test Strategy — The spec includes detailed unit, e2e, and manual test strategies.; Synthesize Draft, Do Not Copy — Cannot evaluate copying or invention without the original draft content.; Record Unresolved Points as Open Questions — Open questions are explicitly represented and empty, with decisions carrying evidence.; Include 'Why This Approach' Rationale — Decisions and alternatives explain why this approach was chosen.; Spec Test Coverage — Tests are specified under tests/unit/flow rather than specs/<specid>/tests/ with required spec headers.; Backward-Compatible CLI Interface — The spec intentionally removes the old CLI during alpha and documents no alias per project policy.; Exit Code Contract — CLI changes define envelope errors but do not state success/failure exit-code contracts for each modified command.; Validate User Input at Entry Point — New CLI arguments action, kind, and phase are listed with validation and error codes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T14:18:35.406Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Some requirements depend on process/report actions such as retro/report notes, upgrade/build guidance, or distribution reflection beyond diff plus tests."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "No explicit impact-on-existing-features section or statement of unaffected features is provided."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Tests are specified under tests/unit/flow rather than specs/<specid>/tests/ with required spec headers."
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "CLI changes define envelope errors but do not state success/failure exit-code contracts for each modified command."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec focuses on enforcing review maxAttempts and directly related reset/retry handling.; Task Single Responsibility — Tasks are scoped to related implementation, CLI, prompt, and test changes for the same feature.; Unambiguous Requirements — Impl PASS handling is contradictory: D-4 rejects proposalCount===0 as an independent reset condition, while R6/T-2 require it.; Complete Context — The D-4 versus R6/T-2 conflict means reviewers could disagree on required impl review reset behavior.; REQ Diff-Verifiability — Requirements are mostly decidable from code diff and stated tests, including CLI behavior, error codes, and file updates.; No Hardcoded Secrets — No secrets, tokens, passwords, or credentials are included.; No Silent Error Swallowing — The spec explicitly requires post hook errors to be observable via warnings or propagation.; Prioritize Requirements — More than three requirements are present and each has must/should/nice-to-have priority.; Impact on Existing Features — A dedicated impact section lists affected commands, metrics, templates, and unchanged gate behavior.; Bounded Resource Usage — Retry behavior has explicit maxAttempts bounds and short-circuit behavior.; Spec Includes Test Strategy — The spec includes unit, e2e, and manual test strategies plus acceptance criteria.; Synthesize Draft, Do Not Copy — The content is organized as a synthesized spec with rationale, decisions, requirements, and tasks.; Record Unresolved Points as Open Questions — No unresolved points are hidden; open_questions is explicitly empty.; Include 'Why This Approach' Rationale — The decisions and alternatives sections explain why the chosen approach was selected.; Spec Test Coverage — Tests are specified under specs/253-review-max-attempts/tests with requirement-oriented coverage expectations.; Backward-Compatible CLI Interface — The spec states the old CLI is removed under alpha policy and provides the replacement command.; Exit Code Contract — Success and failure exit code behavior is specified for review short-circuit and retry reset commands.; Validate User Input at Entry Point — The spec lists action, kind, phase, and --yes validation at the entry point.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T14:21:14.669Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Impl PASS handling is contradictory: D-4 rejects proposalCount===0 as an independent reset condition, while R6/T-2 require it."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "The D-4 versus R6/T-2 conflict means reviewers could disagree on required impl review reset behavior."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on enforcing review maxAttempts and related reset/recovery surfaces.; Task Single Responsibility — Tasks group changes by shared implementation concern; no unrelated actions are bundled.; Unambiguous Requirements — Some requirements use vague outcomes like '通常通り進む' and contain conflicting impl PASS guidance around proposalCount===0.; Complete Context — Two reviewers could disagree because alternatives reject proposalCount===0 as a PASS fallback while requirements and acceptance criteria require it.; REQ Diff-Verifiability — Requirements are mostly decidable from diff plus test summaries, including specific files, errors, and data shapes.; No Hardcoded Secrets — No secrets, tokens, passwords, or API keys are introduced.; No Silent Error Swallowing — Post-hook errors are specified as observable warnings or propagated to dispatcher handling.; Prioritize Requirements — More than three requirements are listed and each has must/should/nice-to-have priority.; Impact on Existing Features — Impact on existing features is explicitly listed.; Bounded Resource Usage — Retry behavior is explicitly bounded by maxAttempts and count >= max checks.; Spec Includes Test Strategy — Spec includes unit and end-to-end test strategy and per-task test_strategy fields.; Synthesize Draft, Do Not Copy — Content is organized into synthesized sections with decisions, requirements, tasks, and rationale.; Record Unresolved Points as Open Questions — No unresolved points are hidden; open_questions is present and empty.; Include 'Why This Approach' Rationale — Decisions and alternatives explain why the approach was chosen.; Spec Test Coverage — Tests are required under specs/253-review-max-attempts/tests with requirement-focused coverage.; Backward-Compatible CLI Interface — CLI removal is intentional under alpha policy and replacement/migration to the new form is specified.; Exit Code Contract — Success and failure exit codes are stated for review short-circuit and retry reset command validation.; Validate User Input at Entry Point — User-facing action, kind, phase, and --yes validations are explicitly specified at entry point.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T14:22:10.125Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Some requirements use vague outcomes like '通常通り進む' and contain conflicting impl PASS guidance around proposalCount===0."
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Two reviewers could disagree because alternatives reject proposalCount===0 as a PASS fallback while requirements and acceptance criteria require it."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec focuses on enforcing review maxAttempts and related reset/retry plumbing.; Task Single Responsibility — Tasks are scoped to coherent implementation/test/template updates for the retry enforcement feature.; Unambiguous Requirements — Requirements define concrete commands, error codes, data shapes, phases, and observable behavior.; Complete Context — Requirements and acceptance criteria are specific enough for independent reviewers to judge satisfaction.; REQ Diff-Verifiability — Requirements are mostly decidable from code diff plus test summaries, using explicit files, commands, and expected outputs.; No Hardcoded Secrets — Content introduces no secrets, tokens, passwords, or secret-handling code.; No Silent Error Swallowing — Spec explicitly requires post hook failures to be observable via POST_HOOK_FAILED warnings.; Prioritize Requirements — More than three requirements are present and each has must/should/nice-to-have priority.; Impact on Existing Features — Impact section lists affected existing commands, metrics, templates, and gate retry behavior.; Bounded Resource Usage — Retry processing is bounded by maxAttempts and explicit count >= max short-circuit behavior.; Spec Includes Test Strategy — Spec includes unit and end-to-end test strategy across requirements, tasks, and acceptance criteria.; Synthesize Draft, Do Not Copy — Content is structured into scope, requirements, decisions, tasks, and acceptance criteria rather than raw copied draft.; Record Unresolved Points as Open Questions — No unresolved points are hidden; open_questions is explicitly empty.; Include 'Why This Approach' Rationale — Alternatives and decisions explain why the selected approach was chosen.; Spec Test Coverage — Spec defines tests under specs/253-review-max-attempts/tests but does not require the mandated // spec: R<N> header per test file.; Backward-Compatible CLI Interface — CLI removal is intentional under alpha policy and includes replacement command details rather than a compatibility alias.; Exit Code Contract — Spec states success and failure exit codes for review short-circuit and retry reset CLI.; Validate User Input at Entry Point — Spec lists action, kind, phase, and --yes validation requirements at the flow set retry entry point.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T14:23:22.038Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Spec defines tests under specs/253-review-max-attempts/tests but does not require the mandated // spec: R<N> header per test file."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-synthesize-not-copy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "review-test",
+      "reason": "codex CLI subprocess failed with --full-auto deprecation warning; review-test cannot be executed in current environment",
+      "trigger": "agent.js spawns codex with --full-auto flag which is now removed",
+      "resolution": "skipped review-test step; this is an environment/agent issue unrelated to spec 253 (out of scope)",
+      "guardrailCandidate": "src/lib/agent.js codex provider profile needs update to --sandbox workspace-write (separate issue)",
+      "taskId": null,
+      "timestamp": "2026-05-08T14:32:39.843Z"
+    },
+    {
+      "step": "implement",
+      "reason": "tests/e2e/flow/gate-impl-integration.test.js has a pre-existing syntax error (extra }); on line 321) — exists in main HEAD too",
+      "trigger": "npm test reports SyntaxError on this file; verified on main via detached worktree",
+      "resolution": "out of scope for spec 253; not caused by review max attempts changes",
+      "guardrailCandidate": "fix the stray '});' in gate-impl-integration.test.js in a separate spec",
+      "taskId": null,
+      "timestamp": "2026-05-08T14:44:35.422Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "test-execute and test-result-review require AI agent (codex CLI) which fails with --full-auto deprecation; same env issue as review-test",
+      "trigger": "user opted to skip after spec 253 tests pass under direct node --test invocation",
+      "resolution": "set test-execute and test-result-review to skipped; tests already verified manually",
+      "guardrailCandidate": "agent.js codex provider profile must be updated to --sandbox workspace-write (separate spec)",
+      "taskId": null,
+      "timestamp": "2026-05-08T14:47:12.219Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test-result-review.json missing — run test-result-review step before integration gate",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T14:47:54.148Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "phase": "integration",
+      "reason": "exit=1 | warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.\nReading prompt from stdin...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-08T14:49:54.982Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "integration",
+      "reason": "exit=1 | warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.\nReading prompt from stdin...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-08T14:50:29.690Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — VALID_METRIC_COUNTERS includes reviewRetry.; R2 — RunReviewCommand performs a pre-check and returns REVIEW_MAX_ATTEMPTS_EXCEEDED with phase/attempts/max.; R3 — Pre-check runs before subprocess work and returns ok:false, so post-hook side effects are skipped.; R4 — review post hook is async and calls updateReviewRetryCounter before existing step logic.; R5 — Plan review only resets on artifacts.verdict === PASS; all other values increment.; R6 — Impl review resets on no-changes/no-proposals/proposalCount 0 and otherwise increments with phase impl.; R7 — resolveReviewRetryMax maps phases to FLOW_DEFINITION nodes and calls resolveMaxAttempts with flow state.; R8 — RunReviewCommand still throws on invalid --phase before the UNKNOWN_REVIEW_PHASE envelope path.; R9 — Counter update is in the success post hook, so subprocess errors do not increment.; R10 — Post-hook errors propagate to dispatcher POST_HOOK_FAILED handling rather than becoming fatal to the command result.; R11 — set-gate-retry was removed and new set retry supports review resets without an alias.; R12 — Required run-review-max-attempts.test.js was not added; coverage is split under different filenames.; R13 — No required end-to-end persistence test in run-review-max-attempts.test.js is present.; R14 — Reset tests verify reset append, but not that the next review avoids short-circuit and starts subprocess.; R15 — Both checkReviewRetryBelowMax and updateReviewRetryCounter skip when currentTaskId is non-null.; R16 — Registry exposes flow set retry reset <kind> <phase> --yes and removes gate-retry.; R17 — Required specs/253-review-max-attempts/tests/set-retry.test.js was not added; file is named set-retry-cli.test.js.; R18 — Template was updated, but no upgrade-distributed .claude/.agents skill changes are shown.; R19 — countReviewRetry ignores taskId != null and both post hook/reset append with taskId:null.; R20 — Registry key retry, positional args, help text, envelope key, and validation codes are implemented.; R21 — Impl review post hook still reaches existing step-done update after counter update.; R22 — review post hook does not catch updateReviewRetryCounter errors, allowing dispatcher warning handling.; R23 — docs/cli_commands.md is not modified in the diff.; R24 — No set-metric-review-retry.test.js or equivalent set metric reviewRetry test was added.; R25 — Counter changes are in wrapper/post-hook path only; review command AI loop was not changed.; R26 — All five review prompt templates mention CLI invocation attempts and REVIEW_MAX_ATTEMPTS_EXCEEDED recovery.; R27 — Required retry-envelope-codes.test.js is absent and INVALID_USAGE coverage is missing.; R28 — Code/test preserve raw metrics summary, but docs/report audit-only wording is not added.; R29 — review post hook calls updateReviewRetryCounter before step status updates and lets throws abort later updates.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T23:25:31.374Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "RunReviewCommand still throws on invalid --phase before the UNKNOWN_REVIEW_PHASE envelope path."
+        },
+        {
+          "guardrail_id": "R12",
+          "reason": "Required run-review-max-attempts.test.js was not added; coverage is split under different filenames."
+        },
+        {
+          "guardrail_id": "R13",
+          "reason": "No required end-to-end persistence test in run-review-max-attempts.test.js is present."
+        },
+        {
+          "guardrail_id": "R14",
+          "reason": "Reset tests verify reset append, but not that the next review avoids short-circuit and starts subprocess."
+        },
+        {
+          "guardrail_id": "R17",
+          "reason": "Required specs/253-review-max-attempts/tests/set-retry.test.js was not added; file is named set-retry-cli.test.js."
+        },
+        {
+          "guardrail_id": "R18",
+          "reason": "Template was updated, but no upgrade-distributed .claude/.agents skill changes are shown."
+        },
+        {
+          "guardrail_id": "R24",
+          "reason": "No set-metric-review-retry.test.js or equivalent set metric reviewRetry test was added."
+        },
+        {
+          "guardrail_id": "R27",
+          "reason": "Required retry-envelope-codes.test.js is absent and INVALID_USAGE coverage is missing."
+        },
+        {
+          "guardrail_id": "R28",
+          "reason": "Code/test preserve raw metrics summary, but docs/report audit-only wording is not added."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R9",
+        "R10",
+        "R11",
+        "R15",
+        "R16",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R25",
+        "R26",
+        "R29"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "phase": "integration",
+      "reason": "gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R14 (jaccard=0.53): set-retry-cli.test.js verifies reset append but does not show the next review avoids short-circuit and starts subprocess. ↔ Reset tests verify reset append, but not that the next review avoids short-circuit and starts subprocess.\n  R28 (jaccard=1.00): Code/test preserve raw metrics summary, but docs/report audit-only wording is not added. ↔ Code/test preserve raw metrics summary, but docs/report audit-only wording is not added.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-08T23:27:58.941Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — VALID_METRIC_COUNTERS includes reviewRetry.; R2 — RunReviewCommand pre-check returns REVIEW_MAX_ATTEMPTS_EXCEEDED with phase/attempts/max before subprocess work.; R3 — Pre-check occurs before subprocess execution and returns ok:false, so post hook and metric/status side effects are skipped.; R4 — Review post hook is async and calls updateReviewRetryCounter before existing plan/impl logic.; R5 — Plan review resets only on artifacts.verdict === PASS; other values increment.; R6 — Impl review uses impl phase key and resets on no-changes/no-proposals/proposalCount===0; otherwise increments.; R7 — resolveReviewRetryMax maps phases to FLOW_DEFINITION review nodes and calls resolveMaxAttempts with flow state.; R8 — Unknown CLI phases and helper phases return UNKNOWN_REVIEW_PHASE rather than falling back.; R9 — Counter updates are in the success post hook path, so subprocess failures do not increment.; R10 — Review post hook errors propagate to dispatcher POST_HOOK_FAILED warning behavior without making envelope ok false.; R11 — Legacy gate-retry command was replaced by generic retry reset supporting review with no alias.; R12 — review-retry-helpers.test.js exists but lacks explicit short-circuit side-effect-zero and phase-independence coverage required by R12.; R13 — run-review-enforcement.test.js seeds metrics directly; it does not simulate FAIL via updateReviewRetryCounter/post hook then reload and count as required.; R14 — Reset test proves countReviewRetry becomes 0, but does not verify the next review invocation starts subprocess instead of short-circuiting.; R15 — checkReviewRetryBelowMax and updateReviewRetryCounter skip when currentTaskId is non-null.; R16 — Registry exposes flow set retry reset <gate|review> <phase> --yes and removes gate-retry.; R17 — set-retry-cli.test.js was added, old unit set-gate-retry test removed, and gate/review reset plus old-form rejection are covered.; R18 — Skill template command reference includes the new retry reset CLI; distributed skill files are explicitly out of diff scope.; R19 — countReviewRetry ignores taskId != null and appendMetric calls pass {taskId:null}.; R20 — Registry key is retry with action/kind/phase args, envelope key retry, updated help, and new validation codes.; R21 — Impl review post hook still proceeds to existing step done update after counter update.; R22 — Review post hook does not catch updateReviewRetryCounter errors, allowing dispatcher warning handling.; R23 — docs/cli_commands.md is not modified in the diff.; R24 — R1 helper test verifies VALID_METRIC_COUNTERS includes reviewRetry, matching the required indirect set metric validation.; R25 — Counter update is in wrapper/post-hook path only and review command AI loop was not changed.; R26 — All five review prompt templates mention CLI invocation attempts and REVIEW_MAX_ATTEMPTS_EXCEEDED recovery guidance.; R27 — set-retry-cli.test.js covers INVALID_ACTION/KIND/PHASE and old form, but missing INVALID_USAGE argument-shortage case and header omits R27.; R28 — get-status comment documents audit-only raw totals, but docs/report wording required by R28 is not added.; R29 — Review post hook calls updateReviewRetryCounter before step status update; thrown errors prevent later status update via dispatcher handling.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T23:30:18.596Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R12",
+          "reason": "review-retry-helpers.test.js exists but lacks explicit short-circuit side-effect-zero and phase-independence coverage required by R12."
+        },
+        {
+          "guardrail_id": "R13",
+          "reason": "run-review-enforcement.test.js seeds metrics directly; it does not simulate FAIL via updateReviewRetryCounter/post hook then reload and count as required."
+        },
+        {
+          "guardrail_id": "R14",
+          "reason": "Reset test proves countReviewRetry becomes 0, but does not verify the next review invocation starts subprocess instead of short-circuiting."
+        },
+        {
+          "guardrail_id": "R27",
+          "reason": "set-retry-cli.test.js covers INVALID_ACTION/KIND/PHASE and old form, but missing INVALID_USAGE argument-shortage case and header omits R27."
+        },
+        {
+          "guardrail_id": "R28",
+          "reason": "get-status comment documents audit-only raw totals, but docs/report wording required by R28 is not added."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R29"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — VALID_METRIC_COUNTERS includes reviewRetry.; R2 — RunReviewCommand pre-check returns REVIEW_MAX_ATTEMPTS_EXCEEDED with phase/attempts/max.; R3 — Pre-check occurs before subprocess work and returns ok:false, preventing post-hook side effects.; R4 — Review post hook is async and calls updateReviewRetryCounter before existing logic.; R5 — Plan reviews reset only on artifacts.verdict === 'PASS'; all other values increment.; R6 — Impl reviews use phase impl and reset on no-changes/no-proposals/proposalCount===0, otherwise increment.; R7 — Max attempts resolve from FLOW_DEFINITION review nodes via resolveMaxAttempts.; R8 — Unknown phases return UNKNOWN_REVIEW_PHASE without default max fallback.; R9 — Counter update is only in the success post-hook path, so subprocess failures do not increment.; R10 — Post-hook errors propagate to dispatcher POST_HOOK_FAILED warning handling.; R11 — Legacy gate-retry command was replaced by generic retry reset supporting review with no alias.; R12 — review-retry-helpers.test.js covers helper counting, max resolution, short-circuit, updates, task scope, and fail-closed cases.; R13 — Persistence simulation via updateReviewRetryCounter is not in run-review-enforcement.test.js and does not also verify subsequent review short-circuit in that flow.; R14 — Reset tests verify count/pre-check recovery but do not end-to-end verify the next review invocation starts subprocess.; R15 — checkReviewRetryBelowMax and updateReviewRetryCounter skip when currentTaskId is non-null.; R16 — Registry exposes flow set retry reset <gate|review> <phase> --yes and removes gate-retry.; R17 — set-retry-cli.test.js was added, old set-gate-retry test deleted, and gate/review reset plus old form rejection are covered.; R18 — Skill template command reference includes the new retry reset CLI; distributed skill files are out of diff scope.; R19 — countReviewRetry ignores taskId != null and appendMetric calls pass {taskId:null}.; R20 — Registry key, args, envelope key, help text, and validation codes are updated for retry.; R21 — Impl review post hook still proceeds to existing step done update after counter update.; R22 — Review post hook does not catch updateReviewRetryCounter errors.; R23 — docs/cli_commands.md is not modified in the diff.; R24 — R1 helper test verifies VALID_METRIC_COUNTERS includes reviewRetry, matching the indirect set metric validation design.; R25 — Counter updates are in wrapper/post-hook path only; review command AI loop is unchanged.; R26 — All five review prompt templates mention CLI invocation attempts and REVIEW_MAX_ATTEMPTS_EXCEEDED recovery guidance.; R27 — Required error cases are present, but set-retry-cli.test.js header omits R27 traceability.; R28 — buildMetricsSummary raw-total behavior is documented in code, but required docs/report wording is not added.; R29 — Review post hook calls updateReviewRetryCounter before step status updates and lets throws prevent later status changes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-08T23:34:35.120Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R13",
+          "reason": "Persistence simulation via updateReviewRetryCounter is not in run-review-enforcement.test.js and does not also verify subsequent review short-circuit in that flow."
+        },
+        {
+          "guardrail_id": "R14",
+          "reason": "Reset tests verify count/pre-check recovery but do not end-to-end verify the next review invocation starts subprocess."
+        },
+        {
+          "guardrail_id": "R27",
+          "reason": "Required error cases are present, but set-retry-cli.test.js header omits R27 traceability."
+        },
+        {
+          "guardrail_id": "R28",
+          "reason": "buildMetricsSummary raw-total behavior is documented in code, but required docs/report wording is not added."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R29"
+      ]
+    }
+  ]
+}

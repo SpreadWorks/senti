@@ -97,6 +97,7 @@ export const VALID_METRIC_COUNTERS = Object.freeze([
   "docsRead",
   "srcRead",
   "gateRetry",
+  "reviewRetry",
 ]);
 
 // ---------------------------------------------------------------------------

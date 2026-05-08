@@ -24,4 +24,5 @@
      5. **Do NOT re-run tests here.** When code changes are applied during review, the dispatcher resets the downstream `test-execute` / `test-result-review` / `gate-impl` / `retro` steps and reruns them through the single execution point.
    - **If no proposals** (NO_PROPOSALS):
      - Display: "レビューの結果、修正の必要はありませんでした。"
-   - **Retry limit:** If review keeps producing new proposals beyond the resolved numeric maxAttempts from next-action, STOP and return control to the user.
+   - **Retry limit:** Each `sdd-forge flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this limit (spec 253). When count >= max, `sdd-forge flow run review` returns `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` and `data === { phase, attempts, max }`.
+   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. To recover, the user can run `sdd-forge flow set retry reset review impl --yes` and then resume the review.

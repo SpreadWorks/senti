@@ -10,7 +10,122 @@ import { runCmd } from "../../lib/process.js";
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
+import { Envelope } from "../../lib/flow-envelope.js";
+import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
 import path from "path";
+
+// ---------------------------------------------------------------------------
+// Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
+// ---------------------------------------------------------------------------
+
+const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
+  draft: "review-draft",
+  spec: "review-spec",
+  test: "review-test",
+  impl: "review",
+});
+
+const REVIEW_PHASE_KEYS = Object.freeze(Object.keys(REVIEW_NODE_ID_BY_PHASE));
+
+function persistedPhaseKey(ctxPhase) {
+  return ctxPhase == null ? "impl" : ctxPhase;
+}
+
+/**
+ * Replay a reset-aware reviewRetry counter for the given phase.
+ * Only counts flow-scope entries (taskId == null) per R19.
+ */
+export function countReviewRetry(entries, phase) {
+  if (!Array.isArray(entries)) return 0;
+  let count = 0;
+  for (const e of entries) {
+    if (e.phase !== phase || e.counter !== "reviewRetry") continue;
+    if (e.taskId != null) continue; // R19: task-scope leakage guard
+    if (e.reset) count = 0;
+    else count += e.delta ?? 1;
+  }
+  return count;
+}
+
+/**
+ * Resolve review max attempts from FLOW_DEFINITION (flow scope only).
+ * Throws on unknown phase — callers should catch via checkReviewRetryBelowMax.
+ */
+export function resolveReviewRetryMax(retryContext = {}, phase) {
+  const nodeId = REVIEW_NODE_ID_BY_PHASE[phase];
+  if (!nodeId) {
+    const err = new Error(`unknown review phase: ${phase}`);
+    err.code = "UNKNOWN_REVIEW_PHASE";
+    throw err;
+  }
+  const flowState = retryContext.flowState || retryContext;
+  const node = resolveNodeFor(FLOW_DEFINITION, nodeId);
+  return node?.resolveMaxAttempts(flowState) ?? 5;
+}
+
+/**
+ * Pre-check called from RunReviewCommand.execute. Returns:
+ *  - null when count < max (proceed) OR currentTaskId is non-null (R15: task scope skip)
+ *  - Envelope.fail(REVIEW_MAX_ATTEMPTS_EXCEEDED) when count >= max
+ *  - Envelope.fail(UNKNOWN_REVIEW_PHASE) when phase is not mapped
+ */
+export function checkReviewRetryBelowMax(ctx, phase) {
+  const flowState = ctx?.flowState || {};
+  if (flowState.currentTaskId != null) return null; // R15
+  const persistedPhase = persistedPhaseKey(phase);
+  let max;
+  try {
+    max = resolveReviewRetryMax({ flowState }, persistedPhase);
+  } catch (err) {
+    if (err.code === "UNKNOWN_REVIEW_PHASE") {
+      return Envelope.fail("run", "review", "UNKNOWN_REVIEW_PHASE",
+        [`unknown review phase: ${persistedPhase}`],
+        { phase: persistedPhase });
+    }
+    throw err;
+  }
+  const count = countReviewRetry(flowState.metrics, persistedPhase);
+  if (count < max) return null;
+  return Envelope.fail("run", "review", "REVIEW_MAX_ATTEMPTS_EXCEEDED",
+    [
+      `review retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${persistedPhase}".`,
+      "Stop the automatic retry loop and return control to the user. Use `sdd-forge flow set retry reset review <phase> --yes` to recover.",
+    ],
+    { phase: persistedPhase, attempts: count, max });
+}
+
+function isImplPass(result) {
+  if (!result) return false;
+  if (result.result === "no-changes" || result.result === "no-proposals") return true;
+  if ((result.artifacts?.proposalCount ?? -1) === 0) return true;
+  return false;
+}
+
+/**
+ * Post-hook helper: append a reviewRetry metric based on the result verdict.
+ * No-op when phase is task-scope (R15) or unmapped phase.
+ * Errors propagate to the dispatcher (R22 — do NOT swallow internally).
+ */
+export function updateReviewRetryCounter(ctx, result) {
+  const flowState = ctx?.flowState || {};
+  if (flowState.currentTaskId != null) return; // R15
+  const persistedPhase = persistedPhaseKey(ctx?.phase);
+  if (!REVIEW_NODE_ID_BY_PHASE[persistedPhase]) return; // unmapped phase: no-op (post-hook should not crash)
+  const mgr = ctx.flowManager;
+  if (!mgr) return;
+  let isPass;
+  if (persistedPhase === "impl") {
+    isPass = isImplPass(result);
+  } else {
+    isPass = result?.artifacts?.verdict === "PASS";
+  }
+  const payload = isPass
+    ? { phase: persistedPhase, counter: "reviewRetry", delta: 0, reset: true }
+    : { phase: persistedPhase, counter: "reviewRetry", delta: 1 };
+  mgr.appendMetric(payload, { taskId: null }); // R19: explicit flow-scope
+}
+
+export { REVIEW_PHASE_KEYS };
 
 const PHASE_REVIEW_PARSERS = {
   test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
@@ -104,8 +219,17 @@ export class RunReviewCommand extends FlowCommand {
     const phase = ctx.phase || null;
 
     if (phase && !VALID_REVIEW_PHASES.includes(phase)) {
-      throw new Error(`invalid phase: ${phase} (valid: ${VALID_REVIEW_PHASES.join(", ")})`);
+      // spec 253 R8: return Envelope.fail with UNKNOWN_REVIEW_PHASE for unknown
+      // CLI phase values (uniform fail-closed contract — no throw, no max-attempts
+      // bypass via unknown phase).
+      return Envelope.fail("run", "review", "UNKNOWN_REVIEW_PHASE",
+        [`invalid phase: ${phase} (valid: ${VALID_REVIEW_PHASES.join(", ")})`],
+        { phase });
     }
+
+    // spec 253: enforce review maxAttempts (R2 R3) before any subprocess work
+    const preCheck = checkReviewRetryBelowMax(ctx, phase);
+    if (preCheck) return preCheck;
 
     const dryRun = ctx.dryRun || false;
     const skipConfirm = ctx.skipConfirm || false;

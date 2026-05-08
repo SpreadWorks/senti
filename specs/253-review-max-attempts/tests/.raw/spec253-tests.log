@@ -1,0 +1,306 @@
+TAP version 13
+# Subtest: R28: buildMetricsSummary keeps audit-only raw totals (does not interpret reset)
+    # Subtest: R28: reviewRetry reset entries do not zero out raw totals in buildMetricsSummary
+    ok 1 - R28: reviewRetry reset entries do not zero out raw totals in buildMetricsSummary
+      ---
+      duration_ms: 14.782316
+      type: 'test'
+      ...
+    1..1
+ok 1 - R28: buildMetricsSummary keeps audit-only raw totals (does not interpret reset)
+  ---
+  duration_ms: 15.940402
+  type: 'suite'
+  ...
+# Subtest: R1: VALID_METRIC_COUNTERS includes reviewRetry
+    # Subtest: R1: exports reviewRetry as a valid counter name
+    ok 1 - R1: exports reviewRetry as a valid counter name
+      ---
+      duration_ms: 1.835449
+      type: 'test'
+      ...
+    1..1
+ok 2 - R1: VALID_METRIC_COUNTERS includes reviewRetry
+  ---
+  duration_ms: 2.861974
+  type: 'suite'
+  ...
+# Subtest: R7: resolveReviewRetryMax derives max from FLOW_DEFINITION
+    # Subtest: R7: review-draft returns 1 in autoApprove mode and 5 in manual mode
+    ok 1 - R7: review-draft returns 1 in autoApprove mode and 5 in manual mode
+      ---
+      duration_ms: 13.48479
+      type: 'test'
+      ...
+    # Subtest: R7: review-spec / review-test / impl return their FLOW_DEFINITION values
+    ok 2 - R7: review-spec / review-test / impl return their FLOW_DEFINITION values
+      ---
+      duration_ms: 1.056286
+      type: 'test'
+      ...
+    1..2
+ok 3 - R7: resolveReviewRetryMax derives max from FLOW_DEFINITION
+  ---
+  duration_ms: 14.794796
+  type: 'suite'
+  ...
+# Subtest: R8: unknown phase fail-closed
+    # Subtest: R8: checkReviewRetryBelowMax returns Envelope.fail UNKNOWN_REVIEW_PHASE for unknown phase
+    ok 1 - R8: checkReviewRetryBelowMax returns Envelope.fail UNKNOWN_REVIEW_PHASE for unknown phase
+      ---
+      duration_ms: 0.522162
+      type: 'test'
+      ...
+    1..1
+ok 4 - R8: unknown phase fail-closed
+  ---
+  duration_ms: 0.699084
+  type: 'suite'
+  ...
+# Subtest: R5: plan PASS resets, FAIL increments
+    # Subtest: R5: plan verdict='PASS' (strict) appends a reset entry
+    ok 1 - R5: plan verdict='PASS' (strict) appends a reset entry
+      ---
+      duration_ms: 0.941565
+      type: 'test'
+      ...
+    # Subtest: R5: plan verdict='FAIL' / undefined / unknown appends delta=1
+    ok 2 - R5: plan verdict='FAIL' / undefined / unknown appends delta=1
+      ---
+      duration_ms: 0.855124
+      type: 'test'
+      ...
+    1..2
+ok 5 - R5: plan PASS resets, FAIL increments
+  ---
+  duration_ms: 2.575533
+  type: 'suite'
+  ...
+# Subtest: R6: impl PASS conditions
+    # Subtest: R6: impl result='no-changes' / 'no-proposals' / proposalCount===0 → reset
+    ok 1 - R6: impl result='no-changes' / 'no-proposals' / proposalCount===0 → reset
+      ---
+      duration_ms: 0.440682
+      type: 'test'
+      ...
+    # Subtest: R6: impl result='ok' && proposalCount>0 / unknown result → delta=1 (fail-closed)
+    ok 2 - R6: impl result='ok' && proposalCount>0 / unknown result → delta=1 (fail-closed)
+      ---
+      duration_ms: 0.574363
+      type: 'test'
+      ...
+    1..2
+ok 6 - R6: impl PASS conditions
+  ---
+  duration_ms: 1.491168
+  type: 'suite'
+  ...
+# Subtest: R15: task scope isolation (currentTaskId non-null)
+    # Subtest: R15: checkReviewRetryBelowMax returns null when currentTaskId is non-null
+    ok 1 - R15: checkReviewRetryBelowMax returns null when currentTaskId is non-null
+      ---
+      duration_ms: 0.588323
+      type: 'test'
+      ...
+    # Subtest: R15: updateReviewRetryCounter is no-op when currentTaskId is non-null
+    ok 2 - R15: updateReviewRetryCounter is no-op when currentTaskId is non-null
+      ---
+      duration_ms: 0.691564
+      type: 'test'
+      ...
+    1..2
+ok 7 - R15: task scope isolation (currentTaskId non-null)
+  ---
+  duration_ms: 1.462927
+  type: 'suite'
+  ...
+# Subtest: R19: countReviewRetry ignores taskId != null entries
+    # Subtest: R19: only flow-scope (taskId == null) entries are counted
+    ok 1 - R19: only flow-scope (taskId == null) entries are counted
+      ---
+      duration_ms: 0.373242
+      type: 'test'
+      ...
+    # Subtest: R19: PASS reset (taskId:null) zeroes flow-scope count
+    ok 2 - R19: PASS reset (taskId:null) zeroes flow-scope count
+      ---
+      duration_ms: 1.105366
+      type: 'test'
+      ...
+    1..2
+ok 8 - R19: countReviewRetry ignores taskId != null entries
+  ---
+  duration_ms: 1.618568
+  type: 'suite'
+  ...
+# Subtest: R25: attempt unit is CLI invocation
+    # Subtest: R25: a single appendMetric per CLI invocation (no double-counting from internal review.js loops)
+    ok 1 - R25: a single appendMetric per CLI invocation (no double-counting from internal review.js loops)
+      ---
+      duration_ms: 0.319202
+      type: 'test'
+      ...
+    1..1
+ok 9 - R25: attempt unit is CLI invocation
+  ---
+  duration_ms: 0.459402
+  type: 'suite'
+  ...
+# Subtest: R2 R3: count >= max short-circuits with REVIEW_MAX_ATTEMPTS_EXCEEDED and zero side effects
+    # Subtest: R2: short-circuit envelope has correct code and data shape
+    ok 1 - R2: short-circuit envelope has correct code and data shape
+      ---
+      duration_ms: 108.127315
+      type: 'test'
+      ...
+    # Subtest: R3: short-circuit does not append a new metric entry
+    ok 2 - R3: short-circuit does not append a new metric entry
+      ---
+      duration_ms: 99.973314
+      type: 'test'
+      ...
+    1..2
+ok 10 - R2 R3: count >= max short-circuits with REVIEW_MAX_ATTEMPTS_EXCEEDED and zero side effects
+  ---
+  duration_ms: 209.252475
+  type: 'suite'
+  ...
+# Subtest: R4 R29: review post hook is async and updates counter before step status
+    # Subtest: R4: registry review entry has async post hook that imports updateReviewRetryCounter
+    ok 1 - R4: registry review entry has async post hook that imports updateReviewRetryCounter
+      ---
+      duration_ms: 4.288422
+      type: 'test'
+      ...
+    # Subtest: R29: when updateReviewRetryCounter throws, step status is not updated
+    ok 2 - R29: when updateReviewRetryCounter throws, step status is not updated
+      ---
+      duration_ms: 1.416287
+      type: 'test'
+      ...
+    1..2
+ok 11 - R4 R29: review post hook is async and updates counter before step status
+  ---
+  duration_ms: 6.184991
+  type: 'suite'
+  ...
+# Subtest: R9: subprocess error does not increment counter
+    # Subtest: R9: parse helpers throw on res.ok=false → execute exits before post hook
+    ok 1 - R9: parse helpers throw on res.ok=false → execute exits before post hook
+      ---
+      duration_ms: 5.133547
+      type: 'test'
+      ...
+    1..1
+ok 12 - R9: subprocess error does not increment counter
+  ---
+  duration_ms: 5.335907
+  type: 'suite'
+  ...
+# Subtest: R10 R22: post hook failure is observable via dispatcher warning
+    # Subtest: R22: updateReviewRetryCounter does NOT swallow errors internally
+    ok 1 - R22: updateReviewRetryCounter does NOT swallow errors internally
+      ---
+      duration_ms: 0.538803
+      type: 'test'
+      ...
+    # Subtest: R10: post hook failure produces POST_HOOK_FAILED warning in envelope (dispatcher contract preserved)
+    ok 2 - R10: post hook failure produces POST_HOOK_FAILED warning in envelope (dispatcher contract preserved)
+      ---
+      duration_ms: 1.731929
+      type: 'test'
+      ...
+    1..2
+ok 13 - R10 R22: post hook failure is observable via dispatcher warning
+  ---
+  duration_ms: 2.940535
+  type: 'suite'
+  ...
+# Subtest: R21: impl review step status remains 'done' on counter-driven retry
+    # Subtest: R21: review post hook still calls tryUpdateStepStatus to mark impl step done after counter update
+    ok 1 - R21: review post hook still calls tryUpdateStepStatus to mark impl step done after counter update
+      ---
+      duration_ms: 0.304401
+      type: 'test'
+      ...
+    1..1
+ok 14 - R21: impl review step status remains 'done' on counter-driven retry
+  ---
+  duration_ms: 0.467323
+  type: 'suite'
+  ...
+# [sdd-forge] current reviewRetry count for phase "draft": 0
+# [sdd-forge] pass --yes to confirm the reset.
+# sdd-forge flow set: unknown key 'gate-retry'
+# Run: sdd-forge flow set --help
+# Subtest: R20: registry exposes 'set retry' (not 'set gate-retry')
+    # Subtest: R20: registry.set has 'retry' entry and no 'gate-retry' entry
+    ok 1 - R20: registry.set has 'retry' entry and no 'gate-retry' entry
+      ---
+      duration_ms: 4.220302
+      type: 'test'
+      ...
+    1..1
+ok 15 - R20: registry exposes 'set retry' (not 'set gate-retry')
+  ---
+  duration_ms: 5.457148
+  type: 'suite'
+  ...
+# Subtest: R11 R16: new reset CLI works for both kinds
+    # Subtest: R16: `flow set retry reset gate task-impl --yes` appends a gate reset entry
+    ok 1 - R16: `flow set retry reset gate task-impl --yes` appends a gate reset entry
+      ---
+      duration_ms: 113.133781
+      type: 'test'
+      ...
+    # Subtest: R11: `flow set retry reset review draft --yes` appends a review reset entry
+    ok 2 - R11: `flow set retry reset review draft --yes` appends a review reset entry
+      ---
+      duration_ms: 100.877798
+      type: 'test'
+      ...
+    # Subtest: R16: missing --yes is rejected with CONFIRMATION_REQUIRED
+    ok 3 - R16: missing --yes is rejected with CONFIRMATION_REQUIRED
+      ---
+      duration_ms: 99.339631
+      type: 'test'
+      ...
+    # Subtest: R20: old form `flow set gate-retry reset task-impl` is rejected
+    ok 4 - R20: old form `flow set gate-retry reset task-impl` is rejected
+      ---
+      duration_ms: 113.434343
+      type: 'test'
+      ...
+    # Subtest: R20: invalid kind is rejected with INVALID_KIND
+    ok 5 - R20: invalid kind is rejected with INVALID_KIND
+      ---
+      duration_ms: 110.095645
+      type: 'test'
+      ...
+    # Subtest: R20: invalid action is rejected with INVALID_ACTION
+    ok 6 - R20: invalid action is rejected with INVALID_ACTION
+      ---
+      duration_ms: 106.933909
+      type: 'test'
+      ...
+    # Subtest: R20: invalid phase is rejected with INVALID_PHASE (per kind)
+    ok 7 - R20: invalid phase is rejected with INVALID_PHASE (per kind)
+      ---
+      duration_ms: 105.139701
+      type: 'test'
+      ...
+    1..7
+ok 16 - R11 R16: new reset CLI works for both kinds
+  ---
+  duration_ms: 749.881413
+  type: 'suite'
+  ...
+1..16
+# tests 30
+# suites 16
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1436.178939

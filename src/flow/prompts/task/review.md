@@ -10,5 +10,5 @@ Use this guidance for the per-task code review step. Mirrors the flow-level revi
   4. Apply the proposals you judged to be valid.
   5. **Do NOT re-run tests here.** Test execution belongs to the spec-level `test-execute` step (TASK_DEFINITION does not run tests).
 - **If no proposals** (NO_PROPOSALS): Display "レビューの結果、修正の必要はありませんでした。"
-- **Retry limit:** If review keeps producing new proposals beyond the resolved numeric maxAttempts from next-action, STOP and return control to the user.
+- **Retry limit:** Each `sdd-forge flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this limit (spec 253) for flow-scope reviews; task-scope reviews are not currently CLI-enforced, but the AI must still respect the soft limit. If `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` is returned, STOP and return control to the user. Recovery: `sdd-forge flow set retry reset review <phase> --yes`.
 - On complete, the next-action CLI advances to `gate-impl`.
