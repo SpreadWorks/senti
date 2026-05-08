@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-08T07:44:52.724Z",
+  "analyzedAt": "2026-05-08T09:02:07.105Z",
   "package": {
     "entries": [
       {
@@ -4028,9 +4028,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "5693348f2197efcbacf5eb96c4f61f70",
-        "lines": 1960,
-        "mtime": "2026-05-07T00:14:18.345Z",
+        "hash": "9a04bc713043d163e0fdbf22cd15328c",
+        "lines": 1962,
+        "mtime": "2026-05-08T09:01:53.208Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4153,32 +4153,7 @@
         "usedBy": [
           "src/flow/lib/set-gate-retry.js"
         ],
-        "id": "b4aa4dad",
-        "summary": "Implements the flow gate engine: AI guardrail evaluation, retry tracking, repeated-fail detection, and side effects for draft/spec/task-impl/integration phases.",
-        "detail": "RunGateCommand dispatches to phase-specific executors (executeDraft, executeSpec, executeTaskSpec, executeDiffBasedGate) and runs guardrails through PromptBuilder + AI agent, parsing responses with parseEvaluationResponse and a strict JSON schema (GUARDRAIL_EVAL_SCHEMA). Implements multi-layer protections: assertNoRepeatedFail compares current failed evaluations against issue-log history using normalized reason keys, checkNoProgressSinceLastFail compares current git state (head SHA + worktree hash) to the previous fail snapshot, and applyFlipOverride flips fail→pass when the same content previously passed. Retry budget is enforced via resolveRetryMax (resolves FlowNode.maxAttempts under autoApprove context) with countGateRetry counting prior gate-retry entries, and warnGateRetryBudget emits stderr warnings as the budget approaches. executeGateSideEffects runs GATE_IMPL_SIDE_EFFECTS (completeTask, promoteNextTask, mergeOverview) with stderr-only error reporting. Excludes docs/, README.md, AGENTS.md, .sdd-forge/output/ from diff-scoped phases via IMPL_DIFF_SCOPE_LINES. Untracked diffs are collected with size/file-count caps (1MiB / 500 files).",
-        "chapter": "internal_design",
-        "role": "flow-command",
-        "enrich": {
-          "processedAt": "2026-05-07T00:18:30.711Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "flow gate",
-          "guardrails",
-          "AI evaluation",
-          "JSON schema",
-          "repeated fail",
-          "flip override",
-          "retry budget",
-          "side effects",
-          "completeTask",
-          "promoteNextTask",
-          "diff scope",
-          "untracked diff",
-          "spec.json check",
-          "draft.json check",
-          "integration test artifacts"
-        ]
+        "id": "b4aa4dad"
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -7059,9 +7034,9 @@
       },
       {
         "file": "src/lib/spec-json.js",
-        "hash": "c52215945ede6d2debf3844977951c84",
-        "lines": 243,
-        "mtime": "2026-04-23T04:45:33.474Z",
+        "hash": "f9ed23e0195af07b7d79fbaa01a60d86",
+        "lines": 262,
+        "mtime": "2026-05-08T09:01:53.209Z",
         "className": "spec-json",
         "methods": [
           "resolveSpecJsonPath",
@@ -7070,6 +7045,7 @@
           "tryLoadSpecJson",
           "saveSpecJson",
           "normalizeRequirements",
+          "enumerateUsableRequirementIds",
           "loadSpecRequirements",
           "updateSpecRequirementStatus",
           "emptySpecStub",
@@ -7089,6 +7065,7 @@
           "tryLoadSpecJson",
           "saveSpecJson",
           "normalizeRequirements",
+          "enumerateUsableRequirementIds",
           "loadSpecRequirements",
           "updateSpecRequirementStatus",
           "emptySpecStub",
@@ -7096,24 +7073,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "e288cfbd",
-        "enrich": {
-          "processedAt": "2026-04-23T08:18:11.489Z",
-          "attempts": 5
-        },
-        "summary": "Implements `spec.json` path resolution, loading/saving, schema validation, and requirement utilities. It is the core library for spec document persistence and prompt conversion.",
-        "detail": "The module resolves spec file paths from file or directory inputs and supports both strict and optional loading flows. Reads and writes pass through schema validation unless explicitly disabled, with informative parse/validation errors. Requirement helpers normalize missing statuses and allow indexed status updates with range checks. `emptySpecStub` provides a canonical starter shape for new specs. A prompt-text renderer converts spec content into deterministic plain-text blocks for agent usage.",
-        "chapter": "configuration",
-        "role": "lib",
-        "keywords": [
-          "spec.json",
-          "schema validation",
-          "path resolution",
-          "requirement normalization",
-          "status update",
-          "spec persistence",
-          "prompt text"
-        ]
+        "id": "e288cfbd"
       },
       {
         "file": "src/lib/types.js",
@@ -10329,7 +10289,7 @@
     ],
     "summary": {
       "total": 291,
-      "totalMethods": 992
+      "totalMethods": 993
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
