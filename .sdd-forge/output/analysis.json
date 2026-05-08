@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-08T14:38:45.200Z",
+  "analyzedAt": "2026-05-08T14:47:31.829Z",
   "package": {
     "entries": [
       {
@@ -2397,9 +2397,9 @@
       },
       {
         "file": "src/flow/commands/merge.js",
-        "hash": "efcf466de3cc37b04c384ff2d612bba9",
-        "lines": 294,
-        "mtime": "2026-04-30T14:33:48.509Z",
+        "hash": "8e7d21430f5cfffc1327864839e149f7",
+        "lines": 304,
+        "mtime": "2026-05-08T14:47:26.780Z",
         "className": "merge",
         "methods": [
           "resolveRemote",
@@ -2432,23 +2432,23 @@
         "extends": null,
         "usedBy": null,
         "id": "3a0db928",
-        "summary": "Implements `flow merge` strategies (skip, squash, PR) and the pre-sync rebase that updates the feature branch onto the latest base before merging.",
-        "detail": "Resolves merge strategy from config (`flow.merge`) and gh availability, defaulting to PR when enabled. Squash-merge runs in a temporary detached worktree to keep the active worktree untouched, throwing on conflicts with a recovery hint. PR mode delegates to gh; pre-sync uses `fetchBranch`+`rebaseOnto` and aborts the rebase on conflict, reporting conflict files. Builds PR title/body from spec.json requirements and scope blocks.",
-        "chapter": "cli_commands",
-        "role": "controller",
+        "summary": "Flow merge command implementing PR creation and squash merge strategies for the SDD finalization phase.",
+        "detail": "Resolves merge strategy (PR vs squash) based on gh CLI availability and config flags. Builds PR title and body from spec data including requirements and scope blocks. Implements squash merge with temporary worktree handling, conflict detection, and recovery hints. Provides runPreSync for fetching base branch and rebasing feature branch with conflict reporting. Uses git-helpers for low-level git operations and exports parseSpec/buildPrTitle/buildPrBody as testable units.",
+        "chapter": "internal_design",
+        "role": "flow merge orchestrator",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-08T14:48:07.627Z",
           "attempts": 1
         },
         "keywords": [
           "flow merge",
+          "pull request",
           "squash merge",
-          "PR creation",
-          "pre-sync rebase",
+          "rebase",
+          "gh CLI",
+          "spec parsing",
           "conflict recovery",
-          "temporary worktree",
-          "spec.json",
-          "merge strategy"
+          "finalize phase"
         ]
       },
       {
@@ -3799,23 +3799,34 @@
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
-        "hash": "fb778ce679d97df6a1402f2213712235",
-        "lines": 124,
-        "mtime": "2026-05-07T00:37:21.557Z",
+        "hash": "313fda29c2d4f2b5fd7af0789b240a12",
+        "lines": 665,
+        "mtime": "2026-05-08T14:47:26.780Z",
         "className": "run-finalize-cleanup",
         "methods": [
           "RunFinalizeCleanupCommand",
           "buildReportField",
-          "attachReport"
+          "attachReport",
+          "listMainRepoDirtyFiles",
+          "readOrphanCommits",
+          "appendIssueLog",
+          "restoreIssueLog",
+          "runAutoRescue",
+          "cherryPickRange",
+          "runTeardown",
+          "runForcedTeardown"
         ],
         "imports": [
           "fs",
+          "os",
+          "path",
           "../../lib/flow-envelope.js",
           "../../lib/flow-helpers.js",
           "../../lib/git-helpers.js",
           "./base-command.js",
           "./run-finalize.js",
-          "./run-report-show.js"
+          "./run-report-show.js",
+          "./set-issue-log.js"
         ],
         "exports": [
           "RunFinalizeCleanupCommand",
@@ -3824,21 +3835,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40e4daa5",
-        "summary": "This finalize cleanup command finalizes worktree teardown and enriches responses with report content. It uses envelope-based success/failure responses and guarded rollback paths.",
-        "detail": "It builds a report field from the latest report artifact and attaches it to returned envelopes when available. On failures, it attempts rollback and logs secondary rollback errors without masking primary failure codes. Commit-related failures are mapped to explicit envelope error categories for downstream handling. Cleanup removes worktree paths conditionally and returns structured completion data. The design favors resilient post-finalize behavior with best-effort diagnostics.",
+        "summary": "Finalize cleanup command that tears down worktrees, detects orphan commits, and provides auto-rescue via cherry-pick.",
+        "detail": "Inherits from FlowCommand and orchestrates worktree teardown after a flow finishes. Lists orphan commits between baseline and feature branch, attaches finalize report to envelopes, and supports recovery options (cherry-pick, abort, force-continue, archive). Implements runAutoRescue with temporary detached worktrees to safely cherry-pick to main, with checks for dirty/locked main repo states. Maintains issue-log snapshots for rollback safety and emits structured Envelope failures with diagnostic codes like ORPHAN_LISTING_FAILED, MAIN_REPO_DIRTY, COMMIT_FAILED.",
         "chapter": "internal_design",
-        "role": "flow finalize cleanup",
+        "role": "finalize cleanup teardown",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
+          "processedAt": "2026-05-08T14:48:07.627Z",
           "attempts": 1
         },
         "keywords": [
-          "finalize cleanup",
-          "flow envelope",
-          "rollback handling",
-          "worktree removal",
-          "report attachment",
-          "error categorization"
+          "worktree teardown",
+          "orphan commits",
+          "cherry-pick",
+          "auto-rescue",
+          "cleanup",
+          "Envelope",
+          "issue log",
+          "finalize"
         ]
       },
       {
@@ -3885,9 +3898,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize-merge.js",
-        "hash": "2657cfc4283ad9899d27e0f2c582643d",
-        "lines": 38,
-        "mtime": "2026-05-06T23:21:44.541Z",
+        "hash": "557ea69a639d77bf3a4873e3b1db5c56",
+        "lines": 42,
+        "mtime": "2026-05-08T14:47:26.780Z",
         "className": "run-finalize-merge",
         "methods": [
           "RunFinalizeMergeCommand"
@@ -3903,21 +3916,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "29dc124e",
-        "summary": "Implements the finalize merge step that delegates to the configured merge strategy or skips when disabled.",
-        "detail": "RunFinalizeMergeCommand consults the container-resolved merge service and either returns {status:'skipped', strategy:'skip'} when merging is disabled or {status:'done', strategy:<strategy>} after a successful merge defaulting to squash. The implementation is intentionally thin, deferring all branch/PR semantics to the underlying merge service injected via the container. This separation keeps the flow command pure while allowing pluggable merge strategies (gh PR vs local squash).",
+        "summary": "Thin FlowCommand subclass dispatching the finalize-merge step with a simple status/strategy result envelope.",
+        "detail": "Extends FlowCommand and delegates to container-resolved merge logic. Returns a structured result containing status (skipped/merged) and strategy (skip/pr/squash) plus mergedFromSha. Acts as the registry-facing thin wrapper while real merge work lives in commands/merge.js, illustrating the 3-layer architecture (command → lib → dispatcher) noted in the project memory.",
         "chapter": "internal_design",
-        "role": "flow-command",
+        "role": "finalize merge command wrapper",
         "enrich": {
-          "processedAt": "2026-05-07T00:18:30.711Z",
+          "processedAt": "2026-05-08T14:48:07.627Z",
           "attempts": 1
         },
         "keywords": [
           "finalize merge",
-          "squash",
-          "merge strategy",
-          "container injection",
-          "skipped",
-          "merge service"
+          "FlowCommand",
+          "container",
+          "dispatcher",
+          "strategy result",
+          "thin wrapper"
         ]
       },
       {
@@ -5004,7 +5017,8 @@
           "src/flow/lib/run-report.js",
           "src/lib/agent.js",
           "src/lib/container.js",
-          "src/flow/lib/run-reopen-draft.js"
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/run-finalize-cleanup.js"
         ],
         "id": "65ac9e4f",
         "summary": "Manages `issue-log.json` loading, validation, persistence, and manual entry insertion for flow diagnostics. It enforces minimum quality constraints on reason and optional text fields.",
@@ -5374,9 +5388,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "6a55c156c14ac981a48877a06d412822",
-        "lines": 785,
-        "mtime": "2026-05-07T00:37:21.557Z",
+        "hash": "d32774b01188365fd938058c77cb9dcd",
+        "lines": 812,
+        "mtime": "2026-05-08T14:47:26.780Z",
         "className": "registry",
         "methods": [
           "isFinalizeSuccess",
@@ -5398,21 +5412,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "The flow registry is the central dispatch table for flow commands and cross-command lifecycle hooks. It coordinates finalize behavior, gate retries, and safe best-effort status updates.",
-        "detail": "It defines success-state semantics for finalize phases and provides helpers to resolve managers across main repo and worktree contexts. Downstream finalize leaves can be reset when necessary to reopen the correct execution path. Wrapper utilities attempt step updates and issue-log writes while downgrading non-critical failures to stderr diagnostics. Command entries include usage/help text and integrate pre/post hooks such as gate side-effects and commit post-processing. This module acts as the operational backbone for the flow CLI command suite.",
+        "summary": "Central flow command registry that maps subcommand keys to args/help/handler triples and finalize lifecycle hooks.",
+        "detail": "Defines FLOW_COMMANDS dictionary used by the dispatcher, including get/set/run subcommands. Tracks finalize success statuses (done/completed/skipped) and resets skipped downstream steps (sync, cleanup) so re-runs work correctly. Resolves the main repo FlowManager from a worktree context and provides defensive helpers tryUpdateStepStatus and tryAppendIssueLog that swallow non-fatal errors with stderr logging. Wires post-hooks for gate side effects, commit follow-ups, and merge outcome persistence — the integration point for cross-command coordination.",
         "chapter": "internal_design",
         "role": "flow command registry",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
+          "processedAt": "2026-05-08T14:48:07.627Z",
           "attempts": 1
         },
         "keywords": [
-          "command registry",
-          "flow lifecycle",
+          "flow registry",
+          "FLOW_COMMANDS",
           "finalize hooks",
-          "gate side effects",
-          "best-effort updates",
-          "issue log integration"
+          "gate phase",
+          "step status",
+          "issue log",
+          "command dispatch"
         ]
       },
       {
@@ -6084,9 +6099,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "2bc0577ecd7017e9cda9f60e18861796",
-        "lines": 393,
-        "mtime": "2026-05-06T23:21:44.541Z",
+        "hash": "2ac9d5fb34a5a248131855cece887e00",
+        "lines": 394,
+        "mtime": "2026-05-08T14:47:26.781Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -6110,31 +6125,29 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "FlowManager aggregates flow state access across the main repo and worktrees, scanning specs/branches to enumerate active and preparing flows.",
-        "detail": "Wraps `FlowStore`, `ActiveFlowRegistry`, and `PreparingFlowStore` to expose task/step queries (`currentTaskId`, `findInProgressLeaf`) and metric accumulation. Provides `forRoot()` to clone the manager bound to a different working tree while preserving the main repo reference, enabling worktree-aware operations. Scans `specs/` directories on disk and across git branches up to `SCAN_FLOWS_LIMIT`, parsing each `flow.json` and warning on malformed JSON via stderr. Resolves the last-finalized spec via a pointer file (`.sdd-forge/last-finalized-spec`) and validates spec selection against the active registry, throwing descriptive errors when targets are missing or unregistered.",
+        "summary": "FlowManager facade unifying access to flow state, active flow registry, preparing-flow store, and worktree resolution.",
+        "detail": "Wraps FlowStore, ActiveFlowRegistry, and PreparingFlowStore behind a single object scoped to a repo root, with forRoot() to rebind to main vs worktree. Scans both local specs/ directories and remote branches via git show to discover flows up to SCAN_FLOWS_LIMIT, tolerating malformed flow.json with stderr warnings. Reads .sdd-forge/last-finalized-spec to recover the most recently completed spec id. Resolves the active feature worktree by spec id with multiple fallbacks and surfaces task/step in-progress lookups for downstream commands.",
         "chapter": "internal_design",
-        "role": "Flow state aggregator across worktrees",
+        "role": "flow state manager",
         "enrich": {
-          "processedAt": "2026-05-07T00:16:52.636Z",
+          "processedAt": "2026-05-08T14:48:07.627Z",
           "attempts": 1
         },
         "keywords": [
           "FlowManager",
-          "worktree",
-          "flow state",
-          "spec scan",
-          "active registry",
-          "preparing flow",
-          "git branches",
-          "flow.json",
-          "last finalized spec"
+          "worktree resolution",
+          "active flow",
+          "scan flows",
+          "spec discovery",
+          "last finalized",
+          "registry facade"
         ]
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "e4d77d2daa3881c1054b762d9f52377a",
-        "lines": 586,
-        "mtime": "2026-05-07T00:37:21.557Z",
+        "hash": "aae6863a45702ac34a12a13c2c7f0ef7",
+        "lines": 621,
+        "mtime": "2026-05-08T14:47:26.781Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -6167,21 +6180,23 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "`flow-store` implements persistent flow state storage, schema validation, and mutation helpers for tasks and steps. It supports both main-repo and worktree-aware path resolution.",
-        "detail": "The module derives spec flow paths, optionally infers spec IDs from branch naming, and strictly validates state shape before use. Read/write operations handle malformed JSON defensively and emit diagnostics for read-only loads. Mutation helpers resolve task scope, promote pending steps, and enforce invariants around current task and unique task IDs. It validates timestamps, status enums, and nested task/requirement structures with explicit error messages. The class encapsulates flow file lifecycle management across spec directories and worktree metadata.",
+        "summary": "FlowStore providing persistent JSON state for flow/task/step lifecycle with strict schema validation and mutation scoping.",
+        "detail": "Reads and writes specs/<id>/flow.json with newline-terminated pretty JSON. assertFlowStateSchema enforces task structure invariants and validateTaskShape rejects malformed task additions with explicit messages. resolveMutationScope and resolveTaskIdForEntry pick the correct task target (current vs explicit) for mutations, while promoteFirstPending advances pending leaves. Aggregates child task summaries into parents and validates merge metadata including ISO 8601 finalizedAt timestamps. The class encapsulates worktree directory derivation and exposes loadReadOnly with malformed-file resilience.",
         "chapter": "internal_design",
-        "role": "state persistence layer",
+        "role": "flow state persistence",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
+          "processedAt": "2026-05-08T14:48:07.627Z",
           "attempts": 1
         },
         "keywords": [
-          "flow store",
-          "state schema validation",
-          "task management",
-          "step promotion",
-          "worktree metadata",
-          "JSON persistence"
+          "FlowStore",
+          "flow.json",
+          "schema validation",
+          "task lifecycle",
+          "mutation scope",
+          "promote pending",
+          "worktree path",
+          "ISO 8601"
         ]
       },
       {
@@ -10329,9 +10344,9 @@
     ],
     "summary": {
       "total": 291,
-      "totalMethods": 993
+      "totalMethods": 1001
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-08T14:39:07.219Z"
+  "enrichedAt": "2026-05-08T14:48:07.627Z"
 }
