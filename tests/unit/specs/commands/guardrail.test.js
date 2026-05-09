@@ -8,7 +8,7 @@ import { setupFlow } from "../../../helpers/flow-setup.js";
 const SDD_FORGE = join(process.cwd(), "src/sdd-forge.js");
 
 // Dynamically import gate functions for unit tests
-const { buildGuardrailPrompt, parseEvaluationResponse, IMPL_DIFF_SCOPE_LINES } = await import(
+const { buildGuardrailPrompt, parseGuardrailArticleEvaluation, IMPL_DIFF_SCOPE_LINES } = await import(
   "../../../../src/flow/lib/run-gate.js"
 );
 
@@ -135,12 +135,12 @@ describe("buildGuardrailPrompt (structured JSON)", () => {
 // tests/unit/flow/gate-evaluation-schema.test.js.
 // ---------------------------------------------------------------------------
 
-describe("parseEvaluationResponse (smoke)", () => {
+describe("parseGuardrailArticleEvaluation (smoke)", () => {
   it("parses a well-formed response", () => {
     const resp = JSON.stringify({
       evaluations: [{ guardrail_id: "a", result: "pass", reason: "ok" }],
     });
-    const r = parseEvaluationResponse(resp, ["a"]);
+    const r = parseGuardrailArticleEvaluation(resp, ["a"]);
     assert.equal(r.length, 1);
     assert.equal(r[0].result, "pass");
   });

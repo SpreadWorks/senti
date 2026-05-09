@@ -1,0 +1,108 @@
+{
+  "spec": "specs/255-vague-guardrail-enumerate/spec.json",
+  "date": "2026-05-09T07:03:07.321Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Replace the shared GUARDRAIL_EVAL_SCHEMA in src/flow/lib/run-gate.js with two distinct constants: GUARDRAIL_ARTICLE_EVAL_SCHEMA (per-entry {guardrail_id, result, reason?, violations?: [{target, where, why_violates}]}, with both outer fields optional in the JSON Schema) and IMPL_REQUIREMENT_EVAL_SCHEMA (per-entry {guardrail_id, result, reason}). Both schemas reject extra properties.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "Split parseEvaluationResponse into parseGuardrailArticleEvaluation(rawResponse, knownIds) and parseImplRequirementEvaluation(rawResponse, knownIds). Both reject unknown id, duplicate id, and missing id (parity with existing behavior).",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "parseGuardrailArticleEvaluation rejects (with EvaluationSchemaError) any FAIL entry that lacks violations[], has empty violations[], has any violation entry with empty target / where / why_violates, or contains duplicate (guardrail_id, target, where) triples. It rejects PASS/SKIP entries that include a violations field or omit a non-empty reason.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "parseGuardrailArticleEvaluation writes a derived FAIL `reason` field on each FAIL entry by joining '<target> — <why_violates> (at <where>)' across all violations with '; ' separator. The derived reason includes `where` so issue-log persistence (entry.reason and failedEvaluations[].reason via buildFailedEvaluations) carries the location across iterations. The derived reason replaces any reason value supplied by the model on FAIL entries.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "EvaluationSchemaError sets `code = 'EVALUATION_SCHEMA_ERROR'` on the error instance (in addition to existing `name`). When EITHER parseGuardrailArticleEvaluation OR parseImplRequirementEvaluation throws it, the calling site inside src/flow/lib/run-gate.js (BEFORE returning to the dispatcher) catches the error and returns Envelope.fail with errors[0].code='EVALUATION_SCHEMA_ERROR' and errors[0].messages containing the parser-thrown text. The catch must cover ALL parse call sites: (a) runGateFlow's article-check AI call (covers executeDraft / executeSpec / executeTaskSpec); (b) executeDiffBasedGate's bulk requirement-parse call (the `!perReqDiffs` branch using buildImplCheckPrompt, line 1823-1831 equivalent); (c) executeDiffBasedGate's per-requirement parse call inside the perReqDiffs loop (line 1867-equivalent); (d) executeDiffBasedGate's article-check call via checkGuardrail (line 851-equivalent). Behavior by phase: for RETRY_TRACKED_PHASES (draft / spec / task-impl / integration), the catch manually increments gateRetry and manually appends an issue-log entry via appendIssueLogFromGateError before returning Envelope.fail. For non-tracked phases (task-spec), the catch returns Envelope.fail without incrementing retry or appending issue-log (consistent with task-spec being excluded from RETRY_TRACKED_PHASES). The catch occurs inside run-gate.js so the dispatcher's post-hooks (which skip on ok:false) do not execute and no double-counting occurs.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "Rename buildGuardrailPromptFromFiltered to buildGuardrailArticleEvalPrompt. The rules text (passed to PromptBuilder.setRules and rendered into the systemPrompt) instructs the reviewer to (a) for instance-level guardrails: emit ONE violation entry per occurrence/edit location with required target+where+why_violates; (b) for document-level guardrails: emit ONE OR MORE entries, one per distinct gap, with target as a gap descriptor and where as the artifact name; (c) when diff-scope applies: list only violations introduced by the diff. PromptBuilder API allocation: rules → systemPrompt (set via setRules); JSON Schema → separate jsonSchema payload (set via setJsonSchema, sent to provider as schema, NOT a textual section); fmt fallback → separate fmtFallback payload (set via setFmtFallback). Sections added via PromptBuilder.add (which become userPrompt) appear in this textual order: previously-passed (if any) → diff-scope (if any) → articles → content. Tests for ordering assert this userPrompt section order — not the position of jsonSchema or fmtFallback (those are separate fields, independent of textual order). PromptBuilder itself is NOT modified.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "buildImplCheckPrompt is updated to use IMPL_REQUIREMENT_EVAL_SCHEMA and parseImplRequirementEvaluation; its prompt text and parser invariants are otherwise unchanged.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "GUARDRAIL_FMT_FALLBACK text matches the GUARDRAIL_ARTICLE_EVAL_SCHEMA shape (violations on FAIL, reason on PASS/SKIP). The implementation-requirement path uses a separate fmt fallback aligned with the unchanged shape.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "reasonsFromEvaluations emits ONE row per violation on FAIL article entries: verdict 'FAIL', detail '<title> — <target> — <why_violates> (at <where>)' (the `where` value is appended to the detail string in parentheses), plus a separate `where` field for structured access. The detail-string inclusion ensures the existing appendIssueLogFromGateResult path (which persists r.detail into entry.reason and failedEvaluations[].reason) carries the location across iterations. PASS/SKIP article entries and all requirement entries emit one row each using `reason` (existing behavior).",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "data.artifacts.evaluations stores the parsed shape augmented with title/category metadata (existing behavior — see R21). FAIL article entries additionally retain the violations[] array. data.artifacts.reasons reflects R9's per-violation rows. data.artifacts.issues field shape is unchanged.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "src/flow/prompts/plan/gate.md displays every row in data.artifacts.reasons after a FAIL and adds the literal instruction 'Before fixing, scan these fields in spec.json (the source of truth — spec.md is regenerated by `sdd-forge spec render`) for additional instances of the same violation pattern: goal, background, scope.in, scope.out, constraints, design_principles, requirements[].desc, acceptance_criteria, alternatives_considered[].option / .reason, open_questions, clarifications[].q / .a, keywords, implementationTargets, user_approval.notes, overview.modules[].text, overview.data_flow[].text, overview.decisions[].text / .evidence / .consideredAlternatives, tasks[].title / .goal / .acceptance / .implementation_notes / .test_strategy. Excluded as control / metadata fields: id, status, origin, added_round, parent, testable, priority, user_approval.approved, user_approval.confirmed_at, overview.modules[].added_by_task, overview.data_flow[].added_by_task, overview.decisions[].added_by_task. For the task-spec gate phase (active when an individual task markdown is being checked) the relevant edit target is spec.json.tasks[<id>] specifically; the prompt notes this so task-spec failures are fixed by editing the corresponding spec.json.tasks[] entry. After fixing all instances in spec.json, run `sdd-forge spec render --spec specs/<spec-id>` to regenerate spec.md / task markdown, and re-run the gate.'",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "src/flow/prompts/plan/gate-draft.md displays every row in data.artifacts.reasons after a FAIL and adds the literal instruction 'Before fixing, scan these fields in draft.json for additional instances of the same violation pattern: goal, analysis (problem, proposedApproach, validation), scopeVerification.in / .out, impactOnExisting, qa[].question / .answer / .why / .considered, openQuestions. Excluded: approval, evidence. Fix all instances in this iteration, not only the ones the reviewer enumerated.'",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "Add named exports for GUARDRAIL_ARTICLE_EVAL_SCHEMA, IMPL_REQUIREMENT_EVAL_SCHEMA, parseGuardrailArticleEvaluation, parseImplRequirementEvaluation, and buildGuardrailArticleEvalPrompt in src/flow/lib/run-gate.js. Remove obsolete exports for parseEvaluationResponse and any references to GUARDRAIL_EVAL_SCHEMA.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "applyFlipOverride drops the violations field when flipping a FAIL article entry to PASS, preserving the parser invariant that PASS entries have no violations field. The flipped entry retains guardrail_id and the existing flip-marker reason text (current behavior) and is freshly free of violations.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "Both parsers reject unknown keys on each evaluation entry. Allowed keys at the entry level: {guardrail_id, result, reason, violations} for the article parser and {guardrail_id, result, reason} for the requirement parser. The model MAY supply `reason` on a FAIL article entry; the parser is not required to reject it (R4 overwrites it with the derived summary) — only keys outside the allowed set are rejected. The article parser additionally rejects unknown keys on each violation entry (allowed: {target, where, why_violates}). On extra-key detection the parser throws EvaluationSchemaError. Rationale: provider JSON Schema enforcement is not uniform across codex/claude profiles; parser-side rejection prevents unsanctioned fields from entering downstream artifacts.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "Both parsers reuse the existing JSON-candidate extraction logic (extractJsonCandidate) so behavior with fenced JSON (```json...```) and surrounding noise is preserved. extractJsonCandidate stays in scope as a shared helper; both new parsers call it at entry.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "Parsed evaluations passed to data.artifacts.evaluations are augmented with `title` and `category` metadata (existing behavior — title from guardrail.title, category from guardrail.meta.category for article entries; for requirement entries title=guardrail_id and category='requirements'). FAIL article entries additionally retain the violations[] array. Downstream consumers (reasonsFromEvaluations, buildGateReport) continue to use title/category exactly as today.",
+      "status": "done",
+      "note": ""
+    },
+    {
+      "desc": "task-spec gate prompt instruction must derive the task id from the evaluated artifact path. executeTaskSpec evaluates `specs/<spec>/tasks/<id>.md`; the gate prompt's scan instruction (when phase=task-spec) tells the author to edit spec.json.tasks[] entry whose `id` matches the file basename (without `.md`), then run `sdd-forge spec render`. The derivation rule is stated in gate.md so the AI fixer knows which entry to scan.",
+      "status": "done",
+      "note": ""
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 18,
+    "done": 18,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 4,
+    "not_testable_count": 4,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

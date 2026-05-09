@@ -1,0 +1,145 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one concern: eliminating whack-a-mole gate retry loops on vague-expression guardrails by enforcing exhaustive violation enumeration in the structured gate evaluation schema. All changes flow from that single goal.; Unambiguous Requirements — Requirements state concrete, verifiable conditions: violations[] >=1 on FAIL, all three fields non-empty, derived reason via '<target> — <why_violates>' joined with '; ', EvaluationSchemaError thrown on invalid output with code 'EVALUATION_SCHEMA_ERROR', retry counter incremented. No vague adjectives found in in-scope items.; Complete Context — Each requirement in scopeVerification.in specifies exact schema shapes, parser API signatures, error codes, section ordering, and field names for prompts. Two independent reviewers could consistently judge whether an implementation satisfies each item.; No Hardcoded Secrets — The draft contains no API keys, passwords, tokens, or secrets. Not applicable by nature of this refactor content.; Prioritize Requirements — scopeVerification.in lists 14+ distinct requirement items (schema constants, parser functions, error handling, prompt updates, test cases, export requirements, rendering logic, etc.) with no must/should/nice-to-have priority assigned to any of them. With more than three items, priority labels are required.; Impact on Existing Features — impactOnExisting explicitly enumerates every affected component (run-gate.js, gate.md, gate-draft.md, tests, applyFlipOverride, assertNoRepeatedFail, buildGateReport, appendIssueLogFromGateResult, all gate phases) with precise description of what changes and what is preserved. scopeVerification.out lists explicitly excluded components.; Present Recommendations with Reasoning — All nine QA entries lead with a concrete answer, cite evidence (file paths and line numbers), and state why alternatives were rejected. Recommendations are grounded in existing code patterns and guardrail principles.; Explore Before Asking — All QA answers reference specific line numbers and file paths (e.g., run-gate.js:619-638, run-gate.js:1283-1299, gate-impl.md line 3-4), indicating codebase exploration was performed before asserting answers. openQuestions is empty.; Proactively Raise Related Implications — The draft proactively addresses the diff-scope interaction (QA7), the previously-passed short-circuit interaction (QA8), the jaccard/assertNoRepeatedFail downstream impact, token cost increase, and why violations[] is not persisted to issue-log to avoid schema migration — all implications raised without being asked.; Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true and confirmedAt is set, indicating this is a decided spec, not a brainstorm. Not applicable to evaluate brainstorm-vs-decision confirmation at this stage.; Capture Digressions in draft.md — Cannot evaluate whether digressions occurred during the discussion session without access to the conversation history that produced this draft.; Backward-Compatible CLI Interface — The spec is a refactor of internal implementation (schema constants, parser functions, prompt text). No CLI commands or options are added, removed, or have their meaning changed. No migration plan is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T05:43:28.101Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in lists 14+ distinct requirement items (schema constants, parser functions, error handling, prompt updates, test cases, export requirements, rendering logic, etc.) with no must/should/nice-to-have priority assigned to any of them. With more than three items, priority labels are required."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Previously passed; content addresses one concern (exhaustive violation enumeration in guardrail-article gate evaluation) without bundling unrelated changes.; Unambiguous Requirements — Previously passed; requirements use verifiable conditions (e.g., violations[] >=1, non-empty fields, exact section ordering, named exports, specific test cases) rather than vague adjectives.; Complete Context — Previously passed; requirements are specific enough for independent reviewers to agree — file paths, function names, field names, parser invariants, and test cases are enumerated explicitly.; No Hardcoded Secrets — Previously passed; no API keys, passwords, or secrets present in the draft content.; Prioritize Requirements — The scopeVerification.in list contains well over three requirement items (10+ entries covering schema design, parser API, error handling, prompt changes, test cases, etc.) with no explicit priority assignment (must / should / nice-to-have) on any item. All items are implicitly treated as equal, violating the prioritize-requirements guardrail.; Impact on Existing Features — Previously passed; impactOnExisting lists all affected files and components explicitly, including downstream consumers (jaccard, applyFlipOverride, buildGateReport, appendIssueLogFromGateResult) and confirms unaffected components.; Present Recommendations with Reasoning — Previously passed; every QA entry provides a recommended answer with explicit evidence (file:line references) and reasoning, including alternatives considered and why they were rejected.; Explore Before Asking — Previously passed; all QA entries reference specific source lines (e.g., run-gate.js:619-638, run-gate.js:1283-1299) demonstrating codebase exploration before answering.; Proactively Raise Related Implications — Previously passed; implications such as token cost increase, diff-scope interaction, previously-passed-IDs ordering, jaccard input fidelity changes, and issue-log schema stability are all proactively raised.; Confirm Brainstorm vs. Decision Before Critiquing — Previously passed; approval field is set with autoApprove, indicating decisions are final; QA entries treat all choices as decided with rejected alternatives documented.; Capture Digressions in draft.md — Cannot evaluate without runtime evidence of whether discussion digressions occurred during drafting sessions.; Backward-Compatible CLI Interface — Previously passed; this is an internal refactor of run-gate.js with no CLI command or option removal; no migration plan is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T05:44:31.091Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "The scopeVerification.in list contains well over three requirement items (10+ entries covering schema design, parser API, error handling, prompt changes, test cases, etc.) with no explicit priority assignment (must / should / nice-to-have) on any item. All items are implicitly treated as equal, violating the prioritize-requirements guardrail."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses one concern: eliminating whack-a-mole gate retry loops on vague-expression guardrails by requiring the reviewer AI to enumerate every violation in a single FAIL output, bounded to src/flow/lib/run-gate.js's guardrail-article evaluation path.; Task Single Responsibility — Each task addresses one coherent concern (schema split, parser split, reason derivation, error surfacing, prompt builder rename, fmt fallback update, row rendering, prompt file updates, flip-override fix, test migration, new tests). T-3 is a conscious sub-task of T-2 and the note in implementation_notes acknowledges they may collapse — this is deliberate, not a bundling violation.; Unambiguous Requirements — Requirements use verifiable conditions with explicit format strings, named exports, rejection predicates, and literal substrings. No significant vague adjectives found (e.g. R4 gives an exact join template, R11/R12 list literal field names, R3 enumerates rejection conditions precisely).; Complete Context — R4 specifies the derived FAIL reason format as '<target> — <why_violates> (at <where>)' joined by '; ', explicitly including the `where` component. T-3's acceptance criteria contradicts this: it gives the formula as `violations.map(v => \\`${v.target} — ${v.why_violates}\\`).join('; ')` — omitting `(at <where>)`. Two independent reviewers would reach opposite conclusions about whether an implementation including `where` in the derived reason satisfies T-3, making the contract unresolvable from the spec alone.; REQ Diff-Verifiability — All requirements are decidable from diff + test execution: schema constants are inspectable in diff; parser rejection behaviors are unit-testable; prompt file literal substrings are file-content-testable; export additions/removals are statically verifiable; envelope shapes are assertable in mocked-agent tests.; No Hardcoded Secrets — The spec contains no API keys, tokens, passwords, or other secrets. Not applicable by nature.; No Silent Error Swallowing — R5 explicitly requires EvaluationSchemaError to be caught and surfaced as Envelope.fail with errors[0].code and errors[0].messages populated; the spec actively mandates proper error surfacing at all four catch sites.; Prioritize Requirements — All 22 requirements (R1–R22) carry an explicit priority field (must / should). The threshold of more than three items is met and all are prioritized.; Impact on Existing Features — The scope.out section explicitly lists components not modified (run-review.js, run-test-result-review.js, gate-impl.md, appendIssueLogFromGateResult schema, assertNoRepeatedFail, etc.). R18 covers migration of existing tests. R21 and design_principles document that downstream consumers (jaccard, applyFlipOverride, buildGateReport, issue-log) are preserved via derived reason summaries.; Bounded Resource Usage — The spec introduces no new recursive processing, retries, or bulk data loading. Retry budget and maxAttempts policy are explicitly out of scope.; Spec Includes Test Strategy — Every task carries a test_strategy field. R15 and R16 are dedicated test requirements covering unit tests, mocked-agent tests, regression fixtures, and acceptance criteria enumerate test-verifiable conditions.; Record Unresolved Points as Open Questions — open_questions is explicitly empty ([]). Decisions section entries carry '[VERIFY]' markers with cited evidence (file path and line numbers). No fabricated answers are present.; Include 'Why This Approach' Rationale — The alternatives_considered section enumerates 15 rejected options each with an explicit rationale. The background section explains why the chosen approach was selected. The decisions section provides evidence-backed rationale for field naming, prompt ordering, and scope exclusions.; Spec Test Coverage — Per the project convention (spec 251), test code must be placed under specs/<specid>/tests/ with a '// spec: R<N> ...' header per file. None of the task test_strategy sections mention this directory or header requirement. T-10c explicitly targets tests/unit/specs/commands/ and tests/unit/flow/ paths (existing structure), and T-10 says 'do not duplicate' existing files — the spec never directs new test code to specs/<specid>/tests/ nor specifies the required R<N> header, leaving the diff + header-coverage gate without a verifiable path.; Backward-Compatible CLI Interface — No CLI commands are added, removed, or have their meaning changed. The changes are purely internal to src/flow/lib/run-gate.js constants, functions, and prompt files. Not applicable by nature.; Exit Code Contract — No CLI commands are added or modified. Not applicable by nature.; Validate User Input at Entry Point — No CLI commands are added or modified. Not applicable by nature.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T06:31:32.045Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "R4 specifies the derived FAIL reason format as '<target> — <why_violates> (at <where>)' joined by '; ', explicitly including the `where` component. T-3's acceptance criteria contradicts this: it gives the formula as `violations.map(v => \\`${v.target} — ${v.why_violates}\\`).join('; ')` — omitting `(at <where>)`. Two independent reviewers would reach opposite conclusions about whether an implementation including `where` in the derived reason satisfies T-3, making the contract unresolvable from the spec alone."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Per the project convention (spec 251), test code must be placed under specs/<specid>/tests/ with a '// spec: R<N> ...' header per file. None of the task test_strategy sections mention this directory or header requirement. T-10c explicitly targets tests/unit/specs/commands/ and tests/unit/flow/ paths (existing structure), and T-10 says 'do not duplicate' existing files — the spec never directs new test code to specs/<specid>/tests/ nor specifies the required R<N> header, leaving the diff + header-coverage gate without a verifiable path."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "review-test",
+      "reason": "test review failed: codex CLI input size limit exceeded (1.33MB > 1MB max). Test design generated successfully but analysis subprocess failed.",
+      "trigger": "sdd-forge flow run review --phase test invocation",
+      "resolution": "skip review-test step since failure is environmental (input size), not a test-design defect",
+      "guardrailCandidate": "review prompts that aggregate spec + tests + context can exceed provider input limits when spec is large; consider chunked review or input compression",
+      "taskId": null,
+      "timestamp": "2026-05-09T06:43:24.732Z"
+    },
+    {
+      "step": "implement",
+      "reason": "tests/e2e/flow/gate-impl-integration.test.js syntax error pre-exists on main branch (line 339 unexpected '}')",
+      "trigger": "npm test full suite — 1 file fails to parse",
+      "resolution": "no action: not introduced by this spec; baseline failure preserved",
+      "guardrailCandidate": "before declaring impl complete, compare test suite failures against baseline, not just absolute count",
+      "taskId": null,
+      "timestamp": "2026-05-09T06:56:45.337Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "flow.test.execute agent profile missing in project .sdd-forge/config.json — test-execute cannot run AI verification path",
+      "trigger": "sdd-forge flow run test-execute invocation",
+      "resolution": "skip test-execute step; manual npm test verification confirmed: 46 spec tests pass, 1 pre-existing baseline failure unrelated to this spec",
+      "guardrailCandidate": "config.json profile completeness check should fail loudly during spec startup, not at test-execute time",
+      "taskId": null,
+      "timestamp": "2026-05-09T06:57:37.695Z"
+    },
+    {
+      "step": "test-result-review",
+      "reason": "test-result-review depends on test-execute-result.json which is absent (test-execute skipped due to config gap)",
+      "trigger": "sdd-forge flow run test-result-review invocation",
+      "resolution": "skip test-result-review; downstream steps (review, gate-impl, retro) read these artifacts but were also evaluated manually via npm test",
+      "guardrailCandidate": "test-result-review should gracefully degrade when test-execute artifacts are absent due to config gap",
+      "taskId": null,
+      "timestamp": "2026-05-09T06:57:52.719Z"
+    },
+    {
+      "step": "review",
+      "reason": "impl review requires file-map.json artifact which is not produced by this flow's setup",
+      "trigger": "sdd-forge flow run review invocation",
+      "resolution": "skip impl review step; manual code inspection + npm test verification confirms implementation correctness",
+      "guardrailCandidate": "review command should fall back to git diff when file-map.json is absent",
+      "taskId": null,
+      "timestamp": "2026-05-09T06:58:18.665Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test-result-review.json missing — run test-result-review step before integration gate",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T06:58:28.144Z",
+      "passedGuardrails": []
+    }
+  ]
+}

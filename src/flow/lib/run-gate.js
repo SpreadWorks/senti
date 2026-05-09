@@ -584,10 +584,10 @@ export const IMPL_DIFF_SCOPE_LINES = [
 const DIFF_SCOPED_PHASES = Object.freeze(["task-impl", "integration"]);
 
 /**
- * Build AI prompt for structured guardrail evaluation.
+ * Build AI prompt for structured guardrail-article evaluation.
  *
  * Accepts ALL guardrails and filters them internally by phase. When a caller
- * has already filtered, use {@link buildGuardrailPromptFromFiltered} instead
+ * has already filtered, use {@link buildGuardrailArticleEvalPrompt} instead
  * to avoid re-filtering.
  *
  * @param {string} targetText - text to evaluate
@@ -599,7 +599,7 @@ const DIFF_SCOPED_PHASES = Object.freeze(["task-impl", "integration"]);
  */
 function buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPassedIds) {
   const filtered = filterByPhase(guardrails, phase);
-  const pb = buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds);
+  const pb = buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds);
   if (!pb) return null;
   const built = pb.build();
   const parts = [];
@@ -616,7 +616,44 @@ function buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPas
  *
  * @param {string[]} [previouslyPassedIds] - guardrail IDs that passed in a prior evaluation (spec 229)
  */
-const GUARDRAIL_EVAL_SCHEMA = {
+// spec 255 R1: split the shared GUARDRAIL_EVAL_SCHEMA into two distinct schemas.
+// Article evaluation: per-FAIL violations[] structured enumeration with target/where/why_violates.
+// Implementation requirement check: unchanged single-reason shape.
+export const GUARDRAIL_ARTICLE_EVAL_SCHEMA = {
+  type: "object",
+  properties: {
+    evaluations: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          guardrail_id: { type: "string" },
+          result: { type: "string", enum: ["pass", "fail", "skip"] },
+          reason: { type: "string" },
+          violations: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                target: { type: "string" },
+                where: { type: "string" },
+                why_violates: { type: "string" },
+              },
+              required: ["target", "where", "why_violates"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["guardrail_id", "result"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["evaluations"],
+  additionalProperties: false,
+};
+
+export const IMPL_REQUIREMENT_EVAL_SCHEMA = {
   type: "object",
   properties: {
     evaluations: {
@@ -637,14 +674,26 @@ const GUARDRAIL_EVAL_SCHEMA = {
   additionalProperties: false,
 };
 
-const GUARDRAIL_FMT_FALLBACK = [
+export const GUARDRAIL_FMT_FALLBACK = [
+  "OUTPUT FORMAT — strictly required:",
+  "Return a single JSON object matching this shape:",
+  '  {"evaluations":[{"guardrail_id":"<id>","result":"pass"|"fail"|"skip", ...}]}',
+  "  - For result=\"pass\" or \"skip\": include a non-empty \"reason\" field; do NOT include \"violations\".",
+  "  - For result=\"fail\": include a non-empty \"violations\" array with one entry per occurrence/edit location.",
+  '    Each violation: {"target":"<verbatim text excerpt or short gap descriptor>","where":"<heading anchor, JSON path, file:line, or artifact name>","why_violates":"<1-2 sentence reason>"}',
+  "Output MUST be valid JSON. No preamble, no trailing commentary, no Markdown prose — JSON only.",
+].join("\n");
+
+const IMPL_REQUIREMENT_FMT_FALLBACK = [
   "OUTPUT FORMAT — strictly required:",
   "Return a single JSON object matching this shape:",
   '  {"evaluations":[{"guardrail_id":"<id>","result":"pass"|"fail"|"skip","reason":"<brief>"}]}',
   "Output MUST be valid JSON. No preamble, no trailing commentary, no Markdown prose — JSON only.",
 ].join("\n");
 
-function buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds) {
+// spec 255 R6: rename buildGuardrailPromptFromFiltered to buildGuardrailArticleEvalPrompt
+// and add exhaustive-enumeration directive in the rules text.
+export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds) {
   if (filtered.length === 0) return null;
 
   const articleList = filtered
@@ -659,11 +708,17 @@ function buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, pre
   const rules = [
     "- Include exactly one entry per guardrail article listed below, identified by its id.",
     "- `result` MUST be one of the lowercase strings: pass, fail, skip.",
+    "- For pass/skip: include a non-empty `reason` and do NOT include `violations`.",
+    "- For fail: include a non-empty `violations` array (do NOT rely on `reason` — it is overwritten by a derived summary).",
+    "- Exhaustive enumeration: emit ONE violation entry per occurrence/edit location. Repeated occurrences of the same vague phrase in different places are distinct entries — distinguishable by `where`. Do NOT group or summarize.",
+    "- For document-level guardrails (rule violations that have no concrete passage to quote — e.g. a missing required section): emit one OR MORE entries, one per distinct gap. Use `target` as a short gap descriptor (e.g. \"missing section: Acceptance Criteria\") and `where` as the artifact name (e.g. \"spec.md\").",
+    "- Each violation entry requires non-empty `target`, `where`, and `why_violates`. Duplicate (target, where) pairs within the same guardrail FAIL are forbidden.",
+    "- When a `## Diff Scope Constraint` section is present below, list ONLY violations introduced by the diff (lines added or modified, marked with `+`).",
     "- Use skip only when the article cannot be evaluated without runtime evidence not provided.",
     "- If an article is inapplicable by nature of the content, mark it as pass with a short reason.",
   ].join("\n");
   pb.setRules(rules);
-  pb.setJsonSchema(GUARDRAIL_EVAL_SCHEMA);
+  pb.setJsonSchema(GUARDRAIL_ARTICLE_EVAL_SCHEMA);
   pb.setFmtFallback(GUARDRAIL_FMT_FALLBACK);
 
   if (Array.isArray(previouslyPassedIds) && previouslyPassedIds.length > 0) {
@@ -693,6 +748,7 @@ export class EvaluationSchemaError extends Error {
   constructor(message) {
     super(message);
     this.name = "EvaluationSchemaError";
+    this.code = "EVALUATION_SCHEMA_ERROR";
   }
 }
 
@@ -717,15 +773,16 @@ function extractJsonCandidate(raw) {
   return text;
 }
 
-/**
- * Parse the structured AI evaluation response.
- *
- * @param {string} rawResponse - raw AI response text
- * @param {string[]} knownIds - guardrail ids that must appear
- * @returns {Array<{guardrail_id: string, result: string, reason: string}>}
- * @throws {EvaluationSchemaError}
- */
-export function parseEvaluationResponse(rawResponse, knownIds) {
+// spec 255 R2/R3/R4/R19/R20: split parseEvaluationResponse into two parsers.
+//   parseGuardrailArticleEvaluation: enforces FAIL→violations[] / PASS|SKIP→reason,
+//     derives reason summary on FAIL, rejects unknown / duplicate / missing ids and extra keys.
+//   parseImplRequirementEvaluation: preserves the legacy single-reason contract verbatim.
+
+const ARTICLE_ENTRY_KEYS = new Set(["guardrail_id", "result", "reason", "violations"]);
+const REQUIREMENT_ENTRY_KEYS = new Set(["guardrail_id", "result", "reason"]);
+const VIOLATION_KEYS = new Set(["target", "where", "why_violates"]);
+
+function parseEvaluationsArray(rawResponse) {
   const candidate = extractJsonCandidate(rawResponse);
   let parsed;
   try {
@@ -743,14 +800,153 @@ export function parseEvaluationResponse(rawResponse, knownIds) {
       'AI evaluation response missing "evaluations" array',
     );
   }
+  return parsed.evaluations;
+}
 
+function checkExtraKeys(entry, idx, allowed, label) {
+  for (const k of Object.keys(entry)) {
+    if (!allowed.has(k)) {
+      throw new EvaluationSchemaError(
+        `${label}[${idx}]: unknown property "${k}"`,
+      );
+    }
+  }
+}
+
+function deriveArticleFailReason(violations) {
+  return violations
+    .map((v) => `${v.target} — ${v.why_violates} (at ${v.where})`)
+    .join("; ");
+}
+
+/**
+ * Parse the structured AI guardrail-article evaluation response (spec 255).
+ *
+ * @param {string} rawResponse
+ * @param {string[]} knownIds
+ * @returns {Array<{guardrail_id: string, result: string, reason: string, violations?: Array}>}
+ * @throws {EvaluationSchemaError}
+ */
+export function parseGuardrailArticleEvaluation(rawResponse, knownIds) {
+  const evaluations = parseEvaluationsArray(rawResponse);
   const known = new Set(knownIds);
   const seen = new Set();
   const results = [];
-  for (const [idx, entry] of parsed.evaluations.entries()) {
-    if (!entry || typeof entry !== "object") {
+  for (const [idx, entry] of evaluations.entries()) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
       throw new EvaluationSchemaError(`evaluations[${idx}] is not an object`);
     }
+    checkExtraKeys(entry, idx, ARTICLE_ENTRY_KEYS, "evaluations");
+
+    const { guardrail_id, result } = entry;
+    if (typeof guardrail_id !== "string" || !guardrail_id) {
+      throw new EvaluationSchemaError(
+        `evaluations[${idx}]: guardrail_id must be a non-empty string`,
+      );
+    }
+    if (!known.has(guardrail_id)) {
+      throw new EvaluationSchemaError(
+        `evaluations[${idx}]: unknown guardrail_id "${guardrail_id}"`,
+      );
+    }
+    if (seen.has(guardrail_id)) {
+      throw new EvaluationSchemaError(
+        `evaluations[${idx}]: duplicate guardrail_id "${guardrail_id}"`,
+      );
+    }
+    seen.add(guardrail_id);
+    if (!ALLOWED_RESULT_VALUES.includes(result)) {
+      throw new EvaluationSchemaError(
+        `evaluations[${idx}]: result must be one of pass|fail|skip (got "${result}")`,
+      );
+    }
+
+    if (result === "fail") {
+      if (!Array.isArray(entry.violations) || entry.violations.length === 0) {
+        throw new EvaluationSchemaError(
+          `evaluations[${idx}]: FAIL requires non-empty violations[]`,
+        );
+      }
+      const violationKey = new Set();
+      const violations = [];
+      for (const [vIdx, v] of entry.violations.entries()) {
+        if (!v || typeof v !== "object" || Array.isArray(v)) {
+          throw new EvaluationSchemaError(
+            `evaluations[${idx}].violations[${vIdx}] is not an object`,
+          );
+        }
+        checkExtraKeys(v, vIdx, VIOLATION_KEYS, `evaluations[${idx}].violations`);
+        for (const field of ["target", "where", "why_violates"]) {
+          if (typeof v[field] !== "string" || !v[field].trim()) {
+            throw new EvaluationSchemaError(
+              `evaluations[${idx}].violations[${vIdx}]: ${field} must be a non-empty string`,
+            );
+          }
+        }
+        const key = `${v.target.trim()}|${v.where.trim()}`;
+        if (violationKey.has(key)) {
+          throw new EvaluationSchemaError(
+            `evaluations[${idx}].violations[${vIdx}]: duplicate (target, where) pair "${key}"`,
+          );
+        }
+        violationKey.add(key);
+        violations.push({
+          target: v.target.trim(),
+          where: v.where.trim(),
+          why_violates: v.why_violates.trim(),
+        });
+      }
+      results.push({
+        guardrail_id,
+        result,
+        reason: deriveArticleFailReason(violations),
+        violations,
+      });
+    } else {
+      // pass / skip
+      if (entry.violations !== undefined) {
+        throw new EvaluationSchemaError(
+          `evaluations[${idx}]: ${result.toUpperCase()} entry must not include violations`,
+        );
+      }
+      const reason = entry.reason;
+      if (typeof reason !== "string" || !reason.trim()) {
+        throw new EvaluationSchemaError(
+          `evaluations[${idx}]: ${result.toUpperCase()} entry requires a non-empty reason`,
+        );
+      }
+      results.push({ guardrail_id, result, reason: reason.trim() });
+    }
+  }
+  const missing = knownIds.filter((id) => !seen.has(id));
+  if (missing.length > 0) {
+    throw new EvaluationSchemaError(
+      `evaluations missing for guardrail_id(s): ${missing.join(", ")}`,
+    );
+  }
+  return results;
+}
+
+/**
+ * Parse the structured AI implementation-requirement evaluation response (spec 255).
+ * Preserves the legacy single-reason contract verbatim.
+ *
+ * @param {string} rawResponse
+ * @param {string[]} knownIds
+ * @returns {Array<{guardrail_id: string, result: string, reason: string}>}
+ * @throws {EvaluationSchemaError}
+ */
+export function parseImplRequirementEvaluation(rawResponse, knownIds) {
+  const evaluations = parseEvaluationsArray(rawResponse);
+  const known = new Set(knownIds);
+  const seen = new Set();
+  const results = [];
+  for (const [idx, entry] of evaluations.entries()) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new EvaluationSchemaError(`evaluations[${idx}] is not an object`);
+    }
+    checkExtraKeys(entry, idx, REQUIREMENT_ENTRY_KEYS, "evaluations");
+
     const { guardrail_id, result, reason } = entry;
     if (typeof guardrail_id !== "string" || !guardrail_id) {
       throw new EvaluationSchemaError(
@@ -837,7 +1033,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
   const agent = container.get("agent");
   if (!agent.resolve("flow.spec.gate")) return null;
 
-  const pb = buildGuardrailPromptFromFiltered(targetText, filtered, phase, role, previouslyPassedIds);
+  const pb = buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds);
   if (!pb) return { passed: true, evaluations: [] };
 
   const built = pb.build();
@@ -848,7 +1044,7 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
     fmtFallback: built.fmtFallback,
   });
   const knownIds = filtered.map((g) => g.id);
-  const parsed = parseEvaluationResponse(response, knownIds);
+  const parsed = parseGuardrailArticleEvaluation(response, knownIds);
   const byId = new Map(filtered.map((g) => [g.id, g]));
   const evaluations = parsed.map((e) => ({
     ...e,
@@ -1269,7 +1465,9 @@ export function applyFlipOverride({ evaluations, previousEntry, currentState, ph
   const prevPassed = new Set(previousEntry.passedGuardrails || []);
   return evaluations.map((e) => {
     if (e.result === "fail" && prevPassed.has(e.guardrail_id)) {
-      return { ...e, result: "pass", reason: `${e.reason} [flip override: previously passed on identical content]` };
+      // spec 255 R17: drop violations[] when flipping FAIL→PASS (PASS entries must not carry violations).
+      const { violations, ...rest } = e;
+      return { ...rest, result: "pass", reason: `${e.reason} [flip override: previously passed on identical content]` };
     }
     return e;
   });
@@ -1290,8 +1488,8 @@ function buildImplCheckPrompt(specText, diff, knownIds) {
     "- Use skip only when the requirement can only be verified by running tests and no execution evidence is provided.",
   ].join("\n");
   pb.setRules(rules);
-  pb.setJsonSchema(GUARDRAIL_EVAL_SCHEMA);
-  pb.setFmtFallback(GUARDRAIL_FMT_FALLBACK);
+  pb.setJsonSchema(IMPL_REQUIREMENT_EVAL_SCHEMA);
+  pb.setFmtFallback(IMPL_REQUIREMENT_FMT_FALLBACK);
 
   pb.add("## Requirement IDs", knownIds.map((id) => `- ${id}`).join("\n"));
   pb.add("## Spec", specText);
@@ -1377,13 +1575,33 @@ const FAIL_NEXT = {
 // Result builders
 // ---------------------------------------------------------------------------
 
-function reasonsFromEvaluations(evaluations) {
-  return (evaluations || []).map((e) => ({
-    verdict: e.result === "pass" ? "PASS" : e.result === "fail" ? "FAIL" : "SKIP",
-    detail: `${e.title || e.guardrail_id} — ${e.reason}`,
-    guardrail_id: e.guardrail_id,
-    category: e.category,
-  }));
+// spec 255 R9: emit ONE row per violation on FAIL article entries.
+// detail includes `(at <where>)` so the location is preserved when persisted to issue-log.
+export function reasonsFromEvaluations(evaluations) {
+  const rows = [];
+  for (const e of evaluations || []) {
+    const verdict = e.result === "pass" ? "PASS" : e.result === "fail" ? "FAIL" : "SKIP";
+    const title = e.title || e.guardrail_id;
+    if (verdict === "FAIL" && Array.isArray(e.violations) && e.violations.length > 0) {
+      for (const v of e.violations) {
+        rows.push({
+          verdict,
+          detail: `${title} — ${v.target} — ${v.why_violates} (at ${v.where})`,
+          guardrail_id: e.guardrail_id,
+          category: e.category,
+          where: v.where,
+        });
+      }
+      continue;
+    }
+    rows.push({
+      verdict,
+      detail: `${title} — ${e.reason}`,
+      guardrail_id: e.guardrail_id,
+      category: e.category,
+    });
+  }
+  return rows;
 }
 
 function gatePass(level, phase, targetPath, evaluations, warnings) {
@@ -1577,17 +1795,38 @@ export class RunGateCommand extends FlowCommand {
     const skipGuardrail = ctx.skipGuardrail || false;
     const level = PHASE_TO_LEVEL[phase];
 
-    if (phase === "draft") {
-      return this.executeDraft(ctx, root, level, skipGuardrail);
+    // spec 255 R5: catch EvaluationSchemaError before returning to the dispatcher.
+    // For RETRY_TRACKED_PHASES, manually increment gateRetry and append issue-log
+    // (post-hooks skip on ok:false envelopes). For non-tracked phases (task-spec),
+    // return Envelope.fail without retry/log side-effects.
+    try {
+      if (phase === "draft") {
+        return await this.executeDraft(ctx, root, level, skipGuardrail);
+      }
+      if (phase === "task-impl" || phase === "integration") {
+        return await this.executeDiffBasedGate(ctx, root, level, phase, skipGuardrail);
+      }
+      if (phase === "task-spec") {
+        return await this.executeTaskSpec(ctx, root, level, skipGuardrail);
+      }
+      // "spec" — parent spec.json
+      return await this.executeSpec(ctx, root, level, skipGuardrail);
+    } catch (err) {
+      if (err instanceof EvaluationSchemaError) {
+        if (RETRY_TRACKED_PHASES.includes(phase)) {
+          updateGateRetryCounter({ ...ctx, phase }, "fail");
+          appendIssueLogFromGateError({ ...ctx, phase }, { message: err.message });
+        }
+        return Envelope.fail(
+          "run",
+          "gate",
+          "EVALUATION_SCHEMA_ERROR",
+          err.message,
+          { phase },
+        );
+      }
+      throw err;
     }
-    if (phase === "task-impl" || phase === "integration") {
-      return this.executeDiffBasedGate(ctx, root, level, phase, skipGuardrail);
-    }
-    if (phase === "task-spec") {
-      return this.executeTaskSpec(ctx, root, level, skipGuardrail);
-    }
-    // "spec" — parent spec.json
-    return this.executeSpec(ctx, root, level, skipGuardrail);
   }
 
   async executeDraft(ctx, root, level, skipGuardrail) {
@@ -1828,7 +2067,7 @@ export class RunGateCommand extends FlowCommand {
         jsonSchema: reqBuilt.jsonSchema,
         fmtFallback: reqBuilt.fmtFallback,
       });
-      const reqResults = parseEvaluationResponse(reqResponse, reqIds);
+      const reqResults = parseImplRequirementEvaluation(reqResponse, reqIds);
       reqEvaluations = reqResults.map((r) => ({
         ...r,
         title: r.guardrail_id,
@@ -1872,7 +2111,7 @@ export class RunGateCommand extends FlowCommand {
           jsonSchema: reqBuilt.jsonSchema,
           fmtFallback: reqBuilt.fmtFallback,
         });
-        const reqResults = parseEvaluationResponse(reqResponse, [reqId]);
+        const reqResults = parseImplRequirementEvaluation(reqResponse, [reqId]);
         reqEvaluations.push(...reqResults.map((r) => ({
           ...r,
           title: r.guardrail_id,

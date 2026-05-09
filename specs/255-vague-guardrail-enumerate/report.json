@@ -1,0 +1,62 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../255-vague-guardrail-enumerate/draft-review.md  |  43 ++\n specs/255-vague-guardrail-enumerate/draft.json     | 121 ++++\n specs/255-vague-guardrail-enumerate/flow.json      | 711 +++++++++++++++++++++\n specs/255-vague-guardrail-enumerate/issue-log.json | 145 +++++\n specs/255-vague-guardrail-enumerate/issue.md       | 100 +++\n specs/255-vague-guardrail-enumerate/qa.md          |   9 +\n specs/255-vague-guardrail-enumerate/spec-review.md |  38 ++\n specs/255-vague-guardrail-enumerate/spec.json      | 334 ++++++++++\n specs/255-vague-guardrail-enumerate/spec.md        | 182 ++++++\n specs/255-vague-guardrail-enumerate/tasks/T-1.md   |  21 +\n specs/255-vague-guardrail-enumerate/tasks/T-10.md  |  25 +\n specs/255-vague-guardrail-enumerate/tasks/T-10b.md |  20 +\n specs/255-vague-guardrail-enumerate/tasks/T-10c.md |  22 +\n specs/255-vague-guardrail-enumerate/tasks/T-2.md   |  22 +\n specs/255-vague-guardrail-enumerate/tasks/T-3.md   |  20 +\n specs/255-vague-guardrail-enumerate/tasks/T-4.md   |  22 +\n specs/255-vague-guardrail-enumerate/tasks/T-5.md   |  21 +\n specs/255-vague-guardrail-enumerate/tasks/T-6.md   |  19 +\n specs/255-vague-guardrail-enumerate/tasks/T-7.md   |  20 +\n specs/255-vague-guardrail-enumerate/tasks/T-8.md   |  19 +\n specs/255-vague-guardrail-enumerate/tasks/T-9.md   |  19 +\n .../tests/exports.test.js                          |  36 ++\n .../tests/flip-override.test.js                    |  55 ++\n .../tests/gate-rendering.test.js                   |  73 +++\n .../tests/parser-article.test.js                   | 172 +++++\n .../tests/parser-impl-requirement.test.js          |  48 ++\n .../tests/prompt-builder.test.js                   |  66 ++\n .../tests/prompts-md.test.js                       |  61 ++\n .../tests/schema-error.test.js                     |  39 ++\n specs/255-vague-guardrail-enumerate/tests/spec.md  | 253 ++++++++\n src/flow/lib/run-gate.js                           | 323 ++++++++--\n src/flow/prompts/plan/gate-draft.md                |   3 +-\n src/flow/prompts/plan/gate.md                      |   4 +-\n tests/unit/flow/gate-evaluation-schema.test.js     | 116 +++-\n tests/unit/specs/commands/guardrail.test.js        |   6 +-\n 35 files changed, 3116 insertions(+), 72 deletions(-)",
+      "commits": [
+        "feat: feature/255-vague-guardrail-enumerate"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 5
+    },
+    "tokenMetrics": {
+      "input": 833748,
+      "output": 104574,
+      "cacheRead": 7118641,
+      "cacheCreation": 306449,
+      "cost": 1.8123274500000002,
+      "callCount": 22,
+      "durationMs": 2249978,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 367267
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 67254
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 1164085
+        },
+        {
+          "phase": "gate",
+          "durationMs": 222659
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 231090
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 197623
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/255-vague-guardrail-enumerate\n    35 files changed, 3116 insertions(+), 72 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 5\n    agent calls ................. 22\n    input tokens ................ 833,748\n    output tokens ............... 104,574\n    cache-read tokens ........... 7,118,641\n    cache-create tokens ......... 306,449\n    cost ........................ $1.8123\n    duration (total) ............ 2250.0s\n      review-draft .............. 367.3s\n      gate-draft ................ 67.3s\n      review-spec ............... 1164.1s\n      gate ...................... 222.7s\n      review-test ............... 231.1s\n      gate-impl ................. 197.6s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}
