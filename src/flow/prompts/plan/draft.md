@@ -1,3 +1,5 @@
+   **Draft scope boundary (creation-time guidance — moved from gate evaluation):** Draft is RFP/requirements level only. Mentioning file paths or function names as context is permitted. Do not describe internal algorithms, data structures, control flow, or API design. Code references within the `evidence`, `why`, `considered`, and `answer` fields of QA entries are permitted as justification and do not constitute implementation details. This rule used to be enforced as a gate guardrail (`draft-scope-boundary`) but is now creation-time guidance — follow it while authoring `draft.json`.
+
    **Note on subsequent task decomposition:** 後続の spec 段階で要件を **concern 単位** にタスク分解する。draft は要件レベルの議論に留め、スコープは Issue or request の境界に従う。タスク分解の粒度制約は後続の `task-single-responsibility` guardrail (phase=[spec, task-spec]) で評価される。
 
    **Draft artifact format: draft.json**

@@ -41,7 +41,7 @@ function parseLintString(lintStr) {
  */
 function hydrate(entry, sourcePath) {
   const meta = { ...entry.meta };
-  if (!meta.phase || meta.phase.length === 0) {
+  if (!meta.phase) {
     meta.phase = [...DEFAULT_PHASE];
   }
   for (const p of meta.phase) {
@@ -76,7 +76,7 @@ function hydrate(entry, sourcePath) {
  * @param {string} filePath - Path to guardrail.json
  * @returns {Object[]} Array of guardrail objects
  */
-function loadGuardrailFile(filePath) {
+export function loadGuardrailFile(filePath) {
   const content = fs.readFileSync(filePath, "utf8");
   const data = JSON.parse(content);
   return (data.guardrails || []).map((e) => hydrate(e, filePath));

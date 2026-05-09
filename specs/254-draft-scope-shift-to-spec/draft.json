@@ -1,0 +1,137 @@
+{
+  "devType": "feature",
+  "goal": "draft-scope-boundary 起因のもぐら叩きループを解消し、guardrail のライフサイクル管理機構 (phase=[] = disabled) を導入する。spec-synthesize-not-copy のような検証不能 guardrail を gate ではなく creation-time prompt 指示として運用する設計に切り替える。",
+  "analysis": {
+    "problem": "draft-scope-boundary guardrail で reviewer が QA の異なる箇所を毎回違反として cite するため reason 文字列が変動し、(id, reason) 完全一致前提の防御機構 (assertNoRepeatedFail / flip override / previouslyPassedIds) がすべて素通りする。spec-synthesize-not-copy は spec gate で評価されるが reviewer は draft.json を持たないため捏造判定が推測ベースになり誤 fail する。",
+    "proposedApproach": "(1) draft-scope-boundary の phase を [] にして draft phase の gate で評価しない。(2) spec-synthesize-not-copy の phase を [] にし、内容を spec.md prompt に creation-time 指示として移植 (carve-out 含む)。(3) spec.md prompt に draft 方針 ↔ source 突き合わせ verification step を追加 (実装方針言及部分のみ、結果は spec.json.overview.decisions[].text に [CORRECTION] prefix 付きで記録、不一致時は AI が Choice Format でユーザー確認)。(4) src/lib/guardrail.js の hydrate を phase=[] = disabled サポートに変更。(5) 実装完了後 sdd-forge upgrade を実行して .claude/skills 等に反映。",
+    "validation": "(1) で draft phase の fail 自体がなくなりループ消滅。(3) で spec phase に保険を移譲し draft 緩和を補完。(2) は構造的に検証不能なルールを creation-time に移すことで実効性確保。(4) は guardrail のライフサイクル管理基盤として再利用可能。(5) で生成物 (.claude/skills など) も整合状態を保つ。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[MUST] draft-scope-boundary を draft phase で評価しない状態にする",
+      "[MUST] spec-synthesize-not-copy を spec gate で評価しない状態にし、その内容を spec creation-time prompt に移植する (Issue (2) の carve-out も含む)",
+      "[MUST] spec creation-time prompt に draft 方針 ↔ source 突き合わせ verification step を追加する (Issue (3))",
+      "[MUST] spec で draft 方針修正時のユーザー確認手順を spec creation-time prompt に組み込む (Issue (4))",
+      "[MUST] guardrail loader が phase 空配列を disabled として解釈するよう変更する",
+      "[MUST] loader の disabled 解釈動作を unit test で検証する",
+      "[MUST] 実装後 sdd-forge upgrade を実行し生成物を整合状態に保つ (project rule)",
+      "[SHOULD] 対象 2 guardrail が disabled であることを preset test で確認する",
+      "[SHOULD] spec creation-time prompt に必須要素が含まれることを fixture test で確認する"
+    ],
+    "out": [
+      "spec-test-coverage / prioritize-requirements / complete-context への横展開 (Issue #318 末尾で別タスク扱いと明記)",
+      "src/flow/lib/run-gate.js の assertNoRepeatedFail / flip override / previouslyPassedIds の改修 (Issue 末尾派生論点。reason 一致前提の構造側対策は別タスク)",
+      "spec gate の reviewer に draft.json を渡す変更 (creation-time prompt 移譲で代替)",
+      "既存 spec の issue-log.json に残った guardrail_id 参照の書き換え (alpha 方針: 過去事実の記録は触らない)",
+      "flow CLI 側に draft↔spec 差分検出ロジックを入れる対応 (prompt 文言のみで対応)",
+      "gate-draft の構造的 carve-out (evidence/why/considered を渡さない実装) — phase=[] で評価自体が無くなるため redundant"
+    ]
+  },
+  "impactOnExisting": [
+    "対象 2 guardrail (draft-scope-boundary / spec-synthesize-not-copy) は guardrail として評価されなくなる",
+    "guardrail loader の phase 空配列扱いが default 適用から disabled 解釈に変わる (他に phase 空配列を意図せず書いている guardrail があれば挙動変化)",
+    "spec creation-time prompt に creation 指示と verification step が追加される",
+    "生成スキル (.claude/skills / .agents/skills) は upgrade により更新される",
+    "既存 spec の issue-log に残った 2 guardrail への参照は孤立するが過去記録として保持 (現存 spec の挙動には影響なし)",
+    "spec.json.overview.decisions[].text に rationale (既存) と verification 結果 / correction (新規) が混在格納される"
+  ],
+  "qa": [
+    {
+      "question": "Issue #318 のスコープを (1)〜(4) の 4 要件として spec で展開する理解で進めて良いか",
+      "answer": "良い。Issue body は『具体策は spec で詰める』と明記しており、draft では要件レベルの認識に留める。派生論点 (spec-test-coverage 等への横展開、reason 一致前提の防御機構改修) は Issue 末尾で別タスク扱いと明記。",
+      "evidence": "Issue #318 body: 『1. ... 等、具体策は spec で詰める』『派生論点（別タスク扱い想定）』『派生論点として spec-test-coverage / prioritize-requirements / complete-context にも同型のもぐら叩き構造』",
+      "why": "Issue 趣旨に従い、本 spec のスコープを (1)〜(4) に限定する。",
+      "considered": "(1) のみ先行実装する案 — Issue が 4 つを一体提案しているため不採用"
+    },
+    {
+      "question": "Issue (4)『flow / prompt に組み込む』の『flow』とは何を指すか。本 spec ではどう実装するか",
+      "answer": "本 spec では『flow』= AI が flow フェーズで参照する prompt (src/flow/prompts/plan/spec.md) を意味する。flow CLI の動作変更 (差分検出、gate ロジック追加等) は行わない。Issue body の『flow / prompt』は flow CLI と prompt を並列に挙げているが、ユーザー確認手順は spec フェーズ prompt 内に置けば AI が draft 方針を変更するタイミングで自然に発火するため、CLI 側の追加機構は不要と判断。",
+      "evidence": "src/flow/prompts/plan/spec.md (現状の spec フェーズ prompt が draft.json 読み込みと spec 作成手順を記述)。src/flow/lib/run-gate.js:1644-1702 executeSpec は spec.json のみ targetText に渡し、flow CLI 層で draft↔spec 差分検出する機構はない (= 実装するなら新規追加が必要)",
+      "why": "既存 SDD 設計は guardrail / prompt 文言で AI 行動を制約する pattern。CLI 検出ロジックは draft.json と spec.json の差分判定が複雑かつ false positive/negative リスクが高い。prompt 文言のみで Issue 要件を満たすなら最小コストで済む",
+      "considered": "flow CLI に draft↔spec 差分検出機構を追加 (差分判定が複雑、実装コスト高) / flow skill SKILL.md に確認 step を追加 (prompt と冗長)"
+    },
+    {
+      "question": "draft-scope-boundary の phase=[] (完全 disable) は Issue の『緩和』を超えるが、なぜこれを採るか",
+      "answer": "phase=[] (完全 disable) を採る。理由は『文言緩和』では reason 文字列の毎回変動が止まらず、もぐら叩きループが解消されないため。Issue 末尾は『保険を spec フェーズに移すことで draft を緩和してもこの懸念は spec の検証 step でカバーできる』と明記しており、保険を spec に移譲できれば draft 側の guardrail 機能を放棄しても要件を満たす。意図的に失う動作は『draft の AI が実装詳細を書きすぎた場合の自動検出』。これは『やむを得ず』の選択であり、reviewer 評価軸を全体トーン binary 判定に変える等の構造側対策が見つかれば revert 検討する旨を experimental/workflow.js board に記録 (hash c49c)",
+      "evidence": "src/presets/base/guardrail.json:213-222 (draft-scope-boundary 現文言)。Issue #318 body 末尾『保険を spec フェーズに移すことで draft を緩和してもこの懸念は spec の検証 step でカバーできる』。spec 252/249 で gate-draft x5/x7 のもぐら叩き事例 (Issue #318 body 内の実例)",
+      "why": "answer field 経由のもぐら叩きは answer を構造的に消さない限り止まらないが answer 削除は QA 成立を破壊する。draft phase で評価しなければ fail 自体が発生せず、ループ原理的に解消",
+      "considered": "(a) answer field を carve-out 文言に追加 (analysis.proposedApproach のみ評価対象に縮退するが、実態として reviewer が QA の長文を cite する pattern が続く可能性、形骸化と user 評価) / (b) reviewer 評価軸を全体トーン binary 判定に変更 (Issue 末尾派生論点・本 spec スコープ外) / (c) 評価対象を analysis.proposedApproach に限定 (QA に逃げ込む抜け道) / (d) guardrail エントリ完全削除 (draft = 要件レベル の思想自体を guardrail.json から失う) / (e) phase=[] で定義は残す (採用案: 思想は残す + ループ消滅 + revert 可能性確保)"
+    },
+    {
+      "question": "spec-synthesize-not-copy の運用方針は何か (carve-out を guardrail に残すか creation-time prompt に移すか)",
+      "answer": "creation-time prompt に移す。spec gate での guardrail 評価は無効化 (phase=[]) し、ルール本体と Issue (2) carve-out を spec.md prompt に creation-time 指示として記述する。移植する内容: (a) 『draft の内容を整理し抽象化せよ。直接コピーするな』(b) 『draft に存在しない内容を捏造するな』(c) carve-out: 『ただし draft 方針が source code と矛盾する場合は invent ではなく correction (修正) として扱い、spec で修正してよい』(d) 『方針修正時は AI が Choice Format でユーザー確認すること』(e) 『修正があれば spec.json.overview.decisions[].text に [CORRECTION] prefix 付きで記録すること』。これにより enforcement timing が review-time から creation-time に変わる。",
+      "evidence": "src/flow/lib/run-gate.js:1644-1702 executeSpec は targetText に spec.json のみ渡す。draft.json は reviewer に渡らないため、spec gate で『draft に無い内容』判定は構造的に不可能。src/flow/lib/run-gate.js:647-686 buildGuardrailPromptFromFiltered の prompt 構造に Content として spec.json のみ含まれる。src/flow/prompts/plan/spec.md:18 で『draft.json.qa[].why → spec.json.overview.decisions[].text as rationale』と既に記述があり、decisions[].text が rationale 置き場として確立されている",
+      "why": "現状 spec gate の reviewer は draft.json を持たないため『draft に存在しない内容を捏造するな』を構造的に検証不可能。creation 時 (AI が draft 読みつつ spec 書く) に prompt 指示として置く方が動作可能。Issue (2) の carve-out も creation 時のルールとして書く方が文脈に合う。enforcement timing が review-time から creation-time に変わることを明示的に受容する",
+      "considered": "(a) spec gate に draft.json も渡して guardrail を機能させる (実装変更が大きく Issue (3) verification step と重複、二重チェックは redundant) / (b) guardrail 文言縮小して 『synthesize, do not copy』のみ残す (Issue (2) carve-out が表現できない) / (c) guardrail エントリ完全削除 (定義自体を失う、Q3 と扱いが揃わない)"
+    },
+    {
+      "question": "verification step (draft ↔ source 突き合わせ) の検証粒度・記録方式・失敗時挙動は",
+      "answer": "(粒度) draft.analysis.proposedApproach と draft.qa[].answer のうち、ファイル名・関数名・データ構造に言及している実装方針部分のみ突き合わせる。汎用要件は対象外。(記録 - 全件) 突き合わせ対象とした全 draft 方針について、spec.json.overview.decisions[].text に [VERIFY] prefix エントリを追加し、(対象 draft 方針 / 参照ファイル / 結果 = match | mismatch) を記載する。これで突き合わせ完了が spec から見える。(記録 - 不一致) 不一致または根拠不足の方針は [CORRECTION] prefix の別エントリで記録し、(対象 draft 方針 / 参照ファイル / 採用した修正方針) を記載する。(失敗時) [CORRECTION] エントリを書く前に AI が Choice Format でユーザー確認を起動。autoApprove では auto-selecting [1] により承認扱い。",
+      "evidence": "Issue #318 修正方針 (3): 『draft で挙げられた実装方針を該当ソースコードに突き合わせて妥当性を確認し、矛盾があればユーザーに確認の上で修正する』。src/flow/prompts/plan/spec.md:18 で decisions[].text の rationale 用途が確立済み。src/flow/schemas/spec.schema.json: decisions[] は { text (required, max 500), evidence (max 1000), consideredAlternatives (max 1000), added_by_task } で additionalProperties: false",
+      "why": "Issue 趣旨は『未調査のまま方針確定するのを防ぐ』。突き合わせ完了の証跡が無いと『verification step を実行したか』を後で確認できない。[VERIFY] と [CORRECTION] の 2 prefix で全件確認 + 修正実施を分離記録",
+      "considered": "全件突き合わせ + 結果非記録 (証跡なし) / 不一致のみ記録 (verification 完了の証跡が残らない、当初案) / decisions に新カテゴリ field 追加 (schema 拡張 — additionalProperties: false なので schema 変更が必要、影響範囲広い) / 別ファイル (specs/<id>/verification.json) 分離 (一元化を破る)"
+    },
+    {
+      "question": "ユーザー確認 prompt の trigger 条件は何か",
+      "answer": "本 spec で導入するルールが draft → spec 変換時の AI 挙動を制約する。trigger 条件は以下に限定: (a) draft.analysis.proposedApproach または draft.qa[].answer の実装方針 (file/function/data structure 言及) を spec で別アプローチに置き換える場合、(b) draft で書かれた要件 (qa entry や scopeVerification.in) を spec で reject または重大変更する場合、(c) draft に未記載の要件を spec で新規追加する場合。trigger しない例: (i) 単純な文言改善・タイポ修正、(ii) rationale / evidence 追記、(iii) draft で曖昧だった点の具体化 (方針の核心を変えないもの)、(iv) verification step が match と判定した方針の spec への反映。trigger 判定は AI が spec.md prompt 指示に従って行う (CLI runtime 判定ではない)。本ルールは本 spec の最終形に対して以降適用される (本 spec 自体の作成プロセスには遡及しない)。",
+      "evidence": "Issue #318 修正方針 (3)(4): 『矛盾があればユーザーに確認の上で修正』『draft で方針を変更した場合のユーザー確認手順を flow / prompt に組み込む』",
+      "why": "trigger 条件を明示しないと AI が過剰確認 (タイポ修正でも prompt) または過少確認 (重要変更を素通し) を起こす。具体例で trigger / non-trigger を示すことで AI 解釈を安定化。本 spec 自体には遡及適用しないことを明示し、自己参照ループを回避",
+      "considered": "trigger 判定を CLI 側に持たせる (Q2 で却下済み) / 全変更で確認 prompt 出す (過剰確認、ユーザー疲弊) / 全変更で確認なし (Issue 要件未充足) / 本 spec にも遡及適用 (自己参照、無限ループ)"
+    },
+    {
+      "question": "ユーザー確認の mechanism と autoApprove での挙動は",
+      "answer": "ユーザー確認は AI の Choice Format で実装する (= AI が応答内に [1]/[2]/[3] 形式の選択肢を提示してユーザー入力を待つ既存 pattern)。spec.md prompt が AI に『方針修正時は Choice Format でユーザー確認』と指示し、AI がそれに従う。autoApprove モードでは Choice Format の選択肢が出ても AI が自動的に [1] を選んで進む既存挙動 (sdd-forge.flow skill SKILL.md で定義) によって承認扱いとなる。**この挙動は CLI runtime enforcement ではなく prompt + skill convention で成立している**。CLI 層には『autoApprove フラグの状態管理 (set-step.js, set-auto.js) と requires_approval フラグの返却 (get-next-action.js)』のみあり、Choice Format の解釈や [1] 自動選択は AI / skill 側の責務。spec.md prompt に autoApprove 分岐ロジックは書かない (= autoApprove の独立した動作モデルを尊重)。",
+      "evidence": "src/flow/lib/set-step.js:112 (autoDesired/autoApprove 状態管理), src/flow/lib/set-auto.js:82-99 (autoApprove フラグ書き込み), src/flow/lib/get-status.js:102-103 (autoApprove 読み出し), src/flow/lib/get-next-action.js:47/167 (requires_approval と autoApprove の連携). src/templates/skills/sdd-forge.flow/SKILL.md:152 『autoApprove exception: when autoApprove: true, requires_approval: true is satisfied by auto-selecting [1]』, 同 line 188 (Hard Stops 部分の同等記述). 注: CLI 側は autoApprove 状態の保持・公開と requires_approval フラグの返却のみで、Choice Format 解釈や [1] 自動選択ロジックは CLI に存在しない。Choice Format の動作と autoApprove auto-select は SKILL.md (skill prompt) で定義されており、AI が prompt に従って実行する",
+      "why": "Choice Format は SDD で確立された確認 pattern。CLI runtime enforcement ではなく prompt + skill convention で成立しており、新 mechanism を追加する必要はない。AI 主導の制御を信頼する設計",
+      "considered": "新規 confirmation CLI コマンド追加 (overengineering、prompt convention で十分) / spec.md prompt に autoApprove 分岐を書く (autoApprove の単純なモデルを崩す) / runtime で Choice Format を CLI が解釈する (大規模 AST 設計、不要)"
+    },
+    {
+      "question": "テスト戦略をどうするか",
+      "answer": "(a) phase=[] = disabled の loader semantics を unit test で検証 (filterByPhase が phase=[] エントリを include しないこと、hydrate が phase=[] を ['spec'] に書き換えないこと)。(b) src/presets/base/guardrail.json をロードし、draft-scope-boundary と spec-synthesize-not-copy の meta.phase が [] であることを assert する preset test を追加 (本 spec の中核仕様確認)。(c) src/flow/prompts/plan/spec.md に必須文言 (synthesize / 捏造禁止 / source 矛盾時 correction / verification step / Choice Format でユーザー確認 / [CORRECTION] prefix での記録) が含まれることを fixture test で検証。AI 挙動 e2e テストは書かない (コスト過大)",
+      "evidence": "spec 249: requirement.testable === false で AI prompt 系の検証不能要件を扱う仕組みが既存。src/lib/guardrail.js:42-46 hydrate ロジックは決定的でテスト可能。src/lib/guardrail.js:92-97 filterByPhase も決定的でテスト可能",
+      "why": "loader semantics + 個別 ID 無効化 + prompt の必須文言含有は機械的検証可能。本 spec の中核は『これらの ID が無効化される』ことなので、ID assert は fragile ではなく仕様確認テスト。実際の AI 挙動 (prompt 指示にどう従うか) は AI 挙動テストでないと検証できず費用対効果が悪い",
+      "considered": "全件 testable: false にして回帰検出機構を捨てる / AI 挙動 e2e テスト (コスト過大) / gate-draft の構造的 carve-out テスト (phase=[] で評価自体が無くなるため redundant) / ID assert を fragile として除外 (本 spec の中核仕様なので除外不可)"
+    },
+    {
+      "question": "phase を空にできない loader 制約をどう扱うか (loader semantics)",
+      "answer": "src/lib/guardrail.js:42-46 hydrate を変更して phase=[] = disabled をサポートする。具体的には『meta.phase が明示的に空配列で指定された場合は DEFAULT_PHASE への書き換えを行わず、空配列のまま保持する』に変更。filterByPhase は phase=[] のエントリを include しないため、結果として guardrail はどの phase でも評価されない。これにより guardrail のライフサイクル管理 (有効 → 廃止予定 (phase=[]) → 削除) が可能になる。",
+      "evidence": "src/lib/guardrail.js:42-46 (現状の hydrate ロジック: phase=[] を DEFAULT_PHASE = ['spec'] に書き換える)。src/lib/guardrail.js:92-97 filterByPhase は phases.includes(phase) で判定するので、phase=[] のエントリは何のフェーズでも include されない",
+      "why": "Q3/Q4 の決定 (phase=[]) は現状 loader だと default 適用で spec phase で評価される逆効果になる。loader 変更で phase=[] = disabled の意味を持たせれば、guardrail のライフサイクル管理が可能。Q3 が『やむを得ず』の選択で revert 可能性があるため定義保持が望ましい",
+      "considered": "guardrail エントリ削除 (alpha 方針シンプルだが Q3 の revert 可能性と相性悪) / DEFAULT_PHASE への frontfall を維持 (Q3/Q4 が逆効果になる) / phase=null で disable を表現 (空配列の方が JSON 表現として自然)"
+    },
+    {
+      "question": "Issue #318 が指摘する『reason が毎回異なるため既存防御機構が効かない』構造側問題は本 spec で扱うか",
+      "answer": "扱わない。本 spec は『draft phase で fail を発生させない』ことで結果的にループを消滅させる対症療法。assertNoRepeatedFail / flip override / previouslyPassedIds の (id, reason) 一致前提を緩和する構造側改修は Issue 末尾で『派生論点として横展開可能』と明記されており、本 spec のスコープから明示的に除外する。本 spec で phase=[] にした draft-scope-boundary は draft phase で評価されないため、防御機構が効くか否かは無関係",
+      "evidence": "Issue #318 body 末尾『派生論点（別タスク扱い想定）』『spec-test-coverage / prioritize-requirements / complete-context も同型のもぐら叩き構造を持つ』『本件で reviewer に違反全数列挙させる等の構造側対策が見えれば横展開可能』。src/flow/lib/run-gate.js:1189 assertNoRepeatedFail (issueLog, phase, currentEvaluations) の existing 実装",
+      "why": "Issue が明示的に派生論点扱いしている。本 spec で構造側対策まで扱うとスコープ膨張",
+      "considered": "本 spec で run-gate.js の防御機構も改修する (Issue スコープ外、別タスク化が筋)"
+    },
+    {
+      "question": "presets/templates/prompt 変更後 sdd-forge upgrade の実行は必要か",
+      "answer": "必要。本 spec は src/presets/base/guardrail.json と src/flow/prompts/plan/spec.md を変更する。CLAUDE.md project rule で『src/templates/ や src/presets/ のテンプレートを変更した場合は sdd-forge upgrade を実行して、プロジェクトのスキル・設定に反映すること』と明示されている。実装完了 → finalize commit 前に sdd-forge upgrade を実行し、.claude/skills / .agents/skills 等の生成物を更新する。upgrade による変更ファイルも本 spec のコミットに含める。",
+      "evidence": "CLAUDE.md (本プロジェクト): 『src/templates/ や src/presets/ のテンプレートを変更した場合は sdd-forge upgrade を実行して、プロジェクトのスキル・設定に反映すること』『sdd-forge upgrade はスキル（.claude/skills/, .agents/skills/）やテンプレートの差分を検出し、変更があったファイルのみ更新する』",
+      "why": "project rule 準拠。生成物が source と乖離した状態を残さない",
+      "considered": "upgrade を skip (project rule 違反) / upgrade を別タスク化 (finalize 前に実行する方が一貫性確保)"
+    },
+    {
+      "question": "spec.json.overview.decisions[].text に rationale (既存) / verification (新規) / correction (新規) を混在させる識別方法は",
+      "answer": "[VERIFY] / [CORRECTION] prefix を verification 完了エントリと correction エントリの先頭に付ける規約を spec.md prompt に明示する。例: 『[VERIFY] draft.qa[2].answer の X 方針を src/foo.js:30 と突き合わせ → match』『[CORRECTION] draft.qa[3].answer で X 方針が指定されたが src/bar.js:50 では Z パターン採用、矛盾につきユーザー確認の上 Z パターンに修正』。rationale エントリには prefix なし。grep で `^\\[VERIFY\\]` `^\\[CORRECTION\\]` を引けば各カテゴリのみ抽出可能。schema 変更 (decisions[].kind 等の field 追加) は行わない理由: spec.schema.json は decisions[] に additionalProperties: false を設定しており、新 field 追加には schema 改変が必要で影響範囲広い。prefix 規約は schema 変更不要で互換性を保つ最小変更。",
+      "evidence": "src/flow/prompts/plan/spec.md:18 (decisions[].text の既存 rationale 用途)。src/flow/schemas/spec.schema.json: decisions[] は { text (required, max 500), evidence (max 1000), consideredAlternatives (max 1000), added_by_task (max 100) } で additionalProperties: false (schema 確認済み、field 追加には schema 変更が必要)",
+      "why": "後で audit / retro で verification / correction / rationale を分離抽出できる方が運用に優しい。schema 拡張は alpha 期でも互換破壊が大きく避けたい",
+      "considered": "decisions[].kind フィールド追加 (schema 改変必要、additionalProperties: false の制約に抵触、影響範囲広い) / 別ファイル (specs/<id>/corrections.json 等) 分離 (一元化の利便性を失う) / prefix 無しで text のまま (識別不可、運用困難)"
+    },
+    {
+      "question": "本 spec で disable する 2 guardrail 以外で同じ『reason 毎回変動でループ』が再発した場合の扱いは",
+      "answer": "本 spec のスコープは draft-scope-boundary と spec-synthesize-not-copy の 2 件に限定。Issue #318 末尾で『派生論点 (spec-test-coverage 22 件 / prioritize-requirements 18 件 / complete-context 11 件) は別タスク扱い』『reviewer に違反全数列挙させる等の構造側対策が見えれば横展開可能』と明記されており、共通防御機構の改修 (assertNoRepeatedFail / flip override / previouslyPassedIds の reason 一致前提を緩和) は別 issue として扱う。follow-up 記録先: experimental/workflow.js board (本 spec の board hash c49c に併記、または新規 board エントリで切り出し)。再発トリガー条件: 直近 30 spec で同一 guardrail_id が連続 5 回以上 fail した場合に board エントリ化を検討する目安として記録。",
+      "evidence": "Issue #318 body 末尾『派生論点（別タスク扱い想定）』『spec-test-coverage / prioritize-requirements / complete-context にも同型のもぐら叩き構造、直近 30 spec で 22 / 18 / 11 件』『本件で reviewer に違反全数列挙させる等の構造側対策が見えれば横展開可能』",
+      "why": "Issue が明示的に派生論点としており本 spec で扱うとスコープ膨張。ただし『扱わない』だけだと再発時の対応経路が無くなるので、follow-up 記録先 (board) と判定目安 (連続 5 回 fail) を明記",
+      "considered": "本 spec で構造側対策まで扱う (Issue スコープ外、別タスク化が筋) / follow-up 記録先を明示しない (再発時に対応経路不明)"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-08",
+    "notes": "Q1-Q12 をユーザーと対話して合意。phase=[] = disabled の loader 変更を統一設計の中核に据える。Q3 (draft-scope-boundary phase 削除) は『やむを得ず』選択で、回避策が見つかったら revert 検討する旨を experimental/workflow.js board (hash c49c) に記録済み。reviewer 指摘 #4/#5/#6/#7/#8/#9 を反映 (trigger 条件具体化、autoApprove enforcement 範囲明示、sdd-forge upgrade 必要性、ID-disabled test、[CORRECTION] prefix 規約、Q4/Q8 整理)。reviewer #1/#2/#3 は user 確定済み事項の再指摘につき反映せず"
+  }
+}

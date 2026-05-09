@@ -21,6 +21,7 @@ import { filterByPhase, matchScope } from "./guardrail.js";
 export function validateLintGuardrails(guardrails) {
   const warnings = [];
   for (const g of guardrails) {
+    if (Array.isArray(g.meta?.phase) && g.meta.phase.length === 0) continue;
     if (g.meta?.lint && !g.meta.phase?.includes("lint")) {
       warnings.push(`WARN: "${g.title}" has lint pattern but phase does not include "lint"`);
     }

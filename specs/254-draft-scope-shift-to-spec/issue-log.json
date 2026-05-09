@@ -1,0 +1,198 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Scope is bounded to Issue #318 and related follow-ups are explicitly out of scope.; Unambiguous Requirements — Requirements specify concrete files, guardrail ids, prompt changes, tests, and expected semantics.; Complete Context — Requirements include enough evidence, behavior, exclusions, and validation criteria for reviewers to judge satisfaction.; No Hardcoded Secrets — No source secrets, keys, passwords, or token handling are introduced.; Prioritize Requirements — More than three requirements are listed, but individual priorities must/should/nice-to-have are not assigned.; Impact on Existing Features — The impactOnExisting section lists affected guardrails, loader semantics, prompts, generated skills, and historical logs.; Present Recommendations with Reasoning — Each QA item leads with a recommended answer and includes evidence, why, and alternatives.; Explore Before Asking — Questions are answered using code paths, schemas, prompts, project rules, and issue evidence before asking.; Proactively Raise Related Implications — Related implications such as autoApprove behavior, schema impact, generated files, and follow-up handling are raised.; Confirm Brainstorm vs. Decision Before Critiquing — The draft records user approval and does not critique brainstorming ideas as final decisions.; Capture Digressions in draft.md — Digressions and follow-up topics are captured in out-of-scope items, QA entries, approval notes, and board references.; Draft Stays at Requirements Level — The draft stays mostly at requirements level; code references appear as evidence or scoped change targets.; Backward-Compatible CLI Interface — No existing CLI command or option is removed or redefined; CLI runtime changes are explicitly out of scope.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T00:00:13.623Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "More than three requirements are listed, but individual priorities must/should/nice-to-have are not assigned."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "draft-scope-boundary",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — One Issue-scoped concern: guardrail lifecycle and prompt handling for the loop.; Unambiguous Requirements — Requirements use concrete MUST/SHOULD conditions and explicit files/behaviors.; Complete Context — QA, scope, impacts, and acceptance details are specific enough to judge implementation.; No Hardcoded Secrets — No secrets, tokens, passwords, or credentials are present.; Prioritize Requirements — More than three requirements are present and each is marked MUST or SHOULD.; Impact on Existing Features — impactOnExisting explicitly lists affected behavior and generated artifacts.; Present Recommendations with Reasoning — Each QA entry leads with an answer and includes evidence/why/considered rationale.; Explore Before Asking — Questions are answered with cited docs/code evidence before asking for decisions.; Proactively Raise Related Implications — Related implications such as autoApprove behavior, issue-log references, and follow-up scope are raised.; Confirm Brainstorm vs. Decision Before Critiquing — Content records approved decisions and does not critique brainstorming as final.; Capture Digressions in draft.md — Digressions and follow-ups are captured in scope exclusions, QA, approval notes, and board references.; Draft Stays at Requirements Level — Requirements describe implementation/API details such as hydrate semantics, filterByPhase behavior, schema fields, prefixes, and prompt control flow outside evidence-only context.; Backward-Compatible CLI Interface — No existing CLI command or option meaning is removed or changed; CLI changes are explicitly out of scope.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T00:01:11.629Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "Requirements describe implementation/API details such as hydrate semantics, filterByPhase behavior, schema fields, prefixes, and prompt control flow outside evidence-only context."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Issue #318 scope is treated as one user-defined concern with explicit in/out boundaries.; Unambiguous Requirements — Requirements use MUST/SHOULD and state concrete expected behavior.; Complete Context — QA and scope entries provide enough context and criteria for reviewers to judge satisfaction.; No Hardcoded Secrets — No API keys, passwords, tokens, or secrets are present.; Prioritize Requirements — More than three requirements are listed and each in-scope item is prioritized as MUST or SHOULD.; Impact on Existing Features — Existing behavior impacts are explicitly listed in impactOnExisting.; Present Recommendations with Reasoning — Each QA entry gives a recommended answer with evidence, why, and considered alternatives.; Explore Before Asking — Questions are grounded in cited docs, issue text, and existing code exploration.; Proactively Raise Related Implications — The draft raises related impacts, tradeoffs, follow-up scope, and migration implications.; Confirm Brainstorm vs. Decision Before Critiquing — No brainstorming idea is critiqued as a final decision; the draft records approved decisions.; Capture Digressions in draft.md — Out-of-scope and follow-up topics are captured explicitly rather than mixed into the main scope.; Draft Stays at Requirements Level — The draft goes beyond requirements by specifying implementation mechanics such as hydrate/filterByPhase behavior, exact schema field storage, prefixes, and prompt/runtime design.; Backward-Compatible CLI Interface — The draft explicitly states no CLI command or option behavior changes are included.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T00:02:27.840Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-scope-boundary",
+          "reason": "The draft goes beyond requirements by specifying implementation mechanics such as hydrate/filterByPhase behavior, exact schema field storage, prefixes, and prompt/runtime design."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — Spec stays within the user-defined Issue #318 scope and related guardrail lifecycle/prompt enforcement change.; Task Single Responsibility — Tasks are scoped to individual modules or closely shared prompt/test concerns.; Unambiguous Requirements — Requirements mostly state concrete files, behaviors, phases, and observable prompt text expectations.; Complete Context — Requirements provide enough surrounding context and acceptance criteria for independent review.; REQ Diff-Verifiability — R7 requires executing sdd-forge upgrade, an out-of-diff process action not decidable from diff and test summary alone.; No Hardcoded Secrets — Content does not introduce source code containing secrets.; No Silent Error Swallowing — Content does not include catch blocks or error handling code.; Prioritize Requirements — More than three requirements are present and each has must/should priority.; Impact on Existing Features — Spec describes scope and behavior changes but does not explicitly list impact on existing features or state none are affected.; Bounded Resource Usage — No recursive processing, retries, or bulk loading design is introduced; minimal source reading is bounded by need.; Spec Includes Test Strategy — Spec includes requirement-level and task-level test strategies.; Synthesize Draft, Do Not Copy — Cannot verify synthesis versus copying without the source draft content.; Record Unresolved Points as Open Questions — Open questions are explicitly represented and empty, with clarifications recorded separately.; Include 'Why This Approach' Rationale — Overview decisions include rationale, evidence, and alternatives considered.; Spec Test Coverage — Spec requires tests under tests/unit and tests/integration, not under specs/<specid>/tests/ with required spec headers.; Backward-Compatible CLI Interface — No existing CLI command or option is removed or semantically changed.; Exit Code Contract — No CLI command is added or modified.; Validate User Input at Entry Point — No user-facing CLI arguments are added or modified.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T00:39:09.617Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "R7 requires executing sdd-forge upgrade, an out-of-diff process action not decidable from diff and test summary alone."
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "Spec describes scope and behavior changes but does not explicitly list impact on existing features or state none are affected."
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Spec requires tests under tests/unit and tests/integration, not under specs/<specid>/tests/ with required spec headers."
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: failed to parse spec.json at /home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-254-draft-scope-shift-to-spec/specs/254-draft-scope-shift-to-spec/spec.json: Unexpected token ']', ...\"\n    },\n  ]\n}\n\" is not valid JSON",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T00:41:38.233Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — hydrate now defaults only when meta.phase is missing/undefined, preserving explicit [], and filterByPhase excludes [] via includes check.; R2 — draft-scope-boundary in src/presets/base/guardrail.json now has meta.phase set to [], removing it from draft-phase filtering/evaluation.; R3 — src/presets/base/guardrail.json sets spec-synthesize-not-copy meta.phase to [], disabling it from spec phase guardrail selection.; R4 — spec.md adds synthesize guidance: organize/abstract draft content, do not copy directly, do not invent draft-missing content, and allow source-code contradiction fixes as [CORRECTION].; R5 — spec.md adds draft-source verification, minimal source-read exception, [VERIFY]/[CORRECTION] decision recording, 500/1000 length limits, evidence usage, and split guidance.; R6 — spec.md adds Choice Format confirmation for draft policy changes and explicitly relies on autoApprove auto-select [1] without adding branch logic.; R8 — Diff adds specs/254-draft-scope-shift-to-spec/tests/loader-disabled.test.js with unit tests covering phase=[] preservation, default phase for missing phase, and filterByPhase exclusion across phases.; R9 — Diff adds specs/254-draft-scope-shift-to-spec/tests/preset-disabled.test.js with header // spec: R2 R3 R9 and assertions that draft-scope-boundary and spec-synthesize-not-copy have meta.phase equal to [].; R10 — Fixture test exists but only checks broad keywords and an assert-true placeholder; it does not verify the full required R4/R5/R6/R12 wording or draft code-reference scope.; R11 — validateLintGuardrails skips disabled guardrails via isGuardrailDisabled; lint execution is covered by existing phase filtering and provided R11 test evidence passes.; R12 — draft.md adds creation-time guidance requiring requirements-level draft content and clearly defines permitted file/function references versus prohibited implementation details.; R13 — Test only checks default markdown output for draft/spec; JSON output is not tested as required.; R14 — src/flow/prompts/plan/spec.md explicitly instructs running sdd-forge spec render after updating spec.json before marking spec done or gate evaluation.; R15 — gate.md now states gate evaluates spec.json, instructs editing spec.json, running sdd-forge spec render, then re-running gate.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T02:24:54.773Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R10",
+          "reason": "Fixture test exists but only checks broad keywords and an assert-true placeholder; it does not verify the full required R4/R5/R6/R12 wording or draft code-reference scope."
+        },
+        {
+          "guardrail_id": "R13",
+          "reason": "Test only checks default markdown output for draft/spec; JSON output is not tested as required."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8",
+        "R9",
+        "R11",
+        "R12",
+        "R14",
+        "R15"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — prompts-required fixture test is added under specs/254-draft-scope-shift-to-spec/tests with spec header and checks spec/draft prompts for R4/R5/R6/R12 elements plus [VERIFY]/[CORRECTION].; R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — Diff adds R13 test covering `flow get guardrail draft/spec` in markdown and `--format json`, asserting disabled guardrail IDs are absent; provided execution evidence shows these tests pass.; R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); Spec Test Coverage — Added test code is under specs/254-draft-scope-shift-to-spec/tests/ and test files include // spec: R<N> headers covering requirements.; Avoid Overengineering — Diff adds exported isGuardrailDisabled helper with only one actual caller, introducing a single-caller indirection.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T02:27:33.329Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "Diff adds exported isGuardrailDisabled helper with only one actual caller, introducing a single-caller indirection."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "spec-test-coverage"
+      ]
+    }
+  ]
+}

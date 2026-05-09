@@ -1,4 +1,4 @@
    - `sdd-forge flow run gate` (step status is automatically managed by hooks: pre sets gate to in_progress, post sets done on PASS)
-   - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.issues` and `data.artifacts.reasons`. AI fixes spec.md and re-runs gate.
+   - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.issues` and `data.artifacts.reasons`. **The gate evaluates `spec.json` (the single source of truth), not `spec.md`.** Fix violations by editing `spec.json`, then run `sdd-forge spec render --spec specs/<spec-id>` to regenerate `spec.md`, and finally re-run `sdd-forge flow run gate`.
    - **Retry limit:** If gate does not PASS within the definition's maxAttempts limit, STOP and return control to the user.
    - Do not proceed until PASS (`data.result === "pass"`).

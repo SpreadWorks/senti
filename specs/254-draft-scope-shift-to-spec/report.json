@@ -1,0 +1,70 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../254-draft-scope-shift-to-spec/draft-review.md  |  53 ++\n specs/254-draft-scope-shift-to-spec/draft.json     | 137 +++\n specs/254-draft-scope-shift-to-spec/file-map.json  |  44 +\n specs/254-draft-scope-shift-to-spec/flow.json      | 917 +++++++++++++++++++++\n specs/254-draft-scope-shift-to-spec/issue-log.json | 198 +++++\n specs/254-draft-scope-shift-to-spec/issue.md       |  58 ++\n specs/254-draft-scope-shift-to-spec/qa.md          |   9 +\n specs/254-draft-scope-shift-to-spec/review.md      |  21 +\n specs/254-draft-scope-shift-to-spec/spec-review.md |  18 +\n specs/254-draft-scope-shift-to-spec/spec.json      | 507 ++++++++++++\n specs/254-draft-scope-shift-to-spec/spec.md        | 200 +++++\n specs/254-draft-scope-shift-to-spec/tasks/T-1.md   |  19 +\n specs/254-draft-scope-shift-to-spec/tasks/T-10.md  |  19 +\n specs/254-draft-scope-shift-to-spec/tasks/T-11.md  |  19 +\n specs/254-draft-scope-shift-to-spec/tasks/T-12.md  |  19 +\n specs/254-draft-scope-shift-to-spec/tasks/T-2.md   |  19 +\n specs/254-draft-scope-shift-to-spec/tasks/T-3.md   |  19 +\n specs/254-draft-scope-shift-to-spec/tasks/T-4.md   |  22 +\n specs/254-draft-scope-shift-to-spec/tasks/T-5.md   |  19 +\n specs/254-draft-scope-shift-to-spec/tasks/T-6.md   |  19 +\n specs/254-draft-scope-shift-to-spec/tasks/T-7.md   |  19 +\n specs/254-draft-scope-shift-to-spec/tasks/T-8.md   |  18 +\n specs/254-draft-scope-shift-to-spec/tasks/T-9.md   |  20 +\n .../tests/get-guardrail-exclusion.test.js          |  57 ++\n .../tests/lint-skip.test.js                        |  46 ++\n .../tests/loader-disabled.test.js                  |  85 ++\n .../tests/preset-disabled.test.js                  |  32 +\n .../tests/prompts-required.test.js                 | 168 ++++\n specs/254-draft-scope-shift-to-spec/tests/spec.md  | 123 +++\n src/flow/prompts/plan/draft.md                     |   2 +\n src/flow/prompts/plan/gate.md                      |   2 +-\n src/flow/prompts/plan/spec.md                      |   7 +\n src/lib/guardrail.js                               |   4 +-\n src/lib/lint.js                                    |   1 +\n src/presets/base/guardrail.json                    |  10 +-\n 35 files changed, 2920 insertions(+), 10 deletions(-)",
+      "commits": [
+        "feat: feature/254-draft-scope-shift-to-spec"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 1,
+      "question": 7,
+      "issueLog": 0
+    },
+    "tokenMetrics": {
+      "input": 1834570,
+      "output": 62621,
+      "cacheRead": 5170944,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 39,
+      "durationMs": 1532166,
+      "phaseDurations": [
+        {
+          "phase": "draft",
+          "durationMs": 31026
+        },
+        {
+          "phase": "review-draft",
+          "durationMs": 172166
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 74214
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 786256
+        },
+        {
+          "phase": "gate",
+          "durationMs": 50099
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 160581
+        },
+        {
+          "phase": "review",
+          "durationMs": 24504
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 233320
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/254-draft-scope-shift-to-spec\n    35 files changed, 2920 insertions(+), 10 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 1\n    Q&A ......................... 7\n    issue-log ................... 0\n    agent calls ................. 39\n    input tokens ................ 1,834,570\n    output tokens ............... 62,621\n    cache-read tokens ........... 5,170,944\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1532.2s\n      draft ..................... 31.0s\n      review-draft .............. 172.2s\n      gate-draft ................ 74.2s\n      review-spec ............... 786.3s\n      gate ...................... 50.1s\n      review-test ............... 160.6s\n      review .................... 24.5s\n      gate-impl ................. 233.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

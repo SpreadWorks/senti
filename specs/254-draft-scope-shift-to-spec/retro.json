@@ -1,0 +1,88 @@
+{
+  "spec": "specs/254-draft-scope-shift-to-spec/spec.json",
+  "date": "2026-05-09T02:32:21.020Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "guardrail loader は phase が明示的に空配列で指定されたエントリをデフォルト値に書き換えず、空配列のまま保持する。phase が undefined / 未指定の場合は従来通り DEFAULT_PHASE (= ['spec']) を適用する。filterByPhase は phase 空配列のエントリを どの phase でも include しない",
+      "status": "done",
+      "note": "R1: loader phase=[] semantics"
+    },
+    {
+      "desc": "preset の draft-scope-boundary 定義の phase は空配列であり、draft phase の gate で評価されない",
+      "status": "done",
+      "note": "R2: draft-scope-boundary has phase=[] in src/presets/base/guardrail.json"
+    },
+    {
+      "desc": "preset の spec-synthesize-not-copy 定義の phase は空配列であり、spec gate で評価されない",
+      "status": "done",
+      "note": "R3: spec-synthesize-not-copy has phase=[] in src/presets/base/guardrail.json"
+    },
+    {
+      "desc": "spec creation-time prompt に synthesize ルール (整理・抽象化、直接コピー禁止、draft に存在しない内容の捏造禁止、ただしソース矛盾に基づく修正は correction として許可) が含まれる",
+      "status": "done",
+      "note": "R4: spec.md prompt mentions synthesize / no-direct-copy / no-fabrication / source-correction carve-out"
+    },
+    {
+      "desc": "spec creation-time prompt に draft 方針 (実装方針言及部分) を source code に突き合わせる verification step が含まれる。draft 評価を primary input とする既存ガイドラインを踏まえ、verification 必要時のみ minimal な source 読み込みを許可する例外を明示する。verification 結果と correction は spec.json overview.decisions に [VERIFY] / [CORRECTION] prefix を付けた text で記録する (schema 拡張なし、prefix で識別可能化)。text フィールドは schema 上 maxLength 500 のため、prefix + 短文 summary に留め、詳細 (参照ファイル / 矛盾内容) は evidence (maxLength 1000) に記録、それでも収まらない場合は複数 decision エントリに分割する旨を prompt に明記する",
+      "status": "done",
+      "note": "R5: spec.md prompt mentions verification step against source code with [VERIFY] / [CORRECTION] prefix recording"
+    },
+    {
+      "desc": "spec creation-time prompt に draft 方針修正時の AI による Choice Format でのユーザー確認指示が含まれる。autoApprove 時は既存の auto-select [1] convention により承認扱いとする (新たな分岐ロジックを書かない)",
+      "status": "done",
+      "note": "R6: spec.md prompt mentions user confirmation via Choice Format on draft policy correction"
+    },
+    {
+      "desc": "loader の phase 空配列 disabled 解釈動作が unit test で検証される",
+      "status": "done",
+      "note": "R8: this test file exists and verifies loader phase=[] disabled behavior"
+    },
+    {
+      "desc": "対象 2 guardrail が disabled であることが preset test で検証される",
+      "status": "done",
+      "note": "R9: this test file exists and asserts the target IDs are disabled"
+    },
+    {
+      "desc": "spec creation-time prompt と draft creation-time prompt に必須要素 (R4 / R5 / R6 / R12 の文言、[VERIFY] / [CORRECTION] prefix 規約) が含まれることが fixture test で検証される",
+      "status": "done",
+      "note": "R10: this test file exists and verifies prompts include required keywords"
+    },
+    {
+      "desc": "lint 検証経路 (validateLintGuardrails と lint 実行) で phase が空配列の guardrail は skip され、warning も出さない",
+      "status": "done",
+      "note": "R11: lint validation skips phase=[] guardrails"
+    },
+    {
+      "desc": "draft creation-time prompt に draft-scope-boundary のルール内容 (draft は要件レベルに留める、許容される code reference 範囲を明記) が creation-time 指示として含まれる",
+      "status": "done",
+      "note": "R12: draft.md prompt mentions requirements-level boundary and code reference scope"
+    },
+    {
+      "desc": "sdd-forge flow get guardrail <phase> の出力 (markdown / JSON 両形式) は phase 空配列の guardrail を含まない (filterByPhase 経由で自動的に除外される。R1 の loader 改修により担保されるが、明示的に test で確認する)",
+      "status": "done",
+      "note": "R13: flow get guardrail excludes phase=[] entries (markdown + JSON)"
+    },
+    {
+      "desc": "spec creation-time prompt に spec.json 更新後 sdd-forge spec render を必ず実行する手順が明記される (spec.md と spec.json の整合確保)",
+      "status": "done",
+      "note": "R14: spec.md prompt instructs to run sdd-forge spec render after spec.json updates"
+    },
+    {
+      "desc": "spec gate prompt (src/flow/prompts/plan/gate.md) は『FAIL 時は spec.json を編集 → spec render → 再 gate』の手順を明記する (現状は spec.md を直接編集する記述になっており gate 評価ソース spec.json と乖離)",
+      "status": "done",
+      "note": "R15: gate.md prompt instructs to fix spec.json (not spec.md) and run spec render before re-gate"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 14,
+    "done": 14,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
