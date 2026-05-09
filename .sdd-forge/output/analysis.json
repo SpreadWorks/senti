@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-05-09T02:33:31.132Z",
+  "analyzedAt": "2026-05-09T07:03:25.628Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "855c30b346ecd6e726d9a6ca17c12325",
+        "hash": "4fe5e1ad53a30c5362f6e7957003d537",
         "lines": 41,
-        "mtime": "2026-05-08T02:39:27.021Z",
+        "mtime": "2026-05-09T06:36:30.722Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -21,23 +21,25 @@
         },
         "composerDeps": null,
         "id": "451a9f25",
-        "summary": "The package manifest defines sdd-forge as an ESM Node.js CLI for spec-driven documentation workflows. It specifies runtime constraints, distributable files, and test entrypoints.",
-        "detail": "The package is published as `sdd-forge` and exposes a CLI binary mapped to `src/sdd-forge.js` with matching top-level exports. It enforces a Node.js runtime floor of `>=18.19.0`, aligning with modern built-in APIs and the no-external-dependency policy. Distribution is restricted to `src/` while excluding preset test fixtures from publish output. Scripts split validation into unit, e2e, acceptance, agent, and full test scopes, supporting targeted and comprehensive checks. The alpha versioning and pinned package manager metadata indicate controlled reproducibility for development and release workflows.",
+        "summary": "npm package manifest for sdd-forge, an alpha-stage CLI providing Spec-Driven Development tooling and automated documentation generation.",
+        "detail": "Declares the `sdd-forge` binary mapped to `src/sdd-forge.js` with ES module type and Node.js >=18.19.0 engine requirement. Publishes only `src/` (excluding preset tests) per the `files` field, keeping the package lean. Defines test scripts split into unit, e2e, acceptance, agent (live Claude CLI), and full `test:all` scopes via `tests/run.js`. Uses semver `0.1.0-alpha.N` versioning aligned with total commit count, and ships with no runtime dependencies — only Node built-ins are permitted.",
         "chapter": "stack_and_ops",
-        "role": "package manifest",
+        "role": "manifest",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
+          "processedAt": "2026-05-09T07:03:46.692Z",
           "attempts": 1
         },
         "keywords": [
           "package.json",
-          "Node.js CLI",
+          "npm manifest",
+          "bin",
           "ES modules",
-          "engine requirement",
-          "npm scripts",
+          "Node.js engine",
           "alpha versioning",
-          "distribution files",
-          "bin entrypoint"
+          "test scripts",
+          "no dependencies",
+          "sdd-forge CLI",
+          "files field"
         ]
       }
     ],
@@ -4041,16 +4043,18 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "3ff3c321551ec0a2898c8dde69219bc5",
-        "lines": 2008,
-        "mtime": "2026-05-08T14:38:41.346Z",
+        "hash": "0400a54969ee73937124a902345b752d",
+        "lines": 2247,
+        "mtime": "2026-05-09T07:03:21.283Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
           "validateLevelPhase",
           "collectUntrackedDiff",
+          "buildGuardrailArticleEvalPrompt",
           "EvaluationSchemaError",
-          "parseEvaluationResponse",
+          "parseGuardrailArticleEvaluation",
+          "parseImplRequirementEvaluation",
           "buildGateReport",
           "resolveRetryMax",
           "countGateRetry",
@@ -4068,6 +4072,7 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
+          "reasonsFromEvaluations",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
@@ -4084,8 +4089,10 @@
           "isNonEmptyString",
           "checkDraftJson",
           "buildGuardrailPrompt",
-          "buildGuardrailPromptFromFiltered",
           "extractJsonCandidate",
+          "parseEvaluationsArray",
+          "checkExtraKeys",
+          "deriveArticleFailReason",
           "checkGuardrail",
           "readGateRetryCount",
           "isRetryHistoryGateEntry",
@@ -4095,7 +4102,6 @@
           "buildImplCheckPrompt",
           "buildPerRequirementDiffs",
           "extractRequirementIds",
-          "reasonsFromEvaluations",
           "gatePass",
           "gateFail",
           "runGateFlow",
@@ -4127,8 +4133,10 @@
           "executeGateSideEffects",
           "validateLevelPhase",
           "collectUntrackedDiff",
+          "buildGuardrailArticleEvalPrompt",
           "EvaluationSchemaError",
-          "parseEvaluationResponse",
+          "parseGuardrailArticleEvaluation",
+          "parseImplRequirementEvaluation",
           "buildGateReport",
           "resolveRetryMax",
           "countGateRetry",
@@ -4146,6 +4154,7 @@
           "buildPassedGuardrails",
           "findPreviousPassedGuardrails",
           "applyFlipOverride",
+          "reasonsFromEvaluations",
           "RunGateCommand",
           "appendIssueLogFromGateResult",
           "appendIssueLogFromGateError",
@@ -4161,33 +4170,39 @@
           "collectPerFileDiffsForGate",
           "buildPerRequirementDiffs",
           "PHASE_TO_LEVEL",
-          "IMPL_DIFF_SCOPE_LINES"
+          "IMPL_DIFF_SCOPE_LINES",
+          "GUARDRAIL_ARTICLE_EVAL_SCHEMA",
+          "IMPL_REQUIREMENT_EVAL_SCHEMA",
+          "GUARDRAIL_FMT_FALLBACK"
         ],
         "extends": "Error",
         "usedBy": [
-          "src/flow/lib/set-gate-retry.js",
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the gate evaluation engine that validates artifacts against guardrails using AI evaluation, manages retry budgets, and detects no-progress/repeated-fail conditions across SDD flow phases.",
-        "detail": "Defines RunGateCommand which dispatches to phase-specific executors (draft, spec, task-spec, diff-based) and orchestrates guardrail checking via PromptBuilder + AI agents. Includes parseEvaluationResponse with strict JSON schema validation (EvaluationSchemaError), buildGateReport, and gatePass/gateFail result builders. Manages retry tracking via issue-log entries (countGateRetry, resolveRetryMax, warnGateRetryBudget) and computes git state (HEAD sha + worktree hash) to detect no-progress retries via Jaccard similarity on failed evaluations. Collects per-file diffs (committed/uncommitted/untracked) for diff-scoped phases, reconciles req-map file mappings, and validates integration test artifacts. Applies flip-override logic to preserve previously-passed guardrails on identical content.",
+        "summary": "Implements the SDD flow gate command that AI-evaluates drafts/specs/diffs against guardrails and requirements, manages retry budgets, and decides phase transitions.",
+        "detail": "Defines `RunGateCommand` (extending `FlowCommand`) which dispatches gate execution by phase — draft, spec, task-spec, task-impl, integration — each invoking `runGateFlow` with phase-specific inputs (draft.json, spec.md/json, diffs scoped to file-map). Builds AI prompts via `PromptBuilder` with merged guardrails filtered by phase/role, enforces strict JSON schemas (`GUARDRAIL_ARTICLE_EVAL_SCHEMA`, `IMPL_REQUIREMENT_EVAL_SCHEMA`) and parses responses through `parseGuardrailArticleEvaluation` / `parseImplRequirementEvaluation` with `EvaluationSchemaError`. Tracks retry budgets per phase via `countGateRetry` / `resolveRetryMax`, detects no-progress loops by hashing git HEAD + worktree state (`computeGitState`), and uses Jaccard similarity over normalized tokens to detect repeated failures (`assertNoRepeatedFail`). Collects committed/uncommitted/untracked diffs with size/file-count caps, reconciles them against the requirement file-map, and applies flip overrides when previously-passed evaluations recur on identical content. Side effects (issue-log appends, step status updates, escalation triggers) are isolated in helpers like `appendIssueLogFromGateResult` and `executeGateSideEffects`.",
         "chapter": "internal_design",
-        "role": "flow-gate-engine",
+        "role": "flow-gate-command",
         "enrich": {
-          "processedAt": "2026-05-08T14:39:07.219Z",
+          "processedAt": "2026-05-09T07:03:46.692Z",
           "attempts": 1
         },
         "keywords": [
-          "gate",
-          "guardrail",
-          "evaluation",
+          "gate command",
+          "guardrail evaluation",
+          "AI prompt",
           "retry budget",
           "issue log",
-          "diff scope",
-          "AI evaluation",
           "Jaccard similarity",
-          "flip override",
-          "no-progress detection"
+          "diff scoping",
+          "file-map reconciliation",
+          "FlowCommand",
+          "Envelope",
+          "JSON schema validation",
+          "phase transitions",
+          "escalation",
+          "draft spec gate"
         ]
       },
       {
@@ -10375,9 +10390,9 @@
     ],
     "summary": {
       "total": 291,
-      "totalMethods": 1007
+      "totalMethods": 1011
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-09T02:33:46.087Z"
+  "enrichedAt": "2026-05-09T07:03:46.692Z"
 }
