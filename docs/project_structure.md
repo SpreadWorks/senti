@@ -42,7 +42,7 @@ src/spec/commands/    (cli)
 | --- | --- | --- |
 | src/flow | 64 | flow merge orchestrator, flow-command, definition, Flow command registry, lib, flow-context, phase-resolution, controller, cli, flow decision engine, Flow status aggregator, library, finalize cleanup teardown, finalize merge command wrapper, flow-helpers, flow-gate-engine, Review phase runner, Retry counter reset, flow mutation command, test-header-validator |
 | src/docs | 46 | docs command, cli, controller, docs orchestration command, model, DataSource implementation, lib, parser and transformer, resolver composition |
-| src/lib | 35 | lib, AI agent invocation layer, route, model, Config loader and path helpers, Validation constants, flow state manager, flow state persistence, middleware, view, provider-adapter, rules validation and rendering, skill deployment pipeline, spec-json-io, Shared type declarations placeholder |
+| src/lib | 35 | lib, AI agent invocation layer, route, model, Config loader and path helpers, Validation constants, flow state manager, flow state persistence, guardrail-loader, lint-executor, middleware, view, provider-adapter, rules validation and rendering, skill deployment pipeline, spec-json-io, Shared type declarations placeholder |
 | src | 10 | cli |
 | src/check | 3 | cli |
 | src/metrics | 1 | Metrics aggregator |

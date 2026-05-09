@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-08T23:40:00.164Z",
+  "analyzedAt": "2026-05-09T02:33:31.132Z",
   "package": {
     "entries": [
       {
@@ -6329,17 +6329,17 @@
       },
       {
         "file": "src/lib/guardrail.js",
-        "hash": "d83c26f6796df31ae02605d8d5b9f042",
+        "hash": "993b291fbc5a051388ce60b4a174c052",
         "lines": 208,
-        "mtime": "2026-04-20T02:05:16.467Z",
+        "mtime": "2026-05-09T02:32:49.364Z",
         "className": "guardrail",
         "methods": [
+          "loadGuardrailFile",
           "filterByPhase",
           "matchScope",
           "loadMergedGuardrails",
           "parseLintString",
           "hydrate",
-          "loadGuardrailFile",
           "resolveGuardrailContext",
           "readGuardrailFile",
           "mergeById",
@@ -6354,6 +6354,7 @@
           "./constants.js"
         ],
         "exports": [
+          "loadGuardrailFile",
           "filterByPhase",
           "matchScope",
           "loadMergedGuardrails"
@@ -6363,20 +6364,23 @@
           "src/lib/lint.js"
         ],
         "id": "bb462f4e",
-        "enrich": {
-          "processedAt": "2026-04-20T12:14:53.174Z",
-          "attempts": 3
-        },
-        "summary": "This library loads and merges guardrail rules from preset and project sources. It supports phase filtering and scope matching for targeted evaluations.",
-        "detail": "Guardrail entries are hydrated with metadata, validated, and compiled from JSON with explicit errors on malformed inputs. Project guardrails override or extend preset chains resolved through preset inheritance. Matching logic handles filename, path, and regex-driven scopes for selective application. The module centralizes reusable policy handling for gate checks.",
+        "summary": "Shared guardrail loader that reads guardrail.json files, hydrates entries with metadata, and merges project-level overrides on top of preset chain definitions.",
+        "detail": "Defines GUARDRAIL_FILENAME and a DEFAULT_PHASE of ['spec'], plus helpers to parse lint string patterns into RegExp and hydrate raw entries with source metadata while throwing on invariant violations. loadGuardrailFile reads and JSON-parses a file then hydrates each guardrail entry. filterByPhase narrows entries by execution phase, while matchScope tests file paths/basenames against scope patterns via patternToRegex. loadMergedGuardrails resolves the preset chain via resolveChainSafe, walks each preset's guardrail.json, then layers the project-level .sdd-forge/guardrail.json by id-based merge so downstream callers receive a single deduplicated list.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "guardrail-loader",
+        "enrich": {
+          "processedAt": "2026-05-09T02:33:46.087Z",
+          "attempts": 1
+        },
         "keywords": [
-          "guardrails",
-          "policy merge",
+          "guardrail",
+          "lint rules",
+          "preset chain",
+          "merge by id",
           "phase filter",
-          "scope match",
-          "preset inheritance"
+          "scope matching",
+          "JSON config",
+          "SDD"
         ]
       },
       {
@@ -6515,9 +6519,9 @@
       },
       {
         "file": "src/lib/lint.js",
-        "hash": "6a57e44692c09dcc845eeceb086e86e3",
-        "lines": 126,
-        "mtime": "2026-04-14T11:37:06.524Z",
+        "hash": "caac57581842e349d09e23f4cc5621a0",
+        "lines": 127,
+        "mtime": "2026-05-09T02:32:49.364Z",
         "className": "lint",
         "methods": [
           "validateLintGuardrails",
@@ -6541,20 +6545,23 @@
         "extends": null,
         "usedBy": null,
         "id": "aa4a324d",
-        "summary": "lint.js runs guardrail-based lint checks against files changed from a base branch. It validates guardrail definitions and reports matched failures.",
-        "detail": "The module obtains changed files via git diff and filters active lint guardrails by phase. For each file, it applies scope matching and regex checks on current file content. It returns structured results including warnings, guardrail counts, file counts, and failure records. The implementation cleanly separates guardrail validation, file discovery, and rule execution.",
+        "summary": "Lint runner that filters guardrails to the lint phase, scans changed files against regex patterns, and returns structured pass/fail results with warnings.",
+        "detail": "validateLintGuardrails sanity-checks guardrail definitions and accumulates warnings for malformed entries. getChangedFiles invokes git via runGit/assertOk against a base ref to enumerate modified paths. runLintChecks reads each changed file, applies matchScope plus the compiled lint regex, and accumulates failure records. runLint orchestrates the pipeline: filter by lint phase, short-circuit when no guardrails or no files apply, then return a result object with ok flag, warnings, lintGuardrailCount, fileCount, and failures so callers can render reports or gate the flow.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "lint-executor",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
+          "processedAt": "2026-05-09T02:33:46.087Z",
           "attempts": 1
         },
         "keywords": [
-          "lint engine",
+          "lint",
+          "guardrail enforcement",
           "changed files",
-          "regex checks",
-          "guardrail validation",
-          "failure report"
+          "git diff",
+          "regex match",
+          "phase filter",
+          "flow gate",
+          "validation"
         ]
       },
       {
@@ -10372,5 +10379,5 @@
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-08T23:40:35.893Z"
+  "enrichedAt": "2026-05-09T02:33:46.087Z"
 }
