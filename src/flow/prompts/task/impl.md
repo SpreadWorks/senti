@@ -1,6 +1,7 @@
 Use this guidance for the per-task implementation step. Mirrors the flow-level implement step but scoped to the current task.
 
 - Read the context provided by `flow get next-action`: `task_spec`, `related_summary`, and `overview`.
+- If guardrail articles have NOT been loaded in this session: `sdd-forge flow get guardrail task-impl`. If output is non-empty, follow these principles. Skip if already present in context.
 - Implement only what the task spec requires. Do not expand scope to neighboring tasks — those have their own task specs.
 - **Test-first reminder:** the test set was already written in the previous task step. Implement code that makes those tests pass. If a test seems wrong, do NOT modify it — surface the issue and adjust the task spec or record an issue-log entry.
 - Reuse existing modules and patterns where the task spec or related summary identify them. Avoid premature abstraction.
