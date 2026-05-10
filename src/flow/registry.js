@@ -9,7 +9,13 @@
  */
 
 import { derivePhase } from "../lib/flow-helpers.js";
-import { VALID_PHASES, VALID_METRIC_COUNTERS, VALID_GATE_PHASES, VALID_REVIEW_PHASES } from "../lib/constants.js";
+import {
+  VALID_PHASES,
+  VALID_METRIC_COUNTERS,
+  VALID_GATE_PHASES,
+  VALID_REVIEW_PHASES,
+  VALID_GUARDRAIL_PHASES,
+} from "../lib/constants.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./lib/gate-step.js";
 import { flattenSteps } from "./definition.js";
 
@@ -208,7 +214,7 @@ export const FLOW_COMMANDS = {
       requiresFlow: false,
       command: () => import("./lib/get-guardrail.js"),
       args: { positional: ["phase"], options: ["--format"] },
-      help: `Usage: sdd-forge flow get guardrail <phase> [--format json]\n\nReturn guardrails filtered by phase. Phases: ${VALID_PHASES.join(", ")}.`,
+      help: `Usage: sdd-forge flow get guardrail <phase> [--format json]\n\nReturn guardrails filtered by phase. Phases: ${VALID_GUARDRAIL_PHASES.join(", ")}. Alias: impl -> task-impl.`,
     },
     issue: {
       helpKey: "flow.get.issue",

@@ -1,0 +1,66 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/config.json                             |    6 +\n specs/256-guardrail-ack-exceptions/draft-review.md |   33 +\n specs/256-guardrail-ack-exceptions/draft.json      |  136 +++\n specs/256-guardrail-ack-exceptions/flow.json       | 1130 ++++++++++++++++++++\n specs/256-guardrail-ack-exceptions/issue-log.json  |  459 ++++++++\n specs/256-guardrail-ack-exceptions/issue.md        |  124 +++\n specs/256-guardrail-ack-exceptions/qa.md           |    9 +\n specs/256-guardrail-ack-exceptions/review.md       |   10 +\n specs/256-guardrail-ack-exceptions/spec-review.md  |   28 +\n specs/256-guardrail-ack-exceptions/spec.json       |  663 ++++++++++++\n specs/256-guardrail-ack-exceptions/spec.md         |  237 ++++\n specs/256-guardrail-ack-exceptions/tasks/T-1.md    |   20 +\n specs/256-guardrail-ack-exceptions/tasks/T-2.md    |   27 +\n specs/256-guardrail-ack-exceptions/tasks/T-3.md    |   21 +\n specs/256-guardrail-ack-exceptions/tasks/T-4.md    |   24 +\n specs/256-guardrail-ack-exceptions/tasks/T-5.md    |   27 +\n specs/256-guardrail-ack-exceptions/tasks/T-6.md    |   24 +\n specs/256-guardrail-ack-exceptions/tasks/T-7.md    |   22 +\n .../tests/acknowledged-rationale.test.js           |  155 +++\n specs/256-guardrail-ack-exceptions/tests/spec.md   |  268 +++++\n src/flow/commands/review.js                        |   35 +-\n src/flow/lib/acknowledged-rationale.js             |  189 ++++\n src/flow/lib/get-guardrail.js                      |   24 +-\n src/flow/lib/run-gate.js                           |   77 +-\n src/flow/prompts/impl/gate-impl.md                 |    1 +\n src/flow/prompts/impl/implement.md                 |    2 +-\n src/flow/prompts/impl/review.md                    |    1 +\n src/flow/prompts/plan/gate-draft.md                |    1 +\n src/flow/prompts/plan/gate.md                      |    1 +\n src/flow/prompts/plan/spec.md                      |    1 +\n src/flow/prompts/task/impl.md                      |    3 +-\n src/flow/prompts/task/review.md                    |    1 +\n src/flow/registry.js                               |   10 +-\n src/lib/guardrail.js                               |   24 +-\n src/lib/process.js                                 |    2 +-\n src/lib/prompt-builder.js                          |   15 +-\n src/presets/base/guardrail.json                    |    2 +-\n src/presets/cli/guardrail.json                     |    4 +-\n src/presets/node-cli/guardrail.json                |    2 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |    2 +-\n 40 files changed, 3784 insertions(+), 36 deletions(-)",
+      "commits": [
+        "Add acknowledged guardrail rationale flow"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 2,
+      "question": 0,
+      "issueLog": 21
+    },
+    "tokenMetrics": {
+      "input": 1075550,
+      "output": 192485,
+      "cacheRead": 8798405,
+      "cacheCreation": 182281,
+      "cost": 1.9799492500000002,
+      "callCount": 37,
+      "durationMs": 4976907,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 601756
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 701516
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 1511534
+        },
+        {
+          "phase": "gate",
+          "durationMs": 611563
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 447651
+        },
+        {
+          "phase": "test-execute",
+          "durationMs": 562425
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 540462
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Add acknowledged guardrail rationale flow\n    40 files changed, 3784 insertions(+), 36 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 21\n    agent calls ................. 37\n    input tokens ................ 1,075,550\n    output tokens ............... 192,485\n    cache-read tokens ........... 8,798,405\n    cache-create tokens ......... 182,281\n    cost ........................ $1.9799\n    duration (total) ............ 4976.9s\n      review-draft .............. 601.8s\n      gate-draft ................ 701.5s\n      review-spec ............... 1511.5s\n      gate ...................... 611.6s\n      review-test ............... 447.7s\n      test-execute .............. 562.4s\n      gate-impl ................. 540.5s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

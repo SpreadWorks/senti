@@ -34,6 +34,7 @@ import {
   resolveSpecDir,
 } from "../../lib/spec-json.js";
 import { loadFileMap, reconcileFileMap } from "./req-map.js";
+import { buildAcknowledgedRationaleSection } from "./acknowledged-rationale.js";
 import { checkTasksMonotonic } from "./check-tasks-monotonic.js";
 import {
   VALID_GATE_PHASES,
@@ -597,9 +598,16 @@ const DIFF_SCOPED_PHASES = Object.freeze(["task-impl", "integration"]);
  * @param {string[]} [previouslyPassedIds] - guardrail IDs that passed in previous evaluation
  * @returns {string|null} prompt, or null if no guardrails match phase
  */
-function buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPassedIds) {
+function buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPassedIds, options = {}) {
   const filtered = filterByPhase(guardrails, phase);
-  const pb = buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds);
+  const pb = buildGuardrailArticleEvalPrompt(
+    targetText,
+    filtered,
+    phase,
+    role,
+    previouslyPassedIds,
+    options,
+  );
   if (!pb) return null;
   const built = pb.build();
   const parts = [];
@@ -693,7 +701,7 @@ const IMPL_REQUIREMENT_FMT_FALLBACK = [
 
 // spec 255 R6: rename buildGuardrailPromptFromFiltered to buildGuardrailArticleEvalPrompt
 // and add exhaustive-enumeration directive in the rules text.
-export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds) {
+export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds, options = {}) {
   if (filtered.length === 0) return null;
 
   const articleList = filtered
@@ -716,6 +724,8 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
     "- When a `## Diff Scope Constraint` section is present below, list ONLY violations introduced by the diff (lines added or modified, marked with `+`).",
     "- Use skip only when the article cannot be evaluated without runtime evidence not provided.",
     "- If an article is inapplicable by nature of the content, mark it as pass with a short reason.",
+    "- Matched Spec Acknowledgment Rationale is context only. Exception permission comes from the guardrail article clause, not from the rationale section alone.",
+    "- To acknowledge a guardrail exception in a spec, write the target guardrail_id directly in constraints, clarifications, or alternatives_considered.",
   ].join("\n");
   pb.setRules(rules);
   pb.setJsonSchema(GUARDRAIL_ARTICLE_EVAL_SCHEMA);
@@ -735,6 +745,9 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
   }
 
   pb.add("## Guardrail Articles", articleList);
+  if (options?.acknowledgedRationale?.markdown) {
+    pb.addRaw(options.acknowledgedRationale.markdown);
+  }
   pb.add("## Content", targetText);
 
   return pb;
@@ -1023,17 +1036,28 @@ export function buildGateReport({ level, phase, evaluations }) {
 // Guardrail AI check — shared
 // ---------------------------------------------------------------------------
 
-async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds) {
+async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds, options = {}) {
   const guardrails = loadMergedGuardrails(root);
   if (guardrails.length === 0) return null;
 
   const filtered = filterByPhase(guardrails, phase);
   if (filtered.length === 0) return { passed: true, evaluations: [] };
+  const filteredIds = new Set(filtered.map((g) => g.id));
+  const promptPreviouslyPassedIds = Array.isArray(previouslyPassedIds)
+    ? previouslyPassedIds.filter((id) => filteredIds.has(id))
+    : previouslyPassedIds;
 
   const agent = container.get("agent");
   if (!agent.resolve("flow.spec.gate")) return null;
 
-  const pb = buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds);
+  const pb = buildGuardrailArticleEvalPrompt(
+    targetText,
+    filtered,
+    phase,
+    role,
+    promptPreviouslyPassedIds,
+    options,
+  );
   if (!pb) return { passed: true, evaluations: [] };
 
   const built = pb.build();
@@ -1054,7 +1078,6 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
   const passed = evaluations.every((e) => e.result === "pass" || e.result === "skip");
   return { passed, evaluations };
 }
-
 
 // ---------------------------------------------------------------------------
 // Retry counter & escalation (spec 201, P2-R1〜P2-R4)
@@ -1657,12 +1680,13 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
  * @param {string} args.checkerRole - guardrail checker role
  * @param {boolean} args.skipGuardrail
  * @param {Object} [args.ctx] - optional context for retry guards (spec 228)
+ * @param {Object} [args.guardrailPromptOptions] - optional guardrail prompt context
  */
 async function runGateFlow(args) {
   const {
     root, config, level, phase,
     targetPath, targetText, textCheck, checkerRole, skipGuardrail,
-    ctx,
+    ctx, guardrailPromptOptions = {},
   } = args;
 
   validateLevelPhase(level, phase);
@@ -1701,7 +1725,14 @@ async function runGateFlow(args) {
     }
   }
 
-  const result = await checkGuardrail(root, targetText, phase, checkerRole, previouslyPassedIds);
+  const result = await checkGuardrail(
+    root,
+    targetText,
+    phase,
+    checkerRole,
+    previouslyPassedIds,
+    guardrailPromptOptions,
+  );
   if (!result) {
     return gatePass(level, phase, targetPath, []);
   }
@@ -1922,6 +1953,11 @@ export class RunGateCommand extends FlowCommand {
     const gitState = computeGitState(root);
     ctx.gitState = gitState;
     const issueLog = ctx.flowState?.spec ? loadIssueLog(root, ctx.flowState.spec) : { entries: [] };
+    const specGuardrails = filterByPhase(loadMergedGuardrails(root), "spec");
+    const acknowledgedRationale = buildAcknowledgedRationaleSection({
+      spec,
+      guardrails: specGuardrails,
+    });
 
     return runGateFlow({
       root,
@@ -1937,6 +1973,7 @@ export class RunGateCommand extends FlowCommand {
       checkerRole: undefined,
       skipGuardrail,
       ctx: { ...ctx, issueLog, gitState },
+      guardrailPromptOptions: { acknowledgedRationale },
     });
   }
 
@@ -2016,6 +2053,14 @@ export class RunGateCommand extends FlowCommand {
     }
 
     const specText = fs.readFileSync(absSpecPath, "utf8");
+    let parentSpecForRationale = null;
+    try {
+      parentSpecForRationale = loadSpecJson(absSpecPath);
+    } catch (err) {
+      process.stderr.write(
+        `[sdd-forge] parent spec context unavailable: ${err.message}\n`,
+      );
+    }
 
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
     const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", root);
@@ -2057,6 +2102,10 @@ export class RunGateCommand extends FlowCommand {
     }
 
     let reqEvaluations;
+    const previousResult = findPreviousPassedGuardrails({
+      issueLog: loadIssueLog(root, state.spec),
+      phase,
+    });
 
     if (!perReqDiffs) {
       const reqPb = buildImplCheckPrompt(specText, diff, reqIds);
@@ -2074,10 +2123,6 @@ export class RunGateCommand extends FlowCommand {
         category: "requirements",
       }));
     } else {
-      const previousResult = findPreviousPassedGuardrails({
-        issueLog: loadIssueLog(root, state.spec),
-        phase,
-      });
       const previouslyPassed = new Set(previousResult?.passedGuardrails || []);
 
       reqEvaluations = [];
@@ -2142,11 +2187,19 @@ export class RunGateCommand extends FlowCommand {
       return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);
     }
 
+    const diffGuardrails = filterByPhase(loadMergedGuardrails(root), phase);
+    const acknowledgedRationale = buildAcknowledgedRationaleSection({
+      spec: parentSpecForRationale,
+      guardrails: diffGuardrails,
+    });
+    const previouslyPassedIds = previousResult?.passedGuardrails;
     const grResult = await checkGuardrail(
       root,
       `${specText}\n\n## Git Diff\n${diff}`,
       phase,
       "You are an implementation compliance checker. Check the implementation against each guardrail.",
+      previouslyPassedIds,
+      { acknowledgedRationale },
     );
     if (!grResult) {
       return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);

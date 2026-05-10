@@ -36,7 +36,7 @@ function buildProcessOptions(opts) {
 export function runCmd(cmd, args, opts = {}) {
   const res = spawnSync(cmd, args, buildProcessOptions(opts));
   return {
-    ok: res.status === 0 && !res.signal && !res.error,
+    ok: res.status === 0 && !res.signal,
     status: res.status ?? 1,
     stdout: String(res.stdout || ""),
     stderr: String(res.stderr || ""),

@@ -3,7 +3,7 @@
     {
       "id": "backward-compatible-cli-interface",
       "title": "Backward-Compatible CLI Interface",
-      "body": "Removing or changing the meaning of existing commands or options shall include a migration plan in the spec.",
+      "body": "Removing or changing the meaning of existing commands or options shall include a migration plan in the spec. acknowledged-exception handling: when a `## Matched Spec Acknowledgment Rationale` section is present for this guardrail, an intentional exception MAY pass only if the matched rationale comes from spec.json constraints, clarifications, or alternatives_considered, includes this guardrail_id at least once, and contains at least 20 non-whitespace characters after removing the guardrail_id. Example: `backward-compatible-cli-interface` is acknowledged because the old command remains available as an alias while docs and help text guide users to the replacement.",
       "meta": {
         "phase": [
           "draft",
@@ -15,7 +15,7 @@
     {
       "id": "exit-code-contract",
       "title": "Exit Code Contract",
-      "body": "When adding or modifying CLI commands, the spec shall state what constitutes success and failure for each command. The implementation shall use non-zero exit codes for the defined failure conditions.",
+      "body": "When adding or modifying CLI commands, the spec shall state what constitutes success and failure for each command. The implementation shall use non-zero exit codes for the defined failure conditions. acknowledged-exception handling: when a `## Matched Spec Acknowledgment Rationale` section is present for this guardrail, an intentional exception MAY pass only if the matched rationale comes from spec.json constraints, clarifications, or alternatives_considered, includes this guardrail_id at least once, and contains at least 20 non-whitespace characters after removing the guardrail_id. Example: `exit-code-contract` is acknowledged because the command keeps exit code 0 for a compatibility alias and returns non-zero only for invalid user input.",
       "meta": {
         "phase": [
           "spec",

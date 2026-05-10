@@ -1,6 +1,7 @@
    - Step status is automatically managed by `sdd-forge flow run review` hooks (pre sets in_progress, post sets done).
    - Run `sdd-forge flow run review` to perform AI-powered code review.
    - The review generates proposals for code quality improvements. Results are saved to review.md.
+   - If a proposal concerns an intentional guardrail exception and the applicable guardrail article permits acknowledged exceptions, remediate by recording the guardrail id in `spec.json.constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`. Do not use `design_principles`, approval notes, overview entries, task text, or review notes as exception acknowledgments.
    - **If proposals exist** (proposals in review.md):
      1. Read review.md and evaluate each proposal against the spec requirements and design intent.
      2. For each proposal, determine:

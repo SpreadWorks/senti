@@ -34,6 +34,7 @@ async function loadReqMap(root, flow, kind) {
 import { container, initContainer } from "../../lib/container.js";
 import { Command } from "../../lib/command.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
+import { buildAcknowledgedRationaleSection } from "../lib/acknowledged-rationale.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -204,7 +205,7 @@ function collectCommittedAndStagedDiff(root, baseRef, filePath) {
  * Build system prompt for the draft phase.
  * @param {Object[]} [guardrails=[]] - Pre-filtered guardrail articles (phase:review)
  */
-function buildDraftSystemPrompt(guardrails = []) {
+function buildDraftSystemPrompt(guardrails = [], options = {}) {
   const pb = new PromptBuilder();
   pb.setRole("You are a code quality reviewer. Analyze the following code changes and propose improvements.");
 
@@ -243,10 +244,27 @@ function buildDraftSystemPrompt(guardrails = []) {
       guardrailLines.push(`  body: ${g.body.trim()}`);
     }
     pb.add("## Additional Guardrail Review Perspectives", guardrailLines.join("\n"));
+    if (options?.acknowledgedRationale?.markdown) {
+      pb.addRaw(options.acknowledgedRationale.markdown);
+    }
   }
 
   const built = pb.build();
   return built.systemPrompt + (built.userPrompt ? "\n\n" + built.userPrompt : "");
+}
+
+function buildReviewAcknowledgedRationale(root, flow, guardrails) {
+  let spec = null;
+  try {
+    if (flow?.spec) spec = loadSpecJson(path.resolve(root, flow.spec));
+  } catch (err) {
+    process.stderr.write(
+      `  [review] acknowledged rationale context unavailable: ${err.message}\n`,
+    );
+  }
+  return {
+    acknowledgedRationale: buildAcknowledgedRationaleSection({ spec, guardrails }),
+  };
 }
 
 /**
@@ -545,7 +563,10 @@ async function runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, guard
   const groups = groupByDiffContent(strippedDiffs, fileToReqs);
 
   const draftAgent = ensureAgent("flow.impl.review.propose");
-  const systemPrompt = buildDraftSystemPrompt(guardrails);
+  const systemPrompt = buildDraftSystemPrompt(
+    guardrails,
+    buildReviewAcknowledgedRationale(root, flow, guardrails),
+  );
 
   // Batch groups into chunks when exceeding MAX_LOOP_CALLS
   let reviewChunks;
@@ -1414,7 +1435,15 @@ async function runReview(rawArgs) {
 
     console.error("  [draft] Generating proposals...");
     const draftAgent = ensureAgent("flow.impl.review.propose");
-    const draftResult = await callReviewAgent(draftAgent, reviewInput, "flow.impl.review.propose", buildDraftSystemPrompt(reviewGuardrails));
+    const draftResult = await callReviewAgent(
+      draftAgent,
+      reviewInput,
+      "flow.impl.review.propose",
+      buildDraftSystemPrompt(
+        reviewGuardrails,
+        buildReviewAcknowledgedRationale(root, flow, reviewGuardrails),
+      ),
+    );
 
     if (draftResult.includes("NO_PROPOSALS")) {
       console.log("No improvement proposals found. Code looks good.");

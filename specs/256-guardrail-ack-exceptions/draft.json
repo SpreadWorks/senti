@@ -1,0 +1,136 @@
+{
+  "devType": "feature",
+  "goal": "guardrail eval が spec の明示的な guardrail 例外容認を読めるようにし、意図的に決めた例外で同じ guardrail FAIL が繰り返されるループを防ぐ。",
+  "analysis": {
+    "problem": "現在の guardrail eval prompt は評価対象の raw Content として spec.json / spec.md を渡すため、rationale 文字列自体は含まれ得る。しかし constraints / clarifications / alternatives_considered にある guardrail_id 付き容認理由を guardrail 別に抽出・隣接提示しないため、AI evaluator が例外容認の文脈を見落として字義通りに FAIL を返す。",
+    "proposedApproach": "親 spec.json を読み込める gate phase では、該当 guardrail_id を含む既存 rationale フィールドを guardrail eval prompt の専用 section へ注入する。対象 guardrail 本文には、guardrail_id と rationale が spec に明記された場合だけ例外を認める共通条項を加える。schema は追加しない。",
+    "validation": "Issue #314 の4衝突事例はすべて既存 guardrail_id と既存 spec.json フィールドで表現できる。prompt が該当 rationale を提示すれば、evaluator は例外容認を guardrail article の一部として判断でき、旧来の schema や author 体験を変えずにループ原因へ対処できる。"
+  },
+  "scopeVerification": {
+    "in": [
+      "must: spec.json の constraints / clarifications / alternatives_considered から、case-sensitive token-boundary match で評価中 guardrail_id を含む rationale entry を抽出し、source JSON path と text を `## Matched Spec Acknowledgment Rationale` section に表示する",
+      "must: backward-compatible-cli-interface (src/presets/cli/guardrail.json), exit-code-contract (src/presets/cli/guardrail.json), bounded-resource-usage (src/presets/base/guardrail.json), no-synchronous-io-in-hot-paths (src/presets/node-cli/guardrail.json) の guardrail body に、対象 field 内の matched rationale が guardrail_id を1回以上含み、guardrail_id を除いた非空白文字が20文字以上ある場合だけ例外を認める common acknowledgment clause を追加する",
+      "must: run-gate の spec / task-impl / integration guardrail eval prompt と flow review の review-phase guardrail prompt に、parent spec の matched rationale を `## Matched Spec Acknowledgment Rationale` section として注入・表示する",
+      "should: `src/flow/prompts/plan/spec.md` と `src/flow/lib/run-gate.js` の `buildGuardrailArticleEvalPrompt` rules に、例外容認時は対象 guardrail_id を constraints / clarifications / alternatives_considered に直接書く convention を記載する",
+      "nice-to-have: 228 existing fixture と 235 / 229 synthetic fixtures を使い、extractor matching、prompt rendering、phase integration、guardrail article content の4層で assertion を追加する"
+    ],
+    "out": [
+      "spec.json schema への新フィールド追加",
+      "guardrail eval の AI 判定を廃止するルールエンジン化",
+      "Issue #314 に列挙されていない guardrail 全体の再設計",
+      "容認理由の品質を別 guardrail として評価する新機能"
+    ]
+  },
+  "impactOnExisting": [
+    "src/flow/lib/run-gate.js の guardrail article eval prompt 生成に影響する",
+    "src/presets/base/guardrail.json / src/presets/cli/guardrail.json / src/presets/node-cli/guardrail.json の guardrail body に影響する",
+    "既存 spec.json の constraints / clarifications / alternatives_considered はそのまま利用され、schema 互換の変更は不要",
+    "src/templates/ と src/presets/ のテンプレート・プリセット変更を含むため、実装後に sdd-forge upgrade が必要"
+  ],
+  "qa": [
+    {
+      "question": "Goal & Scope: この spec は guardrail 例外容認全般を扱うべきか、Issue #314 の4 guardrail に絞るべきか？",
+      "answer": "Issue #314 の4 guardrail と、guardrail eval prompt への既存 rationale 注入に絞る。ユーザー定義 Issue が単一 concern であり、scope split は行わない。",
+      "evidence": "Issue #314 は対象 guardrail と衝突 spec を4件の表で列挙し、修正方針を prompt 注入・guardrail body 条項・convention の3点に限定している。",
+      "why": "Single Responsibility guardrail は user-defined Issue を spec 境界とする。今回は共通原因が guardrail eval の文脈不足であり、4件は同じ解決策で扱える。",
+      "considered": "全 guardrail への一括条項追加も考えられるが、Issue の対象外 guardrail へ挙動変更を広げるため除外する。"
+    },
+    {
+      "question": "Impact on Existing: 現在の guardrail eval prompt は spec の rationale フィールドを読めるか？",
+      "answer": "phase によって raw prompt input は異なる。`spec` gate は spec.json text を Content として渡す。`task-impl` / `integration` gate は parent spec text と git diff を連結して Content として渡す。`draft` gate は draft.json、`task-spec` gate は task spec markdown を渡す。flow review は review target diff を user prompt に渡し、review guardrails は system prompt に入れる。したがって spec.json rationale は一部 phase で raw text に混ざる可能性があるが、どの phase でも guardrail 別の matched rationale としては提示されない。要件は raw Content への追加ではなく、parent spec.json から structured `constraints / clarifications / alternatives_considered` を読み、評価中 guardrail の直下で該当 rationale を明示する専用 section の追加に置く。",
+      "evidence": "src/flow/lib/run-gate.js:600 の `buildGuardrailPrompt` は `buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds)` を呼び、同ファイル:700-738 は `Guardrail Articles` と `Content` を追加するのみ。",
+      "why": "root cause は evaluator の判断品質だけではなく、判断材料が prompt に明示されていないことにある。structured spec data を使えば JSON text の ad hoc parse を増やさず、既存の validated load path に沿える。",
+      "considered": "guardrail body だけを更新する案は、spec 側のどの記述が容認理由かを evaluator が見つけにくいため不十分。targetText から文字列検索する案は JSON parse 済み object を再利用できる場面で脆い。"
+    },
+    {
+      "question": "Phase Coverage: matched rationale はどの gate phase に注入するべきか？",
+      "answer": "run-gate では `spec`, `task-impl`, `integration` の guardrail article eval で注入する。`spec` は `executeSpec` で読み込む parent spec.json を使う。`task-impl` と `integration` は active flow の `state.spec` から parent spec.json を読み込み、diff と一緒に guardrail eval へ渡す。flow review では review-phase guardrail prompt にも同じ matched rationale section を追加する。`bounded-resource-usage` は `review` phase を持つため、review prompt だけ未対応にすると Issue #314 のループが残る。`draft` は draft.json が対象で parent spec.json が未確定なので対象外。`task-spec` は task spec markdown 評価であり、parent spec rationale を注入しない。",
+      "evidence": "src/flow/lib/run-gate.js の `executeSpec` は `loadSpecJson(jsonPath)` を使い、`executeDiffBasedGate` は active `state.spec` と diff を組み合わせて `checkGuardrail` を呼ぶ。src/presets/base/guardrail.json の `bounded-resource-usage` は phase `[\"spec\", \"review\"]` を持つ。src/flow/commands/review.js:207 の `buildDraftSystemPrompt(guardrails = [])` は review guardrails を system prompt に入れ、同ファイル:548 の loop review と :1417 の single-call review が同じ builder を使う。",
+      "why": "exit-code-contract / bounded-resource-usage / no-synchronous-io-in-hot-paths は spec-only ではないため、diff-based gate と review prompt でも parent spec の acknowledged exception を参照できる必要がある。",
+      "considered": "spec gate だけに限定する案は実装差分が小さいが、task-impl / review guardrail の whack-a-mole ループを解消しない。全 command prompt へ無条件に広げる案は範囲が曖昧なので、guardrail article eval と review-phase guardrail prompt に限定する。"
+    },
+    {
+      "question": "Failure Modes: parent spec rationale を読み込めない場合はどう扱うべきか？",
+      "answer": "`spec` gate は spec.json load が必須なので、missing / malformed spec.json は fatal な gate structural failure とする。`task-impl` / `integration` gate も active flow と `state.spec` が既存前提なので、missing `state.spec` と missing spec file は fatal error とする。flow review で active flow があり `flow.spec` が読める場合は rationale を注入する。flow review が optional parent spec context なしで呼ばれた場合だけ、matched rationale section を省略して続行する。省略時の観測面は `buildAcknowledgedRationaleSection()` が `{ markdown: \"\", warning: \"parent spec context unavailable\" }` を返す API に統一する。review prompt builder の unit test はこの return object の `warning` property を assert する。stderr / log への warn 出力は行わない。",
+      "evidence": "run-gate の spec phase は `loadSpecJson` 経由の schema validation を既に持つ。review.js は active flow の spec を使う path もあるが、review prompt builder 自体は guardrails 配列だけでも動く。",
+      "why": "acknowledgment rationale は guardrail 判定の補助文脈であり、既存 command の成立条件を不用意に増やすべきではない。ただし spec gate の schema failure は既存の境界 validation なので維持する。",
+      "considered": "どの phase でも読み込み失敗を fatal にする案は、review/gate の既存利用形態を壊す。完全 silent skip はデバッグしにくいため、skip を観測できる形にする。"
+    },
+    {
+      "question": "Guardrail Inventory: Issue #314 で必ず扱う guardrail と根拠 spec はどれか？",
+      "answer": "4件を必須対象にする。`backward-compatible-cli-interface` は `src/presets/cli/guardrail.json` で、衝突 spec は 235-remove-flow-test-management。`exit-code-contract` は `src/presets/cli/guardrail.json` で、衝突 spec は 228-fix-baseline-exit-code。`bounded-resource-usage` は `src/presets/base/guardrail.json` で、衝突 spec は 229-test-runner-file-filter。`no-synchronous-io-in-hot-paths` は `src/presets/node-cli/guardrail.json` で、衝突 spec は 229-test-runner-file-filter。",
+      "evidence": "Issue #314 の Target Guardrails table と `rg \"backward-compatible-cli-interface|exit-code-contract|bounded-resource-usage|no-synchronous-io-in-hot-paths\" src specs/...` の結果が一致する。",
+      "why": "対象 article と source file を draft で固定しないと、spec gate と実装レビューで Issue #314 の全件対応を検証できない。",
+      "considered": "Issue にない guardrail を追加対象に含める案は、挙動変更の範囲が広がるため除外する。"
+    },
+    {
+      "question": "Constraints: 新しい spec.json フィールドを追加する必要はあるか？",
+      "answer": "不要。既存の `constraints`, `clarifications`, `alternatives_considered` を使う。Issue には `design_principles` も候補として挙がるが、Fix Policy は3フィールドへの注入を明示しているため、初期実装の必須対象はその3フィールドにする。`design_principles` は意図的に scan 対象外とし、unit test と author guidance でその除外を明示する。",
+      "evidence": "Issue #314 は \"No New Field Needed\" として既存フィールドを列挙し、Fix Policy 1 では `constraints / clarifications / alternatives_considered` の注入を要求している。",
+      "why": "schema 変更を避けることで既存 spec の authoring 体験を保ち、alpha 版でも不要な migration を作らない。",
+      "considered": "専用 `acknowledged_exceptions` フィールド追加は機械処理しやすいが、Issue の no schema change 方針に反する。"
+    },
+    {
+      "question": "Edge Cases: guardrail_id の照合はどの程度厳密に扱うべきか？",
+      "answer": "照合は case-sensitive な token/boundary-aware match とする。guardrail_id の前後が文字列境界、または英数字と hyphen 以外の文字である場合だけ一致する。backtick、single quote、double quote、colon、space、newline は英数字と hyphen 以外の文字として扱う。たとえば `exit-code-contract` と `` `exit-code-contract` `` は一致し、`not-exit-code-contract-anymore` は一致しない。scan 対象は entry 単位にする。`constraints[i]` は単一文字列を entry として扱う。`clarifications[i]` は `q` または `a` のどちらかが match したら Q/A pair 全体を matched rationale として含める。`alternatives_considered[i]` は `option` または `reason` のどちらかが match したら option/reason pair 全体を含める。複数 ID が同じ rationale にある場合は各 guardrail の matched rationale として同じ source text を保持する。大文字小文字違い、guardrail title だけ、意味的な近似表現は一致扱いしない。",
+      "evidence": "Issue #314 は \"Spec authors write the guardrail_id directly\" を convention として定め、auto-check も matching strategy に推論余地があると記録している。",
+      "why": "明示的容認は誤 pass リスクを持つため、guardrail_id 直書きを条件にして evaluator の曖昧判断を減らす。",
+      "considered": "guardrail title や自然言語の意味的照合も考えられるが、誤検出しやすく convention の効果を弱める。"
+    },
+    {
+      "question": "Test Strategy: 何を検証すればループ防止を確認できるか？",
+      "answer": "test は4層に分ける。Extractor unit tests は existing fixture 228 と synthetic fixtures を使い、entry-level matching、token boundary、複数 ID、approval notes / issue-log / design_principles 非対象、missing rationale を検証する。Issue #314 の4 collision cases は regression target だが、direct existing fixture として使うのは 228 のみ。235 / 229 は synthetic fixtures で同じ collision intent を guardrail_id 付き scan fields に明示して検証する。Prompt rendering tests は run-gate と review system prompt の exact section structure、source labels、truncated marker を検証する。Phase integration tests は `spec`, `task-impl`, `integration`, review loop/single-call の各 path が parent spec rationale を helper に渡すこと、optional parent spec 不在時に section を省略することを検証する。Guardrail article content tests は対象4 guardrail body に acknowledged exception 条項と1文の例が含まれ、非対象 guardrail body には例外 semantics が追加されないことを検証する。",
+      "evidence": "src/flow/lib/run-gate.js は `buildGuardrailArticleEvalPrompt` と `buildGuardrailPrompt` を export している。既存 spec 228 は proposed scan fields に `exit-code-contract` rationale を持つ。一方、235 の guardrail mention は approval notes 側が中心で、229 は対象 ID の明示 rationale が proposed scan fields に不足するため synthetic fixture が必要。",
+      "why": "AI 実行結果そのものは非決定的だが、prompt に判断材料が入ることと article が例外条件を定義することは決定的に検証できる。",
+      "considered": "実 Claude を呼ぶ agent test は重く非決定的なため、必要最小限は unit test とする。AI command の実装変更範囲によって `npm run test:agent` の要否を判断する。"
+    },
+    {
+      "question": "Future Extensibility: matched rationale は4 guardrail だけに提示するか、評価中の全 guardrail に提示するか？",
+      "answer": "prompt への matched rationale 提示は評価中の全 guardrail に対して共通化する。今回 pass 条件が変わるのは acknowledged exception 条項を追加する4 guardrail だけに限定される。新しい schema や guardrail_id の special-case 配列は作らない。",
+      "evidence": "src/lib/guardrail.js は guardrail.json を merge して phase filter する shared loader であり、src/flow/lib/run-gate.js の prompt builder が article eval の一箇所に集約されている。",
+      "why": "抽出と提示は汎用機能にし、例外容認の意味づけは article に置くと、caller 側の分岐を増やさずに scope を制御できる。",
+      "considered": "4 guardrail だけに prompt injection を限定する案は初期差分を狭めるが、同じ問題が別 article へ出た時にコード変更が必要になる。全 guardrail に exception clause を付ける案は挙動変更が広すぎる。"
+    },
+    {
+      "question": "Resource Bounds: matched rationale の prompt growth はどう制限するか？",
+      "answer": "実装は deterministic caps を必須にする。内部 default cap は per guardrail 最大3 entries、per entry 最大600 chars、whole section 最大4000 chars とする。acceptance tests は rendered output がこの上限を超えないこと、entry count cap、per-entry truncation、whole-section truncation、stable ordering、truncated marker を検証する。順序は `constraints`, `clarifications`, `alternatives_considered` の順で、各フィールド内は spec.json の出現順を保持する。上限超過時は entry 単位または末尾文字列を切り詰め、truncated marker を付ける。",
+      "evidence": "対象 guardrail の1つは bounded-resource-usage であり、Issue #314 は既存 free-text fields を使う方針のため、prompt 注入側に明示上限が必要になる。",
+      "why": "free-text field を無制限に prompt へ入れると、評価コストと文脈汚染が増える。上限を固定すれば挙動とテストが安定する。",
+      "considered": "全 matched rationale を無制限に入れる案は単純だが、bounded-resource-usage 自体の設計意図と衝突する。最初の1件だけにする案は複数の field に rationale が分散した spec を扱いにくい。"
+    },
+    {
+      "question": "Helper Ownership: matched rationale の抽出・整形はどこに置くべきか？",
+      "answer": "`src/flow/lib/acknowledged-rationale.js` に shared helper を置く。意味のある値はクラスで表す。`AcknowledgedRationaleEntry` は constructor `(guardrailId, sourcePath, text, truncated = false)` を持ち、`toPromptLines()` を提供する。`AcknowledgedRationaleSet` は guardrail_id ごとの entries を保持し、entry-level matching、token-boundary matching、ordering、caps、rendering を担当する。public API は `buildAcknowledgedRationaleSection({ spec, guardrails, heading = \"Matched Spec Acknowledgment Rationale\" })` とし、戻り値は `{ markdown: string, warning: string }` とする。spec が null の場合は `{ markdown: \"\", warning: \"parent spec context unavailable\" }` を返す。既存 exported functions は internal caller 安定性のため、`buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds, options = {})` の optional `options.acknowledgedRationale` で受ける。`checkGuardrail` は同じ optional options を受け取り、既存 callersは変更なしで動く。更新対象 call sites は `executeSpec`, `executeDiffBasedGate`, `buildDraftSystemPrompt` 呼び出し箇所。",
+      "evidence": "プロジェクトルールは OOP による型表現を求めている。run-gate と review の両方が同じ matched rationale section を必要とするため、shared helper がないと重複が生じる。",
+      "why": "抽出・整形を深いモジュールに閉じ込めると、phase ごとの差分は parent spec object を渡すかどうかだけになり、tests も helper 単位で安定する。",
+      "considered": "run-gate と review.js に個別実装する案は短期的には速いが、token matching と truncation の仕様が二重化するため除外する。"
+    },
+    {
+      "question": "Prompt Rendering: matched rationale は prompt 内でどう表示するべきか？",
+      "answer": "run-gate prompt では Guardrail Articles の後、Content の前に `## Matched Spec Acknowledgment Rationale` section を追加する。guardrail ごとに `### <guardrail_id>` 見出しを置き、entry は `- source: <json-path>` と `  text: <truncated rationale>` の2行で表示する。source path は `constraints[0]`, `clarifications[1]`, `alternatives_considered[0]` の stable JSON path 形式にする。pair entry の text は `Q: ... A: ...` と `Option: ... Reason: ...` の固定ラベルで whole pair を表示する。切り詰めた text には `[truncated]` marker を付ける。matched entry がない guardrail は section に出さない。flow review prompt では `buildDraftSystemPrompt()` の system prompt にある `## Additional Guardrail Review Perspectives` の直後へ同じ section を追加する。loop review (`runLoopReview`) と single-call review のどちらも同じ `buildDraftSystemPrompt()` を通るため、tests は両経路で section が system prompt に含まれることを assert する。",
+      "evidence": "draft-review.md は source labels と stable formatting がないと tests が vague string inclusion になると指摘している。run-gate prompt builder は `pb.add` section を順番に積む構造なので、専用 section を追加できる。",
+      "why": "source path と stable format を持たせると、evaluator はどの spec field が rationale なのか判断でき、unit test は exact rendered structure を検証できる。",
+      "considered": "Guardrail Articles の body に直接 rationale を混ぜる案は article と spec rationale の境界を曖昧にする。Content に任せる案は現在の問題を解消しない。"
+    },
+    {
+      "question": "Guardrail Body Clause: acknowledged exception 条項はどの条件を満たすべきか？",
+      "answer": "各対象 article には common acknowledgment clause と article body 由来の1文の例を追加する。shared condition は、spec が当該 guardrail_id を明示し、`constraints`, `clarifications`, `alternatives_considered` のいずれかに例外理由を書いた場合だけ例外を許可すること。例は article の既存 concern に直結する1文にする。`backward-compatible-cli-interface` は migration plan なしの CLI 変更を許容する根拠例、`exit-code-contract` は exit code 以外の failure signal を使う根拠例、`bounded-resource-usage` は実質上限や deterministic cap の根拠例、`no-synchronous-io-in-hot-paths` は hot path ではない startup path の根拠例を示す。この spec の判定対象は、matched rationale が対象 field に存在し、guardrail_id を1回以上含み、guardrail_id を除いた非空白文字が20文字以上あることに限定する。rationale 文章の説得力を点数化する評価は追加しない。guardrail_id だけの列挙、guardrail_id を除いた非空白文字が20文字未満の説明は例外扱いしない。",
+      "evidence": "Issue #314 は acknowledged exception の例文を示し、リスクとして acknowledgment abuse を挙げている。draft-review.md は generic disagreement と acknowledged exception の区別を求めている。",
+      "why": "例外条項が弱いと、guardrail_id を書いただけで pass する抜け道になる。article concern に結びついた rationale を条件化する必要がある。",
+      "considered": "本文に例文だけを追加する案は evaluator の判断基準が曖昧に残るため除外する。"
+    },
+    {
+      "question": "Consumer Contracts: spec author と evaluator が守る契約は何か？",
+      "answer": "spec author は例外容認時に対象 guardrail_id を `constraints`, `clarifications`, `alternatives_considered` のいずれかへ直接書き、理由を添える。この convention の文書化先は、対象4 guardrail body、`src/flow/prompts/plan/spec.md`、`src/flow/lib/run-gate.js` の `buildGuardrailArticleEvalPrompt` rules に限定する。verify は prompt/template unit test または snapshot で guidance text が露出することを確認する。src/presets を変更した場合は `sdd-forge upgrade` を実行し、生成先の `.agents/skills/` と `.claude/skills/` に差分が出るか確認する。差分が出た場合は追跡し、出ない場合は upgrade output で変更なしを確認する。",
+      "evidence": "Issue #314 は convention として guardrail_id 直書きを formalize し、リスクとして acknowledgment abuse を挙げている。",
+      "why": "文書化先と upgrade 確認先がないと、author が convention を知る導線が実装後に欠落する。",
+      "considered": "README だけへ追記する案は flow authoring prompt から遠く、SDD 中の author に届きにくいため除外する。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-09T09:23:29Z",
+    "notes": "autoApprove"
+  }
+}

@@ -28,7 +28,12 @@ class PromptBuilder {
   }
 
   add(header, content) {
-    this._sections.push({ header, content });
+    this._sections.push({ header, content, raw: false });
+    return this;
+  }
+
+  addRaw(markdown) {
+    this._sections.push({ content: markdown, raw: true });
     return this;
   }
 
@@ -39,8 +44,12 @@ class PromptBuilder {
     const systemPrompt = systemParts.length > 0 ? systemParts.join("\n\n") : null;
 
     const userParts = [];
-    for (const { header, content } of this._sections) {
-      userParts.push(`${header}\n${content}`);
+    for (const { header, content, raw } of this._sections) {
+      if (raw) {
+        userParts.push(content);
+      } else {
+        userParts.push(`${header}\n${content}`);
+      }
     }
     const userPrompt = userParts.join("\n\n");
 

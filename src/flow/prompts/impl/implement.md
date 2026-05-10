@@ -10,7 +10,7 @@
      1. The spec (just read above) and test files from the plan phase are the primary inputs. Proceed if they are sufficient.
      2. If target files are not yet in context: `sdd-forge flow get context --search "<spec goal>" --raw` using the spec's Goal section as the query.
      3. If project structure is still unclear after step 2: `sdd-forge flow get context --raw` for a broad overview; then `sdd-forge flow get context <path> --raw` for specific files.
-     4. If guardrail articles have NOT been loaded in this session: `sdd-forge flow get guardrail task-impl`. If output is non-empty, follow these principles. Skip if already present in context.
+     4. If guardrail articles have NOT been loaded in this session: `sdd-forge flow get guardrail integration` for flow-level implementation work, or `sdd-forge flow get guardrail task-impl` for per-task work. The alias `impl` resolves to `task-impl` for compatibility. If output is non-empty, follow these principles. Skip if already present in context.
    - **Before writing any code**, present an implementation approach and obtain approval:
      - For each spec requirement, describe:
        - **方針 (Approach):** how you plan to implement it

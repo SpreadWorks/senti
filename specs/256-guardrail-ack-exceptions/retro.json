@@ -1,0 +1,138 @@
+{
+  "spec": "specs/256-guardrail-ack-exceptions/spec.json",
+  "date": "2026-05-09T15:34:24.836Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Add `src/flow/lib/acknowledged-rationale.js` with class `AcknowledgedRationaleEntry` constructor `(guardrailId, sourcePath, text, truncated = false)` and method `toPromptLines()`, plus class `AcknowledgedRationaleSet` for per-guardrail entry storage, token-boundary matching, caps, ordering, and rendering.",
+      "status": "done",
+      "note": "R1: helper exports rationale classes"
+    },
+    {
+      "desc": "Implement `buildAcknowledgedRationaleSection({ spec, guardrails, heading = \"Matched Spec Acknowledgment Rationale\" })` returning `{ markdown: string, warning: string }`. If `spec` is null, return `{ markdown: \"\", warning: \"parent spec context unavailable\" }`.",
+      "status": "done",
+      "note": "R2: helper returns markdown and unavailable-context warning"
+    },
+    {
+      "desc": "Extractor scans only `constraints[]`, `clarifications[].q` plus `.a` as one pair entry, and `alternatives_considered[].option` plus `.reason` as one pair entry. It does not scan design_principles, approval notes, issue-log entries, generated markdown, or raw diff text.",
+      "status": "done",
+      "note": "R3: helper scans only the approved spec fields"
+    },
+    {
+      "desc": "The 20 non-whitespace-character qualification removes every token-boundary occurrence of the matched guardrail_id from the entry text before counting. Pair labels `Q:`, `A:`, `Option:`, and `Reason:` do not count toward the minimum; truncation happens after qualification. Repeated ids, id-only entries, and pair entries are covered by tests.",
+      "status": "done",
+      "note": "R27: qualification removes guardrail ids before counting rationale text"
+    },
+    {
+      "desc": "Matching is case-sensitive and token-boundary aware. A guardrail_id match is valid only when the previous and next characters are absent or are not ASCII letters, digits, or hyphen. Backtick, quote, colon, space, and newline count as valid delimiters.",
+      "status": "done",
+      "note": "R4: matching is case-sensitive and token-boundary aware"
+    },
+    {
+      "desc": "Rendering adds `## Matched Spec Acknowledgment Rationale`, then `### <guardrail_id>`, then entries formatted as `- source: <json-path>` and `  text: <text>`. Canonical source paths are `$.constraints[N]`, `$.clarifications[N]`, and `$.alternatives_considered[N]`. Pair entries use fixed labels `Q: ... A: ...` and `Option: ... Reason: ...`. Entry text is normalized by collapsing internal whitespace, newlines, and indentation to single spaces before qualification, truncation, and rendering. Truncated entries append `[truncated]`.",
+      "status": "done",
+      "note": "R5: rendering uses canonical paths, labels, truncation marker, and whitespace normalization"
+    },
+    {
+      "desc": "Bound prompt growth with max 3 entries per guardrail, max 600 characters per entry, and max 4000 characters for the whole matched rationale section. Rendering order is filtered guardrail order, then scanned field order `constraints`, `clarifications`, `alternatives_considered`, then ascending array index. Apply the section cap at entry boundaries: render entries in deterministic order until the next full entry would exceed the cap, then stop without cutting markdown mid-entry. Tests assert rendered output does not exceed these caps.",
+      "status": "done",
+      "note": "R6: rendering enforces deterministic order and size caps"
+    },
+    {
+      "desc": "Update `buildGuardrailArticleEvalPrompt(targetText, filtered, phase, role, previouslyPassedIds, options = {})` to accept optional `options.acknowledgedRationale` and render it after Guardrail Articles and before Content when markdown is non-empty.",
+      "status": "done",
+      "note": "R7: gate article prompt inserts acknowledged rationale before content"
+    },
+    {
+      "desc": "Update exported `buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPassedIds, options = {})` to forward options to `buildGuardrailArticleEvalPrompt`; empty options preserve existing output.",
+      "status": "done",
+      "note": "R26: buildGuardrailPrompt exports and preserves empty-options output"
+    },
+    {
+      "desc": "Update `checkGuardrail` to accept the same optional options object and pass acknowledged rationale to `buildGuardrailArticleEvalPrompt`; existing callers without options keep current behavior.",
+      "status": "done",
+      "note": "R8: checkGuardrail source accepts and forwards options"
+    },
+    {
+      "desc": "Update `runGateFlow` to accept guardrail prompt options, including `acknowledgedRationale`, and forward them to `checkGuardrail` alongside `previouslyPassedIds`.",
+      "status": "done",
+      "note": "R17: runGateFlow forwards prompt options separately from previous passes"
+    },
+    {
+      "desc": "Add `PromptBuilder.addRaw(markdown)` or an equivalent shared prompt-builder API and use it for acknowledged rationale so the helper-owned `## Matched Spec Acknowledgment Rationale` heading is not duplicated or stripped by callers.",
+      "status": "done",
+      "note": "R18: PromptBuilder supports raw markdown"
+    },
+    {
+      "desc": "In `executeSpec`, build acknowledged rationale from the loaded parent spec.json and filtered guardrails, then pass it to guardrail article evaluation.",
+      "status": "done",
+      "note": "R9: spec gate builds acknowledged rationale from spec and guardrails"
+    },
+    {
+      "desc": "In `executeDiffBasedGate` for task-impl and integration, load parent spec.json from active `state.spec`, build acknowledged rationale from filtered guardrails, load previously passed guardrail IDs from issue-log, intersect them with the current filtered guardrail article IDs, and call `checkGuardrail(root, text, phase, role, previouslyPassedIds, options)` while keeping `previouslyPassedIds` distinct from the options object.",
+      "status": "done",
+      "note": "R10: diff gate passes rationale and filtered previous-pass ids"
+    },
+    {
+      "desc": "Update `buildDraftSystemPrompt(guardrails = [], options = {})` in `src/flow/commands/review.js` to render matched rationale immediately after `## Additional Guardrail Review Perspectives` when `options.acknowledgedRationale.markdown` is non-empty.",
+      "status": "done",
+      "note": "R11: review prompt accepts acknowledged rationale options"
+    },
+    {
+      "desc": "Flow review loads active parent spec.json when available and supplies acknowledged rationale to `buildDraftSystemPrompt` for both `runLoopReview` and the single-call review path. Missing or invalid parent spec context produces empty rationale plus warning metadata rather than a hard failure.",
+      "status": "done",
+      "note": "R12: review flow loads active parent spec context"
+    },
+    {
+      "desc": "For task-impl / integration gates, missing, invalid JSON, or schema-invalid parent specs are treated as unavailable acknowledgment context and produce `{ markdown: \"\", warning: \"parent spec context unavailable\" }`; spec gate keeps existing strict spec validation.",
+      "status": "done",
+      "note": "R34: unavailable parent spec context returns warning metadata outside strict spec gate"
+    },
+    {
+      "desc": "Add common acknowledged-exception clause and one example sentence to target guardrail bodies in `src/presets/cli/guardrail.json`, `src/presets/base/guardrail.json`, and `src/presets/node-cli/guardrail.json`. The clause states that exception rationale applies only in phases where a matched rationale section is present, must be in scanned fields, include guardrail_id at least once, and contain at least 20 non-whitespace characters after removing guardrail_id.",
+      "status": "done",
+      "note": "R13: target guardrail bodies contain acknowledged-exception clauses"
+    },
+    {
+      "desc": "Preserve the common acknowledged-exception clause for the four target guardrail IDs when any preset-chain or project guardrail override replaces an earlier entry, either by prompt-time augmentation in `src/lib/guardrail.js` or by another deterministic guardrail-loading mechanism. Clause preservation is idempotent: append only when the loaded body lacks the common clause.",
+      "status": "done",
+      "note": "R19: guardrail override clause preservation is idempotent"
+    },
+    {
+      "desc": "Update `src/flow/lib/get-guardrail.js` markdown output to include each guardrail id next to the title, for example `## Guardrail: <title> (<id>)`, while preserving JSON output.",
+      "status": "done",
+      "note": "R23: get guardrail markdown includes ids"
+    },
+    {
+      "desc": "Update `src/flow/lib/get-guardrail.js` to validate guardrail lookup phases against `VALID_GUARDRAIL_PHASES`: `draft`, `spec`, `task-spec`, `task-impl`, `integration`, `test`, `lint`, and `review`. Preserve backward compatibility by mapping `sdd-forge flow get guardrail impl` to `task-impl` with exit code 0 and the same output as `task-impl`; unknown phases fail with non-zero exit and an error listing valid phases.",
+      "status": "done",
+      "note": "R28: guardrail impl alias exits 0 and unknown phases fail"
+    },
+    {
+      "desc": "Add nice-to-have broad fixture coverage using exact existing fixture paths `specs/228-fix-baseline-exit-code/spec.json`, `specs/235-remove-flow-test-management/spec.json`, and `specs/229-test-runner-file-filter/spec.json`, plus synthetic fixtures when collision cases are not present in those files.",
+      "status": "done",
+      "note": "R15: exact fixture specs are present"
+    },
+    {
+      "desc": "Add must-have unit tests for extractor matching, design_principles exclusion, prompt section ordering, empty acknowledged-rationale output preservation, section cap behavior, direct diff-gate previous-pass preservation, guardrail phase validation, target guardrail body clauses, override/idempotence clause preservation, and the `impl` alias.",
+      "status": "done",
+      "note": "R31: tests cover required surfaces"
+    },
+    {
+      "desc": "Prompt rendering tests assert exact run-gate section order: previously passed guardrails when present, diff scope constraint when applicable, Guardrail Articles, Matched Spec Acknowledgment Rationale, then Content. Tests also assert empty acknowledged rationale preserves existing prompt output.",
+      "status": "done",
+      "note": "R22: prompt order keeps previous pass and diff scope before articles and content"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 24,
+    "done": 24,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 10,
+    "not_testable_count": 10,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

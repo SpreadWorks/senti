@@ -198,7 +198,7 @@ When implementation reveals that the spec needs additional tasks:
 sdd-forge flow get status
 sdd-forge flow get next-action
 sdd-forge flow get context [<path> | --search "..."] [--raw]
-sdd-forge flow get guardrail <draft|spec|task-spec|task-impl|integration|test|lint|review>
+sdd-forge flow get guardrail <draft|spec|task-spec|task-impl|integration|test|lint|review>  # alias: impl -> task-impl
 sdd-forge flow get prompt <kind>
 sdd-forge flow get check <target>
 sdd-forge flow get issue <number>

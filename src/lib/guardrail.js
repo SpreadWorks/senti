@@ -17,6 +17,15 @@ import {
 const GUARDRAIL_FILENAME = "guardrail.json";
 
 const DEFAULT_PHASE = Object.freeze(["spec"]);
+const ACKNOWLEDGED_EXCEPTION_MARKER = "acknowledged-exception";
+const ACKNOWLEDGED_EXCEPTION_TARGET_IDS = Object.freeze([
+  "backward-compatible-cli-interface",
+  "exit-code-contract",
+  "bounded-resource-usage",
+  "no-synchronous-io-in-hot-paths",
+]);
+const ACKNOWLEDGED_EXCEPTION_CLAUSE =
+  "acknowledged-exception handling: when a `## Matched Spec Acknowledgment Rationale` section is present for this guardrail, an intentional exception MAY pass only if the matched rationale comes from spec.json constraints, clarifications, or alternatives_considered, includes this guardrail_id at least once, and contains at least 20 non-whitespace characters after removing the guardrail_id.";
 
 /**
  * Parse a lint string (e.g. "/pattern/flags") into a RegExp.
@@ -184,6 +193,19 @@ function loadPresetGuardrails(presetKey) {
   return guardrails;
 }
 
+function preserveAcknowledgedExceptionClauses(guardrails) {
+  return guardrails.map((guardrail) => {
+    if (!ACKNOWLEDGED_EXCEPTION_TARGET_IDS.includes(guardrail.id)) return guardrail;
+    if (String(guardrail.body || "").toLowerCase().includes(ACKNOWLEDGED_EXCEPTION_MARKER)) {
+      return guardrail;
+    }
+    return {
+      ...guardrail,
+      body: `${String(guardrail.body || "").trim()}\n\n${ACKNOWLEDGED_EXCEPTION_CLAUSE}`,
+    };
+  });
+}
+
 /**
  * Load and merge all guardrails from preset chain + project guardrail.
  *
@@ -203,5 +225,5 @@ export function loadMergedGuardrails(root) {
     guardrails = mergeById(guardrails, projectGuardrails);
   }
 
-  return guardrails;
+  return preserveAcknowledgedExceptionClauses(guardrails);
 }
