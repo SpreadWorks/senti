@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-09T07:03:25.628Z",
+  "analyzedAt": "2026-05-10T00:01:36.528Z",
   "package": {
     "entries": [
       {
@@ -2499,9 +2499,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "de827d64cda85882c5e4196c4d2da8df",
-        "lines": 1535,
-        "mtime": "2026-05-07T00:14:18.344Z",
+        "hash": "f79e7ff55152371c25c5b64b5b44b8a8",
+        "lines": 1564,
+        "mtime": "2026-05-10T00:01:05.509Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2514,6 +2514,7 @@
           "forEachReviewDiffSource",
           "collectCommittedAndStagedDiff",
           "buildDraftSystemPrompt",
+          "buildReviewAcknowledgedRationale",
           "parseProposals",
           "extractProposalFile",
           "collectTouchedFiles",
@@ -2568,6 +2569,7 @@
           "../../lib/container.js",
           "../../lib/command.js",
           "../../lib/prompt-builder.js",
+          "../lib/acknowledged-rationale.js",
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
           "../../lib/constants.js",
@@ -2613,12 +2615,12 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements the multi-phase flow review command (draft, spec, test, impl) using AI agents and guardrails to produce review markdown artifacts.",
-        "detail": "Orchestrates four review subcommands keyed by phase (draft, spec, test, impl), each loading appropriate context (draft.json, spec.md, requirements, test files) and dispatching to AI agents via PromptBuilder with merged guardrails. Implements diff scoping using git merge-base, REVIEW_EXCLUDE_PATHS to skip docs/output, and a loop-review mode triggered when touched file count exceeds LOOP_REVIEW_THRESHOLD (10). Builds per-file diffs grouped by content hash and inverts file-map.json to attach requirement IDs to each chunk. Applies retry-bounded review loops via runReviewLoop with configurable maxAttempts resolved from FLOW_DEFINITION nodes (review-draft, review-spec, review-test). Writes results to review.md, draft-review.md, spec-review.md, or test-review.md depending on phase.",
-        "chapter": "internal_design",
-        "role": "flow-command",
+        "summary": "Implements multi-phase review commands (draft, spec, test, code) for the SDD flow, orchestrating AI agents to analyze diffs, requirements, and gaps.",
+        "detail": "Defines `runReview` as the top-level dispatcher routing to `runDraftReview`, `runSpecReview`, `runTestReview`, or per-file/loop code review based on phase. Code review collects committed/staged/uncommitted diffs (excluding docs/README/AGENTS), groups them by content hash, runs per-file AI evaluation, then performs cross-check aggregation; large changes (>=10 files) trigger a chunked loop review path. Each phase writes its output (`review.md`, `spec-review.md`, `test-review.md`, `draft-review.md`) into the spec directory and integrates `buildAcknowledgedRationaleSection` to inject parent-spec exception context. Test review specifically generates a test design from requirements, then iteratively detects and fixes gaps via `runReviewLoop` with retry budgets resolved from `FLOW_DEFINITION` nodes. Exports a `FlowReviewCommand` class extending `Command` for registry dispatch and a CLI entry guard for direct invocation.",
+        "chapter": "cli_commands",
+        "role": "flow review command implementation",
         "enrich": {
-          "processedAt": "2026-05-07T00:18:30.711Z",
+          "processedAt": "2026-05-10T00:02:36.410Z",
           "attempts": 1
         },
         "keywords": [
@@ -2626,15 +2628,12 @@
           "draft review",
           "spec review",
           "test review",
-          "impl review",
-          "guardrails",
-          "diff scoping",
-          "merge-base",
+          "code review",
+          "diff analysis",
+          "AI guardrails",
+          "acknowledged rationale",
           "loop review",
-          "file-map",
-          "gap analysis",
-          "AI agent",
-          "PromptBuilder"
+          "gap detection"
         ]
       },
       {
@@ -2714,6 +2713,51 @@
           "step traversal",
           "auto mode",
           "manual mode"
+        ]
+      },
+      {
+        "file": "src/flow/lib/acknowledged-rationale.js",
+        "hash": "2f70e1d212a79f1e4c19d45698ae984a",
+        "lines": 190,
+        "mtime": "2026-05-10T00:01:05.510Z",
+        "className": "acknowledged-rationale",
+        "methods": [
+          "normalizeText",
+          "isIdChar",
+          "guardrailIdMatches",
+          "hasGuardrailId",
+          "removeMatchedGuardrailIds",
+          "qualifies",
+          "truncateText",
+          "buildAcknowledgedRationaleSection"
+        ],
+        "imports": [],
+        "exports": [
+          "AcknowledgedRationaleEntry",
+          "AcknowledgedRationaleSet",
+          "buildAcknowledgedRationaleSection"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js"
+        ],
+        "id": "cc9128a3",
+        "summary": "Builds a markdown section listing acknowledged exception rationales from a parent spec, used to contextualize guardrail enforcement during reviews and gates.",
+        "detail": "Defines `AcknowledgedRationaleEntry` and `AcknowledgedRationaleSet` classes that organize matched rationale entries per guardrail ID with truncation limits (3 entries per guardrail, 600 chars per entry, 4000 chars per section). Provides text normalization (`normalizeText`), guardrail ID detection via `guardrailIdMatches`/`hasGuardrailId`, and qualification heuristics requiring at least 20 non-ID, non-whitespace chars. The `buildAcknowledgedRationaleSection` factory accepts a spec object plus guardrails and emits a `{ markdown, warning }` structure with the configurable heading (defaulting to \"Matched Spec Acknowledgment Rationale\"). The class-based design follows the project's OOP-for-value-types convention, encapsulating invariants and rendering behavior on the type itself.",
+        "chapter": "internal_design",
+        "role": "spec rationale section builder for prompts",
+        "enrich": {
+          "processedAt": "2026-05-10T00:02:36.410Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "acknowledged rationale",
+          "guardrail exception",
+          "spec context",
+          "prompt builder",
+          "markdown section",
+          "text truncation",
+          "parent spec"
         ]
       },
       {
@@ -3119,11 +3163,12 @@
       },
       {
         "file": "src/flow/lib/get-guardrail.js",
-        "hash": "bc869248dc1f0491b544a972aa12c4fa",
-        "lines": 62,
-        "mtime": "2026-04-13T12:57:49.487Z",
+        "hash": "affc937494d554e9d9736812a5b8aa38",
+        "lines": 72,
+        "mtime": "2026-05-10T00:01:05.510Z",
         "className": "get-guardrail",
         "methods": [
+          "normalizeGuardrailPhase",
           "toMarkdown"
         ],
         "imports": [
@@ -3139,19 +3184,21 @@
           "src/lib/lint.js"
         ],
         "id": "f80cce52",
-        "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Fetches and filters guardrail rules by phase for flow commands. It can return both raw structured data and markdown-formatted output.",
-        "detail": "The command validates phase inputs against known constants and loads merged guardrails from project configuration layers. It applies phase filtering so only relevant rules are emitted. A markdown formatter renders concise bullet lines for user-facing output. This ensures guardrail guidance is phase-specific and consistently presented.",
+        "summary": "FlowCommand subclass that retrieves and renders guardrails filtered by a flow phase as markdown.",
+        "detail": "Defines `PHASE_ALIASES` (notably `impl -> task-impl`) and a `normalizeGuardrailPhase` helper to canonicalize user-facing phase names. Validates the phase against `VALID_GUARDRAIL_PHASES` and throws explicit errors enumerating valid options when unknown. Calls `loadMergedGuardrails` then `filterByPhase`, then formats results via `toMarkdown` for output. Returns both a structured payload and rendered markdown so callers (typically the flow CLI) can choose either form.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "get guardrail flow command",
+        "enrich": {
+          "processedAt": "2026-05-10T00:02:36.410Z",
+          "attempts": 1
+        },
         "keywords": [
-          "guardrails",
+          "get guardrail",
           "phase filter",
-          "policy output",
-          "markdown rendering"
+          "phase alias",
+          "task-impl",
+          "flow command",
+          "guardrail markdown"
         ]
       },
       {
@@ -4043,9 +4090,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "0400a54969ee73937124a902345b752d",
-        "lines": 2247,
-        "mtime": "2026-05-09T07:03:21.283Z",
+        "hash": "0b9d43e79d67a747d63dcee0da496be6",
+        "lines": 2300,
+        "mtime": "2026-05-10T00:01:05.510Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4121,6 +4168,7 @@
           "../../lib/flow-helpers.js",
           "../../lib/spec-json.js",
           "./req-map.js",
+          "./acknowledged-rationale.js",
           "./check-tasks-monotonic.js",
           "../../lib/constants.js",
           "./base-command.js",
@@ -4180,29 +4228,27 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the SDD flow gate command that AI-evaluates drafts/specs/diffs against guardrails and requirements, manages retry budgets, and decides phase transitions.",
-        "detail": "Defines `RunGateCommand` (extending `FlowCommand`) which dispatches gate execution by phase — draft, spec, task-spec, task-impl, integration — each invoking `runGateFlow` with phase-specific inputs (draft.json, spec.md/json, diffs scoped to file-map). Builds AI prompts via `PromptBuilder` with merged guardrails filtered by phase/role, enforces strict JSON schemas (`GUARDRAIL_ARTICLE_EVAL_SCHEMA`, `IMPL_REQUIREMENT_EVAL_SCHEMA`) and parses responses through `parseGuardrailArticleEvaluation` / `parseImplRequirementEvaluation` with `EvaluationSchemaError`. Tracks retry budgets per phase via `countGateRetry` / `resolveRetryMax`, detects no-progress loops by hashing git HEAD + worktree state (`computeGitState`), and uses Jaccard similarity over normalized tokens to detect repeated failures (`assertNoRepeatedFail`). Collects committed/uncommitted/untracked diffs with size/file-count caps, reconciles them against the requirement file-map, and applies flip overrides when previously-passed evaluations recur on identical content. Side effects (issue-log appends, step status updates, escalation triggers) are isolated in helpers like `appendIssueLogFromGateResult` and `executeGateSideEffects`.",
+        "summary": "Implements the gate evaluation pipeline: collects diffs, builds AI evaluation prompts, parses strict JSON responses, and enforces retry/escalation budgets across draft, spec, task-impl, and integration phases.",
+        "detail": "`RunGateCommand` dispatches by level (draft/spec/task-spec/diff-based) and runs `runGateFlow`, which orchestrates `checkGuardrail`, requirement evaluation against per-requirement diffs derived from `file-map.json`, and produces `gatePass`/`gateFail` envelopes consumed by registry hooks. Diff collection unifies committed (`git diff merge-base`), staged/uncommitted, and untracked changes via `collectUntrackedDiff` and `collectPerFileDiffsForGate`, with hard limits (UNTRACKED_DEFAULT_MAX_FILES=500, 1 MiB/file). Strict JSON schema enforcement (`parseGuardrailArticleEvaluation`, `parseImplRequirementEvaluation`) rejects unknown keys and invalid `result` values, throwing `EvaluationSchemaError`; retry tracking through `countGateRetry`, `assertNoRepeatedFail` (Jaccard similarity >=0.5 over normalized tokens), and `applyFlipOverride` prevents oscillation and detects no-progress states via `computeGitState` (HEAD SHA + worktree hash). Side effects (`executeGateSideEffects`) and gate escalation issue logging append to `issue-log.json` for downstream observability and finalize routing.",
         "chapter": "internal_design",
-        "role": "flow-gate-command",
+        "role": "gate execution and guardrail evaluation engine",
         "enrich": {
-          "processedAt": "2026-05-09T07:03:46.692Z",
+          "processedAt": "2026-05-10T00:02:36.410Z",
           "attempts": 1
         },
         "keywords": [
-          "gate command",
+          "gate",
           "guardrail evaluation",
-          "AI prompt",
+          "diff scope",
+          "JSON schema",
           "retry budget",
-          "issue log",
           "Jaccard similarity",
-          "diff scoping",
-          "file-map reconciliation",
-          "FlowCommand",
-          "Envelope",
-          "JSON schema validation",
-          "phase transitions",
+          "issue log",
           "escalation",
-          "draft spec gate"
+          "untracked diff",
+          "file map",
+          "flip override",
+          "evaluation parsing"
         ]
       },
       {
@@ -5422,9 +5468,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "7cf1bafbb7534537f0abaa966eabfcaa",
-        "lines": 819,
-        "mtime": "2026-05-08T23:39:55.624Z",
+        "hash": "9c40d54d4efc7f3bc795145c272752d0",
+        "lines": 825,
+        "mtime": "2026-05-10T00:01:05.511Z",
         "className": "registry",
         "methods": [
           "isFinalizeSuccess",
@@ -5446,24 +5492,24 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Central registry that wires flow subcommands to their FlowCommand classes and orchestrates side effects like step status updates and issue-log appends.",
-        "detail": "Exports FLOW_COMMANDS containing args, help text, and command bindings; helpers like resolveMainRepoFlowManager, deriveActivePhase, tryUpdateStepStatus, and tryAppendIssueLog isolate cross-cutting concerns and downgrade non-fatal errors to stderr warnings. resetSkippedDownstreamSteps walks FINALIZE_DOWNSTREAM_LEAVES (sync/cleanup) to revert skipped downstream nodes, while isFinalizeSuccess accepts done/completed/skipped statuses. The finalize pipeline triggers gate side effects (executeGateSideEffects), commit post-hooks (executeCommitPost), and merge outcome persistence (setMergeOutcome), each wrapped in try-style helpers that log but do not abort. This file is the dispatch hub that registry.js's docstring calls 'args, help, command 定義を集約'.",
+        "summary": "Central registry mapping flow subcommand names to their handlers, args parsers, help text, and pre/post hooks for gate, finalize, and step lifecycle management.",
+        "detail": "Defines `FLOW_COMMANDS` as a single source of truth consumed by the flow.js dispatcher, including hooks that call `gateMod.executeGateSideEffects`, `executeCommitPost`, and step status updates. Helpers like `tryUpdateStepStatus` and `tryAppendIssueLog` wrap state-mutating calls with stderr warnings instead of crashing the CLI when no active flow exists. Implements finalize-step success detection (`done`/`completed`/`skipped`), downstream-leaf reset (`finalize-sync`, `finalize-cleanup`) when re-running, and `resolveMainRepoFlowManager` to bridge worktree-scoped commands back to the originating repo. Phase derivation via `derivePhase` and gate-step resolution via `resolveGateStepId`/`resolveGatePhaseFromState` keep registry handlers decoupled from FlowState internals.",
         "chapter": "project_structure",
-        "role": "Flow command registry",
+        "role": "flow command registry and lifecycle hooks",
         "enrich": {
-          "processedAt": "2026-05-08T23:40:35.893Z",
+          "processedAt": "2026-05-10T00:02:36.410Z",
           "attempts": 1
         },
         "keywords": [
-          "FLOW_COMMANDS",
-          "registry",
-          "dispatcher",
-          "step status",
-          "issue log",
+          "flow registry",
+          "command dispatch",
+          "gate hook",
           "finalize",
-          "gate side effects",
-          "downstream reset",
-          "FlowManager"
+          "step status",
+          "issue log append",
+          "worktree",
+          "phase derivation",
+          "lifecycle hooks"
         ]
       },
       {
@@ -6344,9 +6390,9 @@
       },
       {
         "file": "src/lib/guardrail.js",
-        "hash": "993b291fbc5a051388ce60b4a174c052",
-        "lines": 208,
-        "mtime": "2026-05-09T02:32:49.364Z",
+        "hash": "8cc3201c7e2e9201f4ea596d31e2c8d2",
+        "lines": 230,
+        "mtime": "2026-05-10T00:01:05.511Z",
         "className": "guardrail",
         "methods": [
           "loadGuardrailFile",
@@ -6358,7 +6404,8 @@
           "resolveGuardrailContext",
           "readGuardrailFile",
           "mergeById",
-          "loadPresetGuardrails"
+          "loadPresetGuardrails",
+          "preserveAcknowledgedExceptionClauses"
         ],
         "imports": [
           "fs",
@@ -6379,23 +6426,23 @@
           "src/lib/lint.js"
         ],
         "id": "bb462f4e",
-        "summary": "Shared guardrail loader that reads guardrail.json files, hydrates entries with metadata, and merges project-level overrides on top of preset chain definitions.",
-        "detail": "Defines GUARDRAIL_FILENAME and a DEFAULT_PHASE of ['spec'], plus helpers to parse lint string patterns into RegExp and hydrate raw entries with source metadata while throwing on invariant violations. loadGuardrailFile reads and JSON-parses a file then hydrates each guardrail entry. filterByPhase narrows entries by execution phase, while matchScope tests file paths/basenames against scope patterns via patternToRegex. loadMergedGuardrails resolves the preset chain via resolveChainSafe, walks each preset's guardrail.json, then layers the project-level .sdd-forge/guardrail.json by id-based merge so downstream callers receive a single deduplicated list.",
+        "summary": "Loads, merges, and filters guardrail definitions from preset chains and project overrides, hydrating each entry with metadata and lint regexes.",
+        "detail": "`loadMergedGuardrails(root)` walks the preset chain via `resolveChainSafe` then layers `.sdd-forge/guardrail.json` on top using `mergeById`, with `preserveAcknowledgedExceptionClauses` ensuring the standard exception clause is reattached to a fixed allowlist (`ACKNOWLEDGED_EXCEPTION_TARGET_IDS`). Hydration enforces required fields and parses `/pattern/flags` lint strings into RegExp via `parseLintString`. `filterByPhase` and `matchScope` (using `patternToRegex` from the docs scanner) provide the filtering primitives consumed by gate and review commands. Default phase is `[\"spec\"]` when an entry omits its phase array, keeping the schema flexible for older preset definitions.",
         "chapter": "internal_design",
-        "role": "guardrail-loader",
+        "role": "guardrail loading, merging, and filtering",
         "enrich": {
-          "processedAt": "2026-05-09T02:33:46.087Z",
+          "processedAt": "2026-05-10T00:02:36.410Z",
           "attempts": 1
         },
         "keywords": [
           "guardrail",
-          "lint rules",
           "preset chain",
           "merge by id",
           "phase filter",
-          "scope matching",
-          "JSON config",
-          "SDD"
+          "scope match",
+          "lint regex",
+          "acknowledged exception",
+          "hydration"
         ]
       },
       {
@@ -6807,9 +6854,9 @@
       },
       {
         "file": "src/lib/process.js",
-        "hash": "668c131e8a8293d0ccdac6a3cfd4ecf5",
+        "hash": "226293d7987d6eb778691f900553a315",
         "lines": 123,
-        "mtime": "2026-04-25T08:06:00.021Z",
+        "mtime": "2026-05-10T00:01:05.511Z",
         "className": "process",
         "methods": [
           "runCmd",
@@ -6834,25 +6881,21 @@
           "src/lib/lint.js"
         ],
         "id": "6196b26c",
-        "summary": "This module provides a small process-execution utility layer for running external commands in both synchronous and asynchronous modes. It standardizes process options and error handling so callers can use a consistent result shape.",
-        "detail": "The file imports `spawnSync` and `execFile` from Node.js `child_process` and centralizes shared option normalization in `buildProcessOptions(opts)`. `runCmd(cmd, args, opts)` executes commands synchronously and returns a structured result object, while `runCmdAsync(cmd, args, opts)` wraps callback-based execution in a Promise for async workflows. Error reporting is normalized through `formatError(res)`, which composes key failure fields into a compact diagnostic string. `assertOk(res, context)` enforces success by throwing with contextual information when a process exits unsuccessfully. This pattern reduces duplicated subprocess boilerplate across the codebase and keeps command orchestration predictable.",
-        "chapter": "stack_and_ops",
-        "role": "lib",
+        "summary": "Thin wrapper around child_process spawnSync/execFile providing a uniform result shape and assertion helper.",
+        "detail": "`buildProcessOptions` normalizes encoding/stdio/env defaults so both sync (`runCmd`) and async (`runCmdAsync`) variants produce identical `{ status, stdout, stderr, ... }` payloads. `formatError` joins relevant fields into a single readable string for inclusion in error messages, and `assertOk` throws when `status !== 0` with the formatted detail and an optional context label. This module is the single boundary the rest of the codebase uses for shell execution, keeping git/agent/test invocations consistent and avoiding repeated try/catch boilerplate.",
+        "chapter": "internal_design",
+        "role": "child process execution helper",
         "enrich": {
-          "processedAt": "2026-04-25T08:06:17.117Z",
+          "processedAt": "2026-05-10T00:02:36.410Z",
           "attempts": 1
         },
         "keywords": [
-          "process execution",
-          "child_process",
           "spawnSync",
           "execFile",
-          "command runner",
-          "subprocess wrapper",
-          "error formatting",
-          "exit status",
-          "async command",
-          "sync command"
+          "process wrapper",
+          "assertOk",
+          "shell execution",
+          "error formatting"
         ]
       },
       {
@@ -6896,9 +6939,9 @@
       },
       {
         "file": "src/lib/prompt-builder.js",
-        "hash": "ad3186bbdcf90060410b086a9f85032d",
-        "lines": 57,
-        "mtime": "2026-04-30T06:10:20.701Z",
+        "hash": "4ec5ad8a3087abc1ba279f001ef3c3c6",
+        "lines": 66,
+        "mtime": "2026-05-10T00:01:05.512Z",
         "className": "prompt-builder",
         "methods": [],
         "imports": [],
@@ -6908,23 +6951,22 @@
         "extends": null,
         "usedBy": null,
         "id": "f2587cd2",
-        "summary": "Fluent builder that composes structured AI prompts with sections, schemas, and fallback formats.",
-        "detail": "PromptBuilder is a chainable class (each method returns this) used throughout gate/retro flows to assemble multi-section prompts. It accumulates context, instructions, JSON schemas, and fallback formatting hints, then materializes them into a final prompt object on build/toString. Centralizing prompt assembly keeps the schema flag, system prompt, and fallback wording consistent across providers that may or may not natively support JSON schema constraints.",
+        "summary": "Fluent builder for assembling structured AI prompts with system, user, and section parts.",
+        "detail": "Implements a chainable API where each setter returns `this`, and `build()` emits a `{ systemPrompt, userPrompt }` pair consumed by agent invocations across guardrail, review, and test commands. Centralizing prompt construction here ensures consistent ordering of context blocks (acknowledged rationale, guardrail articles, target text, requirements) and lets callers compose prompts without string concatenation scattered across the codebase. Used heavily by `run-gate.js` (`buildGuardrailArticleEvalPrompt`, `buildImplCheckPrompt`) and `review.js` to produce the prompts sent to Claude/Codex agents.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "AI prompt construction utility",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:30.473Z",
+          "processedAt": "2026-05-10T00:02:36.410Z",
           "attempts": 1
         },
         "keywords": [
-          "PromptBuilder",
-          "prompt construction",
+          "prompt builder",
           "fluent API",
-          "JSON schema",
+          "system prompt",
+          "user prompt",
           "AI prompt",
           "chainable",
-          "fallback format",
-          "sections"
+          "guardrail prompt"
         ]
       },
       {
@@ -10389,10 +10431,10 @@
       }
     ],
     "summary": {
-      "total": 291,
-      "totalMethods": 1011
+      "total": 292,
+      "totalMethods": 1022
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-09T07:03:46.692Z"
+  "enrichedAt": "2026-05-10T00:02:36.410Z"
 }
