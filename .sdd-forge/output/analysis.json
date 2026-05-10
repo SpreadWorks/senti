@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-10T00:01:36.528Z",
+  "analyzedAt": "2026-05-10T06:31:38.661Z",
   "package": {
     "entries": [
       {
@@ -271,9 +271,9 @@
       },
       {
         "file": "src/docs/commands/agents.js",
-        "hash": "f7cda0fc88fedcc63070ebb8decff8e2",
+        "hash": "a5b83a4fb8bb6d05f50c7ba98e7c5793",
         "lines": 227,
-        "mtime": "2026-05-08T07:44:34.909Z",
+        "mtime": "2026-05-10T06:31:17.506Z",
         "className": "agents",
         "methods": [
           "buildAgentsPromptBuilder",
@@ -306,21 +306,22 @@
           "src/docs/commands/build.js"
         ],
         "id": "5684c584",
-        "summary": "This command generates or updates `AGENTS.md` using project analysis, docs content, and an AI agent. It resolves directives and rewrites only the managed sections.",
-        "detail": "The implementation parses CLI arguments, resolves project paths, and bootstraps `AGENTS.md` from a template when missing. It requires prior analysis output and loads docs chapters plus README context to construct a rich prompt. Directive handling is split into parsing, data resolution, and targeted block replacement so unmanaged text can be preserved. The command uses container-based agent resolution and fails fast if no default agent is configured. Final output is written back to disk after successful generation and refinement.",
+        "summary": "Implements the `docs agents` command, generating or updating the project's AGENTS.md file by combining analysis data, docs, README, and an SDD template through an AI agent.",
+        "detail": "Defines `runAgents` which loads analysis.json, reads chapter files and README, builds a prompt via PromptBuilder including package.json scripts, and resolves `{{data}}` directives. It writes a default AGENTS.md if missing, then invokes the configured AI agent to refine project content and re-injects it via `replaceProjectContent`. Errors propagate when no default agent is configured. Exposed as `DocsAgentsCommand` extending `Command`, with `runAgents` also re-exported for reuse.",
         "chapter": "cli_commands",
-        "role": "docs command",
+        "role": "command",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
-          "AGENTS.md generation",
-          "AI prompt builder",
-          "directive resolution",
-          "analysis.json dependency",
-          "docs automation",
-          "command handler"
+          "agents.md",
+          "docs agents",
+          "AI agent",
+          "directive",
+          "analysis.json",
+          "prompt builder",
+          "template"
         ]
       },
       {
@@ -483,9 +484,9 @@
       },
       {
         "file": "src/docs/commands/enrich.js",
-        "hash": "a99376788183cedcadbf8c2281f3b80e",
+        "hash": "62061750e8dbf1be11a852eab74ca762",
         "lines": 560,
-        "mtime": "2026-04-30T06:10:20.699Z",
+        "mtime": "2026-05-10T06:31:17.507Z",
         "className": "enrich",
         "methods": [
           "printHelp",
@@ -538,30 +539,30 @@
           "src/docs/commands/build.js"
         ],
         "id": "abb7e5b3",
-        "summary": "Implements the `docs enrich` command that batches analysis entries and asks the AI agent to populate summary/detail/keywords/chapter assignment fields.",
-        "detail": "Collects entries from analysis.json, splits them into token-bounded batches (default 10000), and runs them concurrently via `mapWithConcurrency`. Each batch builds a prompt with chapter list and source code excerpts, calls the agent, repairs and parses JSON, and merges enrichment back into analysis. On parse failure it dumps the raw response to disk for debugging; periodic progress is saved between batches. Final analysis.json is written under `.sdd-forge/output/`.",
+        "summary": "Implements `docs enrich` which augments analysis entries with AI-generated metadata (summary, detail, keywords, chapter) in batches with concurrency.",
+        "detail": "Collects entries from analysis.json, splits them into token-bounded batches, and dispatches AI enrichment requests via `mapWithConcurrency`. Builds prompts referencing chapter definitions and parses JSON responses with `repairJson`, falling back to dump files on failure. Merges results back into analysis with attempt-tracking and progress-saving, then writes the enriched analysis.json. Exposes `DocsEnrichCommand` and helpers like `splitIntoBatches`, `mergeEnrichment`, `parseEnrichResponse`.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "command",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
           "enrich",
           "batching",
-          "AI enrichment",
           "concurrency",
+          "analysis",
+          "AI metadata",
           "JSON repair",
-          "analysis pipeline",
-          "mapWithConcurrency",
-          "progress save"
+          "keywords",
+          "chapter assignment"
         ]
       },
       {
         "file": "src/docs/commands/forge.js",
-        "hash": "c9143ca4db93979141763dd5d0f58d75",
+        "hash": "7147be67a1f8b1b57ef411e7be97dc6d",
         "lines": 454,
-        "mtime": "2026-05-08T07:44:34.910Z",
+        "mtime": "2026-05-10T06:31:17.507Z",
         "className": "forge",
         "methods": [
           "getTargetFiles",
@@ -600,29 +601,29 @@
         "extends": "Command",
         "usedBy": null,
         "id": "ef4fa5d9",
-        "summary": "`forge` is an orchestrator command that runs multi-round AI-assisted docs refinement with review feedback loops. It supports local, assist, and agent execution modes.",
-        "detail": "The module parses strict CLI options including run limits, concurrency, mode, prompt inputs, and spec references with explicit validation. It builds per-file prompts, estimates relevant targets, and executes parallelized updates using bounded concurrency utilities. Agent invocation streams optional stdout/stderr and supports labeled calls for traceability during long runs. Each round can include review-command feedback and retries until success or max-run termination. Post-processing steps regenerate README and translated docs, and the command sets failure exit codes on unresolved review states.",
+        "summary": "Implements `docs forge`, a multi-mode (local/assist/agent) loop that drives doc generation through data, text, readme, and review cycles up to a max-runs limit.",
+        "detail": "Parses CLI options (`--max-runs`, `--mode`, `--spec`, `--prompt-file`), estimates relevant target files from spec/keyword overlap, and orchestrates per-file AI invocations with concurrency. Each iteration runs the configured pipeline (data fill → text fill → readme → translate) and then a review command; review feedback feeds back into the next round. Uses `runCmdAsync` for child commands and `invokeAgent` to wrap agent calls with stdout/stderr forwarding. Exits with `EXIT_ERROR` if max runs are reached without a passing review.",
         "chapter": "cli_commands",
-        "role": "docs orchestration command",
+        "role": "command",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
-          "docs forge",
-          "multi-pass refinement",
+          "forge",
           "review loop",
-          "concurrency control",
-          "agent mode",
-          "spec-aware prompting",
-          "CLI options"
+          "spec-driven",
+          "max-runs",
+          "mode",
+          "agent",
+          "docs pipeline"
         ]
       },
       {
         "file": "src/docs/commands/init.js",
-        "hash": "5fa8ecef0410c194345362fef9b669fd",
+        "hash": "27d2eeaeaa6c1c3a5e04ff1933f23d18",
         "lines": 284,
-        "mtime": "2026-04-30T06:10:20.699Z",
+        "mtime": "2026-05-10T06:31:17.507Z",
         "className": "init",
         "methods": [
           "aiFilterChapters",
@@ -653,22 +654,21 @@
           "src/docs/commands/build.js"
         ],
         "id": "62ef800b",
-        "summary": "Implements the `docs init` command that materializes chapter templates into the project's docs directory using preset inheritance and AI-assisted filtering.",
-        "detail": "Resolves templates via the preset chain (with optional project-local overrides), merges them additively, and orders chapters per `preset.json`. An AI filter (`aiFilterChapters`) optionally narrows chapters based on the project's stated purpose. Writes resulting chapter files to `docs/`, creating the directory if missing, and reports conflicts where files already exist. Throws when no type is configured or no templates resolve.",
+        "summary": "Implements `docs init`, scaffolding the `docs/` directory by resolving template chains and optionally filtering chapters with AI based on project purpose.",
+        "detail": "Resolves layered templates via `resolveTemplates` and `mergeResolved` honoring preset inheritance and project-local overrides. `aiFilterChapters` asks the configured agent which chapters are relevant given analysis summary and `docs.style.purpose`, parsing the JSON selection. Writes selected chapter files into `docs/`, refusing to overwrite existing files unless conflicts are resolved, and uses `summaryToText` to provide context. Surfaces `DocsInitCommand` plus the `aiFilterChapters` helper.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "command",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
-          "docs init",
-          "template merging",
-          "preset inheritance",
-          "chapter filtering",
-          "AI filter",
-          "purpose",
-          "docs scaffold"
+          "init",
+          "docs scaffold",
+          "template merge",
+          "chapter filter",
+          "AI selection",
+          "preset chain"
         ]
       },
       {
@@ -831,9 +831,9 @@
       },
       {
         "file": "src/docs/commands/text.js",
-        "hash": "12d129aa55c0ca4123a49be95b7757ba",
+        "hash": "69515f0aa6c443b30b0f01ae0376c54b",
         "lines": 786,
-        "mtime": "2026-04-30T06:10:20.700Z",
+        "mtime": "2026-05-10T06:31:17.507Z",
         "className": "text",
         "methods": [
           "textFillFromAnalysis",
@@ -890,30 +890,29 @@
           "src/docs/commands/readme.js"
         ],
         "id": "7c5e7654",
-        "summary": "Implements the `docs text` command that fills `{{text}}` directives in chapter markdown via batched AI agent calls with validation and retry.",
-        "detail": "Detects changed chapters by hashing source files referenced in analysis entries and only processes affected files. For each chapter, parses text directives and sends a batched JSON-format prompt; validates response shape, applies fills, and detects content shrinkage as a regression signal. Concurrency-bounded with `mapWithConcurrency`, supports dry-run, and strips agent preambles via configured regex patterns. Errors propagate through `EXIT_ERROR`.",
+        "summary": "Implements `docs text`, filling `{{text}}` directives in chapter files via batched AI invocations, with validation, preamble stripping, and change detection.",
+        "detail": "Detects changed chapters by hashing source files and comparing with analysis, then for each chapter file collects `{{text}}` directives and dispatches a batch JSON prompt to the agent. Validates results via `validateBatchResult` (shrinkage, line-count thresholds), applies fills with `applyBatchJsonToFile`, and retries on parse/empty errors. Strips fill content for diffing, supports concurrency via `mapWithConcurrency`, and exits with `EXIT_ERROR` on agent misconfiguration. Exports `textFillFromAnalysis` and several helpers.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "command",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
-          "docs text",
           "text directive",
           "batch fill",
-          "shrinkage detection",
+          "AI agent",
           "preamble strip",
-          "chapter change detection",
-          "JSON response",
-          "retry"
+          "shrinkage check",
+          "change detection",
+          "JSON repair"
         ]
       },
       {
         "file": "src/docs/commands/translate.js",
-        "hash": "0a0f0f212f6375c68b8a2687df36621d",
+        "hash": "f9f7b46567b1dbce281014ce584940a8",
         "lines": 239,
-        "mtime": "2026-04-30T06:10:20.700Z",
+        "mtime": "2026-05-10T06:31:17.507Z",
         "className": "translate",
         "methods": [
           "toneInstruction",
@@ -944,22 +943,22 @@
           "src/docs/commands/build.js"
         ],
         "id": "fd496e07",
-        "summary": "Implements the `docs translate` command that mirrors source-language docs into target language directories using the AI agent.",
-        "detail": "Builds translation tasks for each (file, target language) pair, skipping when target mtime is newer than source unless `--force` is set. Invokes the agent with a tone instruction tailored to the target language and document style, then writes translated content into `docs/<lang>/`. Optionally translates the project README. Tasks run with concurrency and emit per-task progress labels.",
+        "summary": "Implements `docs translate`, copying chapter files to per-language subdirectories and translating content via the configured AI agent, with mtime-based skip logic.",
+        "detail": "`buildTranslationTasks` enumerates source chapter files plus README and pairs them with each target language directory, skipping outputs newer than sources unless `--force`. `translateDocument` sends content to the agent with tone-specific instructions and strips response preamble. Tasks run concurrently via `mapWithConcurrency`, writing translated text to disk. Exposes `DocsTranslateCommand` and `buildTranslationTasks`.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "command",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
-          "docs translate",
+          "translate",
           "i18n",
-          "multilingual docs",
+          "languages",
           "mtime check",
-          "tone instruction",
-          "language directory",
-          "force flag"
+          "tone",
+          "concurrency",
+          "docs translation"
         ]
       },
       {
@@ -2187,9 +2186,9 @@
       },
       {
         "file": "src/docs/lib/template-merger.js",
-        "hash": "6826d448b580f6b3a5faaab00e9a466c",
+        "hash": "8b4fa051d6500bdaeebec32b1335198a",
         "lines": 610,
-        "mtime": "2026-04-30T06:10:20.700Z",
+        "mtime": "2026-05-10T06:31:17.507Z",
         "className": "template-merger",
         "methods": [
           "buildLayers",
@@ -2227,22 +2226,22 @@
           "src/docs/lib/command-context.js"
         ],
         "id": "88243459",
-        "summary": "Library that resolves chapter templates across a preset inheritance chain, merges layered sources additively, and translates templates between languages.",
-        "detail": "Builds layer directories from project-local overrides plus the resolved preset chain for the requested language, then resolves each chapter file by walking layers and falling back to alternate languages. `mergeResolved` combines parent/child block content additively while preserving block directives. `resolveChaptersOrder` assembles the chapter ordering from preset.json and config overrides. `translateTemplate` calls the AI agent and silently returns the original content on failure.",
+        "summary": "Provides template resolution and merging utilities supporting layered preset chains, multi-language fallback, and AI-based template translation.",
+        "detail": "`buildLayers` and `resolveTemplates` walk preset chains plus a project-local overrides directory to locate template files, returning ordered sources for additive merging via `mergeResolved`. Block directives (`parseBlocks`, `BLOCK_START_RE`) drive nested merging where child blocks extend or override parent text. `resolveChaptersOrder` honors preset and config-defined chapter ordering, while `translateTemplate` invokes an AI agent with graceful failure logging. Includes special-file handling for README/AGENTS.sdd/layout.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "library",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
           "template merger",
           "preset chain",
-          "additive merge",
+          "layered resolution",
           "block directive",
-          "chapter order",
-          "fallback language",
-          "template translation"
+          "translate template",
+          "fallback",
+          "chapters order"
         ]
       },
       {
@@ -2499,9 +2498,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "f79e7ff55152371c25c5b64b5b44b8a8",
-        "lines": 1564,
-        "mtime": "2026-05-10T00:01:05.509Z",
+        "hash": "a3415214f0c4f668cc9a5b3e0bbac21c",
+        "lines": 1558,
+        "mtime": "2026-05-10T06:31:17.508Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2516,6 +2515,7 @@
           "buildDraftSystemPrompt",
           "buildReviewAcknowledgedRationale",
           "parseProposals",
+          "formatCodebaseContextForPrompt",
           "extractProposalFile",
           "collectTouchedFiles",
           "filterProposalsByScope",
@@ -2601,6 +2601,7 @@
           "formatSpecReviewMd",
           "isValidSpecOutput",
           "stripPreamble",
+          "buildGapAnalysisPrompt",
           "buildTestFixPrompt",
           "buildDraftReviewPrompt",
           "formatDraftReviewMd",
@@ -2615,25 +2616,24 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements multi-phase review commands (draft, spec, test, code) for the SDD flow, orchestrating AI agents to analyze diffs, requirements, and gaps.",
-        "detail": "Defines `runReview` as the top-level dispatcher routing to `runDraftReview`, `runSpecReview`, `runTestReview`, or per-file/loop code review based on phase. Code review collects committed/staged/uncommitted diffs (excluding docs/README/AGENTS), groups them by content hash, runs per-file AI evaluation, then performs cross-check aggregation; large changes (>=10 files) trigger a chunked loop review path. Each phase writes its output (`review.md`, `spec-review.md`, `test-review.md`, `draft-review.md`) into the spec directory and integrates `buildAcknowledgedRationaleSection` to inject parent-spec exception context. Test review specifically generates a test design from requirements, then iteratively detects and fixes gaps via `runReviewLoop` with retry budgets resolved from `FLOW_DEFINITION` nodes. Exports a `FlowReviewCommand` class extending `Command` for registry dispatch and a CLI entry guard for direct invocation.",
+        "summary": "Implements `flow review`, running phase-aware reviews (draft/spec/test/code) by invoking AI agents on diffs or spec content and writing review markdown artifacts.",
+        "detail": "Dispatches to `runDraftReview`, `runSpecReview`, `runTestReview`, or default code review based on phase. Resolves git merge-base and collects committed/staged diffs scoped to non-doc paths, optionally splitting into per-file or grouped chunks for `runLoopReview` when file count exceeds `LOOP_REVIEW_THRESHOLD`. Generates AI prompts including spec requirements, acknowledged rationales, and codebase context, parses proposals filtered by touched files, and persists markdown reports (`review.md`, `spec-review.md`, etc.). Uses `resolveNodeFor` to obtain phase-specific maxAttempts and supports cross-check passes for grouped diffs.",
         "chapter": "cli_commands",
-        "role": "flow review command implementation",
+        "role": "command",
         "enrich": {
-          "processedAt": "2026-05-10T00:02:36.410Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
           "flow review",
-          "draft review",
-          "spec review",
-          "test review",
-          "code review",
-          "diff analysis",
-          "AI guardrails",
-          "acknowledged rationale",
+          "diff",
+          "merge-base",
+          "proposals",
           "loop review",
-          "gap detection"
+          "spec review",
+          "draft review",
+          "test review",
+          "guardrails"
         ]
       },
       {
@@ -3091,9 +3091,9 @@
       },
       {
         "file": "src/flow/lib/get-context.js",
-        "hash": "b456a8f87ec8a064216028ccf1015e50",
+        "hash": "de1b7211cacb72701c0f4a4ca9e438d9",
         "lines": 493,
-        "mtime": "2026-04-30T14:19:51.391Z",
+        "mtime": "2026-05-10T06:31:17.508Z",
         "className": "get-context",
         "methods": [
           "toSearchResult",
@@ -3141,24 +3141,22 @@
           "src/docs/commands/readme.js"
         ],
         "id": "1261e39f",
-        "summary": "Provides flow context search — keyword/n-gram/AI search over the analysis index plus file content retrieval for the `flow get context` command.",
-        "detail": "Loads `analysis.json` entries (filtering meta fields), supports three search modes: substring keyword match, bigram similarity for fuzzy matching, and AI-assisted keyword selection that asks the agent to pick relevant terms then runs fallback search. Hub entries with many connections receive special handling. Also exposes a command class to read absolute file paths under root for follow-up context retrieval. Schema and prompt for keyword selection are defined inline.",
+        "summary": "Implements `flow get context`, performing keyword/n-gram/AI search over the analysis index and returning filtered entries plus optional file content.",
+        "detail": "Loads `analysis.json` and exposes search modes: keyword exact match, bigram similarity (`ngramSearch` thresholded by `NGRAM_THRESHOLD`), and AI-driven keyword selection that calls the configured agent with `KEYWORD_SELECTION_SCHEMA` and falls back to keyword search on parse/agent failure. Filters entries by removing internal fields (`hash`, `mtime`, `enrich`, etc.) and identifies hub entries by connection counts. The command can also resolve a specific file path, returning entry metadata combined with file content.",
         "chapter": "internal_design",
-        "role": "lib",
+        "role": "library",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
-          "flow context",
-          "search",
-          "ngram similarity",
-          "bigram",
-          "keyword selection",
+          "context search",
+          "analysis",
+          "ngram",
+          "bigram similarity",
           "AI search",
-          "analysis entries",
-          "hub detection",
-          "fallback search"
+          "keyword selection",
+          "hub entry"
         ]
       },
       {
@@ -3391,19 +3389,22 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "a0ed61cf917900c34bf12dfbc4c2af59",
-        "lines": 159,
-        "mtime": "2026-05-08T23:39:55.623Z",
+        "hash": "ce4ee22db1253308e771a5b20ac2b127",
+        "lines": 192,
+        "mtime": "2026-05-10T06:31:17.508Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
           "buildReportTotals",
           "zeroTokens",
+          "zeroProviderBucket",
           "applyEntry",
+          "applyProviderEntry",
           "buildStatusOutput"
         ],
         "imports": [
           "../../lib/flow-helpers.js",
+          "../../lib/agent-metrics.js",
           "../../lib/spec-json.js",
           "../definition.js",
           "./base-command.js"
@@ -3420,23 +3421,22 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "Implements the GetStatusCommand that aggregates flow state, requirements, and metric totals into a structured status report.",
-        "detail": "Defines TOKEN_KEYS and ACTIVITY_COUNTERS constants for metric aggregation, plus helpers like zeroTokens, buildMetricsSummary, and applyEntry to fold issue-log entries into per-bucket sums. buildReportTotals returns activity counters and token totals from a summary object, while buildStatusOutput composes the final shape including phase derivation via derivePhase and spec requirements via loadSpecRequirements. The exported GetStatusCommand class extends FlowCommand and handles both targeted runId lookups (throwing RUN_ID_NOT_FOUND) and the active-flow case, returning {active:false} when no flow exists. It is the data backbone of the flow-status skill display.",
-        "chapter": "internal_design",
-        "role": "Flow status aggregator",
+        "summary": "Implements `flow get status`, aggregating flow state, derived phase, requirements, and metrics token/activity totals into a status report.",
+        "detail": "Builds metrics buckets per phase and provider using `TOKEN_KEYS` and `ACTIVITY_COUNTERS`, normalizing agent metric dimensions before summation. `buildReportTotals` flattens summary into top-level tokens and activity counters. `GetStatusCommand` returns the current flow's status (or a specific run via runId lookup), or `{ active: false }` when no flow is active. Used as the data source for the `flow-status` skill.",
+        "chapter": "cli_commands",
+        "role": "command",
         "enrich": {
-          "processedAt": "2026-05-08T23:40:35.893Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
           "flow status",
-          "metrics summary",
-          "token counters",
-          "activity counters",
-          "issue log",
-          "derivePhase",
-          "FlowCommand",
-          "run id"
+          "metrics",
+          "tokens",
+          "activity",
+          "phase",
+          "run id",
+          "summary"
         ]
       },
       {
@@ -3751,9 +3751,9 @@
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
-        "hash": "18dd17d177673b9d7b5620ca955b92b9",
+        "hash": "eca729658acae67b2f6812f3799b434e",
         "lines": 304,
-        "mtime": "2026-04-30T06:10:20.701Z",
+        "mtime": "2026-05-10T06:31:17.508Z",
         "className": "run-auto-check",
         "methods": [
           "computeScore",
@@ -3787,23 +3787,23 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "62c43842",
-        "summary": "Implements the auto-check gate that scores a feature request on six dimensions to decide whether SDD auto mode can safely proceed.",
-        "detail": "Combines static gates with an AI-driven scoring call across `specBuildability`, `ambiguity`, `verifiability`, `scopeBoundedness`, `targetSpecificity`, and `precedent` (each 0–2). Weighted total must reach 16/24 and the three hard-gate dimensions must sum to at least 2. Sanitizes/clamps the AI response, returns a graceful failure verdict on agent or parse errors, and composes the final verdict via `composeAutoCheck`. Wraps results in an `Envelope` for the flow runtime.",
+        "summary": "Implements `flow run auto-check`, scoring whether a request can safely proceed in SDD auto mode using static gates plus AI evaluation across six dimensions.",
+        "detail": "Combines static gate evaluation (`evaluateStaticGates`) with AI scoring on six dimensions (specBuildability, ambiguity, verifiability, scopeBoundedness, targetSpecificity, precedent), each weighted toward a max of 24 with a pass threshold of 16. Hard-gate keys must sum to at least `HARD_GATE_MIN_SUM` or the verdict fails regardless of total. AI responses are sanitized into integer breakdowns; agent failures degrade gracefully with reason strings. Returns an `Envelope` verdict on missing input and is invoked from the SDD flow planning skill.",
         "chapter": "internal_design",
-        "role": "controller",
+        "role": "command",
         "enrich": {
-          "processedAt": "2026-04-30T14:35:43.749Z",
+          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
         },
         "keywords": [
           "auto-check",
-          "gate scoring",
-          "auto mode",
-          "weighted score",
+          "scoring",
           "hard gate",
-          "AI scoring",
-          "Envelope",
-          "static gates"
+          "threshold",
+          "auto mode",
+          "AI evaluation",
+          "spec readiness",
+          "envelope"
         ]
       },
       {
@@ -4090,9 +4090,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "0b9d43e79d67a747d63dcee0da496be6",
+        "hash": "d002eaec9b99f1257f35eefdcd626e68",
         "lines": 2300,
-        "mtime": "2026-05-10T00:01:05.510Z",
+        "mtime": "2026-05-10T06:31:17.509Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4228,27 +4228,25 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the gate evaluation pipeline: collects diffs, builds AI evaluation prompts, parses strict JSON responses, and enforces retry/escalation budgets across draft, spec, task-impl, and integration phases.",
-        "detail": "`RunGateCommand` dispatches by level (draft/spec/task-spec/diff-based) and runs `runGateFlow`, which orchestrates `checkGuardrail`, requirement evaluation against per-requirement diffs derived from `file-map.json`, and produces `gatePass`/`gateFail` envelopes consumed by registry hooks. Diff collection unifies committed (`git diff merge-base`), staged/uncommitted, and untracked changes via `collectUntrackedDiff` and `collectPerFileDiffsForGate`, with hard limits (UNTRACKED_DEFAULT_MAX_FILES=500, 1 MiB/file). Strict JSON schema enforcement (`parseGuardrailArticleEvaluation`, `parseImplRequirementEvaluation`) rejects unknown keys and invalid `result` values, throwing `EvaluationSchemaError`; retry tracking through `countGateRetry`, `assertNoRepeatedFail` (Jaccard similarity >=0.5 over normalized tokens), and `applyFlipOverride` prevents oscillation and detects no-progress states via `computeGitState` (HEAD SHA + worktree hash). Side effects (`executeGateSideEffects`) and gate escalation issue logging append to `issue-log.json` for downstream observability and finalize routing.",
+        "summary": "Implements the SDD flow gate runner that validates drafts, specs, and implementations via guardrails and AI evaluations.",
+        "detail": "Defines RunGateCommand which dispatches to phase-specific gate flows (draft, spec, task-spec, diff-based for impl/integration). Builds guardrail evaluation prompts with PromptBuilder, parses AI JSON responses with strict schema validation (EvaluationSchemaError), and produces gatePass/gateFail envelopes. Includes retry budget tracking, no-progress detection via git head/worktree hash, repeated-fail assertion using Jaccard similarity over normalized text, and flip-override for previously passed guardrails on identical content. Also handles per-file diff collection (committed/uncommitted/untracked), file-map reconciliation, and integration test artifact checks (test-result-review.json, test-execute-result.json).",
         "chapter": "internal_design",
-        "role": "gate execution and guardrail evaluation engine",
+        "role": "Flow gate command: orchestrates guardrail/requirement evaluation across SDD phases",
         "enrich": {
-          "processedAt": "2026-05-10T00:02:36.410Z",
+          "processedAt": "2026-05-10T06:32:29.323Z",
           "attempts": 1
         },
         "keywords": [
           "gate",
-          "guardrail evaluation",
-          "diff scope",
-          "JSON schema",
+          "guardrail",
+          "flow",
+          "evaluation",
+          "AI validation",
           "retry budget",
-          "Jaccard similarity",
-          "issue log",
-          "escalation",
-          "untracked diff",
-          "file map",
-          "flip override",
-          "evaluation parsing"
+          "diff scope",
+          "envelope",
+          "jaccard",
+          "spec validation"
         ]
       },
       {
@@ -5593,10 +5591,46 @@
         ]
       },
       {
+        "file": "src/lib/agent-metrics.js",
+        "hash": "d05c612837ceef0bf0f698b416670b79",
+        "lines": 10,
+        "mtime": "2026-05-10T06:31:17.509Z",
+        "className": "agent-metrics",
+        "methods": [
+          "normalizeAgentMetricDimension"
+        ],
+        "imports": [],
+        "exports": [
+          "normalizeAgentMetricDimension"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/flow-store.js"
+        ],
+        "id": "38813272",
+        "summary": "Tiny utility that normalizes a metric dimension string, defaulting empty values to 'unknown'.",
+        "detail": "Single exported function normalizeAgentMetricDimension that returns the input string when it is a non-empty string, otherwise the literal 'unknown'. Used to bucket agent metrics by provider/profile keys without nullable fields. Acts as a shared helper between the agent runtime and the metrics token aggregator. Avoids duplicating the same defaulting logic across modules.",
+        "chapter": "internal_design",
+        "role": "Metric dimension normalizer shared by agent runner and metrics aggregator",
+        "enrich": {
+          "processedAt": "2026-05-10T06:32:29.323Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "agent",
+          "metrics",
+          "dimension",
+          "normalize",
+          "unknown",
+          "provider key",
+          "profile"
+        ]
+      },
+      {
         "file": "src/lib/agent.js",
-        "hash": "baf437c5eb7a21b3f6cdaa882667de2b",
-        "lines": 445,
-        "mtime": "2026-05-01T02:54:14.263Z",
+        "hash": "e8508331c53700864d8ee6d118efd069",
+        "lines": 450,
+        "mtime": "2026-05-10T06:31:17.509Z",
         "className": "agent",
         "methods": [
           "matchProfilePrefix",
@@ -5626,25 +5660,25 @@
           "src/lib/container.js"
         ],
         "id": "13ddf392",
-        "summary": "Agent abstraction that resolves provider profiles, builds CLI invocations, and runs AI calls with retry, logging, and stdin fallback handling.",
-        "detail": "The `Agent` class resolves a provider/profile from `agent.providers` (honoring `SDD_FORGE_PROFILE` and `useProfile`), composes argv via `_buildInvocation` including JSON schema flags, work-dir injection, and {{PROMPT}} substitution. `_callOnce` writes pending schema files and spawns the configured CLI, with retries up to `MAX_RETRY` using exponential backoff (`RETRY_BACKOFF_FACTOR`). Wraps every call in `runWithLogging` which records start/end events with request IDs through the flow logger, accumulates token metrics, and parses provider stdout via `tryParseProvider` while filtering streaming events. Falls back to stdin delivery when prompts exceed `DEFAULT_STDIN_FALLBACK_THRESHOLD` (100k chars).",
+        "summary": "Wraps external AI CLI providers (claude/codex/user) into a unified Agent class with retries, schema injection, and logging.",
+        "detail": "Agent class resolves the active profile from config + SDD_FORGE_PROFILE env, builds invocation arguments via provider-specific flags, and substitutes {{PROMPT}} tokens or appends prompts as args. Supports JSON schema files written to a temporary work dir, stdin fallback when prompts exceed a size threshold, and exponential backoff retries with configurable delay/factor. Filters streaming JSON event noise from stdout, parses provider responses through ProviderRegistry, and emits start/end agent log events with text statistics. Defaults: 300s timeout, 2 retries, 3s backoff with factor 2, max 5 attempts.",
         "chapter": "internal_design",
-        "role": "AI agent invocation layer",
+        "role": "Agent runtime: spawns AI CLI, normalizes I/O, retries, and logs invocations",
         "enrich": {
-          "processedAt": "2026-05-01T02:55:29.411Z",
+          "processedAt": "2026-05-10T06:32:29.323Z",
           "attempts": 1
         },
         "keywords": [
           "agent",
-          "provider profile",
-          "CLI invocation",
+          "claude",
+          "codex",
+          "provider",
           "retry",
-          "backoff",
+          "spawn",
+          "schema",
           "stdin fallback",
-          "logging",
-          "JSON schema",
-          "prompt substitution",
-          "token metrics"
+          "streaming filter",
+          "logging"
         ]
       },
       {
@@ -5687,9 +5721,9 @@
       },
       {
         "file": "src/lib/cli.js",
-        "hash": "17409bc43bb6a2538d9538f201f0f75c",
-        "lines": 147,
-        "mtime": "2026-04-17T05:45:21.328Z",
+        "hash": "150316fa63f63fc715b85bdfb4e3f0c3",
+        "lines": 149,
+        "mtime": "2026-05-10T06:31:17.509Z",
         "className": "cli",
         "methods": [
           "repoRoot",
@@ -5729,20 +5763,23 @@
           "src/upgrade.js"
         ],
         "id": "f351ecc4",
-        "summary": "cli.js provides core CLI utilities for root detection, argument parsing, and environment-aware path resolution. It also exposes package metadata and timestamp formatting helpers.",
-        "detail": "Repository root logic prioritizes environment overrides and falls back to git detection with safe defaults. Argument parsing supports flag normalization into camelCase option keys and rejects unknown options. Worktree detection and main-repo path derivation are included for flow-aware behaviors. The module is foundational plumbing for consistent CLI command execution.",
+        "summary": "CLI helpers for argv parsing, repo/source root resolution, version lookup, and worktree detection.",
+        "detail": "Exposes PKG_DIR (sdd-forge install path), repoRoot()/sourceRoot() honoring SDD_FORGE_WORK_ROOT/SOURCE_ROOT env overrides with git rev-parse fallback, and parseArgs() that converts kebab-case --flags into camelCase keys based on a spec object. isInsideWorktree() checks whether .git is a file (linked worktree) and getMainRepoPath() resolves the main repo via gitCommonDir. Also provides getPackageVersion() reading package.json and formatUTCTimestamp() emitting 'YYYY-MM-DD HH:MM:SS UTC' strings. Throws on unknown options to enforce strict CLI parsing.",
         "chapter": "cli_commands",
-        "role": "lib",
+        "role": "Shared CLI primitives: argv parser, root resolver, worktree detection",
         "enrich": {
-          "processedAt": "2026-04-19T12:14:50.164Z",
+          "processedAt": "2026-05-10T06:32:29.323Z",
           "attempts": 1
         },
         "keywords": [
-          "repo root",
-          "arg parser",
-          "worktree detection",
-          "package version",
-          "cli utilities"
+          "cli",
+          "parseArgs",
+          "repoRoot",
+          "worktree",
+          "git",
+          "version",
+          "timestamp",
+          "argv"
         ]
       },
       {
@@ -6230,9 +6267,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "aae6863a45702ac34a12a13c2c7f0ef7",
-        "lines": 621,
-        "mtime": "2026-05-08T14:47:26.781Z",
+        "hash": "8093812d319087f3ab24f4bac220fa7b",
+        "lines": 624,
+        "mtime": "2026-05-10T06:31:17.509Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -6249,6 +6286,7 @@
           "fs",
           "path",
           "crypto",
+          "./agent-metrics.js",
           "./git-helpers.js",
           "./config.js",
           "./flow-helpers.js",
@@ -6265,23 +6303,25 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "FlowStore providing persistent JSON state for flow/task/step lifecycle with strict schema validation and mutation scoping.",
-        "detail": "Reads and writes specs/<id>/flow.json with newline-terminated pretty JSON. assertFlowStateSchema enforces task structure invariants and validateTaskShape rejects malformed task additions with explicit messages. resolveMutationScope and resolveTaskIdForEntry pick the correct task target (current vs explicit) for mutations, while promoteFirstPending advances pending leaves. Aggregates child task summaries into parents and validates merge metadata including ISO 8601 finalizedAt timestamps. The class encapsulates worktree directory derivation and exposes loadReadOnly with malformed-file resilience.",
+        "summary": "Persistent store for per-spec flow.json state with strict schema assertions and task tree mutation helpers.",
+        "detail": "FlowStore manages specs/<id>/flow.json: load/save/loadReadOnly with JSON parsing and schema assertion (assertFlowStateSchema rejects malformed shapes early). Resolves the active spec via branch name (specIdFromBranch) or current state, computes worktree paths under sddDir/worktree, and validates merge strategies and ISO 8601 finalizedAt strings. Mutation helpers (resolveMutationScope, addTask) enforce task invariants — required fields (id, spec, origin, status, steps, requirements), enum-bounded statuses, unique ids, and proper parent linkage. Also includes promoteFirstPending for advancing leaf steps and aggregateTaskSummaryIntoParent for hierarchical roll-up.",
         "chapter": "internal_design",
-        "role": "flow state persistence",
+        "role": "Flow state store: persist and validate per-spec SDD flow tree",
         "enrich": {
-          "processedAt": "2026-05-08T14:48:07.627Z",
+          "processedAt": "2026-05-10T06:32:29.323Z",
           "attempts": 1
         },
         "keywords": [
-          "FlowStore",
+          "flow-store",
           "flow.json",
+          "task tree",
+          "spec",
           "schema validation",
-          "task lifecycle",
+          "worktree",
           "mutation scope",
-          "promote pending",
-          "worktree path",
-          "ISO 8601"
+          "finalizedAt",
+          "branch",
+          "state"
         ]
       },
       {
@@ -6939,9 +6979,9 @@
       },
       {
         "file": "src/lib/prompt-builder.js",
-        "hash": "4ec5ad8a3087abc1ba279f001ef3c3c6",
-        "lines": 66,
-        "mtime": "2026-05-10T00:01:05.512Z",
+        "hash": "e7a2775afc60d40a9c9ce6a074501339",
+        "lines": 75,
+        "mtime": "2026-05-10T06:31:17.509Z",
         "className": "prompt-builder",
         "methods": [],
         "imports": [],
@@ -6951,29 +6991,28 @@
         "extends": null,
         "usedBy": null,
         "id": "f2587cd2",
-        "summary": "Fluent builder for assembling structured AI prompts with system, user, and section parts.",
-        "detail": "Implements a chainable API where each setter returns `this`, and `build()` emits a `{ systemPrompt, userPrompt }` pair consumed by agent invocations across guardrail, review, and test commands. Centralizing prompt construction here ensures consistent ordering of context blocks (acknowledged rationale, guardrail articles, target text, requirements) and lets callers compose prompts without string concatenation scattered across the codebase. Used heavily by `run-gate.js` (`buildGuardrailArticleEvalPrompt`, `buildImplCheckPrompt`) and `review.js` to produce the prompts sent to Claude/Codex agents.",
+        "summary": "Fluent prompt builder that accumulates structured sections and emits a final prompt object.",
+        "detail": "PromptBuilder class exposes chained methods (each returns this) for adding system instructions, context, schemas, etc., into ordered sections. The final build returns a structured object containing the assembled prompt plus metadata. Used by gate evaluation, impl checks, and other flow phases to compose multi-section prompts without ad-hoc string concatenation. Centralizes prompt formatting so callers stay declarative.",
         "chapter": "internal_design",
-        "role": "AI prompt construction utility",
+        "role": "Fluent builder for AI prompts assembled from labeled sections",
         "enrich": {
-          "processedAt": "2026-05-10T00:02:36.410Z",
+          "processedAt": "2026-05-10T06:32:29.323Z",
           "attempts": 1
         },
         "keywords": [
-          "prompt builder",
-          "fluent API",
-          "system prompt",
-          "user prompt",
-          "AI prompt",
-          "chainable",
+          "prompt",
+          "builder",
+          "fluent",
+          "sections",
+          "AI",
           "guardrail prompt"
         ]
       },
       {
         "file": "src/lib/provider.js",
-        "hash": "b079bfc9248cce5fb056c72cc10fb4d9",
-        "lines": 221,
-        "mtime": "2026-05-08T12:21:29.148Z",
+        "hash": "442b213300f64c4d88305d593566f86f",
+        "lines": 225,
+        "mtime": "2026-05-10T06:31:17.510Z",
         "className": "provider",
         "methods": [],
         "imports": [],
@@ -6990,24 +7029,23 @@
           "src/lib/container.js"
         ],
         "id": "0e966da6",
-        "summary": "Defines the Provider abstraction and concrete implementations (Claude, Codex, User) that adapt different AI CLIs into a unified parse/invoke interface, plus a ProviderRegistry for profile resolution.",
-        "detail": "Provider is an abstract base requiring parse() implementation. ClaudeProvider parses JSON envelope arrays looking for the 'result' event and serializes structured_output. CodexProvider parses line-delimited JSON events. UserProvider returns stdout as plain text without parsing. Each provider exposes systemPromptFlag and workDirFlag for CLI argument shaping. ProviderRegistry merges profiles and resolves a (provider, profile) pair by name for downstream invocation.",
+        "summary": "Provider abstraction encapsulating per-CLI argument flags and stdout parsing for claude, codex, and user-defined agents.",
+        "detail": "Base Provider defines a parse() contract that subclasses must implement. ClaudeProvider parses array-envelope JSON looking for the 'result' event and stringifies structured_output, exposing --system-prompt as the system flag. CodexProvider streams line-delimited JSON events and uses -C as the work-dir flag. UserProvider returns raw stdout with no usage and reads system/work-dir flags from a profile object. ProviderRegistry merges built-in and user-defined profiles, returns a {provider, profile, providerKey} triple, and lists available profile names.",
         "chapter": "internal_design",
-        "role": "provider-adapter",
+        "role": "Provider plug-ins: per-CLI argument flags and stdout parsers",
         "enrich": {
-          "processedAt": "2026-05-08T14:39:07.219Z",
+          "processedAt": "2026-05-10T06:32:29.323Z",
           "attempts": 1
         },
         "keywords": [
           "provider",
-          "Claude CLI",
-          "Codex CLI",
+          "claude",
+          "codex",
+          "user provider",
           "registry",
-          "profile",
-          "JSON envelope",
-          "stdout parsing",
-          "system prompt flag",
-          "AI adapter"
+          "parse",
+          "system prompt",
+          "work dir"
         ]
       },
       {
@@ -7281,9 +7319,9 @@
       },
       {
         "file": "src/metrics/commands/token.js",
-        "hash": "e07917dd490cc352ba567c463b0804d0",
-        "lines": 681,
-        "mtime": "2026-05-02T09:24:13.455Z",
+        "hash": "9443902980cf2b5fb7771772d75ac542",
+        "lines": 763,
+        "mtime": "2026-05-10T06:31:17.510Z",
         "className": "token",
         "methods": [
           "computePhaseSummary",
@@ -7296,6 +7334,11 @@
           "isoDateFromFinalizedAt",
           "toNumberOrNull",
           "addMetric",
+          "createProviderRowBucket",
+          "getProviderRowBucket",
+          "addProviderMetric",
+          "mergeProviderBucket",
+          "mergeProviderMaps",
           "formatScalar",
           "asDisplayValue",
           "phaseLabel",
@@ -7336,7 +7379,8 @@
           "../../lib/cli.js",
           "../../lib/command.js",
           "../../lib/constants.js",
-          "../../lib/formatter.js"
+          "../../lib/formatter.js",
+          "../../lib/agent-metrics.js"
         ],
         "exports": [
           "computePhaseSummary",
@@ -7344,17 +7388,18 @@
           "formatJson",
           "formatCsv",
           "buildRowsFromMetrics",
-          "default"
+          "default",
+          "CACHE_VERSION"
         ],
         "extends": "Command",
         "usedBy": null,
         "id": "59edeaf2",
-        "summary": "Token metrics command aggregating per-phase token usage, cost, cache hits, and difficulty across flow.json files.",
-        "detail": "Walks specs/ for flow.json files (capped at MAX_FLOW_FILES=5000), normalizes per-phase metrics, and computes spec difficulty using DIFFICULTY_BASELINES with PRECISION_NORMALIZER/MIN/MAX clamping. Caches results to .sdd-forge/output/metrics.json with CACHE_VERSION=2 and skips rebuilds when maxFinalizedAt is unchanged. Renders output as text (fixed-width table, TABLE_WIDTH=107), JSON (with phaseSummary), or CSV via formatText/formatJson/formatCsv. Computes derived stats including cache hit rate, cost, request chars, requirement count, test file count, and issue-log entries; sorts rows by phase order then date.",
+        "summary": "Metrics token command aggregating per-spec flow metrics into phase-grouped tables with caching and difficulty scoring.",
+        "detail": "TokenCommand walks specs/*/flow.json (capped at MAX_FLOW_FILES=5000), collecting input/output tokens, cache read/create/hit, call counts, cost, and duration grouped by date and phase. Caches results to .sdd-forge/output/metrics.json keyed by maxFinalizedAt and CACHE_VERSION=3, invalidating on version mismatch or newer flows. Computes per-spec difficulty by combining DIFFICULTY_BASELINES with a precision factor derived from requirement counts, request chars, test file counts, and issue-log entries (clamped to [0.3, 3.0] then averaged). Supports text/json/csv output formats with phase summary aggregation and provider-bucket merging via normalizeAgentMetricDimension.",
         "chapter": "cli_commands",
-        "role": "Metrics aggregator",
+        "role": "metrics token subcommand: tokenization cost/time aggregator with caching",
         "enrich": {
-          "processedAt": "2026-05-02T09:43:02.905Z",
+          "processedAt": "2026-05-10T06:32:29.323Z",
           "attempts": 1
         },
         "keywords": [
@@ -7364,10 +7409,11 @@
           "cache",
           "difficulty",
           "phase",
-          "CSV",
-          "JSON",
+          "csv",
+          "json",
           "flow.json",
-          "aggregation"
+          "aggregation",
+          "specs"
         ]
       },
       {
@@ -10431,10 +10477,10 @@
       }
     ],
     "summary": {
-      "total": 292,
-      "totalMethods": 1022
+      "total": 293,
+      "totalMethods": 1031
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-10T00:02:36.410Z"
+  "enrichedAt": "2026-05-10T06:32:36.982Z"
 }
