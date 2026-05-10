@@ -77,6 +77,7 @@ class Agent {
     return {
       provider: resolved.provider,
       profile: resolved.profile,
+      providerKey: resolved.providerKey,
       profileKey,
       timeoutMs,
     };
@@ -113,6 +114,8 @@ class Agent {
       command: resolved.profile.command,
       systemPrompt: opts.systemPrompt ?? null,
       prompt,
+      provider: resolved.providerKey,
+      profileKey: resolved.profileKey,
       invoke: () => this._callOnceWithRetry(resolved, prompt, opts, retry),
     });
   }
@@ -383,7 +386,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function runWithLogging({ logger, flowManager, command, systemPrompt, prompt, invoke }) {
+async function runWithLogging({ logger, flowManager, command, systemPrompt, prompt, provider, profileKey, invoke }) {
   const requestId = generateRequestId();
   const startedAt = Date.now();
   await logger.agent({ phase: "start", requestId });
@@ -422,6 +425,8 @@ async function runWithLogging({ logger, flowManager, command, systemPrompt, prom
         if (ctx.sddPhase) {
           const durationMs = Math.max(0, Math.round(Date.now() - startedAt));
           flowManager.accumulateAgentMetrics(ctx.sddPhase, {
+            provider,
+            profileKey,
             usage,
             responseChars: responseStats.chars,
             model: null,

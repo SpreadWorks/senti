@@ -156,7 +156,7 @@ function _buildEnrichPromptBuilder(chapters, batchEntries, opts) {
     }
     fileParts.push("");
   }
-  pb.add("## Target files", fileParts.join("\n"));
+  pb.addUserPrompt("## Target files", fileParts.join("\n"));
 
   // Chapter list
   const chapterLines = ["Each entry should be assigned to one of these chapters:"];
@@ -168,7 +168,7 @@ function _buildEnrichPromptBuilder(chapters, batchEntries, opts) {
       chapterLines.push(ch.desc ? `- ${name}: ${ch.desc}` : `- ${name}`);
     }
   }
-  pb.add("## Available chapters", chapterLines.join("\n"));
+  pb.addUserPrompt("## Available chapters", chapterLines.join("\n"));
 
   // Monorepo app assignment (optional)
   const monorepoApps = opts?.monorepoApps;
@@ -180,7 +180,7 @@ function _buildEnrichPromptBuilder(chapters, batchEntries, opts) {
       appLines.push(`- "${app.name}" (path prefix: ${app.path})`);
     }
     appLines.push('Add an `"app"` field to each entry with the app name.');
-    pb.add("## Monorepo apps", appLines.join("\n"));
+    pb.addUserPrompt("## Monorepo apps", appLines.join("\n"));
   }
 
   // JSON schema for structured output

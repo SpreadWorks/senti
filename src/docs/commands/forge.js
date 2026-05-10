@@ -144,7 +144,7 @@ async function invokeAgent(agent, prompt, { systemPrompt, verbose, label }) {
 
   const pb = new PromptBuilder();
   if (systemPrompt) pb.setRole(systemPrompt);
-  pb.add("## Content", prompt);
+  pb.addUserPrompt("## Content", prompt);
   const built = pb.build();
 
   try {

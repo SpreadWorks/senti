@@ -428,7 +428,7 @@ export async function translateTemplate(content, fromLang, toLang, agent, _root)
     "- Do NOT add or remove any lines",
     "- Output ONLY the translated template, no explanation",
   ].join("\n"));
-  pb.add("## Template", content);
+  pb.addUserPrompt("## Template", content);
   const built = pb.build();
 
   try {

@@ -12,8 +12,9 @@ import { parseArgs } from "../../lib/cli.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR, EXIT_SUCCESS, VALID_PHASES } from "../../lib/constants.js";
 import { formatDurationSeconds } from "../../lib/formatter.js";
+import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 
-const CACHE_VERSION = 2;
+export const CACHE_VERSION = 3;
 const DEFAULT_FORMAT = "text";
 const SUPPORTED_FORMATS = new Set(["text", "json", "csv"]);
 const MAX_FLOW_FILES = 5000;
@@ -58,6 +59,60 @@ function addMetric(acc, field, value) {
   const n = toNumberOrNull(value);
   if (n == null) return;
   acc[field] = acc[field] == null ? n : acc[field] + n;
+}
+
+function createProviderRowBucket() {
+  return {
+    tokenInput: 0,
+    tokenOutput: 0,
+    cacheRead: 0,
+    cacheCreate: 0,
+    callCount: 0,
+    cost: 0,
+    costIncomplete: false,
+    durationMs: 0,
+  };
+}
+
+function getProviderRowBucket(target, provider, profileKey) {
+  target.providers = target.providers || {};
+  const providerKey = normalizeAgentMetricDimension(provider);
+  const profile = normalizeAgentMetricDimension(profileKey);
+  const providerBuckets = target.providers[providerKey] = target.providers[providerKey] || {};
+  return providerBuckets[profile] = providerBuckets[profile] || createProviderRowBucket();
+}
+
+function addProviderMetric(bucket, field, value) {
+  const n = toNumberOrNull(value);
+  if (n == null) return;
+  bucket[field] += n;
+}
+
+function mergeProviderBucket(target, provider, profileKey, source) {
+  if (!source || typeof source !== "object") return;
+  const bucket = getProviderRowBucket(target, provider, profileKey);
+  const tokens = source.tokens && typeof source.tokens === "object" ? source.tokens : {};
+  addProviderMetric(bucket, "tokenInput", source.tokenInput ?? tokens.input);
+  addProviderMetric(bucket, "tokenOutput", source.tokenOutput ?? tokens.output);
+  addProviderMetric(bucket, "cacheRead", source.cacheRead ?? tokens.cacheRead);
+  addProviderMetric(bucket, "cacheCreate", source.cacheCreate ?? tokens.cacheCreation);
+  addProviderMetric(bucket, "callCount", source.callCount);
+  addProviderMetric(bucket, "cost", source.cost);
+  addProviderMetric(bucket, "durationMs", source.durationMs);
+  if (source.costIncomplete) bucket.costIncomplete = true;
+}
+
+function mergeProviderMaps(target, providers) {
+  if (!providers || typeof providers !== "object") return false;
+  let merged = false;
+  for (const [provider, profiles] of Object.entries(providers)) {
+    if (!profiles || typeof profiles !== "object") continue;
+    for (const [profileKey, bucket] of Object.entries(profiles)) {
+      mergeProviderBucket(target, provider, profileKey, bucket);
+      merged = true;
+    }
+  }
+  return merged;
 }
 
 function formatScalar(value, kind = "number") {
@@ -126,6 +181,7 @@ export function computePhaseSummary(phaseRows) {
   let durationCount = 0;
   let difficultySum = 0;
   let difficultyCount = 0;
+  const providers = {};
 
   for (const row of phaseRows) {
     totalCalls += row.callCount || 0;
@@ -137,6 +193,7 @@ export function computePhaseSummary(phaseRows) {
     totalSpecCount += row.specCount || 0;
     if (row.cost != null) { costSum += row.cost; costCount += 1; }
     if (row.difficulty != null) { difficultySum += row.difficulty; difficultyCount += 1; }
+    mergeProviderMaps({ providers }, row.providers);
   }
 
   const cacheHitRate = (totalInput + totalCacheRead) > 0
@@ -155,6 +212,7 @@ export function computePhaseSummary(phaseRows) {
     cacheHitRate,
     avgSpecCount: n > 0 ? totalSpecCount / n : null,
     avgDifficulty: difficultyCount > 0 ? difficultySum / difficultyCount : null,
+    providers,
   };
 }
 
@@ -376,6 +434,7 @@ function createEmptyRow(date, phase) {
     callCount: null,
     cost: null,
     durationMs: null,
+    providers: {},
     _difficultySum: 0,
     _difficultyCount: 0,
   };
@@ -392,6 +451,18 @@ function applyPhaseMetrics(row, phaseData, specDifficulty) {
   addMetric(row, "cost", phaseData.cost);
   if (phaseData.costIncomplete) row.costIncomplete = true;
   addMetric(row, "durationMs", phaseData.durationMs);
+  if (!mergeProviderMaps(row, phaseData.providers)) {
+    mergeProviderBucket(row, "unknown", "unknown", {
+      tokenInput: tokens.input,
+      tokenOutput: tokens.output,
+      cacheRead: tokens.cacheRead,
+      cacheCreate: tokens.cacheCreation,
+      callCount: phaseData.callCount,
+      cost: phaseData.cost,
+      costIncomplete: phaseData.costIncomplete,
+      durationMs: phaseData.durationMs,
+    });
+  }
   if (specDifficulty != null) {
     row._difficultySum += specDifficulty;
     row._difficultyCount += 1;
@@ -433,6 +504,7 @@ function finalizeRow(row) {
     cost: row.cost,
     costIncomplete: row.costIncomplete || false,
     durationMs: row.durationMs,
+    providers: row.providers || {},
   };
 }
 
@@ -560,6 +632,16 @@ function normalizeMetrics(metrics) {
     }
     if (entry.cost != null) p.cost = (p.cost || 0) + entry.cost;
     if (entry.cost == null || entry.cost === 0) p.costIncomplete = true;
+    mergeProviderBucket(p, entry.provider, entry.profileKey, {
+      tokenInput: entry.tokens?.input,
+      tokenOutput: entry.tokens?.output,
+      cacheRead: entry.tokens?.cacheRead,
+      cacheCreate: entry.tokens?.cacheCreation,
+      callCount: entry.callCount,
+      cost: entry.cost,
+      costIncomplete: entry.costIncomplete || entry.cost == null || entry.cost === 0,
+      durationMs: entry.durationMs,
+    });
   }
   return byPhase;
 }

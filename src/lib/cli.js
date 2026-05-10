@@ -108,7 +108,9 @@ export function getMainRepoPath(root) {
   // Logger 基盤の依存元のため runCmd を直接使う。runGit に変更してはならない
   // （Logger.git → resolveLogDir → getMainRepoPath → runGit → Logger.git で無限再帰になる）。
   const res = runCmd("git", ["-C", root, "rev-parse", "--git-common-dir"]);
-  assertOk(res, "failed to resolve git-common-dir");
+  if (!res.ok && !(res.status === 0 && res.stdout.trim())) {
+    assertOk(res, "failed to resolve git-common-dir");
+  }
   const gitCommonDir = res.stdout.trim();
   // git-common-dir は絶対パスまたは root からの相対パスを返す
   const abs = path.resolve(root, gitCommonDir);

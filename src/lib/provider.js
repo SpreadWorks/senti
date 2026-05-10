@@ -150,6 +150,8 @@ class CodexProvider extends Provider {
 }
 
 class UserProvider extends Provider {
+  static key = "user";
+
   constructor(profile) {
     super();
     this._profile = profile || {};
@@ -207,8 +209,10 @@ class ProviderRegistry {
     if (!profileKey) return null;
     const profile = this._profiles[profileKey];
     if (!profile) return null;
-    const provider = this.resolveByCommand(profile.command) || new UserProvider(profile);
-    return { provider, profile };
+    const matched = this.resolveByCommand(profile.command);
+    const provider = matched || new UserProvider(profile);
+    const providerKey = matched ? matched.constructor.key : UserProvider.key;
+    return { provider, profile, providerKey };
   }
 
   /** Iteration helper for tests / introspection. */

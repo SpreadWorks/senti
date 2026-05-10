@@ -732,7 +732,7 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
   pb.setFmtFallback(GUARDRAIL_FMT_FALLBACK);
 
   if (Array.isArray(previouslyPassedIds) && previouslyPassedIds.length > 0) {
-    pb.add(
+    pb.addUserPrompt(
       "## Previously Passed Guardrails",
       "The following guardrail IDs passed in a previous evaluation of this content.\n"
         + "Only FAIL these if the current content specifically introduces a new violation.\n"
@@ -741,14 +741,14 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
   }
 
   if (DIFF_SCOPED_PHASES.includes(phase)) {
-    pb.add("## Diff Scope Constraint", IMPL_DIFF_SCOPE_LINES.slice(1).join("\n"));
+    pb.addUserPrompt("## Diff Scope Constraint", IMPL_DIFF_SCOPE_LINES.slice(1).join("\n"));
   }
 
-  pb.add("## Guardrail Articles", articleList);
+  pb.addUserPrompt("## Guardrail Articles", articleList);
   if (options?.acknowledgedRationale?.markdown) {
-    pb.addRaw(options.acknowledgedRationale.markdown);
+    pb.addUserRaw(options.acknowledgedRationale.markdown);
   }
-  pb.add("## Content", targetText);
+  pb.addUserPrompt("## Content", targetText);
 
   return pb;
 }
@@ -1514,9 +1514,9 @@ function buildImplCheckPrompt(specText, diff, knownIds) {
   pb.setJsonSchema(IMPL_REQUIREMENT_EVAL_SCHEMA);
   pb.setFmtFallback(IMPL_REQUIREMENT_FMT_FALLBACK);
 
-  pb.add("## Requirement IDs", knownIds.map((id) => `- ${id}`).join("\n"));
-  pb.add("## Spec", specText);
-  pb.add("## Git Diff", diff);
+  pb.addUserPrompt("## Requirement IDs", knownIds.map((id) => `- ${id}`).join("\n"));
+  pb.addUserPrompt("## Spec", specText);
+  pb.addUserPrompt("## Git Diff", diff);
 
   return pb;
 }

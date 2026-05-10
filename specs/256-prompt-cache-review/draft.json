@@ -1,0 +1,101 @@
+{
+  "devType": "refactor",
+  "goal": "Restore prompt-cache creation for review-spec and review-draft on providers that report cache_creation_input_tokens by moving the current reviewer role sentence, current focus bullet list, and current output-format instructions into system prompts through PromptBuilder. Refactor PromptBuilder's section API and record `provider` and `profileKey` fields in flow metrics so future cache regressions can be diagnosed from flow.json.",
+  "analysis": {
+    "problem": "review-spec and review-draft currently build one large user prompt, so the current reviewer role sentence, focus bullet list, and output-format instructions are not separated into the provider system prompt path and cacheCreation can remain 0. The same investigation showed that flow metrics record token/cache totals but not `provider` and `profileKey` fields needed to distinguish provider behavior during regressions.",
+    "proposedApproach": "Extend PromptBuilder so system-side and user-side sections are explicit, migrate review-spec and review-draft prompt construction to that API, move the single `testDesign` value created before `runReviewLoop` into the systemPrompt argument for both gap-analysis and gap-fix calls, and write `provider` and `profileKey` fields on agent metric entries. Providers that do not report system-prompt cache creation will still record cacheCreation = 0 after this change, so provider/profile fields are required to interpret results. Named risk: provider-specific cost can increase when systemPrompt tokens are not discounted; mitigation is exact cost_usd aggregation under provider/profile buckets, not a requirement that cost decrease.",
+    "validation": "The approach targets the root cause because Agent.call already accepts a systemPrompt option and flow metrics already accumulate cacheCreation tokens; the missing pieces are prompt construction boundaries and provider/profile attribution. Success requires PromptBuilder/call-site unit tests, review-spec and review-draft calls whose flow.json agent metrics contain cacheCreation > 0 when run with a provider that reports cache_creation_input_tokens, and metric entries that include provider and profileKey while preserving input/output/cacheRead/cacheCreation/cost totals."
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Refactor `src/lib/prompt-builder.js` so `addUserPrompt(header, content)` appends to userPrompt, `addSystemPrompt(header, content)` appends to systemPrompt after role/rules, and `setRole(text)`, `setRules(text)`, `setJsonSchema(schema)`, `setFmtFallback(text)` remain overwrite-only.",
+      "must: Update all existing `PromptBuilder.add(...)` call sites to the new user-section API without leaving the old method in use.",
+      "must: Migrate review-spec prompt construction in `src/flow/commands/review.js` to PromptBuilder with role/rules/format content that does not vary per review-spec call on the system side and spec/context content that varies per spec on the user side.",
+      "must: Migrate review-draft prompt construction in `src/flow/commands/review.js` using the same system/user split.",
+      "must: Move the `testDesign` value created once before `runReviewLoop` to the systemPrompt argument for both gap-analysis and gap-fix agent calls and add a test that asserts those calls receive `systemPrompt.includes(testDesign)`.",
+      "must: Record provider/profile identifying metadata in new flow.json agent metric entries while preserving tokens.input, tokens.output, tokens.cacheRead, tokens.cacheCreation, cost, callCount, responseChars, durationMs, and model aggregation behavior; `src/flow/lib/get-status.js` and `src/metrics/commands/token.js` must expose missing metadata under literal keys provider=\"unknown\" and profileKey=\"unknown\".",
+      "must: Add or update tests that assert PromptBuilder returns systemPrompt containing role/rules/system sections, userPrompt containing user sections in insertion order, jsonSchema pass-through, fmtFallback pass-through, review-spec systemPrompt contains `You are a spec completeness reviewer` and `Output a numbered list of proposals`, review-spec userPrompt contains `## Spec` and `## Codebase Context`, review-draft systemPrompt contains `You are a draft QA quality reviewer` and `Output a numbered list of issues`, review-draft userPrompt contains `## Request / Issue` and `## Draft QA Entries`, metric entries include string fields `provider` and `profileKey`, provider aggregation uses nested keys `providers[provider][profileKey]`, aggregate `cost` equals the exact sum of input `cost` fields, and `rg \"\\.add\\(\" src` finds no PromptBuilder generic add call sites."
+    ],
+    "out": [
+      "Do not change public CLI command names or options.",
+      "Do not add external npm dependencies.",
+      "Do not modify provider token parsing semantics except for passing through provider/profile identity into metrics.",
+      "Do not optimize unrelated docs commands or non-review prompt builders beyond the API rename required by PromptBuilder.",
+      "Do not publish npm packages or change dist-tags."
+    ]
+  },
+  "impactOnExisting": [
+    "must: `src/lib/prompt-builder.js` consumers must use the renamed user-section method and the new system-section method.",
+    "must: `src/flow/commands/review.js` review-spec, review-draft, and test-review prompts will change transport boundaries while keeping the existing proposal formats, NO_PROPOSALS pass condition, PASS/FAIL artifact files, and reviewed input sources.",
+    "must: docs commands and docs libraries that currently call `PromptBuilder.add(...)` must be migrated in the same change so removing the old method does not break `docs enrich`, `docs text`, `docs forge`, `docs init`, `docs translate`, `docs agents`, or template merger prompts; those docs call sites must use user-prompt sections only unless an existing systemPrompt was already passed.",
+    "must: `src/lib/agent.js`, `src/lib/provider.js`, and `src/lib/flow-store.js` metric paths must include string fields `provider` and `profileKey` in addition to existing token/cache totals.",
+    "must: `src/metrics/commands/token.js`, `src/flow/lib/get-status.js`, and report/status consumers must continue reading input/output/cacheRead/cacheCreation/cost/callCount/duration metrics after provider/profile fields are added.",
+    "must: `sdd-forge flow get status` JSON metricsSummary and `sdd-forge metrics token --format json` rows must expose provider/profile aggregation as nested `providers[provider][profileKey]` objects, with `providers.unknown.unknown` for entries without metadata and recorded values for new entries.",
+    "must: Named cost risk is tracked by asserting exact `cost` sums inside provider/profile buckets; the spec does not require total cost to decrease.",
+    "must: Existing unit and agent-facing tests around PromptBuilder, review prompts, provider parsing, and metrics aggregation are affected."
+  ],
+  "qa": [
+    {
+      "question": "What root problem must the spec solve?",
+      "answer": "The spec must solve prompt-cache creation loss in review-spec and review-draft, not only rename a helper method. The requirements must preserve review behavior while separating prompt parts that do not vary per call from per-call user content.",
+      "evidence": "Issue #320 states `cacheCreation = 0` for review-spec / review-draft and requests PromptBuilder refactoring plus review prompt construction fixes.",
+      "why": "If the spec only renames `add`, review-spec and review-draft can still send instructions that do not vary per call as user content and the cache regression remains.",
+      "considered": "A narrow rename-only refactor was rejected because it would not address the cacheCreation verification requirement."
+    },
+    {
+      "question": "Which existing prompt API contract should be changed?",
+      "answer": "The API should make append targets explicit: single setters stay as single overwrite fields, user sections use a user-specific add method, and system sections use a system-specific add method.",
+      "evidence": "`src/lib/prompt-builder.js` currently has `setRole`, `setRules`, `setJsonSchema`, `setFmtFallback`, and one generic `add(header, content)` that appends only to `_sections` used for `userPrompt`.",
+      "why": "The requested convention is `set = single overwrite / add = append`; separate add methods make the system/user boundary visible at call sites.",
+      "considered": "Keeping `add` as an alias was rejected because the project alpha policy says not to retain deprecated compatibility paths."
+    },
+    {
+      "question": "How broad is the PromptBuilder call-site migration?",
+      "answer": "All current PromptBuilder call sites must be migrated in the same spec so the old generic method disappears from production code and relevant tests, including docs commands that are not part of review execution. Docs command migrations should preserve current user-prompt-only behavior unless the call site already passes a systemPrompt, and the test plan must include an `rg \"\\.add\\(\" src` assertion to catch missed call sites.",
+      "evidence": "`rg \"new PromptBuilder|\\.add\\(\" src specs tests -n` shows production PromptBuilder usage in flow review/gate/context and docs commands, plus existing spec tests that exercise `pb.add(...)`.",
+      "why": "Leaving mixed APIs would create two prompt-section conventions and violate the project rule to extract or align repeated patterns when the same pattern appears multiple times.",
+      "considered": "Migrating only review.js was rejected because the old method would remain a parallel API surface."
+    },
+    {
+      "question": "What review-spec behavior must remain visible after migration?",
+      "answer": "review-spec must still compare a spec summary against related codebase context and produce proposals or NO_PROPOSALS; only the prompt transport boundaries should change.",
+      "evidence": "`src/flow/commands/review.js` has `buildSpecReviewPrompt(specText, contextEntries)` and `runSpecReview`, which build context entries, call `callReviewAgent`, parse proposals, and write `spec-review.md`.",
+      "why": "The user asked for cache behavior and PromptBuilder alignment, not a change to spec review semantics.",
+      "considered": "Changing the reviewer criteria was rejected as outside the issue scope."
+    },
+    {
+      "question": "What review-draft behavior must remain visible after migration?",
+      "answer": "review-draft must still evaluate draft QA against the request and codebase context, then write a PASS/FAIL draft-review artifact based on proposals.",
+      "evidence": "`src/flow/commands/review.js` has `buildDraftReviewPrompt(draftJson, requestText, contextEntries)` and `runDraftReview`, which formats QA entries and related context for a draft QA quality reviewer.",
+      "why": "The migration should improve cacheability without weakening draft QA quality checks.",
+      "considered": "Combining draft and spec review prompt builders was rejected because their reviewed artifacts and criteria differ."
+    },
+    {
+      "question": "Why include test-review prompt changes in this spec?",
+      "answer": "The test-review loop reuses the same test design string while checking and fixing gaps, so it is a related prompt-cache opportunity and belongs in scope as a lower-priority structural consistency item.",
+      "evidence": "`src/flow/commands/review.js` creates `testDesign`, then the gap analysis/fix loop builds prompts around that design and test files.",
+      "why": "Issue #320 explicitly includes moving testDesign to the system side for gap analysis / gap fix, but marks it lower priority than review-spec and review-draft.",
+      "considered": "Dropping it from scope was rejected because the Issue includes it as part of the same review prompt caching concern."
+    },
+    {
+      "question": "What metric attribution is missing today?",
+      "answer": "Agent metrics include call count, response size, duration, token/cache totals, optional cost, and optional model, but they do not currently preserve provider/profile identity in flow.json metrics. Metric readers should aggregate missing provider/profile fields under `providers.unknown.unknown` for older flow.json entries.",
+      "evidence": "`src/lib/agent.js` passes `model: null` to `flowManager.accumulateAgentMetrics`; `src/lib/flow-store.js` writes agent metric entries with tokens/cost/model but no provider or profile field.",
+      "why": "Provider/profile attribution is needed to diagnose whether cacheCreation behavior comes from Claude, Codex, or a selected profile, and the `providers.unknown.unknown` fallback prevents older flow.json files from being misread as a concrete provider.",
+      "considered": "Adding provider/profile only to logs was rejected because the Issue asks for flow.json metrics and metrics must survive when log inspection is unavailable."
+    },
+    {
+      "question": "How should success be tested?",
+      "answer": "Tests should assert PromptBuilder returns systemPrompt containing role/rules/system sections, userPrompt containing user sections in insertion order, jsonSchema pass-through, fmtFallback pass-through, absence of old generic API use in migrated call sites, review-spec systemPrompt containing `You are a spec completeness reviewer` and `Output a numbered list of proposals`, review-spec userPrompt containing `## Spec` and `## Codebase Context`, review-draft systemPrompt containing `You are a draft QA quality reviewer` and `Output a numbered list of issues`, review-draft userPrompt containing `## Request / Issue` and `## Draft QA Entries`, flow metric entries retaining cacheCreation plus `provider` and `profileKey`, provider/profile aggregation using `providers.unknown.unknown` for older entries, exact numeric sums for input/output/cacheRead/cacheCreation/cost/callCount/duration, and existing metric readers preserving those totals.",
+      "evidence": "Existing tests already cover PromptBuilder behavior under `specs/247-prompt-layer-optimization/tests/prompt-builder.test.js`; current metric aggregation reads cacheCreation in `src/flow/lib/get-status.js` and `src/metrics/commands/token.js`.",
+      "why": "The verification must catch both the API migration and the regression symptom stated in the Issue.",
+      "considered": "Relying only on a manual review-spec run was rejected because cache behavior and metric shape can regress independently."
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-09T14:31:26Z",
+    "notes": "autoApprove"
+  }
+}

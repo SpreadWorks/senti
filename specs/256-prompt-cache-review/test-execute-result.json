@@ -1,0 +1,116 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/256-prompt-cache-review/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/prompt-builder-api.test.js",
+        "test_name": "R1: appends user and system prompt sections independently",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [66, 66]
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/prompt-builder-api.test.js",
+        "test_name": "R2: production PromptBuilder callers do not use removed add API",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [68, 68]
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/review-prompt-split.test.js",
+        "test_name": "R3: spec-review keeps reviewer instructions in systemPrompt",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [92, 92]
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/review-prompt-split.test.js",
+        "test_name": "R4: review-draft keeps reviewer instructions in systemPrompt",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [93, 93]
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/review-prompt-split.test.js",
+        "test_name": "R5: test-review gap analysis keeps stable test design in systemPrompt",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [94, 94]
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/metrics-provider-buckets.test.js",
+        "test_name": "R6: accumulateAgentMetrics persists provider and profileKey strings",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [38, 38]
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/metrics-provider-buckets.test.js",
+        "test_name": "R7: status metricsSummary builds nested provider/profile buckets",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [41, 41]
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/review-cache-creation-e2e.test.js",
+        "test_name": "R8: mocked review-spec agent usage with cache_creation_tokens > 0 is recorded in flow.json and provider buckets",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [87, 87]
+      }
+    },
+    {
+      "id": "R9",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/metrics-provider-buckets.test.js",
+        "test_name": "R9: old metric entries without provider/profileKey aggregate under unknown",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [43, 43]
+      }
+    },
+    {
+      "id": "R10",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/cache-version-rebuild.test.js",
+        "test_name": "R10: stale cache (version=2) with legacy row shape is invalidated and rebuilt with providers buckets",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [2, 2]
+      }
+    },
+    {
+      "id": "R11",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/256-prompt-cache-review/tests/report-totals-e2e.test.js",
+        "test_name": "R11: report.json shape has only legacy tokenMetrics keys",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/256-prompt-cache-review/tests/*.test.js",
+        "raw_output_lines": [83, 83]
+      }
+    }
+  ]
+}

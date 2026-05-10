@@ -12,6 +12,7 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { normalizeAgentMetricDimension } from "./agent-metrics.js";
 import { runGit } from "./git-helpers.js";
 import { sddDir } from "./config.js";
 import {
@@ -425,11 +426,13 @@ export class FlowStore {
     this.appendMetric({ phase, counter, delta: 1 }, opts);
   }
 
-  accumulateAgentMetrics(phase, { usage, responseChars, model, durationMs, taskId } = {}) {
+  accumulateAgentMetrics(phase, { usage, responseChars, model, durationMs, provider, profileKey, taskId } = {}) {
     if (!phase) return;
     const payload = {
       phase,
       kind: "agent",
+      provider: normalizeAgentMetricDimension(provider),
+      profileKey: normalizeAgentMetricDimension(profileKey),
       callCount: 1,
       responseChars: responseChars || 0,
       ...(durationMs != null && { durationMs }),

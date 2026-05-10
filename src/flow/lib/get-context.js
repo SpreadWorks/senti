@@ -108,8 +108,8 @@ function _buildKeywordSelectionPb(keywords, query) {
   pb.setJsonSchema(KEYWORD_SELECTION_SCHEMA);
   pb.setFmtFallback(KEYWORD_SELECTION_FMT_FALLBACK);
 
-  pb.add("## Query", query);
-  pb.add("## Available keywords", keywords.join(", "));
+  pb.addUserPrompt("## Query", query);
+  pb.addUserPrompt("## Available keywords", keywords.join(", "));
 
   return pb;
 }

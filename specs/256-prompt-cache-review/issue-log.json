@@ -1,0 +1,468 @@
+{
+  "entries": [
+    {
+      "step": "prelude",
+      "reason": "flow note recording was attempted before flow.json existed during prelude",
+      "trigger": "after enabling auto mode in preparing state, note was written before prepare created active flow",
+      "resolution": "recorded the same auto mode decision after flow prepare created flow.json",
+      "guardrailCandidate": "prelude notes must be persisted only after prepare creates flow.json",
+      "taskId": null,
+      "timestamp": "2026-05-09T14:27:07.357Z"
+    },
+    {
+      "step": "draft",
+      "reason": "draft.json patch was first attempted with a main-repository relative path while active flow uses a worktree",
+      "trigger": "apply_patch resolves relative paths against the main assistant workspace instead of the flow worktree",
+      "resolution": "reapplied the patch with an absolute path under the active worktree",
+      "guardrailCandidate": "during active worktree flows, Edit and patch paths must be worktree-relative by tool context or absolute under worktree",
+      "taskId": null,
+      "timestamp": "2026-05-09T14:29:49.916Z"
+    },
+    {
+      "step": "review-draft",
+      "reason": "draft review first failed inside sandbox while resolving git common directory from Node spawnSync",
+      "trigger": "sdd-forge flow run review --phase draft returned failed to resolve git-common-dir before AI review started",
+      "resolution": "reran the same redirected review command with approved sandbox escalation and received PASS",
+      "guardrailCandidate": "when Node CLI fails on internal git spawn with exit=0, retry once with escalation before changing code",
+      "taskId": null,
+      "timestamp": "2026-05-09T14:31:23.285Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one coherent concern: restoring prompt-cache creation for review prompts by refactoring PromptBuilder's section API and adding provider/profile attribution to metrics. All sub-items (PromptBuilder rename, review prompt migration, metric enrichment) are directly connected to diagnosing and fixing the cacheCreation=0 regression from Issue #320.; Unambiguous Requirements — should: Move stable test review design context used by gap analysis and gap fix prompts to the system side when it is unchanged across the review loop. — \"when it is unchanged across the review loop\" is a vague, runtime-dependent condition with no verifiable definition. Two reviewers could disagree on what counts as 'unchanged' without a concrete criterion (e.g., 'testDesign string is the same object reference or content across all iterations'). (at scopeVerification.in[4]); Unambiguous Requirements — without removing existing token/cache/cost totals — 'Existing token/cache/cost totals' is not enumerated; a reviewer cannot verify which exact fields must be preserved without a list or reference to a schema/test fixture. (at scopeVerification.in[5]); Unambiguous Requirements — may need to tolerate or summarize the new metric fields — 'May need to' and 'tolerate or summarize' are non-committal and vague — they do not specify which files need changes, which do not, or what 'tolerate' means concretely. (at impactOnExisting[3]); Complete Context — stable role/rules/format content on the system side and spec/context content on the user side — 'Stable' is not defined with a concrete criterion (e.g., 'content that does not vary per call'). Two reviewers could disagree on which parts of review-spec qualify as 'stable' versus dynamic. (at scopeVerification.in[2]); Complete Context — Success is verifiable through unit tests for PromptBuilder/call sites and by observing cacheCreation plus provider/profile fields in flow.json after review calls. — 'Observing cacheCreation' is not a verifiable pass/fail criterion — it does not specify what value or threshold constitutes success (e.g., 'cacheCreation > 0 after at least one review-spec call'). (at analysis.validation); No Hardcoded Secrets — The spec contains no API keys, passwords, tokens, or other secrets. It references environment-based provider configuration only generically.; Prioritize Requirements — scopeVerification.in — 7 items total, only some marked must/should — There are 7 in-scope requirement items. Items [0]–[3] and [5]–[6] are marked 'must', item [4] is marked 'should', but the guardrail requires explicit must/should/nice-to-have assignment for all items when there are more than three. Item [4] ('should: Move stable test review design context…') is the only 'should'; all others are 'must' — but there is no 'nice-to-have' tier considered, and the impactOnExisting list (4 items) has no priority labels at all. (at scopeVerification.in); Prioritize Requirements — impactOnExisting — 4 items with no priority labels — The four impact items represent work that consumers of changed modules must perform, but none is labeled must/should/nice-to-have, making it impossible to determine what is required versus optional for the spec to be considered complete. (at impactOnExisting); Impact on Existing Features — The spec explicitly enumerates four impactOnExisting entries covering PromptBuilder consumers, review.js prompt shape changes, agent.js/provider.js/flow-store.js metric paths, and downstream report/status consumers. The affected test suite is also called out.; Present Recommendations with Reasoning — All seven QA entries include an explicit recommended answer, an evidence citation pointing to source files or the issue, and a 'why' field explaining the reasoning basis. Rejected alternatives are captured in 'considered' fields.; Explore Before Asking — The QA section demonstrates pre-exploration: each answer references specific source files (src/lib/prompt-builder.js, src/flow/commands/review.js, src/lib/agent.js, etc.) and ripgrep evidence, indicating codebase was read before questions were formulated. openQuestions is empty.; Proactively Raise Related Implications — missing implication: existing docs commands that use PromptBuilder.add() will break if the old method is removed without a migration guide — The spec mandates migrating all call sites but does not raise the implication that docs commands (enrich, text, etc.) referencing .add() could silently break or be missed. The impact section lists only review.js and agent/flow-store paths, not the docs command call sites. (at scopeVerification.in[1]); Proactively Raise Related Implications — missing implication: systemPrompt passed to Agent.call may count toward context window differently per provider, affecting cost estimates — Moving stable instructions to the system prompt changes token distribution between system and user roles, which can affect cost-per-call calculations. This interaction with the existing cost metric fields is not raised. (at analysis.proposedApproach); Confirm Brainstorm vs. Decision Before Critiquing — The spec's approval field shows confirmed=true with an explicit confirmedAt timestamp, indicating decisions are finalized. The QA section uses definitive 'answer' framing rather than exploratory brainstorming language.; Capture Digressions in draft.md — There is no draft.md artifact or discussion thread available to evaluate; the content is a self-contained spec JSON with no evidence of digressions requiring capture.; Backward-Compatible CLI Interface — The spec explicitly excludes CLI command name or option changes in scopeVerification.out[0] ('Do not change public CLI command names or options'). No CLI interface breaking changes are proposed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T14:36:10.007Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "should: Move stable test review design context used by gap analysis and gap fix prompts to the system side when it is unchanged across the review loop. — \"when it is unchanged across the review loop\" is a vague, runtime-dependent condition with no verifiable definition. Two reviewers could disagree on what counts as 'unchanged' without a concrete criterion (e.g., 'testDesign string is the same object reference or content across all iterations'). (at scopeVerification.in[4]); without removing existing token/cache/cost totals — 'Existing token/cache/cost totals' is not enumerated; a reviewer cannot verify which exact fields must be preserved without a list or reference to a schema/test fixture. (at scopeVerification.in[5]); may need to tolerate or summarize the new metric fields — 'May need to' and 'tolerate or summarize' are non-committal and vague — they do not specify which files need changes, which do not, or what 'tolerate' means concretely. (at impactOnExisting[3])"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "stable role/rules/format content on the system side and spec/context content on the user side — 'Stable' is not defined with a concrete criterion (e.g., 'content that does not vary per call'). Two reviewers could disagree on which parts of review-spec qualify as 'stable' versus dynamic. (at scopeVerification.in[2]); Success is verifiable through unit tests for PromptBuilder/call sites and by observing cacheCreation plus provider/profile fields in flow.json after review calls. — 'Observing cacheCreation' is not a verifiable pass/fail criterion — it does not specify what value or threshold constitutes success (e.g., 'cacheCreation > 0 after at least one review-spec call'). (at analysis.validation)"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "scopeVerification.in — 7 items total, only some marked must/should — There are 7 in-scope requirement items. Items [0]–[3] and [5]–[6] are marked 'must', item [4] is marked 'should', but the guardrail requires explicit must/should/nice-to-have assignment for all items when there are more than three. Item [4] ('should: Move stable test review design context…') is the only 'should'; all others are 'must' — but there is no 'nice-to-have' tier considered, and the impactOnExisting list (4 items) has no priority labels at all. (at scopeVerification.in); impactOnExisting — 4 items with no priority labels — The four impact items represent work that consumers of changed modules must perform, but none is labeled must/should/nice-to-have, making it impossible to determine what is required versus optional for the spec to be considered complete. (at impactOnExisting)"
+        },
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "missing implication: existing docs commands that use PromptBuilder.add() will break if the old method is removed without a migration guide — The spec mandates migrating all call sites but does not raise the implication that docs commands (enrich, text, etc.) referencing .add() could silently break or be missed. The impact section lists only review.js and agent/flow-store paths, not the docs command call sites. (at scopeVerification.in[1]); missing implication: systemPrompt passed to Agent.call may count toward context window differently per provider, affecting cost estimates — Moving stable instructions to the system prompt changes token distribution between system and user roles, which can affect cost-per-call calculations. This interaction with the existing cost metric fields is not raised. (at analysis.proposedApproach)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed on vague requirements, missing impact implications, missing priority labels, and sandbox git spawn retry",
+      "trigger": "sdd-forge flow run gate --phase draft returned FAIL with unambiguous, complete-context, prioritize, and proactive-implication guardrails",
+      "resolution": "rewrote draft requirements with concrete cacheCreation threshold, enumerated preserved metric fields, added docs command impact, labeled impact items, and retried sandbox git spawn with escalation",
+      "guardrailCandidate": "draft requirements should define prompt stability as per-call invariance and enumerate metric fields before running gate",
+      "taskId": null,
+      "timestamp": "2026-05-09T14:37:15.777Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Previously passed; the spec addresses one coherent concern—restoring prompt-cache creation via PromptBuilder refactoring and review prompt restructuring, with provider metadata as a directly related diagnostic requirement. No new scope bundling introduced.; Unambiguous Requirements — preserving review intent — \"Review intent\" is a vague phrase with no verifiable condition; two implementers could disagree on whether a restructured prompt preserves it, as no specific review outputs or behavioral criteria are given. (at impactOnExisting[1]); Unambiguous Requirements — Add or update focused tests — \"Focused\" is a vague adjective analogous to \"appropriate\"; the requirement does not state a measurable coverage criterion (e.g., minimum cases, assertion types, or file paths), leaving the definition of sufficient tests ambiguous. (at scopeVerification.in[6]); Complete Context — preserving review intent — \"Review intent\" is a subjective term without measurable criteria; two independent reviewers cannot agree on whether an implementation satisfies this requirement because no observable outputs (e.g., proposal format, NO_PROPOSALS condition, artifact content) are cited as the benchmark. (at impactOnExisting[1]); Complete Context — PromptBuilder output shape — \"Output shape\" is undefined; two reviewers could disagree on which structural properties of PromptBuilder output the tests must assert, making it impossible to determine objectively whether the test requirement is satisfied. (at scopeVerification.in[6]); No Hardcoded Secrets — Previously passed; no API keys, tokens, passwords, or secrets appear in the draft content.; Prioritize Requirements — All seven scopeVerification.in items and all five impactOnExisting items are explicitly labeled \"must:\" or \"should:\", satisfying the prioritization requirement for more than three items.; Impact on Existing Features — Previously passed; an explicit impactOnExisting section enumerates must/should impacts on PromptBuilder consumers, review prompts, docs commands, agent.js/provider.js/flow-store.js metric paths, and metric reader files.; Present Recommendations with Reasoning — Previously passed; every qa entry provides a recommended answer backed by evidence (file paths, grep output references) and explains why alternative approaches were rejected.; Explore Before Asking — Previously passed; openQuestions is empty and all qa entries cite specific source files (src/lib/prompt-builder.js, src/flow/commands/review.js, src/lib/agent.js, etc.) as evidence that the codebase was explored before answers were given.; Proactively Raise Related Implications — missing implication: providers without system-prompt caching still yield cacheCreation = 0 after the change — The spec's stated goal is to restore cacheCreation > 0, but it does not proactively raise that the fix only benefits providers that support system-prompt caching; non-caching providers will continue to show cacheCreation = 0 and users need to know the change is provider-conditional. (at analysis.proposedApproach); Proactively Raise Related Implications — missing implication: moving user-prompt content to system prompt may raise per-call cost for providers that charge full rate for system tokens — The spec acknowledges that providers count systemPrompt tokens differently but does not raise the obvious implication that migrating content from user prompt to system prompt could increase per-call costs for providers that do not discount or cache system tokens, even as cacheCreation improves. (at analysis.proposedApproach); Confirm Brainstorm vs. Decision Before Critiquing — Previously passed; approval.approved is true with a confirmed timestamp, indicating the spec is a decided document, and no brainstorming-vs-deciding ambiguity exists.; Capture Digressions in draft.md — The content is a finalized JSON spec object with no visible discussion thread; it is not possible to evaluate whether digressions occurred and were captured without the originating conversation transcript.; Backward-Compatible CLI Interface — Previously passed; scopeVerification.out explicitly states \"Do not change public CLI command names or options,\" covering the CLI backward-compatibility requirement.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T14:40:59.183Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "preserving review intent — \"Review intent\" is a vague phrase with no verifiable condition; two implementers could disagree on whether a restructured prompt preserves it, as no specific review outputs or behavioral criteria are given. (at impactOnExisting[1]); Add or update focused tests — \"Focused\" is a vague adjective analogous to \"appropriate\"; the requirement does not state a measurable coverage criterion (e.g., minimum cases, assertion types, or file paths), leaving the definition of sufficient tests ambiguous. (at scopeVerification.in[6])"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "preserving review intent — \"Review intent\" is a subjective term without measurable criteria; two independent reviewers cannot agree on whether an implementation satisfies this requirement because no observable outputs (e.g., proposal format, NO_PROPOSALS condition, artifact content) are cited as the benchmark. (at impactOnExisting[1]); PromptBuilder output shape — \"Output shape\" is undefined; two reviewers could disagree on which structural properties of PromptBuilder output the tests must assert, making it impossible to determine objectively whether the test requirement is satisfied. (at scopeVerification.in[6])"
+        },
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "missing implication: providers without system-prompt caching still yield cacheCreation = 0 after the change — The spec's stated goal is to restore cacheCreation > 0, but it does not proactively raise that the fix only benefits providers that support system-prompt caching; non-caching providers will continue to show cacheCreation = 0 and users need to know the change is provider-conditional. (at analysis.proposedApproach); missing implication: moving user-prompt content to system prompt may raise per-call cost for providers that charge full rate for system tokens — The spec acknowledges that providers count systemPrompt tokens differently but does not raise the obvious implication that migrating content from user prompt to system prompt could increase per-call costs for providers that do not discount or cache system tokens, even as cacheCreation improves. (at analysis.proposedApproach)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate second run failed on remaining vague terms and missing provider-specific cache/cost implications",
+      "trigger": "gate reported vague review intent, focused tests, undefined PromptBuilder output shape, provider without caching, and possible systemPrompt cost increase",
+      "resolution": "made provider support conditional explicit, enumerated test assertions, replaced review intent with observable proposal and artifact behavior, and documented cost/cache provider implications",
+      "guardrailCandidate": "cache-related drafts must state provider support assumptions and observable test assertions instead of subjective review terms",
+      "taskId": null,
+      "timestamp": "2026-05-09T14:41:27.930Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — Previously passed and no new violation introduced. The spec addresses one coherent concern: restoring prompt-cache creation for review-spec/review-draft via PromptBuilder system/user boundary changes and provider/profile metric attribution. All sub-items support that single goal.; Unambiguous Requirements — should: Cost comparisons in reports should be interpreted with provider/profile context because providers can account for systemPrompt tokens differently, and providers that do not cache systemPrompt tokens can show higher cost with cacheCreation = 0. — \"Should be interpreted with provider/profile context\" is not a verifiable condition. The statement does not specify what implementation change must occur (e.g., display a field, add a note, compute a ratio) and therefore cannot be confirmed as satisfied or not. (at impactOnExisting[5]); Complete Context — should: Cost comparisons in reports should be interpreted with provider/profile context because providers can account for systemPrompt tokens differently, and providers that do not cache systemPrompt tokens can show higher cost with cacheCreation = 0. — Two independent reviewers would not agree on what implementation change satisfies \"should be interpreted with provider/profile context\": one might add a display column, another might add inline documentation, another might treat it as no-op. The requirement does not specify an observable output or behavioral change. (at impactOnExisting[5]); No Hardcoded Secrets — Previously passed. The spec contains no API keys, passwords, tokens, or secrets.; Prioritize Requirements — Previously passed. Requirements in scopeVerification.in and impactOnExisting are each labeled must/should, satisfying priority assignment for more than three items.; Impact on Existing Features — Previously passed. The spec enumerates concrete impacts on PromptBuilder consumers, docs commands, agent.js/provider.js/flow-store.js metric paths, and metric reader files.; Present Recommendations with Reasoning — Previously passed. The qa section provides a recommended answer with cited evidence for each question.; Explore Before Asking — Previously passed. Every qa entry cites specific file paths and code evidence rather than deferring to the user.; Proactively Raise Related Implications — must: Record provider/profile identifying metadata in flow.json agent metric entries while preserving tokens.input, tokens.output, tokens.cacheRead, tokens.cacheCreation, cost, callCount, responseChars, durationMs, and model aggregation behavior. — Adding provider/profile fields to metric entries has an obvious implication: existing flow.json files produced before this change will not contain those fields. The spec does not raise how metric readers (get-status.js, token.js) should handle absent provider/profile values, nor what default/fallback value should be used, risking null-reference errors or misleading report output. (at scopeVerification.in[5]); Confirm Brainstorm vs. Decision Before Critiquing — Previously passed. The content is a decided spec with approval confirmed; no brainstorm-vs-decision ambiguity is present.; Capture Digressions in draft.md — The qa section explicitly records alternative approaches that were considered and rejected (e.g., rename-only refactor, keeping add as alias, migrating only review.js), capturing the key decision rationale inline.; Backward-Compatible CLI Interface — Previously passed. The spec explicitly prohibits changing public CLI command names or options in its out-of-scope list.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T14:48:48.805Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "should: Cost comparisons in reports should be interpreted with provider/profile context because providers can account for systemPrompt tokens differently, and providers that do not cache systemPrompt tokens can show higher cost with cacheCreation = 0. — \"Should be interpreted with provider/profile context\" is not a verifiable condition. The statement does not specify what implementation change must occur (e.g., display a field, add a note, compute a ratio) and therefore cannot be confirmed as satisfied or not. (at impactOnExisting[5])"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "should: Cost comparisons in reports should be interpreted with provider/profile context because providers can account for systemPrompt tokens differently, and providers that do not cache systemPrompt tokens can show higher cost with cacheCreation = 0. — Two independent reviewers would not agree on what implementation change satisfies \"should be interpreted with provider/profile context\": one might add a display column, another might add inline documentation, another might treat it as no-op. The requirement does not specify an observable output or behavioral change. (at impactOnExisting[5])"
+        },
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "must: Record provider/profile identifying metadata in flow.json agent metric entries while preserving tokens.input, tokens.output, tokens.cacheRead, tokens.cacheCreation, cost, callCount, responseChars, durationMs, and model aggregation behavior. — Adding provider/profile fields to metric entries has an obvious implication: existing flow.json files produced before this change will not contain those fields. The spec does not raise how metric readers (get-status.js, token.js) should handle absent provider/profile values, nor what default/fallback value should be used, risking null-reference errors or misleading report output. (at scopeVerification.in[5])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate third run failed on unverifiable report interpretation wording and missing older metric fallback",
+      "trigger": "gate reported impactOnExisting cost interpretation was not observable and provider/profile absence on existing flow.json entries was not addressed",
+      "resolution": "specified report/status exposure of provider/profile with unknown fallback and required readers to treat absent metadata as unknown",
+      "guardrailCandidate": "new metric dimensions must define reader output and fallback values for entries without that dimension",
+      "taskId": null,
+      "timestamp": "2026-05-09T14:49:12.994Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one coherent concern: restoring prompt-cache creation for review prompts by refactoring PromptBuilder's section API and enriching flow metrics with provider/profile attribution. All items are causally linked to Issue #320.; Unambiguous Requirements — Move testDesign content used by gap analysis and gap fix prompts to the system side when the exact testDesign string is reused for every iteration of the same test-review loop. — 'exact testDesign string is reused' is not a verifiable condition; it depends on a runtime observation without specifying how to determine sameness (reference equality, string equality, content hash) or what constitutes 'every iteration'. Two reviewers could disagree on when the condition is met. (at scopeVerification.in[4]); Unambiguous Requirements — should: Report/status metric summaries should expose provider/profile as 'unknown' for entries without metadata and as the recorded provider/profile for new entries, so cost rows can be grouped or inspected by provider when systemPrompt token accounting differs. — 'can be grouped or inspected' is a capability statement with no verifiable acceptance condition. There is no specified output format, command, or assertion that confirms grouping is present. (at impactOnExisting[5]); Unambiguous Requirements — metric readers must treat absent provider/profile on older entries as 'unknown' — 'treat as unknown' is underspecified: it is unclear whether 'unknown' is a literal string, a null, or an omitted field, and no output surface (JSON key, display label, aggregation bucket) is named. (at scopeVerification.in[5]); Complete Context — Move testDesign content that is identical for every gap-analysis and gap-fix loop iteration to the system side — 'identical for every gap-analysis and gap-fix loop iteration' lacks a measurable criterion; two independent reviewers could differ on whether a given testDesign string qualifies as identical across iterations. (at analysis.proposedApproach); Complete Context — review prompt builders pass systemPrompt/userPrompt separately to agent calls — 'separately' is not a concrete assertion; it does not state how the test verifies separation (e.g., assert systemPrompt arg is non-empty, assert userPrompt does not contain role/rules text), leaving the pass condition subjective. (at scopeVerification.in[6] (test assertion list)); No Hardcoded Secrets — The spec contains no API keys, tokens, passwords, or secrets. All sensitive configuration is referenced by environment variable or configuration file conventions already established in the project.; Prioritize Requirements — Each requirement in scopeVerification.in and impactOnExisting is prefixed with must/should/nice-to-have, providing explicit priority assignments throughout.; Impact on Existing Features — The impactOnExisting section enumerates all affected modules (prompt-builder, review.js, docs commands, agent.js, provider.js, flow-store.js, token.js, get-status.js) with explicit must/should obligations for each, and the QA entries confirm no review semantics are changed.; Present Recommendations with Reasoning — Every QA entry provides a recommended answer, cites concrete evidence (file paths, grep commands, issue numbers), states the basis for the recommendation, and records considered alternatives with rejection rationale.; Explore Before Asking — The QA section references specific file paths (src/lib/prompt-builder.js, src/flow/commands/review.js, src/lib/agent.js, etc.) and grep results, showing the author explored the codebase before formulating answers. openQuestions is empty.; Proactively Raise Related Implications — moving text from user prompt to system prompt can increase per-call cost for providers that charge system tokens at full rate or do not cache them — The cost implication is mentioned in prose but never carried forward into a verifiable requirement or acceptance criterion. No test or metric assertion is specified to detect cost increase regressions after the migration. (at analysis.proposedApproach); Proactively Raise Related Implications — docs commands and docs libraries that currently call PromptBuilder.add(...) — The spec states these must be migrated but does not raise the implication that migrating docs commands moves review-unrelated prompts to a new API, which may alter caching behavior for docs calls in ways not tested by the stated test plan. (at impactOnExisting[2]); Confirm Brainstorm vs. Decision Before Critiquing — The spec is in approved state (approval.approved=true) and all QA answers are presented as decisions with recorded rationale. No brainstorming ambiguity remains unresolved.; Capture Digressions in draft.md — There are no visible digressions in the content; the QA section captures all side considerations (alias rejection, narrow-rename rejection, combining builders rejection) inline with the relevant question.; Backward-Compatible CLI Interface — The spec explicitly excludes CLI command or option changes in scopeVerification.out, and no public command names or flags are modified by any in-scope item.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T14:53:13.390Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Move testDesign content used by gap analysis and gap fix prompts to the system side when the exact testDesign string is reused for every iteration of the same test-review loop. — 'exact testDesign string is reused' is not a verifiable condition; it depends on a runtime observation without specifying how to determine sameness (reference equality, string equality, content hash) or what constitutes 'every iteration'. Two reviewers could disagree on when the condition is met. (at scopeVerification.in[4]); should: Report/status metric summaries should expose provider/profile as 'unknown' for entries without metadata and as the recorded provider/profile for new entries, so cost rows can be grouped or inspected by provider when systemPrompt token accounting differs. — 'can be grouped or inspected' is a capability statement with no verifiable acceptance condition. There is no specified output format, command, or assertion that confirms grouping is present. (at impactOnExisting[5]); metric readers must treat absent provider/profile on older entries as 'unknown' — 'treat as unknown' is underspecified: it is unclear whether 'unknown' is a literal string, a null, or an omitted field, and no output surface (JSON key, display label, aggregation bucket) is named. (at scopeVerification.in[5])"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "Move testDesign content that is identical for every gap-analysis and gap-fix loop iteration to the system side — 'identical for every gap-analysis and gap-fix loop iteration' lacks a measurable criterion; two independent reviewers could differ on whether a given testDesign string qualifies as identical across iterations. (at analysis.proposedApproach); review prompt builders pass systemPrompt/userPrompt separately to agent calls — 'separately' is not a concrete assertion; it does not state how the test verifies separation (e.g., assert systemPrompt arg is non-empty, assert userPrompt does not contain role/rules text), leaving the pass condition subjective. (at scopeVerification.in[6] (test assertion list))"
+        },
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "moving text from user prompt to system prompt can increase per-call cost for providers that charge system tokens at full rate or do not cache them — The cost implication is mentioned in prose but never carried forward into a verifiable requirement or acceptance criterion. No test or metric assertion is specified to detect cost increase regressions after the migration. (at analysis.proposedApproach); docs commands and docs libraries that currently call PromptBuilder.add(...) — The spec states these must be migrated but does not raise the implication that migrating docs commands moves review-unrelated prompts to a new API, which may alter caching behavior for docs calls in ways not tested by the stated test plan. (at impactOnExisting[2])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate fourth run failed on testDesign sameness, provider bucket output, and docs prompt cache implications",
+      "trigger": "gate reported unverifiable testDesign condition, unknown fallback output, review prompt separation assertion, and docs command migration implications",
+      "resolution": "defined testDesign as the single pre-loop variable, provider buckets as provider:profileKey with unknown:unknown fallback, agent-call assertions, and docs call sites as user-prompt-only unless already system prompted",
+      "guardrailCandidate": "impact requirements should name literal output keys and preserve behavior for unrelated call-site migrations",
+      "taskId": null,
+      "timestamp": "2026-05-09T14:54:02.015Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one concern: restoring prompt-cache creation for review prompts via PromptBuilder refactor and enriching flow metrics with provider/profile attribution. All items trace back to Issue #320 and the same root cause.; Unambiguous Requirements — Refactor `src/lib/prompt-builder.js` so single setters remain overwrite-only and appendable sections distinguish user prompt sections from system prompt sections. — 'appendable sections distinguish user prompt sections from system prompt sections' does not specify the exact new method names or signatures, leaving two reviewers unable to agree on what the final API shape must look like. (at scopeVerification.in[0]); Unambiguous Requirements — metric readers must expose missing metadata under literal keys provider=\"unknown\" and profileKey=\"unknown\" — 'metric readers' is not identified — it is unclear which specific modules (get-status.js, token.js, others) must implement the fallback, so two reviewers may apply the requirement to different scopes. (at scopeVerification.in[5]); Unambiguous Requirements — Report/status metric summaries should expose provider/profile buckets using literal key `provider:profileKey` — 'should expose … buckets' does not state a verifiable condition: what output format (JSON field, table column, console line), what command surfaces it, or what a reader must assert to confirm the bucket is present. (at impactOnExisting[5]); Complete Context — move review instructions that do not vary per call into system prompts — 'Instructions that do not vary per call' is subjective; without listing which sections (role, rules, format) are considered invariant vs. per-call, two reviewers may classify sections differently and disagree on whether the implementation satisfies this requirement. (at goal (top-level field)); Complete Context — review prompt builders call agents with a non-empty systemPrompt and a user prompt that excludes role/rules/format text — 'excludes role/rules/format text' is a negative assertion over unspecified content; without defining what counts as 'role/rules/format text', a test author cannot write a deterministic assertion. (at scopeVerification.in[6] (qa[6].answer paragraph)); Complete Context — provider/profile aggregation preserves token/cache/cost aggregates — 'preserves' lacks a measurable criterion — no tolerance, no numeric invariant, and no example calculation — so two reviewers cannot agree on what a passing test looks like. (at scopeVerification.in[6]); No Hardcoded Secrets — The content contains no API keys, passwords, tokens, or other secrets.; Prioritize Requirements — Every requirement in scopeVerification.in and impactOnExisting is labeled must or should, satisfying the prioritization requirement for lists longer than three items.; Impact on Existing Features — impactOnExisting explicitly enumerates affected files and behaviors (PromptBuilder consumers, review.js, docs commands, agent.js, flow-store.js, token.js, get-status.js, existing tests) and states which behaviors must be preserved.; Present Recommendations with Reasoning — Each qa entry provides an answer, evidence citing specific files or issue text, a why field explaining the basis, and a considered field showing rejected alternatives.; Explore Before Asking — All qa entries cite specific source files (src/lib/prompt-builder.js, src/flow/commands/review.js, src/lib/agent.js, etc.) and existing test files, indicating codebase exploration was done before questions were formulated; openQuestions is empty.; Proactively Raise Related Implications — moving text from user prompt to system prompt can increase per-call cost for providers that charge system tokens at full rate or do not cache them — The cost implication is mentioned in analysis prose but no corresponding requirement or test assertion is added to scopeVerification.in or qa to verify cost does not regress; the implication is raised but not acted upon in the spec body. (at analysis.proposedApproach); Proactively Raise Related Implications — docs commands that are not part of review execution … must be migrated in the same change — The spec raises this migration scope implication in a QA answer but does not include an explicit test requirement that validates all docs call-site migrations, leaving a gap between raised implication and verifiable coverage. (at qa[2].answer); Confirm Brainstorm vs. Decision Before Critiquing — approval.approved=true and confirmedAt is set, indicating the draft was treated as a decision with explicit approval rather than open brainstorming.; Capture Digressions in draft.md — No digressions are present; all qa entries are directly related to the stated goal, and openQuestions is empty.; Backward-Compatible CLI Interface — scopeVerification.out[0] explicitly states 'Do not change public CLI command names or options', and no CLI command removal or option rename appears in the spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T14:57:48.362Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "Refactor `src/lib/prompt-builder.js` so single setters remain overwrite-only and appendable sections distinguish user prompt sections from system prompt sections. — 'appendable sections distinguish user prompt sections from system prompt sections' does not specify the exact new method names or signatures, leaving two reviewers unable to agree on what the final API shape must look like. (at scopeVerification.in[0]); metric readers must expose missing metadata under literal keys provider=\"unknown\" and profileKey=\"unknown\" — 'metric readers' is not identified — it is unclear which specific modules (get-status.js, token.js, others) must implement the fallback, so two reviewers may apply the requirement to different scopes. (at scopeVerification.in[5]); Report/status metric summaries should expose provider/profile buckets using literal key `provider:profileKey` — 'should expose … buckets' does not state a verifiable condition: what output format (JSON field, table column, console line), what command surfaces it, or what a reader must assert to confirm the bucket is present. (at impactOnExisting[5])"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "move review instructions that do not vary per call into system prompts — 'Instructions that do not vary per call' is subjective; without listing which sections (role, rules, format) are considered invariant vs. per-call, two reviewers may classify sections differently and disagree on whether the implementation satisfies this requirement. (at goal (top-level field)); review prompt builders call agents with a non-empty systemPrompt and a user prompt that excludes role/rules/format text — 'excludes role/rules/format text' is a negative assertion over unspecified content; without defining what counts as 'role/rules/format text', a test author cannot write a deterministic assertion. (at scopeVerification.in[6] (qa[6].answer paragraph)); provider/profile aggregation preserves token/cache/cost aggregates — 'preserves' lacks a measurable criterion — no tolerance, no numeric invariant, and no example calculation — so two reviewers cannot agree on what a passing test looks like. (at scopeVerification.in[6])"
+        },
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "moving text from user prompt to system prompt can increase per-call cost for providers that charge system tokens at full rate or do not cache them — The cost implication is mentioned in analysis prose but no corresponding requirement or test assertion is added to scopeVerification.in or qa to verify cost does not regress; the implication is raised but not acted upon in the spec body. (at analysis.proposedApproach); docs commands that are not part of review execution … must be migrated in the same change — The spec raises this migration scope implication in a QA answer but does not include an explicit test requirement that validates all docs call-site migrations, leaving a gap between raised implication and verifiable coverage. (at qa[2].answer)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate fifth run failed on missing API signatures, reader targets, prompt-section definitions, and numeric aggregation invariants",
+      "trigger": "gate required exact PromptBuilder methods, exact metric reader files, command output surfaces, role/focus/format definition, and cost aggregate assertions",
+      "resolution": "specified addUserPrompt/addSystemPrompt signatures, get-status and metrics token readers, status/token JSON surfaces, reviewer role/focus/output-format text placement, rg call-site assertion, and exact numeric aggregate sums",
+      "guardrailCandidate": "draft gate for API refactors may require exact method names and command output surfaces even before spec phase",
+      "taskId": null,
+      "timestamp": "2026-05-09T14:58:34.872Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one concern: restoring prompt-cache creation for review prompts via PromptBuilder refactoring and adding provider/profile attribution to flow metrics. All sub-items are causally linked to that concern.; Unambiguous Requirements — \"move reviewer role text, focus/rule bullets, and output-format instructions into system prompts\" — 'focus/rule bullets' is vague — it does not specify which bullets or sections qualify as non-varying, making it ambiguous what content must move to the system side. (at goal); Unambiguous Requirements — \"instructions that do not vary per call are not separated into the provider system prompt path\" — 'Instructions that do not vary per call' is a subjective criterion without an enumerated list; two reviewers might disagree on which instructions are invariant. (at analysis.problem); Unambiguous Requirements — \"enrich agent metric entries with provider/profile metadata\" — 'Enrich' is vague; the requirement does not state which specific fields must be added or the exact key names, making it unverifiable without reading downstream requirements. (at analysis.proposedApproach); Unambiguous Requirements — \"providers that charge system tokens at full rate or do not cache them\" — No verifiable condition is stated for how cost must be reported when a provider does not cache system tokens — 'can increase per-call cost' is observational, not a testable requirement. (at analysis.proposedApproach); Unambiguous Requirements — \"Move the single `testDesign` value created before `runReviewLoop` to the systemPrompt argument\" — 'Move to the systemPrompt argument' for a 'should' item without a verifiable acceptance condition (e.g., cacheCreation > 0 or unit test assertion) makes it untestable as stated. (at scopeVerification.in[4] (should item)); Complete Context — \"review prompt builders call agents with a non-empty systemPrompt containing reviewer role/focus/output-format text\" — 'Non-empty systemPrompt containing reviewer role/focus/output-format text' is insufficiently specific — two reviewers would not agree on what exact content satisfies 'reviewer role/focus/output-format text' without a concrete example or schema. (at scopeVerification.in[8] (test assertion list)); Complete Context — \"aggregate cost equals the exact sum of input costs\" — 'Input costs' is ambiguous: it is unclear whether this means only input tokens, all token types, or a named cost field; the phrasing conflicts with the broader 'cost totals' language used elsewhere. (at scopeVerification.in[8] (test assertion list)); Complete Context — \"provider buckets use `provider:profileKey`\" — The format of the compound key is stated but the allowed character set, separator escaping rules, and behavior when provider or profileKey contains a colon are not specified. (at scopeVerification.in[8] (test assertion list)); Complete Context — \"metric entries include provider/profile fields\" — 'Provider/profile fields' is not defined with specific key names or value constraints here, so it is unclear when an implementation satisfies this requirement independent of the scopeVerification list. (at impactOnExisting[3]); No Hardcoded Secrets — The spec contains no API keys, passwords, tokens, or other secrets.; Prioritize Requirements — impactOnExisting list (6 items, mix of must/should without explicit priority labels on items 4–6) — The impactOnExisting section contains more than three items; items 4–6 carry implicit 'must' labels but two items ('should') are not assigned an explicit must/should/nice-to-have priority tag, making the priority scheme incomplete for a section treated as requirements. (at impactOnExisting); Prioritize Requirements — \"should: `sdd-forge flow get status` JSON metricsSummary … should expose provider/profile buckets\" — The 'should' label is used here as a priority label, but the prioritize-requirements article requires explicit must/should/nice-to-have classification; 'should' as used here conflates RFC-style language with priority tier, making it ambiguous whether this is a SHOULD-level requirement or a nice-to-have. (at impactOnExisting[5]); Impact on Existing Features — The spec explicitly enumerates affected existing features in the impactOnExisting section, covering PromptBuilder consumers, review commands, docs commands, agent/provider/flow-store metric paths, token command, get-status, and existing tests.; Present Recommendations with Reasoning — Each qa entry states a recommended answer, cites evidence (file paths, specific functions, or Issue references), explains the reasoning, and records rejected alternatives under 'considered'.; Explore Before Asking — All qa entries reference concrete evidence from the codebase (specific file paths and function names), indicating exploration was performed before answering. openQuestions is empty.; Proactively Raise Related Implications — Moving text from user prompt to system prompt can increase per-call cost for providers that charge system tokens at full rate — The cost-increase implication is mentioned in a single parenthetical but is not elevated into a named risk item with a mitigation or decision — a downstream reviewer could overlook it, and no explicit requirement tracks cost regression detection beyond a test assertion. (at analysis.proposedApproach); Proactively Raise Related Implications — Docs command migrations should preserve current user-prompt-only behavior unless the call site already passes a systemPrompt — The implication that docs commands currently never split system/user prompts and could accidentally start sending a system prompt if the migration pattern is applied incorrectly is not raised as a risk; no requirement guards against introducing an inadvertent system prompt in docs pipelines. (at scopeVerification.in[2] and qa[2]); Confirm Brainstorm vs. Decision Before Critiquing — The spec is a decided design (approval.approved=true); no unchecked brainstorming items remain in openQuestions or in the qa section.; Capture Digressions in draft.md — No digressions are evident; openQuestions is empty and all discussed alternatives are captured in each qa entry's 'considered' field.; Backward-Compatible CLI Interface — The spec explicitly excludes changing public CLI command names or options in scopeVerification.out, and the PromptBuilder API change is internal/library-level with no public CLI surface affected.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-09T14:59:31.322Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "\"move reviewer role text, focus/rule bullets, and output-format instructions into system prompts\" — 'focus/rule bullets' is vague — it does not specify which bullets or sections qualify as non-varying, making it ambiguous what content must move to the system side. (at goal); \"instructions that do not vary per call are not separated into the provider system prompt path\" — 'Instructions that do not vary per call' is a subjective criterion without an enumerated list; two reviewers might disagree on which instructions are invariant. (at analysis.problem); \"enrich agent metric entries with provider/profile metadata\" — 'Enrich' is vague; the requirement does not state which specific fields must be added or the exact key names, making it unverifiable without reading downstream requirements. (at analysis.proposedApproach); \"providers that charge system tokens at full rate or do not cache them\" — No verifiable condition is stated for how cost must be reported when a provider does not cache system tokens — 'can increase per-call cost' is observational, not a testable requirement. (at analysis.proposedApproach); \"Move the single `testDesign` value created before `runReviewLoop` to the systemPrompt argument\" — 'Move to the systemPrompt argument' for a 'should' item without a verifiable acceptance condition (e.g., cacheCreation > 0 or unit test assertion) makes it untestable as stated. (at scopeVerification.in[4] (should item))"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "\"review prompt builders call agents with a non-empty systemPrompt containing reviewer role/focus/output-format text\" — 'Non-empty systemPrompt containing reviewer role/focus/output-format text' is insufficiently specific — two reviewers would not agree on what exact content satisfies 'reviewer role/focus/output-format text' without a concrete example or schema. (at scopeVerification.in[8] (test assertion list)); \"aggregate cost equals the exact sum of input costs\" — 'Input costs' is ambiguous: it is unclear whether this means only input tokens, all token types, or a named cost field; the phrasing conflicts with the broader 'cost totals' language used elsewhere. (at scopeVerification.in[8] (test assertion list)); \"provider buckets use `provider:profileKey`\" — The format of the compound key is stated but the allowed character set, separator escaping rules, and behavior when provider or profileKey contains a colon are not specified. (at scopeVerification.in[8] (test assertion list)); \"metric entries include provider/profile fields\" — 'Provider/profile fields' is not defined with specific key names or value constraints here, so it is unclear when an implementation satisfies this requirement independent of the scopeVerification list. (at impactOnExisting[3])"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "impactOnExisting list (6 items, mix of must/should without explicit priority labels on items 4–6) — The impactOnExisting section contains more than three items; items 4–6 carry implicit 'must' labels but two items ('should') are not assigned an explicit must/should/nice-to-have priority tag, making the priority scheme incomplete for a section treated as requirements. (at impactOnExisting); \"should: `sdd-forge flow get status` JSON metricsSummary … should expose provider/profile buckets\" — The 'should' label is used here as a priority label, but the prioritize-requirements article requires explicit must/should/nice-to-have classification; 'should' as used here conflates RFC-style language with priority tier, making it ambiguous whether this is a SHOULD-level requirement or a nice-to-have. (at impactOnExisting[5])"
+        },
+        {
+          "guardrail_id": "draft-raise-implications",
+          "reason": "Moving text from user prompt to system prompt can increase per-call cost for providers that charge system tokens at full rate — The cost-increase implication is mentioned in a single parenthetical but is not elevated into a named risk item with a mitigation or decision — a downstream reviewer could overlook it, and no explicit requirement tracks cost regression detection beyond a test assertion. (at analysis.proposedApproach); Docs command migrations should preserve current user-prompt-only behavior unless the call site already passes a systemPrompt — The implication that docs commands currently never split system/user prompts and could accidentally start sending a system prompt if the migration pattern is applied incorrectly is not raised as a risk; no requirement guards against introducing an inadvertent system prompt in docs pipelines. (at scopeVerification.in[2] and qa[2])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate sixth run failed on remaining vague prompt section names, provider field names, cost field wording, and priority labels",
+      "trigger": "gate required exact reviewer strings, provider/profile key names, nested provider bucket output, cost field sum definition, and no ambiguous should priority",
+      "resolution": "rewrote goal/problem/test assertions with exact strings, required provider/profileKey fields, nested providers[provider][profileKey] output, exact cost field sums, and converted impact item to must",
+      "guardrailCandidate": "avoid compound metric keys and RFC-style should wording in draft requirements; use exact JSON paths and literal strings",
+      "taskId": null,
+      "timestamp": "2026-05-09T15:01:22.088Z"
+    },
+    {
+      "step": "review-spec",
+      "reason": "spec review found seven concrete gaps in prompt call-site scanning, prompt split assertions, metrics cache shape, provider bucket schema, phaseSummary, and report consumer scope",
+      "trigger": "sdd-forge flow run review --phase spec returned FAIL with 7 proposals in spec-review.md",
+      "resolution": "updated spec requirements, acceptance criteria, alternatives, and tasks for targeted PromptBuilder scanner, Focus on assertions, testDesign userPrompt removal, metrics token CACHE_VERSION, bucket schemas, phaseSummary providers, and report compatibility",
+      "guardrailCandidate": "specs that add JSON fields should define cache version impact, per-output schema, and compatibility consumers before review",
+      "taskId": null,
+      "timestamp": "2026-05-09T23:44:33.412Z"
+    },
+    {
+      "step": "review-spec",
+      "reason": "spec review second run found remaining gaps in spec-local test execution, impl review PromptBuilder migration, costIncomplete, and flow-store metric defaults",
+      "trigger": "sdd-forge flow run review --phase spec returned FAIL with 4 proposals in spec-review.md",
+      "resolution": "specified node --test for specs tests, buildDraftSystemPrompt addSystemPrompt migration, costIncomplete in provider buckets, and accumulateAgentMetrics unknown normalization",
+      "guardrailCandidate": "spec-local tests need explicit execution command, and metric schema changes must include completeness flags and storage-boundary defaults",
+      "taskId": null,
+      "timestamp": "2026-05-09T23:50:00.456Z"
+    },
+    {
+      "step": "review-spec",
+      "reason": "spec review third run still returned FAIL at maxAttempts with five remaining proposals",
+      "trigger": "review-spec r3 found gaps for test-review role prompts, legacy object metrics provider buckets, costIncomplete derivation, test placement, and FlowManager facade scope",
+      "resolution": "stopped at review-spec retry budget instead of applying further changes; user can reset review retry and resume after approving continued spec fixes",
+      "guardrailCandidate": "review-spec retry budgets should stop before additional auto edits when maxAttempts is reached",
+      "taskId": null,
+      "timestamp": "2026-05-10T00:05:04.067Z"
+    },
+    {
+      "step": "gate",
+      "reason": "exit=1 | {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":null,\"duration_ms\":178662,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"API Error: Unable to connect to API (FailedToOpenSocket)\",\"stop_reason\":\"stop_sequence\",\"session_id\":\"1f1bd261-b68a-4856-853a-ddc1f675cadd\",\"total_cost_usd\":0,\"usage\":{\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"uuid\":\"18f6ea4e-34d0-4618-b26a-1f69987e4686\"}",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-10T00:27:42.398Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses one coherent concern: restoring prompt-cache creation for review-spec and review-draft by splitting prompts into system/user payloads via PromptBuilder, with provider/profile metric attribution as a directly related diagnostic capability needed to detect future cache regressions.; Task Single Responsibility — Each task (T-1 through T-7) targets a single coherent concern. T-6 covers multiple aggregation consumers (get-status, metrics token, report.js) but they all share the single concern of exposing and consuming the new provider/profile metric buckets from a common data source.; Unambiguous Requirements — Requirements use verifiable conditions throughout. No vague adjectives such as 'appropriate', 'fast', or 'easy' appear. Specific string literals, bucket schemas, field names, normalization rules, and exact ordering semantics are stated in each requirement.; Complete Context — Requirements are specific enough for independent reviewers to agree. R3–R5 name exact string content to include or exclude per prompt section. R6–R7 and R10 specify exact bucket shapes, normalization rules (missing values → 'unknown'), and numeric aggregate behavior. R1 gives the precise append semantics for both new methods.; REQ Diff-Verifiability — Verification with a provider that reports cache_creation_input_tokens records cacheCreation > 0 in flow.json metrics after at least one review-spec call and at least one review-draft call. — R8 requires live execution with a real external provider. T-7 test strategy explicitly notes 'manual/agent regression run covers real provider behavior when available', confirming PASS/FAIL is not decidable from a diff and test summary alone; it depends on an out-of-diff process invariant (provider availability and behavior). (at requirements[R8].desc); REQ Diff-Verifiability — A review-spec and review-draft run with a cache-creation-reporting provider records cacheCreation > 0 in flow.json metrics. — This acceptance criterion is a runtime behavioral guarantee dependent on a specific external provider being available and reporting cache_creation_input_tokens. It cannot be decided from a standard unified diff and test execution summary alone. (at acceptance_criteria[10]); No Hardcoded Secrets — This is a spec document with no source code; no secrets, API keys, tokens, or passwords are present or prescribed.; No Silent Error Swallowing — R6 explicitly requires that missing, null, or non-string provider and profileKey values be normalized to 'unknown' at the storage boundary rather than silently dropped. No silent discard behavior is prescribed anywhere in the spec.; Prioritize Requirements — All 11 requirements (R1–R11) carry an explicit priority field set to 'must', satisfying the requirement that each requirement be assigned one of must, should, or nice-to-have.; Impact on Existing Features — The spec enumerates impacts on all affected features: PromptBuilder.add removal with migration of all call sites (R2), review-spec/draft/test-review prompt behavior changes (R3–R5), agent metric entry shape (R6), get-status aggregation (R7), metrics token JSON (R10), docs command behavior preservation (R2), and report.js compatibility (R11). R9 explicitly states CLI command names, options, and exit-code contracts are unchanged.; Bounded Resource Usage — The spec introduces no recursive processing, retries, or bulk data loading. Metric aggregation iterates existing finite flow.json entries; no new unbounded loops are prescribed.; Spec Includes Test Strategy — Every task includes a test_strategy field specifying what to test and how. The acceptance criteria enumerate specific test assertions covering PromptBuilder section ordering, review prompt splits, call-site migration, metric attribution, numeric aggregation correctness, cache version rebuild, and report totals preservation.; Record Unresolved Points as Open Questions — The open_questions section is empty. All design decisions tagged [VERIFY] include evidence (source file references and rg output). No unresolved points are presented as settled facts without supporting evidence.; Include 'Why This Approach' Rationale — The background section explains why the prompt-cache regression occurred and why this approach is needed. Six alternatives_considered entries each provide explicit rejection reasons. Design principles articulate the intent behind the chosen approach.; Spec Test Coverage — Tests are placed under specs/256-prompt-cache-review/tests/ as required. Each task's test_strategy and the acceptance criteria cover all requirements: PromptBuilder API, prompt splits, call-site migration scanner, metric attribution, aggregation numerics, cache version rebuild, and report compatibility.; Backward-Compatible CLI Interface — R9 and the constraints section explicitly state no public CLI command names, options, or exit-code contracts change. The only breaking change (PromptBuilder.add removal) is an internal API acknowledged under the alpha policy constraint.; Exit Code Contract — No new CLI commands are introduced. R9 explicitly states existing commands remain successful and exit-code contracts are unchanged. No new failure conditions requiring non-zero exit codes are added.; Validate User Input at Entry Point — No new user-facing CLI arguments are introduced. The scope explicitly excludes public CLI command names and options, and no new entry-point validation requirements arise from this spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-10T00:31:39.322Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Verification with a provider that reports cache_creation_input_tokens records cacheCreation > 0 in flow.json metrics after at least one review-spec call and at least one review-draft call. — R8 requires live execution with a real external provider. T-7 test strategy explicitly notes 'manual/agent regression run covers real provider behavior when available', confirming PASS/FAIL is not decidable from a diff and test summary alone; it depends on an out-of-diff process invariant (provider availability and behavior). (at requirements[R8].desc); A review-spec and review-draft run with a cache-creation-reporting provider records cacheCreation > 0 in flow.json metrics. — This acceptance criterion is a runtime behavioral guarantee dependent on a specific external provider being available and reporting cache_creation_input_tokens. It cannot be decided from a standard unified diff and test execution summary alone. (at acceptance_criteria[10])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate failed because live provider cacheCreation verification was not diff-verifiable",
+      "trigger": "sdd-forge flow run gate returned FAIL on req-diff-verifiability for R8 and acceptance criteria requiring real provider cache_creation_input_tokens",
+      "resolution": "rewrote R8, acceptance criteria, and T-7 to use mocked provider usage values for cacheCreation > 0 and cacheCreation = 0 without requiring a live provider run",
+      "guardrailCandidate": "requirements involving external provider behavior must be expressed as mocked usage propagation tests or marked outside acceptance",
+      "taskId": null,
+      "timestamp": "2026-05-10T00:32:24.750Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "test-execute-result.json version='undefined', expected '1'",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-10T06:14:18.734Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: test-execute-result.json lacked schema version and used legacy summary field names",
+      "trigger": "integration gate rejected test-execute-result.json with version undefined",
+      "resolution": "rewrote the artifact to schema version 1 with summary entries using id, result, and evidence objects",
+      "guardrailCandidate": "test-execute artifacts should be schema-validated before entering integration gate",
+      "taskId": null,
+      "timestamp": "2026-05-10T06:16:17.804Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — PromptBuilder now has addUserPrompt/addSystemPrompt, renders system sections after role/rules and user sections in insertion order, preserves overwrite setters, and removes add().; R2 — Production PromptBuilder.add call sites shown in src are migrated to addUserPrompt/addSystemPrompt, docs migrations keep content in user prompts, buildDraftSystemPrompt uses addSystemPrompt, and a targeted scanner test covers PromptBuilder variable .add calls while ignoring unrelated add methods.; R3 — buildSpecReviewPrompt now uses PromptBuilder, puts reviewer role/Focus/output instructions in systemPrompt, and keeps ## Spec and ## Codebase Context sections in userPrompt.; R4 — buildDraftReviewPrompt now uses PromptBuilder with reviewer role/focus/output instructions in system fields and Request/QA sections in userPrompt; added test asserts the split.; R5 — Gap analysis and gap fix prompts now put testDesign in PromptBuilder systemPrompt, remove the Test Design section from userPrompt, keep test files/gaps in userPrompt, and tests assert the split for both builders.; R6 — Agent forwards resolved providerKey/profileKey into accumulateAgentMetrics; ProviderRegistry returns built-in keys or user; FlowStore persists string fields and normalizes missing/non-string values to unknown while leaving existing metric fields unchanged.; R7 — get-status now builds nested providers[provider][profileKey] buckets, normalizes missing labels to unknown, sums numeric fields/tokens/models, and ORs costIncomplete.; R10 — token metrics rows now include nested providers[provider][profileKey] buckets with the required row-shaped fields, phase summaries merge those buckets, costIncomplete ORs through bucket merges, and CACHE_VERSION was bumped from 2 to 3 with cache rebuild tests added.; R11 — buildReportTotals still sums only flat token/cost/call/duration fields and ignores providers; report generation/text continue using flat tokenMetrics with tests asserting no provider/profile output.; R8 — Tests only simulate FlowStore entries directly; they do not mock review-spec/review-draft agent usage end-to-end, miss review-draft >0 flow-entry coverage, and do not assert zero-cache entries preserve provider/profileKey fields.; R9 — Legacy provider/profile fallback is implemented for aggregators, but the diff changes src/lib/process.js success semantics by ignoring res.error, which can alter existing exit-code contracts.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-10T06:19:18.231Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "Tests only simulate FlowStore entries directly; they do not mock review-spec/review-draft agent usage end-to-end, miss review-draft >0 flow-entry coverage, and do not assert zero-cache entries preserve provider/profileKey fields."
+        },
+        {
+          "guardrail_id": "R9",
+          "reason": "Legacy provider/profile fallback is implemented for aggregators, but the diff changes src/lib/process.js success semantics by ignoring res.error, which can alter existing exit-code contracts."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R10",
+        "R11"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: integration gate reported R8 test coverage gaps and R9 process success semantics drift",
+      "trigger": "gate-impl failed R8 and R9 after artifact schema correction",
+      "resolution": "added Agent-backed review-spec and review-draft cacheCreation tests, asserted zero-cache provider/profile preservation, restored runCmd ok semantics, and narrowed the sandbox git-common-dir workaround to cli.js",
+      "guardrailCandidate": "gate failures should be fixed with scoped production changes and direct tests before rerunning integration gate",
+      "taskId": null,
+      "timestamp": "2026-05-10T06:21:58.640Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R8 — Diff adds R8 tests for mocked review-spec and review-draft Agent usage with cache_creation_tokens > 0, asserting flow metric cacheCreation and provider/profile buckets, plus zero-cache mocked usage preserving provider/profileKey.; R9 — No command names/options are changed; legacy missing provider/profileKey entries are normalized to providers.unknown.unknown in status/token aggregation, and token JSON rows synthesize unknown buckets for older metric shapes.; Spec Test Coverage — All added spec-local JavaScript test files are under specs/256-prompt-cache-review/tests/ and include non-empty // spec: R<N> headers. Runtime pass/fail evidence is outside this task-impl guardrail's diff/header scope.; Avoid Overengineering — [\"以下のファイルは spec との関連度順に並んでいます。\", contextText].join(\"\\n\") — The same codebase-context section construction shape is introduced in more than one prompt builder instead of being extracted to a shared helper. This violates the DRY requirement when the same code shape appears in two or more places. (at src/flow/commands/review.js:1097); Avoid Overengineering — [\"以下のファイルは spec との関連度順に並んでいます。\", contextText].join(\"\\n\") — This duplicates the codebase-context section construction added for spec review. A shared helper would keep review-spec and review-draft context formatting consistent. (at src/flow/commands/review.js:1248); Avoid Overengineering — function metricLabel(value) — A provider/profile label normalization helper is introduced here while the same helper shape is also introduced in metrics token code. The repeated normalization logic should be shared rather than duplicated. (at src/flow/lib/get-status.js:24); Avoid Overengineering — function metricLabel(value) — This duplicates the provider/profile label normalization helper introduced in get-status.js. The same code shape appears in multiple places and should be extracted to a common helper. (at src/metrics/commands/token.js:63)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-10T06:23:03.589Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "[\"以下のファイルは spec との関連度順に並んでいます。\", contextText].join(\"\\n\") — The same codebase-context section construction shape is introduced in more than one prompt builder instead of being extracted to a shared helper. This violates the DRY requirement when the same code shape appears in two or more places. (at src/flow/commands/review.js:1097); [\"以下のファイルは spec との関連度順に並んでいます。\", contextText].join(\"\\n\") — This duplicates the codebase-context section construction added for spec review. A shared helper would keep review-spec and review-draft context formatting consistent. (at src/flow/commands/review.js:1248); function metricLabel(value) — A provider/profile label normalization helper is introduced here while the same helper shape is also introduced in metrics token code. The repeated normalization logic should be shared rather than duplicated. (at src/flow/lib/get-status.js:24); function metricLabel(value) — This duplicates the provider/profile label normalization helper introduced in get-status.js. The same code shape appears in multiple places and should be extracted to a common helper. (at src/metrics/commands/token.js:63)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R10",
+        "R11",
+        "R8",
+        "R9",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: integration gate reported duplicated prompt context formatting and metric dimension normalization helpers",
+      "trigger": "gate-impl failed no-overengineering after R8 and R9 were fixed",
+      "resolution": "extracted formatCodebaseContextForPrompt in review.js and normalizeAgentMetricDimension in src/lib/agent-metrics.js for shared metric dimension normalization",
+      "guardrailCandidate": "when the same helper shape appears in two changed files, extract it before rerunning integration gate",
+      "taskId": null,
+      "timestamp": "2026-05-10T06:25:56.253Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in src/flow/commands/review.js, src/flow/lib/run-gate.js, src/lib/prompt-builder.js. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-05-10T06:27:57.043Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "merge preflight detected rebase conflicts in review.js, run-gate.js, and prompt-builder.js",
+      "trigger": "sdd-forge flow run finalize-merge attempted pre-merge rebase against main",
+      "resolution": "will rebase the feature worktree onto main, resolve conflicts in the worktree, continue rebase, and retry finalize-merge",
+      "guardrailCandidate": "before finalize merge, rebase feature worktree onto main and resolve conflicts explicitly",
+      "taskId": null,
+      "timestamp": "2026-05-10T06:28:16.356Z"
+    }
+  ]
+}

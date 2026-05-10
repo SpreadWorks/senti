@@ -41,8 +41,15 @@ import { buildAcknowledgedRationaleSection } from "../lib/acknowledged-rationale
  * timeout and cwd internally; callers only provide the system prompt and
  * (optionally) commandId.
  */
-const callReviewAgent = (agent, prompt, commandId, systemPrompt) =>
-  agent.call(prompt, { commandId, systemPrompt });
+const callReviewAgent = (agent, prompt, commandId, systemPrompt) => {
+  if (prompt && typeof prompt === "object" && "userPrompt" in prompt) {
+    return agent.call(prompt.userPrompt, {
+      commandId,
+      systemPrompt: prompt.systemPrompt ?? systemPrompt,
+    });
+  }
+  return agent.call(prompt, { commandId, systemPrompt });
+};
 
 function ensureAgent(commandId) {
   const agent = container.get("agent");
@@ -243,9 +250,9 @@ function buildDraftSystemPrompt(guardrails = [], options = {}) {
       guardrailLines.push(`  title: ${g.title}`);
       guardrailLines.push(`  body: ${g.body.trim()}`);
     }
-    pb.add("## Additional Guardrail Review Perspectives", guardrailLines.join("\n"));
+    pb.addSystemPrompt("## Additional Guardrail Review Perspectives", guardrailLines.join("\n"));
     if (options?.acknowledgedRationale?.markdown) {
-      pb.addRaw(options.acknowledgedRationale.markdown);
+      pb.addUserRaw(options.acknowledgedRationale.markdown);
     }
   }
 
@@ -283,6 +290,13 @@ function parseProposals(text) {
     proposals.push({ title, body, file: extractProposalFile(body) });
   }
   return proposals;
+}
+
+function formatCodebaseContextForPrompt(contextEntries) {
+  const contextText = contextEntries.map((e) =>
+    `- **${e.file}**: ${e.summary || "(no summary)"}`
+  ).join("\n");
+  return ["以下のファイルは spec との関連度順に並んでいます。", contextText].join("\n");
 }
 
 /**
@@ -784,47 +798,43 @@ function formatTestFilesForPrompt(testFiles) {
  * Build the gap analysis prompt.
  */
 function buildGapAnalysisPrompt(testDesign, testFiles) {
-  return [
-    "You are a test quality reviewer. Compare the test design against actual test code and identify gaps.",
-    "",
-    "For each gap, output:",
-    "### GAP-N: <title>",
-    "**Missing:** <what is not tested>",
-    "**Severity:** HIGH|MEDIUM|LOW",
-    "**Fix:** <concrete suggestion for test code>",
-    "",
-    "If all test cases are adequately covered, output: NO_GAPS",
-    "",
-    "## Test Design",
-    testDesign,
-    "",
-    "## Existing Test Code",
-    formatTestFilesForPrompt(testFiles),
-  ].join("\n");
+  return new PromptBuilder()
+    .setRole("You are a test quality reviewer. Compare the test design against actual test code and identify gaps.")
+    .setRules([
+      "For each gap, output:",
+      "### GAP-N: <title>",
+      "**Missing:** <what is not tested>",
+      "**Severity:** HIGH|MEDIUM|LOW",
+      "**Fix:** <concrete suggestion for test code>",
+      "",
+      "If all test cases are adequately covered, output: NO_GAPS",
+    ].join("\n"))
+    .addSystemPrompt("## Test Design", testDesign)
+    .addUserPrompt("## Existing Test Code", formatTestFilesForPrompt(testFiles))
+    .build();
 }
 
 /**
  * Build the test fix prompt.
  */
-function buildTestFixPrompt(gaps, testFiles) {
-  return [
-    "You are a test engineer. Fix the following gaps in the test code.",
-    "Output the complete updated test file(s) with fixes applied.",
-    "For each file, output:",
-    "### FILE: <path>",
-    "```",
-    "<complete file content>",
-    "```",
-    "",
-    "Only modify files that need changes. Do not add unrelated tests.",
-    "Note: constant definitions may be wrapped in Object.freeze(), Object.seal(), or similar. When writing regex patterns to match definitions, account for these wrappers (e.g. `=\\s*(?:Object\\.freeze\\()?\\[` instead of `=\\s*\\[`).",
-    "",
-    "## Gaps to fix",
-    gaps,
-    "",
-    "## Current test code",
-    formatTestFilesForPrompt(testFiles),
-  ].join("\n");
+function buildTestFixPrompt(testDesign, gaps, testFiles) {
+  return new PromptBuilder()
+    .setRole("You are a test engineer. Fix the following gaps in the test code.")
+    .setRules([
+      "Output the complete updated test file(s) with fixes applied.",
+      "For each file, output:",
+      "### FILE: <path>",
+      "```",
+      "<complete file content>",
+      "```",
+      "",
+      "Only modify files that need changes. Do not add unrelated tests.",
+      "Note: constant definitions may be wrapped in Object.freeze(), Object.seal(), or similar. When writing regex patterns to match definitions, account for these wrappers (e.g. `=\\s*(?:Object\\.freeze\\()?\\[` instead of `=\\s*\\[`).",
+    ].join("\n"))
+    .addSystemPrompt("## Test Design", testDesign)
+    .addUserPrompt("## Gaps to fix", gaps)
+    .addUserPrompt("## Current test code", formatTestFilesForPrompt(testFiles))
+    .build();
 }
 
 /**
@@ -991,7 +1001,7 @@ async function runTestReview(root, flow, config, dryRun) {
       return { issues: parseGaps(raw), raw };
     },
     async fix(raw) {
-      const fixPrompt = buildTestFixPrompt(raw, testFiles);
+      const fixPrompt = buildTestFixPrompt(testDesign, raw, testFiles);
       const fixResult = await callReviewAgent(
         agent, fixPrompt, "flow.test.review",
         "You are a test engineer. Fix test gaps by writing complete updated test files.",
@@ -1087,36 +1097,32 @@ function extractScopePaths(spec) {
  * Build the spec review prompt.
  * @param {string} specText - Minified spec summary from spec.json fields
  * @param {Object[]} contextEntries - Related codebase entries from contextSearch
- * @returns {string}
+ * @returns {{systemPrompt: string|null, userPrompt: string}}
  */
 function buildSpecReviewPrompt(specText, contextEntries) {
-  const contextText = contextEntries.map((e) =>
-    `- **${e.file}**: ${e.summary || "(no summary)"}`
-  ).join("\n");
-
-  return [
-    "You are a spec completeness reviewer. Analyze the following spec against the codebase context to identify oversights.",
-    "Focus on:",
-    "- Files or features around modules in Scope that the spec does not mention",
-    "- Related code not explicitly listed in Out of Scope",
-    "- External references (skill templates, tests, config) that depend on files to be deleted or moved",
-    "- Contradictions or gaps between requirements",
-    "",
-    "Output a numbered list of proposals in this format:",
-    "### 1. <title>",
-    "**File:** `<path>` (the file that the spec overlooks)",
-    "**Issue:** <what the spec misses or gets wrong>",
-    "**Suggestion:** <concrete improvement to the spec>",
-    "",
-    "If no oversights are found, output: NO_PROPOSALS",
-    "",
-    "## Spec",
-    specText,
-    "",
-    "## Codebase Context (related files)",
-    "以下のファイルは spec との関連度順に並んでいます。",
-    contextText,
-  ].join("\n");
+  return new PromptBuilder()
+    .setRole("You are a spec completeness reviewer. Analyze the following spec against the codebase context to identify oversights.")
+    .setRules([
+      "Focus on:",
+      "- Files or features around modules in Scope that the spec does not mention",
+      "- Related code not explicitly listed in Out of Scope",
+      "- External references (skill templates, tests, config) that depend on files to be deleted or moved",
+      "- Contradictions or gaps between requirements",
+      "",
+      "Output a numbered list of proposals in this format:",
+      "### 1. <title>",
+      "**File:** `<path>` (the file that the spec overlooks)",
+      "**Issue:** <what the spec misses or gets wrong>",
+      "**Suggestion:** <concrete improvement to the spec>",
+      "",
+      "If no oversights are found, output: NO_PROPOSALS",
+    ].join("\n"))
+    .addUserPrompt("## Spec", specText)
+    .addUserPrompt(
+      "## Codebase Context (related files)",
+      formatCodebaseContextForPrompt(contextEntries),
+    )
+    .build();
 }
 
 
@@ -1191,10 +1197,7 @@ async function runSpecReview(root, flow, config, dryRun) {
     }
   }
   const proposePrompt = buildSpecReviewPrompt(specSummary, contextEntries);
-  const proposeRaw = await callReviewAgent(
-    proposeAgent, proposePrompt, "flow.spec.review.propose",
-    "You are a spec completeness reviewer. Identify oversights in the spec.",
-  );
+  const proposeRaw = await callReviewAgent(proposeAgent, proposePrompt, "flow.spec.review.propose");
 
   if (proposeRaw.includes("NO_PROPOSALS")) {
     const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
@@ -1237,36 +1240,30 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries) {
     ).join("\n\n")
     : "(no QA entries)";
 
-  const contextText = contextEntries.map((e) =>
-    `- **${e.file}**: ${e.summary || "(no summary)"}`
-  ).join("\n");
-
-  return [
-    "You are a draft QA quality reviewer. Analyze the draft's QA entries against the request/issue and codebase context.",
-    "Focus on:",
-    "- Questions that are too shallow or generic to drive a useful spec",
-    "- Missing coverage: areas the request/issue mentions but no QA entry addresses",
-    "- Ambiguous or unsupported answers (claims without evidence)",
-    "- Redundant entries that cover the same concern",
-    "",
-    "Output a numbered list of issues in this format:",
-    "### 1. <title>",
-    "**QA:** Q<N> (the QA entry number, or 'NEW' for missing coverage)",
-    "**Issue:** <what is wrong or missing>",
-    "**Suggestion:** <concrete improvement to the QA entry>",
-    "",
-    "If no issues are found, output: NO_PROPOSALS",
-    "",
-    "## Request / Issue",
-    requestText || "(no request text)",
-    "",
-    "## Draft QA Entries",
-    qaText,
-    "",
-    "## Codebase Context (related files)",
-    "以下のファイルは spec との関連度順に並んでいます。",
-    contextText,
-  ].join("\n");
+  return new PromptBuilder()
+    .setRole("You are a draft QA quality reviewer. Analyze the draft's QA entries against the request/issue and codebase context.")
+    .setRules([
+      "Focus on:",
+      "- Questions that are too shallow or generic to drive a useful spec",
+      "- Missing coverage: areas the request/issue mentions but no QA entry addresses",
+      "- Ambiguous or unsupported answers (claims without evidence)",
+      "- Redundant entries that cover the same concern",
+      "",
+      "Output a numbered list of issues in this format:",
+      "### 1. <title>",
+      "**QA:** Q<N> (the QA entry number, or 'NEW' for missing coverage)",
+      "**Issue:** <what is wrong or missing>",
+      "**Suggestion:** <concrete improvement to the QA entry>",
+      "",
+      "If no issues are found, output: NO_PROPOSALS",
+    ].join("\n"))
+    .addUserPrompt("## Request / Issue", requestText || "(no request text)")
+    .addUserPrompt("## Draft QA Entries", qaText)
+    .addUserPrompt(
+      "## Codebase Context (related files)",
+      formatCodebaseContextForPrompt(contextEntries),
+    )
+    .build();
 }
 
 function formatDraftReviewMd(issues) {
@@ -1325,10 +1322,7 @@ async function runDraftReview(root, flow, config, dryRun) {
     }
   }
   const detectPrompt = buildDraftReviewPrompt(draftJson, requestText, contextEntries);
-  const raw = await callReviewAgent(
-    agent, detectPrompt, "flow.draft.review.propose",
-    "You are a draft QA quality reviewer. Identify weaknesses in draft QA entries.",
-  );
+  const raw = await callReviewAgent(agent, detectPrompt, "flow.draft.review.propose");
 
   const issues = raw.includes("NO_PROPOSALS") ? [] : parseProposals(raw);
   const verdict = issues.length === 0 ? "PASS" : "FAIL";
@@ -1537,7 +1531,7 @@ export {
   getReviewMaxAttempts, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
   applyTestFixes, formatTestReviewMd, runReviewLoop,
   extractGoalAndScope, buildSpecReviewPrompt, formatSpecReviewMd,
-  isValidSpecOutput, stripPreamble, buildTestFixPrompt,
+  isValidSpecOutput, stripPreamble, buildGapAnalysisPrompt, buildTestFixPrompt,
   buildDraftReviewPrompt, formatDraftReviewMd,
   shouldUseLoopReview, groupByDiffContent, buildPerFileReviewInput,
   buildCrossCheckInput, expandProposalsToGroup,

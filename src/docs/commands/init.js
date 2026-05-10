@@ -75,8 +75,8 @@ async function aiFilterChapters(chapters, analysis, agent, _root, purpose) {
   pb.setJsonSchema({ type: "array", items: { type: "string" } });
   pb.setFmtFallback('Reply with ONLY a JSON array of filenames. Example: ["overview.md", "commands.md"]');
 
-  pb.add("## Project analysis summary", summary);
-  pb.add("## Available chapters", chapterList);
+  pb.addUserPrompt("## Project analysis summary", summary);
+  pb.addUserPrompt("## Available chapters", chapterList);
 
   const initBuilt = pb.build();
 

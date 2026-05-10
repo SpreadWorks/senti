@@ -71,7 +71,7 @@ async function translateDocument(content, fromLang, toLang, agent, _root, docume
   if (documentStyle?.customInstruction) ruleLines.push(`- ${documentStyle.customInstruction}`);
   pb.setRules(ruleLines.join("\n"));
 
-  pb.add("## Document", content);
+  pb.addUserPrompt("## Document", content);
   const built = pb.build();
 
   const result = await agent.call(built.userPrompt, {

@@ -37,14 +37,14 @@ function buildAgentsPromptBuilder(projectContent, docsContent, config, srcRoot, 
   pb.setRules("## Output Rules (strict)\n" + rules.map((r) => `- ${r}`).join("\n"));
 
   if (sddContent) {
-    pb.add("## SDD Section (already present — do not duplicate)", sddContent);
+    pb.addUserPrompt("## SDD Section (already present — do not duplicate)", sddContent);
   }
 
-  pb.add("## Current PROJECT Section (template-generated)", projectContent);
+  pb.addUserPrompt("## Current PROJECT Section (template-generated)", projectContent);
 
   if (config.type) {
     const typeStr = Array.isArray(config.type) ? config.type.join(", ") : config.type;
-    pb.add("## Project Config", `- type: ${typeStr}`);
+    pb.addUserPrompt("## Project Config", `- type: ${typeStr}`);
   }
 
   const pkgPath = path.join(srcRoot, "package.json");
@@ -52,13 +52,13 @@ function buildAgentsPromptBuilder(projectContent, docsContent, config, srcRoot, 
     try {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
       if (pkg.scripts) {
-        pb.add("## package.json scripts", JSON.stringify(pkg.scripts, null, 2));
+        pb.addUserPrompt("## package.json scripts", JSON.stringify(pkg.scripts, null, 2));
       }
     } catch (_) { /* skip */ }
   }
 
   if (docsContent) {
-    pb.add("## Generated Documentation", docsContent);
+    pb.addUserPrompt("## Generated Documentation", docsContent);
   }
 
   return pb;

@@ -151,7 +151,7 @@ async function scoreWithAi(container, inputText) {
   pb.setRules(AUTO_CHECK_RULES);
   pb.setJsonSchema(AUTO_CHECK_SCHEMA);
   pb.setFmtFallback(AUTO_CHECK_FMT_FALLBACK);
-  pb.add("## Input text (request / Issue body)", inputText);
+  pb.addUserPrompt("## Input text (request / Issue body)", inputText);
   const built = pb.build();
 
   let responseText;

@@ -1,0 +1,74 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "specs/256-prompt-cache-review/draft-review.md      |    3 +\n specs/256-prompt-cache-review/draft.json           |  101 ++\n specs/256-prompt-cache-review/file-map.json        |   73 +\n specs/256-prompt-cache-review/flow.json            | 1537 ++++++++++++++++++++\n specs/256-prompt-cache-review/issue-log.json       |  454 ++++++\n specs/256-prompt-cache-review/issue.md             |   92 ++\n specs/256-prompt-cache-review/qa.md                |    9 +\n specs/256-prompt-cache-review/review.md            |  111 ++\n specs/256-prompt-cache-review/spec-review.md       |   28 +\n specs/256-prompt-cache-review/spec.json            |  361 +++++\n specs/256-prompt-cache-review/spec.md              |  141 ++\n specs/256-prompt-cache-review/tasks/T-1.md         |   21 +\n specs/256-prompt-cache-review/tasks/T-2.md         |   21 +\n specs/256-prompt-cache-review/tasks/T-3.md         |   21 +\n specs/256-prompt-cache-review/tasks/T-4.md         |   20 +\n specs/256-prompt-cache-review/tasks/T-5.md         |   22 +\n specs/256-prompt-cache-review/tasks/T-6.md         |   23 +\n specs/256-prompt-cache-review/tasks/T-7.md         |   20 +\n .../tests/cache-version-rebuild.test.js            |  130 ++\n .../tests/docs-command-prompt-shape.test.js        |  107 ++\n .../tests/metrics-provider-buckets.test.js         |  668 +++++++++\n .../tests/prompt-builder-api.test.js               |  239 +++\n .../tests/report-totals-e2e.test.js                |  113 ++\n .../tests/review-cache-creation-e2e.test.js        |  157 ++\n .../tests/review-prompt-split.test.js              |  141 ++\n specs/256-prompt-cache-review/tests/spec.md        |  188 +++\n src/docs/commands/agents.js                        |   10 +-\n src/docs/commands/enrich.js                        |    6 +-\n src/docs/commands/forge.js                         |    2 +-\n src/docs/commands/init.js                          |    4 +-\n src/docs/commands/text.js                          |    2 +-\n src/docs/commands/translate.js                     |    2 +-\n src/docs/lib/template-merger.js                    |    2 +-\n src/flow/commands/review.js                        |  208 ++-\n src/flow/lib/get-context.js                        |    4 +-\n src/flow/lib/get-status.js                         |   33 +\n src/flow/lib/run-auto-check.js                     |    2 +-\n src/flow/lib/run-gate.js                           |   14 +-\n src/lib/agent-metrics.js                           |    9 +\n src/lib/agent.js                                   |    7 +-\n src/lib/cli.js                                     |    4 +-\n src/lib/flow-store.js                              |    5 +-\n src/lib/prompt-builder.js                          |   17 +-\n src/lib/provider.js                                |    8 +-\n src/metrics/commands/token.js                      |   84 +-\n 45 files changed, 5083 insertions(+), 141 deletions(-)",
+      "commits": [
+        "Implement prompt cache review metrics"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 4,
+      "question": 0,
+      "issueLog": 16
+    },
+    "tokenMetrics": {
+      "input": 2129864,
+      "output": 242090,
+      "cacheRead": 21735088,
+      "cacheCreation": 2508016,
+      "cost": 24.2280946,
+      "callCount": 75,
+      "durationMs": 5289632,
+      "phaseDurations": [
+        {
+          "phase": "review-draft",
+          "durationMs": 25904
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 482972
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 653852
+        },
+        {
+          "phase": "gate",
+          "durationMs": 855858
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 1525970
+        },
+        {
+          "phase": "test-execute",
+          "durationMs": 355635
+        },
+        {
+          "phase": "test-result-review",
+          "durationMs": 630980
+        },
+        {
+          "phase": "review",
+          "durationMs": 509152
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 249309
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Implement prompt cache review metrics\n    45 files changed, 5083 insertions(+), 141 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 4\n    Q&A ......................... 0\n    issue-log ................... 16\n    agent calls ................. 75\n    input tokens ................ 2,129,864\n    output tokens ............... 242,090\n    cache-read tokens ........... 21,735,088\n    cache-create tokens ......... 2,508,016\n    cost ........................ $24.2281\n    duration (total) ............ 5289.6s\n      review-draft .............. 25.9s\n      gate-draft ................ 483.0s\n      review-spec ............... 653.9s\n      gate ...................... 855.9s\n      review-test ............... 1526.0s\n      test-execute .............. 355.6s\n      test-result-review ........ 631.0s\n      review .................... 509.2s\n      gate-impl ................. 249.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

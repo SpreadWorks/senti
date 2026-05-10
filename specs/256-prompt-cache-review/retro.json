@@ -1,0 +1,73 @@
+{
+  "spec": "specs/256-prompt-cache-review/spec.json",
+  "date": "2026-05-10T06:26:39.338Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "PromptBuilder exposes addUserPrompt(header, content) and addSystemPrompt(header, content). addUserPrompt appends `${header}\\n${content}` to userPrompt in insertion order. addSystemPrompt appends `${header}\\n${content}` to systemPrompt after setRole and setRules output. setRole, setRules, setJsonSchema, and setFmtFallback remain overwrite-only. The old add(header, content) method is removed.",
+      "status": "done",
+      "note": "R1: appends user and system prompt sections independently"
+    },
+    {
+      "desc": "All production PromptBuilder call sites in src/ use addUserPrompt or addSystemPrompt. A targeted static test scans imports/new PromptBuilder variables and fails on any `<promptBuilderVariable>.add(...)` call, while ignoring unrelated Set.add and Map-like add calls. Docs command migrations preserve current user-prompt-only behavior unless the call site already passed a systemPrompt before this spec. src/flow/commands/review.js buildDraftSystemPrompt keeps `## Additional Guardrail Review Perspectives` in systemPrompt by using addSystemPrompt.",
+      "status": "done",
+      "note": "R2: production PromptBuilder callers do not use removed add API"
+    },
+    {
+      "desc": "review-spec prompt construction in src/flow/commands/review.js uses PromptBuilder. The systemPrompt contains `You are a spec completeness reviewer`, the current `Focus on:` bullet section, and `Output a numbered list of proposals`. The userPrompt contains artifact/context sections including `## Spec` and `## Codebase Context` and does not contain those three instruction blocks.",
+      "status": "done",
+      "note": "R3: spec-review keeps reviewer instructions in systemPrompt"
+    },
+    {
+      "desc": "review-draft prompt construction in src/flow/commands/review.js uses PromptBuilder. The systemPrompt contains `You are a draft QA quality reviewer`, the current `Focus on:` bullet section, and `Output a numbered list of issues`. The userPrompt contains artifact/context sections including `## Request / Issue` and `## Draft QA Entries` and does not contain those three instruction blocks.",
+      "status": "done",
+      "note": "R4: review-draft keeps reviewer instructions in systemPrompt"
+    },
+    {
+      "desc": "test-review gap-analysis and gap-fix calls pass the single testDesign value created before runReviewLoop through the systemPrompt argument, remove `## Test Design` from their userPrompt content, and keep changing test files/gap data in userPrompt. A test asserts `systemPrompt.includes(testDesign)` and `!userPrompt.includes(\"## Test Design\")` for both calls.",
+      "status": "done",
+      "note": "R5: test-review gap analysis keeps stable test design in systemPrompt"
+    },
+    {
+      "desc": "Agent metric entries include string fields provider and profileKey for new agent calls. provider is the resolved Provider class key for built-ins or `user` for UserProvider. profileKey is the resolved profile key returned by Agent.resolve. accumulateAgentMetrics({ provider, profileKey }) persists provided strings and normalizes missing/null/non-string values to `unknown` at the storage boundary. Existing tokens.input, tokens.output, tokens.cacheRead, tokens.cacheCreation, cost, costIncomplete, callCount, responseChars, durationMs, and model aggregation behavior is unchanged.",
+      "status": "done",
+      "note": "R6: accumulateAgentMetrics persists provider and profileKey strings"
+    },
+    {
+      "desc": "src/flow/lib/get-status.js metricsSummary aggregates provider/profile buckets as nested providers[provider][profileKey] objects whose bucket shape is { callCount, responseChars, durationMs, tokens: { input, output, cacheRead, cacheCreation }, cost, costIncomplete, models }. Entries without provider/profileKey aggregate under providers.unknown.unknown. Numeric totals equal exact source-entry sums; costIncomplete is true when any source entry in the bucket has costIncomplete true.",
+      "status": "done",
+      "note": "R7: status metricsSummary builds nested provider/profile buckets"
+    },
+    {
+      "desc": "src/metrics/commands/token.js JSON rows aggregate provider/profile buckets as nested providers[provider][profileKey] objects whose bucket shape mirrors row field names: { tokenInput, tokenOutput, cacheRead, cacheCreate, callCount, cost, costIncomplete, durationMs }. phaseSummary[phase].providers is required with the same bucket shape summed across phase rows; costIncomplete is true when any source row in the bucket has costIncomplete true. CACHE_VERSION is incremented so cached .sdd-forge/output/metrics.json rows are rebuilt after the row shape change.",
+      "status": "done",
+      "note": "R10: stale cache (version=2) with legacy row shape is invalidated and rebuilt with providers buckets"
+    },
+    {
+      "desc": "src/flow/commands/report.js remains in scope as a compatibility consumer. buildReportTotals ignores provider buckets and report.json / report text preserve the existing tokenMetrics totals without adding provider/profile output in this spec.",
+      "status": "done",
+      "note": "R11: report.json shape has only legacy tokenMetrics keys"
+    },
+    {
+      "desc": "Tests using mocked review-spec and review-draft agent usage with cache_creation_tokens > 0 record cacheCreation > 0 in flow metric entries and in providers[provider][profileKey] buckets. Tests using mocked provider usage with cache_creation_tokens = 0 record cacheCreation = 0 while still recording provider/profileKey, making non-reporting providers visible without requiring a live provider run.",
+      "status": "done",
+      "note": "R8: mocked review-spec agent usage with cache_creation_tokens > 0 is recorded in flow.json and provider buckets"
+    },
+    {
+      "desc": "No public CLI command names, options, or exit-code contracts change. `sdd-forge flow get status` and `sdd-forge metrics token --format json` remain successful with older flow.json files that lack provider/profileKey.",
+      "status": "done",
+      "note": "R9: old metric entries without provider/profileKey aggregate under unknown"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 11,
+    "done": 11,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

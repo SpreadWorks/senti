@@ -6,6 +6,7 @@
  */
 
 import { derivePhase } from "../../lib/flow-helpers.js";
+import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { loadSpecRequirements } from "../../lib/spec-json.js";
 import { flattenSteps } from "../definition.js";
 import { FlowCommand } from "./base-command.js";
@@ -19,6 +20,18 @@ export const ACTIVITY_COUNTERS = ["docsRead", "srcRead", "question", "issueLog"]
 /** Fresh zero-filled token accumulator (never share the literal — callers mutate). */
 function zeroTokens() {
   return Object.fromEntries(TOKEN_KEYS.map((k) => [k, 0]));
+}
+
+function zeroProviderBucket() {
+  return {
+    callCount: 0,
+    responseChars: 0,
+    durationMs: 0,
+    tokens: zeroTokens(),
+    cost: 0,
+    costIncomplete: false,
+    models: {},
+  };
 }
 
 /**
@@ -65,10 +78,30 @@ function applyEntry(bucket, entry) {
     for (const k of TOKEN_KEYS) p.tokens[k] += entry.tokens[k] || 0;
   }
   if (entry.cost != null) p.cost = (p.cost || 0) + entry.cost;
+  if (entry.costIncomplete) p.costIncomplete = true;
   if (entry.model) {
     p.models = p.models || {};
     p.models[entry.model] = (p.models[entry.model] || 0) + 1;
   }
+  applyProviderEntry(p, entry);
+}
+
+function applyProviderEntry(phaseBucket, entry) {
+  const provider = normalizeAgentMetricDimension(entry.provider);
+  const profileKey = normalizeAgentMetricDimension(entry.profileKey);
+  phaseBucket.providers = phaseBucket.providers || {};
+  const providerBucket = phaseBucket.providers[provider] = phaseBucket.providers[provider] || {};
+  const bucket = providerBucket[profileKey] = providerBucket[profileKey] || zeroProviderBucket();
+
+  bucket.callCount += entry.callCount || 0;
+  bucket.responseChars += entry.responseChars || 0;
+  if (entry.durationMs != null) bucket.durationMs += entry.durationMs;
+  if (entry.tokens) {
+    for (const k of TOKEN_KEYS) bucket.tokens[k] += entry.tokens[k] || 0;
+  }
+  if (entry.cost != null) bucket.cost += entry.cost;
+  if (entry.costIncomplete) bucket.costIncomplete = true;
+  if (entry.model) bucket.models[entry.model] = (bucket.models[entry.model] || 0) + 1;
 }
 
 /**

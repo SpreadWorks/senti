@@ -267,7 +267,7 @@ async function processTemplateFileBatch(text, analysis, fileName, agent, dryRun,
 async function invokeAgent(agent, prompt, preamblePatterns, systemPrompt, extraOptions) {
   const pb = new PromptBuilder();
   if (systemPrompt) pb.setRole(systemPrompt);
-  pb.add("## Content", prompt);
+  pb.addUserPrompt("## Content", prompt);
   const built = pb.build();
   const result = await agent.call(built.userPrompt, {
     commandId: "docs.text",
