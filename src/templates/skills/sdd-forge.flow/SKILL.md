@@ -64,9 +64,9 @@ B.0.5. **Auto-mode eligibility check** (spec 208, phase-aware input per spec 220
    - If an Issue is linked, ensure its body is reflected into `--request` at `flow set init` (fetch with `sdd-forge flow get issue <n>` if needed). The CLI derives the input statically from the preparing flow state (`issue + request`) — `--input` is no longer accepted.
    - Run `sdd-forge flow run auto-check --run-id <runId>` and read `data.eligible`. `--run-id` is required in preparing mode (spec 220 removed the single-preparing auto-select).
    - **If `eligible: true`**: present the auto-mode prompt using the Choice Format. The prompt asks ONLY whether to enable auto mode — do not bundle a "is this summary correct?" question into the same choice (the summary is confirmed in B.3).
-     - Question (above choices): `Auto モードを有効にしますか？` (single line).
-     - Choices: `[1] はい — AI が確認なしで進めます` `[2] いいえ — 通常通り各ステップで確認します`.
-     - Note below choices: "後から `/sdd-forge.flow-auto on` で切り替え可能".
+     - Question (above choices): `Enable auto mode?` (single line).
+     - Choices: `[1] Yes — AI proceeds without confirmations` `[2] No — keep normal per-step confirmations`.
+     - Note below choices: "You can switch later with `/sdd-forge.flow-auto on`."
      - If user picks `[1]`:
        - Run `sdd-forge flow set auto on --run-id <runId>` (the CLI trusts the verdict already persisted by `run auto-check` above and writes `autoApprove: true` to the preparing flow so `flow prepare` will inherit it; no second AI call. Rejection here means STOP).
        - **Skip B.1 and B.2.** Use work-environment = worktree and base-branch = current branch by default.
@@ -87,7 +87,7 @@ B.3. **Draft Q1 — intent confirmation**
    - **autoApprove skip:** if `autoApprove: true`, skip this interactive step and use the Issue / request text directly as the draft source.
    - If an Issue number was captured, run `sdd-forge flow get issue <number>` to fetch the title and body.
    - Present a concise summary using the unified Goal + Scope + 1–3 line description format (same shape the auto-check prompt uses in B.0.5).
-   - Ask with the Choice Format: `[1] はい [2] 修正する [3] その他`. **Retry limit: 1 round.** If `[3]` is selected twice, STOP.
+   - Ask with the Choice Format: `[1] Yes [2] Revise [3] Other`. **Retry limit: 1 round.** If `[3]` is selected twice, STOP.
    - Derive the spec `--title`: short, max 30 characters, lowercase English, hyphen-separated.
 
 B.4. **Prepare spec (silent)**
@@ -115,11 +115,11 @@ C.1.5. **Auto-upgrade check (spec 232)**
    - If the envelope contains `autoUpgrade` with `available === true`, present the following choice **before** executing step instructions:
      ```
      ──────────────────────────────────────────────────────────
-       Auto モードに昇格可能です。切り替えますか？
+       Auto mode is available. Switch now?
      ──────────────────────────────────────────────────────────
 
-       [1] auto に切り替え — 以降は確認なしで進めます
-       [2] 手動のまま — 通常通り各ステップで確認します
+       [1] Switch to auto — continue without confirmations
+       [2] Stay manual — keep normal per-step confirmations
 
      ```
    - If `[1]`: run `sdd-forge flow set auto on`. On success, update `autoApprove` to `true` for subsequent steps.
@@ -132,7 +132,7 @@ C.2. **Execute instructions**
    - Retry limits: read the resolved numeric maxAttempts from the next-action envelope (`maxAttempts`). When that limit is reached, STOP and return control to the user.
    - When the current step's work is finished, advance step status:
      - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — the hook handles the transition; do nothing further.
-     - **`flow run review`**: plan review phases (review-draft, review-spec, review-test) do NOT auto-done via post hook — the prompt instructions manage step status based on verdict. Impl/task review still auto-dones via post hook.
+     - **`flow run review`**: plan review phases (review-draft-questions/review-draft-coverage, review-spec, review-test) do NOT auto-done via post hook — the prompt instructions manage step status based on verdict. Impl/task review still auto-dones via post hook.
      - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
 
 C.3. **Loop**

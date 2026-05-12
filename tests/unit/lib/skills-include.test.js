@@ -42,21 +42,21 @@ describe("deploySkills include resolution", () => {
 
     deploySkills(tmp, "en");
 
-    const planPath = path.join(tmp, ".agents", "skills", "sdd-forge.flow-plan", "SKILL.md");
-    if (fs.existsSync(planPath)) {
-      const content = fs.readFileSync(planPath, "utf8");
+    const flowPath = path.join(tmp, ".agents", "skills", "sdd-forge.flow", "SKILL.md");
+    if (fs.existsSync(flowPath)) {
+      const content = fs.readFileSync(flowPath, "utf8");
       // Choice Format partial content should be expanded
       assert.ok(
         content.includes("Description") || content.includes("description") || content.includes("choices"),
-        "flow-plan SKILL.md should contain expanded Choice Format content",
+        "flow SKILL.md should contain expanded Choice Format content",
       );
       assert.ok(
-        content.includes("including confirmations after applying user-requested changes"),
-        "flow-plan SKILL.md should enforce Choice Format for confirmation questions",
+        content.includes("Every turn that asks the user to choose, decide, or confirm MUST contain all five sections"),
+        "flow SKILL.md should enforce Choice Format for confirmation questions",
       );
       assert.ok(
-        content.includes("No free-form questions. No exceptions."),
-        "flow-plan SKILL.md should explicitly disallow free-form questions without exceptions",
+        content.includes("ABSOLUTELY PROHIBITED"),
+        "flow SKILL.md should explicitly disallow free-form questions without exceptions",
       );
     }
   });

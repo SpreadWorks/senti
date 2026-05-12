@@ -79,17 +79,13 @@ npm install -g <!-- {{data("cli.project.name")}} --><!-- {{/data}} -->
 
 | スキル | フェーズ |
 |---|---|
-| `/sdd-forge.flow-plan` | plan（仕様策定） |
-| `/sdd-forge.flow-impl` | implement（実装） |
-| `/sdd-forge.flow-finalize` | finalize（コミット、マージ、ドキュメント同期、クリーンアップ） |
+| `/sdd-forge.flow` | full SDD flow（計画、実装、finalize） |
 
 **[Codex CLI](https://github.com/openai/codex)** — `$` プレフィックスでツールを呼び出し:
 
 | コマンド | フェーズ |
 |---|---|
-| `$sdd-forge.flow-plan` | plan（仕様策定） |
-| `$sdd-forge.flow-impl` | implement（実装） |
-| `$sdd-forge.flow-finalize` | finalize（コミット、マージ、ドキュメント同期、クリーンアップ） |
+| `$sdd-forge.flow` | full SDD flow（計画、実装、finalize） |
 
 ## コマンド一覧
 

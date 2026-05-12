@@ -1,6 +1,6 @@
    - Run `sdd-forge flow run review --phase test` to perform AI-powered test review.
    - The review generates a test design from spec requirements, compares against actual test code, and identifies gaps.
-   - **If verdict=PASS** (no gaps): display "レビューの結果、修正の必要はありませんでした。" Then run `sdd-forge flow set step review-test done`.
+   - **If verdict=PASS** (no gaps): display "Review found no required fixes." Then run `sdd-forge flow set step review-test done`.
    - **If verdict=FAIL** (gaps exist): display review summary and auto-fix test files. Then re-run `sdd-forge flow run review --phase test`.
    - **Review loop:** repeat review → fix → re-review until verdict=PASS or the resolved numeric maxAttempts from next-action is reached. Each `sdd-forge flow run review --phase test` invocation = 1 attempt (CLI invocation level, not internal AI iteration).
    - **CLI enforcement (spec 253):** the CLI now enforces this limit. When count >= max, `sdd-forge flow run review --phase test` returns `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` and `data === { phase, attempts, max }`. Do NOT attempt to bypass it.

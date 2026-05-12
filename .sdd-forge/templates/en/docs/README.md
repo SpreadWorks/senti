@@ -79,17 +79,13 @@ If you already have source code, generate documentation to get a complete pictur
 
 | Skill | Phase |
 |---|---|
-| `/sdd-forge.flow-plan` | plan (specification) |
-| `/sdd-forge.flow-impl` | implement (coding + review) |
-| `/sdd-forge.flow-finalize` | finalize (commit, merge, docs sync, cleanup) |
+| `/sdd-forge.flow` | full SDD flow (plan, implement, finalize) |
 
 **[Codex CLI](https://github.com/openai/codex)** — invoke via `$` prefix:
 
 | Command | Phase |
 |---|---|
-| `$sdd-forge.flow-plan` | plan (specification) |
-| `$sdd-forge.flow-impl` | implement (coding + review) |
-| `$sdd-forge.flow-finalize` | finalize (commit, merge, docs sync, cleanup) |
+| `$sdd-forge.flow` | full SDD flow (plan, implement, finalize) |
 
 ## Commands
 

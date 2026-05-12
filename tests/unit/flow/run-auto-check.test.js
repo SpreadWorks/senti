@@ -18,6 +18,7 @@ function stubResponse({
   scopeBoundedness = 2,
   targetSpecificity = 1,
   precedent = 1,
+  goal = "test goal",
   reason = "stub ok",
 } = {}) {
   return JSON.stringify({
@@ -27,6 +28,7 @@ function stubResponse({
     scopeBoundedness,
     targetSpecificity,
     precedent,
+    goal,
     reason,
   });
 }

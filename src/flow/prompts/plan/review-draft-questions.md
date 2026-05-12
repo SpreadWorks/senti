@@ -1,0 +1,7 @@
+   - Run `sdd-forge flow run review --phase draft` to perform the first draft question review.
+   - This stage validates whether `draft.json.qa[]` contains enough pending or approved questions to cover the initial requirement categories: goal-confirmation, impact-scope, acceptance-criteria, constraint-non-goal, risk-migration-policy, user-visible-behavior, dependency-integration-boundary, and implementation-policy.
+   - The review writes a detection report to `draft-review-questions.md`. It does not modify `draft.json`.
+   - If verdict=FAIL, read `draft-review-questions.md`, ask the user only the missing or ambiguous questions, and update `draft.json.qa[]` directly. Use `status` to track lifecycle; do not create a separate questions array.
+   - For ambiguous answers, ask an immediate direct clarification such as `Does "<ambiguous phrase>" mean "<concrete interpretation>"? Answer yes or no.` or `Which option should be used for "<decision>"? Answer A, B, or N/A.`
+   - Repeat detect -> fix -> re-review until verdict=PASS or maxAttempts is reached. If `REVIEW_MAX_ATTEMPTS_EXCEEDED` is returned, stop and return control to the user.
+   - On PASS: `sdd-forge flow set step review-draft-questions done`.

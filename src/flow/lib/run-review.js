@@ -11,7 +11,7 @@ const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
+import { resolveNodeFor, FLOW_DEFINITION, flattenSteps } from "../definition.js";
 import path from "path";
 
 // ---------------------------------------------------------------------------
@@ -19,7 +19,8 @@ import path from "path";
 // ---------------------------------------------------------------------------
 
 const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
-  draft: "review-draft",
+  "draft-questions": "review-draft-questions",
+  "draft-coverage": "review-draft-coverage",
   spec: "review-spec",
   test: "review-test",
   impl: "review",
@@ -29,6 +30,20 @@ const REVIEW_PHASE_KEYS = Object.freeze(Object.keys(REVIEW_NODE_ID_BY_PHASE));
 
 function persistedPhaseKey(ctxPhase) {
   return ctxPhase == null ? "impl" : ctxPhase;
+}
+
+function resolveDraftReviewPhaseKey(flowState = {}) {
+  const steps = Array.isArray(flowState.steps) ? flattenSteps(flowState.steps) : [];
+  const byId = new Map(steps.map((step) => [step.id, step]));
+  if (byId.get("review-draft-coverage")?.status === "in_progress") return "draft-coverage";
+  if (byId.get("review-draft-questions")?.status === "in_progress") return "draft-questions";
+  if (byId.get("review-draft-questions")?.status === "done") return "draft-coverage";
+  return "draft-questions";
+}
+
+function reviewPhaseKeyForCtx(ctx, phase) {
+  if (phase !== "draft") return persistedPhaseKey(phase);
+  return resolveDraftReviewPhaseKey(ctx?.flowState || {});
 }
 
 /**
@@ -72,7 +87,7 @@ export function resolveReviewRetryMax(retryContext = {}, phase) {
 export function checkReviewRetryBelowMax(ctx, phase) {
   const flowState = ctx?.flowState || {};
   if (flowState.currentTaskId != null) return null; // R15
-  const persistedPhase = persistedPhaseKey(phase);
+  const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
   let max;
   try {
     max = resolveReviewRetryMax({ flowState }, persistedPhase);
@@ -109,7 +124,7 @@ function isImplPass(result) {
 export function updateReviewRetryCounter(ctx, result) {
   const flowState = ctx?.flowState || {};
   if (flowState.currentTaskId != null) return; // R15
-  const persistedPhase = persistedPhaseKey(ctx?.phase);
+  const persistedPhase = result?.artifacts?.retryPhase || reviewPhaseKeyForCtx(ctx, ctx?.phase);
   if (!REVIEW_NODE_ID_BY_PHASE[persistedPhase]) return; // unmapped phase: no-op (post-hook should not crash)
   const mgr = ctx.flowManager;
   if (!mgr) return;
@@ -130,16 +145,17 @@ export { REVIEW_PHASE_KEYS };
 const PHASE_REVIEW_PARSERS = {
   test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
   spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "approval",   commandId: "flow.spec.review.propose" },
-  draft: { countPattern: /issues=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft", commandId: "flow.draft.review.propose" },
+  draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft", commandId: "flow.draft.review" },
 };
 
 function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label, next }) {
   const verdictMatch = stderr.match(/verdict=(PASS|FAIL)/);
   const countMatch = stderr.match(countPattern);
   const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
+  const retryPhaseMatch = stderr.match(/retryPhase=([a-z-]+)/);
 
   const verdict = verdictMatch ? verdictMatch[1] : (res.ok ? "PASS" : "FAIL");
-  const count = countMatch ? parseInt(countMatch[1], 10) : null;
+  const count = countMatch ? parseInt(countMatch[countMatch.length - 1], 10) : null;
 
   const changed = [];
   if (reviewPathMatch) changed.push(reviewPathMatch[1]);
@@ -158,7 +174,7 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
   return {
     result: "ok",
     changed,
-    artifacts: { phase, verdict, [countKey]: count ?? 0 },
+    artifacts: { phase, verdict, [countKey]: count ?? 0, ...(retryPhaseMatch && { retryPhase: retryPhaseMatch[1] }) },
     next: verdict === "FAIL" ? null : next,
     output: stdout,
   };

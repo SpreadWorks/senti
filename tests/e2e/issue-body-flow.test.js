@@ -21,6 +21,7 @@ function passingScore() {
     scopeBoundedness: 2,
     targetSpecificity: 1,
     precedent: 1,
+    goal: "test goal",
     reason: "e2e stub pass",
   });
 }

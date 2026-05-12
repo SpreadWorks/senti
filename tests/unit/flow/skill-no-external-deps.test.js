@@ -13,9 +13,7 @@ import path from "path";
 
 const SKILLS_DIR = path.join(process.cwd(), "src/templates/skills");
 const SKILL_NAMES = [
-  "sdd-forge.flow-plan",
-  "sdd-forge.flow-impl",
-  "sdd-forge.flow-finalize",
+  "sdd-forge.flow",
   "sdd-forge.flow-status",
   "sdd-forge.flow-sync",
 ];

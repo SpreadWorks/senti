@@ -62,6 +62,7 @@ const AUTO_CHECK_RULES = `Score the following request on six dimensions (0/1/2 e
   1 = partial precedent
   2 = clear precedent
 
+Also include a temporary goal field. The goal is the concrete outcome this request asks the flow to achieve. If no concrete goal can be derived, output null.
 Also include a reason field (short string, under 200 chars, Japanese).`;
 
 const AUTO_CHECK_SCHEMA = {
@@ -73,13 +74,14 @@ const AUTO_CHECK_SCHEMA = {
     scopeBoundedness: { type: "integer" },
     targetSpecificity: { type: "integer" },
     precedent: { type: "integer" },
+    goal: { anyOf: [{ type: "string" }, { type: "null" }] },
     reason: { type: "string" },
   },
-  required: ["specBuildability", "ambiguity", "verifiability", "scopeBoundedness", "targetSpecificity", "precedent", "reason"],
+  required: ["specBuildability", "ambiguity", "verifiability", "scopeBoundedness", "targetSpecificity", "precedent", "goal", "reason"],
   additionalProperties: false,
 };
 
-const AUTO_CHECK_FMT_FALLBACK = 'Output JSON only, no prose. Use these exact keys and integer scores.\nOutput JSON shape (no markdown fence, no prose):\n{"specBuildability": N, "ambiguity": N, "verifiability": N, "scopeBoundedness": N, "targetSpecificity": N, "precedent": N, "reason": "..."}';
+const AUTO_CHECK_FMT_FALLBACK = 'Output JSON only, no prose. Use these exact keys and integer scores.\nOutput JSON shape (no markdown fence, no prose):\n{"specBuildability": N, "ambiguity": N, "verifiability": N, "scopeBoundedness": N, "targetSpecificity": N, "precedent": N, "goal": "...", "reason": "..."}';
 
 const WEIGHTS = {
   specBuildability: 3,
@@ -136,6 +138,12 @@ function sanitizeBreakdown(raw) {
   return b;
 }
 
+function goalMissing(goal) {
+  if (goal == null) return true;
+  const normalized = String(goal).trim().toLowerCase();
+  return normalized === "" || ["unknown", "n/a", "na", "not specified", "null"].includes(normalized);
+}
+
 async function scoreWithAi(container, inputText) {
   let agent;
   try {
@@ -173,6 +181,7 @@ async function scoreWithAi(container, inputText) {
   }
   return {
     breakdown: sanitizeBreakdown(parsed),
+    goal: parsed.goal,
     reason: typeof parsed.reason === "string" ? parsed.reason.slice(0, 300) : "",
     ok: true,
   };
@@ -183,12 +192,13 @@ async function scoreWithAi(container, inputText) {
  * final autoCheck envelope. Kept separate so set-auto.js can re-use the
  * same shape without re-invoking the CLI.
  */
-export function composeAutoCheck({ staticGates, aiBreakdown, aiReason, aiOk }) {
+export function composeAutoCheck({ staticGates, aiBreakdown, aiReason, aiOk, aiGoal }) {
   const staticFail = !staticGates.eligible;
   const breakdown = staticFail ? emptyBreakdown() : aiBreakdown;
   const score = computeScore(breakdown);
   const hardFail = staticFail ? false : hardGateFailed(breakdown);
-  const eligible = !staticFail && aiOk && !hardFail && score >= THRESHOLD;
+  const goalFail = staticFail ? false : goalMissing(aiGoal);
+  const eligible = !staticFail && aiOk && !hardFail && !goalFail && score >= THRESHOLD;
   const reasonParts = [];
   if (staticFail) {
     const hits = ["G", "H", "I"].filter((k) => staticGates[k]);
@@ -198,7 +208,10 @@ export function composeAutoCheck({ staticGates, aiBreakdown, aiReason, aiOk }) {
   if (!staticFail && aiOk && hardFail) {
     reasonParts.push(`hard-gate sum ${computeHardGateSum(breakdown)} below ${HARD_GATE_MIN_SUM}`);
   }
-  if (!staticFail && aiOk && !hardFail && score < THRESHOLD) {
+  if (!staticFail && aiOk && !hardFail && goalFail) {
+    reasonParts.push("goal missing");
+  }
+  if (!staticFail && aiOk && !hardFail && !goalFail && score < THRESHOLD) {
     reasonParts.push(`score ${score}/${MAX_SCORE} below threshold ${THRESHOLD}`);
   }
   if (reasonParts.length === 0 && aiReason) reasonParts.push(aiReason);
@@ -209,6 +222,7 @@ export function composeAutoCheck({ staticGates, aiBreakdown, aiReason, aiOk }) {
     threshold: THRESHOLD,
     breakdown,
     staticGates: { G: !!staticGates.G, H: !!staticGates.H, I: !!staticGates.I },
+    goalGate: { checked: !staticFail && aiOk, passed: !staticFail && aiOk && !goalFail },
     reason: reasonParts.join("; "),
   };
 }
@@ -224,6 +238,7 @@ export async function runAutoCheckCore(container, inputText) {
     aiBreakdown: aiResult.breakdown,
     aiReason: aiResult.reason,
     aiOk: aiResult.ok,
+    aiGoal: aiResult.goal,
   });
 }
 
@@ -242,7 +257,17 @@ export default class RunAutoCheckCommand extends FlowCommand {
         ctx.flowManager.mutate((state) => { state.autoCheck = verdict; });
         return verdict;
       }
-      const result = await runAutoCheckCore(this.container, resolved.text);
+      if (resolved.fail) {
+        ctx.flowManager.mutate((state) => {
+          delete state.autoCheck;
+          delete state.autoUpgrade;
+        });
+        return resolved.verdict;
+      }
+      const result = {
+        ...(await runAutoCheckCore(this.container, resolved.text)),
+        ...(resolved.goalGate ? { goalGate: resolved.goalGate } : {}),
+      };
       if (result.eligible) {
         ctx.flowManager.mutate((state) => { state.autoCheck = result; });
       } else {
@@ -283,7 +308,17 @@ export default class RunAutoCheckCommand extends FlowCommand {
         });
         return verdict;
       }
-      const result = await runAutoCheckCore(this.container, resolvedInput.text);
+      if (resolvedInput.fail) {
+        ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
+          delete s.autoCheck;
+          delete s.autoUpgrade;
+        });
+        return resolvedInput.verdict;
+      }
+      const result = {
+        ...(await runAutoCheckCore(this.container, resolvedInput.text)),
+        ...(resolvedInput.goalGate ? { goalGate: resolvedInput.goalGate } : {}),
+      };
       if (result.eligible) {
         ctx.flowManager.mutatePreparingFlow(resolvedId.runId, (s) => {
           s.autoCheck = result;

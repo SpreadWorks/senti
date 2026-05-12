@@ -112,7 +112,8 @@ class FlowNode {
 
 const GATE_IMPL_SIDE_EFFECTS = Object.freeze(["completeTask", "promoteNextTask", "mergeOverview"]);
 const PLAN_REVIEW_MAX_ATTEMPTS_BY_ID = Object.freeze({
-  "review-draft": Object.freeze({ auto: 1, manual: 5 }),
+  "review-draft-questions": Object.freeze({ auto: 1, manual: 5 }),
+  "review-draft-coverage": Object.freeze({ auto: 1, manual: 5 }),
   "review-spec": Object.freeze({ auto: 3, manual: 3 }),
   "review-test": Object.freeze({ auto: 3, manual: 3 }),
 });
@@ -161,7 +162,16 @@ export const FLOW_DEFINITION = Object.freeze([
         outputSchemaRef: "next-action/draft.schema.json",
         maxAttempts: 1,
       }),
-      createPlanReviewNode({ id: "review-draft", label: "Review (draft)", contextKinds: ["draft", "issue"] }),
+      createPlanReviewNode({
+        id: "review-draft-questions",
+        label: "Review (draft questions)",
+        contextKinds: ["draft", "issue"],
+      }),
+      createPlanReviewNode({
+        id: "review-draft-coverage",
+        label: "Review (draft coverage)",
+        contextKinds: ["draft", "issue"],
+      }),
       new FlowNode({
         id: "gate-draft",
         label: "Gate (draft)",

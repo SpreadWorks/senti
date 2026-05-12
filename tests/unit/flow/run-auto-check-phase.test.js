@@ -24,6 +24,7 @@ function stubResponse() {
     scopeBoundedness: 2,
     targetSpecificity: 1,
     precedent: 1,
+    goal: "test goal",
     reason: "stub ok",
   });
 }
@@ -118,7 +119,7 @@ describe("flow run auto-check — phase-aware input selection (spec 220)", () =>
     const capturePath = path.join(tmp, ".stub-agent-prompt");
     setupProject(tmp, { capturePath });
     const steps = withStepDone(buildInitialSteps(), "gate-draft");
-    const draftBody = "DRAFT_MARKER_XYZ123 このドラフトは識別用のマーカーを含む";
+    const draftBody = JSON.stringify({ goal: "DRAFT_MARKER_XYZ123 add a progress bar" });
     seedActiveFlow(tmp, { steps, draftBody });
 
     const res = runCli(tmp, ["flow", "run", "auto-check"]);

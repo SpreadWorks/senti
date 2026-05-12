@@ -11,12 +11,13 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { countGateRetry } from "./run-gate.js";
 import { countReviewRetry } from "./run-review.js";
+import { flattenSteps } from "../definition.js";
 
 const VALID_ACTIONS = Object.freeze(["reset"]);
 const VALID_KINDS = Object.freeze(["gate", "review"]);
 const PHASES_BY_KIND = Object.freeze({
   gate: ["task-impl", "integration"],
-  review: ["draft", "spec", "test", "impl"],
+  review: ["draft", "draft-questions", "draft-coverage", "review-draft-questions", "review-draft-coverage", "spec", "test", "impl"],
 });
 const COUNTER_BY_KIND = Object.freeze({
   gate: "gateRetry",
@@ -26,6 +27,22 @@ const COUNT_FN_BY_KIND = Object.freeze({
   gate: countGateRetry,
   review: countReviewRetry,
 });
+
+function normalizeReviewResetPhase(phase) {
+  if (phase === "review-draft-questions") return "draft-questions";
+  if (phase === "review-draft-coverage") return "draft-coverage";
+  return phase;
+}
+
+function resolveReviewResetPhases(ctx, phase) {
+  const normalized = normalizeReviewResetPhase(phase);
+  if (normalized !== "draft") return [normalized];
+  const steps = Array.isArray(ctx.flowState?.steps) ? flattenSteps(ctx.flowState.steps) : [];
+  const active = steps.find((step) => step.status === "in_progress");
+  if (active?.id === "review-draft-questions") return ["draft-questions"];
+  if (active?.id === "review-draft-coverage") return ["draft-coverage"];
+  return ["draft-questions", "draft-coverage"];
+}
 
 export default class SetRetryCommand extends FlowCommand {
   execute(ctx) {
@@ -67,10 +84,13 @@ export default class SetRetryCommand extends FlowCommand {
 
     const counter = COUNTER_BY_KIND[kind];
     const countFn = COUNT_FN_BY_KIND[kind];
+    const resetPhases = kind === "review" ? resolveReviewResetPhases(ctx, phase) : [phase];
 
     if (!ctx.yes) {
       const state = ctx.flowState;
-      const current = countFn(state?.metrics, phase);
+      const current = resetPhases
+        .map((p) => `${p}=${countFn(state?.metrics, p)}`)
+        .join(", ");
       process.stderr.write(
         `[sdd-forge] current ${counter} count for phase "${phase}": ${current}\n` +
           "[sdd-forge] pass --yes to confirm the reset.\n",
@@ -83,11 +103,13 @@ export default class SetRetryCommand extends FlowCommand {
       );
     }
 
-    ctx.flowManager.appendMetric(
-      { phase, counter, delta: 0, reset: true },
-      { taskId: null }, // R19: explicit flow-scope
-    );
+    for (const p of resetPhases) {
+      ctx.flowManager.appendMetric(
+        { phase: p, counter, delta: 0, reset: true },
+        { taskId: null }, // R19: explicit flow-scope
+      );
+    }
 
-    return { action, kind, phase, counter, reset: true };
+    return { action, kind, phase, phases: resetPhases, counter, reset: true };
   }
 }

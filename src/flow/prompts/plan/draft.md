@@ -1,6 +1,6 @@
-   **Draft scope boundary (creation-time guidance — moved from gate evaluation):** Draft is RFP/requirements level only. Mentioning file paths or function names as context is permitted. Do not describe internal algorithms, data structures, control flow, or API design. Code references within the `evidence`, `why`, `considered`, and `answer` fields of QA entries are permitted as justification and do not constitute implementation details. This rule used to be enforced as a gate guardrail (`draft-scope-boundary`) but is now creation-time guidance — follow it while authoring `draft.json`.
+   **Draft scope boundary (creation-time guidance):** Draft is RFP/requirements level only. Mentioning file paths or function names as context is permitted. Do not describe internal algorithms, data structures, control flow, or API design. Code references within the `evidence`, `why`, and `answer` fields of QA entries are permitted as justification and do not constitute implementation details.
 
-   **Note on subsequent task decomposition:** 後続の spec 段階で要件を **concern 単位** にタスク分解する。draft は要件レベルの議論に留め、スコープは Issue or request の境界に従う。タスク分解の粒度制約は後続の `task-single-responsibility` guardrail (phase=[spec, task-spec]) で評価される。
+   **Note on subsequent task decomposition:** The spec step decomposes requirements by concern. Keep draft discussion at the requirement level and keep scope within the Issue or request boundary. Task decomposition granularity is evaluated later by the `task-single-responsibility` guardrail (phase=[spec, task-spec]).
 
    **Draft artifact format: draft.json**
    The draft artifact is a JSON file (`draft.json`), not markdown. The AI writes structured JSON directly.
@@ -22,11 +22,14 @@
      "impactOnExisting": ["affected feature 1", "affected feature 2"],
      "qa": [
        {
+         "id": "q1",
+         "status": "pending | approved | answered | dropped",
+         "category": "goal-confirmation | impact-scope | acceptance-criteria | constraint-non-goal | risk-migration-policy | user-visible-behavior | dependency-integration-boundary | implementation-policy | follow-up-coverage",
          "question": "the question asked",
          "answer": "the answer given",
          "evidence": "code reference, grep result, or doc citation that supports the answer",
          "why": "rationale for this decision",
-         "considered": "alternative approaches that were evaluated and rejected"
+         "droppedReason": "why this question was intentionally dropped"
        }
      ],
      "openQuestions": [],
@@ -71,18 +74,19 @@
      7. Future extensibility — How does this change affect future modifications or extensions?
      8. Consumer contracts — Are there rules that consumers of the introduced interfaces or data structures must follow?
    - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly (via Read tool or `sdd-forge flow get context <path> --raw`) to build sufficient understanding before answering the checklist questions.
-   - **MUST: draft.json は `flow prepare` 実行時に skeleton が自動生成される。** 生成済みのファイルのフィールドを埋める形で記入する（ファイルを上書き作成しない）。以下の必須フィールドを含む（gate-draft で検証される）:
+   - **MUST: draft.json is created as a skeleton by `flow prepare`.** Fill the existing fields; do not recreate the file from scratch. Required fields checked by gate-draft:
      - `devType` — enum: `feature` / `bugfix` / `refactor` / `docs` / `chore` / `test` / `other`
-     - `goal` — 非空文字列
-     - `analysis` — `problem`, `proposedApproach`, `validation` が全て非空
-     - `qa` — 配列（Q&A エントリ。判断を伴う Q&A では `evidence` が非空であること）
+     - `goal` — non-empty string
+     - `analysis` — `problem`, `proposedApproach`, and `validation` are all non-empty
+     - `qa` — entries with `id`, `status`, `category`, `question`, `answer`, `evidence`, `why`, and `droppedReason`
      - `approval` — `{ approved: true, confirmedAt: "...", notes: "..." }`
    - Write the completed draft.json and proceed to spec.
    - Mark draft as approved: `approval.approved = true`, `approval.notes = "autoApprove"`
 
    **Communication rules for the draft phase (when NOT autoApprove):**
-   - **ALL turns MUST end with a question.** The AI must never end a turn without asking the user something.
-   - Add progress display `(n/N)` at the start of each question. Get `n` from `sdd-forge flow get qa-count`. `N` is the AI's estimate of remaining questions.
+   - Start by creating the full draft question list in `draft.json.qa[]` with `status: "pending"` and stable ids (`q1`, `q2`, ...). The `(n/N)` denominator is the number of pending plus approved questions in this list.
+   - **ALL turns MUST end with a question** until the draft step is done. The AI must never end a turn without asking the user something.
+   - Add progress display `(n/N)` at the start of each question. Get `n` from answered/dropped progress in `draft.json.qa[]`.
    - After each question: `sdd-forge flow set metric draft question`
    - **MUST: Every question to the user — including confirmations after applying user-requested changes — MUST use the Choice Format. No free-form questions. No exceptions.**
    - **Requirements category checklist** (AI uses internally to check coverage):
@@ -102,14 +106,18 @@
         - If target files/modules are not yet in context: `sdd-forge flow get context --search "<request text or issue title>" --raw` using the request or issue title as the query.
         - If project structure is still unclear after search: `sdd-forge flow get context --raw` for a broad overview.
      3. If guardrail articles have NOT been loaded in this session: `sdd-forge flow get guardrail draft`. If output is non-empty, consider these principles as constraints. Skip if already present in context.
-   - Fill draft.json fields progressively during the Q&A. Record each Q&A exchange as an entry in the `qa` array with `evidence`, `why`, and `considered` fields where applicable.
+   - Fill draft.json fields progressively during the Q&A. Update each `qa[]` entry in place by status:
+     - `pending` / `approved`: `answer`, `evidence`, `why`, and `droppedReason` are empty strings.
+     - `answered`: `answer`, `evidence`, and `why` are non-empty; `droppedReason` is empty.
+     - `dropped`: `droppedReason` is non-empty; `answer`, `evidence`, and `why` are empty.
+   - If an answer is ambiguous, ask a direct clarification immediately: `Does "<ambiguous phrase>" mean "<concrete interpretation>"? Answer yes or no.`
    - AI presents choices/proposals → user selects with short answers.
    - Ask ONE question at a time (do not batch questions, do not self-answer).
    - If a question leads to digression:
      1. Try to resolve in ONE exchange.
      2. If unresolved, record in `openQuestions` and move on.
      3. Open Questions are resolved during spec filling or implementation.
-   - When requirements are sufficiently defined, proceed to the next step (review-draft handles approval).
+   - When the initial question list is complete, proceed to `review-draft-questions`.
    - Transfer Q&A and decisions to spec (step 7).
    - Keep `draft.json` in `specs/` (do not delete).
    - **On complete**: `sdd-forge flow set step draft done`

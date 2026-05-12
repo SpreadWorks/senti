@@ -1,0 +1,579 @@
+# Feature Specification: 256-draft-review-goal-achievability
+
+**Feature Branch**: `feature/256-draft-review-goal-achievability`
+**Created**: 2026-05-11
+**Status**: Draft
+**Input**: GitHub Issue #321
+
+## Goal
+Redesign draft review so it supplements information needed to achieve the issue/request goal through a two-stage mechanism, instead of judging the draft itself as a generic QA-quality artifact.
+
+## Background
+The current draft review path treats draft QA as a general quality artifact: it checks shallow/generic questions, missing coverage, ambiguous or unsupported answers, and redundancy in one stage. That overlaps older quality-check behavior with the newer missing-coverage intent and causes reviewer drift, repeated follow-up cycles, and user answers being challenged after the fact. Issue #321 narrows draft review to supplementing information needed to achieve the request goal. The new design keeps draft decisions in qa[], splits unanswered-question coverage from answered-QA coverage, and moves residual structural/quality checks into gate-draft.
+
+## Scope
+- MUST: Add id/status based lifecycle support to draft.json qa[] entries: pending, approved, answered, dropped.
+- MUST: Update the draft phase prompts/instructions so draft creates a goal, confirms it with Q1, asks closed-choice clarification for ambiguous answers, and records pending QA directly.
+- MUST: Add temporary goal extraction to auto-check and hard-fail autoApprove eligibility when no concrete goal can be extracted, regardless of score.
+- MUST: Split draft review into review-draft-questions and review-draft-coverage, limited to supplementing goal achievability coverage.
+- MUST: Move residual shallow/ambiguous/redundant QA quality checks to gate-draft guardrails and structural validation.
+- MUST: Update the spec prompt so draft.json is authoritative and source evidence is re-read only when absent or unverifiable.
+- MUST: Extend reopen-draft so pre-spec-completion draft rollback is phase-aware and does not delete existing spec artifacts.
+
+## Out of Scope
+- Splitting Issue #321 into multiple issues or multiple specs.
+- Asking the user for internal implementation details that the AI can infer from existing code and project policy.
+- Persisting the extracted auto-check goal in autoCheck state.
+- Deleting existing spec/test artifacts when reopen-draft marks them stale.
+- Adding a migration helper that automatically converts legacy draft.json QA entries.
+
+## Constraints
+- alpha policy: do not keep backward-compatible legacy draft.json parsing paths; old qa[] without id/status shall fail at schema boundaries with an explicit reopen-draft/restart message.
+- backward-compatible-cli-interface: keep `sdd-forge flow run review --phase draft` as a compatibility entry point that routes to the new two-stage draft review.
+- exit-code-contract: invalid user-facing CLI input, schema violations, invalid review reports, missing required artifacts, and failed gates shall use non-zero exit behavior through existing Envelope fail/fatal paths.
+- validate-user-input-at-entry-point: validate `--phase`, reopen-draft `--reason`, and any review report target/action fields before passing them to lifecycle mutation helpers.
+- bounded-resource-usage: review retries remain bounded by PLAN_REVIEW_MAX_ATTEMPTS_BY_ID; stale artifact lists, qa[] scans, and report dedupe operate over finite arrays only.
+- If src/templates or src/presets are changed, run `sdd-forge upgrade` before final verification.
+
+## Design Principles
+- draft.json qa[] remains the single source of truth for user-facing draft decisions; do not introduce a parallel questions[] structure.
+- review stages detect missing goal-achievability information only; gate-draft owns structural and residual quality checks.
+- User answers are not negated by review. If an answer creates a new user-judgment gap, create a new pending question.
+- Flow state should reveal where the plan is paused, so the two draft review stages are represented as separate flow nodes.
+- Schema and first consumer ship together: qa[] id/status support must be observably exercised by draft creation and gate-draft validation.
+
+## Overview
+### Modules
+- src/flow/definition.js owns the plan step sequence and review retry registry; it gains review-draft-questions and review-draft-coverage.
+- src/flow/commands/review.js owns draft review prompt construction, report formatting, phase routing, and compatible `--phase draft` behavior.
+- src/flow/commands/report.js owns finalize/report QA count presentation and must use lifecycle counts or label historical metrics.
+- src/flow/lib/flow-context.js owns shared command context resolution for FlowCommand and dispatcher hooks and must return migrated split draft review state.
+- src/flow/lib/run-review.js owns review wrapper phase validation, retry counting, stderr count parsing, changed artifact reporting, and next-action hints; it does not mark plan review steps done.
+- src/flow/lib/set-retry.js owns user-facing retry reset targets and draft compatibility aliases for split review stages.
+- src/flow/registry.js owns post-command hooks and shall preserve operator-owned completion for plan review steps.
+- src/flow/lib/run-prepare-spec.js owns initial spec directory artifact creation and shall stop creating active qa.md output for new flows.
+- src/flow/lib/set-init.js owns preparing issue body seeding and must carry source descriptors for later input binding checks.
+- src/flow/lib/run-auto-check.js owns autoApprove eligibility scoring and will add temporary goal extraction as a hard gate.
+- src/flow/lib/auto-check-static.js owns static gate short-circuit behavior and must not satisfy the AI goal hard gate.
+- src/flow/lib/resolve-auto-check-input.js owns skip verdict creation for already-approved specs.
+- src/flow/lib/issue-body-cache.js owns issue body cache and fallback text used by auto-check input binding.
+- src/flow/lib/set-request.js and src/flow/lib/set-issue.js own request/issue mutation side effects and must invalidate auto trust state consistently.
+- src/flow/lib/set-auto.js owns persisted autoCheck trust decisions for enabling autoApprove.
+- src/flow/lib/set-step.js owns approval-side auto upgrade re-evaluation and must persist the same autoCheck trust markers.
+- src/flow/lib/resolve-context-envelope.js owns resume context and must read draft.json before spec completion.
+- src/flow/lib/get-resolve-context.js owns the CLI resolve-context entry point and must expose the same draft lifecycle context as resume.
+- src/flow/lib/run-resume.js owns user-facing resume output and must expose draft lifecycle context for split review steps.
+- src/flow/lib/get-next-action.js owns runtime next-action instructions, context, output schemas, maxAttempts, and injected rule selection for each step.
+- src/flow/lib/get-step-instructions.js owns prompt file lookup and prompt coverage contract for new review-draft instruction keys.
+- src/flow/lib/get-check.js owns prerequisite checks for implementation/finalization readiness.
+- src/flow/lib/get-prompt.js owns prompt progress surfaces that display QA progress.
+- src/flow/lib/get-qa-count.js and related prompt/count surfaces own user-visible QA progress counts.
+- src/flow/lib/draft-lifecycle.js owns shared draft.json parse, validation, QA count, id allocation, and legacy R31 failure messaging for runtime draft lifecycle readers.
+- src/flow/schemas/draft.schema.json owns any schema artifact for draft.json and must match draft-lifecycle.js or be removed.
+- src/flow/lib/get-guardrail.js owns guardrail audience filtering for draft authoring versus gate-draft evaluation.
+- src/flow/lib/run-lint.js owns lint-time guardrail selection and must not leak draft authoring or gate-draft-only audiences into unrelated lint runs.
+- src/lib/lint.js owns core lint guardrail selection and lint metadata validation.
+- src/flow/lib/run-reopen-draft.js owns phase-aware draft rollback, stale artifact events, and downstream plan step reset behavior.
+- src/flow/lib/run-test-result-review.js owns test result review and must stay isolated from split draft review routing.
+- src/flow/lib/run-gate.js consumes shared draft lifecycle validation, owns gate-draft residual checks, and src/presets/*/guardrail.json owns phase-appropriate guardrail wording.
+- src/flow/lib/set-approval.js owns spec approval only and must remain distinct from draft.json approval.
+- src/lib/guardrail.js owns shared guardrail loading/filtering and must support draft authoring versus gate-draft evaluation audiences.
+- src/lib/constants.js owns public phase enums; split draft review stage ids remain step/retry ids, not new public `--phase` values.
+- src/lib/flow-manager.js owns active flow resolution and must not bypass flow-state migration.
+- src/lib/flow-helpers.js owns canonical step-to-public-phase mapping used by status, metrics, and hooks.
+- src/lib/agent.js and FlowManager current-context resolution must use public phase draft plus optional concrete stepId for split draft review metrics.
+- src/lib/agent.js owns command id resolution and must keep the two draft review command ids independently resolvable.
+- src/lib/log.js owns prompt log context and shall persist public sddPhase plus concrete stepId for split draft review stages.
+- src/lib/skill-rules.js owns validation of persistent skill rule phases.
+- src/lib/config.js owns config validation/loading for migrated agent profile command ids.
+- src/lib/preparing-flow-store.js owns preparing input resolution and CLI override precedence for inherited auto state.
+- src/lib/issue-log.js shall own pure issue-log append/dedupe semantics used by migration events, with src/flow/lib/set-issue-log.js as CLI wrapper.
+- src/lib/skills.js owns skill deployment and obsolete skill cleanup for generated project skills.
+- src/flow/lib/set-metric.js owns manual metric phase validation for operator-recorded flow activity.
+- src/upgrade.js owns upgrade-time migration of generated project assets and config entries needed by new command ids.
+- src/setup.js owns fresh project config generation and must include the split draft review command ids when profiles are generated.
+- src/docs/commands/changelog.js owns generated artifact discovery for historical and current spec directories.
+- src/docs/commands/forge.js owns docs forge consumption of flattened spec JSON text.
+- src/docs/commands/review.js owns docs review prompt/check assumptions for generated spec artifacts.
+- src/docs/lib/text-prompts.js owns docs AI prompt payload construction from refreshed analysis/spec text.
+- src/spec/commands/render.js and src/flow/schemas/spec.schema.json own projection of draft fields into spec.json/spec.md.
+- src/flow/lib/run-update-overview.js owns preserving lifecycle-derived overview decisions and impact/source-verification projection when overview updates are merged.
+- src/flow/lib/overview-merge.js owns pure overview addition/filter merge behavior and must preserve lifecycle-derived fields.
+- src/lib/spec-json.js owns empty spec stubs, prompt flattening, and shared spec JSON text projection.
+- src/lib/prompt-builder.js owns shared prompt assembly and must not inject generic review output fallbacks into strict split draft review prompts.
+- src/metrics/commands/token.js owns spec difficulty metrics and shall prefer draft.json lifecycle counts for new flows.
+- src/flow/lib/get-status.js owns status output and shall not expose historical metrics as current QA progress without lifecycle counts.
+- src/locale/*/messages.json owns locale keys tied to removed qa.md preparation output.
+- src/locale/*/ui.json owns localized upgrade help text that must match config migration behavior.
+- src/templates/skills/sdd-forge.flow/SKILL.md owns consolidated user-facing flow guidance for draft.json lifecycle creation; obsolete flow-plan skill templates shall not be reintroduced.
+- src/templates/skills/sdd-forge.flow-auto/SKILL.md owns user-facing autoApprove behavior guidance.
+- src/templates/partials/core-principle.md owns propagated autoApprove choice behavior and must define draft lifecycle exceptions.
+- src/templates/partials/ai-question-style.md owns propagated question formatting rules and must exempt exact clarification templates.
+- src/templates/partials/choice-format.md owns numbered choice formatting and must also exempt exact draft clarification templates.
+- src/flow/prompts/plan/*.md and propagated skill templates own operator instructions for draft, review-draft stages, and spec generation.
+
+### Data Flow
+- draft creates draft.json.goal and initial qa[] entries with status=pending and stable q<N> ids.
+- review-draft-questions reviews pending questions by category, approves/drop them, then asks approved questions and records answered/dropped entries.
+- review-draft-coverage reads answered/dropped QA plus issue/code context and emits only additional pending questions when new user judgment is required.
+- gate-draft validates qa[] schema/status completeness, residual ambiguity tokens, evidence presence, goal, and approval before spec generation.
+- spec treats draft.json as authoritative, records source verification decisions, and reopens draft only when user-confirmed policy changes are required.
+
+### Decisions
+- [VERIFY] Existing flow definition has one review-draft node and retry entry; the spec changes it to two concrete review nodes.
+- [VERIFY] Current draft review mixes shallow/generic, missing coverage, ambiguous/unsupported, and redundant checks; this spec separates supplement review from quality gate.
+- [VERIFY] Current reopen-draft is implementation-phase oriented; the spec adds a pre-spec-completion path without done-task precondition.
+- [VERIFY] Current auto-check persists score-oriented fields only; the spec adds a temporary goal output but does not persist it.
+- Use status-only qa[] lifecycle instead of a separate questions[] array.
+- Represent review-draft as two flow nodes: review-draft-questions and review-draft-coverage.
+- Keep CLI compatibility for `flow run review --phase draft` while routing internally to the new stage behavior.
+- Gate-draft ambiguity handling is a bounded token check plus lightweight remediation, not a question-generation loop.
+
+## Clarifications (Q&A)
+- Q: Should Issue #321 be split into multiple specs?
+  - A: No. The user confirmed it is one flow and one spec; implementation is split into seven tasks.
+- Q: Should review-draft be represented as one step with an internal stage flag?
+  - A: No. The user selected separate flow steps: review-draft-questions and review-draft-coverage.
+- Q: Where should ambiguous user answers be handled?
+  - A: Draft interaction owns immediate closed-choice clarification; gate-draft only catches residual structural issues.
+- Q: Does auto-check persist the extracted goal?
+  - A: No. The goal is temporary AI output used only for auto eligibility.
+- Q: Does gate-draft remediation use reopen-draft?
+  - A: No. Residual ambiguity token failures use lightweight gate remediation and rerun gate-draft only.
+
+## Alternatives Considered
+- Keep one review-draft step and store a stage flag internally. — Rejected because retry counting, resume position, and artifact ownership remain ambiguous.
+- Create a separate questions[] array next to qa[]. — Rejected by the user; qa[] with status is sufficient and avoids split source of truth.
+- Let gate-draft generate additional questions. — Rejected because it re-mixes review and gate responsibilities and recreates user-answer negation.
+- Persist auto-check goal in autoCheck state. — Rejected because draft.json.goal should be the source of truth and auto-check is only an eligibility gate.
+- Automatically migrate legacy qa[] entries. — Rejected under alpha policy; old formats should fail clearly rather than keeping compatibility conversion paths.
+- Delete stale spec artifacts on reopen-draft. — Rejected because preserving artifacts keeps history and supports diff inspection.
+
+## User Confirmation
+- [x] User approved this spec
+- Confirmed at: 2026-05-10T00:45:00.000Z
+- Notes: User approved treating current review-draft failure as the known behavior targeted by Issue #321 and proceeding after gate-draft passed.
+
+## Requirements
+- R1 [must]: When draft.json is created or updated, each qa[] entry shall use the fixed fields id, status, category, question, answer, evidence, why, droppedReason; id shall be q<N>, unique, never reused, and newly appended as max existing numeric suffix + 1 except after legacy discard regeneration.
+- R2 [must]: When validating draft.json before spec generation, gate-draft shall fail if any qa[] entry has invalid status, duplicate id, empty question, pending/approved status, answered without answer/evidence/why, dropped without droppedReason, or dropped with non-empty answer/evidence/why.
+- R3 [must]: When the draft interaction receives an ambiguous user answer, the operator instructions shall ask clarification before recording the answer as final using these exact English templates: yes/no template `Does "<ambiguous phrase>" mean "<concrete interpretation>"? Answer yes or no.` and closed-choice template `Which option should be used for "<decision>"? Answer A, B, or N/A.`
+- R4 [must]: When auto-check evaluates a request, the AI output schema shall include temporary goal; null, blank, unknown, n/a, or not specified goal values shall force eligible=false regardless of score, and persisted autoCheck state shall not store goal.
+- R5 [must]: When the flow definition is loaded, the plan sequence shall contain review-draft-questions followed by review-draft-coverage before gate-draft, and both review stage ids shall have maxAttempts auto=1/manual=5.
+- R6 [must]: When an existing active flow has current step review-draft, it shall be remapped to review-draft-questions; when review-draft is already done and the current step is downstream, review-draft-questions and review-draft-coverage shall be synthesized as done with an issue-log migration event.
+- R7 [must]: When `sdd-forge flow run review --phase draft` is invoked, it shall remain accepted and route to the new draft review behavior rather than failing because review-draft was split.
+- R8 [must]: When review-draft-questions runs, it shall evaluate the eight categories defined in R30, emit per-category applicability fields, and return report PASS only when every applicable category requiring user judgment has either an answered qa[] entry, an approved question waiting to be asked, or a pending question that still needs operator approve/drop remediation; report PASS does not mean the stage is completable.
+- R9 [must]: When review-draft-coverage runs, it shall read answered/dropped QA and current context, emit only additional pending questions, and shall not update or drop existing answered entries.
+- R10 [must]: When a draft review report targets an existing qa[] entry, it shall identify the entry by qa.id; bare Q<N> references to existing entries shall be treated as invalid report output.
+- R11 [must]: When gate-draft checks residual QA quality deterministically, it shall inspect qa[].question, qa[].answer, qa[].evidence, qa[].why, and qa[].droppedReason after lowercase/trim/whitespace normalization; ambiguous wording uses only the fixed banned-token list `適切に`, `必要なら`, `できるだけ`, `いい感じ`, `なるべく`, `適宜`; duplicate detection compares normalized question text among non-dropped entries; shallow-answer failure applies only to answered entries with answer length below 8 non-whitespace characters or missing evidence/why; semantic interpretation and new-question generation remain out of gate-draft.
+- R12 [must]: When reopen-draft is invoked before spec completion, it shall not require a done task, shall reset draft through downstream plan steps as specified, shall reset auto/manual retry counters for those steps, and shall record stale artifact events without deleting artifacts.
+- R13 [must]: When a legacy draft.json without qa[].id/status is encountered at a new schema boundary, the command shall fail with an explicit message directing the user to reopen-draft or abort/restart; silent migration and automatic answer carry-over shall not occur.
+- R14 [must]: When spec prompt instructions are rendered, they shall state that draft.json is the source of truth, user answers must not be overridden, pending/approved QA blocks spec generation, and source evidence must be re-read when absent or unverifiable in current context; source verification decisions shall be recorded in `overview.decisions[].evidence` text using verified, absent, or unverifiable wording unless a new structured field is added to schema and renderer.
+- R15 [must]: When prompt or preset templates under src/templates or src/presets are changed, the implementation shall run sdd-forge upgrade and include resulting propagated skill/config changes.
+- R16 [must]: When deterministic lifecycle, retry, migration, schema, and gate behaviors are implemented, unit tests shall cover them; when AI prompt behavior is changed, tests/agent fixtures shall cover draft authoring, Q1 goal-confirmation stored in qa[], exact R3 clarification templates, Stage 1, Stage 2, and auto-check goal-missing behavior.
+- R17 [must]: When `sdd-forge flow run review --phase draft` is invoked during an active flow, run-review shall resolve the concrete stage from the current flow step: review-draft-questions writes the Stage 1 artifact and keeps the suggested next action on review-draft-questions until no Stage 1 pending/approved QA remains, then suggests review-draft-coverage; review-draft-coverage writes the Stage 2 artifact and keeps the suggested next action on review-draft-coverage until no added pending/approved follow-up QA remains and draft.json.approval.approved=true, then suggests gate-draft; retry counters, parser count keys, report validation, artifact paths, and next-action metadata shall use the concrete stage id as stepId or retryKey, while public metrics/logging keep phase=draft and step completion remains operator-owned. Stage 1 `questions=<n>` counts proposed add/approve/update/drop actions requiring operator remediation, Stage 2 `findings=<n>` counts proposed follow-up add actions, and PASS may include non-zero counters when remediationRequired metadata keeps next-action on the same concrete stage.
+- R18 [must]: When skill rules are validated or propagated, `src/templates/skills/rules.json` shall no longer reference `flow.review-draft`; its rules shall target `flow.review-draft-questions` and `flow.review-draft-coverage` with wording that matches each stage, and `sdd-forge upgrade` shall propagate those changes.
+- R19 [must]: When next-action output is generated for draft and draft review steps, `src/flow/schemas/next-action/draft.schema.json` and review next-action schema coverage shall match the new observable lifecycle: draft edits draft.json.goal and qa[] entries, Stage 1 reviews pending questions, and Stage 2 reviews answered/dropped coverage. `src/flow/schemas/next-action/review.schema.json` shall be updated or split so review-draft-questions and review-draft-coverage receive stage-specific schemas instead of only the generic verdict/comments shape.
+- R20 [must]: When defining the new draft.json shape, qa[] shall be limited to the fixed lifecycle fields from R1; `openQuestions` remains a top-level draft field mapped to spec open_questions for non-blocking implementation uncertainties only, while user-facing decisions that block goal achievability live in qa[] as pending/approved/answered/dropped entries. Legacy `qa[].considered` is removed from runtime schema and from all draft/spec/gate prompts, guardrails, transfer rules, and related tests.
+- R21 [must]: When writable flow state is loaded or the active flow is resolved, `src/lib/flow-store.js` shall run an idempotent migration that handles nested and legacy flat `flow.json.steps`, remaps legacy review-draft state into the two concrete review stages, synthesizes downstream done statuses where required, persists the migrated state, and records a single issue-log migration event; read-only paths such as git-show scans and loadReadOnly shall apply the same migration in memory only and shall not attempt to write flow.json or issue-log events.
+- R22 [must]: When `set auto on` considers a persisted autoCheck result, it shall trust only verdicts that include a non-goal marker proving the goal hard gate was evaluated, such as `goalGate: "passed"` or an equivalent schema version, and a stable non-secret input binding such as a request/issue hash plus source descriptor; older eligible verdicts without both markers shall be ignored or rechecked instead of enabling autoApprove.
+- R23 [must]: When base guardrails are updated, draft-phase guardrails shall refer to draft.json, old generic draft-review quality ownership shall be removed from draft-phase text, and residual deterministic checks for shallow, ambiguous, redundant, or structurally invalid QA shall be placed under gate-draft.
+- R24 [must]: When preparing a new spec directory, prepare-spec shall stop creating `qa.md` as an active artifact; dry-run output, created-artifact summaries, e2e tests, and generated docs shall be updated so draft.json qa[] is the authoritative QA store for new flows.
+- R25 [must]: When `flow set retry reset review` is used after the split, accepted review reset targets shall include `review-draft-questions` and `review-draft-coverage`; `draft` shall remain a compatibility alias that resets both concrete draft review counters when no active concrete step can be inferred, or the current concrete draft review counter when the active step is one of the two stages. Stored retry metrics for split draft review shall retain public phase=draft and include a concrete stepId or retryKey, and run-review/set-retry count/reset logic shall use that concrete key so the two stage budgets remain separate.
+- R26 [must]: When propagated flow skills are updated, `src/templates/skills/sdd-forge.flow/SKILL.md` shall document the two draft review nodes, phase-aware reopen-draft behavior, new retry reset targets, and the requirement to ask approved questions within the review stage remediation loop.
+- R27 [must]: When agent command ids are resolved for draft review, Stage 1 shall use `flow.draft.review.questions.propose` and Stage 2 shall use `flow.draft.review.coverage.propose`; project config/profile templates and the active project config shall define both ids, while no new runtime fallback shall silently collapse both stages into `flow.draft.review.propose`.
+- R28 [must]: When draft review stages run, the non-interactive review command shall write only the stage report artifact and shall not mutate draft.json; the operator remediation instructions shall apply allowed qa[] mutations, ask approved questions, record answered/dropped entries, and rerun the same stage until it passes.
+- R29 [must]: When validating qa[] lifecycle, gate-draft shall enforce this matrix: pending and approved require id/status/category/question and require answer/evidence/why/droppedReason to be empty strings; answered requires id/status/category/question/answer/evidence/why and requires droppedReason to be empty; dropped requires id/status/category/question/droppedReason and requires answer/evidence/why to be empty.
+- R30 [must]: When classifying qa[] entries, Stage 1 shall use exactly eight categories: goal-confirmation, impact-scope, acceptance-criteria, constraint-non-goal, risk-migration-policy, user-visible-behavior, dependency-integration-boundary, implementation-policy; Stage 2 may additionally create follow-up-coverage entries; any other category shall fail at the draft schema boundary. If Stage 1 is rerun after Stage 2 created follow-up-coverage entries, Stage 1 shall ignore and leave those entries immutable while Stage 2 owns their pending/approved remediation and completion checks.
+- R31 [must]: When a legacy draft.json fails the new QA schema, the error message shall include: `draft.json schema changed; run reopen-draft to regenerate qa[] with id/status, or abort and restart this flow`.
+- R32 [must]: When a draft review report returns PASS, PASS means the review command found no further report findings for that stage; pending QA requires operator approve/drop remediation, approved QA requires asking the user and recording answered/dropped lifecycle fields, and the operator may mark review-draft-questions done only after no pending/approved Stage 1 QA remains. The operator may mark review-draft-coverage done only after added follow-up questions have been asked or dropped.
+- R33 [must]: When auto-check is skipped because the spec is already approved, the skipped eligible verdict shall persist a non-goal trust marker such as `goalGate: "skipped-spec-approved"` plus a spec-approval binding such as specPath and approval timestamp or spec hash; `set auto on` shall trust that marker without requiring AI goal extraction only when the approval binding still matches, while all non-skipped eligible verdicts require the normal goal-gate marker and request/issue input binding.
+- R34 [must]: When `flow get qa-count` or related prompt/count surfaces report draft QA progress for the new lifecycle, they shall read draft.json qa[] as the source of truth and expose answered count, pending count, approved count, dropped count, and total count; metrics may remain historical but shall not be the authoritative progress source for new flows.
+- R35 [must]: When shared phase constants and help text are updated, public review phases shall remain draft, spec, and test for explicit `--phase` values, while impl review remains the no-`--phase` default; review-draft-questions and review-draft-coverage are concrete step/retry ids accepted by internal routing and retry reset targets, not new public `--phase` values.
+- R36 [must]: When resume/context is resolved before spec completion, `src/flow/lib/resolve-context-envelope.js` shall read draft.json and expose draft goal plus qa[] status counts so review-draft-questions and review-draft-coverage resume with the actual lifecycle state rather than spec.md-derived goal/scope only.
+- R37 [must]: When propagated resume skill templates are updated, `src/templates/skills/sdd-forge.flow-resume/SKILL.md` shall reference draft.json, review-draft-questions, and review-draft-coverage instead of draft.md or the old single review-draft node, and `sdd-forge upgrade` shall propagate the change.
+- R38 [must]: When `src/flow/lib/set-step.js` performs autoUpgradeReeval or persists autoCheck during approval-side step changes, it shall use the same goalGate trust-marker contract as run-auto-check and resolve-auto-check-input, including the skipped-spec-approved marker.
+- R39 [must]: When split draft review artifacts are written, Stage 1 shall write `draft-review-questions.md` and emit a parseable stderr/result counter `questions=<n>`; Stage 2 shall write `draft-review-coverage.md` and emit `findings=<n>`; run-review parser tests shall cover both artifact paths and counters.
+- R40 [must]: When prompt files are updated, the old `src/flow/prompts/plan/review-draft.md` shall be removed or replaced with a compatibility stub that points to the two new prompts; no flow definition, skill rule, or plan prompt lookup shall continue to use stale generic draft-review instructions.
+- R41 [must]: When reopen-draft runs, it shall apply this reset matrix: before spec completion, draft becomes in_progress and review-draft-questions, review-draft-coverage, gate-draft, spec, review-spec, gate, approval, test, and review-test become pending with review/gate retry counters reset; after spec completion but before approval, the same plan steps reset and existing spec artifacts are marked stale; after approval or test start, approval/test/review-test also reset and their artifacts are marked stale; implementation-phase reopen keeps the existing done-task precondition and task-add semantics.
+- R42 [must]: When draft.json is validated, the complete top-level schema shall be devType, goal, analysis, scopeVerification, impactOnExisting, qa, openQuestions, and approval. devType shall keep the existing enum; analysis shall preserve required problem, proposedApproach, and validation strings; scopeVerification.in/out, impactOnExisting, and openQuestions shall be arrays of strings; additional top-level fields fail validation unless explicitly added by this spec. openQuestions shall contain only non-blocking implementation uncertainties that can be carried into spec.open_questions; any unresolved user decision needed for goal achievability must be represented as pending or approved qa[] and shall block spec generation before openQuestions projection. Approval remains the gate-draft approval object, is set by draft/user approval before gate-draft, and approval.approved=false blocks gate-draft. Approval shall use exactly approved, confirmedAt, and notes fields: approved is boolean; when approved=true, confirmedAt is a non-empty ISO 8601 timestamp and notes is a non-empty string; when approved=false, confirmedAt and notes are empty strings; additional approval fields fail validation.
+- R43 [must]: When draft review reports are parsed, each report shall contain a machine-readable JSON block of proposed actions only: Stage 1 includes categories[] with category, applicable, evidence, requiredUserJudgment, existingQuestionId, result, and actions[] with action add/update/drop/approve, targetQaId or NEW, category, question, reason, and droppedReason when action=drop. Stage 1 add uses targetQaId=NEW and creates pending only; update may target only pending entries and may change category/question, while reason remains report-only metadata and shall not be written to qa[].why; drop may target only pending or approved entries and proposes dropped with droppedReason that becomes qa[].droppedReason during operator remediation; approve may target only pending entries and proposes approved; answered and dropped entries are immutable to Stage 1. Stage 2 includes findings[] with action add only, targetQaId=NEW, category=follow-up-coverage, question, reason, evidence; invalid enum values, missing targetQaId for existing entries, bare Q<N> references, invalid targets/transitions, drop without droppedReason, or Stage 2 update/drop/approve actions shall fail the report. Applying proposals to draft.json is operator remediation responsibility, not parser/review command mutation.
+- R44 [must]: When `flow run review --phase draft` routes outside an active concrete review step, it shall use this matrix: current review-draft-questions routes Stage 1; current review-draft-coverage routes Stage 2; legacy current review-draft routes Stage 1 after migration; current draft or no completed Stage 1 routes Stage 1; after Stage 1 done but before Stage 2 done routes Stage 2; after both stages done or current gate-draft/downstream returns an invalid-state error unless reopen-draft reset those stages.
+- R45 [must]: When active flow resolution, runId lookup, or scanAllFlows reads flow.json directly through `src/lib/flow-manager.js`, it shall apply the same idempotent review-draft split migration as FlowStore or delegate the read to FlowStore so legacy review-draft state cannot bypass migration.
+- R46 [must]: When next-action runtime handles review-draft-questions or review-draft-coverage, `src/flow/lib/get-next-action.js` shall return distinct instructionsKey, context payload, output schema reference, maxAttempts, and injected skill rules for each concrete stage; buildContextDescriptor shall expose draft.json, issue/request source, and qa[] lifecycle counts as explicit context kinds for those stages rather than only spec/task_spec paths.
+- R47 [must]: When agent command ids are resolved, `flow.draft.review.questions.propose` and `flow.draft.review.coverage.propose` shall resolve independently; as a special-case exception to the documented prefix profile contract, the old `flow.draft.review.propose` key shall not satisfy either new stage through prefix matching, and unit/docs tests shall cover this exactness.
+- R48 [must]: When historical metrics backfill utilities compute draft question counts, they shall prefer draft.json qa[] status counts when draft.json exists and may fall back to qa.md only for historical specs without draft.json; tests shall cover both paths.
+- R49 [must]: When prepare-spec removes active qa.md output, project-local `.sdd-forge/templates/<lang>/specs/qa.md` lookup shall be removed or ignored under alpha policy; upgrade/test expectations shall document that project-local qa.md templates no longer affect new flow preparation.
+- R50 [must]: When review-draft split migration records issue-log history, it shall use a shared pure helper in `src/lib/issue-log.js` rather than ad hoc writers or CLI command modules, emit event `flow.reviewDraftSplitMigrated` with runId, oldStepId, newStepIds, migratedAt, and migrationId, and use migrationId as an idempotence marker so only one entry is written per flow.
+- R51 [must]: When operators record manual metrics during review-draft-questions or review-draft-coverage, `flow set metric` shall continue to use public phase `draft`; concrete stage identity may be recorded as optional step metadata, but `set-metric` shall not accept the concrete stage ids as public phases.
+- R52 [must]: When `specs/167-metrics-token-difficulty/fill-flow-counts.js` backfills counts, it shall prefer draft.json qa[] status counts, fall back to legacy qa.md only when draft.json is absent, and recognize draft-review-questions.md plus draft-review-coverage.md as the split review artifacts; `tests/e2e/metrics/fill-flow-counts.test.js` shall cover new and legacy paths.
+- R53 [must]: When reopen-draft marks artifacts stale because draft review stages reset, stale artifact events shall include draft-review-questions.md, draft-review-coverage.md, and any legacy draft-review.md present, without deleting those files.
+- R54 [must]: When Stage 1 or Stage 2 report PASS still leaves pending or approved QA that must be asked by the operator, or Stage 2 has clear QA but draft.json.approval.approved is not true, run-review shall include remediationRequired metadata with stageId, pendingCount, approvedCount, actionCount, approvalRequired, and reason fields, and keep the next-action hint on the same concrete stage instead of suggesting the downstream stage.
+- R55 [must]: When documenting agent profile command-id matching, `src/lib/types.js`, agent unit tests, and generated docs shall state that commandId prefixes remain the general rule except for the two exact draft review stage ids introduced by this spec.
+- R56 [must]: When `flow get check` evaluates impl or finalize readiness, review-draft-questions and review-draft-coverage shall be required prerequisites before gate-draft/spec, and tests shall cover legacy migrated review-draft state satisfying the two new prerequisites.
+- R57 [must]: When `flow get prompt plan.draft` or other prompt progress surfaces show QA progress, they shall use the same draft.json qa[] lifecycle counts as get-qa-count rather than legacy metrics.
+- R58 [must]: When automatic metrics or issue-log hooks derive a public phase while the current step is review-draft-questions or review-draft-coverage, they shall record phase `draft` and may include the concrete step id as metadata.
+- R59 [must]: When upgrading an existing project config, `sdd-forge upgrade` shall add missing `flow.draft.review.questions.propose` and `flow.draft.review.coverage.propose` entries to every profile, copying the agent from legacy `flow.draft.review.propose` when present, while leaving the legacy key unused by runtime stage resolution.
+- R60 [must]: When the flow-status skill template is updated, `src/templates/skills/sdd-forge.flow-status/SKILL.md` shall use resolve-context draft goal and qa[] lifecycle counts before spec completion instead of relying on spec.md-derived goal/approval only.
+- R61 [must]: When changelog artifact discovery runs for new lifecycle specs, it shall list draft.json and split draft review artifacts in addition to markdown artifacts, and e2e tests shall cover a new-flow directory without qa.md.
+- R62 [must]: When autoApprove reaches draft lifecycle generation, AI-derived facts may be recorded as answered only with source evidence and why; true user-judgment gaps shall be recorded as pending and shall pause or fail auto progression before review-draft-questions, so autoApprove must not self-answer decisions that require the user.
+- R63 [must]: When public phases are derived from flow steps, `src/lib/flow-helpers.js` shall define an explicit public phase map for affected plan leaves: draft, review-draft-questions, review-draft-coverage, and gate-draft map to public phase draft, while concrete node identity may be carried as optional stepId metadata; tests shall cover metrics/logging/status/context callers that depend on derivePhase or PHASE_MAP.
+- R64 [must]: When `sdd-forge upgrade` gains config profile migration, its documented contract, help text, dry-run output, summary/no-change logic, and tests shall explicitly state that config.json may be updated only for idempotent sdd-forge-managed command-id migration.
+- R65 [must]: When issue-log migration events are appended from flow-state migration code, the shared helper shall live in `src/lib/issue-log.js` as a pure append/dedupe function with no CLI validation dependency, accept migrationId for idempotence, and avoid circular imports between src/lib and src/flow/lib.
+- R66 [must]: When registry help is rendered, it shall describe split draft review routing, retry reset targets, phase-aware reopen-draft preconditions, and lifecycle QA count output instead of old review-draft/qa-count guidance.
+- R67 [must]: When active qa.md preparation is removed, locale keys tied only to qa.md preparation such as spec.qaConfirmationPrompt in en/ja messages shall be removed or repurposed with tests updated so stale external references are not left behind.
+- R68 [must]: When Stage 1 reports lifecycle mutations, its machine-readable action enum shall include approve in addition to add/update/drop; approve may target only existing pending qa.id entries and transitions them to approved without changing answered user content.
+- R69 [must]: When review-draft-coverage has no pending or approved QA remaining, the operator shall ask final draft approval, write draft.json.approval.approved=true with confirmation metadata, and only then mark review-draft-coverage done or enter gate-draft.
+- R70 [must]: When FlowManager resolves current context for automatic agent metrics during review-draft-questions or review-draft-coverage, it shall expose public phase draft and optional concrete stepId, so agent/log metrics persist phase draft rather than concrete review step ids.
+- R71 [must]: When prepare-spec prints next guidance for new lifecycle flows, it shall point users to the draft.json lifecycle, split draft review stages, and gate-draft instead of instructing them to fill spec.md and run `sdd-forge spec gate` directly.
+- R72 [must]: When upgrade UI locale text is updated, src/locale/en/ui.json and src/locale/ja/ui.json shall no longer claim config.json is untouched unconditionally; they shall describe the idempotent config profile command-id migration.
+- R73 [must]: When `sdd-forge setup` creates fresh project config profiles, generated `.sdd-forge/config.json` shall define `flow.draft.review.questions.propose` and `flow.draft.review.coverage.propose`; if setup creates no profiles, the default-agent fallback behavior for those ids shall be explicitly documented and tested.
+- R74 [must]: When prepare-spec inherits preparingState.autoApprove, preparingState.autoCheck, preparingState.autoDesired, or preparingState.autoUpgrade into a new flow, it shall validate the goalGate trust marker and the final resolved request/issue input from PreparingFlowStore.resolveInputs(); stale eligible autoCheck without the marker, or preparing auto state whose request/issue differs from `flow prepare --run-id ... --request/--issue` overrides, shall clear autoApprove, autoDesired, autoUpgrade, and autoCheck or trigger recheck instead of copying trusted auto state.
+- R75 [must]: When flow-auto skill text is updated, it shall explain that autoApprove may pause or fail when pending QA/user-judgment gaps or goal-gate trust failures exist, and must not imply uninterrupted automatic progression through draft review.
+- R76 [must]: When guardrail presets are updated, every `src/presets/*/guardrail.json` draft-phase rule shall be audited; wording that assumes spec.md/spec requirements during draft shall be updated to draft.json/gate-draft ownership, while intentionally domain-specific draft guardrails shall be documented as unchanged.
+- R77 [must]: When prompt instruction keys are updated, `plan.review-draft-questions` and `plan.review-draft-coverage` shall be registered in get-step-instructions; the old `plan.review-draft` prompt file shall be removed, or prompt coverage tests shall explicitly allow a documented compatibility stub.
+- R78 [must]: When skill rule phases are validated, `src/lib/skill-rules.js` and its tests shall accept `flow.review-draft-questions` and `flow.review-draft-coverage` and reject stale `flow.review-draft`.
+- R79 [must]: When agent prompt logs are written during split draft review stages, logger context shall persist `sddPhase: "draft"` plus optional concrete `stepId`, and prompt JSON/JSONL tests shall cover both fields.
+- R80 [must]: When approval commands, help, and locale messages are updated, `flow set approval` shall remain spec-approval-only for `spec.json.user_approval`; draft approval shall be recorded only in `draft.json.approval` through review-draft-coverage remediation instructions, with en/ja help/prompts/messages distinguishing both approvals.
+- R81 [must]: When spec generation populates `spec.json.alternatives_considered` under the new lifecycle, it shall no longer read `qa[].considered`; alternatives remain empty unless explicitly represented in answered QA answer/why text or another top-level draft field added by this spec.
+- R82 [must]: When guardrails are retrieved for draft authoring versus gate-draft evaluation, shared filtering in `src/lib/guardrail.js` shall support audience/role metadata so `src/flow/lib/get-guardrail.js` gives draft prompts authoring guardrails and `src/flow/lib/run-gate.js` evaluates gate-draft residual QA quality guardrails, without exposing gate-draft as a public review phase.
+- R83 [must]: When `draft.json.impactOnExisting` is projected into spec output, it shall map to an existing structured field such as `overview.decisions` with evidence unless the implementation adds a first-class spec field and renderer section; spec prompt, schema, and render behavior shall agree.
+- R84 [must]: When draft lifecycle readers such as get-qa-count, get-prompt, resolve-context, and gate-draft read draft.json, they shall use `src/flow/lib/draft-lifecycle.js` for shared parse, schema validation, QA lifecycle counts, next id allocation, and the R31 legacy qa[] error message; run-gate shall consume this module rather than owning reusable draft lifecycle validation itself.
+- R85 [must]: When propagated autoApprove choice rules are updated, `src/templates/partials/core-principle.md` shall exempt draft lifecycle user-judgment gaps, approved QA, and final draft approval from automatic choice [1] selection unless the answer is backed by non-user source evidence explicitly allowed by this spec.
+- R86 [must]: When propagated question style rules are updated, `src/templates/partials/ai-question-style.md` shall exempt the exact R3 draft ambiguity clarification templates from translation, numbered choice wrapping, or five-section choice-format rewriting.
+- R87 [must]: When historical metrics backfill encounters draft.json with legacy qa[] entries lacking id/status, it shall fall back to qa.md when present or count the draft QA status as legacy-unknown with a warning; strict R31 failure remains limited to runtime schema boundaries.
+- R88 [must]: When propagated choice formatting rules are updated, `src/templates/partials/choice-format.md` shall exempt the exact R3 draft ambiguity clarification templates from numbered wrapping and block Choice Format transformation.
+- R89 [must]: When `src/templates/skills/sdd-forge.flow/SKILL.md` is updated, all direct autoApprove text shall include draft lifecycle exceptions: Draft Q1/final draft approval, approved QA asking, and true user-judgment gaps require user input unless backed by non-user source evidence explicitly allowed by this spec.
+- R90 [must]: When spec lifecycle fields affect spec output, `src/lib/spec-json.js` shall update emptySpecStub defaults and specJsonToPromptText flattening so alternatives_considered, impact projection, and source verification decisions align with R81 and R83.
+- R91 [must]: When token difficulty metrics compute QA count for new lifecycle specs, `src/metrics/commands/token.js` shall prefer draft.json qa[] lifecycle counts and fall back to historical metrics or qa.md only for legacy specs.
+- R92 [must]: When `flow get status` reports draft QA progress before spec completion, it shall expose draft.json qa[] lifecycle counts; historical metrics may remain present but shall be labeled or documented as audit-only and not current QA progress.
+- R93 [must]: When source/command behavior changes for split draft review and draft.json lifecycle counts, final verification shall run the docs generation path such as `sdd-forge build` or otherwise update generated docs/analysis output so CLI and workflow docs reflect the new behavior.
+- R94 [must]: When `flow set step review-draft-questions done` or `review-draft-coverage done` is invoked, set-step shall validate draft.json lifecycle state: Stage 1 cannot be done while Stage 1 pending/approved QA remains; Stage 2 cannot be done while follow-up pending/approved QA remains or draft.json.approval.approved is false.
+- R95 [must]: When final reports display Q&A counts, `src/flow/commands/report.js`, `src/flow/lib/run-report.js`, and `src/flow/lib/run-finalize.js` shall load draft.json through draft-lifecycle.js or pass lifecycle counts into generateReport when present; if they use historical metrics, the report shall label them as historical/audit-only rather than current QA progress.
+- R96 [must]: When direct review command help or REVIEW_PHASES descriptions are rendered, `src/flow/commands/review.js` shall describe `--phase draft` as a compatibility route to the active concrete draft review stage instead of generic draft QA quality review.
+- R97 [must]: When draft confirms the extracted goal with Q1, that Q&A shall be stored in qa[] with category goal-confirmation and normal answered lifecycle fields, so qa[] remains the single source of draft decisions.
+- R98 [must]: When `flow resume` runs before spec completion or during review-draft-questions/review-draft-coverage, run-resume shall return the same draft goal, qa[] lifecycle counts, and concrete split review step context exposed by resolve-context.
+- R99 [must]: When docs forge consumes a spec via `src/docs/commands/forge.js`, the flattened spec text from specJsonToPromptText shall include lifecycle-derived decisions/evidence, impact projection, source verification decisions, and no stale qa[].considered assumptions.
+- R100 [must]: When auto-check static gates short-circuit before AI scoring, static-gate failures remain eligible=false and untrusted; static-gate pass alone never satisfies the goal hard gate, and every non-skipped persisted eligible verdict still requires a goalGate marker.
+- R101 [must]: When config profiles are loaded or validated after setup/upgrade migration, `src/lib/config.js` tests shall accept profiles containing `flow.draft.review.questions.propose`, `flow.draft.review.coverage.propose`, and retained legacy `flow.draft.review.propose` while runtime stage resolution ignores the legacy key.
+- R102 [must]: When non-generated project docs are updated, CHANGELOG.md or unreleased notes that still mention draft.md for auto-check phase input shall be updated to draft.json and goalGate/goal hard-gate behavior, or explicitly marked historical.
+- R103 [must]: When flow request or issue text is changed through setRequest, setIssue, or equivalent flow-store mutation, persisted autoCheck, autoApprove, autoDesired, and autoUpgrade trust state shall be cleared or marked stale by a shared FlowStore boundary helper so a previous eligible verdict with goalGate cannot be reused for changed input; set-request, set-issue, FlowManager.setRequest(), and FlowManager.setIssue() shall use the same invalidation behavior, and set-issue shall keep issue.md refresh and trust-state invalidation consistent.
+- R104 [must]: When lint loads guardrails through `src/flow/lib/run-lint.js`, it shall handle audience and role metadata explicitly so draft-authoring rules and gate-draft-only residual QA rules do not leak into unrelated lint runs; tests shall cover draft authoring, gate-draft-only, and default lint selections.
+- R105 [must]: When docs review checks generated docs chapters, README/directives, or analysis presence through `src/docs/commands/review.js`, it shall validate the refreshed generated docs/analysis for the new draft lifecycle and shall not assume old draft.md, qa.md, single review-draft, or legacy command-id wording; spec artifact discovery remains owned by docs changelog/forge requirements.
+- R106 [must]: When `src/flow/lib/run-update-overview.js` merges overview updates into spec.json and re-renders spec.md, it shall preserve lifecycle-derived decision evidence, source verification wording, and impactOnExisting projection fields instead of dropping, overwriting, or normalizing them away; `src/flow/lib/overview-merge.js` applyOverviewAdditions and filterOverviewByTask tests shall preserve these lifecycle-derived overview entry fields.
+- R107 [must]: When propagated planning guidance is updated, the consolidated `src/templates/skills/sdd-forge.flow/SKILL.md` shall document draft.json.goal, lifecycle qa[] statuses, Q1 goal confirmation, approved-question handling, and removal of active qa.md assumptions; `src/templates/skills/sdd-forge.flow-plan/SKILL.md` shall remain absent/obsolete unless the implementation intentionally reintroduces it with corresponding obsolete-skill cleanup test changes.
+- R108 [must]: When draft.json is projected into spec.json, openQuestions shall map only non-blocking implementation uncertainties into spec.open_questions; pending or approved qa[] entries shall block projection, and answered/dropped qa[] entries shall not be duplicated into openQuestions.
+- R109 [must]: When `flow get context` post hooks record source/docs read metrics during review-draft-questions or review-draft-coverage, `src/flow/registry.js` shall derive public phase=draft and preserve optional concrete stepId metadata so context-read metrics do not drift to concrete review stage ids.
+- R110 [must]: When prepare-spec receives request or issue overrides for a preparing run, tests shall cover PreparingFlowStore.resolveInputs() precedence and verify inherited autoCheck, autoApprove, autoDesired, and autoUpgrade are cleared or rechecked unless the trust state is bound to the final resolved request/issue input.
+- R111 [must]: When final report entry points are tested, coverage shall include both `flow run report` and finalize-post/finalize report generation using draft lifecycle counts rather than only direct report command rendering.
+- R112 [must]: When `flow get resolve-context` runs before spec completion or during review-draft-questions/review-draft-coverage, get-resolve-context shall return the same draft goal, qa[] lifecycle counts, and concrete split review context exposed by resolve-context-envelope and run-resume.
+- R113 [must]: When skill templates are propagated, `src/lib/skills.js` cleanup/include behavior and tests/unit/lib/skills-include.test.js shall remove obsolete sdd-forge.flow-plan deployments, assert partial expansion on the consolidated sdd-forge.flow/SKILL.md, and ensure deployed skills contain no stale draft.md, qa[].considered, or single review-draft guidance for the new lifecycle.
+- R114 [must]: When prompt and workflow tests are updated, hardcoded legacy assertions such as tests/unit/226-task-decomp-wiring/t1-entry-enforcement.test.js shall be revised to the new draft.json lifecycle, exact clarification templates, and split review stages instead of old draft.md, qa[].considered, or single review-draft assumptions.
+- R115 [must]: When reopen-draft records stale artifact events, run-reopen-draft shall use the shared pure src/lib/issue-log.js append/dedupe helper rather than importing the CLI-oriented set-issue-log wrapper, and R41's reset bands shall be implemented from one clear source of truth.
+- R116 [must]: When run-auto-check persists an eligible verdict, it shall include a stable non-secret input binding for the exact request/issue source used to evaluate eligibility, and run-prepare-spec plus set-auto shall clear or recheck autoCheck, autoApprove, autoDesired, and autoUpgrade when that binding does not match PreparingFlowStore.resolveInputs() or the active flow request/issue.
+- R117 [must]: When preset guardrails are validated, tests/unit/presets/guardrail-category-integrity.test.js shall validate the new audience/role metadata enum and expected defaults for every src/presets/*/guardrail.json entry in addition to existing phase/category vocabulary.
+- R118 [must]: When next-action context descriptors are tested for split draft review stages, coverage shall prove draft.json path/content, issue/request source, and qa[] lifecycle counts are exposed for review-draft-questions and review-draft-coverage.
+- R119 [must]: When generated analysis is refreshed for this behavior change, final verification shall regenerate `.sdd-forge/output/analysis.json` and check that new-flow behavior no longer describes single-stage review-draft, draft-review.md, active qa.md, or old draft review command ids as current workflow.
+- R120 [must]: When FlowCommand or dispatcher hooks resolve flow context through `src/flow/lib/flow-context.js`, the returned ctx.flowState shall include the idempotently migrated split draft review steps, public phase draft, and optional concrete stepId metadata for review-draft-questions and review-draft-coverage.
+- R121 [must]: When auto-check input bindings are computed, they shall be derived from the final normalized text and source descriptor produced by resolve-auto-check-input, including issue-body-cache normalized issue body, active issue.md content, or issue fallback text as applicable; tests shall cover issue body fallback and refresh paths.
+- R122 [must]: When draft lifecycle tests are updated, tests/unit/flow/check-draft-text.test.js shall be removed or rewritten to assert draft-lifecycle.js schema validation, fixed qa[] id/status fields, and the R31 legacy draft.json failure message instead of old checkDraftJson compatibility behavior.
+- R123 [must]: When gate-draft command tests are updated, tests/unit/specs/commands/gate-draft.test.js shall use lifecycle-shaped qa[] fixtures without qa[].considered and verify gate-draft consumes shared draft-lifecycle.js validation rather than run-gate-owned validation.
+- R124 [must]: When preparing state is initialized through set-init, seeded issueBody shall carry a source descriptor and prepare/auto-check shall refresh or drop the prepared issueBody when final resolved request/issue inputs differ from that descriptor.
+- R125 [must]: When flow lifecycle tests use hardcoded plan step prefixes, tests such as tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js and related e2e lifecycle tests shall include review-draft-questions and review-draft-coverage or derive prefixes from buildInitialSteps().
+- R126 [must]: When historical specs/*/tests remain part of current verification, stale tests such as specs/242-phase-review-steps/tests/242-phase-review-steps.test.js and associated test-map fixtures shall be updated from single review-draft, old prompt keys, and old artifact expectations to the split draft review lifecycle; if any historical tests are intentionally excluded, the exclusion shall be documented in the verification plan.
+- R127 [must]: When prepare/init e2e coverage is updated, tests/e2e/specs/commands/init.test.js shall assert draft.json lifecycle artifacts and absence of active qa.md for new branch, no-branch, and worktree prepare flows instead of asserting qa.md creation.
+- R128 [must]: When metric storage helpers in src/lib/flow-store.js appendMetric(), incrementMetric(), accumulateAgentMetrics(), or aggregate metrics for split draft review activity, they shall accept and persist optional concrete stepId/retryKey metadata while aggregating and reporting by public phase=draft.
+- R129 [must]: When review command tests are updated, tests/unit/flow/commands/review.test.js shall replace legacy profile examples such as flow.review.draft/flow.review.test with exact flow.draft.review.questions.propose and flow.draft.review.coverage.propose assertions, including rejection of legacy-prefix satisfaction.
+- R130 [must]: When reopen-draft is used to recover from legacy draft.json qa[] entries without id/status, run-reopen-draft shall not silently migrate old QA answers; it shall preserve structurally valid non-QA top-level draft fields where possible, discard legacy qa[] and reset draft approval, record an audit issue-log event such as flow.legacyDraftQaDiscarded, and leave draft in_progress so the draft interaction regenerates lifecycle-shaped QA.
+- R131 [must]: When skill dependency tests are updated, tests/unit/flow/skill-no-external-deps.test.js shall derive from current active skill templates or replace obsolete sdd-forge.flow-plan references with the consolidated sdd-forge.flow skill set.
+- R132 [must]: When README workflow guidance is updated, README.md shall document the consolidated sdd-forge.flow workflow and remove obsolete /sdd-forge.flow-plan, /sdd-forge.flow-impl, /sdd-forge.flow-finalize, and matching $ skill command names.
+- R133 [must]: When lint guardrail selection is updated, src/lib/lint.js runLint() and validateLintGuardrails() shall respect audience/role metadata, lint-only selection, expected defaults, and disabled phase: [] behavior so draft-authoring and gate-draft-only guardrails cannot leak into unrelated lint runs.
+- R134 [must]: When guardrail metadata tests are updated, tests/unit/specs/commands/guardrail-metadata.test.js shall cover audience/role defaults, lint-only selection, disabled phase: [] behavior, and validateLintGuardrails() interactions with the new metadata.
+- R135 [must]: When propagated flow skill templates are audited, every src/templates/skills/sdd-forge.flow-* template including sdd-forge.flow-sync/SKILL.md shall remove or reword obsolete flow-plan, flow-impl, flow-finalize, and flow-finalize invocation wording before sdd-forge upgrade is run.
+- R136 [must]: When draft schema artifacts are updated, src/flow/schemas/draft.schema.json shall enforce the same draft.json lifecycle shape as R1, R20, R29, R30, R31, and R42 or be removed if draft-lifecycle.js fully replaces schema-file validation; stale qa[].considered or legacy QA acceptance shall not remain in schema tests/prompts.
+- R137 [must]: When shared prompt assembly is used for split draft review, src/lib/prompt-builder.js shall allow review-draft-questions and review-draft-coverage to require their strict JSON action schemas and shall not append generic verdict/comments review fallback text that conflicts with R17, R39, or R43.
+- R138 [must]: When docs text prompts are built, src/docs/lib/text-prompts.js shall consume refreshed flattened spec/analysis text that includes lifecycle-derived decisions, source verification wording, and impact projection without stale qa.md, draft.md, qa[].considered, or single review-draft assumptions.
+- R139 [must]: When test-result review runs, src/flow/lib/run-test-result-review.js shall remain mapped only to the test/test-result-review lifecycle with existing artifact/report behavior, and tests shall prove split draft review routing, phase mapping, and retry ids do not affect test result review.
+- R140 [must]: When legacy draft validation tests are updated, tests/unit/flow/check-draft-json.test.js shall be removed or rewritten to cover draft-lifecycle.js schema/status validation, fixed lifecycle qa[] fields, and the R31 legacy failure instead of importing checkDraftJson from run-gate.js or asserting qa[].considered behavior.
+- R141 [must]: When flow step ordering tests are updated, tests/unit/flow/flow-steps.test.js shall expect review-draft-questions followed by review-draft-coverage before gate-draft and assert both split stages map to the intended public draft phase behavior.
+
+## Acceptance Criteria
+- draft.json qa[] schema validation accepts only the fixed field set and status-dependent required/empty fields.
+- draft schema artifacts match draft-lifecycle validation or are removed without retaining legacy qa[].considered acceptance.
+- Draft creation or remediation appends qa ids using max numeric suffix + 1 and never reuses ids except after legacy discard regeneration.
+- The plan sequence exposes review-draft-questions and review-draft-coverage as separate steps before gate-draft.
+- `sdd-forge flow run review --phase draft` continues to work as the compatibility entry point.
+- Active flow migration handles both current-step review-draft and downstream-after-review-draft states.
+- FlowCommand and dispatcher hook context resolution returns migrated split draft review state and public draft phase metadata.
+- auto-check goal extraction hard-fails auto eligibility while leaving persisted autoCheck without a goal field.
+- gate-draft fails on pending/approved QA, invalid qa schema, residual banned ambiguity tokens, empty goal, or missing approval.
+- gate-draft deterministic quality rules define inspected fields, normalization, duplicate detection, and shallow-answer thresholds.
+- lint guardrail selection respects audience/role metadata and does not apply draft authoring or gate-draft-only rules to unrelated lint runs.
+- core lint guardrail validation respects audience/role metadata, lint-only selection, and disabled phase behavior.
+- Pre-spec-completion reopen-draft resets downstream plan steps and retry counters while recording stale artifact events without deleting artifacts.
+- run-review stores retry metrics, report parser counts, next-action metadata, and artifacts under review-draft-questions or review-draft-coverage rather than the generic draft phase.
+- review retry metrics store public phase=draft plus a concrete stepId or retryKey so split stage retry budgets remain separate.
+- metric storage helpers preserve concrete stepId/retryKey metadata while aggregating by public phase draft.
+- review command PASS does not automatically mark review-draft-questions or review-draft-coverage done; operator instructions own stage completion.
+- `flow set retry reset review` accepts both concrete draft review stage ids and keeps `draft` as a compatibility reset alias.
+- next-action schemas and skill rules validate against the new draft lifecycle and both concrete review stages.
+- review next-action schemas are stage-specific for review-draft-questions and review-draft-coverage instead of generic verdict/comments only.
+- prompt builder does not inject generic review fallback text into strict split draft review prompts.
+- prepare-spec no longer creates active qa.md output for new flows; tests and docs no longer describe qa.md as the new-flow QA artifact.
+- prepare/init e2e tests assert draft.json lifecycle artifacts and no active qa.md for branch, no-branch, and worktree flows.
+- `set auto on` cannot enable autoApprove from an older persisted eligible autoCheck that lacks the goal hard-gate trust marker and matching input binding, except for spec-approved skip verdicts with matching approval binding.
+- request or issue changes invalidate persisted autoCheck, autoApprove, autoDesired, and autoUpgrade trust state.
+- auto trust invalidation is enforced at the FlowStore request/issue mutation boundary for all callers.
+- `flow get qa-count` reports counts from draft.json qa[] statuses for new lifecycle flows.
+- Public explicit review phase enums remain draft/spec/test while impl review remains the no-phase default.
+- Base guardrails no longer refer to draft.md and place residual draft QA quality checks under gate-draft.
+- Stage 1 and Stage 2 use distinct agent command ids and distinct report artifact paths.
+- Stage 1 writes draft-review-questions.md with questions=<n>; Stage 2 writes draft-review-coverage.md with findings=<n>.
+- Resume context before spec completion includes draft.json goal and qa[] status counts.
+- set-step autoUpgradeReeval persists the same goalGate trust markers as auto-check.
+- The old review-draft prompt is removed or reduced to a compatibility stub and is not referenced by active flow definitions or skill rules.
+- reopen-draft behavior follows the source-phase reset matrix in R41.
+- draft.json top-level validation matches the complete schema in R42, including approval ownership.
+- Draft review reports use the machine-readable schema in R43 and reject invalid targets/actions.
+- `flow run review --phase draft` follows the routing matrix in R44 outside active concrete review steps.
+- FlowManager active-flow reads cannot bypass review-draft split migration.
+- read-only flow scans apply review-draft split migration in memory while writable loads persist migrated state and the idempotent issue-log event.
+- get-next-action returns distinct runtime instructions, context, schemas, maxAttempts, and rules for both draft review stages.
+- next-action context descriptors expose draft.json, issue/request source, and qa[] lifecycle counts for both draft review stages.
+- The two new draft review agent command ids resolve independently, and the old command id does not satisfy either stage.
+- review command tests assert exact new draft review command ids and reject legacy profile prefix satisfaction.
+- test-result-review behavior remains isolated from split draft review routing, phase mapping, and retry ids.
+- Historical metrics backfill prefers draft.json qa[] counts and falls back to qa.md only for historical specs.
+- Project-local qa.md templates no longer affect new prepare-spec output.
+- review-draft split migration writes exactly one flow.reviewDraftSplitMigrated issue-log event per flow through a shared helper.
+- `flow set metric` uses public phase draft for manual draft review metrics and does not accept concrete review stage ids as public phases.
+- fill-flow-counts.js and its e2e test cover draft.json counts, legacy qa.md fallback, and split review artifact counts.
+- reopen-draft stale artifact events include draft-review-questions.md, draft-review-coverage.md, and legacy draft-review.md when present.
+- reopen-draft stale artifact events use the shared pure issue-log helper and reset bands come from one source of truth.
+- reopen-draft legacy draft.json recovery discards old qa[] without silent migration, preserves valid non-QA fields, resets approval, and records an audit event.
+- Stage review PASS with pending operator remediation keeps the next-action hint on the same concrete stage.
+- draft review PASS counters and remediationRequired metadata define stageId, pendingCount, approvedCount, actionCount, approvalRequired, and reason fields.
+- Agent command-id prefix documentation includes the special exact-match exception for the two new draft review stage ids.
+- flow get check requires both split draft review prerequisites and accepts legacy migrated state.
+- prompt progress surfaces use draft.json qa[] lifecycle counts.
+- automatic metrics under the split draft review stages map to public phase draft with optional step metadata.
+- sdd-forge upgrade adds missing split draft review command ids to existing project configs from the legacy agent setting.
+- flow-status skill uses resolve-context draft goal and qa[] counts before spec completion.
+- changelog artifact discovery lists draft.json and split draft review artifacts for new-flow directories without qa.md.
+- docs review validates refreshed docs/analysis wording without assuming old draft.md, qa.md, single review-draft, or legacy command ids.
+- autoApprove draft lifecycle records sourced facts only and pauses/fails on true user-judgment gaps instead of self-answering them.
+- flow-helpers maps draft, both split draft review steps, and gate-draft to public phase draft.
+- upgrade help/dry-run/summary/tests explicitly cover idempotent config command-id migration.
+- issue-log migration append helper is pure, deduped by migrationId, and avoids src/lib to src/flow/lib circular coupling.
+- registry help text documents split draft review, retry reset targets, reopen-draft phases, and lifecycle QA counts.
+- locale keys that only supported active qa.md preparation are removed or repurposed in en/ja files.
+- Stage 1 report schema includes approve action for pending qa.id entries.
+- Stage 1 ignores follow-up-coverage entries and Stage 2 owns their remediation/completion checks.
+- Final draft approval is owned by review-draft-coverage completion before gate-draft.
+- FlowManager/agent automatic metrics persist public phase draft plus optional concrete stepId for split draft review stages.
+- prepare-spec next guidance points to draft.json lifecycle, split draft review, and gate-draft.
+- upgrade UI locale text describes idempotent config profile migration instead of saying config.json is never touched.
+- fresh setup config profiles include both split draft review command ids or document/test default-agent fallback.
+- prepare-spec validates inherited preparing autoCheck goalGate markers and final request/issue input before copying autoApprove state.
+- prepare request/issue overrides use PreparingFlowStore.resolveInputs precedence and invalidate inherited auto trust state including autoDesired.
+- set-init issueBody source descriptors are refreshed or dropped when final prepare inputs differ.
+- auto-check input bindings are computed from resolve-auto-check-input final normalized text and issue-body-cache or issue.md source descriptors.
+- all qa[].considered references are removed or replaced in draft/spec/gate prompts, guardrails, and tests.
+- flow-auto skill documents pending-QA pauses and goal-gate trust failures.
+- consolidated flow skill documents draft.json.goal, lifecycle qa[] statuses, Q1 goal confirmation, approved-question handling, and removal of active qa.md assumptions without reintroducing obsolete flow-plan.
+- all flow-* skill templates including flow-sync remove or reword obsolete split-skill invocation names.
+- all preset guardrail files with draft-phase rules are audited for draft.json/gate-draft ownership wording.
+- guardrail category integrity tests validate audience/role metadata and defaults for preset guardrails.
+- guardrail metadata tests cover validateLintGuardrails audience/role behavior.
+- get-step-instructions registers the two new review prompt keys and prompt coverage tests handle removal/stubbing of the old key.
+- skill-rules accepts the two new review phases and rejects stale flow.review-draft.
+- prompt logs persist sddPhase=draft plus optional concrete stepId for split draft review stages.
+- flow set approval remains spec-approval-only and help/prompts distinguish it from draft.json approval.
+- en/ja locale approval messages distinguish draft.json approval from spec.json user_approval.
+- spec alternatives no longer read qa[].considered and use only explicit answered QA/why or a new top-level field.
+- guardrail retrieval separates draft authoring guardrails from gate-draft residual QA quality guardrails.
+- impactOnExisting projection into spec.json/spec.md is explicitly mapped to an existing field or a new schema/rendered section.
+- draft approval object validates approved, confirmedAt, and notes with status-dependent requirements.
+- non-QA draft.json schema preserves devType, analysis, scopeVerification, impactOnExisting, and openQuestions structural rules.
+- openQuestions is limited to non-blocking implementation uncertainties and pending/approved qa[] entries block spec projection.
+- Stage 1 report actions enforce a mutation matrix and cannot target answered/dropped entries.
+- Stage 1 drop report actions include droppedReason for valid dropped lifecycle remediation.
+- Stage 1 update does not write report reason into qa[].why for pending entries.
+- draft lifecycle read surfaces share validation/count behavior and fail legacy qa[] with the R31 message.
+- draft lifecycle parsing, validation, count, id allocation, and legacy R31 failure behavior are owned by src/flow/lib/draft-lifecycle.js.
+- draft prompt includes the exact English yes/no and closed-choice clarification templates.
+- shared question-style rules exempt exact draft clarification templates from wrapping or translation.
+- shared choice-format rules exempt exact draft clarification templates from numbered wrapping.
+- autoApprove choice rules exempt draft lifecycle user-judgment gaps and final draft approval from auto-selecting [1].
+- flow skill autoApprove text includes the same draft lifecycle exceptions.
+- historical metrics backfill falls back for legacy draft.json without id/status rather than applying runtime R31 failure.
+- spec-json helper output aligns with alternatives, impact projection, and source verification requirements.
+- token difficulty and flow status prefer draft.json lifecycle counts for new flows.
+- goal confirmation Q1 is stored in qa[] as category goal-confirmation.
+- flow resume exposes draft goal, lifecycle counts, and concrete split review step context before spec completion.
+- flow get resolve-context exposes the same draft goal, lifecycle counts, and concrete split review context before spec completion.
+- flow get context read metrics use public phase draft plus optional concrete stepId while split draft review stages are active.
+- flow run report and finalize report paths both receive draft lifecycle QA counts.
+- docs forge receives flattened spec text without stale qa[].considered assumptions.
+- docs text prompts consume refreshed flattened spec/analysis text without stale draft/qa/review-draft assumptions.
+- auto-check static gate pass alone never satisfies the goalGate trust contract.
+- config validation accepts migrated profiles with new and retained legacy draft review command ids.
+- issue-log migration helper lives in src/lib/issue-log.js and is shared by CLI and migration code.
+- CHANGELOG.md or unreleased notes no longer describe active auto-check input as draft.md.
+- README workflow guidance uses consolidated sdd-forge.flow and removes obsolete split-skill commands.
+- generated docs/analysis are refreshed or explicitly updated after command/workflow behavior changes.
+- .sdd-forge/output/analysis.json is regenerated and checked for stale single-stage draft review and active qa.md new-flow references.
+- skill deployment cleanup removes obsolete flow-plan and deployed skills contain no stale draft.md, qa[].considered, or single review-draft guidance.
+- skills include tests assert consolidated flow skill expansion and absence of deployed flow-plan.
+- skill dependency tests no longer hardcode obsolete flow-plan.
+- legacy hardcoded prompt tests are updated away from draft.md, qa[].considered, and single review-draft assumptions.
+- hardcoded flow prefix and historical spec tests include split draft review stages or document intentional exclusion.
+- legacy draft/gate-draft unit tests use lifecycle-shaped qa[] fixtures and draft-lifecycle validation.
+- legacy check-draft-json and flow-steps unit tests are updated for draft-lifecycle validation and split review ordering.
+- source verification decisions are recorded in overview.decisions[].evidence or a new schema/rendered field.
+- overview updates preserve lifecycle-derived decision evidence, source verification wording, and impactOnExisting projection fields.
+- overview-merge helper tests preserve lifecycle-derived overview fields across additions and task filtering.
+- QA status validation, category enum validation, and the legacy schema error message match R29 through R31.
+- spec.md is regenerated from spec.json and contains requirements, tasks, scope, rationale, and test strategy.
+- Unit and agent tests cover the deterministic lifecycle and AI prompt behavior called out in R16, including draft authoring and exact clarification templates.
+
+## Implementation Targets
+- src/flow/definition.js
+- src/lib/constants.js
+- src/flow/commands/review.js
+- src/flow/commands/report.js
+- src/flow/registry.js
+- src/flow/lib/flow-context.js
+- src/flow/lib/run-review.js
+- src/flow/lib/set-retry.js
+- src/flow/lib/run-prepare-spec.js
+- src/flow/lib/set-init.js
+- src/flow/lib/run-auto-check.js
+- src/flow/lib/auto-check-static.js
+- src/flow/lib/resolve-auto-check-input.js
+- src/flow/lib/issue-body-cache.js
+- src/flow/lib/set-request.js
+- src/flow/lib/set-issue.js
+- src/flow/lib/set-auto.js
+- src/flow/lib/set-step.js
+- src/flow/lib/resolve-context-envelope.js
+- src/flow/lib/get-resolve-context.js
+- src/flow/lib/run-resume.js
+- src/flow/lib/get-next-action.js
+- src/flow/lib/get-step-instructions.js
+- src/flow/lib/get-check.js
+- src/flow/lib/get-prompt.js
+- src/flow/lib/get-qa-count.js
+- src/flow/lib/draft-lifecycle.js
+- src/flow/schemas/draft.schema.json
+- src/flow/lib/get-guardrail.js
+- src/flow/lib/run-lint.js
+- src/lib/lint.js
+- src/flow/lib/get-status.js
+- src/flow/lib/set-issue-log.js
+- src/flow/lib/set-metric.js
+- src/flow/lib/set-approval.js
+- src/flow/lib/run-reopen-draft.js
+- src/flow/lib/run-test-result-review.js
+- src/flow/lib/run-gate.js
+- src/flow/lib/run-update-overview.js
+- src/flow/lib/overview-merge.js
+- src/flow/lib/run-report.js
+- src/flow/lib/run-finalize.js
+- src/lib/flow-store.js
+- src/lib/flow-manager.js
+- src/lib/flow-helpers.js
+- src/lib/agent.js
+- src/lib/log.js
+- src/lib/guardrail.js
+- src/lib/skill-rules.js
+- src/lib/config.js
+- src/lib/preparing-flow-store.js
+- src/lib/issue-log.js
+- src/lib/skills.js
+- src/lib/types.js
+- src/lib/spec-json.js
+- src/lib/prompt-builder.js
+- src/metrics/commands/token.js
+- src/upgrade.js
+- src/setup.js
+- src/docs/commands/changelog.js
+- src/docs/commands/forge.js
+- src/docs/commands/review.js
+- src/docs/lib/text-prompts.js
+- src/spec/commands/render.js
+- src/flow/schemas/spec.schema.json
+- src/locale/en/messages.json
+- src/locale/ja/messages.json
+- src/locale/en/ui.json
+- src/locale/ja/ui.json
+- src/flow/schemas/next-action/draft.schema.json
+- src/flow/schemas/next-action/review.schema.json
+- src/flow/prompts/plan/draft.md
+- src/flow/prompts/plan/spec.md
+- src/flow/prompts/plan/gate-draft.md
+- src/flow/prompts/plan/review-draft.md
+- src/flow/prompts/plan/review-draft-questions.md
+- src/flow/prompts/plan/review-draft-coverage.md
+- src/presets/*/guardrail.json
+- src/templates/skills/rules.json
+- src/templates/skills/sdd-forge.flow/SKILL.md
+- src/templates/skills/sdd-forge.flow-auto/SKILL.md
+- src/templates/skills/sdd-forge.flow-resume/SKILL.md
+- src/templates/skills/sdd-forge.flow-status/SKILL.md
+- src/templates/skills/sdd-forge.flow-sync/SKILL.md
+- src/templates/partials/core-principle.md
+- src/templates/partials/ai-question-style.md
+- src/templates/partials/choice-format.md
+- tests/unit/presets/guardrail-category-integrity.test.js
+- tests/unit/specs/commands/guardrail-metadata.test.js
+- tests/unit/lib/skills-include.test.js
+- tests/unit/flow/skill-no-external-deps.test.js
+- tests/unit/flow/commands/review.test.js
+- tests/unit/flow/check-draft-text.test.js
+- tests/unit/flow/check-draft-json.test.js
+- tests/unit/flow/flow-steps.test.js
+- tests/unit/specs/commands/gate-draft.test.js
+- tests/unit/227-post-226-forest-integration/t-a3-no-flat-fallback.test.js
+- specs/242-phase-review-steps/tests/242-phase-review-steps.test.js
+- tests/e2e/specs/commands/init.test.js
+- CHANGELOG.md
+- .sdd-forge/output/analysis.json
+- README.md
+- .sdd-forge/config.json
+- docs
+- specs/167-metrics-token-difficulty/fill-flow-counts.js
+- tests/unit/flow
+- tests/unit/spec
+- tests/unit/lib
+- tests/e2e/specs
+- tests/e2e/metrics/fill-flow-counts.test.js
+- tests/e2e/docs
+- tests/agent
+
+## Open Questions
+- [ ]
+
+## Tasks
+### Round 0
+- **T-1** [pending]: Add draft QA lifecycle
+  - Add the qa[] id/status schema and first consumers so draft creation and gate-draft validation exercise the lifecycle immediately.
+  - see `tasks/T-1.md` for full spec
+- **T-2** [pending]: Split draft review flow
+  - Represent draft review as review-draft-questions and review-draft-coverage while preserving existing CLI compatibility.
+  - see `tasks/T-2.md` for full spec
+- **T-3** [pending]: Rewrite draft interaction prompt
+  - Teach draft instructions to create and confirm goal, record pending QA, and ask closed-choice clarification before recording ambiguous answers.
+  - see `tasks/T-3.md` for full spec
+- **T-4** [pending]: Implement question coverage review
+  - Implement review-draft-questions as the pre-answer stage that checks whether pending questions cover user judgment needed for goal achievability.
+  - see `tasks/T-4.md` for full spec
+- **T-5** [pending]: Implement answered coverage review
+  - Implement review-draft-coverage as the post-answer stage that reads answered/dropped QA and emits only new pending questions for remaining user judgment gaps.
+  - see `tasks/T-5.md` for full spec
+- **T-6** [pending]: Separate auto and gate boundaries
+  - Keep auto-check as flow-start eligibility with temporary goal hard gate, and keep gate-draft as structural residual validation.
+  - see `tasks/T-6.md` for full spec
+- **T-7** [pending]: Integrate spec and reopen behavior
+  - Update spec prompt rules and phase-aware reopen-draft so draft remains authoritative and pre-spec-completion user-judgment gaps can be handled without deleting artifacts.
+  - see `tasks/T-7.md` for full spec

@@ -91,6 +91,66 @@ function assertFlowStateSchema(state, sourcePath) {
   }
 }
 
+function migrateDraftReviewSteps(state) {
+  if (!Array.isArray(state?.steps)) return false;
+  let changed = false;
+  const plan = state.steps.find((s) => s?.id === "plan" && Array.isArray(s.children));
+  const steps = plan ? plan.children : state.steps;
+  const legacyIndex = steps.findIndex((s) => s?.id === "review-draft");
+  if (legacyIndex < 0) return false;
+
+  const legacy = steps[legacyIndex];
+  const base = {
+    status: legacy.status || "pending",
+    ...(legacy.startedAt && { startedAt: legacy.startedAt }),
+    ...(legacy.finishedAt && { finishedAt: legacy.finishedAt }),
+  };
+  const questionStep = { id: "review-draft-questions", ...base };
+  const coverageStep = { id: "review-draft-coverage", ...base };
+
+  if (legacy.status === "in_progress") {
+    coverageStep.status = "pending";
+    delete coverageStep.startedAt;
+    delete coverageStep.finishedAt;
+  }
+
+  steps.splice(legacyIndex, 1, questionStep, coverageStep);
+  changed = true;
+  return changed;
+}
+
+function appendDraftReviewMigrationLog(root, state) {
+  if (!state?.spec) return;
+  const specDir = path.dirname(path.resolve(root, state.spec));
+  const logPath = path.join(specDir, "issue-log.json");
+  let issueLog = { entries: [] };
+  if (fs.existsSync(logPath)) {
+    issueLog = JSON.parse(fs.readFileSync(logPath, "utf8"));
+    if (!Array.isArray(issueLog.entries)) issueLog.entries = [];
+  }
+  const reason = "Migrated legacy review-draft step into review-draft-questions and review-draft-coverage.";
+  if (issueLog.entries.some((entry) => entry?.trigger === "flow-store migration" && entry?.reason === reason)) return;
+  issueLog.entries.push({
+    step: "review-draft",
+    reason,
+    trigger: "flow-store migration",
+    resolution: "Synthesized split draft review steps from legacy review-draft status.",
+    taskId: null,
+    timestamp: new Date().toISOString(),
+  });
+  fs.mkdirSync(specDir, { recursive: true });
+  fs.writeFileSync(logPath, JSON.stringify(issueLog, null, 2) + "\n");
+}
+
+function migrateFlowState(state, sourcePath, { persist, root }) {
+  const changed = migrateDraftReviewSteps(state);
+  if (changed && persist) {
+    fs.writeFileSync(sourcePath, JSON.stringify(state, null, 2) + "\n", "utf8");
+    appendDraftReviewMigrationLog(root, state);
+  }
+  return changed;
+}
+
 /**
  * Resolve the taskId for an append-only log entry (metrics / notes / issue-log).
  * Rules: explicit `opts.taskId` always wins (null → flow scope, unknown id →
@@ -206,6 +266,7 @@ export class FlowStore {
       resolvedPath = p;
     }
 
+    migrateFlowState(state, resolvedPath, { persist: true, root: this._root });
     assertFlowStateSchema(state, resolvedPath);
 
     if (state && !state.runId) {
@@ -234,6 +295,7 @@ export class FlowStore {
       process.stderr.write(`[sdd-forge] flow-store.loadReadOnly: malformed flow.json at ${p}: ${err.message}\n`);
       return null;
     }
+    migrateFlowState(state, p, { persist: false, root: this._root });
     assertFlowStateSchema(state, p);
     return state;
   }

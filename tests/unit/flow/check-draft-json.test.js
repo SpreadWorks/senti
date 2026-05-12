@@ -23,11 +23,14 @@ function buildValidDraft(overrides = {}) {
     impactOnExisting: ["existing feature X affected"],
     qa: [
       {
+        id: "q1",
+        status: "answered",
+        category: "goal-confirmation",
         question: "Is this correct?",
-        answer: "Yes",
+        answer: "Yes, this is correct.",
         evidence: "verified by code inspection",
         why: "design decision rationale",
-        considered: "alternative approach was rejected",
+        droppedReason: "",
       },
     ],
     openQuestions: [],
@@ -104,41 +107,64 @@ describe("checkDraftJson — analysis validation (R3)", () => {
   });
 });
 
-describe("checkDraftJson — evidence validation (R2)", () => {
-  it("flags empty evidence on decision Q&A (has why or considered)", () => {
+describe("checkDraftJson — qa status validation", () => {
+  it("flags empty evidence on answered Q&A", () => {
     assertHasIssue(
       buildValidDraft({
         qa: [{
+          id: "q1",
+          status: "answered",
+          category: "goal-confirmation",
           question: "Design choice?",
           answer: "Option A",
           evidence: "",
           why: "because of X",
-          considered: "",
+          droppedReason: "",
         }],
       }),
       (i) => /evidence/i.test(i),
-      "empty evidence on decision Q&A",
+      "empty evidence on answered Q&A",
     );
   });
 
-  it("allows empty evidence on simple confirmation Q&A (no why, no considered)", () => {
-    const issues = checkDraftJson(buildValidDraft({
+  it("flags pending Q&A as blocking spec generation", () => {
+    assertHasIssue(buildValidDraft({
       qa: [{
+        id: "q1",
+        status: "pending",
+        category: "goal-confirmation",
         question: "Proceed?",
-        answer: "Yes",
+        answer: "",
         evidence: "",
         why: "",
-        considered: "",
+        droppedReason: "",
       }],
-    }));
-    assert.deepEqual(issues, []);
+    }),
+    (i) => /blocks spec generation/i.test(i),
+    "pending Q&A blocks spec generation");
   });
 
-  it("allows missing evidence field on simple Q&A", () => {
+  it("flags legacy Q&A entries without id/status", () => {
     const issues = checkDraftJson(buildValidDraft({
       qa: [{
         question: "OK?",
         answer: "Yes",
+      }],
+    }));
+    assert.ok(issues.some((issue) => /schema changed|id\/status/.test(issue)));
+  });
+
+  it("allows dropped Q&A with droppedReason only", () => {
+    const issues = checkDraftJson(buildValidDraft({
+      qa: [{
+        id: "q1",
+        status: "dropped",
+        category: "risk-migration-policy",
+        question: "Should this be considered?",
+        answer: "",
+        evidence: "",
+        why: "",
+        droppedReason: "Out of scope after user confirmation",
       }],
     }));
     assert.deepEqual(issues, []);

@@ -2,7 +2,7 @@
    - The review uses a propose-only pipeline: AI identifies oversights in the spec (files not mentioned, contradictions, missing external references).
    - Results are saved to spec-review.md with proposals listed with title, target section, and suggested change.
    - The review does NOT modify spec.md or spec.json directly.
-   - **If verdict=PASS** (no proposals): display "レビューの結果、修正の必要はありませんでした。" Then run `sdd-forge flow set step review-spec done`.
+   - **If verdict=PASS** (no proposals): display "Review found no required fixes." Then run `sdd-forge flow set step review-spec done`.
    - **If verdict=FAIL** (proposals exist): read spec-review.md and evaluate each proposal against the spec and codebase context. Reflect changes that are valid into the spec. Then re-run `sdd-forge flow run review --phase spec`.
    - **Review loop:** repeat review → fix → re-review until verdict=PASS or the resolved numeric maxAttempts from next-action is reached. Each `sdd-forge flow run review --phase spec` invocation = 1 attempt (CLI invocation level, not internal AI iteration).
    - **CLI enforcement (spec 253):** the CLI now enforces this limit. When count >= max, `sdd-forge flow run review --phase spec` returns `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` and `data === { phase, attempts, max }`. Do NOT attempt to bypass it.

@@ -54,6 +54,43 @@ function loadSpecSiblingText(root, specPath, fileName, { warnOnError = false } =
   }
 }
 
+function parseDraftGoal(text) {
+  try {
+    const draft = JSON.parse(text);
+    return typeof draft?.goal === "string" ? draft.goal.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+export function buildGoalMissingVerdict() {
+  return {
+    eligible: false,
+    score: 0,
+    maxScore: 24,
+    threshold: 16,
+    breakdown: {},
+    staticGates: { G: false, H: false, I: false },
+    goalGate: { checked: true, passed: false },
+    reason: "draft goal is missing",
+  };
+}
+
+export function resolvePersistedAutoCheckTrust(state, paths = {}) {
+  if (!state?.autoCheck) return null;
+  if (state.autoCheck.goalGate?.passed !== true) {
+    return {
+      ...buildGoalMissingVerdict(),
+      reason: "persisted auto-check is missing a passing goalGate marker",
+    };
+  }
+  if (!isDraftGateDone(state)) return null;
+  const draft = loadSpecSiblingText(paths.root, paths.specPath, "draft.json");
+  if (!draft) return null;
+  if (!parseDraftGoal(draft)) return buildGoalMissingVerdict();
+  return null;
+}
+
 function buildBaseInput(state, paths = {}) {
   const parts = [];
   if (state?.request) parts.push(String(state.request));
@@ -93,8 +130,11 @@ export function resolveAutoCheckInput(state, paths = {}) {
   if (isDraftGateDone(state)) {
     const draft = loadSpecSiblingText(paths.root, paths.specPath, "draft.json");
     if (draft) {
+      if (!parseDraftGoal(draft)) {
+        return { fail: true, verdict: buildGoalMissingVerdict() };
+      }
       const text = base ? `${base}\n\n${draft}` : draft;
-      return { skip: false, text };
+      return { skip: false, text, goalGate: { checked: true, passed: true } };
     }
   }
   return { skip: false, text: base };
@@ -104,5 +144,10 @@ export function resolveAutoCheckInput(state, paths = {}) {
  * Envelope shape returned by the skip path. Shared with set-auto.js.
  */
 export function buildSkipVerdict() {
-  return { eligible: true, skipped: true, reason: "spec approved" };
+  return {
+    eligible: true,
+    skipped: true,
+    reason: "spec approved",
+    goalGate: { checked: false, passed: true, skipped: "spec-approved" },
+  };
 }

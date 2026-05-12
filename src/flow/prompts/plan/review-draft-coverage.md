@@ -1,0 +1,7 @@
+   - Run `sdd-forge flow run review --phase draft` to perform the draft coverage review.
+   - This stage reads answered and dropped `draft.json.qa[]` entries and checks whether the spec can be written without unresolved requirement gaps.
+   - The review writes a detection report to `draft-review-coverage.md`. It does not modify `draft.json`.
+   - If verdict=FAIL, ask only the follow-up questions needed to close the gaps and append them to `draft.json.qa[]` with `category: "follow-up-coverage"` and `status: "pending"`, then collect answers and update status.
+   - Do not defer ambiguity to gate. Ask an immediate direct clarification such as `Does "<ambiguous phrase>" mean "<concrete interpretation>"? Answer yes or no.`
+   - Repeat detect -> fix -> re-review until verdict=PASS or maxAttempts is reached. If `REVIEW_MAX_ATTEMPTS_EXCEEDED` is returned, stop and return control to the user.
+   - On PASS: read `draft.json`, set `approval.approved = true` and `approval.confirmedAt` to the current ISO timestamp when the user approves or autoApprove is enabled, then run `sdd-forge flow set step review-draft-coverage done`.

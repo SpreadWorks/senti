@@ -22,6 +22,7 @@ function lowAutoCheckResponse() {
     scopeBoundedness: 1,
     targetSpecificity: 0,
     precedent: 0,
+    goal: "test goal",
     reason: "stub low",
   });
 }

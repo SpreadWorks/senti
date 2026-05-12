@@ -21,6 +21,7 @@ function passResponse() {
     scopeBoundedness: 2,
     targetSpecificity: 1,
     precedent: 1,
+    goal: "add a progress bar",
     reason: "stub pass",
   });
 }
@@ -33,6 +34,7 @@ function lowResponse() {
     scopeBoundedness: 1,
     targetSpecificity: 0,
     precedent: 0,
+    goal: "add a progress bar",
     reason: "stub low",
   });
 }
@@ -301,7 +303,43 @@ describe("flow set auto", () => {
     const saved = makeFlowManager(tmp).load();
     assert.equal(saved.autoApprove, true);
     assert.equal(saved.autoCheck.eligible, true);
+    assert.deepEqual(saved.autoCheck.goalGate, { checked: true, passed: true });
     assert.notEqual(saved.autoCheck.skipped, true, "skipped must NOT be set on draft-input path");
+  });
+
+  it("rejects auto mode when gate-draft is done but draft goal is missing", () => {
+    tmp = createTmpProject(passResponse());
+    fs.writeFileSync(
+      path.join(tmp, "specs", "001-test", "draft.json"),
+      JSON.stringify({
+        devType: "feature",
+        goal: "",
+        analysis: { problem: "p", proposedApproach: "a", validation: "v" },
+        qa: [],
+        approval: { approved: true },
+      }),
+    );
+    const steps = buildInitialSteps();
+    findStepById(steps, "gate-draft").status = "done";
+    makeFlowManager(tmp).save({
+      spec: "specs/001-test/spec.md",
+      baseBranch: "main",
+      featureBranch: "feature/001-test",
+      request: "add a progress bar",
+      steps,
+      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
+    });
+    makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+
+    const res = runSetAuto(tmp, "on");
+    assert.notEqual(res.status, 0);
+    const envelope = JSON.parse(res.stdout.trim());
+    assert.equal(envelope.ok, false);
+    assert.match(JSON.stringify(envelope), /draft goal is missing/);
+    const saved = makeFlowManager(tmp).load();
+    assert.notEqual(saved.autoApprove, true);
+    assert.equal(saved.autoCheck, undefined);
   });
 
   it("falls back to request+issue input when approval pending and no draft.json (R5)", () => {
@@ -485,6 +523,7 @@ describe("flow set auto", () => {
         threshold: 18,
         breakdown: {},
         staticGates: { G: false, H: false, I: false },
+        goalGate: { checked: true, passed: true },
         reason: "persisted by run auto-check",
       };
     });
@@ -520,6 +559,7 @@ describe("flow set auto", () => {
         threshold: 18,
         breakdown: {},
         staticGates: { G: false, H: false, I: false },
+        goalGate: { checked: true, passed: false },
         reason: "persisted ineligible",
       };
     });
@@ -562,6 +602,7 @@ describe("flow set auto", () => {
         threshold: 18,
         breakdown: {},
         staticGates: { G: false, H: false, I: false },
+        goalGate: { checked: true, passed: true },
         reason: "persisted by run auto-check",
       },
     };
@@ -583,6 +624,54 @@ describe("flow set auto", () => {
     const saved = makeFlowManager(tmp).load();
     assert.equal(saved.autoApprove, true);
     assert.equal(saved.autoCheck.reason, "persisted by run auto-check");
+  });
+
+  it("rejects legacy persisted autoCheck without a passing goalGate marker", () => {
+    const { dir, capturePath } = createCapturingProject();
+    tmp = dir;
+    const state = {
+      spec: "specs/001-test/spec.md",
+      baseBranch: "main",
+      featureBranch: "feature/001-test",
+      request: "add a progress bar",
+      steps: buildInitialSteps(),
+      tasks: [{ id: "T-1", title: "x", goal: "x", parent: null, origin: "plan", added_round: 0, status: "pending", steps: [] }],
+      currentTaskId: null,
+      autoCheck: {
+        eligible: true,
+        score: 20,
+        maxScore: 24,
+        threshold: 18,
+        breakdown: {},
+        staticGates: { G: false, H: false, I: false },
+        reason: "legacy persisted by run auto-check",
+      },
+    };
+    makeFlowManager(tmp).save(state);
+    makeFlowManager(tmp).addActiveFlow("001-test", "branch");
+
+    const res = runSetAuto(tmp, "on");
+    assert.notEqual(res.status, 0);
+    const envelope = JSON.parse(res.stdout.trim());
+    assert.equal(envelope.ok, false);
+    assert.ok(
+      envelope.errors?.some((e) => /AUTO_CHECK_INELIGIBLE/.test(e.code ?? "")),
+      "envelope must signal AUTO_CHECK_INELIGIBLE",
+    );
+    assert.match(
+      JSON.stringify(envelope),
+      /missing a passing goalGate marker/,
+      "legacy verdict must not be trusted without goalGate evidence",
+    );
+
+    assert.equal(
+      fs.existsSync(capturePath),
+      false,
+      "agent must not be invoked when a persisted verdict is rejected",
+    );
+
+    const saved = makeFlowManager(tmp).load();
+    assert.notEqual(saved.autoApprove, true);
   });
 
   it("falls back to agent invocation on preparing flow when no autoCheck is persisted", () => {

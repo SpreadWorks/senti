@@ -8,9 +8,8 @@
 import fs from "fs";
 import path from "path";
 import { isInsideWorktree } from "../../lib/cli.js";
-import { sddDir, DEFAULT_LANG } from "../../lib/config.js";
+import { sddDir } from "../../lib/config.js";
 import { assertOk } from "../../lib/process.js";
-import { translate } from "../../lib/i18n.js";
 import { buildInitialSteps } from "../../lib/flow-helpers.js";
 import { findStepById } from "../definition.js";
 import { getWorktreeStatus, runGit } from "../../lib/git-helpers.js";
@@ -74,23 +73,6 @@ function detectBaseBranch(root) {
   }
 }
 
-function buildQaTemplate() {
-  const t = translate();
-  const prompt = t("messages:spec.qaConfirmationPrompt");
-  return [
-    "# Clarification Q&A",
-    "",
-    "- Q: ",
-    "  - A: ",
-    "",
-    "## Confirmation",
-    "- Before implementation, ask the user:",
-    `  - "${prompt}"`,
-    "- If approved, run `sdd-forge flow set approval --approved [--notes <text>]` to persist the approval into spec.json (then re-render to refresh spec.md).",
-    "",
-  ].join("\n");
-}
-
 function buildDraftTemplate() {
   return JSON.stringify({
     devType: "",
@@ -113,12 +95,6 @@ function buildDraftTemplate() {
       notes: "",
     },
   }, null, 2) + "\n";
-}
-
-function loadLocalQaTemplate(root, lang) {
-  const localPath = path.join(root, ".sdd-forge", "templates", lang, "specs", "qa.md");
-  if (fs.existsSync(localPath)) return fs.readFileSync(localPath, "utf8");
-  return buildQaTemplate();
 }
 
 export class RunPrepareSpecCommand extends FlowCommand {
@@ -147,7 +123,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
     if (!config) {
       throw new Error("config.json not found");
     }
-    const lang = config.lang || DEFAULT_LANG;
     const resolvedBase = base || detectBaseBranch(root);
 
     // Determine branching strategy
@@ -180,7 +155,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
     const specRoot = useWorktree ? worktreePath : root;
     const specDir = path.join(specRoot, "specs", specDirName);
     const specPath = path.join(specDir, "spec.md");
-    const qaPath = path.join(specDir, "qa.md");
     const draftPath = path.join(specDir, "draft.json");
 
     if (dryRun) {
@@ -220,9 +194,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
           input: issue ? `GitHub Issue #${issue}` : "User request",
         });
         fs.writeFileSync(specPath, rendered);
-      }
-      if (!fs.existsSync(qaPath)) {
-        fs.writeFileSync(qaPath, loadLocalQaTemplate(root, lang));
       }
       if (!fs.existsSync(draftPath)) {
         fs.writeFileSync(draftPath, buildDraftTemplate());
@@ -285,12 +256,10 @@ export class RunPrepareSpecCommand extends FlowCommand {
 
     const changed = [
       `specs/${specDirName}/spec.md`,
-      `specs/${specDirName}/qa.md`,
       `specs/${specDirName}/draft.json`,
     ];
     const createdFileLines = [
       `created spec: specs/${specDirName}/spec.md`,
-      `created qa: specs/${specDirName}/qa.md`,
       `created draft: specs/${specDirName}/draft.json`,
     ];
     const fillAndGateNext = [

@@ -67,7 +67,7 @@ describe("spec init CLI", () => {
     assert.match(envelope.data.output, /created branch/);
     assert.match(envelope.data.output, /created spec/);
     assert.ok(fs.existsSync(join(tmp, "specs/001-my-feat/spec.md")));
-    assert.ok(fs.existsSync(join(tmp, "specs/001-my-feat/qa.md")));
+    assert.ok(fs.existsSync(join(tmp, "specs/001-my-feat/draft.json")));
   });
 
   it("shows help with --help", () => {
@@ -97,7 +97,7 @@ describe("spec init CLI", () => {
     assert.match(envelope.data.output, /created spec/);
     assert.ok(!envelope.data.output.includes("created branch"));
     assert.ok(fs.existsSync(join(tmp, "specs/001-nb-feat/spec.md")));
-    assert.ok(fs.existsSync(join(tmp, "specs/001-nb-feat/qa.md")));
+    assert.ok(fs.existsSync(join(tmp, "specs/001-nb-feat/draft.json")));
 
     // Should still be on main
     const branch = execFileSync("git", ["-C", tmp, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim();
@@ -133,7 +133,7 @@ describe("spec init CLI", () => {
     assert.match(envelope.data.output, /created branch/);
     const wtPath = join(tmp, ".sdd-forge", "worktree", "feature-001-wt-feat");
     assert.ok(fs.existsSync(join(wtPath, "specs/001-wt-feat/spec.md")));
-    assert.ok(fs.existsSync(join(wtPath, "specs/001-wt-feat/qa.md")));
+    assert.ok(fs.existsSync(join(wtPath, "specs/001-wt-feat/draft.json")));
 
     // Cleanup worktree
     execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });

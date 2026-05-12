@@ -62,9 +62,14 @@ import { runGit } from "../../lib/git-helpers.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 import { VALID_PHASES } from "../../lib/constants.js";
 import { loadMergedGuardrails, filterByPhase } from "../../lib/guardrail.js";
-import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
+import { resolveNodeFor, FLOW_DEFINITION, flattenSteps } from "../definition.js";
 
-const REVIEW_PHASE_NODE_MAP = { draft: "review-draft", spec: "review-spec", test: "review-test" };
+const REVIEW_PHASE_NODE_MAP = {
+  "draft-questions": "review-draft-questions",
+  "draft-coverage": "review-draft-coverage",
+  spec: "review-spec",
+  test: "review-test",
+};
 
 function getReviewMaxAttempts(phase, attemptContext) {
   const nodeId = REVIEW_PHASE_NODE_MAP[phase];
@@ -73,6 +78,29 @@ function getReviewMaxAttempts(phase, attemptContext) {
     throw new Error(`review maxAttempts resolution requires explicit context for phase: ${phase}`);
   }
   return resolveNodeFor(FLOW_DEFINITION, nodeId).resolveMaxAttempts(attemptContext);
+}
+
+function resolveDraftReviewStage(flow) {
+  const steps = Array.isArray(flow?.steps) ? flattenSteps(flow.steps) : [];
+  const byId = new Map(steps.map((step) => [step.id, step]));
+  if (byId.get("review-draft-coverage")?.status === "in_progress") {
+    return {
+      key: "coverage",
+      retryPhase: "draft-coverage",
+      commandId: "flow.draft.review.coverage.propose",
+      artifact: "draft-review-coverage.md",
+      countLabel: "findings",
+      tag: "draft-review-coverage",
+    };
+  }
+  return {
+    key: "questions",
+    retryPhase: "draft-questions",
+    commandId: "flow.draft.review.questions.propose",
+    artifact: "draft-review-questions.md",
+    countLabel: "questions",
+    tag: "draft-review-questions",
+  };
 }
 
 const LOOP_REVIEW_THRESHOLD = 10;
@@ -1233,41 +1261,52 @@ async function runSpecReview(root, flow, config, dryRun) {
 // Draft review pipeline (--phase draft)
 // ---------------------------------------------------------------------------
 
-function buildDraftReviewPrompt(draftJson, requestText, contextEntries) {
+function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
   const qaText = Array.isArray(draftJson?.qa)
     ? draftJson.qa.map((q, i) =>
-      `### Q${i + 1}: ${q.question}\n**Answer:** ${q.answer}\n**Evidence:** ${q.evidence || "(none)"}\n**Why:** ${q.why || "(none)"}`
+      `### ${q.id || `Q${i + 1}`} [${q.status || "unknown"} / ${q.category || "unknown"}]\n**Question:** ${q.question}\n**Answer:** ${q.answer || "(empty)"}\n**Evidence:** ${q.evidence || "(none)"}\n**Why:** ${q.why || "(none)"}\n**Dropped reason:** ${q.droppedReason || "(none)"}`
     ).join("\n\n")
     : "(no QA entries)";
 
-  return new PromptBuilder()
-    .setRole("You are a draft QA quality reviewer. Analyze the draft's QA entries against the request/issue and codebase context.")
-    .setRules([
-      "Focus on:",
-      "- Questions that are too shallow or generic to drive a useful spec",
-      "- Missing coverage: areas the request/issue mentions but no QA entry addresses",
-      "- Ambiguous or unsupported answers (claims without evidence)",
-      "- Redundant entries that cover the same concern",
-      "",
-      "Output a numbered list of issues in this format:",
-      "### 1. <title>",
-      "**QA:** Q<N> (the QA entry number, or 'NEW' for missing coverage)",
-      "**Issue:** <what is wrong or missing>",
-      "**Suggestion:** <concrete improvement to the QA entry>",
-      "",
-      "If no issues are found, output: NO_PROPOSALS",
-    ].join("\n"))
-    .addUserPrompt("## Request / Issue", requestText || "(no request text)")
-    .addUserPrompt("## Draft QA Entries", qaText)
-    .addUserPrompt(
-      "## Codebase Context (related files)",
-      formatCodebaseContextForPrompt(contextEntries),
-    )
-    .build();
+  const contextText = contextEntries.map((e) =>
+    `- **${e.file}**: ${e.summary || "(no summary)"}`
+  ).join("\n");
+
+  return [
+    "You are a draft QA quality reviewer. Analyze draft.json against the request/issue and codebase context.",
+    "Focus on:",
+    stage.key === "questions"
+      ? "- Missing first-pass questions needed before the spec can be written"
+      : "- Missing follow-up coverage after reading answered and dropped QA",
+    stage.key === "questions"
+      ? "- Category coverage across goal, scope, constraints, acceptance, existing behavior, implementation targets, tests, and risks"
+      : "- Unresolved contradictions, unsupported answers, or areas where a dropped question still leaves a spec gap",
+    "- Ambiguous user answers must be converted into a direct yes/no or option-selection question, not deferred to gate",
+    "- The review report must not edit draft.json; it only tells the operator what to ask or fix next",
+    "",
+    "Output a numbered list of issues in this format:",
+    "### 1. <title>",
+    "**QA:** q<N> (the qa.id, or 'NEW' for missing coverage)",
+    "**Issue:** <what is wrong or missing>",
+    "**Suggestion:** <concrete improvement to the QA entry>",
+    "",
+    "If no issues are found, output: NO_PROPOSALS",
+    "",
+    "## Request / Issue",
+    requestText || "(no request text)",
+    "",
+    "## Draft QA Entries",
+    qaText,
+    "",
+    "## Codebase Context (related files)",
+    "These files are ordered by relevance to the spec.",
+    contextText,
+  ].join("\n");
 }
 
-function formatDraftReviewMd(issues) {
-  const lines = ["# Draft Review Results", ""];
+function formatDraftReviewMd(issues, stage) {
+  const title = stage.key === "questions" ? "Draft Question Review Results" : "Draft Coverage Review Results";
+  const lines = [`# ${title}`, ""];
   if (issues.length === 0) {
     lines.push("No issues found. PASS.");
   } else {
@@ -1284,6 +1323,7 @@ function formatDraftReviewMd(issues) {
 async function runDraftReview(root, flow, config, dryRun) {
   const specDir = path.dirname(flow.spec);
   const draftPath = path.resolve(root, specDir, "draft.json");
+  const stage = resolveDraftReviewStage(flow);
 
   if (!fs.existsSync(draftPath)) {
     console.error("Error: draft.json not found");
@@ -1308,12 +1348,12 @@ async function runDraftReview(root, flow, config, dryRun) {
     const { loadAnalysisEntries, contextSearch: ctxSearch } = await import("../lib/get-context.js");
     analysisData = { ...loadAnalysisEntries(root), ctxSearch };
   } catch (e) {
-    console.error(`  [draft-review] Warning: failed to load codebase context: ${e.message}`);
+    console.error(`  [${stage.tag}] Warning: failed to load codebase context: ${e.message}`);
   }
 
-  const agent = ensureAgent("flow.draft.review.propose");
+  const agent = ensureAgent(stage.commandId);
 
-  console.error("  [draft-review] Detecting issues...");
+  console.error(`  [${stage.tag}] Detecting issues...`);
   let contextEntries = [];
   if (analysisData) {
     const searchQuery = draftJson.goal || requestText;
@@ -1321,16 +1361,19 @@ async function runDraftReview(root, flow, config, dryRun) {
       contextEntries = await analysisData.ctxSearch(analysisData.entries, analysisData.analysis, searchQuery, root);
     }
   }
-  const detectPrompt = buildDraftReviewPrompt(draftJson, requestText, contextEntries);
-  const raw = await callReviewAgent(agent, detectPrompt, "flow.draft.review.propose");
+  const detectPrompt = buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage);
+  const raw = await callReviewAgent(
+    agent, detectPrompt, stage.commandId,
+    "You are a draft QA quality reviewer. Identify weaknesses in draft QA entries.",
+  );
 
   const issues = raw.includes("NO_PROPOSALS") ? [] : parseProposals(raw);
   const verdict = issues.length === 0 ? "PASS" : "FAIL";
 
-  const reviewPath = path.join(path.resolve(root, specDir), "draft-review.md");
-  fs.writeFileSync(reviewPath, formatDraftReviewMd(issues));
-  console.error(`  [draft-review] Results saved to ${path.relative(root, reviewPath)}`);
-  console.error(`  [draft-review] verdict=${verdict} issues=${issues.length}`);
+  const reviewPath = path.join(path.resolve(root, specDir), stage.artifact);
+  fs.writeFileSync(reviewPath, formatDraftReviewMd(issues, stage));
+  console.error(`  [${stage.tag}] Results saved to ${path.relative(root, reviewPath)}`);
+  console.error(`  [${stage.tag}] verdict=${verdict} ${stage.countLabel}=${issues.length} retryPhase=${stage.retryPhase}`);
 
   if (verdict === "PASS") {
     console.log("Draft review PASS. QA entries are adequate.");

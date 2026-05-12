@@ -1,0 +1,175 @@
+{
+  "devType": "feature",
+  "goal": "draft review を、draft 自体の品質判定ではなく、Issue / request のゴール実現に必要な情報を補完する 2 段 review 機構へ再設計する。",
+  "analysis": {
+    "problem": "現行の draft review は missing coverage と shallow / ambiguous / redundant の品質判定を同時に扱っており、spec 246 で narrower 化された「不足検出」設計と、spec 242 由来の quality-check 設計が混在している。その結果、user 回答を後から否定する構造、reviewer の判定 drift、whack-a-mole ループが起きやすい。",
+    "proposedApproach": "draft.json の qa[] を id/status 付きの設問ライフサイクルとして扱い、Stage 1 は status=pending の回答前設問を goal coverage 観点で review し、Stage 2 は status=answered の回答済み QA から追加質問だけを生成する。品質判定は gate-draft guardrail へ移し、auto-check は goal 抽出可否を autoApprove hard gate として扱い、spec phase で user 確認が必要な場合は phase-aware reopen-draft で draft へ戻す。",
+    "validation": "関連コードでは review.js の buildDraftReviewPrompt が 4 つの Focus 項目を持ち、run-auto-check.js は scores + reason のみを保存し、run-reopen-draft.js は done task 前提で draft/gate-draft のみ戻す実装になっている。Issue #321 の提案はこれらの現状責務を分離し、review=補完、gate=品質判定、draft=ユーザー判断が必要な前提決定へ整理するため、根本問題に対応している。"
+  },
+  "scopeVerification": {
+    "in": [
+      "MUST: draft.json の qa[] に id/status を追加し、pending / approved / answered / dropped の設問ライフサイクルを表現する",
+      "MUST: draft phase の goal 生成・Q1 goal 確認・曖昧回答の即時 clarification を整備する",
+      "MUST: auto-check に判定用の一時 goal 出力を追加し、goal 抽出不能時は score に関係なく autoApprove を fail させる",
+      "MUST: draft review を Stage 1 / Stage 2 に分け、goal achievability coverage の補完に責務を限定する",
+      "MUST: gate-draft guardrail に shallow / ambiguous / redundant の受け皿を移す",
+      "MUST: spec prompt に draft.json authoritative input と source context 再読ルールを追加する",
+      "MUST: reopen-draft を phase-aware に拡張し、spec phase 完了前の draft 回帰を扱う"
+    ],
+    "out": [
+      "Issue #321 を複数 issue / 複数 spec に分割すること",
+      "draft phase で AI が自力決定できる内部実装詳細まで user に確認すること",
+      "autoCheck state に goal を永続化すること",
+      "既存 spec artifacts を reopen-draft 時に削除すること"
+    ]
+  },
+  "impactOnExisting": [
+    "src/flow/commands/review.js: draft review prompt と実行経路が Stage 1 / Stage 2 対応へ変わる",
+    "src/flow/definition.js: review-draft step は review-draft-questions / review-draft-coverage に分割する。既存 active flow が review-draft を current step として保存している場合は、load 時に review-draft-questions へ state remap し、issue-log に migration note を残す",
+    "src/flow/lib/run-auto-check.js: AI 出力 schema と eligibility 判定に temporary goal hard gate が加わる",
+    "src/flow/lib/run-reopen-draft.js: spec phase 完了前と impl phase 以降で precondition / reset 範囲を分ける必要がある",
+    "src/flow/lib/run-gate.js と src/presets/base/guardrail.json: draft JSON 検証と guardrail 文言が qa[].status / QA 品質移管を扱う",
+    "src/flow/prompts/plan/draft.md と src/flow/prompts/plan/spec.md: draft の設問生成・clarification・spec の evidence 再読ルールを反映する"
+  ],
+  "qa": [
+    {
+      "question": "以下のゴールで進めてよいですか？ draft review を、draft 自体の品質判定ではなく、Issue / request のゴール実現に必要な情報を補完する 2 段 review 機構へ再設計する。",
+      "answer": "このゴールで進める。",
+      "evidence": "Issue #321 title/body; draft analysis from src/flow/commands/review.js buildDraftReviewPrompt, src/flow/lib/run-auto-check.js, src/flow/lib/run-reopen-draft.js, src/flow/definition.js.",
+      "why": "Issue #321 の主旨と一致し、以後の QA を実装順序・段階分割・境界条件の確認に集中できるため。",
+      "considered": "ゴール文の修正、別前提での進行。いずれも現時点では不要。"
+    },
+    {
+      "question": "Issue #321 を 1 flow 内の複数 task として扱う場合の実装順序はどれで進めますか？",
+      "answer": "この flow で全て実装する。Issue #321 は分割せず、task 分割と実装順序は Q3 の責務境界で定義する。",
+      "evidence": "User answer in draft Q2. Issue #321 is a single user-defined concern; persistent no-scope-splitting rule says the AI must not split the user-defined Issue into multiple specs.",
+      "why": "1 flow に収めることで Issue #321 の concern を維持しつつ、task 分割により実装・レビュー・テストの切り分けを可能にするため。",
+      "considered": "Issue 本文の Phase 順に厳密に従う案、最小差分から着手する案。どちらも schema / step id / prompt の参照関係を途中で逆転させやすいため、依存の土台から上に積む順序を採用する。"
+    },
+    {
+      "question": "spec の task 分割粒度はどれにしますか？",
+      "answer": "責務境界ごとの 7 task に分ける。MUST T1: draft creates pending qa[] entries with id/status and gate-draft validates the lifecycle, so schema and first consumer ship together. MUST T2: flow definition と review command routing に review-draft-questions / review-draft-coverage を追加し、retry 上限を既存 review-draft と同じ auto=1 / manual=5 で登録する。MUST T3: draft prompt / skill を goal 生成、Q1 goal confirmation、closed-choice clarification、pending QA の直接記録に合わせる。MUST T4: review-draft-questions を、回答前の pending question list が goal 実現に十分かを見る stage として実装する。MUST T5: review-draft-coverage を、answered QA から追加質問だけを生成する stage として実装する。MUST T6: auto-check の temporary goal hard gate と gate-draft の residual QA quality guardrail を分離する。MUST T7: spec prompt に `draft.json is the source of truth`, `do not override user answers`, `use only answered QA and dropped QA with reasons`, `if any pending/approved QA remains, stop and reopen draft`, `if source evidence is absent or not verifiable in the current prompt context, read the source again` を追加し、phase-aware reopen-draft と stale marker 参照を統合する。",
+      "evidence": "User answer in draft Q3. Scope touches draft data model, auto-check, gate-draft guardrails, review-draft staging, draft clarification, spec prompt integration, and phase-aware reopen-draft.",
+      "why": "Issue #321 の範囲を 1 flow に保ちながら、実装・テスト・gate の原因切り分けがしやすい粒度にできるため。",
+      "considered": "大きめの 4 task、細かめの 9-10 task。4 task は差分が大きく、9-10 task は進行が長くなる。"
+    },
+    {
+      "question": "review-draft の 2 段化をどう表現しますか？",
+      "answer": "flow definition 上の 2 step として表現する。plan sequence は `draft -> review-draft-questions -> review-draft-coverage -> gate-draft -> spec` とする。既存 active flow が stored current step id `review-draft` を持つ場合は load 時に `review-draft-questions` へ remap する。既存 active flow で `review-draft` が done 済み、かつ current step が gate-draft / spec / review-spec / gate / approval / test / review-test の場合は、load 時に `review-draft-questions` と `review-draft-coverage` を done として synthesize し、issue-log に `flow.reviewDraftSplitMigrated` event を残す。draft が reopen された場合はこの synthesized done は無効になり、新しい 2 step を通常どおり pending から再実行する。CLI の `flow run review --phase draft` は互換入口として残して内部で 2 stage 実行へ route する。`draft` は goal と initial pending question list を作る。`review-draft-questions` は draft.json、issue/request、context loader が goal + question text + scope paths で返した context entries を入力にし、`draft-question-review.md` に既存 review と同じ Markdown issue schema を出す。FAIL 時はこの step の remediation が qa[] の pending question を追加または修正して再実行する。PASS 後もこの step 内で approved questions を user に聞き、answered / dropped へ遷移させてから step done にする。`review-draft-coverage` は answered / dropped QA を入力にし、`draft-coverage-review.md` に追加質問だけを出す。FAIL 時はこの step の remediation が pending question を追加し、その場で user に聞いて answered / dropped へ遷移させてから再実行する。両 step の retry 上限は既存 review-draft と同じ auto=1 / manual=5 とする。",
+      "evidence": "User answer in draft Q4. src/flow/definition.js currently has a single review-draft node, and review retry limits are keyed by review step id in PLAN_REVIEW_MAX_ATTEMPTS_BY_ID.",
+      "why": "Stage 1 は回答前設問、Stage 2 は回答後 QA で入力・終了条件・retry 対象が異なるため、flow state 上で別 step として記録する方が再開性とログが明確になる。",
+      "considered": "既存 review-draft step 内に stage を持たせる案、既存 step 維持案。いずれも retry カウントや再開時の現在位置が曖昧になりやすい。"
+    },
+    {
+      "question": "ambiguous / unsupported answers の責務をどう分けますか？",
+      "answer": "draft 対話中の clarification を主担当にし、gate-draft は補助検出に留める。clarification は draft skill prompt 内で発火し、yes/no または closed-choice の再質問として扱う。Stage 1 / Stage 2 review は clarification に介入せず、不足が見つかった場合は pending question を追加するだけにする。検出シグナルは、対象名詞句が無い形容詞だけの回答、複数解釈できる数量表現、採用技術や scope boundary の主語欠落、acceptance policy の yes/no 未確定、`適切に` / `必要なら` / `できるだけ` のような判断主体不明語とする。closed-choice prompt は `Does <ambiguous phrase> mean <concrete interpretation>? Answer yes or no.`, `Which option should be used: A, B, or N/A?`, `Should this be in scope? Answer yes or no.` の形にする。確定した内容だけを draft.json に記録する。",
+      "evidence": "User answer in draft Q5. Issue #321 states user answers must not be negated by review. Current gate-draft can inspect draft.json through run-gate.js checkDraftJson and guardrail evaluation.",
+      "why": "曖昧回答を gate まで流さず closed choice で即時確認することで、user 回答の後出し否定を避けられる。gate は evidence 欠落、status 不整合、残存する曖昧語などの構造的不備を補助検出する。",
+      "considered": "gate で強く検出する案、clarification のみにする案。前者は user 回答否定が戻り、後者は autoApprove 時の保険が弱い。"
+    },
+    {
+      "question": "reopen-draft の phase-aware rollback 範囲はどれで進めますか？",
+      "answer": "spec 完了前は done task 前提なしで draft に戻し、review-draft-questions / review-draft-coverage / gate-draft / spec / review-spec / gate / approval / test / review-test を pending に戻す。既存 artifact は削除せず stale 扱いにし、reopen 理由は pending QA として追記する。stale marker は artifact 本体ではなく issue-log.json の `draft.reopened` event と flow note `draft.reopen.reason` / `draft.reopen.staleArtifacts` に保存し、path、reason、staleFromStep、clearedByStep を記録する。reset 対象は review-draft-questions、review-draft-coverage、gate-draft、spec、review-spec、gate、approval、test、review-test の retry / attempt counters とし、auto/manual の両方を reset する。PLAN_REVIEW_MAX_ATTEMPTS_BY_ID と set-retry / reset registry は新しい 2 step id を認識するよう更新する。該当 downstream step が artifact を再生成し done になった時点で `draft.staleCleared` event を追加し、stale は解消されたものとして扱う。reopen は新しい input set での再実行なので retry counters は reset する。impl 以降は現行どおり done task 前提と task 追加の意味を維持する。",
+      "evidence": "User answer in draft Q6. Current src/flow/lib/run-reopen-draft.js requires done tasks and only resets draft/gate-draft; Issue #321 requires spec-phase return to draft when user confirmation becomes necessary.",
+      "why": "spec 完了前の再質問は task 実装の差し戻しではなく要求補完なので、done task 前提を外し、downstream plan steps を一貫して再実行可能にする必要がある。artifact を削除しないことで履歴と差分確認を維持できる。",
+      "considered": "spec 以降だけ pending に戻す案、artifact を削除して作り直す案。前者は review/gate の stale state が残りやすく、後者は過去判断の追跡性を落とす。"
+    },
+    {
+      "question": "Stage 1 が goal achievability の不足を判定する観点は何にしますか？",
+      "answer": "Stage 1 は回答前の pending question list だけを対象にし、goal 実現に必要な user judgment が質問として揃っているかを見る。観点は、impact scope、acceptance criteria、constraint / non-goal、risk or migration policy、user-visible behavior、dependency or integration boundary、implementation policy that cannot be inferred from code の 7 種類とする。Stage 1 prompt は各 category について `{ category, applicable: yes/no, evidence, requiredUserJudgment: yes/no, existingQuestionId|null, result: covered/missing/not-applicable }` を列挙する。applicable=yes は、request/issue/draft goal がその category の user-visible behavior, public CLI/API contract, migration/destructive behavior, external integration, or acceptance policy を直接含む場合だけに限定する。requiredUserJudgment=yes は既存コード evidence だけでは決められず、かつ project policy にも既定値が無い場合だけに限定する。PASS 基準は applicable=yes かつ requiredUserJudgment=yes の category 全てに pending または approved question が存在すること。全カテゴリを必須にはしない。コードから AI が決めてよい例は helper extraction、file placement following existing pattern、internal parser shape。ユーザー確認が必要な例は public CLI behavior、scope exclusion、destructive migration policy。AI がコードから決められる内部設計、アルゴリズム、データ構造は質問化しない。",
+      "evidence": "Issue #321 requires review-draft to supplement information needed to achieve the request goal, while prior user answers reject asking internal implementation details that the AI can decide.",
+      "why": "review を draft 品質否定ではなく goal 実現のための不足補完に限定し、質問すべき対象と質問してはいけない対象を分けられるため。",
+      "considered": "shallow / ambiguous / redundant も Stage 1 で見る案。これは gate-draft へ移す方針と衝突するため採用しない。"
+    },
+    {
+      "question": "auto-check の役割は 2 段 review 後にどう扱いますか？",
+      "answer": "auto-check は review-draft に吸収せず、flow 開始時の autoApprove eligibility 判定として残す。AI 出力 schema には判定用の temporary `goal` を追加し、`{ score, maxScore, threshold, breakdown, staticGates, goal, reason }` を期待する。persisted autoCheck state には goal を保存しない。goal は null、空文字、空白のみ、`unknown`、`n/a`、`not specified` を空扱いにする。goal が空、または request/issue から goal を抽出できない場合は、score に関係なく autoApprove を fail にする。この fail は flow 開始前の eligibility 決定として扱い、active flow の途中で mode flag を切り替えない。autoCheck state は eligible=false, score, breakdown, staticGates, reason だけを保存し、flow prepare/init は autoApprove=false の manual flow として開始する。manual flow は draft phase の Q1 goal confirmation へ進む。draft phase では改めて draft.json.goal を直接生成し、manual flow では Q1 で確認する。",
+      "evidence": "User explicitly decided that autoCheck should fail auto when goal is missing regardless of score, and that draft.json.goal can be written directly during draft instead of persisting goal in autoCheck.",
+      "why": "auto-check は自動進行可否の入口判定に限定し、draft.json を requirements の source of truth に保てるため。",
+      "considered": "auto-check を review-draft-coverage に統合する案、autoCheck state に goal を保存する案。前者は入口判定の意味が薄れ、後者は source of truth を分散させる。"
+    },
+    {
+      "question": "Stage 2 が追加質問を出す判定観点は何にしますか？",
+      "answer": "Stage 2 は answered / dropped QA を対象にし、ユーザー回答を否定せず、goal 実現にまだ必要な追加質問だけを出す。発火条件は、回答間の矛盾、回答によって新たに発生した未確定領域、ユーザー判断が必要な実装方針への波及、acceptance criteria の不完全さ、non-goal / constraint の欠落、既存コード evidence と回答の前提ずれ、dropped question の理由不足とする。曖昧表現そのものの品質判定は gate-draft に任せ、Stage 2 は追加で聞くべき user judgment がある場合だけ FAIL にする。",
+      "evidence": "Issue #321 separates supplementation from quality judgment, and Q5 assigns ambiguous answer clarification to draft interaction with gate-draft as supplemental detection.",
+      "why": "回答済み QA の否定を避けつつ、回答によって初めて見える未確定事項を spec 前に補完できるため。",
+      "considered": "answered QA の品質を Stage 2 で採点する案。これは review が user answer を後から否定する構造を戻すため採用しない。"
+    },
+    {
+      "question": "qa[] の status lifecycle はどの step が遷移させますか？",
+      "answer": "draft または review remediation が新規質問を作る時は status=pending とする。review-draft-questions が質問として妥当と判断したら pending -> approved にする。review-draft-questions は、normalized question text が既存 qa と一致する場合、question category が Stage 1 prompt で applicable=no の場合、requiredUserJudgment=no の場合、内部実装詳細だけを聞いている場合、scopeVerification.out に該当する場合に限って pending -> dropped にし、理由を droppedReason に残す。review-draft-questions step の remediation が approved question を user に聞き、明確な回答を得たら approved -> answered にする。回答が曖昧な間は approved のまま closed-choice clarification を続ける。review-draft-coverage は answered / dropped を読んで新しい pending を追加でき、その remediation が同じ step 内で user に聞いて answered / dropped へ遷移させるが、既存 answered を否定して戻さない。spec step に進む前に pending / approved が残っていれば gate-draft が fail する。",
+      "evidence": "User rejected a separate questions[] structure and approved status-only lifecycle in qa[]. Q4 defines Stage 1 as pending question review and Stage 2 as answered QA coverage review.",
+      "why": "status の意味と所有 step を固定することで、review / draft / gate が同じ qa[] を source of truth として扱えるため。",
+      "considered": "pending から直接 answered にする案。質問レビュー済みかどうかが残らず、Stage 1 の存在意義が薄くなるため採用しない。"
+    },
+    {
+      "question": "review markdown finding は qa[] にどう反映しますか？",
+      "answer": "run-review は draft.json を直接書かず、Markdown report だけを生成する。qa[] への反映は review-draft-questions / review-draft-coverage の operator instructions に含める remediation 手順が行い、新規 step は追加しない。入力は各 step の report path、出力は draft.json diff とする。各 finding は QA target、category、action、proposed question text、reason を含める。Stage 1 で許可する action は add / update / drop、Stage 2 で許可する action は add のみとし、Stage 2 は existing answered QA を update/drop しない。target は existing entry なら qa.id を必須にし、bare Q<N> reference は invalid report として fail-fast する。target=NEW の場合だけ id 不要とする。target が NEW かつ既存 pending / approved と normalized question text または同一 category + same concern で重複しない場合だけ新規 pending を追加する。normalization は lowercase、trim、連続 whitespace の単一化、末尾 punctuation と backtick の除去とする。既存 qa id が指定されている場合は該当 entry を更新し、不要判断なら dropped にする。",
+      "evidence": "Current src/flow/commands/review.js writes draft-review.md and does not modify draft.json. Current review-draft prompt instructs the operator to read the report and update draft.json.",
+      "why": "review command を検出専用に保ち、draft.json 更新は flow orchestration 側に集約できるため。Markdown schema を明確にすれば parser 追加なしでも一貫した反映ができる。",
+      "considered": "reviewer agent が draft.json を直接編集する案、run-review.js が report を parse して自動 merge する案。前者は責務が重く、後者は user clarification が絡むため誤 merge のリスクが高い。"
+    },
+    {
+      "question": "id/status 追加による旧 draft.json の扱いはどうしますか？",
+      "answer": "alpha 期間のため後方互換変換は実装しない。新 schema を要求する境界では qa[] entry に id/status が無い draft.json を schema error にし、silent migration や推測補完はしない。既存 artifact は削除せず残し、ユーザーには `draft.json schema changed; run reopen-draft to regenerate qa[] with id/status, or abort and restart this flow` というエラーと推奨手順を出す。既に spec/test 段階にある active flow は自動 abort せず停止し、reopen-draft で新 schema の draft を再生成するまで downstream plan step を進めない。旧回答の自動 carry-over は行わず、ユーザーは draft を再確認する。migration helper は scope out とし、警告と reopen-draft 導線のみ in scope とする。active flow の途中 artifact を勝手に破棄しない。",
+      "evidence": "Project policy says alpha code must not keep backward-compatible legacy format paths, but user work should not be silently deleted.",
+      "why": "旧フォーマットの暗黙変換を避けつつ、ユーザー作業を勝手に消さない安全な破壊的変更にできるため。",
+      "considered": "旧 draft を自動変換する案、旧 draft を即削除する案。前者は alpha 方針に反し、後者は作業履歴を失う。"
+    },
+    {
+      "question": "AI 実行を伴う変更のテスト方針はどうしますか？",
+      "answer": "AI CLI を呼ぶ挙動は tests/agent/ に集約する。agent tests では、Stage 1 が goal に必要な unanswered question を要求する fixture、Stage 2 が answered QA を否定せず追加質問だけを出す fixture、auto-check が goal 欠落で score に関係なく fail する fixture を追加する。通常の npm test 側では、qa[] id/status schema validation、review step registry と retry maxAttempts、review markdown finding の normalization / dedupe、reopen-draft の step reset / stale marker / retry reset を Node 組み込み test で検証する。",
+      "evidence": "Project test rule says real claude CLI tests belong under tests/agent/ and default npm test excludes them.",
+      "why": "AI prompt behaviorと deterministic state transition を分離して検証でき、通常テストの速度と agent regression の両方を維持できるため。",
+      "considered": "すべて agent test に寄せる案。state transition は deterministic なので通常の unit test に置く方が速く失敗原因も明確。"
+    },
+    {
+      "question": "新しい qa[] entry schema は何にしますか？",
+      "answer": "qa[] entry は `{ id, status, category, question, answer, evidence, why, droppedReason }` の固定 field set とする。id は draft.json 内で sequential な `q1`, `q2`, ... とし、一度作った id は再利用しない。新規 id は常に既存 qa[] 内の最大 numeric suffix + 1 とし、reopen-draft で既存 qa[] を保持して pending QA を追記する場合も続番にする。legacy draft を discard して新 schema で再生成する場合だけ、空の qa[] から q1 を開始する。status は pending / approved / answered / dropped のみ。category は Stage 1 / Stage 2 の判定カテゴリ文字列。question は全 status で必須。pending / approved は answer, evidence, why, droppedReason を空文字にする。answered は answer, evidence, why を必須にし、droppedReason は空文字にする。dropped は droppedReason を必須にし、answer / evidence / why は空文字にする。drop 判断の根拠は droppedReason だけを読む。answered になった entry は後続 review が直接変更せず、方針変更が必要なら新しい pending question を追加する。",
+      "evidence": "User approved status-only lifecycle in qa[] and rejected splitting questions[] from qa[].",
+      "why": "固定 field set にすると gate validation と prompt rendering が単純になり、status ごとの必須項目だけを検証すればよい。",
+      "considered": "status ごとに field set を変える案。JSON consumer が複雑になり、alpha 期間でも扱いづらい。"
+    },
+    {
+      "question": "approved question を user に聞く runtime はどこに置きますか？",
+      "answer": "新しい CLI step は追加せず、review-draft-questions / review-draft-coverage の plan prompt instructions に operator interaction loop を持たせる。review-draft-questions PASS 後、同 step の instruction が approved question を順に user に聞き、closed-choice clarification は Q5 の template に従って同じ loop 内で解消する。review-draft-coverage が追加 pending を出した場合も、同 step の remediation loop が user に聞く。中断時は draft.json の status が partial state になるため、再開時は approved のまま残っている entry から質問を再開する。",
+      "evidence": "Current review-draft prompt already instructs the operator to read draft-review.md, ask the user, update draft.json, and rerun review.",
+      "why": "既存の review remediation model を保ちつつ、追加の flow node を増やさずに Stage 1 と Stage 2 の回答収集を永続化できる。",
+      "considered": "専用 answer-draft-questions step を追加する案。ユーザーが合意した review-draft 2 step から外れ、flow definition がさらに増えるため採用しない。"
+    },
+    {
+      "question": "Stage 2 は何を入力として読みますか？",
+      "answer": "Stage 2 input は draft.json の answered / dropped QA、goal、analysis、scopeVerification、request/issue text、context loader output、Stage 1 report path とする。context loader は search query を `draft goal + answered question + answer + evidence paths` とし、scopeVerification.in に含まれる file paths がある場合は scopePaths として渡す。fresh code read は、answered.evidence に file path があるが current prompt context に該当 file summary or excerpt が無い場合、または evidence path が存在しない/変更済みで検証不能な場合だけ許可する。Stage 1 report は lineage 確認用であり、Stage 2 の追加質問は current draft.json を正とする。",
+      "evidence": "Spec prompt policy already requires re-reading source evidence when source context is absent or unverifiable.",
+      "why": "answered QA の含意確認には request と code context が必要だが、draft.json を source of truth として過去 report に引きずられないようにするため。",
+      "considered": "draft.json のみを読む案。source evidence mismatch を検出できないため採用しない。"
+    },
+    {
+      "question": "redesign 後の gate-draft は何を fail にしますか？",
+      "answer": "gate-draft は qa[] schema validity、unique id、status enum、pending / approved が残っていないこと、answered の answer/evidence/why 必須、dropped の droppedReason 必須かつ answer/evidence/why が空であること、question の空文字禁止、residual ambiguous wording の存在、source evidence を主張する answered QA の evidence 欠落、goal 空文字、approval 未完了を fail にする。residual ambiguous wording は fixed banned-token list (`適切に`, `必要なら`, `できるだけ`, `いい感じ`, `なるべく`, `適宜`) の文字列検査だけに限定し、意味解釈はしない。Stage 2 のような追加質問生成はせず、fail report は構造的不備と guardrail violation のみを返す。gate-draft が ambiguity token で FAIL した場合は reopen-draft を経由しない軽量 gate remediation として扱う。operator は該当 qa.id に対して Q5 の closed-choice clarification を行い、answered entry の answer/evidence/why を明確な内容へ更新してから gate-draft だけを再実行する。downstream step reset や retry counter reset は行わない。",
+      "evidence": "Q5 assigns ambiguity clarification to draft interaction and gate-draft as supplemental detection. Current run-gate.js already validates draft.json structure and approval.",
+      "why": "gate を品質否定ではなく、spec に進む前の構造的不備検出に限定できるため。",
+      "considered": "gate-draft で追加質問を生成する案。review/gate の責務分離に反するため採用しない。"
+    },
+    {
+      "question": "auto-check の goal extraction prompt はどう定義しますか？",
+      "answer": "auto-check prompt は English で `Extract the concrete change goal from the request. A valid goal must name the deliverable or change target and the desired outcome. If the request does not contain enough information to state that goal, return goal as null and explain why.` と指示する。valid goal は対象コンポーネントまたは成果物、変更種別、期待結果を含む。単なる `improve it`, `make it better`, `fix the issue` のように対象や成果が不明なものは extractable ではない。goal が extractable でない場合は score / breakdown に関係なく eligible=false とする。",
+      "evidence": "User confirmed prompts should be English and goal absence must hard-fail auto eligibility regardless of score.",
+      "why": "autoApprove の入口判定を再現可能にし、goal が曖昧なまま auto flow に入ることを防げるため。",
+      "considered": "score の一部として goal を扱う案。高得点でも goal 不在を通してしまうため採用しない。"
+    },
+    {
+      "question": "変更対象の prompt / skill / template ファイルは何ですか？",
+      "answer": "想定変更対象は src/flow/definition.js、src/flow/commands/review.js、src/flow/lib/run-auto-check.js、src/flow/lib/run-reopen-draft.js、src/flow/lib/run-gate.js、src/flow/prompts/plan/draft.md、src/flow/prompts/plan/spec.md、src/flow/prompts/plan/review-draft.md replacement or new review-draft-questions.md / review-draft-coverage.md、src/presets/base/guardrail.json、関連する skill template in src/templates if the plan prompts are propagated into skills。src/templates または src/presets を変更した場合は project rule に従って sdd-forge upgrade を実行する。",
+      "evidence": "Code context and project rules identify these files as current owners of flow structure, review prompt, auto-check, reopen-draft, gate validation, and prompt propagation.",
+      "why": "patch surface と upgrade 必要条件を draft 時点で明示し、spec task が抜け漏れなく作れるため。",
+      "considered": "review.js だけで対応する案。flow definition、gate、prompt、reopen の責務変更が残るため不足。"
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-10T00:45:00.000Z",
+    "notes": "User selected option 1 to treat current review-draft FAIL as the known whack-a-mole behavior targeted by Issue #321 and proceed to gate-draft."
+  }
+}

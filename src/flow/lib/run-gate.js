@@ -45,6 +45,7 @@ import { FlowCommand } from "./base-command.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./gate-step.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { validateDraftLifecycle } from "./draft-lifecycle.js";
 
 export { resolveGateStepId };
 
@@ -503,67 +504,8 @@ function walkStrings(node, path, fn) {
 // JSON checks — draft (spec 229: draft.md → draft.json)
 // ---------------------------------------------------------------------------
 
-const DRAFT_DEV_TYPE_ENUM = Object.freeze([
-  "feature",
-  "bugfix",
-  "refactor",
-  "docs",
-  "chore",
-  "test",
-  "other",
-]);
-
-function isNonEmptyString(value) {
-  return typeof value === "string" && value.trim() !== "";
-}
-
 function checkDraftJson(draft) {
-  const issues = [];
-  if (!draft || typeof draft !== "object") {
-    issues.push("draft must be a non-null object");
-    return issues;
-  }
-
-  if (!isNonEmptyString(draft.devType) || !DRAFT_DEV_TYPE_ENUM.includes(draft.devType)) {
-    issues.push(
-      `invalid devType "${draft.devType || ""}" (expected one of: ${DRAFT_DEV_TYPE_ENUM.join(", ")})`,
-    );
-  }
-
-  if (!isNonEmptyString(draft.goal)) {
-    issues.push("missing or empty goal");
-  }
-
-  const a = draft.analysis;
-  if (!a || typeof a !== "object") {
-    issues.push("missing analysis object");
-  } else {
-    for (const field of ["problem", "proposedApproach", "validation"]) {
-      if (!isNonEmptyString(a[field])) {
-        issues.push(`missing or empty analysis.${field}`);
-      }
-    }
-  }
-
-  if (!Array.isArray(draft.qa)) {
-    issues.push("missing qa array");
-  } else {
-    for (let i = 0; i < draft.qa.length; i++) {
-      const entry = draft.qa[i];
-      if (!entry || typeof entry !== "object") continue;
-      const isDecision = isNonEmptyString(entry.why) || isNonEmptyString(entry.considered);
-      if (isDecision && !isNonEmptyString(entry.evidence)) {
-        issues.push(`qa[${i}]: decision Q&A requires non-empty evidence`);
-      }
-    }
-  }
-
-  const ap = draft.approval;
-  if (!ap || typeof ap !== "object" || !ap.approved) {
-    issues.push("draft approval is required: set approval.approved = true");
-  }
-
-  return issues;
+  return validateDraftLifecycle(draft);
 }
 
 // ---------------------------------------------------------------------------
@@ -1886,7 +1828,7 @@ export class RunGateCommand extends FlowCommand {
         targetText: text,
         textCheck: () => [`draft.json is not valid JSON: ${e.message}`],
         checkerRole:
-          "You are a draft compliance checker. Check whether the draft considered each guardrail perspective.",
+          "You are a draft compliance checker. Check whether the draft satisfies each guardrail perspective.",
         skipGuardrail: true,
         ctx,
       });
@@ -1905,7 +1847,7 @@ export class RunGateCommand extends FlowCommand {
       targetText: text,
       textCheck: () => checkDraftJson(draftObj),
       checkerRole:
-        "You are a draft compliance checker. Check whether the draft considered each guardrail perspective.",
+        "You are a draft compliance checker. Check whether the draft satisfies each guardrail perspective.",
       skipGuardrail,
       ctx: { ...ctx, issueLog, gitState },
     });

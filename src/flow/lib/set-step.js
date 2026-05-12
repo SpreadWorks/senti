@@ -115,8 +115,13 @@ export default class SetStepCommand extends FlowCommand {
             let verdict;
             if (resolved.skip) {
               verdict = buildSkipVerdict();
+            } else if (resolved.fail) {
+              verdict = resolved.verdict;
             } else {
-              verdict = await runAutoCheckCore(this.container, resolved.text);
+              verdict = {
+                ...(await runAutoCheckCore(this.container, resolved.text)),
+                ...(resolved.goalGate ? { goalGate: resolved.goalGate } : {}),
+              };
             }
             if (verdict.eligible) {
               ctx.flowManager.mutate((s) => {

@@ -5,17 +5,17 @@ description: Sync documentation with code. Use for docs generation, review, and 
 
 # SDD Flow Sync
 
-Sync documentation with the current codebase. Can be invoked from flow-finalize or run standalone.
+Sync documentation with the current codebase. Can be invoked from the finalize stage or run standalone.
 
 ## Behavior
 
-- **When invoked from flow-finalize**: Updates documentation and records progress in the spec's flow.json.
+- **When invoked from finalize**: Updates documentation and records progress in the spec's flow.json.
 - **When run standalone**: Updates documentation only. No flow.json updates.
 
 ## Required Sequence
 
 1. Run documentation sync.
-   - Display: "ドキュメントを同期しています..."
+   - Display: "Syncing documentation..."
    - Run `sdd-forge flow run sync`.
    - Display the JSON result to the user.
 

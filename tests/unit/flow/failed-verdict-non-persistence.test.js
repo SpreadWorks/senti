@@ -19,6 +19,7 @@ function lowResponse() {
     scopeBoundedness: 1,
     targetSpecificity: 0,
     precedent: 0,
+    goal: "test goal",
     reason: "stub low",
   });
 }
@@ -31,6 +32,7 @@ function passResponse() {
     scopeBoundedness: 2,
     targetSpecificity: 1,
     precedent: 1,
+    goal: "test goal",
     reason: "stub pass",
   });
 }

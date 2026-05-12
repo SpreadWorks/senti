@@ -35,6 +35,7 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
 import {
   resolveAutoCheckInput,
+  resolvePersistedAutoCheckTrust,
   isSpecApproved,
   buildSkipVerdict,
 } from "./resolve-auto-check-input.js";
@@ -106,13 +107,23 @@ export default class SetAutoCommand extends FlowCommand {
     // the bare "Issue #<n>" literal and hard-gate-rejects.
     let autoCheck = state?.autoCheck || null;
     const trusted = !!autoCheck;
+    if (trusted) {
+      const paths = { root: ctx.root, specPath: preparingMode ? null : state?.spec };
+      const trustFailure = resolvePersistedAutoCheckTrust(state, paths);
+      if (trustFailure) autoCheck = trustFailure;
+    }
     if (!autoCheck) {
       const paths = { root: ctx.root, specPath: preparingMode ? null : state?.spec };
       const resolved = resolveAutoCheckInput(state, paths);
       if (resolved.skip) {
         autoCheck = buildSkipVerdict();
+      } else if (resolved.fail) {
+        autoCheck = resolved.verdict;
       } else {
-        autoCheck = await runAutoCheckCore(this.container, resolved.text);
+        autoCheck = {
+          ...(await runAutoCheckCore(this.container, resolved.text)),
+          ...(resolved.goalGate ? { goalGate: resolved.goalGate } : {}),
+        };
       }
       if (autoCheck.eligible) {
         mutateState((s) => { s.autoCheck = autoCheck; });
