@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-10T06:31:38.661Z",
+  "analyzedAt": "2026-05-12T01:20:54.877Z",
   "package": {
     "entries": [
       {
@@ -2498,14 +2498,15 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "a3415214f0c4f668cc9a5b3e0bbac21c",
-        "lines": 1558,
-        "mtime": "2026-05-10T06:31:17.508Z",
+        "hash": "c72cf20012aa117d1b47a16c750f4f18",
+        "lines": 1601,
+        "mtime": "2026-05-12T01:17:35.553Z",
         "className": "review",
         "methods": [
           "loadReqMap",
           "ensureAgent",
           "getReviewMaxAttempts",
+          "resolveDraftReviewStage",
           "resolveMergeBase",
           "resolveReviewTarget",
           "buildReviewPathspec",
@@ -2616,31 +2617,15 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "Implements `flow review`, running phase-aware reviews (draft/spec/test/code) by invoking AI agents on diffs or spec content and writing review markdown artifacts.",
-        "detail": "Dispatches to `runDraftReview`, `runSpecReview`, `runTestReview`, or default code review based on phase. Resolves git merge-base and collects committed/staged diffs scoped to non-doc paths, optionally splitting into per-file or grouped chunks for `runLoopReview` when file count exceeds `LOOP_REVIEW_THRESHOLD`. Generates AI prompts including spec requirements, acknowledged rationales, and codebase context, parses proposals filtered by touched files, and persists markdown reports (`review.md`, `spec-review.md`, etc.). Uses `resolveNodeFor` to obtain phase-specific maxAttempts and supports cross-check passes for grouped diffs.",
-        "chapter": "cli_commands",
-        "role": "command",
         "enrich": {
-          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow review",
-          "diff",
-          "merge-base",
-          "proposals",
-          "loop review",
-          "spec review",
-          "draft review",
-          "test review",
-          "guardrails"
-        ]
+        }
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "8b70c926a6ec0b9dd7325a25d3e8cf6d",
-        "lines": 638,
-        "mtime": "2026-05-06T22:57:54.572Z",
+        "hash": "48a1849a1bb2e5a024b4597d08821d5d",
+        "lines": 648,
+        "mtime": "2026-05-12T01:17:35.554Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2692,28 +2677,9 @@
           "src/flow/registry.js"
         ],
         "id": "2cb27b93",
-        "summary": "Defines the FLOW_DEFINITION and TASK_DEFINITION node trees with maxAttempts policies, plus traversal/derivation utilities used across the flow engine.",
-        "detail": "Models the flow as a frozen array of FlowNode objects with up to MAX_DEPTH=3 nesting and per-node maxAttempts encoded as either ScalarMaxAttempts or ModeMaxAttempts (auto/manual context-dependent). GATE_IMPL_SIDE_EFFECTS lists post-gate actions (completeTask, promoteNextTask, mergeOverview), and PLAN_REVIEW_MAX_ATTEMPTS_BY_ID configures phase-specific review limits via createPlanReviewNode. Exports a comprehensive set of pure helpers: collectGatePhaseEntries, collectLeafIds, derivePhaseMap, resolveNodeFor, findActiveNode/findInProgressLeaf, deriveNextAction, buildInitialNestedSteps, flattenSteps, findStepById, findFirstPendingLeaf, promoteNextPendingLeaf, derivePrereqs, and findBranchForLeaf. The OOP-style FlowNode/MaxAttempts classes enforce invariants in constructors and expose a resolve(context) method to pick auto vs manual limits.",
-        "chapter": "internal_design",
-        "role": "definition",
         "enrich": {
-          "processedAt": "2026-05-07T00:18:30.711Z",
           "attempts": 1
-        },
-        "keywords": [
-          "FLOW_DEFINITION",
-          "TASK_DEFINITION",
-          "FlowNode",
-          "maxAttempts",
-          "ScalarMaxAttempts",
-          "ModeMaxAttempts",
-          "gate phases",
-          "derivePhaseMap",
-          "derivePrereqs",
-          "step traversal",
-          "auto mode",
-          "manual mode"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -2917,6 +2883,48 @@
           "task sync",
           "validation helper"
         ]
+      },
+      {
+        "file": "src/flow/lib/draft-lifecycle.js",
+        "hash": "91b02a49b450ee84b61ea38576eb3da6",
+        "lines": 281,
+        "mtime": "2026-05-12T01:17:35.554Z",
+        "className": "draft-lifecycle",
+        "methods": [
+          "DraftQaEntry",
+          "DraftApproval",
+          "DraftLifecycle",
+          "parseDraftLifecycle",
+          "validateDraftLifecycle",
+          "countDraftLifecycleQa",
+          "nextDraftQaId",
+          "isObject",
+          "isNonEmptyString",
+          "isEmptyString",
+          "unknownFields",
+          "normalizeText"
+        ],
+        "imports": [],
+        "exports": [
+          "DraftQaEntry",
+          "DraftApproval",
+          "DraftLifecycle",
+          "parseDraftLifecycle",
+          "validateDraftLifecycle",
+          "countDraftLifecycleQa",
+          "nextDraftQaId",
+          "DRAFT_LEGACY_QA_ERROR",
+          "DRAFT_QA_STATUSES",
+          "DRAFT_QA_CATEGORIES"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js"
+        ],
+        "id": "9c36c232",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/fetch-issue.js",
@@ -3615,17 +3623,20 @@
       },
       {
         "file": "src/flow/lib/resolve-auto-check-input.js",
-        "hash": "5bd920b83c381204e150af795868f087",
-        "lines": 109,
-        "mtime": "2026-04-27T14:56:09.659Z",
+        "hash": "3ce0f1fa62424bd16b79e17b92e76ebf",
+        "lines": 154,
+        "mtime": "2026-05-12T01:17:35.554Z",
         "className": "resolve-auto-check-input",
         "methods": [
           "isSpecApproved",
+          "buildGoalMissingVerdict",
+          "resolvePersistedAutoCheckTrust",
           "resolveAutoCheckInput",
           "buildSkipVerdict",
           "isStepDone",
           "isDraftGateDone",
           "loadSpecSiblingText",
+          "parseDraftGoal",
           "buildBaseInput"
         ],
         "imports": [
@@ -3635,6 +3646,8 @@
         ],
         "exports": [
           "isSpecApproved",
+          "buildGoalMissingVerdict",
+          "resolvePersistedAutoCheckTrust",
           "resolveAutoCheckInput",
           "buildSkipVerdict"
         ],
@@ -3645,22 +3658,9 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "30a7075c",
-        "summary": "Builds the input text for auto-check on spec phases and decides whether to skip when the spec is already approved.",
-        "detail": "isSpecApproved and isDraftGateDone resolve specific definition nodes and check their step status as done. loadSpecSiblingText safely reads adjacent files like qa.md or draft.json beside the spec, optionally warning on errors. buildBaseInput composes joined text parts from related artifacts, and resolveAutoCheckInput returns either a skip verdict or the assembled text. buildSkipVerdict standardizes the envelope shape used by set-auto when the spec is already approved.",
-        "chapter": "internal_design",
-        "role": "lib",
         "enrich": {
-          "processedAt": "2026-04-27T14:57:15.101Z",
           "attempts": 1
-        },
-        "keywords": [
-          "auto check",
-          "spec approved",
-          "skip verdict",
-          "qa md",
-          "draft json",
-          "auto-input"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
@@ -3751,9 +3751,9 @@
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
-        "hash": "eca729658acae67b2f6812f3799b434e",
-        "lines": 304,
-        "mtime": "2026-05-10T06:31:17.508Z",
+        "hash": "e63ebc08bfbd90f49d5a83b3565a3900",
+        "lines": 339,
+        "mtime": "2026-05-12T01:17:35.554Z",
         "className": "run-auto-check",
         "methods": [
           "computeScore",
@@ -3764,6 +3764,7 @@
           "parseAiResponse",
           "emptyBreakdown",
           "sanitizeBreakdown",
+          "goalMissing",
           "scoreWithAi"
         ],
         "imports": [
@@ -3787,24 +3788,9 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "62c43842",
-        "summary": "Implements `flow run auto-check`, scoring whether a request can safely proceed in SDD auto mode using static gates plus AI evaluation across six dimensions.",
-        "detail": "Combines static gate evaluation (`evaluateStaticGates`) with AI scoring on six dimensions (specBuildability, ambiguity, verifiability, scopeBoundedness, targetSpecificity, precedent), each weighted toward a max of 24 with a pass threshold of 16. Hard-gate keys must sum to at least `HARD_GATE_MIN_SUM` or the verdict fails regardless of total. AI responses are sanitized into integer breakdowns; agent failures degrade gracefully with reason strings. Returns an `Envelope` verdict on missing input and is invoked from the SDD flow planning skill.",
-        "chapter": "internal_design",
-        "role": "command",
         "enrich": {
-          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
-        },
-        "keywords": [
-          "auto-check",
-          "scoring",
-          "hard gate",
-          "threshold",
-          "auto mode",
-          "AI evaluation",
-          "spec readiness",
-          "envelope"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-complete-task.js",
@@ -4090,9 +4076,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "d002eaec9b99f1257f35eefdcd626e68",
-        "lines": 2300,
-        "mtime": "2026-05-10T06:31:17.509Z",
+        "hash": "a8739776b9208b0dcbaa920bfd78b854",
+        "lines": 2242,
+        "mtime": "2026-05-12T01:17:35.554Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4133,7 +4119,6 @@
           "checkSpecJson",
           "computeForestDepth",
           "walkStrings",
-          "isNonEmptyString",
           "checkDraftJson",
           "buildGuardrailPrompt",
           "extractJsonCandidate",
@@ -4175,6 +4160,7 @@
           "./set-issue-log.js",
           "./gate-step.js",
           "../../lib/flow-envelope.js",
+          "./draft-lifecycle.js",
           "../definition.js"
         ],
         "exports": [
@@ -4228,26 +4214,9 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Implements the SDD flow gate runner that validates drafts, specs, and implementations via guardrails and AI evaluations.",
-        "detail": "Defines RunGateCommand which dispatches to phase-specific gate flows (draft, spec, task-spec, diff-based for impl/integration). Builds guardrail evaluation prompts with PromptBuilder, parses AI JSON responses with strict schema validation (EvaluationSchemaError), and produces gatePass/gateFail envelopes. Includes retry budget tracking, no-progress detection via git head/worktree hash, repeated-fail assertion using Jaccard similarity over normalized text, and flip-override for previously passed guardrails on identical content. Also handles per-file diff collection (committed/uncommitted/untracked), file-map reconciliation, and integration test artifact checks (test-result-review.json, test-execute-result.json).",
-        "chapter": "internal_design",
-        "role": "Flow gate command: orchestrates guardrail/requirement evaluation across SDD phases",
         "enrich": {
-          "processedAt": "2026-05-10T06:32:29.323Z",
           "attempts": 1
-        },
-        "keywords": [
-          "gate",
-          "guardrail",
-          "flow",
-          "evaluation",
-          "AI validation",
-          "retry budget",
-          "diff scope",
-          "envelope",
-          "jaccard",
-          "spec validation"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -4331,9 +4300,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "4fa2ed783a121c6be6831315fbbeb64c",
-        "lines": 357,
-        "mtime": "2026-04-29T11:08:04.868Z",
+        "hash": "9ca174d8abf900727fbf701ff1f7d1c2",
+        "lines": 326,
+        "mtime": "2026-05-12T01:17:35.555Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -4342,9 +4311,7 @@
           "nextIndex",
           "ensureBaseBranch",
           "detectBaseBranch",
-          "buildQaTemplate",
-          "buildDraftTemplate",
-          "loadLocalQaTemplate"
+          "buildDraftTemplate"
         ],
         "imports": [
           "fs",
@@ -4352,7 +4319,6 @@
           "../../lib/cli.js",
           "../../lib/config.js",
           "../../lib/process.js",
-          "../../lib/i18n.js",
           "../../lib/flow-helpers.js",
           "../definition.js",
           "../../lib/git-helpers.js",
@@ -4368,24 +4334,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "59eeacc6",
-        "summary": "Spec preparation command that scaffolds spec directory, draft template, QA template, and initial flow state under specs/<index>-<slug>/.",
-        "detail": "RunPrepareSpecCommand resolves the next sequential spec index by scanning the specs/ directory, slugifies the title, and creates the spec layout (spec.md, spec.json, qa.md, draft.json, issue.md) with template defaults. Optionally provisions an isolated worktree under .sdd-forge/worktree/<branch> when --worktree is set, otherwise validates the worktree is clean. Loads project-local QA template overrides from .sdd-forge/templates/<lang>/specs/qa.md when present, and renders spec.md from the empty spec stub via renderSpecMarkdown. Writes flow.json with initial nested steps from buildInitialSteps and base branch detection.",
-        "chapter": "internal_design",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-29T11:19:24.011Z",
           "attempts": 1
-        },
-        "keywords": [
-          "prepare spec",
-          "scaffold",
-          "worktree",
-          "draft template",
-          "QA template",
-          "spec.json",
-          "slug",
-          "base branch"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
@@ -4599,9 +4550,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "8b0d3e41017077de9d9ff96c110e5aa7",
-        "lines": 296,
-        "mtime": "2026-05-08T23:39:55.624Z",
+        "hash": "461208872ce978ef0a5a043cfb6a1a8d",
+        "lines": 312,
+        "mtime": "2026-05-12T01:17:35.555Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -4611,6 +4562,8 @@
           "runCmdWithRetry",
           "RunReviewCommand",
           "persistedPhaseKey",
+          "resolveDraftReviewPhaseKey",
+          "reviewPhaseKeyForCtx",
           "isImplPass",
           "parsePhaseReviewOutput",
           "parseTestReviewOutput",
@@ -4645,24 +4598,9 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
-        "summary": "Defines RunReviewCommand and review-phase parsing utilities that execute review subcommands, parse their output, and enforce retry limits per phase.",
-        "detail": "Maintains a frozen REVIEW_NODE_ID_BY_PHASE map and a PHASE_REVIEW_PARSERS table to drive phase-specific output parsing through a shared parsePhaseReviewOutput helper used by parseTestReviewOutput, parseSpecReviewOutput, and parseProposalReviewOutput. countReviewRetry, resolveReviewRetryMax, checkReviewRetryBelowMax, and updateReviewRetryCounter manage retry accounting against the FLOW_DEFINITION node's resolveMaxAttempts (default 5), returning Envelope failures like UNKNOWN_REVIEW_PHASE and REVIEW_MAX_ATTEMPTS_EXCEEDED. runCmdWithRetry wraps runCmd with a configurable retry count (default 2) and delay (3s), writing progress to stderr. RunReviewCommand spawns review.js via PKG_DIR path resolution and dispatches to the appropriate phase parser.",
-        "chapter": "internal_design",
-        "role": "Review phase runner",
         "enrich": {
-          "processedAt": "2026-05-08T23:40:35.893Z",
           "attempts": 1
-        },
-        "keywords": [
-          "review retry",
-          "Envelope failure",
-          "review phase",
-          "parser dispatch",
-          "runCmd",
-          "FLOW_DEFINITION",
-          "max attempts",
-          "review.js"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-start-task.js",
@@ -4919,9 +4857,9 @@
       },
       {
         "file": "src/flow/lib/set-auto.js",
-        "hash": "4e8a4b6a21db0d4bae1727f70c47b8bd",
-        "lines": 137,
-        "mtime": "2026-04-25T15:01:49.395Z",
+        "hash": "6dd705bfcc643aef81dc324c20d8de7c",
+        "lines": 148,
+        "mtime": "2026-05-12T01:17:35.555Z",
         "className": "set-auto",
         "methods": [],
         "imports": [
@@ -4938,23 +4876,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "2c71e989",
-        "summary": "This module implements the set-auto command for toggling auto-approve behavior in flow runs. It can run auto-check evaluation and return trusted or skipped verdict paths based on mode and input.",
-        "detail": "The command validates allowed auto values and routes responses through a standardized envelope API for consistent CLI error handling. It resolves preparing run context when needed so auto-state changes are tied to the correct run identifier. Enabling auto mode triggers auto-check computation, while disabling mode emits explicit state without ambiguity. The implementation supports trust-related metadata and skip conditions to explain why checks were not executed. Result shaping is compact but extensible, with conditional fields included only when relevant.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-25T15:02:20.491Z",
           "attempts": 1
-        },
-        "keywords": [
-          "set auto",
-          "auto approve",
-          "mode toggle",
-          "flow envelope",
-          "run context",
-          "trust flag",
-          "skip verdict"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-files.js",
@@ -5251,16 +5175,20 @@
       },
       {
         "file": "src/flow/lib/set-retry.js",
-        "hash": "88429726817c529f21444d7dc68ab0f0",
-        "lines": 94,
-        "mtime": "2026-05-08T23:39:55.624Z",
+        "hash": "f6d04d9f7bd6a4079d88e030608683e4",
+        "lines": 116,
+        "mtime": "2026-05-12T01:17:35.555Z",
         "className": "set-retry",
-        "methods": [],
+        "methods": [
+          "normalizeReviewResetPhase",
+          "resolveReviewResetPhases"
+        ],
         "imports": [
           "./base-command.js",
           "../../lib/flow-envelope.js",
           "./run-gate.js",
-          "./run-review.js"
+          "./run-review.js",
+          "../definition.js"
         ],
         "exports": [
           "default"
@@ -5268,29 +5196,15 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "ee559b7a",
-        "summary": "Implements SetRetryCommand which validates retry-reset requests for gate or review counters and persists the reset operation.",
-        "detail": "Freezes VALID_ACTIONS (only 'reset') and VALID_KINDS ('gate','review'), then maps each kind to allowed phases (PHASES_BY_KIND), counter names (COUNTER_BY_KIND), and counting functions (COUNT_FN_BY_KIND) that delegate to countGateRetry / countReviewRetry. The command extends FlowCommand and emits Envelope.fail responses for invalid action/kind/phase combinations or persistence errors before returning {action,kind,phase,counter,reset:true} on success. This provides the manual escape hatch for clearing retry counters when an operator needs to retry past the configured ceiling.",
-        "chapter": "internal_design",
-        "role": "Retry counter reset",
         "enrich": {
-          "processedAt": "2026-05-08T23:40:35.893Z",
           "attempts": 1
-        },
-        "keywords": [
-          "retry reset",
-          "gate retry",
-          "review retry",
-          "Envelope",
-          "SetRetryCommand",
-          "counter",
-          "phase validation"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-step.js",
-        "hash": "d58996f33b517f661b81e59b17d2275f",
-        "lines": 141,
-        "mtime": "2026-05-07T00:37:21.571Z",
+        "hash": "8261e277e3795d5684d7df2a1cb4d09c",
+        "lines": 146,
+        "mtime": "2026-05-12T01:17:35.555Z",
         "className": "set-step",
         "methods": [
           "collectSideEffects",
@@ -5315,22 +5229,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "d4cb8d93",
-        "summary": "`set-step` updates flow step status with validation, side-effect orchestration, and optional auto-check execution. It also performs pre-validation for test-related transitions.",
-        "detail": "The command validates usage and status values against known constants and flow definitions before mutation. It resolves mutation scope and synchronizes spec tasks so state remains consistent across task and step views. Test-step transitions can run header validation, and failures are returned as structured envelopes rather than raw exceptions. Auto-check input resolution and skip verdict handling integrate policy-driven gating into status changes. Logging is explicit for skipped or guarded operations to preserve traceability.",
-        "chapter": "internal_design",
-        "role": "flow mutation command",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
-        },
-        "keywords": [
-          "set step",
-          "status transition",
-          "auto-check",
-          "test header validation",
-          "flow envelope",
-          "side effects"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -6267,9 +6168,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "8093812d319087f3ab24f4bac220fa7b",
-        "lines": 624,
-        "mtime": "2026-05-10T06:31:17.509Z",
+        "hash": "b1fd9c4d49bbee447dc5ed439c72f5b4",
+        "lines": 686,
+        "mtime": "2026-05-12T01:17:35.556Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -6279,6 +6180,9 @@
           "specFlowPath",
           "specIdFromBranch",
           "assertFlowStateSchema",
+          "migrateDraftReviewSteps",
+          "appendDraftReviewMigrationLog",
+          "migrateFlowState",
           "aggregateTaskSummaryIntoParent",
           "validateTaskShape"
         ],
@@ -6303,25 +6207,24 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "Persistent store for per-spec flow.json state with strict schema assertions and task tree mutation helpers.",
-        "detail": "FlowStore manages specs/<id>/flow.json: load/save/loadReadOnly with JSON parsing and schema assertion (assertFlowStateSchema rejects malformed shapes early). Resolves the active spec via branch name (specIdFromBranch) or current state, computes worktree paths under sddDir/worktree, and validates merge strategies and ISO 8601 finalizedAt strings. Mutation helpers (resolveMutationScope, addTask) enforce task invariants — required fields (id, spec, origin, status, steps, requirements), enum-bounded statuses, unique ids, and proper parent linkage. Also includes promoteFirstPending for advancing leaf steps and aggregateTaskSummaryIntoParent for hierarchical roll-up.",
+        "summary": "`flow-store.js` persists and validates Spec-Driven Development flow state, including task/step lifecycle data and migration handling. It centralizes read/write behavior for `flow.json` and enforces strict schema and status invariants.",
+        "detail": "The module builds canonical flow-state paths from root/spec identifiers, detects spec context from git branch naming, and resolves worktree-related locations for flow operations. It performs defensive schema checks for top-level flow objects, tasks, steps, requirements, timestamps, and merge strategy fields, raising explicit errors for malformed data. Migration logic upgrades older draft-review step shapes and optionally appends migration evidence into `issue-log.json`, then persists normalized state back to disk. The `FlowStore` class provides loading, read-only recovery, saving, task lookup, current-task resolution, scope mutation targeting, and parent summary aggregation helpers to keep nested task trees consistent. Utility functions like pending-step promotion, task-id resolution, and mutation-scope narrowing encapsulate flow progression rules so callers apply updates within the correct task boundary.",
         "chapter": "internal_design",
-        "role": "Flow state store: persist and validate per-spec SDD flow tree",
+        "role": "flow_state_store",
         "enrich": {
-          "processedAt": "2026-05-10T06:32:29.323Z",
+          "processedAt": "2026-05-12T01:21:07.341Z",
           "attempts": 1
         },
         "keywords": [
-          "flow-store",
-          "flow.json",
-          "task tree",
-          "spec",
-          "schema validation",
-          "worktree",
-          "mutation scope",
-          "finalizedAt",
-          "branch",
-          "state"
+          "flow state management",
+          "state persistence",
+          "JSON schema validation",
+          "task lifecycle",
+          "step promotion",
+          "migration logic",
+          "worktree path resolution",
+          "spec-driven development",
+          "error handling"
         ]
       },
       {
@@ -10477,10 +10380,10 @@
       }
     ],
     "summary": {
-      "total": 293,
-      "totalMethods": 1031
+      "total": 294,
+      "totalMethods": 1052
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-10T06:32:36.982Z"
+  "enrichedAt": "2026-05-12T01:22:02.942Z"
 }
