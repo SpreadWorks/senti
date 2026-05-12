@@ -132,16 +132,21 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-05-12T01:11:34.436Z"
+              "status": "done",
+              "startedAt": "2026-05-12T01:11:34.436Z",
+              "finishedAt": "2026-05-12T01:17:35.621Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-05-12T01:17:35.621Z",
+              "finishedAt": "2026-05-12T01:22:03.253Z"
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-05-12T01:22:03.253Z",
+              "finishedAt": "2026-05-12T01:23:37.018Z"
             }
           ]
         }
@@ -3580,6 +3585,40 @@
       "delta": 1,
       "taskId": null,
       "ts": "2026-05-12T01:09:37.194Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 1462,
+      "durationMs": 12368,
+      "tokens": {
+        "input": 9252,
+        "output": 433,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-12T01:21:07.338Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 11722,
+      "durationMs": 67966,
+      "tokens": {
+        "input": 18112,
+        "output": 3332,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-12T01:22:02.935Z"
     }
   ],
   "autoDesired": true,
@@ -3593,6 +3632,8 @@
     "reason": "spec approved"
   },
   "state": {
-    "finalizedAt": "2026-05-12T01:11:34.312Z"
+    "finalizedAt": "2026-05-12T01:11:34.312Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "b253c9da9c2f3cb0491ec89a58c69e40f0eacc17"
   }
 }
