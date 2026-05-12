@@ -1,14 +1,15 @@
 **MUST: When a rule in this skill conflicts with a memory entry (e.g. `feedback_*.md` referenced from `MEMORY.md`), the skill rule takes precedence.** Memory entries that contradict skill rules should be considered stale; update or delete them.
 
-**Confirm with the user before proceeding to the next action at every step of the SDD flow.**
-The AI must not advance to the next step on its own.
+**Use the CLI's `requires_approval` field to decide whether user confirmation is required before a step.**
+Do not ask the user to confirm routine step execution when `requires_approval: false`.
 
 **autoApprove check (MANDATORY):**
 Before presenting any choice to the user, you MUST run `sdd-forge flow get status` and display the `autoApprove` field value. This is not optional — skipping this check is a protocol violation.
 - Run the command exactly as `sdd-forge flow get status` (no extra options).
-- If `autoApprove: false` (or field is missing): present the choice to the user and wait for input.
-- If `autoApprove: true`: treat choice id=1 as selected and proceed immediately. Display progress briefly (e.g. "auto: draft → [1] 承認").
-- Continue to the next step without waiting for user input only when `autoApprove: true`.
+- If the next-action envelope has `requires_approval: false`, execute the step without a "run this step?" confirmation. This applies even when `autoApprove: false`.
+- If `requires_approval: true` and `autoApprove: false` (or field is missing): present the choice to the user and wait for input.
+- If `requires_approval: true` and `autoApprove: true`: treat choice id=1 as selected and proceed immediately. Display progress briefly (e.g. "auto: approval → [1] 承認").
+- Continue without waiting when the step does not require approval, or when `autoApprove: true` satisfies a required approval.
 - If a step fails (command error, gate FAIL, test failure), apply the retry limits defined in each skill. If the retry limit is reached, STOP and return control to the user.
 
 **autoApprove exceptions (MUST present to user even when `autoApprove: true`):**
