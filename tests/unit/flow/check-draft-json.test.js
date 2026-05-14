@@ -16,6 +16,13 @@ function buildValidDraft(overrides = {}) {
       proposedApproach: "test proposed approach",
       validation: "test validation result",
     },
+    decisionMap: {
+      knownFacts: ["known fact from source"],
+      decisionPoints: ["decision point covered by the spec"],
+      resolvedByProjectRules: ["project rule decides this"],
+      requiresUserJudgment: ["user decision mapped to q1"],
+      deferredToSpec: ["detail can be finalized in spec"],
+    },
     scopeVerification: {
       in: ["item A"],
       out: ["item B"],
@@ -63,6 +70,40 @@ describe("checkDraftJson — valid draft", () => {
       assert.deepEqual(issues, []);
     });
   }
+});
+
+describe("checkDraftJson — decisionMap validation", () => {
+  it("flags missing decisionMap object", () => {
+    assertHasIssue(
+      buildValidDraft({ decisionMap: undefined }),
+      (i) => /decisionMap/i.test(i),
+      "missing decisionMap",
+    );
+  });
+
+  it("flags non-array decisionMap fields", () => {
+    assertHasIssue(
+      buildValidDraft({ decisionMap: { knownFacts: "fact" } }),
+      (i) => /decisionMap\.knownFacts.*array/i.test(i),
+      "non-array decisionMap field",
+    );
+  });
+
+  it("flags empty strings in decisionMap arrays", () => {
+    assertHasIssue(
+      buildValidDraft({
+        decisionMap: {
+          knownFacts: [""],
+          decisionPoints: [],
+          resolvedByProjectRules: [],
+          requiresUserJudgment: [],
+          deferredToSpec: [],
+        },
+      }),
+      (i) => /decisionMap\.knownFacts\[0\].*non-empty string/i.test(i),
+      "empty decisionMap entry",
+    );
+  });
 });
 
 describe("checkDraftJson — analysis validation (R3)", () => {

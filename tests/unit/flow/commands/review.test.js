@@ -12,7 +12,16 @@ import { ProviderRegistry } from "../../../../src/lib/provider.js";
 import { Logger } from "../../../../src/lib/log.js";
 import {
   parseProposals,
+  buildDraftRepairPrompt,
+  buildDraftReviewPrompt,
+  buildSpecSummaryMarkdown,
+  buildSpecReviewPrompt,
   buildDraftSystemPrompt,
+  formatSpecReviewJson,
+  formatSpecReviewMd,
+  parseDraftJsonRepairOutput,
+  parseSpecReviewFindings,
+  validateDraftRepairShape,
   filterProposalsByScope,
   collectTouchedFiles,
   resolveMergeBase,
@@ -193,6 +202,354 @@ describe("buildDraftSystemPrompt enforces scope (spec 201 R-P2)", () => {
       /only|do not propose|out of scope|outside/i,
       "prompt must explicitly restrict suggestions",
     );
+  });
+});
+
+describe("spec review classification helpers", () => {
+  it("builds a review summary with acceptance, decisions, tasks, and unresolved items", () => {
+    const longTail = "x".repeat(900);
+    const summary = buildSpecSummaryMarkdown({
+      goal: "Improve review-spec input.",
+      background: "Existing review lacks some spec fields.",
+      scope: { in: ["`src/flow/commands/review.js`"], out: ["No CLI flag changes"] },
+      constraints: ["Keep prompt size bounded."],
+      design_principles: ["Pass only blocking-review-relevant fields."],
+      overview: {
+        modules: [{ text: "Review command" }],
+        data_flow: [{ text: "spec.json -> review summary -> reviewer" }],
+        decisions: [{
+          text: "Use structured review memory.",
+          evidence: `This evidence should be present but truncated. ${longTail}`,
+          consideredAlternatives: "Pass full spec.md to review.",
+        }],
+      },
+      requirements: [{
+        id: "R1",
+        priority: "must",
+        status: "pending",
+        testable: false,
+        desc: "Review should see acceptance criteria.",
+      }],
+      acceptance_criteria: ["review-spec sees acceptance criteria"],
+      clarifications: [{ q: "Should review see prior answers?", a: "Yes, through bounded fields." }],
+      alternatives_considered: [{ option: "Full spec.md input", reason: "Too much token growth." }],
+      open_questions: ["Confirm whether live-provider behavior is in scope."],
+      tasks: [{
+        id: "T-1",
+        title: "Enrich spec review summary",
+        status: "pending",
+        goal: "Expose task-level acceptance and test strategy.",
+        acceptance: ["summary includes task acceptance"],
+        test_strategy: `Unit test summary field projection. ${longTail}`,
+      }],
+    });
+
+    assert.match(summary, /# Acceptance Criteria/);
+    assert.match(summary, /review-spec sees acceptance criteria/);
+    assert.match(summary, /# Clarifications/);
+    assert.match(summary, /Q: Should review see prior answers\?/);
+    assert.match(summary, /# Alternatives Considered/);
+    assert.match(summary, /Option: Full spec\.md input/);
+    assert.match(summary, /# Open Questions/);
+    assert.match(summary, /Confirm whether live-provider behavior is in scope/);
+    assert.match(summary, /## Decisions/);
+    assert.match(summary, /evidence: This evidence should be present but truncated/);
+    assert.match(summary, /testable=false/);
+    assert.match(summary, /# Tasks/);
+    assert.match(summary, /T-1: Enrich spec review summary/);
+    assert.match(summary, /acceptance: summary includes task acceptance/);
+    assert.match(summary, /test_strategy: Unit test summary field projection/);
+    assert.doesNotMatch(summary, new RegExp(`x{800}`));
+  });
+
+  it("asks for JSON blocking findings separately from non-blocking improvements", () => {
+    const prompt = buildSpecReviewPrompt("# Requirements\n- R1 [must]: Do x", []);
+    const combined = `${prompt.systemPrompt || ""}\n${prompt.userPrompt || ""}`;
+
+    assert.ok(prompt.jsonSchema, "spec review should provide a JSON schema to Agent");
+    assert.match(prompt.fmtFallback, /Return only a JSON object/);
+    assert.match(combined, /blockingFindings\[\]/);
+    assert.match(combined, /nonBlockingImprovements\[\]/);
+    assert.match(combined, /Do not fail the review for non-blocking improvements/);
+    assert.match(combined, /target/);
+    assert.doesNotMatch(combined, /\*\*File:\*\* `<path>`/);
+  });
+
+  it("injects previous spec-review.json memory into the next prompt", () => {
+    const previousReview = JSON.parse(formatSpecReviewJson({
+      verdict: "ADVISORY",
+      blocking: [],
+      improvements: [{
+        title: "Mention nearby helper",
+        body: [
+          "**Target:** src/lib/example.js",
+          "**Improvement:** Mention this helper as related context.",
+          "**Why non-blocking:** Implementation can proceed without it.",
+        ].join("\n"),
+      }],
+    }));
+    const prompt = buildSpecReviewPrompt("# Requirements\n- R1 [must]: Do x", [], {
+      toPromptMemory() {
+        return {
+          verdict: previousReview.verdict,
+          counts: previousReview.counts,
+          acknowledgedNonBlockingImprovements: previousReview.nonBlockingImprovements,
+        };
+      },
+    });
+
+    assert.match(prompt.userPrompt, /## Previous Spec Review Memory/);
+    assert.match(prompt.userPrompt, /Mention nearby helper/);
+    assert.match(prompt.systemPrompt, /do not repeat acknowledged non-blocking improvements/i);
+  });
+
+  it("parses JSON findings and ignores response text outside the object", () => {
+    const parsed = parseSpecReviewFindings([
+      "preamble that should be ignored",
+      JSON.stringify({
+        blockingFindings: [{
+          title: "Missing acceptance condition",
+          target: "R1",
+          issue: "R1 has no observable pass/fail behavior.",
+          requiredChange: "Add an acceptance condition.",
+          whyBlocking: "Tests cannot be designed.",
+        }],
+        nonBlockingImprovements: [{
+          title: "Mention nearby helper",
+          target: "src/lib/example.js",
+          improvement: "Mention this helper as related context.",
+          whyNonBlocking: "Implementation can proceed without it.",
+        }],
+      }),
+      "trailing text that should be ignored",
+    ].join("\n"));
+
+    assert.equal(parsed.blocking.length, 1);
+    assert.equal(parsed.blocking[0].title, "Missing acceptance condition");
+    assert.equal(parsed.blocking[0].target, "R1");
+    assert.equal(parsed.improvements.length, 1);
+    assert.equal(parsed.improvements[0].title, "Mention nearby helper");
+    assert.equal(parsed.improvements[0].target, "src/lib/example.js");
+  });
+
+  it("rejects markdown proposal output instead of treating it as blocking", () => {
+    assert.throws(() => parseSpecReviewFindings([
+      "### 1. Legacy proposal",
+      "**File:** `src/example.js`",
+      "**Issue:** Something is missing.",
+      "**Suggestion:** Add it.",
+    ].join("\n")), /spec review output failed schema validation|Unexpected token|JSON/i);
+  });
+
+  it("renders verdict, blocking findings, and non-blocking improvements separately", () => {
+    const md = formatSpecReviewMd({
+      verdict: "ADVISORY",
+      blocking: [],
+      improvements: [{ title: "Helpful detail", body: "**Target:** GLOBAL" }],
+    });
+
+    assert.match(md, /## Verdict: ADVISORY/);
+    assert.match(md, /## Blocking Findings/);
+    assert.match(md, /No blocking findings/);
+    assert.match(md, /## Non-blocking Improvements/);
+    assert.match(md, /Helpful detail/);
+  });
+
+  it("renders structured spec-review.json with counts and targets", () => {
+    const json = JSON.parse(formatSpecReviewJson({
+      verdict: "FAIL",
+      blocking: [{
+        title: "Missing acceptance condition",
+        body: [
+          "**Target:** R1",
+          "**Issue:** R1 has no observable pass/fail behavior.",
+          "**Required change:** Add an acceptance condition.",
+          "**Why blocking:** Tests cannot be designed.",
+        ].join("\n"),
+      }],
+      improvements: [{
+        title: "Mention nearby helper",
+        body: [
+          "**Target:** src/lib/example.js",
+          "**Improvement:** Mention this helper as related context.",
+          "**Why non-blocking:** Implementation can proceed without it.",
+        ].join("\n"),
+      }],
+    }));
+
+    assert.equal(json.version, 1);
+    assert.equal(json.phase, "spec");
+    assert.equal(json.verdict, "FAIL");
+    assert.deepEqual(json.counts, { blocking: 1, nonBlocking: 1, total: 2 });
+    assert.equal(json.blockingFindings[0].target, "R1");
+    assert.equal(json.nonBlockingImprovements[0].target, "src/lib/example.js");
+  });
+});
+
+describe("buildDraftReviewPrompt stage-specific QA projection", () => {
+  const draftJson = {
+    decisionMap: {
+      knownFacts: ["The CLI currently has a draft review stage"],
+      decisionPoints: ["Decide whether draft coverage is blocking"],
+      resolvedByProjectRules: ["Use existing flow step lifecycle"],
+      requiresUserJudgment: ["Confirm the user-visible behavior"],
+      deferredToSpec: ["Choose helper placement from existing code patterns"],
+    },
+    qa: [
+      {
+        id: "q1",
+        status: "pending",
+        category: "impact-scope",
+        question: "Which CLI behavior is in scope?",
+        answer: "Do not leak this answer",
+        evidence: "Do not leak this evidence",
+        why: "Do not leak this rationale",
+        droppedReason: "Do not leak this dropped reason",
+      },
+      {
+        id: "q2",
+        status: "answered",
+        category: "acceptance-criteria",
+        question: "Which acceptance criteria apply?",
+        answer: "Keep this for coverage review",
+        evidence: "coverage evidence",
+        why: "coverage rationale",
+        droppedReason: "",
+      },
+      {
+        id: "q3",
+        status: "approved",
+        category: "risk-migration-policy",
+        question: "Should this approved question be hidden from coverage?",
+        answer: "",
+        evidence: "",
+        why: "",
+        droppedReason: "",
+      },
+    ],
+  };
+
+  it("omits answer fields from review-draft-questions input", () => {
+    const prompt = buildDraftReviewPrompt(draftJson, "request", [], { key: "questions" });
+
+    assert.match(prompt, /Which CLI behavior is in scope\?/);
+    assert.doesNotMatch(prompt, /\*\*Answer:\*\*/);
+    assert.doesNotMatch(prompt, /Do not leak this answer/);
+    assert.doesNotMatch(prompt, /Do not leak this evidence/);
+    assert.doesNotMatch(prompt, /Do not leak this rationale/);
+    assert.doesNotMatch(prompt, /Which acceptance criteria apply\?/);
+    assert.doesNotMatch(prompt, /Category coverage across/);
+    assert.doesNotMatch(prompt, /Missing first-pass questions/);
+    assert.doesNotMatch(prompt, /NEW for missing/);
+    assert.match(prompt, /one-shot finite structural check/);
+    assert.match(prompt, /This is not a question generation task/);
+    assert.match(prompt, /Do not identify missing first-pass questions/);
+    assert.match(prompt, /Do not propose NEW QA entries/);
+    assert.match(prompt, /total: 3/);
+    assert.match(prompt, /answered: 1/);
+  });
+
+  it("limits review-draft-coverage input to answered and dropped QA", () => {
+    const prompt = buildDraftReviewPrompt(draftJson, "request", [], { key: "coverage" });
+
+    assert.match(prompt, /\*\*Answer:\*\* Keep this for coverage review/);
+    assert.match(prompt, /\*\*Evidence:\*\* coverage evidence/);
+    assert.match(prompt, /\*\*Why:\*\* coverage rationale/);
+    assert.doesNotMatch(prompt, /Which CLI behavior is in scope\?/);
+    assert.doesNotMatch(prompt, /Should this approved question be hidden from coverage\?/);
+    assert.doesNotMatch(prompt, /Ambiguous user answers must be converted/);
+    assert.doesNotMatch(prompt, /unsupported answers/);
+    assert.doesNotMatch(prompt, /Propose only NEW follow-up questions/);
+    assert.match(prompt, /one-shot final check/);
+    assert.match(prompt, /at most 3 highest-impact blocking gaps/);
+    assert.match(prompt, /append QA entries/);
+    assert.match(prompt, /If no blocking user decision is required/);
+    assert.match(prompt, /pending: 1/);
+    assert.match(prompt, /approved: 1/);
+    assert.match(prompt, /answered: 1/);
+    assert.match(prompt, /## Decision Map/);
+    assert.match(prompt, /Decide whether draft coverage is blocking/);
+    assert.match(prompt, /Confirm the user-visible behavior/);
+  });
+});
+
+describe("draft review repair helpers", () => {
+  it("builds a question-stage repair prompt that forbids answering draft questions", () => {
+    const prompt = buildDraftRepairPrompt(
+      {
+        decisionMap: {
+          knownFacts: [],
+          decisionPoints: [],
+          resolvedByProjectRules: [],
+          requiresUserJudgment: ["Need user-visible behavior decision"],
+          deferredToSpec: [],
+        },
+        qa: [{
+          id: "q1",
+          status: "pending",
+          category: "user-visible-behavior",
+          question: "What should happen?",
+          answer: "",
+          evidence: "",
+          why: "",
+          droppedReason: "",
+        }],
+        approval: { approved: false, confirmedAt: "", notes: "" },
+      },
+      [{ title: "Question contains rationale", body: "**QA:** q1" }],
+      { key: "questions" },
+      "request",
+      [],
+    );
+
+    assert.match(prompt, /Return only the complete repaired draft\.json object as JSON/);
+    assert.match(prompt, /Do not answer draft questions/);
+    assert.match(prompt, /Keep approval\.approved false/);
+    assert.doesNotMatch(prompt, /Set approval\.approved true/);
+  });
+
+  it("builds a coverage-stage repair prompt that repairs without follow-up loops", () => {
+    const prompt = buildDraftRepairPrompt(
+      { qa: [], decisionMap: {}, approval: { approved: false, confirmedAt: "", notes: "" } },
+      [{ title: "Blocking behavior not resolved", body: "**QA:** GLOBAL" }],
+      { key: "coverage" },
+      "request",
+      [{ file: "src/example.js", summary: "Existing behavior" }],
+    );
+
+    assert.match(prompt, /Repair the draft so the recorded coverage findings are reflected/);
+    assert.match(prompt, /Do not ask the user and do not append iterative follow-up questions/);
+    assert.match(prompt, /draft-refine owns question resolution/);
+    assert.match(prompt, /Set approval\.approved true/);
+    assert.match(prompt, /src\/example\.js/);
+  });
+
+  it("parses repaired draft JSON from a fenced AI response", () => {
+    const parsed = parseDraftJsonRepairOutput([
+      "```json",
+      "{",
+      "  \"qa\": [],",
+      "  \"decisionMap\": {}",
+      "}",
+      "```",
+    ].join("\n"));
+
+    assert.deepEqual(parsed, { qa: [], decisionMap: {} });
+  });
+
+  it("rejects question-stage repair that fills pending answers", () => {
+    const issues = validateDraftRepairShape({
+      decisionMap: {},
+      qa: [{
+        status: "pending",
+        answer: "should not be filled",
+        evidence: "",
+        why: "",
+        droppedReason: "",
+      }],
+    }, { key: "questions" });
+
+    assert.ok(issues.some((issue) => /must remain empty/.test(issue)), issues);
   });
 });
 

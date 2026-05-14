@@ -15,6 +15,13 @@
        "proposedApproach": "the proposed solution approach",
        "validation": "whether the approach addresses the root problem"
      },
+     "decisionMap": {
+       "knownFacts": ["facts discovered from issue, docs, project rules, or source code"],
+       "decisionPoints": ["design decisions the spec must cover"],
+       "resolvedByProjectRules": ["decisions already determined by project rules or existing code patterns"],
+       "requiresUserJudgment": ["decision points that require a user answer and should map to qa[]"],
+       "deferredToSpec": ["details that do not require user judgment and can be finalized during spec writing"]
+     },
      "scopeVerification": {
        "in": ["item 1", "item 2"],
        "out": ["item 1"]
@@ -49,22 +56,26 @@
    If the AI cannot fill `analysis` without more context, it MUST investigate (read code, search docs) before proceeding.
 
    **Research → self-verification → question generation (MANDATORY):**
-   Before generating each question, the AI MUST:
+   Before generating questions, the AI MUST first fill `decisionMap` from the request/issue, docs, project rules, and relevant source code. Use it to avoid discovering design topics later through review loops.
+   The map should cover the domain-specific decisions needed for this change, including user-visible behavior, scope boundaries, data/artifact contracts, integration points, failure policy, migration policy, validation/gate behavior, and test strategy when relevant.
+   Then, before generating each question, the AI MUST:
    1. **Research**: read relevant source code, docs, or prior specs to gather facts.
    2. **Self-verify**: check whether the question's premise is correct based on gathered facts.
    3. **Generate**: only then formulate the question, citing the evidence found.
-   Do NOT ask questions based on assumptions. If investigation reveals the answer, state it directly instead of asking.
+   Do NOT ask questions based on assumptions. If investigation resolves the decision without user judgment, do not create that question and do not fill an answer yourself.
+   The initial question list should be derived from `decisionMap.requiresUserJudgment`, not from a category quota.
 
    **Communication rules:**
    - Questions MUST be written in the language specified by `config.lang`. Do not mix languages within a single question.
    - When using a technical term for the first time, add a 1-2 line definition or explanation.
    - Each question MUST be self-contained — understandable without reading prior conversation turns.
 
-   **autoApprove mode — self-Q&A draft:**
+   **autoApprove mode — autonomous question-list draft:**
    When `autoApprove: true`, the AI conducts the draft phase autonomously:
-   - Do NOT ask the user questions. Instead, answer them yourself.
+   - Do NOT ask the user questions in the draft step.
+   - Do NOT answer draft questions yourself. Create the question list with `status: "pending"` and leave `answer`, `evidence`, `why`, and `droppedReason` as empty strings.
    - Use Issue content (if linked), `docs/` chapters, guardrail articles, and source code as input.
-   - Fill the `analysis` object first, then work through the requirements checklist:
+   - Fill the `analysis` object first, then create pending questions for requirement areas that need user judgment:
      1. Goal & Scope — Is the goal clear? Is scope bounded?
      2. Impact on existing — What existing features/code/tests are affected?
      3. Constraints — Non-functional requirements, guardrails, project rules?
@@ -73,21 +84,19 @@
      6. Alternatives considered — What other approaches were evaluated? Why was this one chosen?
      7. Future extensibility — How does this change affect future modifications or extensions?
      8. Consumer contracts — Are there rules that consumers of the introduced interfaces or data structures must follow?
-   - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly (via Read tool or `sdd-forge flow get context <path> --raw`) to build sufficient understanding before answering the checklist questions.
+   - **Deep-read trigger:** If the linked Issue body is under 200 characters, read the relevant source code files directly (via Read tool or `sdd-forge flow get context <path> --raw`) to build sufficient understanding before creating the checklist questions.
    - **MUST: draft.json is created as a skeleton by `flow prepare`.** Fill the existing fields; do not recreate the file from scratch. Required fields checked by gate-draft:
      - `devType` — enum: `feature` / `bugfix` / `refactor` / `docs` / `chore` / `test` / `other`
      - `goal` — non-empty string
      - `analysis` — `problem`, `proposedApproach`, and `validation` are all non-empty
+     - `decisionMap` — arrays for `knownFacts`, `decisionPoints`, `resolvedByProjectRules`, `requiresUserJudgment`, and `deferredToSpec`
      - `qa` — entries with `id`, `status`, `category`, `question`, `answer`, `evidence`, `why`, and `droppedReason`
-     - `approval` — `{ approved: true, confirmedAt: "...", notes: "..." }`
-   - Write the completed draft.json and proceed to spec.
-   - Mark draft as approved: `approval.approved = true`, `approval.notes = "autoApprove"`
+     - `approval` — `{ approved: false, confirmedAt: "", notes: "" }`
+   - Write the draft.json question list and proceed to `review-draft-questions`.
 
    **Communication rules for the draft phase (when NOT autoApprove):**
    - Start by creating the full draft question list in `draft.json.qa[]` with `status: "pending"` and stable ids (`q1`, `q2`, ...). The `(n/N)` denominator is the number of pending plus approved questions in this list.
-   - **ALL turns MUST end with a question** until the draft step is done. The AI must never end a turn without asking the user something.
-   - Add progress display `(n/N)` at the start of each question. Get `n` from answered/dropped progress in `draft.json.qa[]`.
-   - After each question: `sdd-forge flow set metric draft question`
+   - Do not ask or answer the draft questions in this step. The draft step only creates the initial question list.
    - **MUST: Every question to the user — including confirmations after applying user-requested changes — MUST use the Choice Format. No free-form questions. No exceptions.**
    - **Requirements category checklist** (AI uses internally to check coverage):
      1. Goal & Scope — Is the goal clear? Is scope bounded?
@@ -106,18 +115,9 @@
         - If target files/modules are not yet in context: `sdd-forge flow get context --search "<request text or issue title>" --raw` using the request or issue title as the query.
         - If project structure is still unclear after search: `sdd-forge flow get context --raw` for a broad overview.
      3. If guardrail articles have NOT been loaded in this session: `sdd-forge flow get guardrail draft`. If output is non-empty, consider these principles as constraints. Skip if already present in context.
-   - Fill draft.json fields progressively during the Q&A. Update each `qa[]` entry in place by status:
+   - Fill draft.json fields for the initial question list:
      - `pending` / `approved`: `answer`, `evidence`, `why`, and `droppedReason` are empty strings.
-     - `answered`: `answer`, `evidence`, and `why` are non-empty; `droppedReason` is empty.
-     - `dropped`: `droppedReason` is non-empty; `answer`, `evidence`, and `why` are empty.
-   - If an answer is ambiguous, ask a direct clarification immediately: `Does "<ambiguous phrase>" mean "<concrete interpretation>"? Answer yes or no.`
-   - AI presents choices/proposals → user selects with short answers.
-   - Ask ONE question at a time (do not batch questions, do not self-answer).
-   - If a question leads to digression:
-     1. Try to resolve in ONE exchange.
-     2. If unresolved, record in `openQuestions` and move on.
-     3. Open Questions are resolved during spec filling or implementation.
+     - `answered` / `dropped`: do not create these statuses while generating the initial question list. They are produced only after the one-shot question sanity check, when existing questions are actually answered or intentionally dropped.
    - When the initial question list is complete, proceed to `review-draft-questions`.
-   - Transfer Q&A and decisions to spec (step 7).
    - Keep `draft.json` in `specs/` (do not delete).
    - **On complete**: `sdd-forge flow set step draft done`

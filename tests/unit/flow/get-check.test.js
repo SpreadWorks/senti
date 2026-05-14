@@ -36,6 +36,7 @@ describe("flow get check", () => {
     tmp = createTmpDir();
     setupFlowState(tmp);
     makeFlowManager(tmp).updateStepStatus("review-draft-questions", "skipped");
+    makeFlowManager(tmp).updateStepStatus("draft-refine", "skipped");
     makeFlowManager(tmp).updateStepStatus("review-draft-coverage", "skipped");
     makeFlowManager(tmp).updateStepStatus("gate", "done");
     makeFlowManager(tmp).updateStepStatus("review-spec", "skipped");

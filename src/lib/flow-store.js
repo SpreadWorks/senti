@@ -119,7 +119,57 @@ function migrateDraftReviewSteps(state) {
   return changed;
 }
 
-function appendDraftReviewMigrationLog(root, state) {
+function migrateDraftRefineStep(state) {
+  if (!Array.isArray(state?.steps)) return false;
+  const plan = state.steps.find((s) => s?.id === "plan" && Array.isArray(s.children));
+  const steps = plan ? plan.children : state.steps;
+  if (steps.some((s) => s?.id === "draft-refine")) return false;
+
+  const questionIndex = steps.findIndex((s) => s?.id === "review-draft-questions");
+  const coverageIndex = steps.findIndex((s) => s?.id === "review-draft-coverage");
+  if (questionIndex < 0 || coverageIndex < 0) return false;
+
+  const coverage = steps[coverageIndex];
+  const status = coverage.status && coverage.status !== "pending"
+    ? "done"
+    : "pending";
+  const refineStep = { id: "draft-refine", status };
+  if (status === "done" && coverage.startedAt) {
+    refineStep.finishedAt = coverage.startedAt;
+  }
+
+  steps.splice(coverageIndex, 0, refineStep);
+  return true;
+}
+
+function migrateSpecRepairStep(state) {
+  if (!Array.isArray(state?.steps)) return false;
+  const plan = state.steps.find((s) => s?.id === "plan" && Array.isArray(s.children));
+  const steps = plan ? plan.children : state.steps;
+  if (steps.some((s) => s?.id === "spec-repair")) return false;
+
+  const reviewIndex = steps.findIndex((s) => s?.id === "review-spec");
+  const gateIndex = steps.findIndex((s) => s?.id === "gate");
+  if (reviewIndex < 0 || gateIndex < 0) return false;
+
+  const review = steps[reviewIndex];
+  const gate = steps[gateIndex];
+  const status = (
+    review.status === "done"
+    || review.status === "skipped"
+    || (gate.status && gate.status !== "pending")
+  ) ? "done" : "pending";
+  const repairStep = { id: "spec-repair", status };
+  if (status === "done") {
+    const finishedAt = gate.startedAt || review.finishedAt;
+    if (finishedAt) repairStep.finishedAt = finishedAt;
+  }
+
+  steps.splice(gateIndex, 0, repairStep);
+  return true;
+}
+
+function appendFlowMigrationLog(root, state, step, reason, resolution) {
   if (!state?.spec) return;
   const specDir = path.dirname(path.resolve(root, state.spec));
   const logPath = path.join(specDir, "issue-log.json");
@@ -128,13 +178,12 @@ function appendDraftReviewMigrationLog(root, state) {
     issueLog = JSON.parse(fs.readFileSync(logPath, "utf8"));
     if (!Array.isArray(issueLog.entries)) issueLog.entries = [];
   }
-  const reason = "Migrated legacy review-draft step into review-draft-questions and review-draft-coverage.";
   if (issueLog.entries.some((entry) => entry?.trigger === "flow-store migration" && entry?.reason === reason)) return;
   issueLog.entries.push({
-    step: "review-draft",
+    step,
     reason,
     trigger: "flow-store migration",
-    resolution: "Synthesized split draft review steps from legacy review-draft status.",
+    resolution,
     taskId: null,
     timestamp: new Date().toISOString(),
   });
@@ -143,10 +192,39 @@ function appendDraftReviewMigrationLog(root, state) {
 }
 
 function migrateFlowState(state, sourcePath, { persist, root }) {
-  const changed = migrateDraftReviewSteps(state);
+  const reviewChanged = migrateDraftReviewSteps(state);
+  const refineChanged = migrateDraftRefineStep(state);
+  const specRepairChanged = migrateSpecRepairStep(state);
+  const changed = reviewChanged || refineChanged || specRepairChanged;
   if (changed && persist) {
     fs.writeFileSync(sourcePath, JSON.stringify(state, null, 2) + "\n", "utf8");
-    appendDraftReviewMigrationLog(root, state);
+    if (reviewChanged) {
+      appendFlowMigrationLog(
+        root,
+        state,
+        "review-draft",
+        "Migrated legacy review-draft step into review-draft-questions and review-draft-coverage.",
+        "Synthesized split draft review steps from legacy review-draft status.",
+      );
+    }
+    if (refineChanged) {
+      appendFlowMigrationLog(
+        root,
+        state,
+        "draft-refine",
+        "Inserted draft-refine between draft question review and draft coverage review.",
+        "Synthesized draft-refine status from surrounding draft review steps.",
+      );
+    }
+    if (specRepairChanged) {
+      appendFlowMigrationLog(
+        root,
+        state,
+        "spec-repair",
+        "Inserted spec-repair between spec review and spec gate.",
+        "Synthesized spec-repair status from surrounding spec review and gate steps.",
+      );
+    }
   }
   return changed;
 }

@@ -1,0 +1,9 @@
+   - Repair the existing spec after `review-spec` reports blocking findings.
+   - Read `specs/<spec-id>/spec-review.json` first. Treat `blockingFindings[]` as the repair input. `nonBlockingImprovements[]` are advisory memory only and must not drive rewrites.
+   - If `spec-review.json` is missing, invalid, or contains no blocking findings, do not rewrite the spec. Record the situation briefly to the user and run `sdd-forge flow set step spec-repair done`.
+   - Apply the blocking findings once. Update `spec.json` so each valid blocking finding is resolved in the smallest appropriate field: `requirements`, `acceptance_criteria`, `scope`, `constraints`, `clarifications`, `alternatives_considered`, `overview.decisions`, or `tasks`.
+   - Do not broaden scope just to satisfy a review comment. If a finding is invalid, already resolved, or only non-blocking after inspection, record that rationale in the appropriate spec field instead of expanding the spec.
+   - Preserve existing user-approved decisions and draft-derived policy. If a blocking fix would reverse a user decision, reject a draft requirement, or add a new requirement not supported by the draft/request/source, ask the user via Choice Format before writing it.
+   - Do not run another `review-spec` loop from this step. The downstream `gate` step remains the blocking validation step.
+   - After updating `spec.json`, run `sdd-forge spec render --spec specs/<spec-id>` so `spec.md` reflects the repaired JSON.
+   - **On complete**: `sdd-forge flow set step spec-repair done`

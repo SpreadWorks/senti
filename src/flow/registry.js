@@ -462,6 +462,31 @@ export const FLOW_COMMANDS = {
         const reviewMod = await import("./lib/run-review.js");
         reviewMod.updateReviewRetryCounter(ctx, result);
 
+        if (ctx.phase === "draft") {
+          const retryPhase = result?.artifacts?.retryPhase;
+          const verdict = result?.artifacts?.verdict;
+          const stepId = retryPhase === "draft-coverage"
+            ? "review-draft-coverage"
+            : retryPhase === "draft-questions"
+              ? "review-draft-questions"
+              : null;
+          if (stepId && (verdict === "PASS" || verdict === "ADVISORY")) {
+            tryUpdateStepStatus(ctx, stepId, "done");
+          }
+          return;
+        }
+
+        if (ctx.phase === "spec") {
+          const verdict = result?.artifacts?.verdict;
+          if (verdict === "PASS" || verdict === "ADVISORY") {
+            tryUpdateStepStatus(ctx, "review-spec", "done");
+            tryUpdateStepStatus(ctx, "spec-repair", "done");
+          } else if (verdict === "FAIL") {
+            tryUpdateStepStatus(ctx, "review-spec", "done");
+          }
+          return;
+        }
+
         const planPhases = ["draft", "spec", "test"];
         if (planPhases.includes(ctx.phase)) return;
         const stepId = "review";

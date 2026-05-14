@@ -41,6 +41,7 @@ const DRAFT_TOP_LEVEL_FIELDS = Object.freeze([
   "devType",
   "goal",
   "analysis",
+  "decisionMap",
   "scopeVerification",
   "impactOnExisting",
   "qa",
@@ -57,6 +58,14 @@ const DRAFT_QA_FIELDS = Object.freeze([
   "evidence",
   "why",
   "droppedReason",
+]);
+
+const DRAFT_DECISION_MAP_FIELDS = Object.freeze([
+  "knownFacts",
+  "decisionPoints",
+  "resolvedByProjectRules",
+  "requiresUserJudgment",
+  "deferredToSpec",
 ]);
 
 const AMBIGUOUS_TOKENS = Object.freeze([
@@ -184,6 +193,34 @@ export class DraftApproval {
   }
 }
 
+export class DraftDecisionMap {
+  constructor(raw) {
+    this.raw = raw;
+  }
+
+  validate() {
+    const issues = [];
+    if (!isObject(this.raw)) return ["missing decisionMap object"];
+
+    for (const field of unknownFields(this.raw, DRAFT_DECISION_MAP_FIELDS)) {
+      issues.push(`decisionMap: unknown field "${field}"`);
+    }
+    for (const field of DRAFT_DECISION_MAP_FIELDS) {
+      const value = this.raw[field];
+      if (!Array.isArray(value)) {
+        issues.push(`decisionMap.${field} must be an array`);
+        continue;
+      }
+      for (let i = 0; i < value.length; i++) {
+        if (!isNonEmptyString(value[i])) {
+          issues.push(`decisionMap.${field}[${i}] must be a non-empty string`);
+        }
+      }
+    }
+    return issues;
+  }
+}
+
 export class DraftLifecycle {
   constructor(raw) {
     if (!isObject(raw)) throw new Error("draft must be a non-null object");
@@ -191,6 +228,7 @@ export class DraftLifecycle {
     this.qa = Array.isArray(raw.qa)
       ? raw.qa.map((entry, index) => new DraftQaEntry(entry, index))
       : [];
+    this.decisionMap = new DraftDecisionMap(raw.decisionMap);
     this.approval = new DraftApproval(raw.approval);
   }
 
@@ -215,6 +253,8 @@ export class DraftLifecycle {
         if (!isNonEmptyString(a[field])) issues.push(`missing or empty analysis.${field}`);
       }
     }
+
+    issues.push(...this.decisionMap.validate());
 
     if (!Array.isArray(this.raw.qa)) {
       issues.push("missing qa array");

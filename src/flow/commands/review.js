@@ -14,6 +14,7 @@ import path from "path";
 import { parseArgs } from "../../lib/cli.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
+import { repairJson } from "../../lib/json-parse.js";
 
 async function loadReqMap(root, flow, kind) {
   try {
@@ -35,6 +36,7 @@ import { container, initContainer } from "../../lib/container.js";
 import { Command } from "../../lib/command.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { buildAcknowledgedRationaleSection } from "../lib/acknowledged-rationale.js";
+import { validateSchema } from "../../lib/schema-validate.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -46,6 +48,8 @@ const callReviewAgent = (agent, prompt, commandId, systemPrompt) => {
     return agent.call(prompt.userPrompt, {
       commandId,
       systemPrompt: prompt.systemPrompt ?? systemPrompt,
+      jsonSchema: prompt.jsonSchema ?? null,
+      fmtFallback: prompt.fmtFallback ?? null,
     });
   }
   return agent.call(prompt, { commandId, systemPrompt });
@@ -1067,6 +1071,49 @@ async function runTestReview(root, flow, config, dryRun) {
 
 import { minify } from "../../docs/lib/minify.js";
 
+const SPEC_REVIEW_TEXT_LIMIT = 500;
+const SPEC_REVIEW_EVIDENCE_LIMIT = 700;
+const SPEC_REVIEW_TASK_STRATEGY_LIMIT = 700;
+
+function summarizeSpecReviewValue(value, limit = SPEC_REVIEW_TEXT_LIMIT) {
+  if (value == null) return "";
+  const text = String(value).replace(/\s+/g, " ").trim();
+  if (text.length <= limit) return text;
+  return `${text.slice(0, limit).trimEnd()}...`;
+}
+
+function formatSpecReviewSimpleList(values) {
+  if (!Array.isArray(values) || values.length === 0) return "";
+  return values.map((value) => `- ${summarizeSpecReviewValue(value)}`).join("\n");
+}
+
+function formatSpecReviewDecision(decision) {
+  const text = summarizeSpecReviewValue(decision?.text ?? decision);
+  const details = [];
+  if (decision?.evidence) {
+    details.push(`evidence: ${summarizeSpecReviewValue(decision.evidence, SPEC_REVIEW_EVIDENCE_LIMIT)}`);
+  }
+  if (decision?.consideredAlternatives) {
+    details.push(`alternatives: ${summarizeSpecReviewValue(decision.consideredAlternatives, SPEC_REVIEW_EVIDENCE_LIMIT)}`);
+  }
+  return details.length > 0
+    ? `- ${text}\n  ${details.join("\n  ")}`
+    : `- ${text}`;
+}
+
+function formatSpecReviewTask(task) {
+  const lines = [`- ${task.id}: ${summarizeSpecReviewValue(task.title, 250)}`];
+  lines.push(`  status: ${task.status || "unknown"}`);
+  lines.push(`  goal: ${summarizeSpecReviewValue(task.goal, SPEC_REVIEW_TEXT_LIMIT)}`);
+  if (Array.isArray(task.acceptance) && task.acceptance.length > 0) {
+    lines.push(`  acceptance: ${task.acceptance.map((item) => summarizeSpecReviewValue(item, 300)).join(" | ")}`);
+  }
+  if (task.test_strategy) {
+    lines.push(`  test_strategy: ${summarizeSpecReviewValue(task.test_strategy, SPEC_REVIEW_TASK_STRATEGY_LIMIT)}`);
+  }
+  return lines.join("\n");
+}
+
 function buildSpecSummaryMarkdown(spec) {
   const lines = [];
   if (spec.goal) lines.push(`# Goal\n${spec.goal}`);
@@ -1082,12 +1129,34 @@ function buildSpecSummaryMarkdown(spec) {
     lines.push("# Overview");
     if (Array.isArray(spec.overview.modules)) lines.push(`## Modules\n${spec.overview.modules.map((m) => `- ${m.text}`).join("\n")}`);
     if (Array.isArray(spec.overview.data_flow)) lines.push(`## Data Flow\n${spec.overview.data_flow.map((d) => `- ${d.text}`).join("\n")}`);
+    if (Array.isArray(spec.overview.decisions)) lines.push(`## Decisions\n${spec.overview.decisions.map(formatSpecReviewDecision).join("\n")}`);
   }
   if (Array.isArray(spec.requirements)) {
     lines.push("# Requirements");
     for (const r of spec.requirements) {
-      lines.push(`- ${r.id} [${r.priority}]: ${r.desc}`);
+      const testable = r.testable === false ? " testable=false" : "";
+      const status = r.status ? ` status=${r.status}` : "";
+      lines.push(`- ${r.id} [${r.priority || "unknown"}${status}${testable}]: ${r.desc}`);
     }
+  }
+  const acceptance = formatSpecReviewSimpleList(spec.acceptance_criteria);
+  if (acceptance) lines.push(`# Acceptance Criteria\n${acceptance}`);
+  if (Array.isArray(spec.clarifications) && spec.clarifications.length > 0) {
+    lines.push(`# Clarifications\n${spec.clarifications.map((c) => [
+      `- Q: ${summarizeSpecReviewValue(c.q)}`,
+      `  A: ${summarizeSpecReviewValue(c.a)}`,
+    ].join("\n")).join("\n")}`);
+  }
+  if (Array.isArray(spec.alternatives_considered) && spec.alternatives_considered.length > 0) {
+    lines.push(`# Alternatives Considered\n${spec.alternatives_considered.map((a) => [
+      `- Option: ${summarizeSpecReviewValue(a.option)}`,
+      `  Reason: ${summarizeSpecReviewValue(a.reason)}`,
+    ].join("\n")).join("\n")}`);
+  }
+  const openQuestions = formatSpecReviewSimpleList(spec.open_questions);
+  if (openQuestions) lines.push(`# Open Questions\n${openQuestions}`);
+  if (Array.isArray(spec.tasks) && spec.tasks.length > 0) {
+    lines.push(`# Tasks\n${spec.tasks.map(formatSpecReviewTask).join("\n")}`);
   }
   const md = lines.join("\n\n");
   return minify(md, "spec-summary.md");
@@ -1121,38 +1190,259 @@ function extractScopePaths(spec) {
   return paths;
 }
 
+const SPEC_REVIEW_BLOCKING_ITEM_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["title", "target", "issue", "requiredChange", "whyBlocking"],
+  additionalProperties: false,
+  properties: {
+    title: { type: "string", minLength: 1 },
+    target: { type: "string", minLength: 1 },
+    issue: { type: "string", minLength: 1 },
+    requiredChange: { type: "string", minLength: 1 },
+    whyBlocking: { type: "string", minLength: 1 },
+  },
+});
+
+const SPEC_REVIEW_IMPROVEMENT_ITEM_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["title", "target", "improvement", "whyNonBlocking"],
+  additionalProperties: false,
+  properties: {
+    title: { type: "string", minLength: 1 },
+    target: { type: "string", minLength: 1 },
+    improvement: { type: "string", minLength: 1 },
+    whyNonBlocking: { type: "string", minLength: 1 },
+  },
+});
+
+const SPEC_REVIEW_RESPONSE_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["blockingFindings", "nonBlockingImprovements"],
+  additionalProperties: false,
+  properties: {
+    blockingFindings: {
+      type: "array",
+      items: SPEC_REVIEW_BLOCKING_ITEM_SCHEMA,
+    },
+    nonBlockingImprovements: {
+      type: "array",
+      items: SPEC_REVIEW_IMPROVEMENT_ITEM_SCHEMA,
+    },
+  },
+});
+
+const SPEC_REVIEW_FMT_FALLBACK = [
+  "OUTPUT FORMAT - strictly required:",
+  "Return only a JSON object. No markdown, no preamble, no commentary.",
+  "Schema:",
+  JSON.stringify(SPEC_REVIEW_RESPONSE_SCHEMA, null, 2),
+  "Use empty arrays when there are no findings in a category.",
+].join("\n");
+
 /**
  * Build the spec review prompt.
  * @param {string} specText - Minified spec summary from spec.json fields
  * @param {Object[]} contextEntries - Related codebase entries from contextSearch
  * @returns {{systemPrompt: string|null, userPrompt: string}}
  */
-function buildSpecReviewPrompt(specText, contextEntries) {
-  return new PromptBuilder()
-    .setRole("You are a spec completeness reviewer. Analyze the following spec against the codebase context to identify oversights.")
+function buildSpecReviewPrompt(specText, contextEntries, previousReview = null) {
+  const pb = new PromptBuilder()
+    .setRole("You are a spec blocking reviewer. Analyze the spec against the codebase context and separate blocking gaps from optional improvements.")
     .setRules([
       "Focus on:",
-      "- Files or features around modules in Scope that the spec does not mention",
-      "- Related code not explicitly listed in Out of Scope",
-      "- External references (skill templates, tests, config) that depend on files to be deleted or moved",
-      "- Contradictions or gaps between requirements",
+      "- Blocking findings: gaps that make the spec impossible or unsafe to implement, test, or gate correctly.",
+      "- Blocking examples: contradictory scope, missing observable pass/fail condition for a requirement, missing exception policy for required external/live-provider behavior, missing implementation target that would cause a required behavior to be skipped.",
+      "- Non-blocking improvements: helpful clarifications, extra related-file mentions, wording improvements, broader context, or nice-to-have completeness that does not block implementation/test/gate.",
+      "- Do not fail the review for non-blocking improvements.",
+      "- Do not require every issue to map to a file. Use Target for a spec section, requirement id, file path, or GLOBAL.",
+      "- When previous review memory is provided, do not repeat acknowledged non-blocking improvements unless the current spec has changed so the issue is now blocking.",
+      "- Re-report previous blocking findings only if they are still blocking in the current spec.",
       "",
-      "Output a numbered list of proposals in this format:",
-      "### 1. <title>",
-      "**File:** `<path>` (the file that the spec overlooks)",
-      "**Issue:** <what the spec misses or gets wrong>",
-      "**Suggestion:** <concrete improvement to the spec>",
-      "",
-      "If no oversights are found, output: NO_PROPOSALS",
+      "Return JSON only. The response object must contain:",
+      "- blockingFindings[] with title, target, issue, requiredChange, whyBlocking",
+      "- nonBlockingImprovements[] with title, target, improvement, whyNonBlocking",
+      "- Use empty arrays when there are no findings in a category.",
     ].join("\n"))
+    .setJsonSchema(SPEC_REVIEW_RESPONSE_SCHEMA)
+    .setFmtFallback(SPEC_REVIEW_FMT_FALLBACK)
     .addUserPrompt("## Spec", specText)
     .addUserPrompt(
       "## Codebase Context (related files)",
       formatCodebaseContextForPrompt(contextEntries),
-    )
-    .build();
+    );
+
+  if (previousReview) {
+    pb.addUserPrompt(
+      "## Previous Spec Review Memory",
+      JSON.stringify(previousReview.toPromptMemory(), null, 2),
+    );
+  }
+
+  return pb.build();
 }
 
+function extractMarkdownField(body, label) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = String(body || "").match(new RegExp(`^\\*\\*${escaped}:\\*\\*\\s*(.+)$`, "im"));
+  if (!match) return "";
+  return match[1].trim().replace(/^`(.+)`$/, "$1");
+}
+
+class SpecReviewItem {
+  constructor(kind, item) {
+    this.kind = kind;
+    this.title = item.title;
+    this.target = item.target || extractMarkdownField(item.body, "Target") || extractMarkdownField(item.body, "File") || "GLOBAL";
+    if (kind === "blocking") {
+      this.issue = item.issue || extractMarkdownField(item.body, "Issue");
+      this.requiredChange = item.requiredChange || extractMarkdownField(item.body, "Required change") || extractMarkdownField(item.body, "Suggestion");
+      this.whyBlocking = item.whyBlocking || extractMarkdownField(item.body, "Why blocking");
+      this.body = item.body || [
+        `**Target:** ${this.target}`,
+        `**Issue:** ${this.issue}`,
+        `**Required change:** ${this.requiredChange}`,
+        `**Why blocking:** ${this.whyBlocking}`,
+      ].join("\n");
+    } else {
+      this.improvement = item.improvement || extractMarkdownField(item.body, "Improvement") || extractMarkdownField(item.body, "Suggestion");
+      this.whyNonBlocking = item.whyNonBlocking || extractMarkdownField(item.body, "Why non-blocking");
+      this.body = item.body || [
+        `**Target:** ${this.target}`,
+        `**Improvement:** ${this.improvement}`,
+        `**Why non-blocking:** ${this.whyNonBlocking}`,
+      ].join("\n");
+    }
+  }
+
+  toPromptMemory() {
+    const base = {
+      title: this.title,
+      target: this.target,
+    };
+    if (this.kind === "blocking") {
+      return {
+        ...base,
+        issue: this.issue,
+        requiredChange: this.requiredChange,
+      };
+    }
+    return {
+      ...base,
+      improvement: this.improvement,
+      whyNonBlocking: this.whyNonBlocking,
+    };
+  }
+
+  toJSON() {
+    const base = {
+      kind: this.kind,
+      title: this.title,
+      target: this.target,
+      body: this.body,
+    };
+    if (this.kind === "blocking") {
+      return {
+        ...base,
+        issue: this.issue,
+        requiredChange: this.requiredChange,
+        whyBlocking: this.whyBlocking,
+      };
+    }
+    return {
+      ...base,
+      improvement: this.improvement,
+      whyNonBlocking: this.whyNonBlocking,
+    };
+  }
+}
+
+class SpecReviewArtifact {
+  constructor({ verdict, blocking = [], improvements = [], generatedAt = new Date().toISOString() }) {
+    this.version = 1;
+    this.phase = "spec";
+    this.generatedAt = generatedAt;
+    this.verdict = verdict;
+    this.blockingFindings = blocking.map((item) => item instanceof SpecReviewItem ? item : new SpecReviewItem("blocking", item));
+    this.nonBlockingImprovements = improvements.map((item) => item instanceof SpecReviewItem ? item : new SpecReviewItem("improvement", item));
+    this.counts = Object.freeze({
+      blocking: this.blockingFindings.length,
+      nonBlocking: this.nonBlockingImprovements.length,
+      total: this.blockingFindings.length + this.nonBlockingImprovements.length,
+    });
+  }
+
+  toPromptMemory() {
+    return {
+      verdict: this.verdict,
+      counts: this.counts,
+      previousBlockingFindings: this.blockingFindings.map((item) => item.toPromptMemory()),
+      acknowledgedNonBlockingImprovements: this.nonBlockingImprovements.map((item) => item.toPromptMemory()),
+    };
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      phase: this.phase,
+      generatedAt: this.generatedAt,
+      verdict: this.verdict,
+      counts: this.counts,
+      blockingFindings: this.blockingFindings.map((item) => item.toJSON()),
+      nonBlockingImprovements: this.nonBlockingImprovements.map((item) => item.toJSON()),
+    };
+  }
+}
+
+function extractJsonObjectCandidate(raw) {
+  let text = String(raw || "").trim();
+  const fenceMatch = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenceMatch) text = fenceMatch[1].trim();
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    text = text.slice(firstBrace, lastBrace + 1);
+  }
+  return text;
+}
+
+function parseSpecReviewJsonOutput(raw) {
+  const candidate = extractJsonObjectCandidate(raw);
+  let parsed;
+  try {
+    parsed = JSON.parse(candidate);
+  } catch {
+    parsed = JSON.parse(repairJson(candidate));
+  }
+  const errors = validateSchema(parsed, SPEC_REVIEW_RESPONSE_SCHEMA);
+  if (errors.length > 0) {
+    throw new Error(`spec review output failed schema validation: ${errors.join("; ")}`);
+  }
+  return parsed;
+}
+
+function parseSpecReviewFindings(text) {
+  const parsed = parseSpecReviewJsonOutput(text);
+  return {
+    blocking: parsed.blockingFindings.map((item) => new SpecReviewItem("blocking", item)),
+    improvements: parsed.nonBlockingImprovements.map((item) => new SpecReviewItem("improvement", item)),
+  };
+}
+
+function formatSpecReviewJson({ blocking = [], improvements = [], verdict = "PASS" } = {}) {
+  const artifact = new SpecReviewArtifact({ verdict, blocking, improvements });
+  return JSON.stringify(artifact, null, 2) + "\n";
+}
+
+function loadSpecReviewArtifact(reviewJsonPath) {
+  if (!fs.existsSync(reviewJsonPath)) return null;
+  const data = JSON.parse(fs.readFileSync(reviewJsonPath, "utf8"));
+  return new SpecReviewArtifact({
+    verdict: data.verdict || "PASS",
+    generatedAt: data.generatedAt,
+    blocking: Array.isArray(data.blockingFindings) ? data.blockingFindings : [],
+    improvements: Array.isArray(data.nonBlockingImprovements) ? data.nonBlockingImprovements : [],
+  });
+}
 
 function formatPhaseReviewMd(title, history, verdict, finalIssues) {
   const lines = [`# ${title}`, ""];
@@ -1174,19 +1464,34 @@ function formatPhaseReviewMd(title, history, verdict, finalIssues) {
   return lines.join("\n");
 }
 
-function formatSpecReviewMd(results) {
+function formatSpecReviewMd(input = {}) {
+  const normalized = Array.isArray(input)
+    ? { blocking: input, improvements: [], verdict: input.length > 0 ? "FAIL" : "PASS" }
+    : input;
+  const { blocking = [], improvements = [], verdict = "PASS" } = normalized;
   const lines = ["# Spec Review Results", ""];
+  lines.push(`## Verdict: ${verdict}`, "");
 
-  if (results.length === 0) {
-    lines.push("No proposals generated. Spec looks complete.");
-    return lines.join("\n");
+  lines.push("## Blocking Findings", "");
+  if (blocking.length === 0) {
+    lines.push("No blocking findings.");
+  } else {
+    for (let i = 0; i < blocking.length; i++) {
+      lines.push(`### ${i + 1}. ${blocking[i].title}`);
+      if (blocking[i].body) lines.push(blocking[i].body);
+      lines.push("");
+    }
   }
 
-  lines.push("## Proposals", "");
-  for (let i = 0; i < results.length; i++) {
-    lines.push(`### ${i + 1}. ${results[i].title}`);
-    if (results[i].body) lines.push(results[i].body);
-    lines.push("");
+  lines.push("", "## Non-blocking Improvements", "");
+  if (improvements.length === 0) {
+    lines.push("No non-blocking improvements.");
+  } else {
+    for (let i = 0; i < improvements.length; i++) {
+      lines.push(`### ${i + 1}. ${improvements[i].title}`);
+      if (improvements[i].body) lines.push(improvements[i].body);
+      lines.push("");
+    }
   }
 
   return lines.join("\n");
@@ -1224,48 +1529,178 @@ async function runSpecReview(root, flow, config, dryRun) {
       );
     }
   }
-  const proposePrompt = buildSpecReviewPrompt(specSummary, contextEntries);
+  const reviewDir = path.resolve(root, specDir);
+  const reviewPath = path.join(reviewDir, "spec-review.md");
+  const reviewJsonPath = path.join(reviewDir, "spec-review.json");
+  let previousReview = null;
+  try {
+    previousReview = loadSpecReviewArtifact(reviewJsonPath);
+  } catch (e) {
+    console.error(`  [spec-review] Warning: failed to load previous review memory: ${e.message}`);
+  }
+
+  const proposePrompt = buildSpecReviewPrompt(specSummary, contextEntries, previousReview);
   const proposeRaw = await callReviewAgent(proposeAgent, proposePrompt, "flow.spec.review.propose");
 
-  if (proposeRaw.includes("NO_PROPOSALS")) {
-    const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
-    fs.writeFileSync(reviewPath, formatSpecReviewMd([]));
-    console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-    console.error("  [spec-review] verdict=PASS proposalCount=0");
-    console.log("NO_PROPOSALS");
-    return;
-  }
+  const findings = parseSpecReviewFindings(proposeRaw);
+  const blockingCount = findings.blocking.length;
+  const improvementCount = findings.improvements.length;
+  const proposalCount = blockingCount + improvementCount;
+  const verdict = blockingCount > 0 ? "FAIL" : improvementCount > 0 ? "ADVISORY" : "PASS";
 
-  const proposals = parseProposals(proposeRaw);
-  if (proposals.length === 0) {
-    const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
-    fs.writeFileSync(reviewPath, formatSpecReviewMd([]));
-    console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-    console.error("  [spec-review] verdict=PASS proposalCount=0");
-    console.log("NO_PROPOSALS");
-    return;
-  }
-
-  console.error(`  [spec-review] ${proposals.length} proposal(s) generated.`);
-
-  const reviewPath = path.join(path.resolve(root, specDir), "spec-review.md");
-  fs.writeFileSync(reviewPath, formatSpecReviewMd(proposals));
+  fs.writeFileSync(reviewPath, formatSpecReviewMd({ ...findings, verdict }));
+  fs.writeFileSync(reviewJsonPath, formatSpecReviewJson({ ...findings, verdict }));
   console.error(`  [spec-review] Results saved to ${path.relative(root, reviewPath)}`);
-  console.error(`  [spec-review] proposalCount=${proposals.length}`);
+  console.error(`  [spec-review] JSON saved to ${path.relative(root, reviewJsonPath)}`);
+  console.error(`  [spec-review] blockingCount=${blockingCount} improvementCount=${improvementCount} proposalCount=${proposalCount}`);
 
-  console.error(`  [spec-review] verdict=FAIL proposalCount=${proposals.length}`);
-  console.log(`Spec review found ${proposals.length} proposal(s). See spec-review.md.`);
+  console.error(`  [spec-review] verdict=${verdict} proposalCount=${proposalCount}`);
+  if (verdict === "PASS") {
+    console.log("NO_PROPOSALS");
+  } else if (verdict === "ADVISORY") {
+    console.log(`Spec review ADVISORY. ${improvementCount} non-blocking improvement(s) recorded. See spec-review.md.`);
+  } else {
+    console.log(`Spec review FAIL. ${blockingCount} blocking finding(s) found. See spec-review.md.`);
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Draft review pipeline (--phase draft)
 // ---------------------------------------------------------------------------
 
-function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
+function formatDraftQuestionReviewEntry(q, i) {
+  return [
+    `### ${q.id || `Q${i + 1}`} [${q.status || "unknown"} / ${q.category || "unknown"}]`,
+    `**Question:** ${q.question}`,
+  ].join("\n");
+}
+
+function formatDraftCoverageReviewEntry(q, i) {
+  return [
+    `### ${q.id || `Q${i + 1}`} [${q.status || "unknown"} / ${q.category || "unknown"}]`,
+    `**Question:** ${q.question}`,
+    `**Answer:** ${q.answer || "(empty)"}`,
+    `**Evidence:** ${q.evidence || "(none)"}`,
+    `**Why:** ${q.why || "(none)"}`,
+    `**Dropped reason:** ${q.droppedReason || "(none)"}`,
+  ].join("\n");
+}
+
+function selectDraftQuestionReviewEntries(entries) {
+  return entries.filter((q) => (
+    q.status === "pending"
+    || q.status === "approved"
+    || q.status == null
+  ));
+}
+
+function selectDraftCoverageReviewEntries(entries) {
+  return entries.filter((q) => (
+    q.status === "answered"
+    || q.status === "dropped"
+  ));
+}
+
+function summarizeDraftQaStatuses(draftJson) {
+  const counts = { total: 0, pending: 0, approved: 0, answered: 0, dropped: 0, other: 0 };
+  if (!Array.isArray(draftJson?.qa)) return counts;
+  counts.total = draftJson.qa.length;
+  for (const q of draftJson.qa) {
+    if (Object.hasOwn(counts, q.status)) counts[q.status] += 1;
+    else counts.other += 1;
+  }
+  return counts;
+}
+
+function formatDraftQaStatusSummary(draftJson) {
+  const counts = summarizeDraftQaStatuses(draftJson);
+  return [
+    `- total: ${counts.total}`,
+    `- pending: ${counts.pending}`,
+    `- approved: ${counts.approved}`,
+    `- answered: ${counts.answered}`,
+    `- dropped: ${counts.dropped}`,
+    `- other: ${counts.other}`,
+  ].join("\n");
+}
+
+function formatDraftDecisionMap(draftJson) {
+  const map = draftJson?.decisionMap;
+  if (!map || typeof map !== "object" || Array.isArray(map)) return "(no decisionMap)";
+
+  return [
+    ["Known facts", map.knownFacts],
+    ["Decision points", map.decisionPoints],
+    ["Resolved by project rules", map.resolvedByProjectRules],
+    ["Requires user judgment", map.requiresUserJudgment],
+    ["Deferred to spec", map.deferredToSpec],
+  ].map(([label, values]) => {
+    const items = Array.isArray(values) && values.length
+      ? values.map((value) => `- ${value}`).join("\n")
+      : "- (none)";
+    return `### ${label}\n${items}`;
+  }).join("\n\n");
+}
+
+function formatDraftReviewQaEntries(draftJson, stage) {
+  if (!Array.isArray(draftJson?.qa)) return "(no QA entries)";
+
+  if (stage.key === "questions") {
+    const entries = selectDraftQuestionReviewEntries(draftJson.qa);
+    if (entries.length === 0) return "(no pending or approved QA entries)";
+    return entries.map(formatDraftQuestionReviewEntry).join("\n\n");
+  }
+
+  const entries = selectDraftCoverageReviewEntries(draftJson.qa);
+  if (entries.length === 0) return "(no answered or dropped QA entries)";
+  return entries.map(formatDraftCoverageReviewEntry).join("\n\n");
+}
+
+function buildDraftQuestionReviewPrompt(draftJson, requestText) {
   const qaText = Array.isArray(draftJson?.qa)
-    ? draftJson.qa.map((q, i) =>
-      `### ${q.id || `Q${i + 1}`} [${q.status || "unknown"} / ${q.category || "unknown"}]\n**Question:** ${q.question}\n**Answer:** ${q.answer || "(empty)"}\n**Evidence:** ${q.evidence || "(none)"}\n**Why:** ${q.why || "(none)"}\n**Dropped reason:** ${q.droppedReason || "(none)"}`
-    ).join("\n\n")
+    ? formatDraftReviewQaEntries(draftJson, { key: "questions" })
+    : "(no QA entries)";
+
+  return [
+    "You are a draft question sanity reviewer. Perform a one-shot finite structural check of the initial question list.",
+    "This is not a question generation task. The draft step owns the full initial question list.",
+    "Check only these finite defects:",
+    "- qa[] is empty before any answer exists",
+    "- A shown pending/approved question is empty, duplicated, not self-contained, or clearly asks for internal implementation details that project patterns should decide",
+    "- A shown pending/approved question appears to include an answer, rationale, evidence, or instruction instead of only the question text",
+    "Do not identify missing first-pass questions.",
+    "Do not propose NEW QA entries.",
+    "Do not add questions for category coverage or because a category label is absent.",
+    "If no listed finite defect is present, output: NO_PROPOSALS",
+    "",
+    "Output a numbered list of issues in this format:",
+    "### 1. <title>",
+    "**QA:** q<N> (the qa.id)",
+    "**Issue:** <which finite structural defect is present>",
+    "**Suggestion:** <concrete correction to the existing QA entry>",
+    "",
+    "If no issues are found, output: NO_PROPOSALS",
+    "",
+    "## Request / Issue",
+    "Use this only to understand whether a shown question is obviously off-topic. Do not derive missing questions from it.",
+    requestText || "(no request text)",
+    "",
+    "## Draft QA Status Summary",
+    formatDraftQaStatusSummary(draftJson),
+    "",
+    "## Pending / Approved Draft QA Entries",
+    qaText,
+  ].join("\n");
+}
+
+function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
+  const effectiveStage = stage || { key: "coverage" };
+  if (effectiveStage.key === "questions") {
+    return buildDraftQuestionReviewPrompt(draftJson, requestText);
+  }
+
+  const qaText = Array.isArray(draftJson?.qa)
+    ? formatDraftReviewQaEntries(draftJson, effectiveStage)
     : "(no QA entries)";
 
   const contextText = contextEntries.map((e) =>
@@ -1273,30 +1708,33 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
   ).join("\n");
 
   return [
-    "You are a draft QA quality reviewer. Analyze draft.json against the request/issue and codebase context.",
+    "You are a draft coverage gate reviewer. Perform a one-shot final check of answered and dropped draft QA before spec writing.",
     "Focus on:",
-    stage.key === "questions"
-      ? "- Missing first-pass questions needed before the spec can be written"
-      : "- Missing follow-up coverage after reading answered and dropped QA",
-    stage.key === "questions"
-      ? "- Category coverage across goal, scope, constraints, acceptance, existing behavior, implementation targets, tests, and risks"
-      : "- Unresolved contradictions, unsupported answers, or areas where a dropped question still leaves a spec gap",
-    "- Ambiguous user answers must be converted into a direct yes/no or option-selection question, not deferred to gate",
-    "- The review report must not edit draft.json; it only tells the operator what to ask or fix next",
+    "- Only blocking user decisions without which the spec cannot be written",
+    "- Report at most 3 highest-impact blocking gaps",
+    "- Treat existing answers as authoritative. Do not grade answer clarity, support, wording quality, or propose edits to existing QA.",
+    "- Detection must not propose iterative follow-up questions, append QA entries, or mutate draft.json; the separate one-pass repair handles repairable findings",
+    "- Do not report issues that can be resolved during spec writing by existing project rules, code patterns, or conservative implementation choices",
     "",
-    "Output a numbered list of issues in this format:",
+    "Output a numbered list of blocking gaps in this format:",
     "### 1. <title>",
-    "**QA:** q<N> (the qa.id, or 'NEW' for missing coverage)",
-    "**Issue:** <what is wrong or missing>",
-    "**Suggestion:** <concrete improvement to the QA entry>",
+    "**QA:** q<N> (related qa.id, or 'GLOBAL' if no single QA entry applies)",
+    "**Blocking decision:** <the user decision that is still required>",
+    "**Why blocking:** <why the spec cannot be written without this decision>",
     "",
-    "If no issues are found, output: NO_PROPOSALS",
+    "If no blocking user decision is required, output: NO_PROPOSALS",
     "",
     "## Request / Issue",
     requestText || "(no request text)",
     "",
+    "## Draft QA Status Summary",
+    formatDraftQaStatusSummary(draftJson),
+    "",
     "## Draft QA Entries",
     qaText,
+    "",
+    "## Decision Map",
+    formatDraftDecisionMap(draftJson),
     "",
     "## Codebase Context (related files)",
     "These files are ordered by relevance to the spec.",
@@ -1304,20 +1742,179 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
   ].join("\n");
 }
 
-function formatDraftReviewMd(issues, stage) {
+function formatDraftReviewMd(issues, stage, verdict) {
   const title = stage.key === "questions" ? "Draft Question Review Results" : "Draft Coverage Review Results";
   const lines = [`# ${title}`, ""];
   if (issues.length === 0) {
     lines.push("No issues found. PASS.");
   } else {
-    lines.push(`${issues.length} issue(s) detected.`, "");
+    lines.push(`${issues.length} advisory finding(s) recorded. ${verdict}.`, "");
     for (let i = 0; i < issues.length; i++) {
       lines.push(`### ${i + 1}. ${issues[i].title}`);
       if (issues[i].body) lines.push(issues[i].body);
       lines.push("");
     }
+    lines.push("These findings are advisory for spec writing. The draft review step may proceed; gate-draft remains the blocking validation step.");
   }
   return lines.join("\n");
+}
+
+function formatDraftIssuesForRepair(issues) {
+  if (!issues.length) return "NO_PROPOSALS";
+  return issues.map((issue, index) => [
+    `### ${index + 1}. ${issue.title}`,
+    issue.body || "",
+  ].filter(Boolean).join("\n")).join("\n\n");
+}
+
+function extractDraftJsonCandidate(raw) {
+  let text = String(raw || "").trim();
+  const fenceMatch = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenceMatch) text = fenceMatch[1].trim();
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    text = text.slice(firstBrace, lastBrace + 1);
+  }
+  return text;
+}
+
+function parseDraftJsonRepairOutput(raw) {
+  const candidate = extractDraftJsonCandidate(raw);
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    return JSON.parse(repairJson(candidate));
+  }
+}
+
+function buildDraftRepairPrompt(draftJson, issues, stage, requestText, contextEntries) {
+  const contextText = contextEntries.map((e) =>
+    `- **${e.file}**: ${e.summary || "(no summary)"}`
+  ).join("\n");
+
+  const stageRules = stage.key === "questions"
+    ? [
+      "Repair only the finite structural defects found in the initial question list.",
+      "Do not answer draft questions.",
+      "Do not add category-quota questions.",
+      "If qa[] is empty, create the initial pending question list from decisionMap.requiresUserJudgment and the request, not from generic category coverage.",
+      "For pending/approved QA entries, answer, evidence, why, and droppedReason must remain empty strings.",
+      "Keep approval.approved false in this stage.",
+    ]
+    : [
+      "Repair the draft so the recorded coverage findings are reflected in draft.json before gate-draft.",
+      "Do not ask the user and do not append iterative follow-up questions.",
+      "Resolve gaps using existing answers, decisionMap, project rules, source context, and conservative implementation choices.",
+      "If a finding can be handled during spec writing, record that decision in decisionMap.deferredToSpec or decisionMap.resolvedByProjectRules.",
+      "Do not resolve pending/approved QA entries in this coverage repair; draft-refine owns question resolution.",
+      "Set approval.approved true with confirmedAt and notes after repair.",
+    ];
+
+  return [
+    "You are a draft.json repair agent. Apply the recorded draft review findings in one pass.",
+    "Return only the complete repaired draft.json object as JSON. No markdown, no explanation.",
+    "Preserve existing user answers and evidence unless a review finding explicitly requires correction.",
+    "Do not remove required top-level fields. Do not add unknown top-level fields.",
+    ...stageRules,
+    "",
+    "## Request / Issue",
+    requestText || "(no request text)",
+    "",
+    "## Review Findings To Repair",
+    formatDraftIssuesForRepair(issues),
+    "",
+    "## Current draft.json",
+    JSON.stringify(draftJson, null, 2),
+    "",
+    "## Codebase Context",
+    contextText || "(no context)",
+  ].join("\n");
+}
+
+const DRAFT_REPAIR_TOP_LEVEL_FIELDS = Object.freeze([
+  "devType",
+  "goal",
+  "analysis",
+  "decisionMap",
+  "scopeVerification",
+  "impactOnExisting",
+  "qa",
+  "openQuestions",
+  "approval",
+]);
+
+function validateDraftRepairShape(draftJson, stage) {
+  const issues = [];
+  if (!draftJson || typeof draftJson !== "object" || Array.isArray(draftJson)) {
+    return ["repair output must be a JSON object"];
+  }
+  const allowed = new Set(DRAFT_REPAIR_TOP_LEVEL_FIELDS);
+  for (const field of Object.keys(draftJson)) {
+    if (!allowed.has(field)) issues.push(`repair output contains unknown top-level field "${field}"`);
+  }
+  for (const field of DRAFT_REPAIR_TOP_LEVEL_FIELDS) {
+    if (!Object.hasOwn(draftJson, field)) issues.push(`repair output missing top-level field "${field}"`);
+  }
+  if (!Array.isArray(draftJson.qa)) {
+    issues.push("repair output must include qa[]");
+  }
+  if (!draftJson.decisionMap || typeof draftJson.decisionMap !== "object" || Array.isArray(draftJson.decisionMap)) {
+    issues.push("repair output must include decisionMap object");
+  }
+  if (stage.key === "questions" && Array.isArray(draftJson.qa)) {
+    for (let i = 0; i < draftJson.qa.length; i++) {
+      const entry = draftJson.qa[i];
+      if (entry?.status === "pending" || entry?.status === "approved" || entry?.status == null) {
+        for (const field of ["answer", "evidence", "why", "droppedReason"]) {
+          if (entry?.[field]) {
+            issues.push(`qa[${i}].${field} must remain empty during question review repair`);
+          }
+        }
+      }
+    }
+  }
+  return issues;
+}
+
+async function repairDraftReviewFindings(agent, draftPath, draftJson, issues, stage, requestText, contextEntries) {
+  if (issues.length === 0) return { draftJson, repaired: false };
+
+  const repairPrompt = buildDraftRepairPrompt(draftJson, issues, stage, requestText, contextEntries);
+  const raw = await callReviewAgent(
+    agent,
+    repairPrompt,
+    `${stage.commandId}.repair`,
+    "You repair draft.json in one pass. Return only the complete repaired JSON object.",
+  );
+
+  const repairedDraft = parseDraftJsonRepairOutput(raw);
+  const shapeIssues = validateDraftRepairShape(repairedDraft, stage);
+  if (shapeIssues.length > 0) {
+    throw new Error(`draft repair produced invalid draft.json: ${shapeIssues.join("; ")}`);
+  }
+
+  fs.writeFileSync(draftPath, JSON.stringify(repairedDraft, null, 2) + "\n");
+  return { draftJson: repairedDraft, repaired: true };
+}
+
+function approveDraftAfterCoverageReview(draftPath, draftJson, verdict) {
+  if (verdict !== "PASS" && verdict !== "ADVISORY") return;
+  const approval = draftJson.approval && typeof draftJson.approval === "object"
+    ? draftJson.approval
+    : {};
+  if (approval.approved === true && approval.confirmedAt) return;
+
+  draftJson.approval = {
+    approved: true,
+    confirmedAt: new Date().toISOString(),
+    notes: approval.notes || (
+      verdict === "ADVISORY"
+        ? "Draft review advisory findings recorded; proceeding to spec."
+        : "Draft review passed."
+    ),
+  };
+  fs.writeFileSync(draftPath, JSON.stringify(draftJson, null, 2) + "\n");
 }
 
 async function runDraftReview(root, flow, config, dryRun) {
@@ -1362,23 +1959,49 @@ async function runDraftReview(root, flow, config, dryRun) {
     }
   }
   const detectPrompt = buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage);
+  const fallbackSystemPrompt = stage.key === "questions"
+    ? "You are a draft question sanity reviewer. Check only finite structural defects; do not generate new questions."
+    : "You are a draft coverage gate reviewer. Report at most 3 blocking user decisions; do not generate follow-up loops.";
   const raw = await callReviewAgent(
-    agent, detectPrompt, stage.commandId,
-    "You are a draft QA quality reviewer. Identify weaknesses in draft QA entries.",
+    agent, detectPrompt, stage.commandId, fallbackSystemPrompt,
   );
 
   const issues = raw.includes("NO_PROPOSALS") ? [] : parseProposals(raw);
-  const verdict = issues.length === 0 ? "PASS" : "FAIL";
+  const verdict = issues.length === 0 ? "PASS" : "ADVISORY";
 
   const reviewPath = path.join(path.resolve(root, specDir), stage.artifact);
-  fs.writeFileSync(reviewPath, formatDraftReviewMd(issues, stage));
+  fs.writeFileSync(reviewPath, formatDraftReviewMd(issues, stage, verdict));
+
+  let repaired = false;
+  if (issues.length > 0) {
+    console.error(`  [${stage.tag}] Repairing draft.json from advisory findings...`);
+    const repairResult = await repairDraftReviewFindings(
+      agent,
+      draftPath,
+      draftJson,
+      issues,
+      stage,
+      requestText,
+      contextEntries,
+    );
+    draftJson = repairResult.draftJson;
+    repaired = repairResult.repaired;
+    if (repaired) {
+      fs.appendFileSync(reviewPath, "\n\n## Auto Repair\nOne-pass draft.json repair was applied before proceeding.\n");
+    }
+  }
+
+  if (stage.key === "coverage") {
+    approveDraftAfterCoverageReview(draftPath, draftJson, verdict);
+  }
+
   console.error(`  [${stage.tag}] Results saved to ${path.relative(root, reviewPath)}`);
   console.error(`  [${stage.tag}] verdict=${verdict} ${stage.countLabel}=${issues.length} retryPhase=${stage.retryPhase}`);
 
   if (verdict === "PASS") {
     console.log("Draft review PASS. QA entries are adequate.");
   } else {
-    console.log(`Draft review FAIL. ${issues.length} issue(s) detected.`);
+    console.log(`Draft review ADVISORY. ${issues.length} finding(s) recorded; ${repaired ? "draft.json repaired" : "proceeding"}.`);
   }
 }
 
@@ -1573,9 +2196,10 @@ export {
   collectTouchedFiles, filterProposalsByScope, extractProposalFile,
   getReviewMaxAttempts, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
   applyTestFixes, formatTestReviewMd, runReviewLoop,
-  extractGoalAndScope, buildSpecReviewPrompt, formatSpecReviewMd,
+  extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt, formatSpecReviewMd, formatSpecReviewJson, parseSpecReviewFindings,
   isValidSpecOutput, stripPreamble, buildGapAnalysisPrompt, buildTestFixPrompt,
   buildDraftReviewPrompt, formatDraftReviewMd,
+  buildDraftRepairPrompt, parseDraftJsonRepairOutput, validateDraftRepairShape,
   shouldUseLoopReview, groupByDiffContent, buildPerFileReviewInput,
   buildCrossCheckInput, expandProposalsToGroup,
   LOOP_REVIEW_THRESHOLD, MAX_LOOP_CALLS,

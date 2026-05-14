@@ -1,0 +1,10 @@
+   - Refine the existing `draft.json` into a spec-ready draft before coverage review.
+   - This step owns resolving existing `pending` / `approved` `draft.json.qa[]` entries. Do not create a new question list and do not append review-style follow-up questions.
+   - For each existing `pending` / `approved` entry:
+     - If user judgment is required, ask the user the existing question using Choice Format, then update that same entry to `status: "answered"` with non-empty `answer`, `evidence`, and `why`.
+     - If the answer is available from the request, issue, docs, project rules, source context, or prior conversation, update that same entry to `status: "answered"` without asking the user.
+     - If the question is no longer necessary, redundant, or should be decided by project rules/spec writing, update that same entry to `status: "dropped"` with a concrete `droppedReason`.
+   - Keep the work finite: process the existing question list once. Do not loop looking for more questions.
+   - Update `decisionMap` so resolved decisions move to `knownFacts`, `resolvedByProjectRules`, or remain represented by answered `qa[]`; spec-writing details that do not need user judgment should be recorded in `deferredToSpec`.
+   - Do not set `approval.approved = true` in this step. Coverage review and gate-draft remain downstream validation.
+   - When every `qa[]` entry is either `answered` or `dropped`, run `sdd-forge flow set step draft-refine done`.

@@ -1,7 +1,7 @@
-   - Run `sdd-forge flow run review --phase draft` to perform the draft coverage review.
-   - This stage reads answered and dropped `draft.json.qa[]` entries and checks whether the spec can be written without unresolved requirement gaps.
-   - The review writes a detection report to `draft-review-coverage.md`. It does not modify `draft.json`.
-   - If verdict=FAIL, ask only the follow-up questions needed to close the gaps and append them to `draft.json.qa[]` with `category: "follow-up-coverage"` and `status: "pending"`, then collect answers and update status.
-   - Do not defer ambiguity to gate. Ask an immediate direct clarification such as `Does "<ambiguous phrase>" mean "<concrete interpretation>"? Answer yes or no.`
-   - Repeat detect -> fix -> re-review until verdict=PASS or maxAttempts is reached. If `REVIEW_MAX_ATTEMPTS_EXCEEDED` is returned, stop and return control to the user.
-   - On PASS: read `draft.json`, set `approval.approved = true` and `approval.confirmedAt` to the current ISO timestamp when the user approves or autoApprove is enabled, then run `sdd-forge flow set step review-draft-coverage done`.
+   - Run `sdd-forge flow run review --phase draft` once to perform the draft coverage review.
+   - This stage is a one-shot final check after `draft-refine`, not a follow-up question loop. It reads answered and dropped `draft.json.qa[]` entries and checks only whether a blocking user decision is still required before the spec can be written.
+   - The review command writes a detection report to `draft-review-coverage.md`.
+   - Findings are advisory, but the review command applies one AI repair pass to `draft.json` before proceeding. After the review report is written, do not append follow-up questions to `draft.json.qa[]`, do not collect more answers, and do not re-run this stage automatically.
+   - Do not use this stage to judge answer ambiguity, wording quality, evidence strength, or rationale quality. Ambiguous answers are handled at the moment the answer is collected; gate-draft handles residual structural validation.
+   - Do not manually update, drop, rewrite, or append QA entries in response to review findings. Report at most 3 blocking user-decision gaps; if more seem possible, report the highest-impact blockers and stop.
+   - The CLI marks this step done and sets draft approval when the review returns PASS or ADVISORY. Gate-draft remains the blocking validation step.

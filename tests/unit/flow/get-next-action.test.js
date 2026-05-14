@@ -213,6 +213,21 @@ describe("flow get next-action", () => {
         assert.ok(typeof v === "string" && !v.includes("\n"), "path values are single-line strings (not file contents)");
       }
     });
+
+    it("returns spec-repair as a write-spec action with spec context", () => {
+      tmp = createTmpDir();
+      const state = setupActiveFlow(tmp);
+      setFlowStepInProgress(state, "spec-repair");
+      makeFlowManager(tmp).save(state);
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+      assert.equal(exitCode, 0);
+      assert.equal(envelope.data.step, "spec-repair");
+      assert.equal(envelope.data.action, "write-spec");
+      assert.equal(envelope.data.instructions.key, "plan.spec-repair");
+      assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.md" });
+      assert.equal(envelope.data.output_schema.type, "object");
+    });
   });
 
   describe("output_schema (REQ-8, REQ-10)", () => {
@@ -247,7 +262,7 @@ describe("flow get next-action", () => {
       const state = setupActiveFlow(tmp);
       // Simulate a post-gate state: branch/prepare-spec/draft/draft reviews/gate-draft all done,
       // next pending step is `spec`. No step is currently in_progress.
-      const prefixDone = ["branch", "prepare-spec", "draft", "review-draft-questions", "review-draft-coverage", "gate-draft"];
+      const prefixDone = ["branch", "prepare-spec", "draft", "review-draft-questions", "draft-refine", "review-draft-coverage", "gate-draft"];
       for (const s of flattenSteps(state.steps)) {
         s.status = prefixDone.includes(s.id) ? "done" : "pending";
       }

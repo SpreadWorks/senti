@@ -7,12 +7,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { FLOW_STEPS, PHASE_MAP } from "../../../src/lib/flow-helpers.js";
+import { FLOW_DEFINITION, resolveNodeFor } from "../../../src/flow/definition.js";
 describe("FLOW_STEPS ordering (plan rework)", () => {
-  it("has split draft review before gate-draft", () => {
-    const first12 = FLOW_STEPS.slice(0, 12);
-    assert.deepEqual(first12, [
-      "branch", "prepare-spec", "draft", "review-draft-questions", "review-draft-coverage", "gate-draft",
-      "spec", "review-spec", "gate", "approval", "test", "review-test",
+  it("has split draft review and spec repair before their gates", () => {
+    const first14 = FLOW_STEPS.slice(0, 14);
+    assert.deepEqual(first14, [
+      "branch", "prepare-spec", "draft", "review-draft-questions", "draft-refine", "review-draft-coverage", "gate-draft",
+      "spec", "review-spec", "spec-repair", "gate", "approval", "test", "review-test",
     ]);
   });
 
@@ -30,6 +31,27 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
     assert.ok(prepIdx < specIdx, "prepare-spec should come before spec");
   });
 
+  it("keeps draft question review one-shot in manual and auto modes", () => {
+    const node = resolveNodeFor(FLOW_DEFINITION, "review-draft-questions");
+
+    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
+  });
+
+  it("keeps draft coverage review one-shot in manual and auto modes", () => {
+    const node = resolveNodeFor(FLOW_DEFINITION, "review-draft-coverage");
+
+    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
+  });
+
+  it("keeps spec review one-shot in manual and auto modes", () => {
+    const node = resolveNodeFor(FLOW_DEFINITION, "review-spec");
+
+    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
+  });
+
   it("has gate before approval", () => {
     const gateIdx = FLOW_STEPS.indexOf("gate");
     const approvalIdx = FLOW_STEPS.indexOf("approval");
@@ -44,6 +66,10 @@ describe("PHASE_MAP (plan rework)", () => {
 
   it("maps spec to plan phase", () => {
     assert.equal(PHASE_MAP["spec"], "plan");
+  });
+
+  it("maps spec-repair to plan phase", () => {
+    assert.equal(PHASE_MAP["spec-repair"], "plan");
   });
 
   it("maps gate to plan phase", () => {

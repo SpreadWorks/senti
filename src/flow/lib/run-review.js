@@ -37,7 +37,6 @@ function resolveDraftReviewPhaseKey(flowState = {}) {
   const byId = new Map(steps.map((step) => [step.id, step]));
   if (byId.get("review-draft-coverage")?.status === "in_progress") return "draft-coverage";
   if (byId.get("review-draft-questions")?.status === "in_progress") return "draft-questions";
-  if (byId.get("review-draft-questions")?.status === "done") return "draft-coverage";
   return "draft-questions";
 }
 
@@ -132,7 +131,8 @@ export function updateReviewRetryCounter(ctx, result) {
   if (persistedPhase === "impl") {
     isPass = isImplPass(result);
   } else {
-    isPass = result?.artifacts?.verdict === "PASS";
+    isPass = result?.artifacts?.verdict === "PASS"
+      || result?.artifacts?.verdict === "ADVISORY";
   }
   const payload = isPass
     ? { phase: persistedPhase, counter: "reviewRetry", delta: 0, reset: true }
@@ -144,12 +144,12 @@ export { REVIEW_PHASE_KEYS };
 
 const PHASE_REVIEW_PARSERS = {
   test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
-  spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "approval",   commandId: "flow.spec.review.propose" },
+  spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "gate", failNext: "spec-repair", commandId: "flow.spec.review.propose" },
   draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft", commandId: "flow.draft.review" },
 };
 
-function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label, next }) {
-  const verdictMatch = stderr.match(/verdict=(PASS|FAIL)/);
+function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label, next, failNext = null }) {
+  const verdictMatch = stderr.match(/verdict=(PASS|FAIL|ADVISORY)/);
   const countMatch = stderr.match(countPattern);
   const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
   const retryPhaseMatch = stderr.match(/retryPhase=([a-z-]+)/);
@@ -175,7 +175,7 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
     result: "ok",
     changed,
     artifacts: { phase, verdict, [countKey]: count ?? 0, ...(retryPhaseMatch && { retryPhase: retryPhaseMatch[1] }) },
-    next: verdict === "FAIL" ? null : next,
+    next: verdict === "FAIL" ? failNext : next,
     output: stdout,
   };
 }

@@ -1,7 +1,10 @@
-   - Run `sdd-forge flow run review --phase draft` to perform the first draft question review.
-   - This stage validates whether `draft.json.qa[]` contains enough pending or approved questions to cover the initial requirement categories: goal-confirmation, impact-scope, acceptance-criteria, constraint-non-goal, risk-migration-policy, user-visible-behavior, dependency-integration-boundary, and implementation-policy.
-   - The review writes a detection report to `draft-review-questions.md`. It does not modify `draft.json`.
-   - If verdict=FAIL, read `draft-review-questions.md`, ask the user only the missing or ambiguous questions, and update `draft.json.qa[]` directly. Use `status` to track lifecycle; do not create a separate questions array.
-   - For ambiguous answers, ask an immediate direct clarification such as `Does "<ambiguous phrase>" mean "<concrete interpretation>"? Answer yes or no.` or `Which option should be used for "<decision>"? Answer A, B, or N/A.`
-   - Repeat detect -> fix -> re-review until verdict=PASS or maxAttempts is reached. If `REVIEW_MAX_ATTEMPTS_EXCEEDED` is returned, stop and return control to the user.
-   - On PASS: `sdd-forge flow set step review-draft-questions done`.
+   - Run `sdd-forge flow run review --phase draft` once to perform the draft question sanity check.
+   - This stage is not a question generator. The draft step owns the full initial question list.
+   - The review checks only finite structural defects in pending/approved questions:
+     - `qa[]` is empty before any answer exists.
+     - a question is empty, duplicated, not self-contained, or clearly asks for internal implementation details that project patterns should decide.
+     - a pending/approved question appears to include an answer or rationale instead of only the question text.
+   - Do not ask "what else is missing"; do not add questions for category coverage; do not propose `NEW` QA entries.
+   - The review writes a detection report to `draft-review-questions.md`.
+   - Findings are advisory, but the review command applies one AI repair pass to `draft.json` before proceeding. Do not manually add follow-up questions and do not re-run this stage automatically.
+   - The CLI marks this step done when the review returns PASS or ADVISORY. Gate-draft remains the blocking validation step.

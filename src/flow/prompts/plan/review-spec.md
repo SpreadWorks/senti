@@ -1,9 +1,10 @@
    - Run `sdd-forge flow run review --phase spec` to perform AI-powered spec review.
-   - The review uses a propose-only pipeline: AI identifies oversights in the spec (files not mentioned, contradictions, missing external references).
-   - Results are saved to spec-review.md with proposals listed with title, target section, and suggested change.
+   - The review uses a classification pipeline: AI separates blocking findings from non-blocking improvements.
+   - Results are saved to spec-review.md for operator reading and spec-review.json for structured review memory.
+   - The next review run receives spec-review.json as previous review memory and should not repeat acknowledged non-blocking improvements unless they became blocking.
    - The review does NOT modify spec.md or spec.json directly.
-   - **If verdict=PASS** (no proposals): display "Review found no required fixes." Then run `sdd-forge flow set step review-spec done`.
-   - **If verdict=FAIL** (proposals exist): read spec-review.md and evaluate each proposal against the spec and codebase context. Reflect changes that are valid into the spec. Then re-run `sdd-forge flow run review --phase spec`.
-   - **Review loop:** repeat review → fix → re-review until verdict=PASS or the resolved numeric maxAttempts from next-action is reached. Each `sdd-forge flow run review --phase spec` invocation = 1 attempt (CLI invocation level, not internal AI iteration).
-   - **CLI enforcement (spec 253):** the CLI now enforces this limit. When count >= max, `sdd-forge flow run review --phase spec` returns `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` and `data === { phase, attempts, max }`. Do NOT attempt to bypass it.
-   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover, the user can run `sdd-forge flow set retry reset review spec --yes` and then resume the loop.
+   - The CLI post-hook advances this review step after every verdict.
+   - **If verdict=PASS** (no findings or improvements): display "Review found no required fixes." The post-hook marks `review-spec` and `spec-repair` done.
+   - **If verdict=ADVISORY** (non-blocking improvements only): record that the improvements are non-blocking and do not rewrite the spec only to satisfy them. The post-hook marks `review-spec` and `spec-repair` done.
+   - **If verdict=FAIL** (blocking findings exist): do not edit the spec in this step and do not re-run review. The post-hook marks `review-spec` done and leaves `spec-repair` pending; the next step owns one-pass repair from `spec-review.json`.
+   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover, the user can run `sdd-forge flow set retry reset review spec --yes` and then resume.

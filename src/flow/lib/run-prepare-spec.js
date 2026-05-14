@@ -82,6 +82,13 @@ function buildDraftTemplate() {
       proposedApproach: "",
       validation: "",
     },
+    decisionMap: {
+      knownFacts: [],
+      decisionPoints: [],
+      resolvedByProjectRules: [],
+      requiresUserJudgment: [],
+      deferredToSpec: [],
+    },
     scopeVerification: {
       in: [],
       out: [],

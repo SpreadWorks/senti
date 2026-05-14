@@ -13,6 +13,13 @@ function buildValidDraft(overrides = {}) {
       proposedApproach: "test approach",
       validation: "test validation",
     },
+    decisionMap: {
+      knownFacts: ["known fact"],
+      decisionPoints: ["decision point"],
+      resolvedByProjectRules: [],
+      requiresUserJudgment: ["question q1"],
+      deferredToSpec: [],
+    },
     scopeVerification: { in: ["feature X"], out: ["Y"] },
     impactOnExisting: ["影響なし"],
     qa: [{

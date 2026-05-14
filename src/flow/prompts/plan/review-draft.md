@@ -1,3 +1,0 @@
-   - Draft review is split into `review-draft-questions` and `review-draft-coverage`.
-   - Use `sdd-forge flow run review --phase draft`; the CLI routes the command to the active draft review step.
-   - Do not use this legacy prompt for new flows.
