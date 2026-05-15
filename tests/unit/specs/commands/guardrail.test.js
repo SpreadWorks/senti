@@ -127,6 +127,9 @@ describe("buildGuardrailPrompt (structured JSON)", () => {
     assert.ok(prompt.includes("pass"));
     assert.ok(prompt.includes("fail"));
     assert.ok(prompt.includes("JSON"));
+    assert.ok(prompt.includes("Evaluate only explicit requirements stated in the listed guardrail article body"));
+    assert.ok(prompt.includes("This is a readiness gate, not a design review"));
+    assert.ok(prompt.includes("not directly grounded in a listed guardrail article"));
   });
 });
 

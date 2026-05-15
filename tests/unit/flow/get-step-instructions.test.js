@@ -58,6 +58,15 @@ describe("getStepInstructions (loader contract)", () => {
       assert.match(content, /Do not defer review findings to gate/);
       assert.match(content, /must be small, auditable, and limited to the reviewed findings/);
     });
+
+    it("spec gate instructions keep gate fixes separate from design review", () => {
+      const content = getStepInstructions("plan.gate");
+
+      assert.match(content, /readiness gate, not a design review/);
+      assert.match(content, /Fix only schema\/static issues, spec-repair audit issues, and explicit guardrail article violations/);
+      assert.match(content, /Do not use gate FAIL as a reason to search for new design gaps/);
+      assert.match(content, /Codebase-context design gaps belong to `review-spec` \/ `spec-repair`/);
+    });
   });
 
   describe("error path: unknown key", () => {

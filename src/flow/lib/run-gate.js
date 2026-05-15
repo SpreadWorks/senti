@@ -747,6 +747,9 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
 
   const rules = [
     "- Include exactly one entry per guardrail article listed below, identified by its id.",
+    "- Evaluate only explicit requirements stated in the listed guardrail article body. Do not invent additional design, codebase-context, or completeness criteria.",
+    "- This is a readiness gate, not a design review. Do not search for new implementation-target gaps, existing-behavior gaps, integration choices, or product-scope issues unless the guardrail article explicitly requires that check.",
+    "- If a concern is not directly grounded in a listed guardrail article, it must not be reported as a FAIL here.",
     "- `result` MUST be one of the lowercase strings: pass, fail, skip.",
     "- For pass/skip: include a non-empty `reason` and do NOT include `violations`.",
     "- For fail: include a non-empty `violations` array (do NOT rely on `reason` — it is overwritten by a derived summary).",
