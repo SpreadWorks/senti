@@ -274,6 +274,9 @@ describe("spec review classification helpers", () => {
     assert.match(combined, /Gate-owned checks are not blocking findings/);
     assert.match(combined, /JSON schema, required\/empty fields, unresolved markers, tasks missing\/empty\/depth structure, and guardrail compliance/);
     assert.match(combined, /without codebase context, leave it to gate/);
+    assert.match(combined, /This review is diagnostic/);
+    assert.match(combined, /smallest spec-level correction/);
+    assert.match(combined, /If a concern is gate-owned, omit it entirely/);
     assert.match(combined, /existing behavior impact is omitted/);
     assert.match(combined, /target/);
     assert.doesNotMatch(combined, /\*\*File:\*\* `<path>`/);

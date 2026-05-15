@@ -165,6 +165,27 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
     assert.ok(issues.some((issue) => /decision must be one of/.test(issue)), issues);
   });
 
+  it("rejects deferred repair decisions because review findings cannot be delegated to gate", () => {
+    const issues = withSpecRepairArtifacts({
+      "spec-review.json": failReview,
+      "spec-repair.json": {
+        version: 1,
+        phase: "spec-repair",
+        sourceReview: "spec-review.json",
+        summary: "Bad audit.",
+        items: [{
+          title: "Missing implementation target",
+          target: "R1",
+          decision: "deferred_to_gate",
+          rationale: "Gate will handle it.",
+          changedFields: [],
+        }],
+      },
+    }, validateSpecRepairAudit);
+
+    assert.ok(issues.some((issue) => /decision must be one of/.test(issue)), issues);
+  });
+
   it("rejects repair entries that do not match the source finding", () => {
     const issues = withSpecRepairArtifacts({
       "spec-review.json": failReview,

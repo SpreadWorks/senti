@@ -458,7 +458,6 @@ const SPEC_REPAIR_DECISIONS = new Set([
   "invalid",
   "already_resolved",
   "downgraded_to_non_blocking",
-  "deferred_to_gate",
 ]);
 
 function readJsonIfExists(filePath) {
