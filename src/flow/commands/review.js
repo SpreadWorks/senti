@@ -1247,12 +1247,14 @@ const SPEC_REVIEW_FMT_FALLBACK = [
  */
 function buildSpecReviewPrompt(specText, contextEntries, previousReview = null) {
   const pb = new PromptBuilder()
-    .setRole("You are a spec blocking reviewer. Analyze the spec against the codebase context and separate blocking gaps from optional improvements.")
+    .setRole("You are a codebase-context spec reviewer. Find design, implementation-target, and existing-behavior gaps that gate cannot determine mechanically.")
     .setRules([
       "Focus on:",
-      "- Blocking findings: gaps that make the spec impossible or unsafe to implement, test, or gate correctly.",
-      "- Blocking examples: contradictory scope, missing observable pass/fail condition for a requirement, missing exception policy for required external/live-provider behavior, missing implementation target that would cause a required behavior to be skipped.",
+      "- Blocking findings: codebase-context gaps that make the spec impossible or unsafe to implement or test correctly.",
+      "- Blocking examples: scope contradicts actual existing behavior, a required behavior lacks an implementation target that the codebase shows is necessary, existing behavior impact is omitted, or a required integration point/error path is missing from the spec.",
       "- Non-blocking improvements: helpful clarifications, extra related-file mentions, wording improvements, broader context, or nice-to-have completeness that does not block implementation/test/gate.",
+      "- Gate-owned checks are not blocking findings for this review: JSON schema, required/empty fields, unresolved markers, tasks missing/empty/depth structure, and guardrail compliance are handled by the downstream gate.",
+      "- If a concern can be decided mechanically from spec.json shape or guardrail articles without codebase context, leave it to gate instead of reporting it here.",
       "- Do not fail the review for non-blocking improvements.",
       "- Do not require every issue to map to a file. Use Target for a spec section, requirement id, file path, or GLOBAL.",
       "- When previous review memory is provided, do not repeat acknowledged non-blocking improvements unless the current spec has changed so the issue is now blocking.",
