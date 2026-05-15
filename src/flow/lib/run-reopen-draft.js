@@ -2,24 +2,50 @@
  * src/flow/lib/run-reopen-draft.js
  *
  * FlowCommand: `flow reopen-draft` — rewind the flow's draft step to
- * in_progress so the user can add tasks to the approved spec.
+ * in_progress so the user can answer draft QA or add tasks to a spec.
  *
- * Preconditions (REQ-5 of spec 215):
- *   - flow.json.tasks[] must contain at least one task with status='done'
+ * Preconditions:
+ *   - pre-implementation plan flows may reopen before tasks exist
+ *   - implementation-phase task additions require at least one done task
  *
- * Side effects (REQ-4):
+ * Side effects:
  *   - mark flow.draft step as in_progress
  *   - append an entry to specs/<spec>/issue-log.json recording the event
- *
- * Part of spec 215-flow-task-decomposition (draft-return task flow).
  */
 
 import { FlowCommand } from "./base-command.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { findInProgressLeaf, findStepById } from "../definition.js";
 
 const MAX_REASON_LENGTH = 500;
+const PLAN_REOPEN_DRAFT_REVIEW_STEPS = Object.freeze([
+  "review-draft-questions",
+  "draft-refine",
+  "review-draft-coverage",
+  "gate-draft",
+]);
+const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
+  "spec",
+  "review-spec",
+  "spec-repair",
+  "gate",
+  "approval",
+  "test",
+  "review-test",
+]);
+const PLAN_REOPEN_RESET_STEPS = Object.freeze([
+  ...PLAN_REOPEN_DRAFT_REVIEW_STEPS,
+  ...PLAN_REOPEN_ACTIVE_STEPS,
+]);
+const STALE_ARTIFACTS = Object.freeze([
+  "spec.json",
+  "spec.md",
+  "draft.json",
+  "issue.md",
+  "test.md",
+]);
 
 function validateReason(raw) {
   if (raw == null) return "";
@@ -36,6 +62,21 @@ function validateReason(raw) {
   return trimmed;
 }
 
+function setStepStatusAndClearTimestamps(steps, id, status) {
+  const step = findStepById(steps || [], id);
+  if (!step) return false;
+  step.status = status;
+  delete step.startedAt;
+  delete step.finishedAt;
+  return true;
+}
+
+function appendIssueLog(root, state, entry) {
+  const log = loadIssueLog(root, state.spec);
+  log.entries.push({ ...entry, timestamp: new Date().toISOString() });
+  saveIssueLog(root, state.spec, log);
+}
+
 export class RunReopenDraftCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
@@ -45,15 +86,42 @@ export class RunReopenDraftCommand extends FlowCommand {
       return Envelope.fail("run", "reopen-draft", "NO_ACTIVE_FLOW", "no active flow found");
     }
 
-    const tasks = Array.isArray(state.tasks) ? state.tasks : [];
-    if (tasks.length === 0) {
-      return Envelope.fail(
-        "run",
-        "reopen-draft",
-        "NO_TASKS",
-        "cannot reopen draft: flow has no committed tasks yet (use the regular approval cycle instead)",
-      );
+    let reason;
+    try {
+      reason = validateReason(ctx.reason);
+    } catch (err) {
+      return Envelope.fail("run", "reopen-draft", "INVALID_REASON", err.message);
     }
+
+    const tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    const previousActiveStep = findInProgressLeaf(state.steps || [])?.id ?? null;
+    if (state.currentTaskId == null && PLAN_REOPEN_ACTIVE_STEPS.includes(previousActiveStep)) {
+      const resetSteps = [];
+      fm._store.mutate((s) => {
+        setStepStatusAndClearTimestamps(s.steps, "draft", "in_progress");
+        for (const id of PLAN_REOPEN_RESET_STEPS) {
+          if (setStepStatusAndClearTimestamps(s.steps, id, "pending")) resetSteps.push(id);
+        }
+      });
+
+      appendIssueLog(root, state, {
+        step: "draft",
+        reason: `reopen-draft triggered: pre-implementation plan draft regression; stale planning artifacts retained${reason ? ` — ${reason}` : ""}`,
+        trigger: "user invoked sdd-forge flow reopen-draft before implementation task execution",
+        resolution: `draft step set to in_progress; reset plan steps: ${resetSteps.join(", ")}; stale artifacts retained: ${STALE_ARTIFACTS.join(", ")}`,
+      });
+
+      return Envelope.ok("run", "reopen-draft", {
+        reopened: true,
+        mode: "pre-implementation",
+        previousActiveStep,
+        resetSteps,
+        staleArtifacts: [...STALE_ARTIFACTS],
+        doneTaskCount: tasks.filter((t) => t.status === "done").length,
+        taskCount: tasks.length,
+      });
+    }
+
     const hasDone = tasks.some((t) => t.status === "done");
     if (!hasDone) {
       return Envelope.fail(
@@ -64,33 +132,22 @@ export class RunReopenDraftCommand extends FlowCommand {
       );
     }
 
-    let reason;
-    try {
-      reason = validateReason(ctx.reason);
-    } catch (err) {
-      return Envelope.fail("run", "reopen-draft", "INVALID_REASON", err.message);
-    }
-
     fm._store.mutate((s) => {
-      const draft = (s.steps || []).find((step) => step.id === "draft");
-      if (draft) draft.status = "in_progress";
-      // reset gate-draft so the new round re-runs the gate
-      const gateDraft = (s.steps || []).find((step) => step.id === "gate-draft");
-      if (gateDraft) gateDraft.status = "pending";
+      setStepStatusAndClearTimestamps(s.steps, "draft", "in_progress");
+      // Reset gate-draft so the new round re-runs the gate.
+      setStepStatusAndClearTimestamps(s.steps, "gate-draft", "pending");
     });
 
-    const log = loadIssueLog(root, state.spec);
-    log.entries.push({
+    appendIssueLog(root, state, {
       step: "draft",
       reason: `reopen-draft triggered: draft step rewound to add new tasks mid-implementation${reason ? ` — ${reason}` : ""}`,
       trigger: "user invoked sdd-forge flow reopen-draft",
       resolution: "flow.draft step set to in_progress; gate-draft reset to pending",
-      ts: new Date().toISOString(),
     });
-    saveIssueLog(root, state.spec, log);
 
     return Envelope.ok("run", "reopen-draft", {
       reopened: true,
+      mode: "implementation",
       doneTaskCount: tasks.filter((t) => t.status === "done").length,
       taskCount: tasks.length,
     });

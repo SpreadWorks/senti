@@ -165,11 +165,20 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 - **MUST: After `sdd-forge flow run finalize-cleanup` completes successfully**, the response envelope's `data.report.text` field contains the finalize Report. Place that text verbatim inside a fenced code block so the user sees the Report. If `data.report` is `null`, an envelope `errors` entry with code `REPORT_MISSING` explains why — surface that warning to the user instead of fabricating Report contents. The cleanup command itself removes the worktree and writes `.sdd-forge/last-finalized-spec`; the next `sdd-forge` command runs from the main repository.
 - **MUST: When `finalize-cleanup` returns `ORPHAN_COMMITS_DETECTED`, present the cherry-pick / abort / force-continue choice to the user.** This is an explicit exception to autoApprove auto-select: silently picking force-continue would lose feature-branch commits permanently. The envelope ships `data.orphanCommits` (sha + subject) and `data.recoveryOptions = ["cherry-pick", "abort", "force-continue"]` — show the commit list and the choice block, then act on the user's selection (`--auto-rescue` for cherry-pick, halt for abort, `--force` for force-continue with explicit user confirmation). `SQUASH_BASELINE_MISSING` and `SQUASH_BASELINE_DIVERGED` are similar manual-recovery prompts; surface their `errors[0].messages` verbatim.
 
-### Draft-return for mid-implementation task additions
+### Draft Return: phase-aware
+
+When spec writing discovers a missing user decision that belongs in draft QA:
+- Use `sdd-forge flow run reopen-draft --reason "<text>"` to return to the draft phase.
+- Pre-implementation plan flows do not require a done task. On success, the command marks `draft` as `in_progress` and resets downstream plan steps so draft review, gate, spec, approval, and test planning run again.
+- Existing spec artifacts are retained and the reopen reason is recorded in `issue-log.json` so the next draft pass can see why the return happened.
+
+When `reopen-draft` fails or reports a recovery choice, surface that recovery through Choice Format and wait for the user's decision unless `autoApprove` explicitly covers the choice and the skill does not list it as an exception.
+
+### Draft Return: implementation-phase task additions
 
 When implementation reveals that the spec needs additional tasks:
 - **MUST: Do not add tasks dynamically via any CLI during impl.** The only legitimate path is to return to the draft phase, append new tasks to `spec.json.tasks[]`, and re-approve.
-- Use `sdd-forge flow run reopen-draft [--reason "<text>"]` to rewind the draft step. Preconditions: at least one done task exists and the flow lifecycle is still `active`.
+- Use `sdd-forge flow run reopen-draft [--reason "<text>"]` to rewind the draft step. Preconditions for implementation-phase task additions: at least one done task exists and the flow lifecycle is still `active`.
 - After `reopen-draft` succeeds: edit `spec.json.tasks[]` to append new tasks (new entries must have `added_round = max(existing) + 1`). Existing tasks' `id` / `origin` / `added_round` are invariant — the spec gate rejects any changes to those fields. `title` / `description` of existing tasks may be corrected.
 - Re-run `sdd-forge spec render` to refresh `spec.md`, then proceed through `gate-draft → spec → gate → approval` again. The approval post-hook reflects only the new tasks into `flow.json.tasks[]`; existing tasks keep their status and steps.
 

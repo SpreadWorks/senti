@@ -1,0 +1,155 @@
+{
+  "devType": "bugfix",
+  "goal": "spec phase でユーザー判断が必要になった場合に、`reopen-draft` で draft phase へ戻れるようにする。implementation phase 以降の task 追加用 reopen 挙動は維持する。",
+  "analysis": {
+    "problem": "現在の `src/flow/lib/run-reopen-draft.js` は `flow.json.tasks[]` と done task の存在を前提にしているため、task 作成前の spec phase では `NO_TASKS` または `NO_DONE_TASK` で失敗する。これにより、spec 作成中に draft へ戻って QA を追加する運用が実行できない。",
+    "proposedApproach": "`reopen-draft` の許可条件と reset 対象を flow の進行段階に応じて分ける。spec 完了前は done task 前提を不要にし、draft から review-test までの plan phase 後続 step を再実行対象に戻す。implementation phase 以降は既存の done task 前提と task append semantics を維持する。",
+    "validation": "問題の根は `reopen-draft` が mid-implementation task additions 専用の前提に固定されている点である。phase-aware な条件分岐と reset matrix を仕様化し、既存 artifact を stale として扱う記録を残せば、spec phase の draft 回帰と既存 implementation phase 挙動を両立できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #323 は、spec phase で draft にないユーザー判断が必要な場合に `sdd-forge flow run reopen-draft --reason \"<reason>\"` で draft へ戻すことを求めている。",
+      "`src/flow/lib/run-reopen-draft.js` は現在、tasks が空なら `NO_TASKS`、done task がなければ `NO_DONE_TASK` を返す。",
+      "`src/flow/definition.js` の plan phase は draft / review-draft-questions / draft-refine / review-draft-coverage / gate-draft / spec / review-spec / spec-repair / gate / approval / test / review-test の順に定義されている。",
+      "`src/flow/prompts/plan/spec.md` は spec 中のユーザー確認を Choice Format でその場確認する説明を含み、Issue #323 の draft 回帰方針とずれている。",
+      "`src/templates/skills/sdd-forge.flow/SKILL.md` は `reopen-draft` を mid-implementation task additions 用として説明している。",
+      "プロジェクトルールにより、`src/templates/` を変更した場合は `sdd-forge upgrade` を実行して生成 skill へ反映する必要がある。"
+    ],
+    "decisionPoints": [
+      "spec 完了前の reopen をどの flow 状態まで許可するか。",
+      "spec 完了前 reopen 時に pending へ戻す step の範囲をどこまでにするか。",
+      "既存 spec artifact を stale としてどう記録し、削除しないことをどう検証するか。",
+      "`--reason` を issue-log にどう記録し、draft 側の追加確認理由として参照できる形にするか。",
+      "implementation phase 以降の既存 done task precondition と task append semantics をどう維持するか。",
+      "spec prompt と generated flow skill の説明をどの運用文言に揃えるか。",
+      "pre-spec / post-approval / implementation phase の reset matrix をどの単位テストで確認するか。"
+    ],
+    "resolvedByProjectRules": [
+      "Issue は単一 concern として扱い、AI 側から分割提案しない。",
+      "alpha 版ポリシーにより、旧フォーマットや後方互換コードは保持しない。ただし Issue #323 は既存 implementation phase 挙動の維持を受入条件に含めているため、その挙動は変更対象外の既存契約として扱う。",
+      "外部依存は追加しない。Node.js 組み込みモジュールと既存 project utility のみを使う。",
+      "`src/templates/skills/sdd-forge.flow/SKILL.md` を変更した場合は `sdd-forge upgrade` を実行する。",
+      "テスト失敗時はテストを通すためのテスト修正をせず、シナリオ妥当性を確認したうえで product code を修正する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "phase 判定を実装する具体的な helper 境界。",
+      "issue-log entry の文面とフィールド構成。",
+      "unit test の fixture 構成と検証対象ファイル。",
+      "generated skill 反映後の差分確認方法。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `sdd-forge flow run reopen-draft --reason \"...\"` の phase-aware 化",
+      "must: spec 完了前 reopen の reset matrix 定義と実装",
+      "must: 既存 spec artifact を削除せず stale として記録する挙動",
+      "must: `--reason` の issue-log 記録",
+      "must: `src/flow/prompts/plan/spec.md` の spec phase 回帰手順説明",
+      "must: `src/templates/skills/sdd-forge.flow/SKILL.md` と生成 skill の説明更新",
+      "must: pre-spec / post-approval / implementation phase の reset matrix テスト"
+    ],
+    "out": [
+      "draft review / gate-draft 再設計そのものの追加変更",
+      "board cdb2 の review / gate 収束性改善",
+      "GitHub Projects workflow の変更",
+      "SDD flow 全体の step 定義再設計",
+      "implementation phase 以降の task append semantics の仕様変更"
+    ]
+  },
+  "impactOnExisting": [
+    "`reopen-draft` の plan phase 挙動が追加される。",
+    "implementation phase 以降の `reopen-draft` は done task precondition を維持する必要がある。",
+    "spec phase prompt のユーザー確認手順が draft 回帰中心に変わる。",
+    "flow skill template と `.agents/skills` / `.claude/skills` に反映される generated skill の説明が変わる。",
+    "reset matrix に関する unit tests が追加または更新される。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "spec 完了前 reopen の許可範囲は、Issue 記載どおり spec phase 中に限定しますか。それとも approval / test 前の plan phase 後半も含めますか。",
+      "answer": "spec phase 中に限定せず、task 完了前の plan phase 後半も含める。Issue #323 は reset matrix に post-approval を含めているため、approval 後から implementation 開始前までの draft 回帰も扱う。",
+      "evidence": "Issue #323 Acceptance Criteria: pre-spec / post-approval / implementation phase の reset matrix をテストで確認。src/flow/definition.js: approval / test / review-test は plan phase の後続 step。",
+      "why": "post-approval をテスト対象に含める受入条件があるため、spec phase だけに限定すると Issue の検証範囲を満たせない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "post-approval phase の reset matrix では、approval / test / review-test を pending に戻す必要がありますか。それとも approval 済み状態を保持する必要がありますか。",
+      "answer": "approval / test / review-test は pending に戻す。draft へ戻ると spec と test plan が更新され得るため、過去の approval と test review は再利用しない。",
+      "evidence": "Issue #323 Required Improvements: spec 完了前 reopen では draft を in_progress に戻し、review-draft-questions / review-draft-coverage / gate-draft / spec / review-spec / gate / approval / test / review-test を pending に戻す。",
+      "why": "draft 変更後の spec と test 内容に対して改めて gate / approval / test review を通す必要がある。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "既存 spec artifact が stale になったことは、ユーザーから確認可能または監査可能である必要がありますか。",
+      "answer": "必要。既存 spec artifact は削除せず、stale になった理由と reopen 操作を監査可能な形で記録する。",
+      "evidence": "Issue #323 Required Improvements: 既存 spec artifacts は削除せず stale として記録する。`--reason` を issue-log に記録する。",
+      "why": "artifact を残すだけでは、どの時点でなぜ古くなったかを追跡できないため、再レビュー時の判断材料が不足する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "draft が追加質問を生成するとき、`--reason` で指定された reopen 理由へアクセスできる必要がありますか。",
+      "answer": "必要。draft 側の追加確認は、reopen 理由を参照して生成できる必要がある。具体的な受け渡し方法は spec で既存 flow context / issue-log の仕組みに合わせて決める。",
+      "evidence": "Issue #323 Required Improvements: `--reason` を issue-log に記録し、draft 側で追加確認すべき理由として参照できるようにする。",
+      "why": "reopen 理由が draft phase に届かないと、戻した目的に対応する QA が生成されず、同じ不明点が spec phase で再発する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "spec prompt の説明では、spec 中の ad-hoc user confirmation を完全に避けて reopen-draft へ誘導しますか。それとも reopen-draft が使えない例外時だけ Choice Format 確認を残しますか。",
+      "answer": "reopen-draft が使える状態では draft 回帰へ誘導する。reopen-draft が使えない例外やエラー復旧では、既存の Choice Format 確認を残す。",
+      "evidence": "Issue #323 Background: draft にない user 判断が必要な場合は ad-hoc 確認ではなく `sdd-forge flow run reopen-draft --reason \"<reason>\"` で draft に戻す方針。flow skill rules: ユーザーへの質問は Choice Format。",
+      "why": "Issue の方針に合わせつつ、CLI エラーや recovery choice のような例外時の安全な確認経路は維持する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "implementation phase 以降の既存 reopen 挙動について、done task precondition と task append semantics の維持を明示的な非回帰条件として扱いますか。",
+      "answer": "扱う。implementation phase 以降は、done task precondition と task append semantics を既存契約として維持する。",
+      "evidence": "Issue #323 Acceptance Criteria: implementation phase 以降の reopen は従来通り done task precondition と task append semantics を維持する。src/flow/lib/run-reopen-draft.js は現在 done task precondition を持つ。",
+      "why": "spec phase の不具合修正で mid-implementation task additions の安全境界を弱めると、既存運用の非回帰を満たせない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "reset matrix では、pre-spec / post-approval / implementation phase それぞれでどの step 状態と記録状態が保証される必要がありますか。",
+      "answer": "pre-spec と post-approval では draft を in_progress に戻し、draft 後続の review / gate / spec / approval / test 系 step を pending に戻し、stale と reason を記録する。implementation phase では done task precondition を維持し、既存の task 追加用 reopen 挙動から逸脱しないことを保証する。",
+      "evidence": "Issue #323 Required Improvements と Acceptance Criteria: spec 完了前 reset 対象、`--reason` issue-log 記録、pre-spec / post-approval / implementation phase の reset matrix 確認。",
+      "why": "phase ごとの保証を step 状態と記録状態に分けることで、spec 回帰の成功と既存 implementation 挙動の非回帰を同時に検証できる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "本件では GitHub Projects workflow や board cdb2 の review / gate 収束性改善を明示的にスコープ外としますか。",
+      "answer": "スコープ外とする。本件は Issue #323 の reopen-draft 前提不整合に限定する。",
+      "evidence": "Issue #323 Related: board cdb2 から切り出した前提不整合。Scope out: GitHub Projects workflow と board cdb2 の review / gate 収束性改善。",
+      "why": "単一責任 guardrail に従い、関連するが独立した収束性改善や board 操作変更を混ぜない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-14T14:53:26.873Z",
+    "notes": "Draft review passed."
+  }
+}

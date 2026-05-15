@@ -1,0 +1,126 @@
+{
+  "version": "1",
+  "completed": true,
+  "passed": true,
+  "discovery": [
+    {
+      "source": "package.json",
+      "command": "npm test",
+      "resolved": "node tests/run.js",
+      "notes": "scripts.test discovered. The project runner delegates to Node.js test runner."
+    },
+    {
+      "source": ".sdd-forge/config.json",
+      "command": null,
+      "notes": "No commands.test entry found."
+    },
+    {
+      "source": "README.md",
+      "command": null,
+      "notes": "No test command documented."
+    },
+    {
+      "source": "Makefile/composer.json/pyproject.toml",
+      "command": null,
+      "notes": "No root declarative test runner file found."
+    }
+  ],
+  "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/257-phase-aware-reopen-draft/tests/*.test.js",
+  "verbose_flags": [
+    "--test-reporter=spec"
+  ],
+  "exit_code": 0,
+  "raw_output_path": "/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-257-phase-aware-reopen-draft/specs/257-phase-aware-reopen-draft/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "requirement": "`sdd-forge flow run reopen-draft --reason \"...\"` shall accept pre-implementation plan flows that have no done tasks when the active flow is still before implementation task execution. This path shall not return `NO_TASKS` or `NO_DONE_TASK` solely because `flow.json.tasks[]` is empty or has no done task.",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/257-phase-aware-reopen-draft/tests/reopen-draft-reset.test.js",
+        "test_name": "R1: pre-spec plan reopen succeeds without tasks or done tasks",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/257-phase-aware-reopen-draft/tests/*.test.js"
+      }
+    },
+    {
+      "id": "R2",
+      "requirement": "For pre-spec and post-approval plan reopen paths, the command shall set `draft` to `in_progress` and set `review-draft-questions`, `draft-refine`, `review-draft-coverage`, `gate-draft`, `spec`, `review-spec`, `spec-repair`, `gate`, `approval`, `test`, and `review-test` to `pending`.",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/257-phase-aware-reopen-draft/tests/reopen-draft-reset.test.js",
+        "test_name": "R2: plan reopen resets downstream steps for pre-spec and post-approval",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/257-phase-aware-reopen-draft/tests/*.test.js"
+      }
+    },
+    {
+      "id": "R3",
+      "requirement": "For pre-implementation plan reopen paths, existing spec artifacts including `spec.json`, `spec.md`, `draft.json`, `issue.md`, review reports, and test design files shall not be deleted by `reopen-draft`. The command shall record in `issue-log.json` that planning artifacts became stale because draft was reopened.",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/257-phase-aware-reopen-draft/tests/reopen-draft-reset.test.js",
+        "test_name": "R3: plan reopen preserves existing spec artifacts",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/257-phase-aware-reopen-draft/tests/*.test.js"
+      }
+    },
+    {
+      "id": "R4",
+      "requirement": "For every successful reopen, `issue-log.json` shall include the provided `--reason` text when non-empty, the trigger command context, and a resolution summary that distinguishes pre-implementation draft regression from implementation-phase task addition.",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/257-phase-aware-reopen-draft/tests/reopen-draft-reset.test.js",
+        "test_name": "R4: plan reopen records reason and stale context in issue-log",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/257-phase-aware-reopen-draft/tests/*.test.js"
+      }
+    },
+    {
+      "id": "R5",
+      "requirement": "For implementation-phase or later reopen paths, the command shall preserve the existing done task precondition: if no done task exists, it shall fail with `NO_DONE_TASK`; if at least one done task exists, it shall reopen draft for task additions without resetting the full plan matrix described in R2.",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/257-phase-aware-reopen-draft/tests/reopen-draft-reset.test.js",
+        "test_name": "R5: implementation reopen preserves done-task precondition and narrow reset",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/257-phase-aware-reopen-draft/tests/*.test.js"
+      }
+    },
+    {
+      "id": "R6",
+      "requirement": "`src/flow/prompts/plan/spec.md` shall instruct agents that when spec writing discovers a missing user decision that belongs in draft QA, they should run `sdd-forge flow run reopen-draft --reason \"<reason>\"` rather than collecting an ad-hoc spec-phase answer, except for command failure or recovery choices that still require Choice Format handling.",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/257-phase-aware-reopen-draft/tests/guidance-text.test.js",
+        "test_name": "R6: spec prompt routes missing draft decisions through reopen-draft",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/257-phase-aware-reopen-draft/tests/*.test.js"
+      }
+    },
+    {
+      "id": "R7",
+      "requirement": "`src/templates/skills/sdd-forge.flow/SKILL.md` and generated skill copies shall describe phase-aware `reopen-draft`: pre-implementation plan flows do not require a done task and reset the plan matrix, while implementation-phase task additions still require a done task.",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/257-phase-aware-reopen-draft/tests/guidance-text.test.js",
+        "test_name": "R7: flow skill template and generated skills document phase-aware reopen preconditions",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/257-phase-aware-reopen-draft/tests/*.test.js"
+      }
+    },
+    {
+      "id": "R8",
+      "requirement": "Tests shall cover pre-spec, post-approval, and implementation-phase reopen paths. The tests shall assert step status changes, issue-log reason/stale recording, artifact preservation for plan reopen, and implementation-phase non-regression for `NO_DONE_TASK` and successful done-task reopen.",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/257-phase-aware-reopen-draft/tests/reopen-draft-reset.test.js",
+        "test_name": "R8: reset matrix tests cover pre-spec, post-approval, and implementation paths",
+        "command": "node --test --experimental-test-isolation=none --test-reporter=spec specs/257-phase-aware-reopen-draft/tests/*.test.js"
+      }
+    }
+  ],
+  "totals": {
+    "tests": 8,
+    "suites": 2,
+    "pass": 8,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 124.403556
+  }
+}

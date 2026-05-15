@@ -1,0 +1,78 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".agents/skills/sdd-forge.flow/SKILL.md             |  473 +++++++\n .claude/skills/sdd-forge.flow/SKILL.md             |  473 +++++++\n .../draft-review-coverage.md                       |    3 +\n .../draft-review-questions.md                      |   23 +\n specs/257-phase-aware-reopen-draft/draft.json      |  155 +++\n specs/257-phase-aware-reopen-draft/file-map.json   |   28 +\n specs/257-phase-aware-reopen-draft/flow.json       | 1368 ++++++++++++++++++++\n specs/257-phase-aware-reopen-draft/issue-log.json  |  245 ++++\n specs/257-phase-aware-reopen-draft/issue.md        |   82 ++\n specs/257-phase-aware-reopen-draft/review.md       |   21 +\n .../257-phase-aware-reopen-draft/spec-review.json  |   30 +\n specs/257-phase-aware-reopen-draft/spec-review.md  |   19 +\n specs/257-phase-aware-reopen-draft/spec.json       |  271 ++++\n specs/257-phase-aware-reopen-draft/spec.md         |  125 ++\n specs/257-phase-aware-reopen-draft/tasks/T-1.md    |   22 +\n specs/257-phase-aware-reopen-draft/tasks/T-2.md    |   20 +\n specs/257-phase-aware-reopen-draft/tasks/T-3.md    |   21 +\n .../tests/guidance-text.test.js                    |   41 +\n .../tests/reopen-draft-reset.test.js               |  253 ++++\n specs/257-phase-aware-reopen-draft/tests/spec.md   |  123 ++\n src/flow/lib/run-reopen-draft.js                   |  115 +-\n src/flow/prompts/plan/spec.md                      |    6 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |   13 +-\n 23 files changed, 3897 insertions(+), 33 deletions(-)",
+      "commits": [
+        "feat: feature/257-phase-aware-reopen-draft"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 0,
+      "entries": []
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 12,
+      "question": 0,
+      "issueLog": 14
+    },
+    "tokenMetrics": {
+      "input": 2162910,
+      "output": 122431,
+      "cacheRead": 6111872,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 52,
+      "durationMs": 4571446,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 78237
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 8722
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 58363
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 75836
+        },
+        {
+          "phase": "gate",
+          "durationMs": 30064
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 1808139
+        },
+        {
+          "phase": "test-execute",
+          "durationMs": 847499
+        },
+        {
+          "phase": "test-result-review",
+          "durationMs": 720661
+        },
+        {
+          "phase": "review",
+          "durationMs": 613969
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 329956
+        }
+      ]
+    },
+    "tests": null,
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/257-phase-aware-reopen-draft\n    23 files changed, 3897 insertions(+), 33 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 12\n    Q&A ......................... 0\n    issue-log ................... 14\n    agent calls ................. 52\n    input tokens ................ 2,162,910\n    output tokens ............... 122,431\n    cache-read tokens ........... 6,111,872\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 4571.4s\n      review-draft-questions .... 78.2s\n      review-draft-coverage ..... 8.7s\n      gate-draft ................ 58.4s\n      review-spec ............... 75.8s\n      gate ...................... 30.1s\n      review-test ............... 1808.1s\n      test-execute .............. 847.5s\n      test-result-review ........ 720.7s\n      review .................... 614.0s\n      gate-impl ................. 330.0s\n\n  Tests\n  ────────────────────────────────────────────────\n    No test data"
+}

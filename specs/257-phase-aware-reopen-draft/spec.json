@@ -1,0 +1,271 @@
+{
+  "goal": "Make `sdd-forge flow run reopen-draft --reason \"...\"` usable before implementation when spec planning needs to return to draft QA, while preserving the existing implementation-phase task-addition behavior.",
+  "scope": {
+    "in": [
+      "[must] Add phase-aware `reopen-draft` behavior for pre-implementation plan flow states.",
+      "[must] Reset the plan-phase step matrix for pre-spec and post-approval reopen paths.",
+      "[must] Preserve existing spec artifacts and record the reopen reason plus stale-artifact context in issue-log.",
+      "[must] Preserve implementation-phase done task precondition and task append semantics.",
+      "[must] Update spec prompt guidance so missing user judgment returns to draft through `reopen-draft` when available.",
+      "[must] Update generated flow skill guidance and run `sdd-forge upgrade` because `src/templates/skills/sdd-forge.flow/SKILL.md` changes.",
+      "[must] Add regression tests for pre-spec, post-approval, and implementation-phase reset behavior."
+    ],
+    "out": [
+      "Draft review / gate-draft redesign outside the reopen-draft regression path.",
+      "Board cdb2 review / gate convergence improvements.",
+      "GitHub Projects workflow or experimental workflow changes.",
+      "Reordering the global SDD flow definition.",
+      "Changing implementation-phase task append semantics."
+    ]
+  },
+  "constraints": [
+    "Node.js built-in modules only; no dependency additions.",
+    "Do not delete existing spec artifacts during reopen; record stale context instead.",
+    "When changing `src/templates/skills/sdd-forge.flow/SKILL.md`, run `sdd-forge upgrade` so generated `.agents/skills` and `.claude/skills` content is updated.",
+    "User-facing argument validation for `reopen-draft --reason` remains at the command boundary: optional string, no NUL byte, trimmed length at most 500 characters.",
+    "Exit-code contract: successful reopen returns an ok envelope and process exit 0; invalid reason, missing active flow, and disallowed phase/precondition failures return a fail envelope and non-zero process exit.",
+    "Implementation-phase reopen keeps the existing safety boundary: at least one done task must exist before reopening draft for task additions."
+  ],
+  "design_principles": [
+    "Use one command for both draft-return use cases, with phase-aware preconditions rather than a new command.",
+    "Keep plan-phase reset explicit and testable as a matrix of step statuses.",
+    "Treat issue-log as the durable audit trail for why stale planning artifacts exist.",
+    "Make prompt and skill text describe the command behavior that the code actually supports."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/lib/run-reopen-draft.js — implement phase-aware preconditions, plan reset behavior, and reopen issue-log entries."
+      },
+      {
+        "text": "src/flow/definition.js / src/lib/flow-helpers.js — existing flow definition and nested-step helpers provide the step IDs and status structure used by the reset matrix."
+      },
+      {
+        "text": "src/flow/prompts/plan/spec.md — change spec-writing guidance from ad-hoc user confirmation to draft-return via reopen-draft when a missing draft decision is discovered."
+      },
+      {
+        "text": "src/templates/skills/sdd-forge.flow/SKILL.md — document phase-aware reopen-draft behavior in generated agent skill guidance."
+      },
+      {
+        "text": ".agents/skills/sdd-forge.flow/SKILL.md and .claude/skills/sdd-forge.flow/SKILL.md — generated outputs refreshed by `sdd-forge upgrade`."
+      },
+      {
+        "text": "specs/257-phase-aware-reopen-draft/tests/ — spec-local regression tests for reopen reset matrix and non-regression behavior."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "User/agent invokes `sdd-forge flow run reopen-draft --reason <text>` → command validates reason → command classifies flow state as pre-implementation plan path or implementation task-addition path."
+      },
+      {
+        "text": "Pre-implementation path → draft step becomes in_progress → downstream plan steps become pending → issue-log records reason and stale artifact context → existing spec artifacts remain on disk."
+      },
+      {
+        "text": "Implementation path → existing done task precondition remains required → draft step and gate-draft are reopened for task addition → existing task semantics remain unchanged."
+      },
+      {
+        "text": "Spec prompt and generated flow skill describe the same phase-aware command behavior so future agents use the supported path."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] `run-reopen-draft` currently fails before tasks exist and before any task is done.",
+        "evidence": "src/flow/lib/run-reopen-draft.js checks `tasks.length === 0` and returns `NO_TASKS`; then checks `tasks.some(status === \"done\")` and returns `NO_DONE_TASK` when false."
+      },
+      {
+        "text": "[VERIFY] The plan phase includes draft/review/gate/spec/approval/test leaves that must be reset by name.",
+        "evidence": "src/flow/definition.js defines plan children: draft, review-draft-questions, draft-refine, review-draft-coverage, gate-draft, spec, review-spec, spec-repair, gate, approval, test, review-test."
+      },
+      {
+        "text": "[VERIFY] Existing issue-log helper supports durable reopen audit entries with step, reason, trigger, resolution, guardrailCandidate, taskId, and timestamp.",
+        "evidence": "src/flow/lib/set-issue-log.js loadIssueLog/saveIssueLog persist specs/<spec>/issue-log.json entries; run-reopen-draft already imports loadIssueLog/saveIssueLog."
+      },
+      {
+        "text": "[VERIFY] The current spec prompt still allows in-place user confirmation, which conflicts with Issue #323's draft-return policy.",
+        "evidence": "src/flow/prompts/plan/spec.md contains a User confirmation section for changing draft policy and states the dispatcher auto-selects under autoApprove."
+      },
+      {
+        "text": "[VERIFY] The flow skill template still describes reopen-draft as mid-implementation task-addition behavior.",
+        "evidence": "src/templates/skills/sdd-forge.flow/SKILL.md section Draft-return for mid-implementation task additions says use reopen-draft when implementation reveals additional tasks and requires at least one done task."
+      },
+      {
+        "text": "Pre-implementation reopen covers the planning leaves after draft creation and before implementation task execution, including post-approval/test planning leaves.",
+        "evidence": "draft.json q1 and q2: Issue #323 requires post-approval reset matrix coverage, so approval/test/review-test cannot be excluded."
+      },
+      {
+        "text": "Implementation-phase behavior is a non-regression contract and is not weakened by the plan-phase path.",
+        "evidence": "draft.json q6 and Issue #323 Acceptance Criteria require done task precondition and task append semantics to remain for implementation phase and later."
+      }
+    ]
+  },
+  "background": "Issue #323 identifies a mismatch between the intended SDD workflow and the current `reopen-draft` implementation. The workflow design expects spec planning to return to draft when a missing user decision must be captured as QA. The command currently assumes a mid-implementation task-addition scenario, so a spec-phase flow with no committed tasks fails before it can reset draft. This leaves agents with ad-hoc user confirmation as the only practical path, contradicting the intended draft-return process.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`sdd-forge flow run reopen-draft --reason \"...\"` shall accept pre-implementation plan flows that have no done tasks when the active flow is still before implementation task execution. This path shall not return `NO_TASKS` or `NO_DONE_TASK` solely because `flow.json.tasks[]` is empty or has no done task.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "For pre-spec and post-approval plan reopen paths, the command shall set `draft` to `in_progress` and set `review-draft-questions`, `draft-refine`, `review-draft-coverage`, `gate-draft`, `spec`, `review-spec`, `spec-repair`, `gate`, `approval`, `test`, and `review-test` to `pending`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "For pre-implementation plan reopen paths, existing spec artifacts including `spec.json`, `spec.md`, `draft.json`, `issue.md`, review reports, and test design files shall not be deleted by `reopen-draft`. The command shall record in `issue-log.json` that planning artifacts became stale because draft was reopened.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "For every successful reopen, `issue-log.json` shall include the provided `--reason` text when non-empty, the trigger command context, and a resolution summary that distinguishes pre-implementation draft regression from implementation-phase task addition.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "For implementation-phase or later reopen paths, the command shall preserve the existing done task precondition: if no done task exists, it shall fail with `NO_DONE_TASK`; if at least one done task exists, it shall reopen draft for task additions without resetting the full plan matrix described in R2.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "`src/flow/prompts/plan/spec.md` shall instruct agents that when spec writing discovers a missing user decision that belongs in draft QA, they should run `sdd-forge flow run reopen-draft --reason \"<reason>\"` rather than collecting an ad-hoc spec-phase answer, except for command failure or recovery choices that still require Choice Format handling.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "`src/templates/skills/sdd-forge.flow/SKILL.md` and generated skill copies shall describe phase-aware `reopen-draft`: pre-implementation plan flows do not require a done task and reset the plan matrix, while implementation-phase task additions still require a done task.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Tests shall cover pre-spec, post-approval, and implementation-phase reopen paths. The tests shall assert step status changes, issue-log reason/stale recording, artifact preservation for plan reopen, and implementation-phase non-regression for `NO_DONE_TASK` and successful done-task reopen.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A spec-local test exercising a pre-spec plan flow with no tasks shows `reopen-draft --reason \"...\"` succeeds, `draft` becomes `in_progress`, all R2 plan steps become `pending`, artifacts remain present, and issue-log contains the reason plus stale planning context.",
+    "A spec-local test exercising a post-approval plan flow shows `approval`, `test`, and `review-test` are reset to `pending` together with the earlier plan review/gate/spec steps.",
+    "A spec-local test exercising an implementation-phase flow with no done task still receives `NO_DONE_TASK`.",
+    "A spec-local test exercising an implementation-phase flow with a done task preserves the prior task-addition behavior and does not apply the full R2 plan reset matrix.",
+    "`src/flow/prompts/plan/spec.md` mentions `sdd-forge flow run reopen-draft --reason \"<reason>\"` as the route for missing draft decisions discovered during spec writing.",
+    "`src/templates/skills/sdd-forge.flow/SKILL.md` mentions both pre-implementation plan reopen and implementation-phase task-addition reopen preconditions.",
+    "`sdd-forge upgrade` updates generated flow skill files after the template change.",
+    "The command still rejects invalid `--reason` values with a fail envelope and non-zero exit.",
+    "No existing spec artifact is deleted by successful pre-implementation reopen.",
+    "npm test passes."
+  ],
+  "clarifications": [
+    {
+      "q": "Does pre-implementation reopen include post-approval planning leaves?",
+      "a": "Yes. Issue #323 explicitly requires post-approval reset matrix coverage, so approval/test/review-test are reset when draft is reopened before implementation task execution."
+    },
+    {
+      "q": "Is stale artifact tracking required to be a new storage field?",
+      "a": "No. The requirement is that stale status is auditable. This spec uses issue-log entries unless implementation discovers an existing stronger artifact mechanism."
+    },
+    {
+      "q": "Does the command change public CLI syntax?",
+      "a": "No. The existing `reopen-draft` command and `--reason` option remain the interface; this spec changes phase-aware semantics and documentation."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Create a separate `reopen-spec-draft` command",
+      "reason": "Rejected because the existing user-facing operation is already `reopen-draft`; a second command would duplicate workflow intent and require extra CLI documentation without improving behavior."
+    },
+    {
+      "option": "Keep ad-hoc spec-phase Choice Format confirmation",
+      "reason": "Rejected because Issue #323 states that missing draft decisions should return to draft QA rather than being answered ad-hoc during spec writing."
+    },
+    {
+      "option": "Delete stale spec artifacts during pre-implementation reopen",
+      "reason": "Rejected because Issue #323 explicitly requires existing spec artifacts not to be deleted and stale status to be recorded."
+    },
+    {
+      "option": "Remove the implementation-phase done task precondition",
+      "reason": "Rejected because Issue #323 requires implementation-phase and later reopen behavior to preserve the existing done task precondition and task append semantics."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "reopen-draft",
+    "run-reopen-draft",
+    "phase-aware",
+    "draft regression",
+    "plan reset matrix",
+    "NO_TASKS",
+    "NO_DONE_TASK",
+    "issue-log",
+    "stale artifacts",
+    "spec prompt",
+    "flow skill",
+    "sdd-forge upgrade",
+    "post-approval",
+    "task append semantics"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Implement plan reopen",
+      "goal": "Add the pre-implementation plan reopen path to `reopen-draft` while preserving implementation-phase safety checks.",
+      "acceptance": [
+        "Pre-implementation plan flows without done tasks can reopen draft.",
+        "R2 step reset matrix is applied for pre-spec and post-approval paths.",
+        "Existing artifacts remain on disk.",
+        "Issue-log records reason and stale planning context.",
+        "Implementation-phase `NO_DONE_TASK` and done-task success behavior remain distinct from the plan reset path."
+      ],
+      "implementation_notes": "Prefer helpers around nested step lookup/reset so the command does not rely on a flat step array. Keep reason validation at the command entry point.",
+      "test_strategy": "Covered by spec-local tests for pre-spec, post-approval, and implementation-phase command behavior.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Update reopen guidance",
+      "goal": "Align spec-writing prompt guidance and generated flow skill text with the phase-aware `reopen-draft` behavior.",
+      "acceptance": [
+        "Spec prompt points missing draft decisions to `reopen-draft --reason`.",
+        "Flow skill template documents plan-phase and implementation-phase reopen preconditions.",
+        "`sdd-forge upgrade` refreshes generated skill copies."
+      ],
+      "implementation_notes": "Keep guidance generic and avoid project-specific values in `src/` template content.",
+      "test_strategy": "Use diff inspection and, where practical, spec-local text assertions for the expected command phrase and precondition descriptions.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Cover reset matrix",
+      "goal": "Add regression tests that lock down the phase-aware reset matrix and implementation-phase non-regression behavior.",
+      "acceptance": [
+        "Pre-spec test verifies R2 statuses, artifact preservation, and issue-log reason/stale context.",
+        "Post-approval test verifies approval/test/review-test reset.",
+        "Implementation-phase tests verify `NO_DONE_TASK` and successful done-task reopen behavior.",
+        "Spec-local tests are runnable independently from npm test discovery."
+      ],
+      "implementation_notes": "Use temporary fixture roots and existing command/helper APIs rather than invoking external services.",
+      "test_strategy": "Run spec-local tests and npm test after implementation.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-14T14:59:28.891Z",
+    "notes": "autoApprove: approved gate-passed spec for Issue #323"
+  }
+}
