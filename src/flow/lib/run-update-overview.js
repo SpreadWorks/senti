@@ -20,7 +20,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { applyOverviewAdditions } from "./overview-merge.js";
-import { renderSpecMarkdown } from "../../spec/commands/render.js";
+import { renderSpecView } from "./render-spec-view.js";
 import { FlowCommand } from "./base-command.js";
 import { FlowManager } from "../../lib/flow-manager.js";
 import { Envelope } from "../../lib/flow-envelope.js";
@@ -30,7 +30,6 @@ const MAX_SPEC_JSON_BYTES = 256 * 1024;
 
 export function persistOverviewUpdate({ specDir, additions, taskId, meta }) {
   const specJsonPath = path.join(specDir, "spec.json");
-  const specMdPath = path.join(specDir, "spec.md");
 
   const stat = fs.statSync(specJsonPath);
   if (stat.size > MAX_SPEC_JSON_BYTES) {
@@ -44,10 +43,15 @@ export function persistOverviewUpdate({ specDir, additions, taskId, meta }) {
   const next = applyOverviewAdditions(spec, additions, taskId);
 
   fs.writeFileSync(specJsonPath, `${JSON.stringify(next, null, 2)}\n`);
-  const md = renderSpecMarkdown(next, meta);
-  fs.writeFileSync(specMdPath, md);
+  const renderResult = renderSpecView({
+    root: path.dirname(path.dirname(specDir)),
+    specPath: specJsonPath,
+    state: { featureBranch: meta?.featureBranch },
+    spec: next,
+    meta,
+  });
 
-  return { specJsonPath, specMdPath };
+  return { specJsonPath, specMdPath: path.join(specDir, "spec.md"), rendered: renderResult.changed };
 }
 
 const OVERVIEW_ADDITION_KEYS = ["modules", "data_flow", "decisions"];

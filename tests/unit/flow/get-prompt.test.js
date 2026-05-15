@@ -9,6 +9,8 @@ import { makeFlowManager } from "../../helpers/flow-setup.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "child_process";
 import { join } from "path";
+import fs from "node:fs";
+import path from "node:path";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { buildInitialSteps } from "../../../src/lib/flow-helpers.js";
 const FLOW_CMD = join(process.cwd(), "src/flow.js");
@@ -30,6 +32,26 @@ describe("flow get prompt", () => {
     };
     makeFlowManager(dir).save(state);
     makeFlowManager(dir).addActiveFlow(specId, "local");
+  }
+
+  function writeSpecJson(dir, specId = "001-test") {
+    const specDir = path.join(dir, "specs", specId);
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(specDir, "spec.json"), JSON.stringify({
+      goal: "Approval view goal",
+      background: "",
+      scope: { in: [], out: [] },
+      constraints: [],
+      design_principles: [],
+      overview: { modules: [], data_flow: [], decisions: [] },
+      requirements: [{ id: "R1", desc: "Approve this." }],
+      acceptance_criteria: ["Approved."],
+      clarifications: [],
+      alternatives_considered: [],
+      open_questions: [],
+      tasks: [{ id: "T-1", title: "Task one", goal: "Task goal", parent: null, origin: "plan", added_round: 0, status: "pending" }],
+    }, null, 2));
+    return specDir;
   }
 
   it("returns error for removed plan.approach kind", () => {
@@ -92,6 +114,26 @@ describe("flow get prompt", () => {
     const envelope = JSON.parse(result);
     assert.ok(envelope.data.description);
     assert.ok(envelope.data.choices.length >= 2);
+  });
+
+  it("renders spec.md for the approval prompt from spec.json", () => {
+    tmp = createTmpDir();
+    setupFlowState(tmp);
+    const specDir = writeSpecJson(tmp);
+
+    const result = execFileSync(
+      "node", [FLOW_CMD, "get", "prompt", "plan.approval"],
+      { encoding: "utf8", env: { ...process.env, SDD_FORGE_WORK_ROOT: tmp } },
+    );
+    const envelope = JSON.parse(result);
+    assert.equal(envelope.ok, true);
+    const md = fs.readFileSync(path.join(specDir, "spec.md"), "utf8");
+    assert.match(md, /Approval view goal/);
+    assert.match(md, /R1/);
+    assert.deepEqual(envelope.data.artifacts.specView, [
+      "specs/001-test/spec.md",
+      "specs/001-test/tasks/T-1.md",
+    ]);
   });
 
   it("finalize.merge-strategy is removed as a known kind", () => {

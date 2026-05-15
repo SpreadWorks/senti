@@ -10,23 +10,8 @@ import fs from "fs";
 import path from "path";
 import { getWorktreeStatus, getCurrentBranch, getAheadCount, getLastCommit, isGhAvailable } from "../../lib/git-helpers.js";
 import { derivePhase } from "../../lib/flow-helpers.js";
-import { loadSpecRequirements } from "../../lib/spec-json.js";
+import { loadSpecJson, loadSpecRequirements } from "../../lib/spec-json.js";
 import { flattenSteps } from "../definition.js";
-
-function extractSection(text, heading) {
-  const lines = text.split("\n");
-  let inSection = false;
-  const result = [];
-  for (const line of lines) {
-    if (inSection && /^## /.test(line)) break;
-    if (new RegExp(`^## ${heading}\\b`, "i").test(line)) {
-      inSection = true;
-      continue;
-    }
-    if (inSection) result.push(line);
-  }
-  return result.join("\n").trim();
-}
 
 const SKILL_BY_PHASE = { sync: "sdd-forge.flow-sync" };
 const DEFAULT_SKILL = "sdd-forge.flow";
@@ -70,10 +55,12 @@ export function buildResolvedFlowContext(ctx) {
   let scope = null;
   const effectiveRoot = worktreePath && fs.existsSync(worktreePath) ? worktreePath : mainRepoPath;
   const specPath = path.resolve(effectiveRoot, state.spec);
-  if (fs.existsSync(specPath)) {
-    const specText = fs.readFileSync(specPath, "utf8");
-    goal = extractSection(specText, "Goal") || null;
-    scope = extractSection(specText, "Scope") || null;
+  try {
+    const specJson = loadSpecJson(specPath, { validate: false });
+    goal = typeof specJson.goal === "string" && specJson.goal.trim() ? specJson.goal.trim() : null;
+    scope = specJson.scope && typeof specJson.scope === "object" ? specJson.scope : null;
+  } catch {
+    // Active flows may still be in prepare/draft before spec.json exists.
   }
 
   const { dirty, dirtyFiles } = getWorktreeStatus(effectiveRoot);

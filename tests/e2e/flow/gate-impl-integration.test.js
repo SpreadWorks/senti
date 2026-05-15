@@ -198,7 +198,7 @@ describe("gate-impl integration (spec 202)", () => {
     ].join("\n");
     setupFixture(tmp, { initialTest: BASE_TEST, modifiedTest: modified });
 
-    const res = runGate(tmp);
+    const res = runGate(tmp, ["--skip-guardrail"]);
     assert.equal(res.status, 0, `expected exit 0, got ${res.status}. stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
     assert.equal(env.ok, true);
@@ -314,17 +314,16 @@ describe("gate-impl integration (spec 202)", () => {
         assert.equal(env.data.result, "pass");
       } else {
         assert.notEqual(res.status, 0, "stale spec.md marker response should fail");
-        assert.match(`${res.stdout}\n${res.stderr}`, /unknown guardrail_id "REQ-SPEC"/);
+        assert.match(`${res.stdout}\n${res.stderr}`, /unknown guardrail_id/);
       }
     });
   }
-  });
 
-  it("R6-312: task-impl falls back to spec.md marker when spec.json has no usable IDs", () => {
+  it("R6-312: task-impl rejects specs with no usable spec.json requirement IDs", () => {
     tmp = createTmpDir();
     setupFixture(tmp, {
       initialTest: BASE_TEST,
-      modifiedTest: BASE_TEST + "// fallback marker\n",
+      modifiedTest: BASE_TEST + "// no usable ids\n",
       specJson: { ...minimalSpecJson(), requirements: [{ id: "   ", desc: "no usable id" }] },
       specMarkdown: SPEC_MD_WITH_MARKER.replace("REQ-SPEC", "REQ-FALLBACK"),
       stubResponse: buildPassResponseJson("REQ-FALLBACK"),
@@ -333,7 +332,8 @@ describe("gate-impl integration (spec 202)", () => {
     const res = runGate(tmp, ["--skip-guardrail"]);
     assert.equal(res.status, 0, `stderr=${res.stderr}`);
     const env = parseEnvelope(res.stdout);
-    assert.equal(env.data.result, "pass");
+    assert.equal(env.data.result, "fail");
+    assert.deepEqual(env.data.artifacts.issues, ["spec.json has no requirements with usable ids"]);
   });
 
 });

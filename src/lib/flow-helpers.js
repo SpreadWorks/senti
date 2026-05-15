@@ -54,7 +54,7 @@ export const TASK_PHASE_MAP = Object.fromEntries(
 
 /**
  * Extract the spec name (e.g. "152-add-logger-to-callsites") from a flow object or state.
- * Both `flow.spec` and `state.spec` hold a relative path like "specs/152-.../spec.md".
+ * Both `flow.spec` and `state.spec` hold a relative path like "specs/152-.../spec.json".
  *
  * @param {{ spec?: string }|null|undefined} flowOrState
  * @returns {string|null}
@@ -74,10 +74,10 @@ export function getSpecName(flowOrState) {
  */
 export function getSpecDir(flowOrState, root) {
   if (!flowOrState?.spec) return null;
-  const specMdPath = path.isAbsolute(flowOrState.spec)
+  const specPath = path.isAbsolute(flowOrState.spec)
     ? flowOrState.spec
     : path.join(root, flowOrState.spec);
-  return path.dirname(specMdPath);
+  return path.dirname(specPath);
 }
 
 /**

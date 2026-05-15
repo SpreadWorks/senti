@@ -4,8 +4,8 @@
  * FlowCommand: gate — check deliverable readiness for each phase.
  *
  * Phases (issue #184, cac6/T3):
- *   draft        (level=parent)       check draft.md structure + guardrail compliance
- *   spec         (level=parent)       check spec.md structure + guardrail compliance
+ *   draft        (level=parent)       check draft.json structure + guardrail compliance
+ *   spec         (level=parent)       check spec.json structure + guardrail compliance
  *   task-spec    (level=task)         check task spec + guardrail compliance
  *   task-impl    (level=task)         check task impl against spec + guardrail compliance
  *   integration  (level=integration)  check integration task + guardrail compliance
@@ -32,6 +32,7 @@ import {
   loadSpecJson,
   resolveSpecJsonPath,
   resolveSpecDir,
+  specJsonToPromptText,
 } from "../../lib/spec-json.js";
 import { loadFileMap, reconcileFileMap } from "./req-map.js";
 import { buildAcknowledgedRationaleSection } from "./acknowledged-rationale.js";
@@ -452,6 +453,93 @@ function checkSpecJson(spec) {
   return issues;
 }
 
+const SPEC_REPAIR_DECISIONS = new Set([
+  "applied",
+  "invalid",
+  "already_resolved",
+  "downgraded_to_non_blocking",
+  "deferred_to_gate",
+]);
+
+function readJsonIfExists(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function validateSpecRepairAudit(root, specInput) {
+  const specDir = path.dirname(path.resolve(root, specInput));
+  const reviewPath = path.join(specDir, "spec-review.json");
+  const repairPath = path.join(specDir, "spec-repair.json");
+  const issues = [];
+
+  let review;
+  try {
+    review = readJsonIfExists(reviewPath);
+  } catch (err) {
+    return [`spec-repair: spec-review.json is invalid JSON: ${err.message}`];
+  }
+  if (!review || review.verdict !== "FAIL") return [];
+
+  const blocking = Array.isArray(review.blockingFindings) ? review.blockingFindings : [];
+  if (!fs.existsSync(repairPath)) {
+    return ["spec-repair: spec-review.json verdict is FAIL but spec-repair.json is missing"];
+  }
+
+  let repair;
+  try {
+    repair = readJsonIfExists(repairPath);
+  } catch (err) {
+    return [`spec-repair: spec-repair.json is invalid JSON: ${err.message}`];
+  }
+
+  if (repair?.version !== 1) issues.push("spec-repair: spec-repair.json version must be 1");
+  if (repair?.phase !== "spec-repair") issues.push('spec-repair: spec-repair.json phase must be "spec-repair"');
+  if (repair?.sourceReview !== "spec-review.json") issues.push('spec-repair: spec-repair.json sourceReview must be "spec-review.json"');
+  if (typeof repair?.summary !== "string" || repair.summary.trim() === "") {
+    issues.push("spec-repair: spec-repair.json summary must be non-empty");
+  }
+  if (!Array.isArray(repair?.items)) {
+    issues.push("spec-repair: spec-repair.json items must be an array");
+    return issues;
+  }
+  if (repair.items.length !== blocking.length) {
+    issues.push(
+      `spec-repair: spec-repair.json items length ${repair.items.length} does not match blockingFindings length ${blocking.length}`,
+    );
+  }
+
+  for (let i = 0; i < repair.items.length; i++) {
+    const item = repair.items[i];
+    const finding = blocking[i];
+    const prefix = `spec-repair: items[${i}]`;
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      issues.push(`${prefix} must be an object`);
+      continue;
+    }
+    if (typeof item.title !== "string" || item.title.trim() === "") issues.push(`${prefix}.title must be non-empty`);
+    if (typeof item.target !== "string" || item.target.trim() === "") issues.push(`${prefix}.target must be non-empty`);
+    if (finding && item.title !== finding.title) {
+      issues.push(`${prefix}.title must match blockingFindings[${i}].title`);
+    }
+    if (finding && item.target !== finding.target) {
+      issues.push(`${prefix}.target must match blockingFindings[${i}].target`);
+    }
+    if (!SPEC_REPAIR_DECISIONS.has(item.decision)) {
+      issues.push(`${prefix}.decision must be one of ${Array.from(SPEC_REPAIR_DECISIONS).join(", ")}`);
+    }
+    if (typeof item.rationale !== "string" || item.rationale.trim() === "") {
+      issues.push(`${prefix}.rationale must be non-empty`);
+    }
+    if (!Array.isArray(item.changedFields)) {
+      issues.push(`${prefix}.changedFields must be an array`);
+    } else if (item.decision === "applied" && item.changedFields.length === 0) {
+      issues.push(`${prefix}.changedFields must be non-empty when decision is applied`);
+    }
+  }
+
+  return issues;
+}
+
 /**
  * Compute the deepest parent-chain length in a task forest.
  * Returns 0 for a flat (all parent=null) list. Bounded by tasks.length to
@@ -661,7 +749,7 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
     "- For pass/skip: include a non-empty `reason` and do NOT include `violations`.",
     "- For fail: include a non-empty `violations` array (do NOT rely on `reason` — it is overwritten by a derived summary).",
     "- Exhaustive enumeration: emit ONE violation entry per occurrence/edit location. Repeated occurrences of the same vague phrase in different places are distinct entries — distinguishable by `where`. Do NOT group or summarize.",
-    "- For document-level guardrails (rule violations that have no concrete passage to quote — e.g. a missing required section): emit one OR MORE entries, one per distinct gap. Use `target` as a short gap descriptor (e.g. \"missing section: Acceptance Criteria\") and `where` as the artifact name (e.g. \"spec.md\").",
+    "- For document-level guardrails (rule violations that have no concrete passage to quote — e.g. a missing required section): emit one OR MORE entries, one per distinct gap. Use `target` as a short gap descriptor (e.g. \"missing section: Acceptance Criteria\") and `where` as the artifact name (e.g. \"spec.json\").",
     "- Each violation entry requires non-empty `target`, `where`, and `why_violates`. Duplicate (target, where) pairs within the same guardrail FAIL are forbidden.",
     "- When a `## Diff Scope Constraint` section is present below, list ONLY violations introduced by the diff (lines added or modified, marked with `+`).",
     "- Use skip only when the article cannot be evaluated without runtime evidence not provided.",
@@ -1496,24 +1584,6 @@ function buildPerRequirementDiffs(fileMap, perFileDiffs, reqIds, fullDiff) {
   return result;
 }
 
-/**
- * Extract requirement ids (REQ-1, REQ-2, ...) from spec.md. Fallback to a
- * single synthetic id when none can be parsed.
- */
-function extractRequirementIds(specText) {
-  const ids = [];
-  const seen = new Set();
-  const regex = /\*\*(REQ-[\w-]+)\*\*/g;
-  let m;
-  while ((m = regex.exec(specText))) {
-    if (!seen.has(m[1])) {
-      seen.add(m[1]);
-      ids.push(m[1]);
-    }
-  }
-  return ids.length > 0 ? ids : ["REQ-SPEC"];
-}
-
 // ---------------------------------------------------------------------------
 // Phase → next-step mapping
 // ---------------------------------------------------------------------------
@@ -1911,7 +1981,11 @@ export class RunGateCommand extends FlowCommand {
       textCheck: () =>
         loadError
           ? [`schema: ${loadError}`, ...monotonicIssues]
-          : [...checkSpecJson(spec), ...monotonicIssues],
+          : [
+            ...checkSpecJson(spec),
+            ...monotonicIssues,
+            ...validateSpecRepairAudit(root, targetPath),
+          ],
       checkerRole: undefined,
       skipGuardrail,
       ctx: { ...ctx, issueLog, gitState },
@@ -1989,19 +2063,24 @@ export class RunGateCommand extends FlowCommand {
     ctx.gitState = gitState;
 
     const specPath = state.spec;
-    const absSpecPath = path.resolve(root, specPath);
-    if (!fs.existsSync(absSpecPath)) {
-      throw new Error(`spec not found: ${absSpecPath}`);
+    const absSpecInput = path.resolve(root, specPath);
+    const specJsonPath = resolveSpecJsonPath(absSpecInput);
+    if (!fs.existsSync(specJsonPath)) {
+      throw new Error(`spec.json not found: ${specJsonPath}`);
     }
 
-    const specText = fs.readFileSync(absSpecPath, "utf8");
-    let parentSpecForRationale = null;
+    let parentSpecForRationale;
     try {
-      parentSpecForRationale = loadSpecJson(absSpecPath);
+      parentSpecForRationale = loadSpecJson(specJsonPath);
     } catch (err) {
-      process.stderr.write(
-        `[sdd-forge] parent spec context unavailable: ${err.message}\n`,
-      );
+      return gateFail(level, phase, specPath, [], [`spec.json load failed: ${err.message}`]);
+    }
+    const specText = specJsonToPromptText(parentSpecForRationale, {
+      title: getSpecName(state),
+    });
+    const reqIds = enumerateUsableRequirementIds(parentSpecForRationale);
+    if (reqIds.length === 0) {
+      return gateFail(level, phase, specPath, [], ["spec.json has no requirements with usable ids"]);
     }
 
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
@@ -2023,19 +2102,8 @@ export class RunGateCommand extends FlowCommand {
       );
     }
 
-    const specDir = resolveSpecDir(absSpecPath);
+    const specDir = resolveSpecDir(specJsonPath);
     const fileMap = loadFileMap(specDir);
-
-    let reqIds;
-    try {
-      const specJson = loadSpecJson(absSpecPath, { validate: false });
-      reqIds = enumerateUsableRequirementIds(specJson);
-    } catch (err) {
-      process.stderr.write(`[sdd-forge] spec.json load failed, falling back to spec.md: ${err.message}\n`);
-    }
-    if (!reqIds || reqIds.length === 0) {
-      reqIds = extractRequirementIds(specText);
-    }
 
     let perReqDiffs = null;
     if (Object.keys(fileMap).length > 0) {
@@ -2182,6 +2250,7 @@ export default RunGateCommand;
 export {
   checkSpecText,
   checkSpecJson,
+  validateSpecRepairAudit,
   checkDraftJson,
   buildGuardrailPrompt,
   buildImplCheckPrompt,

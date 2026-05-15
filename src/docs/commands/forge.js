@@ -53,7 +53,7 @@ function getTargetFiles(root, type, configChapters) {
  * 章ファイル名のキーワード（拡張子除去）と spec テキストを
  * 大文字小文字無視でマッチングする。
  *
- * @param {string} specText - spec.md の内容
+ * @param {string} specText - spec.json から生成したプロンプト用テキスト
  * @param {string[]} allFiles - 全章ファイルパス (例: ["docs/overview.md", ...])
  * @returns {string[]} 関連ファイルリスト（空の場合は推定失敗 = 全ファイル対象）
  */
@@ -450,4 +450,3 @@ export default class DocsForgeCommand extends Command {
     return runForge(ctx._rawArgs || [], this.container);
   }
 }
-

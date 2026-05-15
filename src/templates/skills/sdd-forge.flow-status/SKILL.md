@@ -39,10 +39,8 @@ Display the current state of the SDD workflow.
 
    ### Spec Summary
    - Spec path: from flow state
-   - Read the spec file and extract:
-     - Title (first `# ` heading)
-     - Goal (`## Goal` section — first 3 lines)
-     - User Confirmation status (`- [x]` or `- [ ]`)
+   - Use `goal`, `scope`, and `requirements` from the resolve-context/status envelopes. Do not parse `spec.md`; it is a generated human-readable view.
+   - User Confirmation status comes from the approval step / spec.json approval state, not from a markdown checkbox.
 
    ### Commit & Working Tree
    - Uncommitted changes: use `dirty` and `dirtyFiles` from resolve-context (show file count and list)
@@ -60,8 +58,8 @@ Display the current state of the SDD workflow.
      Mode:             Branch
      Feature branch:   feature/045-xxx
      Base branch:      main
-     Spec:             specs/045-xxx/spec.md
-     Title:            Flow state step tracking
+     Spec:             specs/045-xxx/spec.json
+     Goal:             Flow state step tracking
      User approved:    Yes
 
    Steps (3/9 done)
@@ -93,6 +91,6 @@ Display the current state of the SDD workflow.
 ## Notes
 
 - This skill is read-only. It does not modify any files or state.
-- If the spec file is missing or unreadable, show the path but note it cannot be read.
+- If spec.json is missing or unreadable, show the path but note it cannot be read.
 - Use `sdd-forge flow get status` as the primary data source for the current execution context only.
 - `flow get status` is not for selecting arbitrary specs. Use `sdd-forge flow resume` when flow discovery/recovery is needed.

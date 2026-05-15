@@ -13,7 +13,7 @@
    - **Draft return when user judgment is missing:** If spec writing discovers a missing user decision that belongs in draft QA, run `sdd-forge flow run reopen-draft --reason "<reason>"` instead of collecting an ad-hoc spec-phase answer. The reason should name the missing decision in one sentence. After reopen succeeds, return to draft so the question can be captured in `draft.json.qa[]` and the normal draft review/gate/spec path can run again.
      - Do not use this for source-verifiable corrections, wording fixes, rationale additions, or details the draft intentionally deferred to spec writing.
      - If `reopen-draft` fails or the flow presents a recovery choice, use Choice Format for that recovery decision.
-   - **Re-render after spec.json edits:** After updating `spec.json`, run `sdd-forge spec render --spec specs/<spec-id>` so `spec.md` reflects the new content. Do this before marking the spec step done and before the gate evaluates anything.
+   - Do not render or edit `spec.md` in this step. `spec.json` is the source of truth; the approval prompt renders the human-readable `spec.md` view when the user needs to read it.
    - Fill spec.json fields: `goal`, `scope`, `constraints`, `requirements`, `acceptance_criteria`, `alternatives_considered` (if applicable).
    - **Requirement testability** (spec 249): each `requirements[]` entry may carry an optional `testable` boolean. Default behavior is testable (omit the field, or set `testable: true`). Set `testable: false` only when the requirement is inherently not verifiable through automated tests — for example, prompt rewrites, documentation updates, or configuration-only changes. Consumers (test step gate, retro static evaluation, review-test untested warning, AI prompt builders) treat `requirement.testable !== false` as testable. `testable: false` requirements are excluded from header coverage validation, retro test-result aggregation, and untested warnings; they appear in AI prompt requirement lists annotated with ` (testing not required)`.
      - Example:
@@ -32,7 +32,7 @@
      - `draft.json.qa[]` entries with `category: "constraints"` or `category: "implementation-targets"` → `spec.json.alternatives_considered[]` only when the answer explicitly records a rejected option.
      - `draft.json.qa[].why` → incorporate into `spec.json.overview.decisions[].text` as rationale
      - `draft.json.scopeVerification` → `spec.json.scope` (`{in, out}`)
-     - `draft.json.impactOnExisting` → spec.md Impact on Existing Features section
+     - `draft.json.impactOnExisting` → `spec.json.overview.decisions[]` or `spec.json.background`, whichever best preserves the implementation impact context
      - `draft.json.openQuestions` → `spec.json.open_questions`
 
    ## Task Decomposition Rules

@@ -168,7 +168,7 @@
         "options": {
           "prompt": "--prompt <text>        開始プロンプト",
           "promptFile": "--prompt-file <path>   開始プロンプトファイル",
-          "spec": "--spec <path>          入力仕様書（spec.md）",
+          "spec": "--spec <path>          入力仕様書（ディレクトリ / spec.json / 旧 spec.md）",
           "maxRuns": "--max-runs <n>         反復回数 (default: 3)",
           "reviewCmd": "--review-cmd <cmd>     docs レビューコマンド (default: sdd-forge review)",
           "agent": "--agent <name>         AIエージェント: codex|claude (default: config.json の defaultAgent)",
@@ -207,7 +207,7 @@
         "options": {
           "request": "--request <text>   実装要求（必須）",
           "title": "--title <text>     spec 用タイトル（省略時は request 先頭を利用）",
-          "spec": "--spec <path>      既存 spec.md を使う",
+          "spec": "--spec <path>      既存 spec（ディレクトリ / spec.json / 旧 spec.md）を使う",
           "agent": "--agent <name>     AIエージェント: codex|claude",
           "maxRuns": "--max-runs <n>     docs:forge 反復回数",
           "forgeMode": "--forge-mode <m>   docs:forge mode: local|assist|agent (default: local)",

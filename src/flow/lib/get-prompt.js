@@ -9,6 +9,7 @@
  */
 
 import { FlowCommand } from "./base-command.js";
+import { renderSpecView } from "./render-spec-view.js";
 
 /**
  * @typedef {{ id: number, label: string, description: string, recommended: boolean }} Choice
@@ -313,6 +314,17 @@ export default class GetPromptCommand extends FlowCommand {
       current = state.metrics.draft.question || 0;
     }
 
+    const artifacts = {};
+    if (kind === "plan.approval" && state?.spec) {
+      const rendered = renderSpecView({
+        root: ctx.root,
+        specPath: state.spec,
+        state,
+        optional: true,
+      });
+      if (rendered.rendered) artifacts.specView = rendered.changed;
+    }
+
     return {
       phase: def.phase,
       step: def.step,
@@ -322,6 +334,7 @@ export default class GetPromptCommand extends FlowCommand {
       description: def.description,
       recommendation: def.recommendation,
       choices: def.choices.map(({ id, label, description, recommended }) => ({ id, label, description, recommended })),
+      ...(Object.keys(artifacts).length > 0 ? { artifacts } : {}),
     };
   }
 }

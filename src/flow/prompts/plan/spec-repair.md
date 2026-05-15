@@ -23,5 +23,5 @@
      }
      ```
    - Do not run another `review-spec` loop from this step. The downstream `gate` step remains the blocking validation step.
-   - After updating `spec.json`, run `sdd-forge spec render --spec specs/<spec-id>` so `spec.md` reflects the repaired JSON.
+   - Do not render or edit `spec.md` in this step. The approval prompt renders the human-readable `spec.md` view from the repaired `spec.json`.
    - **On complete**: `sdd-forge flow set step spec-repair done`

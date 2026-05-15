@@ -14,7 +14,6 @@ import { buildInitialSteps } from "../../lib/flow-helpers.js";
 import { findStepById } from "../definition.js";
 import { getWorktreeStatus, runGit } from "../../lib/git-helpers.js";
 import { emptySpecStub } from "../../lib/spec-json.js";
-import { renderSpecMarkdown } from "../../spec/commands/render.js";
 import { FlowCommand } from "./base-command.js";
 import { writeIssueMd } from "./issue-body-cache.js";
 
@@ -161,7 +160,6 @@ export class RunPrepareSpecCommand extends FlowCommand {
       : null;
     const specRoot = useWorktree ? worktreePath : root;
     const specDir = path.join(specRoot, "specs", specDirName);
-    const specPath = path.join(specDir, "spec.md");
     const draftPath = path.join(specDir, "draft.json");
 
     if (dryRun) {
@@ -180,27 +178,13 @@ export class RunPrepareSpecCommand extends FlowCommand {
       };
     }
 
-    // Helper: write spec files. Creates spec.json (primary source of truth)
-    // and generates spec.md in the same step via renderSpecMarkdown, which
-    // satisfies spec 207 R3 — spec.md is always a deterministic render of the
-    // current spec.json.
+    // Helper: write planning source files. spec.json is the source of truth;
+    // spec.md is a generated view rendered later when human approval needs it.
     function writeSpecFiles() {
       fs.mkdirSync(specDir, { recursive: true });
       const specJsonPath = path.join(specDir, "spec.json");
       if (!fs.existsSync(specJsonPath)) {
         fs.writeFileSync(specJsonPath, JSON.stringify(emptySpecStub(), null, 2) + "\n");
-      }
-      if (!fs.existsSync(specPath)) {
-        const stub = JSON.parse(fs.readFileSync(specJsonPath, "utf8"));
-        const today = new Date().toISOString().slice(0, 10);
-        const rendered = renderSpecMarkdown(stub, {
-          title: specDirName,
-          featureBranch: branchName,
-          created: today,
-          status: "Draft",
-          input: issue ? `GitHub Issue #${issue}` : "User request",
-        });
-        fs.writeFileSync(specPath, rendered);
       }
       if (!fs.existsSync(draftPath)) {
         fs.writeFileSync(draftPath, buildDraftTemplate());
@@ -262,16 +246,16 @@ export class RunPrepareSpecCommand extends FlowCommand {
     }
 
     const changed = [
-      `specs/${specDirName}/spec.md`,
+      `specs/${specDirName}/spec.json`,
       `specs/${specDirName}/draft.json`,
     ];
     const createdFileLines = [
-      `created spec: specs/${specDirName}/spec.md`,
+      `created spec source: specs/${specDirName}/spec.json`,
       `created draft: specs/${specDirName}/draft.json`,
     ];
     const fillAndGateNext = [
-      `fill specs/${specDirName}/spec.md`,
-      `run: sdd-forge spec gate --spec specs/${specDirName}/spec.md`,
+      `fill specs/${specDirName}/draft.json`,
+      `run: sdd-forge flow run gate --phase draft`,
       `start implementation`,
     ];
     const lines = [];

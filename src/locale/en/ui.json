@@ -168,7 +168,7 @@
         "options": {
           "prompt": "--prompt <text>        Initial prompt",
           "promptFile": "--prompt-file <path>   Initial prompt file",
-          "spec": "--spec <path>          Input specification (spec.md)",
+          "spec": "--spec <path>          Input specification (directory / spec.json / legacy spec.md)",
           "maxRuns": "--max-runs <n>         Iteration count (default: 3)",
           "reviewCmd": "--review-cmd <cmd>     Docs review command (default: sdd-forge review)",
           "agent": "--agent <name>         AI agent: codex|claude (default: config.json defaultAgent)",
@@ -207,7 +207,7 @@
         "options": {
           "request": "--request <text>   Implementation request (required)",
           "title": "--title <text>     Spec title (defaults to start of request)",
-          "spec": "--spec <path>      Use existing spec.md",
+          "spec": "--spec <path>      Use existing spec (directory / spec.json / legacy spec.md)",
           "agent": "--agent <name>     AI agent: codex|claude",
           "maxRuns": "--max-runs <n>     docs:forge iteration count",
           "forgeMode": "--forge-mode <m>   docs:forge mode: local|assist|agent (default: local)",

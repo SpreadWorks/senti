@@ -4,9 +4,8 @@
  *
  * sdd-forge spec render — render a spec.json into spec.md.
  *
- * Part of cac6/T1: establishes spec.json as the primary spec data and spec.md
- * as a derivative artifact. This command does not yet replace existing spec.md
- * read/write sites (see T8).
+ * spec.json is the primary spec data; spec.md is a generated human-readable
+ * view rendered when an operator needs to inspect or approve the spec.
  */
 
 import fs from "fs";
