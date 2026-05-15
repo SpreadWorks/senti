@@ -1,5 +1,8 @@
    - Run `sdd-forge flow run review --phase spec` to perform AI-powered spec review.
    - The review uses a classification pipeline: AI separates blocking findings from non-blocking improvements.
+   - Blocking findings are limited to concrete failures: contradiction with verified existing behavior, missing implementation target/integration point required by codebase context, missing observable acceptance/test basis, omitted mandatory error/data/compatibility path, or conflicting spec fields that change what should be implemented.
+   - Do not treat clearer wording, extra rationale, additional related-file mentions, or optional alternatives as blocking. Those are non-blocking improvements when they are useful at all.
+   - `whyBlocking` must state the concrete implementation, testing, safety, or compatibility failure caused by leaving the spec unchanged.
    - Results are saved to spec-review.md for operator reading and spec-review.json for structured review memory.
    - The next review run receives spec-review.json as previous review memory and should not repeat acknowledged non-blocking improvements unless they became blocking.
    - The review does NOT modify spec.md or spec.json directly.
