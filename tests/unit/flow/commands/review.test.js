@@ -19,8 +19,9 @@ import {
   buildDraftSystemPrompt,
   formatSpecReviewJson,
   formatSpecReviewMd,
-  parseDraftJsonRepairOutput,
+  parseDraftRepairOutput,
   parseSpecReviewFindings,
+  validateDraftRepairAudit,
   validateDraftRepairShape,
   filterProposalsByScope,
   collectTouchedFiles,
@@ -512,44 +513,129 @@ describe("draft review repair helpers", () => {
         approval: { approved: false, confirmedAt: "", notes: "" },
       },
       [{ title: "Question contains rationale", body: "**QA:** q1" }],
-      { key: "questions" },
+      {
+        key: "questions",
+        artifact: "draft-review-questions.md",
+        repairPhase: "draft-review-questions-repair",
+      },
       "request",
       [],
     );
+    const text = [prompt.systemPrompt, prompt.userPrompt].join("\n");
 
-    assert.match(prompt, /Return only the complete repaired draft\.json object as JSON/);
-    assert.match(prompt, /Do not answer draft questions/);
-    assert.match(prompt, /Keep approval\.approved false/);
-    assert.doesNotMatch(prompt, /Set approval\.approved true/);
+    assert.equal(prompt.jsonSchema.required.includes("draft"), true);
+    assert.equal(prompt.jsonSchema.required.includes("audit"), true);
+    assert.match(text, /Return JSON only with exactly two top-level keys: draft and audit/);
+    assert.match(text, /Do not answer draft questions/);
+    assert.match(text, /Keep approval\.approved false/);
+    assert.match(text, /sourceReview: draft-review-questions\.md/);
+    assert.doesNotMatch(text, /Set approval\.approved true/);
   });
 
   it("builds a coverage-stage repair prompt that repairs without follow-up loops", () => {
     const prompt = buildDraftRepairPrompt(
       { qa: [], decisionMap: {}, approval: { approved: false, confirmedAt: "", notes: "" } },
       [{ title: "Blocking behavior not resolved", body: "**QA:** GLOBAL" }],
-      { key: "coverage" },
+      {
+        key: "coverage",
+        artifact: "draft-review-coverage.md",
+        repairPhase: "draft-review-coverage-repair",
+      },
       "request",
       [{ file: "src/example.js", summary: "Existing behavior" }],
     );
+    const text = [prompt.systemPrompt, prompt.userPrompt].join("\n");
 
-    assert.match(prompt, /Repair the draft so the recorded coverage findings are reflected/);
-    assert.match(prompt, /Do not ask the user and do not append iterative follow-up questions/);
-    assert.match(prompt, /draft-refine owns question resolution/);
-    assert.match(prompt, /Set approval\.approved true/);
-    assert.match(prompt, /src\/example\.js/);
+    assert.match(text, /Repair the draft so the recorded coverage findings are reflected/);
+    assert.match(text, /Do not ask the user and do not append iterative follow-up questions/);
+    assert.match(text, /draft-refine owns question resolution/);
+    assert.match(text, /Set approval\.approved true/);
+    assert.match(text, /sourceReview: draft-review-coverage\.md/);
+    assert.match(text, /src\/example\.js/);
   });
 
-  it("parses repaired draft JSON from a fenced AI response", () => {
-    const parsed = parseDraftJsonRepairOutput([
+  it("parses repaired draft and audit JSON from a fenced AI response", () => {
+    const parsed = parseDraftRepairOutput([
       "```json",
       "{",
-      "  \"qa\": [],",
-      "  \"decisionMap\": {}",
+      "  \"draft\": {",
+      "    \"devType\": \"feature\",",
+      "    \"goal\": \"goal\",",
+      "    \"analysis\": {},",
+      "    \"decisionMap\": {},",
+      "    \"scopeVerification\": {},",
+      "    \"impactOnExisting\": {},",
+      "    \"qa\": [],",
+      "    \"openQuestions\": [],",
+      "    \"approval\": { \"approved\": false }",
+      "  },",
+      "  \"audit\": {",
+      "    \"version\": 1,",
+      "    \"phase\": \"draft-review-questions-repair\",",
+      "    \"sourceReview\": \"draft-review-questions.md\",",
+      "    \"generatedAt\": \"2026-05-15T00:00:00.000Z\",",
+      "    \"summary\": \"Recorded repair decision.\",",
+      "    \"items\": [{",
+      "      \"findingTitle\": \"Question contains rationale\",",
+      "      \"target\": \"q1\",",
+      "      \"decision\": \"applied\",",
+      "      \"rationale\": \"The finding required editing q1.\",",
+      "      \"evidence\": \"Review finding names q1.\",",
+      "      \"changedFields\": [\"qa[0].question\"]",
+      "    }]",
+      "  }",
       "}",
       "```",
     ].join("\n"));
 
-    assert.deepEqual(parsed, { qa: [], decisionMap: {} });
+    assert.equal(parsed.draft.goal, "goal");
+    assert.equal(parsed.audit.phase, "draft-review-questions-repair");
+    assert.equal(parsed.audit.items[0].decision, "applied");
+  });
+
+  it("rejects a draft repair audit that does not account for findings", () => {
+    const audit = parseDraftRepairOutput(JSON.stringify({
+      draft: {
+        devType: "feature",
+        goal: "goal",
+        analysis: {},
+        decisionMap: {},
+        scopeVerification: {},
+        impactOnExisting: {},
+        qa: [],
+        openQuestions: [],
+        approval: { approved: false },
+      },
+      audit: {
+        version: 1,
+        phase: "draft-review-questions-repair",
+        sourceReview: "draft-review-questions.md",
+        generatedAt: "2026-05-15T00:00:00.000Z",
+        summary: "Recorded repair decision.",
+        items: [{
+          findingTitle: "Different finding",
+          target: "q1",
+          decision: "applied",
+          rationale: "Edited q1.",
+          evidence: "Review finding names q1.",
+          changedFields: [],
+        }],
+      },
+    })).audit;
+
+    const issues = validateDraftRepairAudit(
+      audit,
+      [{ title: "Question contains rationale", body: "**QA:** q1" }],
+      {
+        key: "questions",
+        artifact: "draft-review-questions.md",
+        repairPhase: "draft-review-questions-repair",
+      },
+      { approval: { approved: false } },
+    );
+
+    assert.ok(issues.some((issue) => /findingTitle must match/.test(issue)), issues);
+    assert.ok(issues.some((issue) => /changedFields must be non-empty/.test(issue)), issues);
   });
 
   it("rejects question-stage repair that fills pending answers", () => {
