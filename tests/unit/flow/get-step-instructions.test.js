@@ -43,13 +43,14 @@ describe("getStepInstructions (loader contract)", () => {
       assert.equal(content, raw, "loader returns exact file content");
     });
 
-    it("spec-repair records take/drop decisions for every blocking finding", () => {
+    it("spec-repair records apply/drop decisions and evidence for every blocking finding", () => {
       const content = getStepInstructions("plan.spec-repair");
 
       assert.match(content, /Always write `specs\/<spec-id>\/spec-repair\.json`/);
       assert.match(content, /audit log for the AI's apply\/drop decisions/);
       assert.match(content, /For every `blockingFindings\[\]` entry/);
       assert.match(content, /`decision`: one of `applied`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`/);
+      assert.match(content, /`evidence`: concrete evidence for the decision/);
       assert.match(content, /`changedFields`/);
       assert.match(content, /Do not defer review findings to gate/);
     });

@@ -116,6 +116,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
           target: "R1",
           decision: "applied",
           rationale: "The referenced helper is in scope and now appears in requirements.",
+          evidence: "spec.json requirements[0].desc names the helper required by R1.",
           changedFields: ["requirements[0].desc"],
         }],
       },
@@ -136,12 +137,34 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
           target: "R1",
           decision: "applied",
           rationale: "Applied.",
+          evidence: "spec.json requirements[0].desc was intended to cover this finding.",
           changedFields: [],
         }],
       },
     }, validateSpecRepairAudit);
 
     assert.ok(issues.some((issue) => /changedFields must be non-empty/.test(issue)), issues);
+  });
+
+  it("rejects repair entries without evidence", () => {
+    const issues = withSpecRepairArtifacts({
+      "spec-review.json": failReview,
+      "spec-repair.json": {
+        version: 1,
+        phase: "spec-repair",
+        sourceReview: "spec-review.json",
+        summary: "Bad audit.",
+        items: [{
+          title: "Missing implementation target",
+          target: "R1",
+          decision: "already_resolved",
+          rationale: "The helper is already named.",
+          changedFields: [],
+        }],
+      },
+    }, validateSpecRepairAudit);
+
+    assert.ok(issues.some((issue) => /evidence must be non-empty/.test(issue)), issues);
   });
 
   it("rejects unknown repair decisions", () => {
@@ -157,6 +180,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
           target: "R1",
           decision: "unsupported",
           rationale: "This is not a supported decision.",
+          evidence: "No valid evidence because the decision is unsupported.",
           changedFields: [],
         }],
       },
@@ -178,6 +202,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
           target: "R1",
           decision: "deferred_to_gate",
           rationale: "Gate will handle it.",
+          evidence: "Gate is not a valid repair evidence target.",
           changedFields: [],
         }],
       },
@@ -199,6 +224,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
           target: "R1",
           decision: "invalid",
           rationale: "This does not correspond to the source finding.",
+          evidence: "The finding title does not match the review source item.",
           changedFields: [],
         }],
       },
@@ -227,6 +253,7 @@ describe("validateSpecRepairAudit — spec review repair audit", () => {
           target: "R1",
           decision: "invalid",
           rationale: "The target is already covered by existing scope.",
+          evidence: "spec.json scope.in already covers the implementation target.",
           changedFields: [],
         }],
       },

@@ -10,6 +10,7 @@
      - `target`: copied from the finding.
      - `decision`: one of `applied`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`.
      - `rationale`: why that decision was made.
+     - `evidence`: concrete evidence for the decision, such as the `spec.json` field path now covering it, the source/code context that disproves it, or the reason it is non-blocking.
      - `changedFields`: array of `spec.json` field paths changed for this finding; empty when no spec field changed.
    - Do not defer review findings to gate. If the finding is really about schema/required fields, unresolved markers, tasks structure, or guardrail compliance, mark it `invalid` because `review-spec` reported a gate-owned issue outside its responsibility.
    - `spec-repair.json` shape:
@@ -19,7 +20,16 @@
        "phase": "spec-repair",
        "sourceReview": "spec-review.json",
        "summary": "short summary of repair decisions",
-       "items": []
+       "items": [
+         {
+           "title": "copied finding title",
+           "target": "copied finding target",
+           "decision": "applied",
+           "rationale": "why this decision was made",
+           "evidence": "spec.json requirements[0].desc now names the required helper",
+           "changedFields": ["requirements[0].desc"]
+         }
+       ]
      }
      ```
    - Do not run another `review-spec` loop from this step. The downstream `gate` step remains the blocking validation step.

@@ -529,6 +529,9 @@ function validateSpecRepairAudit(root, specInput) {
     if (typeof item.rationale !== "string" || item.rationale.trim() === "") {
       issues.push(`${prefix}.rationale must be non-empty`);
     }
+    if (typeof item.evidence !== "string" || item.evidence.trim() === "") {
+      issues.push(`${prefix}.evidence must be non-empty`);
+    }
     if (!Array.isArray(item.changedFields)) {
       issues.push(`${prefix}.changedFields must be an array`);
     } else if (item.decision === "applied" && item.changedFields.length === 0) {
