@@ -453,11 +453,15 @@ function checkSpecJson(spec) {
   return issues;
 }
 
-const SPEC_REPAIR_DECISIONS = new Set([
-  "applied",
+const SPEC_TRIAGE_DECISIONS = new Set([
+  "apply",
   "invalid",
   "already_resolved",
   "downgraded_to_non_blocking",
+]);
+
+const SPEC_REPAIR_DECISIONS = new Set([
+  "applied",
 ]);
 
 function readJsonIfExists(filePath) {
@@ -468,6 +472,7 @@ function readJsonIfExists(filePath) {
 function validateSpecRepairAudit(root, specInput) {
   const specDir = path.dirname(path.resolve(root, specInput));
   const reviewPath = path.join(specDir, "spec-review.json");
+  const triagePath = path.join(specDir, "spec-review-triage.json");
   const repairPath = path.join(specDir, "spec-repair.json");
   const issues = [];
 
@@ -480,37 +485,37 @@ function validateSpecRepairAudit(root, specInput) {
   if (!review || review.verdict !== "FAIL") return [];
 
   const blocking = Array.isArray(review.blockingFindings) ? review.blockingFindings : [];
-  if (!fs.existsSync(repairPath)) {
-    return ["spec-repair: spec-review.json verdict is FAIL but spec-repair.json is missing"];
+  if (!fs.existsSync(triagePath)) {
+    return ["spec-review-triage: spec-review.json verdict is FAIL but spec-review-triage.json is missing"];
   }
 
-  let repair;
+  let triage;
   try {
-    repair = readJsonIfExists(repairPath);
+    triage = readJsonIfExists(triagePath);
   } catch (err) {
-    return [`spec-repair: spec-repair.json is invalid JSON: ${err.message}`];
+    return [`spec-review-triage: spec-review-triage.json is invalid JSON: ${err.message}`];
   }
 
-  if (repair?.version !== 1) issues.push("spec-repair: spec-repair.json version must be 1");
-  if (repair?.phase !== "spec-repair") issues.push('spec-repair: spec-repair.json phase must be "spec-repair"');
-  if (repair?.sourceReview !== "spec-review.json") issues.push('spec-repair: spec-repair.json sourceReview must be "spec-review.json"');
-  if (typeof repair?.summary !== "string" || repair.summary.trim() === "") {
-    issues.push("spec-repair: spec-repair.json summary must be non-empty");
+  if (triage?.version !== 1) issues.push("spec-review-triage: spec-review-triage.json version must be 1");
+  if (triage?.phase !== "spec-review-triage") issues.push('spec-review-triage: spec-review-triage.json phase must be "spec-review-triage"');
+  if (triage?.sourceReview !== "spec-review.json") issues.push('spec-review-triage: spec-review-triage.json sourceReview must be "spec-review.json"');
+  if (typeof triage?.summary !== "string" || triage.summary.trim() === "") {
+    issues.push("spec-review-triage: spec-review-triage.json summary must be non-empty");
   }
-  if (!Array.isArray(repair?.items)) {
-    issues.push("spec-repair: spec-repair.json items must be an array");
+  if (!Array.isArray(triage?.items)) {
+    issues.push("spec-review-triage: spec-review-triage.json items must be an array");
     return issues;
   }
-  if (repair.items.length !== blocking.length) {
+  if (triage.items.length !== blocking.length) {
     issues.push(
-      `spec-repair: spec-repair.json items length ${repair.items.length} does not match blockingFindings length ${blocking.length}`,
+      `spec-review-triage: spec-review-triage.json items length ${triage.items.length} does not match blockingFindings length ${blocking.length}`,
     );
   }
 
-  for (let i = 0; i < repair.items.length; i++) {
-    const item = repair.items[i];
+  for (let i = 0; i < triage.items.length; i++) {
+    const item = triage.items[i];
     const finding = blocking[i];
-    const prefix = `spec-repair: items[${i}]`;
+    const prefix = `spec-review-triage: items[${i}]`;
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       issues.push(`${prefix} must be an object`);
       continue;
@@ -522,6 +527,62 @@ function validateSpecRepairAudit(root, specInput) {
     }
     if (finding && item.target !== finding.target) {
       issues.push(`${prefix}.target must match blockingFindings[${i}].target`);
+    }
+    if (!SPEC_TRIAGE_DECISIONS.has(item.decision)) {
+      issues.push(`${prefix}.decision must be one of ${Array.from(SPEC_TRIAGE_DECISIONS).join(", ")}`);
+    }
+    if (typeof item.rationale !== "string" || item.rationale.trim() === "") {
+      issues.push(`${prefix}.rationale must be non-empty`);
+    }
+    if (typeof item.evidence !== "string" || item.evidence.trim() === "") {
+      issues.push(`${prefix}.evidence must be non-empty`);
+    }
+  }
+
+  if (!fs.existsSync(repairPath)) {
+    issues.push("spec-repair: spec-review.json verdict is FAIL but spec-repair.json is missing");
+    return issues;
+  }
+
+  let repair;
+  try {
+    repair = readJsonIfExists(repairPath);
+  } catch (err) {
+    return [`spec-repair: spec-repair.json is invalid JSON: ${err.message}`];
+  }
+
+  if (repair?.version !== 1) issues.push("spec-repair: spec-repair.json version must be 1");
+  if (repair?.phase !== "spec-repair") issues.push('spec-repair: spec-repair.json phase must be "spec-repair"');
+  if (repair?.sourceReview !== "spec-review-triage.json") issues.push('spec-repair: spec-repair.json sourceReview must be "spec-review-triage.json"');
+  if (typeof repair?.summary !== "string" || repair.summary.trim() === "") {
+    issues.push("spec-repair: spec-repair.json summary must be non-empty");
+  }
+  if (!Array.isArray(repair?.items)) {
+    issues.push("spec-repair: spec-repair.json items must be an array");
+    return issues;
+  }
+  const applyItems = triage.items.filter((item) => item?.decision === "apply");
+  if (repair.items.length !== applyItems.length) {
+    issues.push(
+      `spec-repair: spec-repair.json items length ${repair.items.length} does not match spec-review-triage apply item length ${applyItems.length}`,
+    );
+  }
+
+  for (let i = 0; i < repair.items.length; i++) {
+    const item = repair.items[i];
+    const triageItem = applyItems[i];
+    const prefix = `spec-repair: items[${i}]`;
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      issues.push(`${prefix} must be an object`);
+      continue;
+    }
+    if (typeof item.title !== "string" || item.title.trim() === "") issues.push(`${prefix}.title must be non-empty`);
+    if (typeof item.target !== "string" || item.target.trim() === "") issues.push(`${prefix}.target must be non-empty`);
+    if (triageItem && item.title !== triageItem.title) {
+      issues.push(`${prefix}.title must match spec-review-triage apply item ${i}.title`);
+    }
+    if (triageItem && item.target !== triageItem.target) {
+      issues.push(`${prefix}.target must match spec-review-triage apply item ${i}.target`);
     }
     if (!SPEC_REPAIR_DECISIONS.has(item.decision)) {
       issues.push(`${prefix}.decision must be one of ${Array.from(SPEC_REPAIR_DECISIONS).join(", ")}`);

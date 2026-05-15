@@ -1,0 +1,36 @@
+   - Classify the blocking findings from `review-spec` before any spec repair work.
+   - Read `specs/<spec-id>/spec-review.json` first. Treat only `blockingFindings[]` as triage input. `nonBlockingImprovements[]` are advisory memory only.
+   - Do not edit `spec.json`, `spec.md`, task files, or tests in this step. This step decides what should be repaired; the next `spec-repair` step performs the edits.
+   - Always write `specs/<spec-id>/spec-review-triage.json` before completing this step.
+   - If `spec-review.json` is missing, invalid, or contains no blocking findings, write `spec-review-triage.json` with an empty `items[]`, a concise `summary`, and run `sdd-forge flow set step spec-review-triage done`.
+   - For every `blockingFindings[]` entry, add one `spec-review-triage.json.items[]` entry with:
+     - `title`: copied from the finding.
+     - `target`: copied from the finding.
+     - `decision`: one of `apply`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`.
+     - `rationale`: why that decision was made.
+     - `evidence`: concrete evidence for the decision, such as a `spec.json` field path, draft/request fact, source/code context, or the reason the finding is non-blocking.
+   - Use `apply` only when the finding is still blocking and can be fixed by a small, directly supported spec change.
+   - Use `invalid` when the finding belongs to gate-owned mechanical checks, contradicts verified context, asks for broader scope, or is not grounded in the review's blocking criteria.
+   - Use `already_resolved` when the current `spec.json` already covers the finding.
+   - Use `downgraded_to_non_blocking` when the finding is useful context but does not block implementation, testing, safety, or compatibility.
+   - Do not defer review findings to gate. If the finding is really about schema/required fields, unresolved markers, tasks structure, or guardrail compliance, mark it `invalid` because `review-spec` reported a gate-owned issue outside its responsibility.
+   - `spec-review-triage.json` shape:
+     ```json
+     {
+       "version": 1,
+       "phase": "spec-review-triage",
+       "sourceReview": "spec-review.json",
+       "summary": "short summary of triage decisions",
+       "items": [
+         {
+           "title": "copied finding title",
+           "target": "copied finding target",
+           "decision": "apply",
+           "rationale": "why this decision was made",
+           "evidence": "spec.json requirements[0].desc lacks the helper named by the finding"
+         }
+       ]
+     }
+     ```
+   - Do not run another `review-spec` loop from this step. The downstream `spec-repair` step applies `decision=apply` items, and `gate` remains the blocking validation step.
+   - **On complete**: `sdd-forge flow set step spec-review-triage done`

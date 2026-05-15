@@ -228,6 +228,21 @@ describe("flow get next-action", () => {
       assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.md" });
       assert.equal(envelope.data.output_schema.type, "object");
     });
+
+    it("returns spec-review-triage as a write-spec action with spec context", () => {
+      tmp = createTmpDir();
+      const state = setupActiveFlow(tmp);
+      setFlowStepInProgress(state, "spec-review-triage");
+      makeFlowManager(tmp).save(state);
+
+      const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);
+      assert.equal(exitCode, 0);
+      assert.equal(envelope.data.step, "spec-review-triage");
+      assert.equal(envelope.data.action, "write-spec");
+      assert.equal(envelope.data.instructions.key, "plan.spec-review-triage");
+      assert.deepEqual(envelope.data.context.paths, { spec: "specs/001-test/spec.md" });
+      assert.equal(envelope.data.output_schema.type, "object");
+    });
   });
 
   describe("output_schema (REQ-8, REQ-10)", () => {

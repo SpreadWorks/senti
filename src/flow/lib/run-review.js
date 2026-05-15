@@ -144,7 +144,7 @@ export { REVIEW_PHASE_KEYS };
 
 const PHASE_REVIEW_PARSERS = {
   test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
-  spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "gate", failNext: "spec-repair", commandId: "flow.spec.review.propose" },
+  spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "gate", failNext: "spec-review-triage", commandId: "flow.spec.review.propose" },
   draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft", commandId: "flow.draft.review" },
 };
 

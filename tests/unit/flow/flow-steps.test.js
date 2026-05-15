@@ -10,10 +10,10 @@ import { FLOW_STEPS, PHASE_MAP } from "../../../src/lib/flow-helpers.js";
 import { FLOW_DEFINITION, resolveNodeFor } from "../../../src/flow/definition.js";
 describe("FLOW_STEPS ordering (plan rework)", () => {
   it("has split draft review and spec repair before their gates", () => {
-    const first14 = FLOW_STEPS.slice(0, 14);
-    assert.deepEqual(first14, [
+    const first15 = FLOW_STEPS.slice(0, 15);
+    assert.deepEqual(first15, [
       "branch", "prepare-spec", "draft", "review-draft-questions", "draft-refine", "review-draft-coverage", "gate-draft",
-      "spec", "review-spec", "spec-repair", "gate", "approval", "test", "review-test",
+      "spec", "review-spec", "spec-review-triage", "spec-repair", "gate", "approval", "test", "review-test",
     ]);
   });
 
@@ -70,6 +70,10 @@ describe("PHASE_MAP (plan rework)", () => {
 
   it("maps spec-repair to plan phase", () => {
     assert.equal(PHASE_MAP["spec-repair"], "plan");
+  });
+
+  it("maps spec-review-triage to plan phase", () => {
+    assert.equal(PHASE_MAP["spec-review-triage"], "plan");
   });
 
   it("maps gate to plan phase", () => {

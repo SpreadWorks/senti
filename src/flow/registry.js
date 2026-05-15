@@ -480,6 +480,7 @@ export const FLOW_COMMANDS = {
           const verdict = result?.artifacts?.verdict;
           if (verdict === "PASS" || verdict === "ADVISORY") {
             tryUpdateStepStatus(ctx, "review-spec", "done");
+            tryUpdateStepStatus(ctx, "spec-review-triage", "done");
             tryUpdateStepStatus(ctx, "spec-repair", "done");
           } else if (verdict === "FAIL") {
             tryUpdateStepStatus(ctx, "review-spec", "done");

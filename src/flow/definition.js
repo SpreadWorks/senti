@@ -201,6 +201,15 @@ export const FLOW_DEFINITION = Object.freeze([
       }),
       createPlanReviewNode({ id: "review-spec", label: "Review (spec)", contextKinds: ["spec", "guardrail"] }),
       new FlowNode({
+        id: "spec-review-triage",
+        label: "Spec review triage",
+        action: "write-spec",
+        instructionsKey: "plan.spec-review-triage",
+        contextKinds: ["spec", "guardrail"],
+        outputSchemaRef: "next-action/spec.schema.json",
+        maxAttempts: 1,
+      }),
+      new FlowNode({
         id: "spec-repair",
         label: "Spec repair",
         action: "write-spec",

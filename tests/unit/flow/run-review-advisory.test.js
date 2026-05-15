@@ -78,7 +78,7 @@ describe("spec review advisory verdict", () => {
     });
   });
 
-  it("routes FAIL to spec-repair instead of a prompt-owned review loop", () => {
+  it("routes FAIL to spec-review-triage instead of a prompt-owned review loop", () => {
     const result = parseSpecReviewOutput(
       { ok: true },
       "Spec review FAIL. 1 blocking finding(s) found. See spec-review.md.",
@@ -86,7 +86,7 @@ describe("spec review advisory verdict", () => {
     );
 
     assert.equal(result.result, "ok");
-    assert.equal(result.next, "spec-repair");
+    assert.equal(result.next, "spec-review-triage");
     assert.deepEqual(result.artifacts, {
       phase: "spec",
       verdict: "FAIL",
@@ -94,7 +94,7 @@ describe("spec review advisory verdict", () => {
     });
   });
 
-  it("post-hook advances FAIL to spec-repair by completing review-spec only", async () => {
+  it("post-hook advances FAIL to spec-review-triage by completing review-spec only", async () => {
     const updates = [];
     const metrics = [];
     await FLOW_COMMANDS.run.review.post({
@@ -130,6 +130,7 @@ describe("spec review advisory verdict", () => {
 
     assert.deepEqual(updates, [
       { stepId: "review-spec", status: "done" },
+      { stepId: "spec-review-triage", status: "done" },
       { stepId: "spec-repair", status: "done" },
     ]);
   });

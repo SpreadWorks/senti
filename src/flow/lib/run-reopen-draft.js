@@ -29,6 +29,7 @@ const PLAN_REOPEN_DRAFT_REVIEW_STEPS = Object.freeze([
 const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
   "spec",
   "review-spec",
+  "spec-review-triage",
   "spec-repair",
   "gate",
   "approval",
@@ -42,6 +43,8 @@ const PLAN_REOPEN_RESET_STEPS = Object.freeze([
 const STALE_ARTIFACTS = Object.freeze([
   "spec.json",
   "spec.md",
+  "spec-review-triage.json",
+  "spec-repair.json",
   "draft.json",
   "issue.md",
   "test.md",

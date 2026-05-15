@@ -207,7 +207,7 @@ All sections marked REQUIRED must appear regardless of whether the AI internally
 過去のセッションで、AI が議論を勝手に締めて方向性を確定させ、ユーザーが意図しない実装に進んだ事例が 8 件発生している。AI が議論をリードしすぎると、ユーザーの判断機会が奪われる。
 
 ### How to apply
-- draft / review-draft-questions / draft-refine / review-draft-coverage / spec / review-spec / spec-repair の各フェーズで、複数の選択肢があり得る論点では必ず Choice Format で提示する。
+- draft / review-draft-questions / draft-refine / review-draft-coverage / spec / review-spec / spec-review-triage / spec-repair の各フェーズで、複数の選択肢があり得る論点では必ず Choice Format で提示する。
 - 「結論:」「決定:」「方針が確定した」等の語で議論を締めない。「推奨:」「私の見解:」までに留める。
 - ユーザーが明示的に選択肢を指定するまで、AI は最終決定を確定させない。
 
@@ -305,7 +305,7 @@ C.2. **Execute instructions**
    - Retry limits: read the resolved numeric maxAttempts from the next-action envelope (`maxAttempts`). When that limit is reached, STOP and return control to the user.
    - When the current step's work is finished, advance step status:
      - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — the hook handles the transition; do nothing further.
-     - **`flow run review`**: draft review phases (`review-draft-questions` / `review-draft-coverage`) auto-complete on PASS or ADVISORY via post hook. `review-spec` auto-completes via post hook for PASS / ADVISORY / FAIL; FAIL advances to `spec-repair`. `review-test` still follows its prompt instructions. Impl/task review still auto-dones via post hook.
+     - **`flow run review`**: draft review phases (`review-draft-questions` / `review-draft-coverage`) auto-complete on PASS or ADVISORY via post hook. `review-spec` auto-completes via post hook for PASS / ADVISORY / FAIL; FAIL advances to `spec-review-triage`. `review-test` still follows its prompt instructions. Impl/task review still auto-dones via post hook.
      - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
 
 C.3. **Loop**

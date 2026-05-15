@@ -43,29 +43,38 @@ describe("getStepInstructions (loader contract)", () => {
       assert.equal(content, raw, "loader returns exact file content");
     });
 
-    it("spec-repair records apply/drop decisions and evidence for every blocking finding", () => {
+    it("spec-review-triage records apply/drop decisions and evidence for every blocking finding", () => {
+      const content = getStepInstructions("plan.spec-review-triage");
+
+      assert.match(content, /Always write `specs\/<spec-id>\/spec-review-triage\.json`/);
+      assert.match(content, /Do not edit `spec\.json`/);
+      assert.match(content, /For every `blockingFindings\[\]` entry/);
+      assert.match(content, /`decision`: one of `apply`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`/);
+      assert.match(content, /Use `apply` only when the finding is still blocking/);
+      assert.match(content, /Do not defer review findings to gate/);
+      assert.match(content, /"phase": "spec-review-triage"/);
+    });
+
+    it("spec-repair applies only triaged apply items", () => {
       const content = getStepInstructions("plan.spec-repair");
 
       assert.match(content, /Always write `specs\/<spec-id>\/spec-repair\.json`/);
-      assert.match(content, /audit log for the AI's apply\/drop decisions/);
-      assert.match(content, /For every `blockingFindings\[\]` entry/);
-      assert.match(content, /Keep repair strictly limited to resolving `blockingFindings\[\]`/);
-      assert.match(content, /smallest direct correction required by that finding's `requiredChange`/);
-      assert.match(content, /broader redesign, new product scope, or a decision/);
-      assert.match(content, /`decision`: one of `applied`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`/);
-      assert.match(content, /`evidence`: concrete evidence for the decision/);
+      assert.match(content, /Read `specs\/<spec-id>\/spec-review-triage\.json` first/);
+      assert.match(content, /Treat only `items\[\]` entries with `decision: "apply"` as the repair input/);
+      assert.match(content, /Do not re-triage review findings in this step/);
+      assert.match(content, /For every triage item with `decision: "apply"`/);
+      assert.match(content, /`decision`: `applied`/);
       assert.match(content, /`changedFields`/);
-      assert.match(content, /Do not defer review findings to gate/);
-      assert.match(content, /must be small, auditable, and limited to the reviewed findings/);
+      assert.match(content, /must be small, auditable, and limited to triage `apply` items/);
     });
 
     it("spec gate instructions keep gate fixes separate from design review", () => {
       const content = getStepInstructions("plan.gate");
 
       assert.match(content, /readiness gate, not a design review/);
-      assert.match(content, /Fix only schema\/static issues, spec-repair audit issues, and explicit guardrail article violations/);
+      assert.match(content, /Fix only schema\/static issues, spec-review-triage \/ spec-repair audit issues, and explicit guardrail article violations/);
       assert.match(content, /Do not use gate FAIL as a reason to search for new design gaps/);
-      assert.match(content, /Codebase-context design gaps belong to `review-spec` \/ `spec-repair`/);
+      assert.match(content, /Codebase-context design gaps belong to `review-spec` \/ `spec-review-triage` \/ `spec-repair`/);
     });
   });
 

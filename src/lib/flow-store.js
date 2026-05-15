@@ -142,31 +142,51 @@ function migrateDraftRefineStep(state) {
   return true;
 }
 
-function migrateSpecRepairStep(state) {
+function migrateSpecReviewTriageAndRepairSteps(state) {
   if (!Array.isArray(state?.steps)) return false;
   const plan = state.steps.find((s) => s?.id === "plan" && Array.isArray(s.children));
   const steps = plan ? plan.children : state.steps;
-  if (steps.some((s) => s?.id === "spec-repair")) return false;
 
   const reviewIndex = steps.findIndex((s) => s?.id === "review-spec");
-  const gateIndex = steps.findIndex((s) => s?.id === "gate");
+  let repairIndex = steps.findIndex((s) => s?.id === "spec-repair");
+  let gateIndex = steps.findIndex((s) => s?.id === "gate");
   if (reviewIndex < 0 || gateIndex < 0) return false;
 
   const review = steps[reviewIndex];
   const gate = steps[gateIndex];
-  const status = (
-    review.status === "done"
-    || review.status === "skipped"
-    || (gate.status && gate.status !== "pending")
-  ) ? "done" : "pending";
-  const repairStep = { id: "spec-repair", status };
-  if (status === "done") {
-    const finishedAt = gate.startedAt || review.finishedAt;
-    if (finishedAt) repairStep.finishedAt = finishedAt;
+  const repair = repairIndex >= 0 ? steps[repairIndex] : null;
+  let changed = false;
+
+  if (!steps.some((s) => s?.id === "spec-review-triage")) {
+    const triageDone = (
+      review.status === "skipped"
+      || (repair?.status && repair.status !== "pending")
+      || (gate.status && gate.status !== "pending")
+    );
+    const triageStep = { id: "spec-review-triage", status: triageDone ? "done" : "pending" };
+    if (triageDone) {
+      const finishedAt = repair?.startedAt || repair?.finishedAt || gate.startedAt || review.finishedAt;
+      if (finishedAt) triageStep.finishedAt = finishedAt;
+    }
+    const insertIndex = repairIndex >= 0 ? repairIndex : gateIndex;
+    steps.splice(insertIndex, 0, triageStep);
+    changed = true;
+    repairIndex = steps.findIndex((s) => s?.id === "spec-repair");
+    gateIndex = steps.findIndex((s) => s?.id === "gate");
   }
 
-  steps.splice(gateIndex, 0, repairStep);
-  return true;
+  if (!steps.some((s) => s?.id === "spec-repair")) {
+    const repairDone = (gate.status && gate.status !== "pending");
+    const repairStep = { id: "spec-repair", status: repairDone ? "done" : "pending" };
+    if (repairDone) {
+      const finishedAt = gate.startedAt || review.finishedAt;
+      if (finishedAt) repairStep.finishedAt = finishedAt;
+    }
+    steps.splice(gateIndex, 0, repairStep);
+    changed = true;
+  }
+
+  return changed;
 }
 
 function appendFlowMigrationLog(root, state, step, reason, resolution) {
@@ -194,7 +214,7 @@ function appendFlowMigrationLog(root, state, step, reason, resolution) {
 function migrateFlowState(state, sourcePath, { persist, root }) {
   const reviewChanged = migrateDraftReviewSteps(state);
   const refineChanged = migrateDraftRefineStep(state);
-  const specRepairChanged = migrateSpecRepairStep(state);
+  const specRepairChanged = migrateSpecReviewTriageAndRepairSteps(state);
   const changed = reviewChanged || refineChanged || specRepairChanged;
   if (changed && persist) {
     fs.writeFileSync(sourcePath, JSON.stringify(state, null, 2) + "\n", "utf8");
@@ -220,9 +240,9 @@ function migrateFlowState(state, sourcePath, { persist, root }) {
       appendFlowMigrationLog(
         root,
         state,
-        "spec-repair",
-        "Inserted spec-repair between spec review and spec gate.",
-        "Synthesized spec-repair status from surrounding spec review and gate steps.",
+        "spec-review-triage/spec-repair",
+        "Inserted spec-review-triage and spec-repair between spec review and spec gate.",
+        "Synthesized spec review triage and repair status from surrounding spec review, repair, and gate steps.",
       );
     }
   }
