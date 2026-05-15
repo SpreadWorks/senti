@@ -18,6 +18,11 @@ function initProject(tmp) {
   execFileSync("git", ["-C", tmp, "commit", "-m", "init"], { encoding: "utf8" });
 }
 
+function assertPrepareArtifacts(root, specDir) {
+  assert.ok(fs.existsSync(join(root, specDir, "spec.json")));
+  assert.ok(fs.existsSync(join(root, specDir, "draft.json")));
+}
+
 describe("spec init CLI", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
@@ -66,8 +71,7 @@ describe("spec init CLI", () => {
     assert.equal(envelope.ok, true);
     assert.match(envelope.data.output, /created branch/);
     assert.match(envelope.data.output, /created spec/);
-    assert.ok(fs.existsSync(join(tmp, "specs/001-my-feat/spec.md")));
-    assert.ok(fs.existsSync(join(tmp, "specs/001-my-feat/draft.json")));
+    assertPrepareArtifacts(tmp, "specs/001-my-feat");
   });
 
   it("shows help with --help", () => {
@@ -96,8 +100,7 @@ describe("spec init CLI", () => {
     // Should create spec but NOT branch
     assert.match(envelope.data.output, /created spec/);
     assert.ok(!envelope.data.output.includes("created branch"));
-    assert.ok(fs.existsSync(join(tmp, "specs/001-nb-feat/spec.md")));
-    assert.ok(fs.existsSync(join(tmp, "specs/001-nb-feat/draft.json")));
+    assertPrepareArtifacts(tmp, "specs/001-nb-feat");
 
     // Should still be on main
     const branch = execFileSync("git", ["-C", tmp, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim();
@@ -132,8 +135,7 @@ describe("spec init CLI", () => {
     assert.match(envelope.data.output, /created worktree/);
     assert.match(envelope.data.output, /created branch/);
     const wtPath = join(tmp, ".sdd-forge", "worktree", "feature-001-wt-feat");
-    assert.ok(fs.existsSync(join(wtPath, "specs/001-wt-feat/spec.md")));
-    assert.ok(fs.existsSync(join(wtPath, "specs/001-wt-feat/draft.json")));
+    assertPrepareArtifacts(wtPath, "specs/001-wt-feat");
 
     // Cleanup worktree
     execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });
@@ -175,7 +177,7 @@ describe("spec init CLI", () => {
     // Should detect worktree and create spec-only (no branch)
     assert.ok(!envelope.data.output.includes("created branch"));
     assert.match(envelope.data.output, /created spec/);
-    assert.ok(fs.existsSync(join(wtPath, "specs/001-auto-feat/spec.md")));
+    assertPrepareArtifacts(wtPath, "specs/001-auto-feat");
 
     // Cleanup worktree
     execFileSync("git", ["-C", tmp, "worktree", "remove", "--force", wtPath], { encoding: "utf8" });

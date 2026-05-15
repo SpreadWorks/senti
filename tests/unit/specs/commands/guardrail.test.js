@@ -189,20 +189,21 @@ describe("buildGuardrailPrompt diff-scope constraint (task-impl / integration)",
     },
   ];
   const DIFF_SCOPE_HEADING = "## Diff Scope Constraint";
+  const DIFF_SCOPE_SECTION_RE = /^## Diff Scope Constraint$/m;
   const CANONICAL_PHRASES = IMPL_DIFF_SCOPE_LINES.join("\n");
 
   it("embeds diff-scope heading in task-impl prompts", () => {
     const targetText = "## Spec\nR1\n\n## Git Diff\ndiff --git a/x.js b/x.js\n+new line\n";
     const prompt = buildGuardrailPrompt(targetText, implGuardrails, "task-impl");
     assert.ok(prompt, "task-impl prompt should be generated");
-    assert.ok(prompt.includes(DIFF_SCOPE_HEADING));
+    assert.ok(DIFF_SCOPE_SECTION_RE.test(prompt));
   });
 
   it("embeds diff-scope heading in integration prompts", () => {
     const targetText = "## Spec\nR1\n\n## Git Diff\ndiff --git a/x.js b/x.js\n+new line\n";
     const prompt = buildGuardrailPrompt(targetText, implGuardrails, "integration");
     assert.ok(prompt, "integration prompt should be generated");
-    assert.ok(prompt.includes(DIFF_SCOPE_HEADING));
+    assert.ok(DIFF_SCOPE_SECTION_RE.test(prompt));
   });
 
   it("embeds the full canonical diff-scope instruction block", () => {
@@ -227,7 +228,7 @@ describe("buildGuardrailPrompt diff-scope constraint (task-impl / integration)",
       const prompt = buildGuardrailPrompt("content", multiPhaseGuardrails, phase);
       assert.ok(prompt, `${phase} prompt should be generated`);
       assert.ok(
-        !prompt.includes(DIFF_SCOPE_HEADING),
+        !DIFF_SCOPE_SECTION_RE.test(prompt),
         `${phase} prompt should not carry diff-scope heading`,
       );
     }

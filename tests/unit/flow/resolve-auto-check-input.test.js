@@ -68,12 +68,12 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
   it("returns issue+request+draft body when gate-draft is done and draft exists", () => {
     const specDir = path.join(tmp, "specs/001-test");
     fs.mkdirSync(specDir, { recursive: true });
-    fs.writeFileSync(path.join(specDir, "draft.json"), "DRAFT_MARKER 内容が続く");
+    fs.writeFileSync(path.join(specDir, "draft.json"), JSON.stringify({ goal: "DRAFT_MARKER 内容が続く" }));
 
     const state = {
       issue: 10,
       request: "implement X",
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
       steps: stepsWith(["gate-draft"]),
     };
     const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
@@ -87,7 +87,7 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
     const state = {
       issue: 10,
       request: "implement X",
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
       steps: stepsWith(["gate-draft"]),
     };
     const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
@@ -112,12 +112,12 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
   it("approval takes precedence over gate-draft (spec approved wins)", () => {
     const specDir = path.join(tmp, "specs/001-test");
     fs.mkdirSync(specDir, { recursive: true });
-    fs.writeFileSync(path.join(specDir, "draft.json"), "ignored-draft");
+    fs.writeFileSync(path.join(specDir, "draft.json"), JSON.stringify({ goal: "ignored-draft" }));
 
     const state = {
       issue: 10,
       request: "implement X",
-      spec: "specs/001-test/spec.md",
+      spec: "specs/001-test/spec.json",
       steps: stepsWith(["gate-draft", "approval"]),
     };
     const out = resolveAutoCheckInput(state, { root: tmp, specPath: state.spec });
