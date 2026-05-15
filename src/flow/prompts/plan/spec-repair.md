@@ -3,6 +3,8 @@
    - Always write `specs/<spec-id>/spec-repair.json` before completing this step. This file is the audit log for the AI's apply/drop decisions on review findings.
    - If `spec-review.json` is missing, invalid, or contains no blocking findings, do not rewrite the spec. Write `spec-repair.json` with an empty `items[]`, a concise `summary`, and run `sdd-forge flow set step spec-repair done`.
    - Apply the blocking findings once. Update `spec.json` so each valid blocking finding is resolved in the smallest appropriate field: `requirements`, `acceptance_criteria`, `scope`, `constraints`, `clarifications`, `alternatives_considered`, `overview.decisions`, or `tasks`.
+   - Keep repair strictly limited to resolving `blockingFindings[]`. Do not add a new requirement, scope item, task, integration path, or design decision unless it is the smallest direct correction required by that finding's `requiredChange` and supported by the repair `evidence`.
+   - If a finding would require broader redesign, new product scope, or a decision that is not directly supported by the draft/request/source context, do not invent the answer. Ask the user via Choice Format before writing it, or mark the finding `invalid` / `downgraded_to_non_blocking` with evidence when appropriate.
    - Do not broaden scope just to satisfy a review comment. If a finding is invalid, already resolved, only non-blocking after inspection, or actually belongs to gate-owned mechanical checks, record that rationale in `spec-repair.json` instead of expanding the spec.
    - Preserve existing user-approved decisions and draft-derived policy. If a blocking fix would reverse a user decision, reject a draft requirement, or add a new requirement not supported by the draft/request/source, ask the user via Choice Format before writing it.
    - For every `blockingFindings[]` entry, add one `spec-repair.json.items[]` entry with:
@@ -32,6 +34,6 @@
        ]
      }
      ```
-   - Do not run another `review-spec` loop from this step. The downstream `gate` step remains the blocking validation step.
+   - Do not run another `review-spec` loop from this step. The downstream `gate` step remains the blocking validation step, so this repair must be small, auditable, and limited to the reviewed findings.
    - Do not render or edit `spec.md` in this step. The approval prompt renders the human-readable `spec.md` view from the repaired `spec.json`.
    - **On complete**: `sdd-forge flow set step spec-repair done`

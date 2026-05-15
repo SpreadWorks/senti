@@ -49,10 +49,14 @@ describe("getStepInstructions (loader contract)", () => {
       assert.match(content, /Always write `specs\/<spec-id>\/spec-repair\.json`/);
       assert.match(content, /audit log for the AI's apply\/drop decisions/);
       assert.match(content, /For every `blockingFindings\[\]` entry/);
+      assert.match(content, /Keep repair strictly limited to resolving `blockingFindings\[\]`/);
+      assert.match(content, /smallest direct correction required by that finding's `requiredChange`/);
+      assert.match(content, /broader redesign, new product scope, or a decision/);
       assert.match(content, /`decision`: one of `applied`, `invalid`, `already_resolved`, or `downgraded_to_non_blocking`/);
       assert.match(content, /`evidence`: concrete evidence for the decision/);
       assert.match(content, /`changedFields`/);
       assert.match(content, /Do not defer review findings to gate/);
+      assert.match(content, /must be small, auditable, and limited to the reviewed findings/);
     });
   });
 
