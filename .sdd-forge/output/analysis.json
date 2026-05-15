@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-12T01:20:54.877Z",
+  "analyzedAt": "2026-05-15T01:37:19.517Z",
   "package": {
     "entries": [
       {
@@ -2498,9 +2498,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "c72cf20012aa117d1b47a16c750f4f18",
-        "lines": 1601,
-        "mtime": "2026-05-12T01:17:35.553Z",
+        "hash": "5952ef463dc56fafea873355e59ba766",
+        "lines": 2227,
+        "mtime": "2026-05-15T00:37:02.832Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2547,15 +2547,41 @@
           "applyTestFixes",
           "formatTestReviewMd",
           "runTestReview",
+          "summarizeSpecReviewValue",
+          "formatSpecReviewSimpleList",
+          "formatSpecReviewDecision",
+          "formatSpecReviewTask",
           "buildSpecSummaryMarkdown",
           "extractGoalAndScope",
           "extractScopePaths",
           "buildSpecReviewPrompt",
+          "extractMarkdownField",
+          "extractJsonObjectCandidate",
+          "parseSpecReviewJsonOutput",
+          "parseSpecReviewFindings",
+          "formatSpecReviewJson",
+          "loadSpecReviewArtifact",
           "formatPhaseReviewMd",
           "formatSpecReviewMd",
           "runSpecReview",
+          "formatDraftQuestionReviewEntry",
+          "formatDraftCoverageReviewEntry",
+          "selectDraftQuestionReviewEntries",
+          "selectDraftCoverageReviewEntries",
+          "summarizeDraftQaStatuses",
+          "formatDraftQaStatusSummary",
+          "formatDraftDecisionMap",
+          "formatDraftReviewQaEntries",
+          "buildDraftQuestionReviewPrompt",
           "buildDraftReviewPrompt",
           "formatDraftReviewMd",
+          "formatDraftIssuesForRepair",
+          "extractDraftJsonCandidate",
+          "parseDraftJsonRepairOutput",
+          "buildDraftRepairPrompt",
+          "validateDraftRepairShape",
+          "repairDraftReviewFindings",
+          "approveDraftAfterCoverageReview",
           "runDraftReview",
           "runReview",
           "stripPreamble",
@@ -2567,10 +2593,12 @@
           "../../lib/cli.js",
           "../../lib/flow-helpers.js",
           "../../lib/spec-json.js",
+          "../../lib/json-parse.js",
           "../../lib/container.js",
           "../../lib/command.js",
           "../../lib/prompt-builder.js",
           "../lib/acknowledged-rationale.js",
+          "../../lib/schema-validate.js",
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
           "../../lib/constants.js",
@@ -2598,14 +2626,20 @@
           "formatTestReviewMd",
           "runReviewLoop",
           "extractGoalAndScope",
+          "buildSpecSummaryMarkdown",
           "buildSpecReviewPrompt",
           "formatSpecReviewMd",
+          "formatSpecReviewJson",
+          "parseSpecReviewFindings",
           "isValidSpecOutput",
           "stripPreamble",
           "buildGapAnalysisPrompt",
           "buildTestFixPrompt",
           "buildDraftReviewPrompt",
           "formatDraftReviewMd",
+          "buildDraftRepairPrompt",
+          "parseDraftJsonRepairOutput",
+          "validateDraftRepairShape",
           "shouldUseLoopReview",
           "groupByDiffContent",
           "buildPerFileReviewInput",
@@ -2623,9 +2657,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "48a1849a1bb2e5a024b4597d08821d5d",
-        "lines": 648,
-        "mtime": "2026-05-12T01:17:35.554Z",
+        "hash": "397563c168ff196f3a3c3fdf80000ed6",
+        "lines": 666,
+        "mtime": "2026-05-13T14:48:57.135Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2886,13 +2920,14 @@
       },
       {
         "file": "src/flow/lib/draft-lifecycle.js",
-        "hash": "91b02a49b450ee84b61ea38576eb3da6",
-        "lines": 281,
-        "mtime": "2026-05-12T01:17:35.554Z",
+        "hash": "be4ae2b581a44069ff5786627e185bab",
+        "lines": 321,
+        "mtime": "2026-05-13T01:51:59.068Z",
         "className": "draft-lifecycle",
         "methods": [
           "DraftQaEntry",
           "DraftApproval",
+          "DraftDecisionMap",
           "DraftLifecycle",
           "parseDraftLifecycle",
           "validateDraftLifecycle",
@@ -2908,6 +2943,7 @@
         "exports": [
           "DraftQaEntry",
           "DraftApproval",
+          "DraftDecisionMap",
           "DraftLifecycle",
           "parseDraftLifecycle",
           "validateDraftLifecycle",
@@ -3659,7 +3695,7 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3789,7 +3825,7 @@
         ],
         "id": "62c43842",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4076,9 +4112,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "a8739776b9208b0dcbaa920bfd78b854",
-        "lines": 2242,
-        "mtime": "2026-05-12T01:17:35.554Z",
+        "hash": "fa14f5086c27fce3ca5d4c67bf19e239",
+        "lines": 2334,
+        "mtime": "2026-05-15T00:56:23.297Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4117,6 +4153,8 @@
           "findUnresolvedMatch",
           "checkSpecText",
           "checkSpecJson",
+          "readJsonIfExists",
+          "validateSpecRepairAudit",
           "computeForestDepth",
           "walkStrings",
           "checkDraftJson",
@@ -4196,6 +4234,7 @@
           "resolveGateStepId",
           "checkSpecText",
           "checkSpecJson",
+          "validateSpecRepairAudit",
           "checkDraftJson",
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
@@ -4300,9 +4339,9 @@
       },
       {
         "file": "src/flow/lib/run-prepare-spec.js",
-        "hash": "9ca174d8abf900727fbf701ff1f7d1c2",
-        "lines": 326,
-        "mtime": "2026-05-12T01:17:35.555Z",
+        "hash": "538f6f7fc8c0bdf640abe2729e9351bd",
+        "lines": 333,
+        "mtime": "2026-05-13T01:51:45.571Z",
         "className": "run-prepare-spec",
         "methods": [
           "RunPrepareSpecCommand",
@@ -4340,19 +4379,22 @@
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
-        "hash": "d66631fdf83d1ff522fcdcb5f6566a7f",
-        "lines": 99,
-        "mtime": "2026-04-27T03:02:21.757Z",
+        "hash": "6f1ac39c77956d1047c220cb1384a9da",
+        "lines": 156,
+        "mtime": "2026-05-15T01:37:10.682Z",
         "className": "run-reopen-draft",
         "methods": [
           "RunReopenDraftCommand",
-          "validateReason"
+          "validateReason",
+          "setStepStatusAndClearTimestamps",
+          "appendIssueLog"
         ],
         "imports": [
           "./base-command.js",
           "../../lib/flow-manager.js",
           "../../lib/flow-envelope.js",
-          "./set-issue-log.js"
+          "./set-issue-log.js",
+          "../definition.js"
         ],
         "exports": [
           "RunReopenDraftCommand"
@@ -4360,22 +4402,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "82a89eee",
-        "summary": "Implements `flow reopen draft` with strict reason validation and envelope-based failure signaling. It updates flow state and issue logs when reopening is allowed.",
-        "detail": "The module enforces reason constraints, including type checks, NUL-byte rejection, and maximum length limits before state mutation. It validates active-flow presence and phase suitability, returning structured fail envelopes for each invalid condition. On success, it records the reopen action through flow manager state transitions and issue-log persistence. Error paths are explicit and machine-readable, which helps CLI and automation callers handle outcomes consistently. The command remains intentionally narrow and deterministic.",
-        "chapter": "cli_commands",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-27T03:03:14.026Z",
           "attempts": 1
-        },
-        "keywords": [
-          "reopen draft",
-          "input validation",
-          "flow state transition",
-          "envelope response",
-          "issue log update",
-          "phase guard"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-report-show.js",
@@ -4550,9 +4579,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "461208872ce978ef0a5a043cfb6a1a8d",
+        "hash": "b523c5a90488bc3be57b472f510d44c1",
         "lines": 312,
-        "mtime": "2026-05-12T01:17:35.555Z",
+        "mtime": "2026-05-14T08:40:54.281Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -4877,7 +4906,7 @@
         "usedBy": null,
         "id": "2c71e989",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5197,7 +5226,7 @@
         "usedBy": null,
         "id": "ee559b7a",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5230,7 +5259,7 @@
         "usedBy": null,
         "id": "d4cb8d93",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5367,9 +5396,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "9c40d54d4efc7f3bc795145c272752d0",
-        "lines": 825,
-        "mtime": "2026-05-10T00:01:05.511Z",
+        "hash": "d991bf0d308e9600b28c82919649db8d",
+        "lines": 850,
+        "mtime": "2026-05-13T14:51:00.342Z",
         "className": "registry",
         "methods": [
           "isFinalizeSuccess",
@@ -5391,25 +5420,9 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Central registry mapping flow subcommand names to their handlers, args parsers, help text, and pre/post hooks for gate, finalize, and step lifecycle management.",
-        "detail": "Defines `FLOW_COMMANDS` as a single source of truth consumed by the flow.js dispatcher, including hooks that call `gateMod.executeGateSideEffects`, `executeCommitPost`, and step status updates. Helpers like `tryUpdateStepStatus` and `tryAppendIssueLog` wrap state-mutating calls with stderr warnings instead of crashing the CLI when no active flow exists. Implements finalize-step success detection (`done`/`completed`/`skipped`), downstream-leaf reset (`finalize-sync`, `finalize-cleanup`) when re-running, and `resolveMainRepoFlowManager` to bridge worktree-scoped commands back to the originating repo. Phase derivation via `derivePhase` and gate-step resolution via `resolveGateStepId`/`resolveGatePhaseFromState` keep registry handlers decoupled from FlowState internals.",
-        "chapter": "project_structure",
-        "role": "flow command registry and lifecycle hooks",
         "enrich": {
-          "processedAt": "2026-05-10T00:02:36.410Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow registry",
-          "command dispatch",
-          "gate hook",
-          "finalize",
-          "step status",
-          "issue log append",
-          "worktree",
-          "phase derivation",
-          "lifecycle hooks"
-        ]
+        }
       },
       {
         "file": "src/help.js",
@@ -6168,9 +6181,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "b1fd9c4d49bbee447dc5ed439c72f5b4",
-        "lines": 686,
-        "mtime": "2026-05-12T01:17:35.556Z",
+        "hash": "31cc5d5cdd8089caa3c4bc9076915dca",
+        "lines": 764,
+        "mtime": "2026-05-13T14:48:18.432Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -6181,7 +6194,9 @@
           "specIdFromBranch",
           "assertFlowStateSchema",
           "migrateDraftReviewSteps",
-          "appendDraftReviewMigrationLog",
+          "migrateDraftRefineStep",
+          "migrateSpecRepairStep",
+          "appendFlowMigrationLog",
           "migrateFlowState",
           "aggregateTaskSummaryIntoParent",
           "validateTaskShape"
@@ -6207,25 +6222,9 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "`flow-store.js` persists and validates Spec-Driven Development flow state, including task/step lifecycle data and migration handling. It centralizes read/write behavior for `flow.json` and enforces strict schema and status invariants.",
-        "detail": "The module builds canonical flow-state paths from root/spec identifiers, detects spec context from git branch naming, and resolves worktree-related locations for flow operations. It performs defensive schema checks for top-level flow objects, tasks, steps, requirements, timestamps, and merge strategy fields, raising explicit errors for malformed data. Migration logic upgrades older draft-review step shapes and optionally appends migration evidence into `issue-log.json`, then persists normalized state back to disk. The `FlowStore` class provides loading, read-only recovery, saving, task lookup, current-task resolution, scope mutation targeting, and parent summary aggregation helpers to keep nested task trees consistent. Utility functions like pending-step promotion, task-id resolution, and mutation-scope narrowing encapsulate flow progression rules so callers apply updates within the correct task boundary.",
-        "chapter": "internal_design",
-        "role": "flow_state_store",
         "enrich": {
-          "processedAt": "2026-05-12T01:21:07.341Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow state management",
-          "state persistence",
-          "JSON schema validation",
-          "task lifecycle",
-          "step promotion",
-          "migration logic",
-          "worktree path resolution",
-          "spec-driven development",
-          "error handling"
-        ]
+        }
       },
       {
         "file": "src/lib/formatter.js",
@@ -10381,9 +10380,9 @@
     ],
     "summary": {
       "total": 294,
-      "totalMethods": 1052
+      "totalMethods": 1085
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-12T01:22:02.942Z"
+  "enrichedAt": "2026-05-15T01:38:03.442Z"
 }
