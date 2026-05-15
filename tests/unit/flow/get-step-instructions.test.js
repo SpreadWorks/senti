@@ -42,6 +42,17 @@ describe("getStepInstructions (loader contract)", () => {
       const raw = fs.readFileSync(filePath, "utf8");
       assert.equal(content, raw, "loader returns exact file content");
     });
+
+    it("spec-repair records take/drop decisions for every blocking finding", () => {
+      const content = getStepInstructions("plan.spec-repair");
+
+      assert.match(content, /Always write `specs\/<spec-id>\/spec-repair\.json`/);
+      assert.match(content, /audit log for the AI's take\/drop decisions/);
+      assert.match(content, /For every `blockingFindings\[\]` entry/);
+      assert.match(content, /`decision`: one of `applied`, `invalid`, `already_resolved`, `downgraded_to_non_blocking`, or `deferred_to_gate`/);
+      assert.match(content, /`changedFields`/);
+      assert.match(content, /Use `deferred_to_gate` only for gate-owned issues/);
+    });
   });
 
   describe("error path: unknown key", () => {
