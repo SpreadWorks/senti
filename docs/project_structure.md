@@ -40,13 +40,13 @@ src/spec/commands/    (cli)
 
 | Directory | Files | Role |
 | --- | --- | --- |
-| src/flow | 66 | flow merge orchestrator, flow-command, spec rationale section builder for prompts, lib, flow-context, phase-resolution, controller, library, get guardrail flow command, cli, flow decision engine, command, finalize cleanup teardown, finalize merge command wrapper, flow-helpers, test-header-validator |
-| src/docs | 46 | command, cli, docs command, controller, model, DataSource implementation, lib, parser and transformer, resolver composition, library |
-| src/lib | 36 | lib, Metric dimension normalizer shared by agent runner and metrics aggregator, Agent runtime: spawns AI CLI, normalizes I/O, retries, and logs invocations, Shared CLI primitives: argv parser, root resolver, worktree detection, route, model, Config loader and path helpers, Validation constants, flow state manager, guardrail loading, merging, and filtering, lint-executor, middleware, view, child process execution helper, Fluent builder for AI prompts assembled from labeled sections, Provider plug-ins: per-CLI argument flags and stdout parsers, rules validation and rendering, skill deployment pipeline, spec-json-io, Shared type declarations placeholder |
+| src/flow | 69 | flow merge orchestrator, flow reporting command, flow review orchestrator, spec rationale section builder for prompts, lib, flow-context, controller, get guardrail flow command, cli, flow decision engine, command, library, finalize merge command wrapper, flow-command, test-header-validator |
+| src/docs | 46 | command, cli, docs command, AI enrichment pipeline command, documentation generation orchestrator, documentation integrity reviewer, source analysis scanner, text directive fill command, model, DataSource implementation, lib, analysis entry core library, analysis exclusion filter, parser and transformer, prompt composition library, resolver composition, library, test environment detector, text fill prompt library |
+| src/lib | 38 | lib, Metric dimension normalizer shared by agent runner and metrics aggregator, Agent runtime: spawns AI CLI, normalizes I/O, retries, and logs invocations, Shared CLI primitives: argv parser, root resolver, worktree detection, route, model, Validation constants, guardrail loading, merging, and filtering, lint-executor, middleware, view, Fluent builder for AI prompts assembled from labeled sections, Provider plug-ins: per-CLI argument flags and stdout parsers, rules validation and rendering, skill deployment pipeline, spec-json-io |
 | src | 10 | cli |
-| src/check | 3 | cli |
+| src/check | 3 | cli, coverage check command |
 | src/metrics | 1 | metrics token subcommand: tokenization cost/time aggregator with caching |
-| src/spec | 1 | cli |
+| src/spec | 1 | — |
 <!-- {{/data}} -->
 
 ### Shared Libraries
