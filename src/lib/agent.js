@@ -3,7 +3,7 @@
  *
  * AI agent service. Built once at Container init time and accessed via
  * `container.get("agent")`. The class encapsulates:
- *   - profile resolution (SDD_FORGE_PROFILE > config.agent.useProfile > default)
+ *   - profile resolution (SDD_FORGE_PROFILE > config.agent.useProfile > default profile > default)
  *   - prompt building (system prompt, JSON output flag, workDir flag injection)
  *   - argv-size based stdin fallback (config-driven threshold)
  *   - spawn-based asynchronous invocation (no blocking on stdin EOF)
@@ -47,24 +47,12 @@ class Agent {
 
   /**
    * Resolve a profile for the given commandId.
-   * Priority: SDD_FORGE_PROFILE env > config.agent.useProfile > default.
+   * Priority: SDD_FORGE_PROFILE env > config.agent.useProfile > default profile > default.
    * Returns null when no profile is configured.
    */
   resolve(commandId) {
     const agentSection = this._config.agent || {};
-    const defaultKey = agentSection.default;
-    const profileName = process.env.SDD_FORGE_PROFILE || agentSection.useProfile || null;
-
-    let profileKey = null;
-    if (profileName) {
-      const profiles = agentSection.profiles;
-      if (!profiles || !profiles[profileName]) {
-        throw new Error(`Profile "${profileName}" is not defined in agent.profiles.`);
-      }
-      profileKey = matchProfilePrefix(profiles[profileName], commandId) || defaultKey;
-    } else {
-      profileKey = defaultKey;
-    }
+    const profileKey = resolveProfileKey(agentSection, commandId);
     if (!profileKey) return null;
 
     const resolved = this._registry.resolveProfile(profileKey);
@@ -315,6 +303,26 @@ function matchProfilePrefix(profile, commandId) {
     }
   }
   return bestKey;
+}
+
+function resolveProfileKey(agentSection, commandId) {
+  const defaultKey = agentSection.default;
+  const profileName = process.env.SDD_FORGE_PROFILE || agentSection.useProfile || null;
+  if (!profileName) return defaultKey;
+
+  const profiles = agentSection.profiles;
+  if (!profiles || !profiles[profileName]) {
+    throw new Error(`Profile "${profileName}" is not defined in agent.profiles.`);
+  }
+
+  return matchProfilePrefix(profiles[profileName], commandId)
+    || matchDefaultProfileFallback(profiles, profileName, commandId)
+    || defaultKey;
+}
+
+function matchDefaultProfileFallback(profiles, profileName, commandId) {
+  if (profileName === "default" || !profiles.default) return null;
+  return matchProfilePrefix(profiles.default, commandId);
 }
 
 function substitutePromptToken(args, prompt) {

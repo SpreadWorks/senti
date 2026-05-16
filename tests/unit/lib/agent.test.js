@@ -165,6 +165,47 @@ describe("Agent.resolve(commandId) — profile resolution", () => {
     assert.ok(resolved.profile.args.includes("opus"));
   });
 
+  it("falls back to the default profile when the active profile has no command entry", () => {
+    const cfg = {
+      agent: {
+        default: "codex/gpt-5.4",
+        useProfile: "codex",
+        profiles: {
+          default: {
+            "experimental.workflow.publish": "claude/sonnet",
+          },
+          codex: {
+            flow: "codex/gpt-5.4",
+          },
+        },
+      },
+    };
+    const agent = makeAgent(null, { config: cfg });
+    const resolved = agent.resolve("experimental.workflow.publish");
+    assert.equal(resolved.profile.command, "claude");
+    assert.ok(resolved.profile.args.includes("sonnet"));
+  });
+
+  it("keeps active profile entries ahead of the default profile fallback", () => {
+    const cfg = {
+      agent: {
+        default: "claude/sonnet",
+        useProfile: "codex",
+        profiles: {
+          default: {
+            "experimental.workflow.publish": "claude/sonnet",
+          },
+          codex: {
+            "experimental.workflow.publish": "codex/gpt-5.4",
+          },
+        },
+      },
+    };
+    const agent = makeAgent(null, { config: cfg });
+    const resolved = agent.resolve("experimental.workflow.publish");
+    assert.equal(resolved.profile.command, "codex");
+  });
+
   it("returns null when default provider is unknown", () => {
     const cfg = {
       agent: { default: "unknown-provider" },

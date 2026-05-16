@@ -754,9 +754,13 @@ function extractRequirements(spec) {
     .join("\n");
 }
 
+const TEST_REVIEW_PROMPT_TOO_LARGE_CODE = "TEST_REVIEW_PROMPT_TOO_LARGE";
+const TEST_REVIEW_PROMPT_CHAR_LIMIT = 1_000_000;
+
 /**
- * Collect test files from spec-local tests/ and project tests/.
- * Spec-local takes precedence for same-name files.
+ * Collect test files from the spec-local tests/ directory only.
+ * Project-level tests/ are regression inputs for test-execute/gate-impl, not
+ * semantic review-test prompt input.
  * @param {string} root
  * @param {string} specDir - relative spec directory
  * @returns {{ name: string, content: string, source: string }[]}
@@ -764,13 +768,6 @@ function extractRequirements(spec) {
 function collectTestFiles(root, specDir) {
   const files = new Map();
 
-  // Project-level tests/ (fallback)
-  const projectTestDir = path.resolve(root, "tests");
-  if (fs.existsSync(projectTestDir)) {
-    collectTestsRecursive(projectTestDir, projectTestDir, files, "tests/");
-  }
-
-  // Spec-local tests/ (takes precedence)
   const specTestDir = path.resolve(root, specDir, "tests");
   if (fs.existsSync(specTestDir)) {
     collectTestsRecursive(specTestDir, specTestDir, files, `${specDir}/tests/`);
@@ -873,6 +870,24 @@ function buildTestFixPrompt(testDesign, gaps, testFiles) {
     .build();
 }
 
+function measurePromptChars(prompt) {
+  if (prompt && typeof prompt === "object" && "userPrompt" in prompt) {
+    return String(prompt.systemPrompt || "").length
+      + String(prompt.userPrompt || "").length
+      + String(prompt.fmtFallback || "").length;
+  }
+  return String(prompt || "").length;
+}
+
+function assertTestReviewPromptWithinLimit(prompt, label) {
+  const chars = measurePromptChars(prompt);
+  if (chars <= TEST_REVIEW_PROMPT_CHAR_LIMIT) return;
+  throw new Error(
+    `${TEST_REVIEW_PROMPT_TOO_LARGE_CODE}: ${label} prompt is ${chars} chars; `
+    + `limit is ${TEST_REVIEW_PROMPT_CHAR_LIMIT}. Narrow review-test inputs before calling the agent.`,
+  );
+}
+
 /**
  * Parse gap analysis output.
  * @param {string} text
@@ -895,10 +910,12 @@ function parseGaps(text) {
  * Parse file fix output and apply to disk.
  * @param {string} text - AI output with ### FILE: <path> blocks
  * @param {string} root
+ * @param {string} specDir
  * @returns {string[]} paths of files written
  */
-function applyTestFixes(text, root) {
+function applyTestFixes(text, root, specDir) {
   const written = [];
+  const allowedRoot = path.resolve(root, specDir, "tests");
   const fileParts = text.split(/^### FILE:\s*/m).filter(Boolean);
   for (const part of fileParts) {
     const nlIdx = part.indexOf("\n");
@@ -907,6 +924,10 @@ function applyTestFixes(text, root) {
     const codeMatch = part.match(/```(?:\w*)\n([\s\S]*?)```/);
     if (!codeMatch) continue;
     const absPath = path.resolve(root, filePath);
+    const relToAllowedRoot = path.relative(allowedRoot, absPath);
+    if (relToAllowedRoot.startsWith("..") || path.isAbsolute(relToAllowedRoot)) {
+      throw new Error(`test review fix attempted to write outside ${path.relative(root, allowedRoot)}: ${filePath}`);
+    }
     const dir = path.dirname(absPath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(absPath, codeMatch[1]);
@@ -934,11 +955,37 @@ function formatTestReviewMd(testDesign, gapHistory, finalVerdict, remainingGaps)
     lines.push("");
     lines.push("### Remaining Gaps");
     for (const g of remainingGaps) {
-      lines.push(`- ${g.title}`);
-      lines.push(`  ${g.body}`);
+      const formatted = formatRemainingGap(g);
+      lines.push(`- ${formatted.title}`);
+      lines.push(`  ${formatted.body}`);
     }
   }
   return lines.join("\n");
+}
+
+function formatRemainingGap(gap) {
+  if (gap?.title || gap?.body) {
+    return {
+      title: gap.title || "Untitled gap",
+      body: gap.body || "",
+    };
+  }
+  if (gap?.type === "missing-header") {
+    return {
+      title: `missing-header ${gap.reqId}`,
+      body: `${gap.desc || ""}${gap.suggestion ? ` ${gap.suggestion}` : ""}`.trim(),
+    };
+  }
+  if (gap?.type === "header-lie") {
+    return {
+      title: `header-lie ${gap.reqId}${gap.file ? ` (${gap.file})` : ""}`,
+      body: gap.detail || "",
+    };
+  }
+  return {
+    title: String(gap?.type || "gap"),
+    body: String(gap?.detail || gap?.desc || ""),
+  };
 }
 
 /**
@@ -1030,6 +1077,7 @@ async function runTestReview(root, flow, config, dryRun) {
     dryRun,
     async detect() {
       const detectPrompt = buildGapAnalysisPrompt(testDesign, testFiles);
+      assertTestReviewPromptWithinLimit(detectPrompt, "gap analysis");
       const raw = await callReviewAgent(
         agent, detectPrompt, "flow.test.review",
         "You are a test quality reviewer. Identify gaps between test design and test code.",
@@ -1038,11 +1086,12 @@ async function runTestReview(root, flow, config, dryRun) {
     },
     async fix(raw) {
       const fixPrompt = buildTestFixPrompt(testDesign, raw, testFiles);
+      assertTestReviewPromptWithinLimit(fixPrompt, "test fix");
       const fixResult = await callReviewAgent(
         agent, fixPrompt, "flow.test.review",
         "You are a test engineer. Fix test gaps by writing complete updated test files.",
       );
-      const written = applyTestFixes(fixResult, root);
+      const written = applyTestFixes(fixResult, root, specDir);
       if (written.length > 0) {
         console.error(`  [test-review] Fixed ${written.length} file(s): ${written.join(", ")}`);
       } else {

@@ -227,6 +227,9 @@ export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, par
 
 const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;
+const NON_RETRYABLE_REVIEW_ERRORS = Object.freeze([
+  "TEST_REVIEW_PROMPT_TOO_LARGE",
+]);
 
 /**
  * Run a command function with mechanical subprocess retry logic.
@@ -249,6 +252,9 @@ export async function runCmdWithRetry(cmdFn, opts = {}) {
 
     // Do not retry on killed/signal (timeout, external termination)
     if (lastRes.signal || lastRes.killed) return lastRes;
+    if (NON_RETRYABLE_REVIEW_ERRORS.some((code) => (lastRes.stderr || "").includes(code))) {
+      return lastRes;
+    }
 
     if (attempt < retryCount) {
       const next = attempt + 2;

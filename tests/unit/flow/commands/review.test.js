@@ -2,7 +2,7 @@ import { describe, it, afterEach } from "node:test";
 import os from "os";
 import fs from "fs";
 import assert from "node:assert/strict";
-import { join } from "path";
+import path, { join } from "path";
 import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../../helpers/tmp-dir.js";
 import { FLOW_STEPS } from "../../../../src/lib/flow-helpers.js";
@@ -23,8 +23,11 @@ import {
   parseSpecReviewFindings,
   validateDraftRepairAudit,
   validateDraftRepairShape,
+  collectTestFiles,
   filterProposalsByScope,
   collectTouchedFiles,
+  applyTestFixes,
+  formatTestReviewMd,
   resolveMergeBase,
 } from "../../../../src/flow/commands/review.js";
 
@@ -102,6 +105,81 @@ describe("flow run review --phase test CLI", () => {
       const out = `${err.stdout || ""}${err.stderr || ""}`;
       assert.match(out, /no active flow/i);
     }
+  });
+});
+
+describe("review-test spec-local file scope", () => {
+  let tmp;
+  afterEach(() => tmp && removeTmpDir(tmp));
+
+  function write(file, content) {
+    const full = join(tmp, file);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    fs.writeFileSync(full, content);
+  }
+
+  it("collects only spec-local test files and excludes project-level tests", () => {
+    tmp = createTmpDir();
+    const specDir = "specs/demo";
+    write("tests/project.test.js", "project root test");
+    write(`${specDir}/tests/project.test.js`, "spec local shadow");
+    write(`${specDir}/tests/local.spec.mjs`, "spec local mjs");
+
+    const files = collectTestFiles(tmp, specDir);
+
+    assert.deepEqual(
+      files.map((f) => f.source).sort(),
+      [
+        `${specDir}/tests/local.spec.mjs`,
+        `${specDir}/tests/project.test.js`,
+      ],
+    );
+    assert.ok(files.every((f) => f.source.startsWith(`${specDir}/tests/`)));
+    assert.ok(files.some((f) => f.content === "spec local shadow"));
+    assert.ok(!files.some((f) => f.content === "project root test"));
+  });
+
+  it("applies test fixes only under the current spec-local tests directory", () => {
+    tmp = createTmpDir();
+    const specDir = "specs/demo";
+    const allowed = [
+      `### FILE: ${specDir}/tests/generated.test.js`,
+      "```",
+      "import assert from \"node:assert/strict\";",
+      "```",
+    ].join("\n");
+
+    assert.deepEqual(applyTestFixes(allowed, tmp, specDir), [
+      `${specDir}/tests/generated.test.js`,
+    ]);
+    assert.equal(
+      fs.readFileSync(join(tmp, specDir, "tests/generated.test.js"), "utf8"),
+      "import assert from \"node:assert/strict\";\n",
+    );
+
+    const outside = [
+      "### FILE: tests/project.test.js",
+      "```",
+      "should not be written",
+      "```",
+    ].join("\n");
+    assert.throws(
+      () => applyTestFixes(outside, tmp, specDir),
+      /outside specs\/demo\/tests/,
+    );
+    assert.equal(fs.existsSync(join(tmp, "tests/project.test.js")), false);
+  });
+
+  it("formats deterministic header gaps without undefined placeholders", () => {
+    const md = formatTestReviewMd("design", ["gap history"], "FAIL", [{
+      type: "header-lie",
+      reqId: "R1",
+      file: "tests/example.test.js",
+      detail: "Header declares R1 but no matching test name exists",
+    }]);
+
+    assert.match(md, /header-lie R1/);
+    assert.doesNotMatch(md, /undefined/);
   });
 });
 

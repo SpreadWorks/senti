@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   parseProposalReviewOutput,
   parseSpecReviewOutput,
+  runCmdWithRetry,
   updateReviewRetryCounter,
 } from "../../../src/flow/lib/run-review.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
@@ -133,5 +134,25 @@ describe("spec review advisory verdict", () => {
       { stepId: "spec-review-triage", status: "done" },
       { stepId: "spec-repair", status: "done" },
     ]);
+  });
+});
+
+describe("review subprocess retry", () => {
+  it("does not retry deterministic review-test prompt size failures", async () => {
+    let calls = 0;
+    const result = await runCmdWithRetry(() => {
+      calls++;
+      return {
+        ok: false,
+        status: 1,
+        stdout: "",
+        stderr: "TEST_REVIEW_PROMPT_TOO_LARGE: gap analysis prompt is too large",
+        signal: null,
+        killed: false,
+      };
+    }, { retryCount: 2, retryDelayMs: 0 });
+
+    assert.equal(calls, 1);
+    assert.equal(result.status, 1);
   });
 });
