@@ -4,7 +4,8 @@
  * FlowCommand: retro — aggregate per-requirement pass/fail from the artifacts
  * produced by test-execute and verified by test-result-review. Reads
  * test-result-review.json (verdict gate) and test-execute-result.json (summary)
- * and writes retro.json. Performs no test execution.
+ * and writes retro.json. v2 raw_output_lines are range objects with start_line
+ * and end_line. Performs no test execution.
  */
 
 import fs from "fs";
@@ -12,6 +13,7 @@ import path from "path";
 import { loadSpecJson, normalizeRequirements, resolveSpecDir } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { validateTestExecuteResultV2, validateTestResultReview } from "./test-artifacts.js";
 
 const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
@@ -106,12 +108,15 @@ export class RunRetroCommand extends FlowCommand {
     }
 
     const result = readJson(resultPath);
-    if (result.version !== "1") {
+    try {
+      validateTestResultReview(review);
+      validateTestExecuteResultV2(result);
+    } catch (err) {
       return Envelope.fail(
         "run",
         "retro",
-        "TEST_EXECUTE_RESULT_VERSION_UNSUPPORTED",
-        `${TEST_EXECUTE_RESULT_FILE} version='${result.version}', expected '1'`,
+        "TEST_ARTIFACT_INVALID",
+        err.message,
       );
     }
 

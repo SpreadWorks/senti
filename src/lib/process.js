@@ -56,7 +56,7 @@ export function runCmd(cmd, args, opts = {}) {
  * @param {number}   [opts.timeout]   - Timeout in ms
  * @param {number}   [opts.maxBuffer] - Max stdout/stderr buffer size in bytes
  * @param {Object}   [opts.env]       - Environment variables
- * @returns {Promise<{ ok: boolean, status: number, stdout: string, stderr: string, signal: string|null, killed: boolean }>}
+ * @returns {Promise<{ ok: boolean, status: number, stdout: string, stderr: string, signal: string|null, killed: boolean, errorCode?: string|null }>}
  */
 export function runCmdAsync(cmd, args, opts = {}) {
   return new Promise((resolve) => {
@@ -74,6 +74,7 @@ export function runCmdAsync(cmd, args, opts = {}) {
             stderr: String(stderr || err.message || ""),
             signal: err.signal ?? null,
             killed: err.killed ?? false,
+            errorCode: typeof err.code === "string" ? err.code : null,
           };
         } else {
           result = {

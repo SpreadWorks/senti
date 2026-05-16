@@ -59,13 +59,23 @@ function writeArtifacts(specDir, summary, verdict = "pass") {
   fs.mkdirSync(path.dirname(rawOutput), { recursive: true });
   fs.writeFileSync(rawOutput, "raw output\n");
   fs.writeFileSync(path.join(specDir, "test-execute-result.json"), JSON.stringify({
-    version: "1",
+    version: "2",
     raw_output_path: path.relative(path.dirname(specDir), rawOutput),
     summary,
+    regression: {
+      required: false,
+      result: "skipped",
+      mode: "none",
+      changed_files: [],
+      trigger_relevant_changed_files: [],
+      category: "spec-artifact-only",
+      reason: "unit fixture",
+      classified_paths: [],
+    },
   }, null, 2));
   fs.writeFileSync(path.join(specDir, "test-result-review.json"), JSON.stringify({
     verdict,
-    checked_items: [],
+    checked_items: [{ check: "project_regression_verification", result: "pass" }],
     result_file_path: path.join(specDir, "test-execute-result.json"),
     raw_output_path: rawOutput,
   }, null, 2));
@@ -85,7 +95,12 @@ describe("R5: retro reads test-execute-result.json (spec 251)", () => {
       {
         id: "R1",
         result: "pass",
-        evidence: { test_file: "f.test.js", test_name: "R1: works", command: "node --test", raw_output_lines: [1, 2] },
+        evidence: {
+          test_file: "f.test.js",
+          test_name: "R1: works",
+          command: "node --test",
+          raw_output_lines: { start_line: 1, end_line: 2 },
+        },
       },
     ]);
 

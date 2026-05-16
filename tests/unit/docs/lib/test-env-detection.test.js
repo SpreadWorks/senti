@@ -93,7 +93,7 @@ describe("test environment detection", () => {
     const result = detectTestEnvironment(analysis);
     assert.equal(result.hasTestEnv, true);
     assert.ok(result.frameworks.includes("jest"));
-    assert.equal(result.testCommand, "jest");
+    assert.equal(result.testCommand, "npm test --");
   });
 
   it("detects no test environment when no frameworks or scripts", async () => {

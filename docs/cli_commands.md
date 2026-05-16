@@ -43,7 +43,6 @@ The CLI is organized as command groups that dispatch subcommands from registries
 | `sdd-forge flow set note "<text>"` | Appends operator note to flow state. | `--task-id` optional. |
 | `sdd-forge flow set request "<text>"` | Stores high-level request text in flow state. | Text required. |
 | `sdd-forge flow set step <id> <status>` | Updates step status and triggers approval-time task sync. | Valid status required. |
-| `sdd-forge flow set test-summary ...` | Writes test summary (`legacy flags` or `--json` payload). | `--unit`, `--integration`, `--acceptance`, or `--json`; `--mode fallback`; `--baseline`. |
 | `sdd-forge flow run gate` | Executes gate validations (draft/spec/task/integration), guardrails, diff checks, and retry controls. | Phase/level driven by command context and constants. |
 | `sdd-forge flow run lint` | Runs guardrail-based lint against changed files. | `--base` optional (falls back to active flow base branch). |
 | `sdd-forge flow run merge` | Finalize merge route (`pr` via `gh` or local `squash`), including pre-sync rebase checks. | Strategy inferred from config + environment. |
@@ -52,6 +51,8 @@ The CLI is organized as command groups that dispatch subcommands from registries
 | `sdd-forge flow run report` | Generates and saves `report.json` for active spec. | `--dry-run`. |
 | `sdd-forge flow report show` | Prints text from most recent finalized `report.json`. | No options required by command implementation. |
 | `sdd-forge flow run review` | Runs review subprocess for generic/spec/test phases with retry. | `--phase`, `--dry-run`, `--skip-confirm`. |
+| `sdd-forge flow run test-execute` | Runs spec-local tests and required project regression, then writes `test-execute-result.json` version `"2"` plus raw output. | Uses `.sdd-forge/config.json` `test.command`, `test.projectPaths`, and `test.timeout` when configured. |
+| `sdd-forge flow run test-result-review` | Deterministically validates `test-execute-result.json` v2, raw output, and project regression evidence before writing `test-result-review.json`. | No options. |
 | `sdd-forge flow run sync` | Executes docs build/review and optionally commits docs sync changes. | `--dry-run`. |
 | `sdd-forge flow run tests` | Runs resolved test command, stores logs, parses counts, and updates test summary. | `--baseline` supported in command context. |
 | `sdd-forge metrics <command>` | Dispatches metrics subcommands from `metricsCommands`. | `-h`, `--help`. |
@@ -88,6 +89,7 @@ Example: `sdd-forge docs build --verbose --force`, `sdd-forge docs changelog --d
 #### `sdd-forge flow`
 Usage: `sdd-forge flow <prepare|resume|get|set|run> ...`.
 Aliases: `flow prepare` routes to `run prepare-spec`; `flow resume` routes to `run resume`.
+Impl-phase tests are centralized in `flow run test-execute`. The persisted `test-execute-result.json` uses version `"2"`, keeps requirement results in `summary[]`, and stores project-level regression evidence in `regression`. `flow run test-result-review`, `flow run gate --phase integration`, reports, and finalize consume that v2 artifact instead of legacy flow-state test summaries. Top-level `.sdd-forge/config.json` `test.command`, `test.projectPaths`, and `test.timeout` configure project-level regression; `commands.test` remains separate task prompt configuration.
 Examples: `sdd-forge flow get check dirty`, `sdd-forge flow set step approval done`, `sdd-forge flow run review --phase spec`, `sdd-forge flow run tests --baseline`.
 
 #### `sdd-forge metrics`

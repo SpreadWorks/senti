@@ -5,17 +5,12 @@
  */
 
 /** Collect all items across all analysis categories. */
-function allItems(analysis, metaKeys) {
+function allItems(analysis, iterateAnalysisCategories) {
   const items = [];
-  for (const [key, val] of Object.entries(analysis)) {
-    if (metaKeys.has(key)) continue;
-    if (!val || typeof val !== "object") continue;
-    const arr = val.entries;
-    if (Array.isArray(arr)) {
-      for (const item of arr) {
-        const p = item?.relPath || item?.file;
+  for (const [, val] of iterateAnalysisCategories(analysis)) {
+    for (const item of val.entries) {
+      const p = item?.relPath || item?.file;
       if (p) items.push({ ...item, relPath: p });
-      }
     }
   }
   return items;
@@ -39,9 +34,9 @@ function buildDirectoryMap(items) {
 const MAX_EXPAND_DEPTH = 5;
 
 /** Validate analysis and return directory map, or null if not ready. */
-function getDirectoryMap(analysis, metaKeys) {
+function getDirectoryMap(analysis, iterateAnalysisCategories) {
   if (!analysis?.enrichedAt) return null;
-  const items = allItems(analysis, metaKeys);
+  const items = allItems(analysis, iterateAnalysisCategories);
   if (items.length === 0) return null;
   const dirs = buildDirectoryMap(items);
   if (dirs.size === 0) return null;
@@ -66,12 +61,12 @@ function aggregateAtDepth(dirs, depth) {
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");
-  const ANALYSIS_META_KEYS = container.get("base.ANALYSIS_META_KEYS");
+  const iterateAnalysisCategories = container.get("base.iterateAnalysisCategories");
 
   return class StructureSource extends DataSource {
     /** Directory tree as a code block. */
     tree(analysis, _labels) {
-      const dirs = getDirectoryMap(analysis, ANALYSIS_META_KEYS);
+      const dirs = getDirectoryMap(analysis, iterateAnalysisCategories);
       if (!dirs) return null;
 
       const sorted = [...dirs.keys()].sort();
@@ -87,7 +82,7 @@ export default function register(container) {
 
     /** Major directories with file counts and roles. */
     directories(analysis, labels) {
-      const dirs = getDirectoryMap(analysis, ANALYSIS_META_KEYS);
+      const dirs = getDirectoryMap(analysis, iterateAnalysisCategories);
       if (!dirs) return null;
 
       let depth = 1;

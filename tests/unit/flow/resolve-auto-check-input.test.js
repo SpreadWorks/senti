@@ -68,7 +68,9 @@ describe("resolve-auto-check-input — phase-aware input construction (spec 220)
   it("returns issue+request+draft body when gate-draft is done and draft exists", () => {
     const specDir = path.join(tmp, "specs/001-test");
     fs.mkdirSync(specDir, { recursive: true });
-    fs.writeFileSync(path.join(specDir, "draft.json"), JSON.stringify({ goal: "DRAFT_MARKER 内容が続く" }));
+    fs.writeFileSync(path.join(specDir, "draft.json"), JSON.stringify({
+      goal: "DRAFT_MARKER 内容が続く",
+    }));
 
     const state = {
       issue: 10,

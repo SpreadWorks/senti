@@ -14,7 +14,7 @@ import fs from "fs";
 import path from "path";
 import { sddOutputDir, loadConfig } from "../../lib/config.js";
 import { FlowCommand } from "./base-command.js";
-import { ANALYSIS_META_KEYS } from "../../docs/lib/analysis-entry.js";
+import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { container } from "../../lib/container.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 
@@ -53,12 +53,8 @@ function searchEntries(entries, query) {
  */
 function collectAllKeywords(analysis, limit = 2000) {
   const freq = new Map();
-  for (const catKey of Object.keys(analysis)) {
-    if (!analysis[catKey] || typeof analysis[catKey] !== "object") continue;
-    if (ANALYSIS_META_KEYS.has(catKey)) continue;
-    const entries = analysis[catKey].entries;
-    if (!Array.isArray(entries)) continue;
-    for (const e of entries) {
+  for (const [, catData] of iterateAnalysisCategories(analysis)) {
+    for (const e of catData.entries) {
       if (!Array.isArray(e.keywords)) continue;
       for (const kw of e.keywords) {
         const s = String(kw);
@@ -428,10 +424,7 @@ function loadAnalysisEntries(root) {
   }
 
   const entries = [];
-  for (const catKey of Object.keys(analysis)) {
-    if (ANALYSIS_META_KEYS.has(catKey)) continue;
-    const catData = analysis[catKey];
-    if (!catData || !Array.isArray(catData.entries)) continue;
+  for (const [, catData] of iterateAnalysisCategories(analysis)) {
     for (const entry of catData.entries) {
       entries.push(entry);
     }

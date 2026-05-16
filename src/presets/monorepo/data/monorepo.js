@@ -11,7 +11,7 @@ import path from "path";
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");
-  const ANALYSIS_META_KEYS = container.get("base.ANALYSIS_META_KEYS");
+  const iterateAnalysisCategories = container.get("base.iterateAnalysisCategories");
   const Blockquote = container.get("base.Blockquote");
   const loadJsonFile = container.get("config.loadJsonFile");
 
@@ -50,14 +50,8 @@ export default function register(container) {
       if (!chapterName) return null;
 
       const appSet = new Set();
-      for (const cat of Object.keys(analysis)) {
-        if (ANALYSIS_META_KEYS.has(cat)) continue;
-        const data = analysis[cat];
-        if (!data || typeof data !== "object") continue;
-        const items = data.entries;
-        if (!Array.isArray(items)) continue;
-
-        for (const item of items) {
+      for (const [, data] of iterateAnalysisCategories(analysis)) {
+        for (const item of data.entries) {
           if (item.chapter === chapterName && item.app) {
             appSet.add(item.app);
           }

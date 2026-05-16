@@ -1,0 +1,203 @@
+{
+  "spec": "specs/257-project-level-test-breakage-detection/spec.json",
+  "date": "2026-05-16T03:21:04.219Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When prepare-spec establishes the active flow root, it shall run docs scan after worktree/root creation and before successful active-flow registration, skip docs scan for --dry-run, leave any partially created branch/worktree/spec files visible for operator cleanup on failure, and fail prepare when .sdd-forge/output/analysis.json is missing, unreadable, or has an invalid analysis shape.",
+      "status": "done",
+      "note": "R1: prepare-spec runs docs scan and fails on missing or invalid analysis.json"
+    },
+    {
+      "desc": "src/docs/lib/analysis-entry.js shall expose iterateAnalysisCategories(analysis,{strict}) and shared metadata keys, extract project file paths from category objects containing entries[], optional summary, and optional dataSourceHash, ignore analyzedAt, enrichedAt, and generatedAt, support strict mode for regression classification, and be used anywhere code iterates analysis top-level categories, including docs scan existing-analysis indexes/reset logic, check scan, get-context, docs prompt helpers, DataSources, docs enrich/text/review, and analysis-filter.",
+      "status": "done",
+      "note": "R2: analysis category iteration is centralized and used by analysis walkers"
+    },
+    {
+      "desc": "Config validation shall accept an optional top-level test object with test.command, test.projectPaths, and test.timeout, validate test.command during config load, require test.projectPaths to be root-relative POSIX strings with no absolute paths, parent traversal, empty entries, globs, or shell metacharacters, treat entries ending in / as directory prefixes and other entries as exact files without existence checks, require test.timeout to be a positive integer number of seconds, and preserve invalid .sdd-forge/config.json as a distinct command startup failure rather than converting it to missing config.",
+      "status": "done",
+      "note": "R3: config loading validates top-level test config and preserves invalid config failures"
+    },
+    {
+      "desc": "Root regression command discovery shall use test.command, package.json scripts.test, composer.json scripts.test, then Makefile test target, record the selected source, parse only test.command directly, execute package.json scripts.test through argv [\"npm\",\"test\",\"--\"], execute composer.json scripts.test through argv [\"composer\",\"run-script\",\"test\",\"--\"], execute Makefile test through argv [\"make\",\"test\"], record discovered script or target text as metadata only, and fail when no supported source or ambiguous selected-source candidates exist.",
+      "status": "done",
+      "note": "R4: root regression discovery uses explicit config, ecosystem wrappers, and recorded source"
+    },
+    {
+      "desc": "Regression command parsing shall support argv-style commands with quoted args, escaped characters, and leading KEY=value env assignments, and reject shell control or expansion syntax.",
+      "status": "done",
+      "note": "R5: explicit test.command uses argv parsing and rejects shell syntax"
+    },
+    {
+      "desc": "Changed-file enumeration shall use a shared helper built on src/lib/git-helpers.js, use flow baseBranch plus HEAD, working tree, and untracked file state, preserve modified/added/deleted/renamed/untracked status, persist a stable sorted trigger-relevant changed_files[] snapshot using {status,path} or {status:\"renamed\",old_path,path} with root-relative normalized paths, and be reused by both test-execute evidence creation and gate-impl freshness comparison.",
+      "status": "done",
+      "note": "R6: changed file snapshots preserve status and rename details through a shared helper"
+    },
+    {
+      "desc": "The classifier shall classify active spec-local test files under specs/<active-spec>/tests/** as requirement-test inputs/spec artifacts that do not trigger project regression unless they also match test.projectPaths, apply test.projectPaths-proven project test-file classification before generic analysis project-file triggers, select targeted mode only when every trigger-relevant changed file is a test.projectPaths-classified test file, append target_paths as argv tokens after the selected root command argv, fall back to full mode when targeted command construction cannot be represented with path tokens, require full regression for remaining analysis project files, execution/config/test-contract files, and unknown regular files, and mark non-trigger changes as regression.required=false using docs-only, spec-artifact-only, non-project-only, or mixed-non-trigger.",
+      "status": "done",
+      "note": "R7: classifier separates spec-local tests, project test paths, full mode, and targeted mode"
+    },
+    {
+      "desc": "test-execute-result.json shall use version \"2\" enforced by schema-supported enum [\"2\"] and deterministic validators that reject v1 artifacts, keep summary[] mandatory for requirement results, migrate summary[].evidence.raw_output_lines to {start_line,end_line}, and store project-level regression in a single regression object outside summary[].",
+      "status": "done",
+      "note": "R8: test-execute-result schema is v2-only with summary ranges and regression object"
+    },
+    {
+      "desc": "For regression.required=true, regression shall include mode, root_test_command, root_test_command_source, command, result, raw_output_lines, and changed_files, with target_paths required for targeted mode; raw_output_lines shall be {start_line,end_line} using 1-based inclusive raw-log line numbers.",
+      "status": "done",
+      "note": "R9: required regression fields are represented in schema and validators"
+    },
+    {
+      "desc": "For regression.required=false, regression shall include category, reason, classified_paths, and changed_files, with category limited to docs-only when every classified path is documentation, spec-artifact-only when every classified path is generated SDD/spec artifact, non-project-only when every classified path is non-project, or mixed-non-trigger when multiple non-trigger classes are present.",
+      "status": "done",
+      "note": "R10: skipped regression categories include mixed non-trigger changes"
+    },
+    {
+      "desc": "When regression.required=true, test-execute shall write standardized regression start and end markers to the raw log and ensure regression.raw_output_lines includes both markers with command and result values matching the artifact.",
+      "status": "done",
+      "note": "R11: required regression writes raw start/end markers and line ranges"
+    },
+    {
+      "desc": "If a required regression command has started and then exits non-zero, exits 127, terminates by signal, or times out, test-execute shall write a valid v2 artifact with regression.result=\"fail\" and allow downstream review and gate to process it.",
+      "status": "done",
+      "note": "R12: started non-zero, signal, 127, and timeout outcomes become fail artifacts"
+    },
+    {
+      "desc": "If command discovery, config validation, config loading, analysis loading, or process spawn fails before the regression command starts, test-execute or prepare shall fail without writing a normal test-execute-result.json artifact and shall record issue-log fields for test-execute prerequisite failures; invalid config must surface through the existing command error/envelope path and must not be downgraded to NO_CONFIG.",
+      "status": "done",
+      "note": "R13: prerequisite failures do not write normal test-execute-result.json artifacts"
+    },
+    {
+      "desc": "test-execute shall delete stale test-execute-result.json, raw log, test-result-review.json, test-result-review.md, retro.json, and report.json at step start.",
+      "status": "done",
+      "note": "R14: test-execute removes stale downstream artifacts at step start"
+    },
+    {
+      "desc": "test-result-review shall run deterministic regression validation before accepting AI output, require checked_items[] to include project_regression_verification with result pass, advance the step only when deterministic validation and review verdict pass, make registry post-hook completion conditional on that pass verdict, and return non-zero failure while leaving the step retryable when validation or verdict fails.",
+      "status": "done",
+      "note": "R15: test-result-review requires deterministic project_regression_verification pass"
+    },
+    {
+      "desc": "The flow-level integration gate-impl shall require test-result-review pass, independently validate v2 regression evidence, compare the current trigger-relevant changed-file snapshot with regression.changed_files, and fail when required regression is missing, stale, unverifiable, or result fail.",
+      "status": "done",
+      "note": "R16: flow-level gate-impl independently validates current v2 regression evidence"
+    },
+    {
+      "desc": "report shall expose completed regression data under data.tests.projectRegression and render one text line Project regression: required=<true|false> result=<pass|fail|skipped> mode=<full|targeted|none>, adding category when required=false; flow run report, report-show, finalize report generation, and finalize cleanup report envelopes shall use the same v2 artifact-loading path and fail non-zero or preserve the same blocking failure when present test artifacts are unreadable or invalid.",
+      "status": "done",
+      "note": "R17: all report consumers expose projectRegression and fail on invalid present artifacts"
+    },
+    {
+      "desc": "retro shall continue aggregating requirement summary[] only, shall support v2 raw_output_lines range objects, and shall not mix project regression into requirement status totals.",
+      "status": "done",
+      "note": "R18: retro consumes v2 summary ranges and excludes project regression from requirement totals"
+    },
+    {
+      "desc": "Configuration docs, CLI docs, setup output, templates, generated skills, next-action schemas, prompts including implement.md, fixtures, existing project tests, snapshots, src/lib/flow-store.js summary handling, docs data sources or prompt context, and src/lib/types.js entries that describe test-execute-result.json, test-result-review, or .sdd-forge/config.json shall be updated to the v2 and test object contracts.",
+      "status": "done",
+      "note": "R19: public docs, prompts, schemas, fixtures, and types describe v2 test config/artifacts"
+    },
+    {
+      "desc": "test-execute prompt files and run-test-execute.js system prompt shall use the R4 discovery order exactly and shall not instruct agents to discover root regression commands from README/docs hints, Python config auto-guessing, or commands.test.",
+      "status": "done",
+      "note": "R20: prompts and system instructions use R4 discovery and exclude README/Python/commands.test discovery"
+    },
+    {
+      "desc": "Schema validation shall remain within the supported local schema subset, use supported constructs such as enum [\"2\"] rather than unsupported const for version enforcement, and enforce v2-only rules that need cross-field, marker, membership, or freshness checks with deterministic validator functions.",
+      "status": "done",
+      "note": "R21: schema version uses supported enum and cross-field checks stay in code"
+    },
+    {
+      "desc": "The temporary requirement summary artifact produced for test-execute shall live under the spec tests/.raw directory, be deleted at test-execute start and after final v2 artifact composition, and never be listed as a committed flow artifact.",
+      "status": "done",
+      "note": "R22: temporary requirement summary artifact lives under spec tests/.raw and is removed"
+    },
+    {
+      "desc": "Regression command execution shall expose a deterministic process result with started, exitCode, signal, timedOut, spawnError, stdout, and stderr fields, and test-execute shall use those fields to distinguish started failures from prerequisite failures.",
+      "status": "done",
+      "note": "R23: process execution returns deterministic started/exit/signal/timeout/spawn fields"
+    },
+    {
+      "desc": "The flow skill template and implement prompt shall document that prepare docs-scan or analysis failures are hard stops surfaced through the normal flow error envelope, that normal v2 artifact production advances test-execute, that started regression failures advance to test-result-review, that prerequisite failures are hard stops, that test-only specs may skip implement but must not skip the flow-level gate-impl regression gate, and that manual flow set step must not mask those outcomes; generated skills shall be refreshed with sdd-forge upgrade when the template changes.",
+      "status": "done",
+      "note": "R24: flow skill template and implement prompt document hard stops and do not skip gate-impl"
+    },
+    {
+      "desc": "finalize commit, including executeCommitPost() in run-finalize.js, and finalize cleanup report handling shall stage only durable raw evidence such as tests/.raw/test-execution.log, shall exclude the temporary requirement summary artifact by exact pathspec exclusion or filename pattern, shall use the same v2 report-show/report data when embedding cleanup output, and shall not catch and downgrade invalid present v2 test artifact or report-generation failures to a non-blocking report status.",
+      "status": "done",
+      "note": "R25: finalize stages durable evidence only and does not downgrade invalid v2 report failures"
+    },
+    {
+      "desc": "Registry post-hooks shall mark test-execute done only when prerequisite checks succeeded and a normal v2 artifact was produced; started regression failures with regression.result=\"fail\" shall advance to test-result-review, prerequisite failures shall throw or return ok:false and leave test-execute incomplete, and test-result-review post-hooks shall mark done only when deterministic validation and the review verdict pass.",
+      "status": "done",
+      "note": "R26: registry post-hooks advance test steps only on valid artifact/review outcomes"
+    },
+    {
+      "desc": "Docs test environment detection shall report the selected project test command using the same R4 source order for test.command, package.json scripts.test, composer.json scripts.test, and Makefile test target, and the generated development/testing docs path shall receive that data through a shared discovery helper, data source, resolver, or text prompt context used by the base en/ja templates, so generated docs do not contradict regression command discovery.",
+      "status": "done",
+      "note": "R27: generated docs use the same test command source order as runtime discovery"
+    },
+    {
+      "desc": "src/flow/definition.js and run-impl-confirm.js shall keep implementation completion guidance on the path test-execute before test-result-review before review before flow-level gate-impl before retro, wire next-action schemas and contexts for the updated test-execute/test-result-review outputs, keep maxAttempts explicit, and expose prerequisite behavior tests for these transitions.",
+      "status": "done",
+      "note": "R28: flow definition and impl-confirm guide implementation through test-execute before review/gate"
+    },
+    {
+      "desc": "When impl review applies code changes after test-execute, downstream test-execute, test-result-review, gate-impl, and retro evidence shall be reset deterministically, or the stale gate failure and review prompt instructions shall direct the operator to rerun test-execute before gate-impl can pass.",
+      "status": "done",
+      "note": "R29: impl review changes reset downstream test and gate evidence or force rerun"
+    },
+    {
+      "desc": "Spec-local requirement test execution shall remain part of test-execute: the agent may run spec-local tests under specs/<active-spec>/tests/** and produce a temporary summary, but the runner shall validate each summary[] entry against the referenced test file, test name, command, and raw output line range before composing the final v2 artifact.",
+      "status": "done",
+      "note": "R30: spec-local summary entries are validated against files, names, commands, and raw line ranges"
+    },
+    {
+      "desc": "flow set step shall refuse or validate manual done transitions for test-execute, test-result-review, flow-level gate-impl, and retro so operators cannot bypass required current v2 artifacts, deterministic review checks, or regression gate evidence.",
+      "status": "done",
+      "note": "R31: manual set-step completion cannot bypass test/review/gate/retro evidence"
+    },
+    {
+      "desc": "run-review or a shared flow-state helper shall own the reset trigger after review-applied code changes, resetting test-execute, test-result-review, flow-level gate-impl, and retro to pending and deleting stale downstream artifacts.",
+      "status": "done",
+      "note": "R32: review-applied code changes use one reset owner for downstream artifacts"
+    },
+    {
+      "desc": "src/flow/lib/gate-step.js shall route project regression validation only to phase \"integration\" and keep task-level gate-impl behavior unchanged, with tests proving the phase split.",
+      "status": "done",
+      "note": "R33: gate-step routes project regression validation only to integration gate"
+    },
+    {
+      "desc": "Existing flow-order and next-action tests and fixtures, including specs/251-fix-flow-impl-phase-order/tests/definition-impl-order.test.js and tests/unit/flow/get-next-action.test.js, shall be updated for the test-execute, test-result-review, review, gate-impl, retro impl sequence.",
+      "status": "done",
+      "note": "R34: flow-order and next-action tests/fixtures cover the new impl sequence"
+    },
+    {
+      "desc": "src/templates/partials/flow-tracking.md, src/templates/skills/rules.json, and generated flow skills shall list test-execute, test-result-review, and retro as post-hook-managed steps where manual step advancement must not mask prerequisite failures.",
+      "status": "done",
+      "note": "R35: generated flow tracking rules exempt post-hook-managed test steps from manual done guidance"
+    },
+    {
+      "desc": "Runtime help and localized text under src/locale/en/*.json and src/locale/ja/*.json shall be updated when they mention test config, default agent terminology, test artifacts, or command/help wording affected by this v2 regression contract.",
+      "status": "done",
+      "note": "R36: localized runtime help/messages mention the new test artifact and config wording"
+    },
+    {
+      "desc": "Legacy state.test.summary APIs such as setTestSummary() and aggregateTaskSummaryIntoParent() shall be removed or quarantined so they cannot overwrite, synthesize, or remain authoritative for v2 summary[] and regression results; existing tests for that legacy aggregation shall be deleted or rewritten against v2 artifact consumers.",
+      "status": "done",
+      "note": "R37: legacy state.test.summary cannot remain authoritative for v2 results"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 37,
+    "done": 37,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

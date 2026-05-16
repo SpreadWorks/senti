@@ -70,7 +70,6 @@ export class FlowManager {
 
   updateStepStatus(stepId, status, opts) { return this._store.updateStepStatus(stepId, status, opts); }
   setMergeOutcome(outcome, opts) { return this._store.setMergeOutcome(outcome, opts); }
-  setTestSummary(summary, opts) { return this._store.setTestSummary(summary, opts); }
   setRequest(text) { return this._store.setRequest(text); }
   setIssue(issue) { return this._store.setIssue(issue); }
   addNote(text, opts) { return this._store.addNote(text, opts); }
@@ -86,7 +85,9 @@ export class FlowManager {
   addTask(task) { return this._store.addTask(task); }
 
   /** Mark a task done; clears currentTaskId if it pointed at this task. */
-  completeTask(taskId) { return this._store.completeTask(taskId); }
+  completeTask(taskId) {
+    return this._store.completeTask(taskId);
+  }
 
   /** Get the current task object or null. */
   getCurrentTask() {

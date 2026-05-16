@@ -1,0 +1,840 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[3]: invalid category \"consumer-contracts\"; qa[6]: invalid category \"test-strategy\"; qa[8]: invalid category \"consumer-contracts\"; qa[10]: invalid category \"existing-behavior\"; qa[14]: invalid category \"consumer-contracts\"; qa[15]: invalid category \"consumer-contracts\"; qa[16]: invalid category \"consumer-contracts\"; qa[17]: invalid category \"consumer-contracts\"; qa[17]: evidence must be empty when status is dropped; qa[19]: invalid category \"failure-policy\"; qa[20]: invalid category \"implementation-targets\"; qa[21]: invalid category \"risks\"; qa[22]: invalid category \"config-contract\"; qa[23]: invalid category \"validation-contract\"; qa[23]: why contains ambiguous wording; qa[24]: invalid category \"documentation-contract\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-13T00:45:33.507Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays within the user-defined Issue scope of project-level regression detection across test-execute, test-result-review, gate-impl, and directly related supporting artifacts/consumers.; Unambiguous Requirements — text report にも project-level regression の状態を短く表示する — The word '短く' is subjective and does not define a verifiable output format, fields, or length constraint for the text report. (at qa[8].answer); Unambiguous Requirements — `src/flow/lib/run-prepare-spec.js` または同等箇所 — The phrase '同等箇所' does not identify a concrete implementation location or objective criteria for equivalence. (at qa[20].answer); Complete Context — text report にも project-level regression の状態を短く表示する — Two reviewers could disagree on whether a text report display is sufficiently 'short' because the required content and format are not specified. (at qa[8].answer); Complete Context — `src/flow/lib/run-prepare-spec.js` または同等箇所 — Reviewers could disagree on what qualifies as an equivalent prepare path without criteria tying the location to concrete call sites or flow phases. (at qa[20].answer); No Hardcoded Secrets — The draft does not include source code containing API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — missing requirement priorities: must/should/nice-to-have — The draft contains far more than three requirements but does not assign each requirement one of the required priorities: must, should, or nice-to-have. (at Content); Impact on Existing Features — The draft includes an impactOnExisting section listing affected existing flow libraries, prompts, schema, report, and retro consumers.; Present Recommendations with Reasoning — Each answered question leads with a selected answer and includes evidence and why fields grounded in issue context, existing code patterns, and guardrail-like reasoning.; Explore Before Asking — The questions include evidence from existing files, schemas, prompts, and project behavior, showing codebase exploration before asking or deciding.; Proactively Raise Related Implications — The draft proactively covers downstream schema consumers, gate behavior, stale artifacts, report/retro effects, config validation, and migration implications.; Confirm Brainstorm vs. Decision Before Critiquing — The content is an approved decision draft, not a critique of brainstorming ideas; this guardrail is not triggered by the artifact.; Capture Digressions in draft.md — The draft captures dropped and merged questions with droppedReason fields, preserving side decisions before returning to the main thread.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing CLI commands or options; alpha artifact/schema compatibility changes are explicitly scoped and not CLI interface removals.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-13T00:46:52.065Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "text report にも project-level regression の状態を短く表示する — The word '短く' is subjective and does not define a verifiable output format, fields, or length constraint for the text report. (at qa[8].answer); `src/flow/lib/run-prepare-spec.js` または同等箇所 — The phrase '同等箇所' does not identify a concrete implementation location or objective criteria for equivalence. (at qa[20].answer)"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "text report にも project-level regression の状態を短く表示する — Two reviewers could disagree on whether a text report display is sufficiently 'short' because the required content and format are not specified. (at qa[8].answer); `src/flow/lib/run-prepare-spec.js` または同等箇所 — Reviewers could disagree on what qualifies as an equivalent prepare path without criteria tying the location to concrete call sites or flow phases. (at qa[20].answer)"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "missing requirement priorities: must/should/nice-to-have — The draft contains far more than three requirements but does not assign each requirement one of the required priorities: must, should, or nice-to-have. (at Content)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "exit=1 | WARNING: proceeding, even though we could not update PATH: Read-only file system (os error 30)\nReading additional input from stdin...\nError: failed to initialize in-process app-server client: Read-only file system (os error 30)",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-13T01:59:16.971Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "review-test subprocess failed before evaluating tests because prompt input exceeded the 1048576 character limit (actual 1340205). Spec-local test headers cover R1-R37, so this is recorded as a review-test tooling/input-size failure rather than a test coverage failure.",
+      "taskId": null,
+      "timestamp": "2026-05-13T02:14:18.221Z"
+    },
+    {
+      "step": "review-draft",
+      "reason": "Inserted draft-refine between draft question review and draft coverage review.",
+      "trigger": "flow-store migration",
+      "resolution": "Synthesized draft-refine status from surrounding draft review steps.",
+      "taskId": null,
+      "timestamp": "2026-05-13T02:45:47.413Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "test-execute prerequisite failed before normal v2 artifact creation: Cannot read properties of undefined (reading 'entries')",
+      "trigger": "sdd-forge flow run test-execute",
+      "resolution": "fix the prerequisite failure and rerun test-execute",
+      "taskId": null,
+      "timestamp": "2026-05-13T02:51:50.086Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — run-prepare-spec now runs docs scan after root/spec setup and before active-flow registration, skips dry-run by only calling in non-dry branches, leaves partial artifacts by not cleaning on failure, and fails when docs scan or analysis.json read/strict validation fails.; R2 — Partial only: iterator added and some walkers migrated, but it accepts array categories instead of strictly category objects with entries[], does not add project-file extraction, and diff does not show use in all required top-level analysis walkers such as docs scan existing-analysis/reset, get-context, docs prompt helpers, and DataSources.; R3 — Diff adds top-level test config schema, validates command/path/timeout during load, and container now rethrows invalid config instead of downgrading to missing config.; R4 — Discovery order and argv wrappers are implemented, but Makefile metadata records only target name not target text, and no ambiguous selected-source candidate failure path is implemented.; R5 — parseArgvCommand implements argv tokenization with quotes, backslash escapes, leading KEY=value env extraction, and rejects shell control/expansion metacharacters.; R6 — Shared status-aware helper was added, but the diff does not show test-execute evidence creation or gate-impl freshness comparison reusing it; R6 requires both consumers.; R7 — Classifier only triggers analysis files when not text-like and treats unknown text-like/source contract files as non-trigger, so remaining analysis project files, execution/test-contract files, and unknown regular files do not always force full regression as required.; R8 — Schema now requires version enum [\"2\"], mandatory summary[] and regression; validators reject non-v2 artifacts and enforce range-object raw_output_lines.; R9 — Required regression artifacts are written with all required fields, targeted mode requires target_paths, and validators enforce {start_line,end_line} 1-based ranges.; R10 — required=false regression includes category, reason, classified_paths, and changed_files; classifier emits only docs-only, spec-artifact-only, non-project-only, or mixed-non-trigger based on classified path classes.; R11 — Required regression raw log writes start/end lines and a range, but markers are not the specified standardized regression markers and the command/result values are separate lines rather than marker values; validators also do not enforce marker/artifact matching.; R12 — Started regression results are written into v2 artifacts with regression.result set to fail for non-zero/127/signal/timeout, while only pre-start spawn errors throw and skip normal artifact creation.; R13 — Prerequisite failures throw and avoid normal artifact creation, and invalid config is rethrown, but issue-log entries only record generic reason/trigger/resolution fields and do not persist the required structured prerequisite fields such as failure kind, message, command source/candidates, and changed file count.; R14 — run-test-execute deletes test-execute-result.json, raw log, test-result-review.json, test-result-review.md, retro.json, and report.json at execute start via DOWNSTREAM_ARTIFACTS before producing new artifacts.; R15 — run-test-result-review now performs deterministic v2/regression validation, emits project_regression_verification, returns fail on validation/verdict failure, and registry post-hook only marks done when review verdict is pass and the regression check passes.; R16 — Gate requires review pass, v2 artifacts, regression pass, and stale changed_files check, but independent regression evidence validation is incomplete: no raw log marker/line-range verification or command/target-path evidence checks, so unverifiable required regression can pass.; R17 — Report data/text line are added, and run-report/finalize validate present v2 artifacts, but consumers do not use a shared v2 artifact-loading path; finalize duplicates loading logic and report-show only checks report.json rather than loading/validating artifacts.; R18 — run-retro now validates v2 artifacts with range raw_output_lines and continues reading requirement summary[] only; regression is validated but not aggregated into requirement totals.; R19 — Diff updates some CLI docs, prompts, skill template, and types, but required surfaces such as implement.md, setup output, next-action schemas, flow-store summary handling, docs data sources/prompt context, generated skills/rules/partials, fixtures/snapshots, and old test-summary references are not shown as fully migrated.; R20 — test-execute.md now lists R4 order exactly and excludes docs hints/implicit language config/task prompt settings; run-test-execute.js removed the old AI system prompt and no longer instructs README/Python/commands.test discovery.; R21 — Schema changed version to enum [\"2\"], but adds likely unsupported oneOf constructs and validators shown only check basic shape, not marker, membership, cross-field, or freshness rules.; R22 — TEMP_SUMMARY_RELATIVE is tests/.raw/requirement-summary.json, run-test-execute deletes it at step start and after v2 artifact composition, and finalize commit excludes it while staging only durable raw evidence.; R23 — runProcessDetailed exposes started, exitCode, signal, timedOut, spawnError, stdout, and stderr; run-test-execute checks spawnError && !started as prerequisite failure while started nonzero/signal/timeout results are handled as regression fail artifacts.; R24 — Template and implement prompt document the required flow outcomes, but the diff shows template changes without refreshed generated skills or evidence that sdd-forge upgrade was run.; R25 — executeCommitPost validates present v2 artifacts and no longer downgrades report failures, and run-finalize-commit narrows tests/.raw staging, but executeCommitPost still runs git add on the entire spec directory with only requirement-summary excluded, so it can stage more than durable raw evidence.; R26 — registry post-hooks now validate a v2 test-execute artifact before marking done; prerequisite failures throw before normal artifact creation; started regression failures still produce v2 artifacts and advance; test-result-review post-hook validates review artifact and requires pass verdict before marking done.; R27 — Docs detection adds R4-like sources, but detectTestEnvironment still reports package scripts.test body and composer command without --, diverging from runtime R4 wrappers; the new root helper is separate from runtime discovery and no base en/ja template or shared generated-docs path integration is shown.; R28 — Diff updates run-impl-confirm and test-execute next-action schema/tests, but does not update src/flow/definition.js, test-result-review output wiring/contexts, explicit maxAttempts, or prerequisite behavior tests required by R28.; R29 — Diff adds a reset helper and stale gate changed_files check, but does not show the reset helper being invoked after impl review nor any review prompt instruction update; deterministic reset is therefore not implemented in the provided diff.; R30 — test-execute constructs summaries itself and can synthesize evidence; it does not validate each summary entry against an agent temporary summary, referenced test file existence, test name, command, and raw output line range before composing v2.; R31 — Manual done validation was added, but gate-impl only checks artifact shape/review check presence and would allow regression.result=fail or stale/unverified regression evidence, so manual completion can still bypass the regression gate.; R32 — run-review adds a reset helper and artifact deletion, but the shown diff does not invoke the reset trigger, and it sets test-execute to in_progress instead of resetting all required steps to pending.; R33 — Diff only adds a gate-step comment and integration-only check in run-gate; no functional gate-step routing change is shown, and the added R33 test is a static string check rather than proof that task-level gate-impl remains unchanged while integration gates validate regression.; R34 — Named flow-order and next-action tests were updated to include implement -> test-execute -> test-result-review -> review -> gate-impl -> retro -> finalize sequence.; R35 — flow-tracking, rules.json, and flow skill template now list test-execute/test-result-review/retro as post-hook-managed and warn against manual advancement masking prerequisite failures.; R36 — Diff only adds two messages in en/ja messages.json; it does not update ui/help locale files or broader affected test config/artifact command wording under src/locale/*/*.json.; R37 — flow-store removes legacy APIs, but flow-manager reintroduces setTestSummary() and completeTask() aggregation that writes state.test.summary, so legacy summary can still synthesize/overwrite authoritative v2 results.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T01:42:01.315Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R2",
+          "reason": "Partial only: iterator added and some walkers migrated, but it accepts array categories instead of strictly category objects with entries[], does not add project-file extraction, and diff does not show use in all required top-level analysis walkers such as docs scan existing-analysis/reset, get-context, docs prompt helpers, and DataSources."
+        },
+        {
+          "guardrail_id": "R4",
+          "reason": "Discovery order and argv wrappers are implemented, but Makefile metadata records only target name not target text, and no ambiguous selected-source candidate failure path is implemented."
+        },
+        {
+          "guardrail_id": "R6",
+          "reason": "Shared status-aware helper was added, but the diff does not show test-execute evidence creation or gate-impl freshness comparison reusing it; R6 requires both consumers."
+        },
+        {
+          "guardrail_id": "R7",
+          "reason": "Classifier only triggers analysis files when not text-like and treats unknown text-like/source contract files as non-trigger, so remaining analysis project files, execution/test-contract files, and unknown regular files do not always force full regression as required."
+        },
+        {
+          "guardrail_id": "R11",
+          "reason": "Required regression raw log writes start/end lines and a range, but markers are not the specified standardized regression markers and the command/result values are separate lines rather than marker values; validators also do not enforce marker/artifact matching."
+        },
+        {
+          "guardrail_id": "R13",
+          "reason": "Prerequisite failures throw and avoid normal artifact creation, and invalid config is rethrown, but issue-log entries only record generic reason/trigger/resolution fields and do not persist the required structured prerequisite fields such as failure kind, message, command source/candidates, and changed file count."
+        },
+        {
+          "guardrail_id": "R16",
+          "reason": "Gate requires review pass, v2 artifacts, regression pass, and stale changed_files check, but independent regression evidence validation is incomplete: no raw log marker/line-range verification or command/target-path evidence checks, so unverifiable required regression can pass."
+        },
+        {
+          "guardrail_id": "R17",
+          "reason": "Report data/text line are added, and run-report/finalize validate present v2 artifacts, but consumers do not use a shared v2 artifact-loading path; finalize duplicates loading logic and report-show only checks report.json rather than loading/validating artifacts."
+        },
+        {
+          "guardrail_id": "R19",
+          "reason": "Diff updates some CLI docs, prompts, skill template, and types, but required surfaces such as implement.md, setup output, next-action schemas, flow-store summary handling, docs data sources/prompt context, generated skills/rules/partials, fixtures/snapshots, and old test-summary references are not shown as fully migrated."
+        },
+        {
+          "guardrail_id": "R21",
+          "reason": "Schema changed version to enum [\"2\"], but adds likely unsupported oneOf constructs and validators shown only check basic shape, not marker, membership, cross-field, or freshness rules."
+        },
+        {
+          "guardrail_id": "R24",
+          "reason": "Template and implement prompt document the required flow outcomes, but the diff shows template changes without refreshed generated skills or evidence that sdd-forge upgrade was run."
+        },
+        {
+          "guardrail_id": "R25",
+          "reason": "executeCommitPost validates present v2 artifacts and no longer downgrades report failures, and run-finalize-commit narrows tests/.raw staging, but executeCommitPost still runs git add on the entire spec directory with only requirement-summary excluded, so it can stage more than durable raw evidence."
+        },
+        {
+          "guardrail_id": "R27",
+          "reason": "Docs detection adds R4-like sources, but detectTestEnvironment still reports package scripts.test body and composer command without --, diverging from runtime R4 wrappers; the new root helper is separate from runtime discovery and no base en/ja template or shared generated-docs path integration is shown."
+        },
+        {
+          "guardrail_id": "R28",
+          "reason": "Diff updates run-impl-confirm and test-execute next-action schema/tests, but does not update src/flow/definition.js, test-result-review output wiring/contexts, explicit maxAttempts, or prerequisite behavior tests required by R28."
+        },
+        {
+          "guardrail_id": "R29",
+          "reason": "Diff adds a reset helper and stale gate changed_files check, but does not show the reset helper being invoked after impl review nor any review prompt instruction update; deterministic reset is therefore not implemented in the provided diff."
+        },
+        {
+          "guardrail_id": "R30",
+          "reason": "test-execute constructs summaries itself and can synthesize evidence; it does not validate each summary entry against an agent temporary summary, referenced test file existence, test name, command, and raw output line range before composing v2."
+        },
+        {
+          "guardrail_id": "R31",
+          "reason": "Manual done validation was added, but gate-impl only checks artifact shape/review check presence and would allow regression.result=fail or stale/unverified regression evidence, so manual completion can still bypass the regression gate."
+        },
+        {
+          "guardrail_id": "R32",
+          "reason": "run-review adds a reset helper and artifact deletion, but the shown diff does not invoke the reset trigger, and it sets test-execute to in_progress instead of resetting all required steps to pending."
+        },
+        {
+          "guardrail_id": "R33",
+          "reason": "Diff only adds a gate-step comment and integration-only check in run-gate; no functional gate-step routing change is shown, and the added R33 test is a static string check rather than proof that task-level gate-impl remains unchanged while integration gates validate regression."
+        },
+        {
+          "guardrail_id": "R36",
+          "reason": "Diff only adds two messages in en/ja messages.json; it does not update ui/help locale files or broader affected test config/artifact command wording under src/locale/*/*.json."
+        },
+        {
+          "guardrail_id": "R37",
+          "reason": "flow-store removes legacy APIs, but flow-manager reintroduces setTestSummary() and completeTask() aggregation that writes state.test.summary, so legacy summary can still synthesize/overwrite authoritative v2 results."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R5",
+        "R8",
+        "R9",
+        "R10",
+        "R12",
+        "R14",
+        "R15",
+        "R18",
+        "R20",
+        "R22",
+        "R23",
+        "R26",
+        "R34",
+        "R35"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: addressed gate FAIL reasons R27-R33/R36/R37",
+      "resolution": "aligned docs test command detection with runtime wrappers, shared gate evidence validation between gate and manual step completion, validated temporary summary evidence before v2 artifact composition, removed legacy test.summary aggregation, added locale UI test wording, and reran test-execute/test-result-review with passing project regression",
+      "taskId": null,
+      "timestamp": "2026-05-15T02:27:54.765Z"
+    },
+    {
+      "step": "gate",
+      "reason": "gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R2 (jaccard=0.59): Partial implementation: iterator was added and some walkers migrated, but it accepts array categories, lacks project-file path extraction, and is not shown used by all required top-level analysis walkers such as docs scan/reset, get-context, prompt helpers, and DataSources. ↔ Partial only: iterator added and some walkers migrated, but it accepts array categories instead of strictly category objects with entries[], does not add project-file extraction, and diff does not show use in all required top-level analysis walkers such as docs scan existing-analysis/reset, get-context, docs prompt helpers, and DataSources.\n  R4 (jaccard=0.95): Discovery order and argv wrappers are present, but Makefile metadata records only the target name, not target text, and no ambiguous selected-source candidate failure path is implemented. ↔ Discovery order and argv wrappers are implemented, but Makefile metadata records only target name not target text, and no ambiguous selected-source candidate failure path is implemented.\n  R11 (jaccard=0.68): run-test-execute writes generic start/end lines with command/result on separate lines, not standardized markers carrying matching command/result values, and validators do not enforce raw log marker/artifact matching. ↔ Required regression raw log writes start/end lines and a range, but markers are not the specified standardized regression markers and the command/result values are separate lines rather than marker values; validators also do not enforce marker/artifact matching.\n  R13 (jaccard=0.68): Prerequisite failures throw and avoid normal artifact creation, and invalid config is rethrown, but issue-log entries only record generic fields and omit structured prerequisite details such as failure kind, message, command source/candidates, and changed-file count. ↔ Prerequisite failures throw and avoid normal artifact creation, and invalid config is rethrown, but issue-log entries only record generic reason/trigger/resolution fields and do not persist the required structured prerequisite fields such as failure kind, message, command source/candidates, and changed file count.\n  R17 (jaccard=0.56): Report data/text were added, but consumers do not share one v2 artifact-loading path: finalize duplicates loading and report-show only checks report.json, so invalid present test artifacts are not consistently validated. ↔ Report data/text line are added, and run-report/finalize validate present v2 artifacts, but consumers do not use a shared v2 artifact-loading path; finalize duplicates loading logic and report-show only checks report.json rather than loading/validating artifacts.\n  R19 (jaccard=0.75): Diff updates some CLI docs, prompts, skill template, locale UI, tests, and types, but does not show required updates for setup output, implement.md, next-action schemas, generated skills/partials/rules, flow-store summary handling, docs data sources/prompt context, fixtures/snapshots, and remaining old test-summary surfaces. ↔ Diff updates some CLI docs, prompts, skill template, and types, but required surfaces such as implement.md, setup output, next-action schemas, flow-store summary handling, docs data sources/prompt context, generated skills/rules/partials, fixtures/snapshots, and old test-summary references are not shown as fully migrated.\n  R24 (jaccard=0.73): Template and implement prompt document the required hard-stop/test-only/manual-step behavior, but the diff shows template changes without refreshed generated skills or evidence that sdd-forge upgrade was run. ↔ Template and implement prompt document the required flow outcomes, but the diff shows template changes without refreshed generated skills or evidence that sdd-forge upgrade was run.\n  R28 (jaccard=0.79): Diff updates run-impl-confirm, test-execute next-action schema, and some order tests, but does not modify src/flow/definition.js, test-result-review output/context wiring, explicit maxAttempts, or prerequisite behavior tests required by R28. ↔ Diff updates run-impl-confirm and test-execute next-action schema/tests, but does not update src/flow/definition.js, test-result-review output wiring/contexts, explicit maxAttempts, or prerequisite behavior tests required by R28.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-15T02:53:39.428Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: tighten regression artifact validation and generated surfaces",
+      "resolution": "Project regression evidence now uses shared v2 artifact validation, manual gate/retro completion checks the same evidence, raw requirement summaries are validated before artifact composition, stale legacy test-summary aggregation was removed, and test command detection records runtime wrapper commands with localized labels.",
+      "taskId": null,
+      "timestamp": "2026-05-15T02:55:31.335Z"
+    },
+    {
+      "step": "gate",
+      "reason": "gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R2 (jaccard=0.56): Partial: iterator was added and some walkers migrated, but it accepts array categories, lacks project-file path extraction, and is not shown used across all required analysis walkers such as docs scan/reset, get-context, prompt helpers, and DataSources. ↔ Partial only: iterator added and some walkers migrated, but it accepts array categories instead of strictly category objects with entries[], does not add project-file extraction, and diff does not show use in all required top-level analysis walkers such as docs scan existing-analysis/reset, get-context, docs prompt helpers, and DataSources.\n  R4 (jaccard=0.90): Discovery order and argv wrappers are implemented, but Makefile metadata records only target name, not target text, and no ambiguous selected-source candidate failure is shown. ↔ Discovery order and argv wrappers are implemented, but Makefile metadata records only target name not target text, and no ambiguous selected-source candidate failure path is implemented.\n  R6 (jaccard=0.57): A shared status-aware git helper was added and classifier uses it, but the provided diff does not show reuse by both test-execute evidence creation and gate-impl freshness comparison, nor persistence of the trigger-relevant snapshot in those consumers. ↔ Shared status-aware helper was added, but the diff does not show test-execute evidence creation or gate-impl freshness comparison reusing it; R6 requires both consumers.\n  R13 (jaccard=0.78): Prerequisite failures throw and avoid normal artifact creation, and invalid config is rethrown, but issue-log entries only record generic reason/trigger/resolution fields rather than structured prerequisite fields such as failure kind, message, command source/candidates, and changed-file count. ↔ Prerequisite failures throw and avoid normal artifact creation, and invalid config is rethrown, but issue-log entries only record generic reason/trigger/resolution fields and do not persist the required structured prerequisite fields such as failure kind, message, command source/candidates, and changed file count.\n  R17 (jaccard=0.51): Report data/text include projectRegression and run-report/finalize validate present artifacts, but report-show only validates report.json and finalize duplicates artifact loading instead of using one shared v2 artifact-loading path across consumers. ↔ Report data/text line are added, and run-report/finalize validate present v2 artifacts, but consumers do not use a shared v2 artifact-loading path; finalize duplicates loading logic and report-show only checks report.json rather than loading/validating artifacts.\n  R19 (jaccard=0.55): Diff updates some docs, prompts, skill template, locales, tests, and src/lib/types.js, but does not show required migration for setup output, implement.md, generated skills/partials/rules, next-action schema, flow-store summary handling, docs data source/prompt context, or broader fixtures/snapshots. ↔ Diff updates some CLI docs, prompts, skill template, and types, but required surfaces such as implement.md, setup output, next-action schemas, flow-store summary handling, docs data sources/prompt context, generated skills/rules/partials, fixtures/snapshots, and old test-summary references are not shown as fully migrated.\n  R24 (jaccard=0.58): Template, implement prompt, flow-tracking, and rules document the required hard-stop/manual-step/test-only behavior, but the diff shows no refreshed generated skills or evidence that sdd-forge upgrade was run after template changes. ↔ Template and implement prompt document the required flow outcomes, but the diff shows template changes without refreshed generated skills or evidence that sdd-forge upgrade was run.\n  R25 (jaccard=0.50): executeCommitPost validates v2 artifacts and no longer downgrades report failures, and cleanup/report-show handling is tightened, but it still stages the entire spec directory with only requirement-summary.json excluded; this can stage non-durable raw or other temporary artifacts instead of only durable evidence such as tests/.raw/test-execution.log. ↔ executeCommitPost validates present v2 artifacts and no longer downgrades report failures, and run-finalize-commit narrows tests/.raw staging, but executeCommitPost still runs git add on the entire spec directory with only requirement-summary excluded, so it can stage more than durable raw evidence.\n  R28 (jaccard=0.63): run-impl-confirm and some tests/schema were updated, but the diff does not update src/flow/definition.js, test-result-review schema/context wiring, explicit maxAttempts, or prerequisite behavior tests. ↔ Diff updates run-impl-confirm and test-execute next-action schema/tests, but does not update src/flow/definition.js, test-result-review output wiring/contexts, explicit maxAttempts, or prerequisite behavior tests required by R28.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-15T04:18:35.816Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: apply valid review proposals after direct review fallback",
+      "resolution": "Removed unused imports, bounded root-side test command file reads, avoided duplicate report artifact parsing, hardened malformed report test data handling, and made the test-execute next-action artifact version type explicit. Rebuilt test-execute and test-result-review artifacts after the review fixes.",
+      "taskId": null,
+      "timestamp": "2026-05-15T06:53:02.154Z"
+    },
+    {
+      "step": "gate",
+      "reason": "gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R4 (jaccard=0.54): Discovery order and argv wrappers are implemented, and no-source failure exists, but Makefile metadata records only the target header line rather than the full target text; ambiguous selected-source handling is only generic and not demonstrated in discovery. ↔ Discovery order and argv wrappers are implemented, but Makefile metadata records only target name not target text, and no ambiguous selected-source candidate failure path is implemented.\n  R6 (jaccard=0.63): Shared status-aware helper was added in git-helpers and used by classifier, but the diff does not show reuse by both test-execute evidence creation and gate-impl freshness comparison as required. ↔ Shared status-aware helper was added, but the diff does not show test-execute evidence creation or gate-impl freshness comparison reusing it; R6 requires both consumers.\n  R19 (jaccard=0.57): Diff updates some CLI docs, prompts, setup output, templates, locales, tests, and types, but does not show required migration across all R19 surfaces such as implement.md, generated skills/rules/partials, next-action test-execute schema, flow-store summary handling, docs prompt/data context, and fixtures/snapshots. ↔ Diff updates some CLI docs, prompts, skill template, and types, but required surfaces such as implement.md, setup output, next-action schemas, flow-store summary handling, docs data sources/prompt context, generated skills/rules/partials, fixtures/snapshots, and old test-summary references are not shown as fully migrated.\n  R21 (jaccard=0.87): Version uses enum [\"2\"], but schema adds likely unsupported oneOf constructs and shown deterministic validators only check basic shape, not marker, membership, cross-field, or freshness rules. ↔ Schema changed version to enum [\"2\"], but adds likely unsupported oneOf constructs and validators shown only check basic shape, not marker, membership, cross-field, or freshness rules.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-15T07:01:12.360Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: address repeated gate failures R4 R6 R21",
+      "resolution": "Makefile command metadata now captures the full target block, ambiguous selected-source candidates have a discovery-level error, test-execute and gate freshness comparison share listRegressionChangedFiles, schema no longer uses oneOf for process nullable fields, and deterministic artifact validation checks process fields plus raw markers, summary membership, file/name references, and raw line bounds.",
+      "taskId": null,
+      "timestamp": "2026-05-15T07:09:11.107Z"
+    },
+    {
+      "step": "gate",
+      "reason": "exit=1 | Reading prompt from stdin...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-15T07:10:35.683Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "retry: gate command failed before producing guardrail reasons",
+      "resolution": "The previous gate attempt returned only provider command exit=1 with no gate reasons or artifacts, so this is treated as an infrastructure retry rather than a no-progress semantic gate rerun.",
+      "taskId": null,
+      "timestamp": "2026-05-15T07:10:50.331Z"
+    },
+    {
+      "step": "gate",
+      "reason": "exit=1 | Reading prompt from stdin...",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-15T07:11:41.504Z"
+    },
+    {
+      "step": "gate",
+      "reason": "exit=1 | {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"api_error_status\":null,\"duration_ms\":826,\"duration_api_ms\":0,\"num_turns\":1,\"result\":\"Prompt is too long\",\"stop_reason\":\"stop_sequence\",\"session_id\":\"41b2e7a5-708c-4a35-9f6f-4fa21b93acde\",\"total_cost_usd\":0,\"usage\":{\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\"},\"modelUsage\":{},\"permission_denials\":[],\"terminal_reason\":\"blocking_limit\",\"fast_mode_state\":\"off\",\"uuid\":\"69bb7086-d837-4adb-b196-eac7eaa72287\"}",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-15T07:13:36.279Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: reduce integration gate AI prompt size",
+      "resolution": "Integration gate now excludes generated active-spec artifacts from synthesized untracked diffs while still allowing spec test files. Deterministic test artifacts remain validated before gate, so raw logs and review/report artifacts no longer inflate the AI prompt.",
+      "taskId": null,
+      "timestamp": "2026-05-15T07:51:08.709Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — src/docs/lib/analysis-entry.js adds iterateAnalysisCategories(analysis,{opts}) with strict mode (throws on invalid input when opts.strict=true), ignores ANALYSIS_META_KEYS (analyzedAt/enrichedAt), accepts category objects with entries[] while preserving optional summary/dataSourceHash, and also adds projectFilePathsFromAnalysis. The function is adopted across every required consumer: src/check/commands/scan.js, src/docs/commands/enrich.js, src/docs/commands/text.js, src/docs/commands/review.js, src/docs/lib/analysis-filter.js, src/docs/lib/forge-prompts.js, src/docs/lib/text-prompts.js, src/flow/lib/get-context.js, src/docs/commands/scan.js (existing-analysis index and reset logic), src/presets/base/data/structure.js, and src/presets/monorepo/data/monorepo.js (DataSources). ANALYSIS_META_KEYS remains exported for consumers that need it directly (analysis-filter.js). All prior inline copies of the category-iteration pattern are removed and replaced with the shared helper.; R3 — previously passed (skipped on retry); R4 — src/flow/lib/test-regression.js fully implements R4: discoverRegressionCommand uses priority 10 (test.command via parseArgvCommand), 20 (package.json via argv [\"npm\",\"test\",\"--\"] with metadata.script), 30 (composer.json via argv [\"composer\",\"run-script\",\"test\",\"--\"] with metadata.script), 40 (Makefile via argv [\"make\",\"test\"] with metadata.target). Each ParsedCommand carries a source field. selectRegressionCommandCandidate throws on empty candidates and on duplicate-priority ambiguity. Only test.command is shell-parsed; ecosystem sources execute deterministic wrapper argv. Spec test in regression-classifier.test.js R4 block checks all these patterns in run-test-execute.js, which is expected to import this module.; R5 — previously passed (skipped on retry); R6 — The shared helper listChangedFilesDetailed is implemented in src/lib/git-helpers.js with correct status/rename/untracked/sorted snapshot semantics, and test-regression.js imports and wraps it via listRegressionChangedFiles. However, the diff does not include changes to src/flow/lib/run-test-execute.js or src/flow/lib/run-gate.js, so the requirement that the helper 'be reused by both test-execute evidence creation and gate-impl freshness comparison' cannot be confirmed from the diff alone — the spec test assertions for R6 check those files but execution evidence is needed to verify they pass.; R7 — All R7 sub-requirements are implemented in the new src/flow/lib/test-regression.js. (1) Spec-local tests under specs/<active-spec>/tests/** are routed to nonTrigger with category 'spec-artifact-only' unless they also match test.projectPaths (classifyRegression checks isProjectTestPath first, then the activeSpec/tests/ prefix). (2) test.projectPaths classification is applied before generic analysisFiles triggers (isProjectTestPath is checked first in the loop). (3) Targeted mode is selected only when triggerFiles.length === projectTestFiles.length && projectTestFiles.length > 0. (4) ParsedCommand.withTargets() appends every target_paths entry as separate argv tokens after the root command. (5) The final return in classifyRegression falls back to mode:'full' for everything else. (6) isTriggerRelevantFile() forces full mode for analysis project files, regression config/execution paths, and unknown regular files. (7) classifyNonTrigger() returns 'spec-artifact-only', 'docs-only', or 'non-project-only', and categoryFor() produces 'mixed-non-trigger' when multiple non-trigger classes are present, all used in the required:false path.; R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — run-test-execute.js writes a start marker '[sdd-forge] project regression start command=${command.toString()} mode=...' and an end marker '[sdd-forge] project regression end result=...' inside the same appendRaw block, so the returned {start_line,end_line} range covers both. buildRequiredRegression stores that range as regression.raw_output_lines and also stores regression.command and regression.result. validateTestExecuteResultEvidence in test-artifacts.js verifies the raw text contains the start marker with matching command and the end marker with matching result, enforcing the artifact-to-marker consistency required by R11.; R12 — previously passed (skipped on retry); R13 — All R13 sub-requirements are implemented: (1) run-test-execute.js has a try/catch that calls recordPrerequisiteIssue() only when test-execute-result.json does not exist, then re-throws — so no normal artifact is written on prerequisite failures; (2) recordPrerequisiteIssue() writes issue-log fields including step, failureKind:'prerequisite', message, commandSource, commandCandidates, changedFileCount, trigger, resolution, and timestamp; (3) analysis loading failure throws before the artifact write path; (4) spawn failure before start ('if (result.spawnError && !result.started) throw') is caught the same way; (5) container.js now throws for non-missing config load errors ('throw err' added in the catch block) instead of silently leaving config=null, so invalid config surfaces through the command error envelope rather than being downgraded to NO_CONFIG.; R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — The diff implements all R16 requirements. In run-gate.js, checkIntegrationTestArtifacts now calls assertIntegrationRegressionEvidence (from the new test-artifacts.js) with the config object, applying only to phase='integration'. assertIntegrationRegressionEvidence: (1) calls loadValidatedTestArtifacts which throws if test-result-review.json or test-execute-result.json is missing or invalid, enforcing v2 schema via validateTestExecuteResultV2; (2) checks review.verdict !== 'pass' and throws, requiring test-result-review pass; (3) checks failed summary entries; (4) checks regression.required && regression.result !== 'pass' to block failed required regression; (5) enumerates current changed files via listRegressionChangedFiles and classifyRegression and compares both changedFiles and triggerRelevantChangedFiles snapshots against the artifact, throwing 'snapshot is stale; rerun test-execute' when they differ. All four gate-impl failure conditions (missing, stale, unverifiable, fail result) are covered.; R17 — All four sub-requirements of R17 are implemented in the diff. (1) data.tests.projectRegression is populated in report.js via `projectRegression: testExecute?.projectRegression || null`. (2) The exact text line format is rendered in formatText(): 'Project regression: required=${r.required} result=${r.result||\"skipped\"} mode=${r.mode||\"none\"}' with category appended when present. (3) All four consumers—run-report.js, run-finalize.js, run-report-show.js, and run-finalize-cleanup.js—converge on the shared buildTestResultsFromArtifacts/loadValidatedTestArtifacts helpers imported from test-artifacts.js. (4) Invalid/unreadable present artifacts now throw rather than return null: run-report.js changes readJsonIfExists to throw on parse error, run-finalize.js removes the try-catch that previously swallowed report-generation failures and lets saveReport throw, and run-report-show.js throws reportShowError('NO_PROJECT_REGRESSION') when tests data lacks the projectRegression field.; R18 — previously passed (skipped on retry); R19 — Several components explicitly listed in R19 are absent from the diff: (1) src/lib/flow-store.js legacy summary handling (setTestSummary/aggregateTaskSummaryIntoParent) is not updated despite R19 and R37 requiring it and the corresponding legacy test file being deleted; (2) src/flow/prompts/impl/implement.md is not shown updated, yet R19 requires it to reflect the v2 and test object contracts; (3) src/flow/schemas/next-action/test-execute.schema.json is not in the diff; (4) src/templates/partials/flow-tracking.md and src/templates/skills/rules.json are absent from the diff; (5) src/locale/en/messages.json and src/locale/ja/messages.json are not updated (only ui.json is patched). The diff does correctly update docs/cli_commands.md, docs/ja/cli_commands.md, src/lib/types.js (TestConfig), the test-execute.md and test-result-review.md prompts, the test-result-review next-action schema, and locale ui.json files, but the gaps above represent explicit R19-listed items that are missing.; R20 — previously passed (skipped on retry); R21 — The diff satisfies both R21 sub-requirements. (1) src/flow/schemas/test-execute-result.schema.json replaces the unsupported `\"const\": \"1\"` with `\"enum\": [\"2\"]` exactly as required. The spec-local test asserts `schema.properties.version.enum` equals `[\"2\"]` and `schema.properties.version.const` is undefined. (2) Cross-field, marker, membership, and freshness checks are implemented as deterministic validator functions in the new src/flow/lib/test-artifacts.js: `validateRegression()` enforces conditional required-field rules based on `regression.required`; `validateTestExecuteResultEvidence()` enforces marker matching (start/end raw-log markers against `regression.command` and `regression.result`), summary membership checks against expected requirement IDs, and line-range bounds; `assertIntegrationRegressionEvidence()` performs freshness comparison of the persisted `changed_files` snapshot against the current git state. These are all deterministic code-side checks rather than JSON Schema constraints, consistent with the local schema subset policy.; R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — All R24 sub-requirements are satisfied: (1) SKILL.md note updated to state prepare/docs-scan and analysis.json failures are hard stops surfaced through the normal flow error envelope; (2) SKILL.md states normal v2 artifact production advances test-execute and started regression failures advance to test-result-review; (3) SKILL.md and implement.md both document that prerequisite failures are hard stops; (4) implement.md removes the 'set gate-impl skipped' step for test-only specs and now explicitly forbids skipping test-execute, test-result-review, or gate-impl; (5) SKILL.md, flow-tracking.md, and rules.json all document that manual flow set step must not mask these outcomes; (6) rules.json adds the 'post-hook-managed-test-artifacts' rule covering test-execute/test-result-review/gate-impl/retro; (7) the spec tests under specs/257 verify these template properties and the spec notes sdd-forge upgrade must be run when templates change.; R25 — All four R25 sub-requirements are satisfied in the diff. (1) executeCommitPost() in run-finalize.js stages only DURABLE_TEST_ARTIFACT_RELATIVE_PATHS via targeted `git add --` instead of the previous `git add -- <specDir>`. (2) run-finalize-commit.js imports TEMP_SUMMARY_RELATIVE and adds it to excludePathspecs so the temporary requirement summary artifact is excluded from the implementation commit by exact pathspec exclusion. (3) run-finalize-cleanup.js uses readReportText() from run-report-show.js, which now calls loadValidatedTestArtifacts() to validate v2 artifacts before returning text, ensuring the same v2 report-show path. (4) The old outer try/catch in executeCommitPost() that caught all errors and set results.report = {status:'failed'} is removed entirely; buildTestResultsFromArtifacts and saveReport errors now propagate unhandled, so invalid present v2 artifact or report-generation failures are no longer caught and downgraded to a non-blocking status. The spec-local test in specs/257-project-level-test-breakage-detection/tests/report-finalize-retro.test.js R25 case also verifies these patterns deterministically.; R26 — previously passed (skipped on retry); R27 — The diff satisfies R27 on all three axes. (1) Source order: `selectTestCommand` in test-env-detection.js follows exactly the R4 order — test.command → package.json scripts.test (returning the npm test -- wrapper) → composer.json scripts.test (returning composer run-script test --) → Makefile test target (returning make test). (2) Shared discovery helper: `detectTestCommandFromRoot` and `detectTestCommandFromAnalysis` are introduced as explicit shared helpers that both call `selectTestCommand`, so runtime discovery and docs generation use the same function and cannot diverge. (3) Data source for base templates: `src/presets/base/data/package.js` is extended with `composerScripts` and `makefileTest` fields on `PackageEntry`, and Makefile is added to the `match()` filter, so the analysis-based path used by base en/ja templates now carries the metadata needed by `detectTestCommandFromAnalysis`. The unit test update (`assert.equal(result.testCommand, 'npm test --')`) confirms the wrapper command — not the raw script body — is reported, matching the runtime R4 contract. The spec-local test in `prepare-config-analysis.test.js` asserts all four source references in test-env-detection.js and the presence of Makefile/composer metadata in package.js, and both assertions hold based on the diff.; R28 — run-impl-confirm.js changed both allDone and noRequirements branches from 'review' to 'test-execute'; next-action schemas for test-execute and test-result-review were updated (added required raw_output_path, regression, artifact_version in test-execute.schema.json; added required review_path in test-result-review.schema.json); registry.js post-hooks now validate v2 artifacts and review verdict before marking steps done; specs/251 definition-impl-order.test.js updated to assert ids=['implement','test-execute','test-result-review','review','gate-impl','retro','finalize']; get-next-action.test.js updated to include test-execute, test-result-review, and retro in the falsyFlowSteps list; new flow-docs-prompts.test.js spec test for R28 checks definition.js sequence, maxAttempts wiring, impl-confirm pointing to test-execute, and no direct jump to review.; R29 — src/flow/lib/run-review.js introduces resetImplEvidenceAfterReviewProposals(), which (1) guards on impl phase only (ctx?.phase check), (2) detects applied code changes via proposalCount > 0, (3) calls removeReviewDownstreamArtifacts() using fs.rmSync to delete test-execute-result.json, test-result-review.json, test-result-review.md, retro.json, report.json, raw log, and temp summary, and (4) resets test-execute, test-result-review, review, gate-impl, and retro steps to status=\"pending\" via flowManager.mutate(). The DOWNSTREAM_AFTER_REVIEW_APPLY list and step ID array cover all steps named in R29. The spec test in flow-docs-prompts.test.js (R29 case) validates that run-review.js, review.md, and run-gate.js together contain the required step references and stale/reset/delete handling.; R30 — run-test-execute.js implements runSpecLocalTests(), buildSummary(), and validateSummaryEntries() which checks each summary[] entry against: (1) referenced test file existence (fs.existsSync), (2) test name presence in source (src.includes(evidence.test_name)), (3) command validity (typeof evidence.command !== 'string' || evidence.command.length === 0), and (4) raw output line range bounds (start_line < 1 || end_line < start_line || end_line > rawLines.length). validateSummaryEntries is called on the temporary summary before composing the final v2 artifact. test-artifacts.js also exposes validateTestExecuteResultEvidence() with equivalent checks. The spec-local test in artifact-review-gate.test.js R30 case verifies these patterns exist.; R31 — src/flow/lib/set-step.js adds validatePostHookManagedStep() that guards all four steps. When status==='done' and id is one of ['test-execute','test-result-review','gate-impl','retro'], it calls validateTestExecuteResultV2 (test-execute), validateTestResultReview+verdict===pass check (test-result-review), assertIntegrationRegressionEvidence (gate-impl and retro), returning Envelope.fail with STEP_ARTIFACT_VALIDATION_FAILED on any violation. The corresponding spec test in specs/257/tests/artifact-review-gate.test.js asserts all four steps are guarded and that set-step validates artifacts.; R32 — src/flow/lib/run-review.js exports resetImplEvidenceAfterReviewProposals(), which is the single reset owner: it calls removeReviewDownstreamArtifacts() to delete TEST_EXECUTE_RESULT_FILE, TEST_RESULT_REVIEW_FILE, TEST_RESULT_REVIEW_MD_FILE, retro.json, report.json, RAW_OUTPUT_RELATIVE, and TEMP_SUMMARY_RELATIVE, and then mutates flowState to set test-execute, test-result-review, review, gate-impl, and retro status back to 'pending', satisfying the requirement to own the reset trigger after review-applied code changes.; R33 — The diff satisfies all three sub-requirements of R33. (1) Project regression validation is routed only to phase 'integration': run-gate.js already had `if (phase === 'integration')` guarding `checkIntegrationTestArtifacts`, and the diff adds `assertIntegrationRegressionEvidence` (imported from test-artifacts.js) inside that guard — task-level phases never enter this branch. (2) Task-level gate-impl behavior is unchanged: the existing if-guard ensures no regression check runs for non-integration phases. gate-step.js receives a comment explicitly documenting 'Project regression validation belongs to the flow-level integration phase; task-level gate-impl remains mapped to task-impl.' (3) Tests proving the phase split exist: artifact-review-gate.test.js (tagged `// spec: R8 R9 R15 R16 R26 R30 R31 R33`) contains an R33-specific test that asserts gate-step.js contains 'integration', distinguishes task/phase, and that run-gate.js applies regression checks only at the flow-level integration gate.; R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — All four locale files are updated in the diff: src/locale/en/messages.json and src/locale/ja/messages.json each gain 'testArtifactInvalid' and 'projectRegressionBlocked' keys covering v2 artifact and gate-impl wording; src/locale/en/ui.json and src/locale/ja/ui.json each gain a 'test' section with 'artifact', 'review', 'projectRegression', and 'config' entries plus a 'step2' setup message directing users to configure test.command/projectPaths. The spec-local R36 test in prepare-config-analysis.test.js asserts that all four files match /test|artifact|config|regression|project/i, which these additions satisfy.; R37 — setTestSummary() is removed from src/lib/flow-store.js and src/lib/flow-manager.js; aggregateTaskSummaryIntoParent() function and all its call sites are removed from flow-store.js; the legacy test file tests/unit/lib/test-summary-aggregate.test.js is deleted; and a new spec test in report-finalize-retro.test.js asserts that neither symbol remains in flow-store.js.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T08:04:12.950Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R19",
+          "reason": "Several components explicitly listed in R19 are absent from the diff: (1) src/lib/flow-store.js legacy summary handling (setTestSummary/aggregateTaskSummaryIntoParent) is not updated despite R19 and R37 requiring it and the corresponding legacy test file being deleted; (2) src/flow/prompts/impl/implement.md is not shown updated, yet R19 requires it to reflect the v2 and test object contracts; (3) src/flow/schemas/next-action/test-execute.schema.json is not in the diff; (4) src/templates/partials/flow-tracking.md and src/templates/skills/rules.json are absent from the diff; (5) src/locale/en/messages.json and src/locale/ja/messages.json are not updated (only ui.json is patched). The diff does correctly update docs/cli_commands.md, docs/ja/cli_commands.md, src/lib/types.js (TestConfig), the test-execute.md and test-result-review.md prompts, the test-result-review next-action schema, and locale ui.json files, but the gaps above represent explicit R19-listed items that are missing."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: update gate file map for R6 and R19",
+      "resolution": "R6 now maps run-test-execute, run-gate, and test-artifacts along with the shared git helper. R19 now maps the full migration surface including flow-store/manager, implement prompt, next-action schemas, generated template/rule sources, locale messages/ui, docs prompt context, and legacy summary fixtures.",
+      "taskId": null,
+      "timestamp": "2026-05-15T08:05:43.928Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — listChangedFilesDetailed is added to src/lib/git-helpers.js using baseBranch...HEAD committed diff plus git status --porcelain for working-tree and untracked state. It normalizes status (modified/added/deleted/renamed/untracked) and returns {status,path} or {status:\"renamed\",old_path,path} entries sorted by path. listRegressionChangedFiles in test-regression.js wraps it and is consumed by both run-test-execute.js (classifyRegression stores changedFiles in the v2 artifact) and test-artifacts.js assertIntegrationRegressionEvidence (gate-impl freshness comparison via listRegressionChangedFiles → classifyRegression). All R6 sub-requirements are satisfied.; R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — All surfaces listed in R19 are updated in the diff: CLI docs (docs/cli_commands.md, docs/ja/cli_commands.md) add test-execute/test-result-review rows and a v2 summary paragraph; setup output (src/setup.js + locale step2 keys) mentions test.command/projectPaths; flow-tracking.md and rules.json list test-execute/test-result-review/retro as post-hook-managed and block manual masking; SKILL.md describes v2 artifact, hard stops, and started-failure behavior; next-action schemas for test-execute and test-result-review add artifact_version/regression/review_path required fields; implement.md removes gate-impl skipped for test-only specs and documents v2 contract; test-execute.md updates discovery order to R4 and v2 schema example; test-result-review.md adds project_regression_verification check; existing fixtures are migrated to v2 (run-retro test, e2e review test, gate-impl integration test); test-summary-aggregate test deleted for quarantined legacy APIs; flow-store.js setTestSummary and aggregateTaskSummaryIntoParent removed; types.js adds TestConfig typedef and SddConfig.test property; locale files (en/ja ui.json and messages.json) add test artifact, regression, and config wording.; R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All five test files are located under specs/257-project-level-test-breakage-detection/tests/ and each carries a valid '// spec: R<N> ...' header. Coverage across the five files accounts for every requirement R1–R37: prepare-config-analysis.test.js covers R1 R2 R3 R13 R21 R27 R36; regression-classifier.test.js covers R4 R5 R6 R7 R10 R11 R12 R14 R20 R22 R23; artifact-review-gate.test.js covers R8 R9 R15 R16 R26 R30 R31 R33; flow-docs-prompts.test.js covers R19 R24 R28 R29 R32 R34 R35; report-finalize-retro.test.js covers R17 R18 R25 R37. No requirement gap was found.; Avoid Overengineering — function detectTestCommandFromAnalysis({ configuredTestCommand, scripts, composerScripts, makefileTest }) {\n  return selectTestCommand({ configuredTestCommand, scripts, composerScripts, makefileTest });\n} — This function is a pure pass-through with a single caller (detectTestEnvironment). It adds no logic, no error handling, and no transformation; it is a textbook single-caller indirection layer that the guardrail explicitly forbids. (at src/docs/lib/test-env-detection.js); Avoid Overengineering — const MAX_MAKEFILE_BYTES = 1024 * 1024; — The same constant value 1024 * 1024 is independently defined in three newly introduced locations (test-env-detection.js, test-regression.js, and package.js) instead of being extracted to one shared helper; this is a DRY violation. (at src/docs/lib/test-env-detection.js); Avoid Overengineering — const MAX_MAKEFILE_BYTES = 1024 * 1024; — Duplicate declaration of the same 1 MiB Makefile size limit constant already defined in test-env-detection.js and package.js; a single shared constant was not extracted. (at src/flow/lib/test-regression.js); Avoid Overengineering — const MAX_MAKEFILE_BYTES = 1024 * 1024; — Third independent declaration of the same 1 MiB Makefile size limit constant; all three callers should share a single exported constant. (at src/presets/base/data/package.js); Avoid Overengineering — const makefileTest = fs.existsSync(makefilePath) &&\n    /^test\\s*:/m.test(readBoundedText(makefilePath, MAX_MAKEFILE_BYTES)); — Makefile `^test\\s*:` detection logic is introduced here and also independently implemented in test-regression.js::readMakeTestTarget; the same file-size guard plus regex pattern appears in two separate newly added locations without extraction to a shared helper. (at src/docs/lib/test-env-detection.js (detectTestCommandFromRoot)); Avoid Overengineering — const start = lines.findIndex((line) => /^test\\s*:/.test(line));\n  if (start === -1) return null; — Duplicate Makefile test-target detection logic; the same existence check, size guard, and regex pattern also appears in detectTestCommandFromRoot in test-env-detection.js introduced by this same diff. (at src/flow/lib/test-regression.js (readMakeTestTarget)); Avoid Overengineering — function readJson(filePath) {\n  return JSON.parse(fs.readFileSync(filePath, \"utf8\"));\n} — This private function is byte-for-byte identical to the one introduced in run-test-result-review.js; readJsonStrict is already exported from test-artifacts.js and either could be used directly, making both local copies unnecessary duplicates. (at src/flow/lib/run-test-execute.js); Avoid Overengineering — function readJson(filePath) {\n  return JSON.parse(fs.readFileSync(filePath, \"utf8\"));\n} — Identical private helper to the one in run-test-execute.js; the same JSON-reading shape now exists in two newly modified files when a shared readJsonStrict export already exists in test-artifacts.js. (at src/flow/lib/run-test-result-review.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T08:10:29.113Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function detectTestCommandFromAnalysis({ configuredTestCommand, scripts, composerScripts, makefileTest }) {\n  return selectTestCommand({ configuredTestCommand, scripts, composerScripts, makefileTest });\n} — This function is a pure pass-through with a single caller (detectTestEnvironment). It adds no logic, no error handling, and no transformation; it is a textbook single-caller indirection layer that the guardrail explicitly forbids. (at src/docs/lib/test-env-detection.js); const MAX_MAKEFILE_BYTES = 1024 * 1024; — The same constant value 1024 * 1024 is independently defined in three newly introduced locations (test-env-detection.js, test-regression.js, and package.js) instead of being extracted to one shared helper; this is a DRY violation. (at src/docs/lib/test-env-detection.js); const MAX_MAKEFILE_BYTES = 1024 * 1024; — Duplicate declaration of the same 1 MiB Makefile size limit constant already defined in test-env-detection.js and package.js; a single shared constant was not extracted. (at src/flow/lib/test-regression.js); const MAX_MAKEFILE_BYTES = 1024 * 1024; — Third independent declaration of the same 1 MiB Makefile size limit constant; all three callers should share a single exported constant. (at src/presets/base/data/package.js); const makefileTest = fs.existsSync(makefilePath) &&\n    /^test\\s*:/m.test(readBoundedText(makefilePath, MAX_MAKEFILE_BYTES)); — Makefile `^test\\s*:` detection logic is introduced here and also independently implemented in test-regression.js::readMakeTestTarget; the same file-size guard plus regex pattern appears in two separate newly added locations without extraction to a shared helper. (at src/docs/lib/test-env-detection.js (detectTestCommandFromRoot)); const start = lines.findIndex((line) => /^test\\s*:/.test(line));\n  if (start === -1) return null; — Duplicate Makefile test-target detection logic; the same existence check, size guard, and regex pattern also appears in detectTestCommandFromRoot in test-env-detection.js introduced by this same diff. (at src/flow/lib/test-regression.js (readMakeTestTarget)); function readJson(filePath) {\n  return JSON.parse(fs.readFileSync(filePath, \"utf8\"));\n} — This private function is byte-for-byte identical to the one introduced in run-test-result-review.js; readJsonStrict is already exported from test-artifacts.js and either could be used directly, making both local copies unnecessary duplicates. (at src/flow/lib/run-test-execute.js); function readJson(filePath) {\n  return JSON.parse(fs.readFileSync(filePath, \"utf8\"));\n} — Identical private helper to the one in run-test-execute.js; the same JSON-reading shape now exists in two newly modified files when a shared readJsonStrict export already exists in test-artifacts.js. (at src/flow/lib/run-test-result-review.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: remove gate no-overengineering findings",
+      "resolution": "Extracted Makefile size-limit and test-target parsing into src/lib/makefile.js, removed the pass-through test command detector, and replaced duplicated local JSON readers with the existing readJsonStrict helper.",
+      "taskId": null,
+      "timestamp": "2026-05-15T08:47:18.604Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — previously passed (skipped on retry); R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All 37 requirements are covered by new test files under specs/257-project-level-test-breakage-detection/tests/ with correct // spec: R<N> headers: prepare-config-analysis.test.js covers R1-R3/R13/R21/R27/R36; regression-classifier.test.js covers R4-R7/R10-R12/R14/R20/R22-R23; artifact-review-gate.test.js covers R8-R9/R15-R16/R26/R30-R31/R33; flow-docs-prompts.test.js covers R19/R24/R28-R29/R32/R34-R35; report-finalize-retro.test.js covers R17-R18/R25/R37.; Avoid Overengineering — const pass = result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError; — The same 4-field process-result pass check appears at this location and at two more inline sites within the same file's execute function. The equivalent check for spec-local results was correctly extracted into specLocalPassed(), but no helper (e.g. regressionResultPassed()) was extracted for the regression result, causing the same code shape to appear in 3 places. (at src/flow/lib/run-test-execute.js:buildRequiredRegression); Avoid Overengineering — `result: ${result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError ? \"pass\" : \"fail\"}` — Second inline occurrence of the identical 4-field condition (exitCode===0 && !signal && !timedOut && !spawnError) for the regression process result. Should use a shared helper instead of duplicating the shape that already appears in buildRequiredRegression. (at src/flow/lib/run-test-execute.js:appendRaw result marker line); Avoid Overengineering — `[sdd-forge] project regression end result=${result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError ? \"pass\" : \"fail\"}` — Third inline occurrence of the identical 4-field condition within the same execute function block. This duplication (also present in buildRequiredRegression) should be extracted to a named helper, consistent with the specLocalPassed() pattern already established in this file. (at src/flow/lib/run-test-execute.js:appendRaw end marker line)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T08:52:29.180Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "const pass = result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError; — The same 4-field process-result pass check appears at this location and at two more inline sites within the same file's execute function. The equivalent check for spec-local results was correctly extracted into specLocalPassed(), but no helper (e.g. regressionResultPassed()) was extracted for the regression result, causing the same code shape to appear in 3 places. (at src/flow/lib/run-test-execute.js:buildRequiredRegression); `result: ${result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError ? \"pass\" : \"fail\"}` — Second inline occurrence of the identical 4-field condition (exitCode===0 && !signal && !timedOut && !spawnError) for the regression process result. Should use a shared helper instead of duplicating the shape that already appears in buildRequiredRegression. (at src/flow/lib/run-test-execute.js:appendRaw result marker line); `[sdd-forge] project regression end result=${result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError ? \"pass\" : \"fail\"}` — Third inline occurrence of the identical 4-field condition within the same execute function block. This duplication (also present in buildRequiredRegression) should be extracted to a named helper, consistent with the specLocalPassed() pattern already established in this file. (at src/flow/lib/run-test-execute.js:appendRaw end marker line)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: remove duplicated regression pass checks",
+      "resolution": "Added a shared processPassed helper in run-test-execute and reused a single computed regressionResult for raw output markers, eliminating the repeated four-field process-result condition reported by gate.",
+      "taskId": null,
+      "timestamp": "2026-05-15T08:56:28.026Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — previously passed (skipped on retry); R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All five new test files under specs/257-project-level-test-breakage-detection/tests/ carry a '// spec: R<N>...' header on line 1 and together cover all 37 requirements (R1-R37). No requirement is left without at least one test file referencing it.; Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — The read() and assertContains() helpers are identical in shape and body to the same helpers in four other new test files. The DRY rule requires extracting a shared helper when the same code shape appears in two or more places; these five copies should live in a single shared test utility module. (at specs/257-project-level-test-breakage-detection/tests/artifact-review-gate.test.js:9-16); Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/flow-docs-prompts.test.js:9-16); Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/prepare-config-analysis.test.js:9-16); Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/regression-classifier.test.js:9-16); Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/report-finalize-retro.test.js:9-16)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T09:03:44.989Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — The read() and assertContains() helpers are identical in shape and body to the same helpers in four other new test files. The DRY rule requires extracting a shared helper when the same code shape appears in two or more places; these five copies should live in a single shared test utility module. (at specs/257-project-level-test-breakage-detection/tests/artifact-review-gate.test.js:9-16); function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/flow-docs-prompts.test.js:9-16); function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/prepare-config-analysis.test.js:9-16); function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/regression-classifier.test.js:9-16); function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/report-finalize-retro.test.js:9-16)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: remove duplicated spec test helpers",
+      "resolution": "Added specs/257-project-level-test-breakage-detection/tests/helpers.js and moved the repeated read/assertContains helpers from all five spec test files into that shared module.",
+      "taskId": null,
+      "timestamp": "2026-05-15T12:01:58.901Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "integration",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"integration\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: R1 — run-prepare-spec now runs docs scan after root/spec setup and before active-flow registration, skips dry-run by only calling in non-dry branches, leaves partial artifacts by not cleaning on failure, and fails when docs scan or analysis.json read/strict validation fails.; R2 — Partial only: iterator added and some walkers migrated, but it accepts array categories instead of strictly category objects with entries[], does not add project-file extraction, and diff does not show use in all required top-level analysis walkers such as docs scan existing-analysis/reset, get-context, docs prompt helpers, and DataSources.; R3 — Diff adds top-level test config schema, validates command/path/timeout during load, and container now rethrows invalid config instead of downgrading to missing config.; R4 — Discovery order and argv wrappers are implemented, but Makefile metadata records only target name not target text, and no ambiguous selected-source candidate failure path is implemented.; R5 — parseArgvCommand implements argv tokenization with quotes, backslash escapes, leading KEY=value env extraction, and rejects shell control/expansion metacharacters.; R6 — Shared status-aware helper was added, but the diff does not show test-execute evidence creation or gate-impl freshness comparison reusing it; R6 requires both consumers.; R7 — Classifier only triggers analysis files when not text-like and treats unknown text-like/source contract files as non-trigger, so remaining analysis project files, execution/test-contract files, and unknown regular files do not always force full regression as required.; R8 — Schema now requires version enum [\"2\"], mandatory summary[] and regression; validators reject non-v2 artifacts and enforce range-object raw_output_lines.; R9 — Required regression artifacts are written with all required fields, targeted mode requires target_paths, and validators enforce {start_line,end_line} 1-based ranges.; R10 — required=false regression includes category, reason, classified_paths, and changed_files; classifier emits only docs-only, spec-artifact-only, non-project-only, or mixed-non-trigger based on classified path classes.; R11 — Required regression raw log writes start/end lines and a range, but markers are not the specified standardized regression markers and the command/result values are separate lines rather than marker values; validators also do not enforce marker/artifact matching.; R12 — Started regression results are written into v2 artifacts with regression.result set to fail for non-zero/127/signal/timeout, while only pre-start spawn errors throw and skip normal artifact creation.; R13 — Prerequisite failures throw and avoid normal artifact creation, and invalid config is rethrown, but issue-log entries only record generic reason/trigger/resolution fields and do not persist the required structured prerequisite fields such as failure kind, message, command source/candidates, and changed file count.; R14 — run-test-execute deletes test-execute-result.json, raw log, test-result-review.json, test-result-review.md, retro.json, and report.json at execute start via DOWNSTREAM_ARTIFACTS before producing new artifacts.; R15 — run-test-result-review now performs deterministic v2/regression validation, emits project_regression_verification, returns fail on validation/verdict failure, and registry post-hook only marks done when review verdict is pass and the regression check passes.; R16 — Gate requires review pass, v2 artifacts, regression pass, and stale changed_files check, but independent regression evidence validation is incomplete: no raw log marker/line-range verification or command/target-path evidence checks, so unverifiable required regression can pass.; R17 — Report data/text line are added, and run-report/finalize validate present v2 artifacts, but consumers do not use a shared v2 artifact-loading path; finalize duplicates loading logic and report-show only checks report.json rather than loading/validating artifacts.; R18 — run-retro now validates v2 artifacts with range raw_output_lines and continues reading requirement summary[] only; regression is validated but not aggregated into requirement totals.; R19 — Diff updates some CLI docs, prompts, skill template, and types, but required surfaces such as implement.md, setup output, next-action schemas, flow-store summary handling, docs data sources/prompt context, generated skills/rules/partials, fixtures/snapshots, and old test-summary references are not shown as fully migrated.; R20 — test-execute.md now lists R4 order exactly and excludes docs hints/implicit language config/task prompt settings; run-test-execute.js removed the old AI system prompt and no longer instructs README/Python/commands.test discovery.; R21 — Schema changed version to enum [\"2\"], but adds likely unsupported oneOf constructs and validators shown only check basic shape, not marker, membership, cross-field, or freshness rules.; R22 — TEMP_SUMMARY_RELATIVE is tests/.raw/requirement-summary.json, run-test-execute deletes it at step start and after v2 artifact composition, and finalize commit excludes it while staging only durable raw evidence.; R23 — runProcessDetailed exposes started, exitCode, signal, timedOut, spawnError, stdout, and stderr; run-test-execute checks spawnError && !started as prerequisite failure while started nonzero/signal/timeout results are handled as regression fail artifacts.; R24 — Template and implement prompt document the required flow outcomes, but the diff shows template changes without refreshed generated skills or evidence that sdd-forge upgrade was run.; R25 — executeCommitPost validates present v2 artifacts and no longer downgrades report failures, and run-finalize-commit narrows tests/.raw staging, but executeCommitPost still runs git add on the entire spec directory with only requirement-summary excluded, so it can stage more than durable raw evidence.; R26 — registry post-hooks now validate a v2 test-execute artifact before marking done; prerequisite failures throw before normal artifact creation; started regression failures still produce v2 artifacts and advance; test-result-review post-hook validates review artifact and requires pass verdict before marking done.; R27 — Docs detection adds R4-like sources, but detectTestEnvironment still reports package scripts.test body and composer command without --, diverging from runtime R4 wrappers; the new root helper is separate from runtime discovery and no base en/ja template or shared generated-docs path integration is shown.; R28 — Diff updates run-impl-confirm and test-execute next-action schema/tests, but does not update src/flow/definition.js, test-result-review output wiring/contexts, explicit maxAttempts, or prerequisite behavior tests required by R28.; R29 — Diff adds a reset helper and stale gate changed_files check, but does not show the reset helper being invoked after impl review nor any review prompt instruction update; deterministic reset is therefore not implemented in the provided diff.; R30 — test-execute constructs summaries itself and can synthesize evidence; it does not validate each summary entry against an agent temporary summary, referenced test file existence, test name, command, and raw output line range before composing v2.; R31 — Manual done validation was added, but gate-impl only checks artifact shape/review check presence and would allow regression.result=fail or stale/unverified regression evidence, so manual completion can still bypass the regression gate.; R32 — run-review adds a reset helper and artifact deletion, but the shown diff does not invoke the reset trigger, and it sets test-execute to in_progress instead of resetting all required steps to pending.; R33 — Diff only adds a gate-step comment and integration-only check in run-gate; no functional gate-step routing change is shown, and the added R33 test is a static string check rather than proof that task-level gate-impl remains unchanged while integration gates validate regression.; R34 — Named flow-order and next-action tests were updated to include implement -> test-execute -> test-result-review -> review -> gate-impl -> retro -> finalize sequence.; R35 — flow-tracking, rules.json, and flow skill template now list test-execute/test-result-review/retro as post-hook-managed and warn against manual advancement masking prerequisite failures.; R36 — Diff only adds two messages in en/ja messages.json; it does not update ui/help locale files or broader affected test config/artifact command wording under src/locale/*/*.json.; R37 — flow-store removes legacy APIs, but flow-manager reintroduces setTestSummary() and completeTask() aggregation that writes state.test.summary, so legacy summary can still synthesize/overwrite authoritative v2 results.\n  attempt 2: R1 — previously passed (skipped on retry); R2 — src/docs/lib/analysis-entry.js adds iterateAnalysisCategories(analysis,{opts}) with strict mode (throws on invalid input when opts.strict=true), ignores ANALYSIS_META_KEYS (analyzedAt/enrichedAt), accepts category objects with entries[] while preserving optional summary/dataSourceHash, and also adds projectFilePathsFromAnalysis. The function is adopted across every required consumer: src/check/commands/scan.js, src/docs/commands/enrich.js, src/docs/commands/text.js, src/docs/commands/review.js, src/docs/lib/analysis-filter.js, src/docs/lib/forge-prompts.js, src/docs/lib/text-prompts.js, src/flow/lib/get-context.js, src/docs/commands/scan.js (existing-analysis index and reset logic), src/presets/base/data/structure.js, and src/presets/monorepo/data/monorepo.js (DataSources). ANALYSIS_META_KEYS remains exported for consumers that need it directly (analysis-filter.js). All prior inline copies of the category-iteration pattern are removed and replaced with the shared helper.; R3 — previously passed (skipped on retry); R4 — src/flow/lib/test-regression.js fully implements R4: discoverRegressionCommand uses priority 10 (test.command via parseArgvCommand), 20 (package.json via argv [\"npm\",\"test\",\"--\"] with metadata.script), 30 (composer.json via argv [\"composer\",\"run-script\",\"test\",\"--\"] with metadata.script), 40 (Makefile via argv [\"make\",\"test\"] with metadata.target). Each ParsedCommand carries a source field. selectRegressionCommandCandidate throws on empty candidates and on duplicate-priority ambiguity. Only test.command is shell-parsed; ecosystem sources execute deterministic wrapper argv. Spec test in regression-classifier.test.js R4 block checks all these patterns in run-test-execute.js, which is expected to import this module.; R5 — previously passed (skipped on retry); R6 — The shared helper listChangedFilesDetailed is implemented in src/lib/git-helpers.js with correct status/rename/untracked/sorted snapshot semantics, and test-regression.js imports and wraps it via listRegressionChangedFiles. However, the diff does not include changes to src/flow/lib/run-test-execute.js or src/flow/lib/run-gate.js, so the requirement that the helper 'be reused by both test-execute evidence creation and gate-impl freshness comparison' cannot be confirmed from the diff alone — the spec test assertions for R6 check those files but execution evidence is needed to verify they pass.; R7 — All R7 sub-requirements are implemented in the new src/flow/lib/test-regression.js. (1) Spec-local tests under specs/<active-spec>/tests/** are routed to nonTrigger with category 'spec-artifact-only' unless they also match test.projectPaths (classifyRegression checks isProjectTestPath first, then the activeSpec/tests/ prefix). (2) test.projectPaths classification is applied before generic analysisFiles triggers (isProjectTestPath is checked first in the loop). (3) Targeted mode is selected only when triggerFiles.length === projectTestFiles.length && projectTestFiles.length > 0. (4) ParsedCommand.withTargets() appends every target_paths entry as separate argv tokens after the root command. (5) The final return in classifyRegression falls back to mode:'full' for everything else. (6) isTriggerRelevantFile() forces full mode for analysis project files, regression config/execution paths, and unknown regular files. (7) classifyNonTrigger() returns 'spec-artifact-only', 'docs-only', or 'non-project-only', and categoryFor() produces 'mixed-non-trigger' when multiple non-trigger classes are present, all used in the required:false path.; R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — run-test-execute.js writes a start marker '[sdd-forge] project regression start command=${command.toString()} mode=...' and an end marker '[sdd-forge] project regression end result=...' inside the same appendRaw block, so the returned {start_line,end_line} range covers both. buildRequiredRegression stores that range as regression.raw_output_lines and also stores regression.command and regression.result. validateTestExecuteResultEvidence in test-artifacts.js verifies the raw text contains the start marker with matching command and the end marker with matching result, enforcing the artifact-to-marker consistency required by R11.; R12 — previously passed (skipped on retry); R13 — All R13 sub-requirements are implemented: (1) run-test-execute.js has a try/catch that calls recordPrerequisiteIssue() only when test-execute-result.json does not exist, then re-throws — so no normal artifact is written on prerequisite failures; (2) recordPrerequisiteIssue() writes issue-log fields including step, failureKind:'prerequisite', message, commandSource, commandCandidates, changedFileCount, trigger, resolution, and timestamp; (3) analysis loading failure throws before the artifact write path; (4) spawn failure before start ('if (result.spawnError && !result.started) throw') is caught the same way; (5) container.js now throws for non-missing config load errors ('throw err' added in the catch block) instead of silently leaving config=null, so invalid config surfaces through the command error envelope rather than being downgraded to NO_CONFIG.; R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — The diff implements all R16 requirements. In run-gate.js, checkIntegrationTestArtifacts now calls assertIntegrationRegressionEvidence (from the new test-artifacts.js) with the config object, applying only to phase='integration'. assertIntegrationRegressionEvidence: (1) calls loadValidatedTestArtifacts which throws if test-result-review.json or test-execute-result.json is missing or invalid, enforcing v2 schema via validateTestExecuteResultV2; (2) checks review.verdict !== 'pass' and throws, requiring test-result-review pass; (3) checks failed summary entries; (4) checks regression.required && regression.result !== 'pass' to block failed required regression; (5) enumerates current changed files via listRegressionChangedFiles and classifyRegression and compares both changedFiles and triggerRelevantChangedFiles snapshots against the artifact, throwing 'snapshot is stale; rerun test-execute' when they differ. All four gate-impl failure conditions (missing, stale, unverifiable, fail result) are covered.; R17 — All four sub-requirements of R17 are implemented in the diff. (1) data.tests.projectRegression is populated in report.js via `projectRegression: testExecute?.projectRegression || null`. (2) The exact text line format is rendered in formatText(): 'Project regression: required=${r.required} result=${r.result||\"skipped\"} mode=${r.mode||\"none\"}' with category appended when present. (3) All four consumers—run-report.js, run-finalize.js, run-report-show.js, and run-finalize-cleanup.js—converge on the shared buildTestResultsFromArtifacts/loadValidatedTestArtifacts helpers imported from test-artifacts.js. (4) Invalid/unreadable present artifacts now throw rather than return null: run-report.js changes readJsonIfExists to throw on parse error, run-finalize.js removes the try-catch that previously swallowed report-generation failures and lets saveReport throw, and run-report-show.js throws reportShowError('NO_PROJECT_REGRESSION') when tests data lacks the projectRegression field.; R18 — previously passed (skipped on retry); R19 — Several components explicitly listed in R19 are absent from the diff: (1) src/lib/flow-store.js legacy summary handling (setTestSummary/aggregateTaskSummaryIntoParent) is not updated despite R19 and R37 requiring it and the corresponding legacy test file being deleted; (2) src/flow/prompts/impl/implement.md is not shown updated, yet R19 requires it to reflect the v2 and test object contracts; (3) src/flow/schemas/next-action/test-execute.schema.json is not in the diff; (4) src/templates/partials/flow-tracking.md and src/templates/skills/rules.json are absent from the diff; (5) src/locale/en/messages.json and src/locale/ja/messages.json are not updated (only ui.json is patched). The diff does correctly update docs/cli_commands.md, docs/ja/cli_commands.md, src/lib/types.js (TestConfig), the test-execute.md and test-result-review.md prompts, the test-result-review next-action schema, and locale ui.json files, but the gaps above represent explicit R19-listed items that are missing.; R20 — previously passed (skipped on retry); R21 — The diff satisfies both R21 sub-requirements. (1) src/flow/schemas/test-execute-result.schema.json replaces the unsupported `\"const\": \"1\"` with `\"enum\": [\"2\"]` exactly as required. The spec-local test asserts `schema.properties.version.enum` equals `[\"2\"]` and `schema.properties.version.const` is undefined. (2) Cross-field, marker, membership, and freshness checks are implemented as deterministic validator functions in the new src/flow/lib/test-artifacts.js: `validateRegression()` enforces conditional required-field rules based on `regression.required`; `validateTestExecuteResultEvidence()` enforces marker matching (start/end raw-log markers against `regression.command` and `regression.result`), summary membership checks against expected requirement IDs, and line-range bounds; `assertIntegrationRegressionEvidence()` performs freshness comparison of the persisted `changed_files` snapshot against the current git state. These are all deterministic code-side checks rather than JSON Schema constraints, consistent with the local schema subset policy.; R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — All R24 sub-requirements are satisfied: (1) SKILL.md note updated to state prepare/docs-scan and analysis.json failures are hard stops surfaced through the normal flow error envelope; (2) SKILL.md states normal v2 artifact production advances test-execute and started regression failures advance to test-result-review; (3) SKILL.md and implement.md both document that prerequisite failures are hard stops; (4) implement.md removes the 'set gate-impl skipped' step for test-only specs and now explicitly forbids skipping test-execute, test-result-review, or gate-impl; (5) SKILL.md, flow-tracking.md, and rules.json all document that manual flow set step must not mask these outcomes; (6) rules.json adds the 'post-hook-managed-test-artifacts' rule covering test-execute/test-result-review/gate-impl/retro; (7) the spec tests under specs/257 verify these template properties and the spec notes sdd-forge upgrade must be run when templates change.; R25 — All four R25 sub-requirements are satisfied in the diff. (1) executeCommitPost() in run-finalize.js stages only DURABLE_TEST_ARTIFACT_RELATIVE_PATHS via targeted `git add --` instead of the previous `git add -- <specDir>`. (2) run-finalize-commit.js imports TEMP_SUMMARY_RELATIVE and adds it to excludePathspecs so the temporary requirement summary artifact is excluded from the implementation commit by exact pathspec exclusion. (3) run-finalize-cleanup.js uses readReportText() from run-report-show.js, which now calls loadValidatedTestArtifacts() to validate v2 artifacts before returning text, ensuring the same v2 report-show path. (4) The old outer try/catch in executeCommitPost() that caught all errors and set results.report = {status:'failed'} is removed entirely; buildTestResultsFromArtifacts and saveReport errors now propagate unhandled, so invalid present v2 artifact or report-generation failures are no longer caught and downgraded to a non-blocking status. The spec-local test in specs/257-project-level-test-breakage-detection/tests/report-finalize-retro.test.js R25 case also verifies these patterns deterministically.; R26 — previously passed (skipped on retry); R27 — The diff satisfies R27 on all three axes. (1) Source order: `selectTestCommand` in test-env-detection.js follows exactly the R4 order — test.command → package.json scripts.test (returning the npm test -- wrapper) → composer.json scripts.test (returning composer run-script test --) → Makefile test target (returning make test). (2) Shared discovery helper: `detectTestCommandFromRoot` and `detectTestCommandFromAnalysis` are introduced as explicit shared helpers that both call `selectTestCommand`, so runtime discovery and docs generation use the same function and cannot diverge. (3) Data source for base templates: `src/presets/base/data/package.js` is extended with `composerScripts` and `makefileTest` fields on `PackageEntry`, and Makefile is added to the `match()` filter, so the analysis-based path used by base en/ja templates now carries the metadata needed by `detectTestCommandFromAnalysis`. The unit test update (`assert.equal(result.testCommand, 'npm test --')`) confirms the wrapper command — not the raw script body — is reported, matching the runtime R4 contract. The spec-local test in `prepare-config-analysis.test.js` asserts all four source references in test-env-detection.js and the presence of Makefile/composer metadata in package.js, and both assertions hold based on the diff.; R28 — run-impl-confirm.js changed both allDone and noRequirements branches from 'review' to 'test-execute'; next-action schemas for test-execute and test-result-review were updated (added required raw_output_path, regression, artifact_version in test-execute.schema.json; added required review_path in test-result-review.schema.json); registry.js post-hooks now validate v2 artifacts and review verdict before marking steps done; specs/251 definition-impl-order.test.js updated to assert ids=['implement','test-execute','test-result-review','review','gate-impl','retro','finalize']; get-next-action.test.js updated to include test-execute, test-result-review, and retro in the falsyFlowSteps list; new flow-docs-prompts.test.js spec test for R28 checks definition.js sequence, maxAttempts wiring, impl-confirm pointing to test-execute, and no direct jump to review.; R29 — src/flow/lib/run-review.js introduces resetImplEvidenceAfterReviewProposals(), which (1) guards on impl phase only (ctx?.phase check), (2) detects applied code changes via proposalCount > 0, (3) calls removeReviewDownstreamArtifacts() using fs.rmSync to delete test-execute-result.json, test-result-review.json, test-result-review.md, retro.json, report.json, raw log, and temp summary, and (4) resets test-execute, test-result-review, review, gate-impl, and retro steps to status=\"pending\" via flowManager.mutate(). The DOWNSTREAM_AFTER_REVIEW_APPLY list and step ID array cover all steps named in R29. The spec test in flow-docs-prompts.test.js (R29 case) validates that run-review.js, review.md, and run-gate.js together contain the required step references and stale/reset/delete handling.; R30 — run-test-execute.js implements runSpecLocalTests(), buildSummary(), and validateSummaryEntries() which checks each summary[] entry against: (1) referenced test file existence (fs.existsSync), (2) test name presence in source (src.includes(evidence.test_name)), (3) command validity (typeof evidence.command !== 'string' || evidence.command.length === 0), and (4) raw output line range bounds (start_line < 1 || end_line < start_line || end_line > rawLines.length). validateSummaryEntries is called on the temporary summary before composing the final v2 artifact. test-artifacts.js also exposes validateTestExecuteResultEvidence() with equivalent checks. The spec-local test in artifact-review-gate.test.js R30 case verifies these patterns exist.; R31 — src/flow/lib/set-step.js adds validatePostHookManagedStep() that guards all four steps. When status==='done' and id is one of ['test-execute','test-result-review','gate-impl','retro'], it calls validateTestExecuteResultV2 (test-execute), validateTestResultReview+verdict===pass check (test-result-review), assertIntegrationRegressionEvidence (gate-impl and retro), returning Envelope.fail with STEP_ARTIFACT_VALIDATION_FAILED on any violation. The corresponding spec test in specs/257/tests/artifact-review-gate.test.js asserts all four steps are guarded and that set-step validates artifacts.; R32 — src/flow/lib/run-review.js exports resetImplEvidenceAfterReviewProposals(), which is the single reset owner: it calls removeReviewDownstreamArtifacts() to delete TEST_EXECUTE_RESULT_FILE, TEST_RESULT_REVIEW_FILE, TEST_RESULT_REVIEW_MD_FILE, retro.json, report.json, RAW_OUTPUT_RELATIVE, and TEMP_SUMMARY_RELATIVE, and then mutates flowState to set test-execute, test-result-review, review, gate-impl, and retro status back to 'pending', satisfying the requirement to own the reset trigger after review-applied code changes.; R33 — The diff satisfies all three sub-requirements of R33. (1) Project regression validation is routed only to phase 'integration': run-gate.js already had `if (phase === 'integration')` guarding `checkIntegrationTestArtifacts`, and the diff adds `assertIntegrationRegressionEvidence` (imported from test-artifacts.js) inside that guard — task-level phases never enter this branch. (2) Task-level gate-impl behavior is unchanged: the existing if-guard ensures no regression check runs for non-integration phases. gate-step.js receives a comment explicitly documenting 'Project regression validation belongs to the flow-level integration phase; task-level gate-impl remains mapped to task-impl.' (3) Tests proving the phase split exist: artifact-review-gate.test.js (tagged `// spec: R8 R9 R15 R16 R26 R30 R31 R33`) contains an R33-specific test that asserts gate-step.js contains 'integration', distinguishes task/phase, and that run-gate.js applies regression checks only at the flow-level integration gate.; R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — All four locale files are updated in the diff: src/locale/en/messages.json and src/locale/ja/messages.json each gain 'testArtifactInvalid' and 'projectRegressionBlocked' keys covering v2 artifact and gate-impl wording; src/locale/en/ui.json and src/locale/ja/ui.json each gain a 'test' section with 'artifact', 'review', 'projectRegression', and 'config' entries plus a 'step2' setup message directing users to configure test.command/projectPaths. The spec-local R36 test in prepare-config-analysis.test.js asserts that all four files match /test|artifact|config|regression|project/i, which these additions satisfy.; R37 — setTestSummary() is removed from src/lib/flow-store.js and src/lib/flow-manager.js; aggregateTaskSummaryIntoParent() function and all its call sites are removed from flow-store.js; the legacy test file tests/unit/lib/test-summary-aggregate.test.js is deleted; and a new spec test in report-finalize-retro.test.js asserts that neither symbol remains in flow-store.js.\n  attempt 3: R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — listChangedFilesDetailed is added to src/lib/git-helpers.js using baseBranch...HEAD committed diff plus git status --porcelain for working-tree and untracked state. It normalizes status (modified/added/deleted/renamed/untracked) and returns {status,path} or {status:\"renamed\",old_path,path} entries sorted by path. listRegressionChangedFiles in test-regression.js wraps it and is consumed by both run-test-execute.js (classifyRegression stores changedFiles in the v2 artifact) and test-artifacts.js assertIntegrationRegressionEvidence (gate-impl freshness comparison via listRegressionChangedFiles → classifyRegression). All R6 sub-requirements are satisfied.; R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — All surfaces listed in R19 are updated in the diff: CLI docs (docs/cli_commands.md, docs/ja/cli_commands.md) add test-execute/test-result-review rows and a v2 summary paragraph; setup output (src/setup.js + locale step2 keys) mentions test.command/projectPaths; flow-tracking.md and rules.json list test-execute/test-result-review/retro as post-hook-managed and block manual masking; SKILL.md describes v2 artifact, hard stops, and started-failure behavior; next-action schemas for test-execute and test-result-review add artifact_version/regression/review_path required fields; implement.md removes gate-impl skipped for test-only specs and documents v2 contract; test-execute.md updates discovery order to R4 and v2 schema example; test-result-review.md adds project_regression_verification check; existing fixtures are migrated to v2 (run-retro test, e2e review test, gate-impl integration test); test-summary-aggregate test deleted for quarantined legacy APIs; flow-store.js setTestSummary and aggregateTaskSummaryIntoParent removed; types.js adds TestConfig typedef and SddConfig.test property; locale files (en/ja ui.json and messages.json) add test artifact, regression, and config wording.; R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All five test files are located under specs/257-project-level-test-breakage-detection/tests/ and each carries a valid '// spec: R<N> ...' header. Coverage across the five files accounts for every requirement R1–R37: prepare-config-analysis.test.js covers R1 R2 R3 R13 R21 R27 R36; regression-classifier.test.js covers R4 R5 R6 R7 R10 R11 R12 R14 R20 R22 R23; artifact-review-gate.test.js covers R8 R9 R15 R16 R26 R30 R31 R33; flow-docs-prompts.test.js covers R19 R24 R28 R29 R32 R34 R35; report-finalize-retro.test.js covers R17 R18 R25 R37. No requirement gap was found.; Avoid Overengineering — function detectTestCommandFromAnalysis({ configuredTestCommand, scripts, composerScripts, makefileTest }) {\n  return selectTestCommand({ configuredTestCommand, scripts, composerScripts, makefileTest });\n} — This function is a pure pass-through with a single caller (detectTestEnvironment). It adds no logic, no error handling, and no transformation; it is a textbook single-caller indirection layer that the guardrail explicitly forbids. (at src/docs/lib/test-env-detection.js); Avoid Overengineering — const MAX_MAKEFILE_BYTES = 1024 * 1024; — The same constant value 1024 * 1024 is independently defined in three newly introduced locations (test-env-detection.js, test-regression.js, and package.js) instead of being extracted to one shared helper; this is a DRY violation. (at src/docs/lib/test-env-detection.js); Avoid Overengineering — const MAX_MAKEFILE_BYTES = 1024 * 1024; — Duplicate declaration of the same 1 MiB Makefile size limit constant already defined in test-env-detection.js and package.js; a single shared constant was not extracted. (at src/flow/lib/test-regression.js); Avoid Overengineering — const MAX_MAKEFILE_BYTES = 1024 * 1024; — Third independent declaration of the same 1 MiB Makefile size limit constant; all three callers should share a single exported constant. (at src/presets/base/data/package.js); Avoid Overengineering — const makefileTest = fs.existsSync(makefilePath) &&\n    /^test\\s*:/m.test(readBoundedText(makefilePath, MAX_MAKEFILE_BYTES)); — Makefile `^test\\s*:` detection logic is introduced here and also independently implemented in test-regression.js::readMakeTestTarget; the same file-size guard plus regex pattern appears in two separate newly added locations without extraction to a shared helper. (at src/docs/lib/test-env-detection.js (detectTestCommandFromRoot)); Avoid Overengineering — const start = lines.findIndex((line) => /^test\\s*:/.test(line));\n  if (start === -1) return null; — Duplicate Makefile test-target detection logic; the same existence check, size guard, and regex pattern also appears in detectTestCommandFromRoot in test-env-detection.js introduced by this same diff. (at src/flow/lib/test-regression.js (readMakeTestTarget)); Avoid Overengineering — function readJson(filePath) {\n  return JSON.parse(fs.readFileSync(filePath, \"utf8\"));\n} — This private function is byte-for-byte identical to the one introduced in run-test-result-review.js; readJsonStrict is already exported from test-artifacts.js and either could be used directly, making both local copies unnecessary duplicates. (at src/flow/lib/run-test-execute.js); Avoid Overengineering — function readJson(filePath) {\n  return JSON.parse(fs.readFileSync(filePath, \"utf8\"));\n} — Identical private helper to the one in run-test-execute.js; the same JSON-reading shape now exists in two newly modified files when a shared readJsonStrict export already exists in test-artifacts.js. (at src/flow/lib/run-test-result-review.js)\n  attempt 4: R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — previously passed (skipped on retry); R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All 37 requirements are covered by new test files under specs/257-project-level-test-breakage-detection/tests/ with correct // spec: R<N> headers: prepare-config-analysis.test.js covers R1-R3/R13/R21/R27/R36; regression-classifier.test.js covers R4-R7/R10-R12/R14/R20/R22-R23; artifact-review-gate.test.js covers R8-R9/R15-R16/R26/R30-R31/R33; flow-docs-prompts.test.js covers R19/R24/R28-R29/R32/R34-R35; report-finalize-retro.test.js covers R17-R18/R25/R37.; Avoid Overengineering — const pass = result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError; — The same 4-field process-result pass check appears at this location and at two more inline sites within the same file's execute function. The equivalent check for spec-local results was correctly extracted into specLocalPassed(), but no helper (e.g. regressionResultPassed()) was extracted for the regression result, causing the same code shape to appear in 3 places. (at src/flow/lib/run-test-execute.js:buildRequiredRegression); Avoid Overengineering — `result: ${result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError ? \"pass\" : \"fail\"}` — Second inline occurrence of the identical 4-field condition (exitCode===0 && !signal && !timedOut && !spawnError) for the regression process result. Should use a shared helper instead of duplicating the shape that already appears in buildRequiredRegression. (at src/flow/lib/run-test-execute.js:appendRaw result marker line); Avoid Overengineering — `[sdd-forge] project regression end result=${result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError ? \"pass\" : \"fail\"}` — Third inline occurrence of the identical 4-field condition within the same execute function block. This duplication (also present in buildRequiredRegression) should be extracted to a named helper, consistent with the specLocalPassed() pattern already established in this file. (at src/flow/lib/run-test-execute.js:appendRaw end marker line)\n  attempt 5: R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — previously passed (skipped on retry); R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All five new test files under specs/257-project-level-test-breakage-detection/tests/ carry a '// spec: R<N>...' header on line 1 and together cover all 37 requirements (R1-R37). No requirement is left without at least one test file referencing it.; Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — The read() and assertContains() helpers are identical in shape and body to the same helpers in four other new test files. The DRY rule requires extracting a shared helper when the same code shape appears in two or more places; these five copies should live in a single shared test utility module. (at specs/257-project-level-test-breakage-detection/tests/artifact-review-gate.test.js:9-16); Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/flow-docs-prompts.test.js:9-16); Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/prepare-config-analysis.test.js:9-16); Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/regression-classifier.test.js:9-16); Avoid Overengineering — function read(relPath) { return fs.readFileSync(path.join(REPO_ROOT, relPath), \"utf8\"); }\nfunction assertContains(relPath, pattern, message) { assert.match(read(relPath), pattern, `${relPath}: ${message}`); } — Verbatim duplicate of the read/assertContains pair defined in four other sibling test files introduced by the same diff; should be extracted to a shared test helper instead of repeated. (at specs/257-project-level-test-breakage-detection/tests/report-finalize-retro.test.js:9-16)\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-15T12:04:44.988Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — previously passed (skipped on retry); R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All 37 requirements (R1–R37) are covered by test files added under specs/257-project-level-test-breakage-detection/tests/ with proper '// spec: R<N> ...' headers: prepare-config-analysis.test.js (R1 R2 R3 R13 R21 R27 R36), regression-classifier.test.js (R4 R5 R6 R7 R10 R11 R12 R14 R20 R22 R23), artifact-review-gate.test.js (R8 R9 R15 R16 R26 R30 R31 R33), flow-docs-prompts.test.js (R19 R24 R28 R29 R32 R34 R35), report-finalize-retro.test.js (R17 R18 R25 R37). No previously-passing requirement is left uncovered by the diff.; Avoid Overengineering — function readMakeTestTarget(root) { return extractMakeTestTarget(readMakefile(path.join(root, \"Makefile\"))); } — This private helper is a single-expression composition wrapper called exactly once inside discoverRegressionCommand. The call site is simple enough to inline directly (extractMakeTestTarget(readMakefile(path.join(root, \"Makefile\")))), making readMakeTestTarget a textbook single-caller indirection layer with no reuse benefit. (at src/flow/lib/test-regression.js); Avoid Overengineering — function readBoundedText(filePath, maxBytes) { const stat = fs.statSync(filePath); ... return fs.readFileSync(filePath, \"utf8\"); } — readBoundedText is only ever called by readBoundedJsonIfExists within the same file. Despite adding a size-check, it is a private helper with a single caller; its logic could be inlined into readBoundedJsonIfExists without increasing complexity, eliminating the indirection layer. (at src/docs/lib/test-env-detection.js); Avoid Overengineering — function selectTestCommand({ configuredTestCommand, scripts, composerScripts, makefileTest }) { if (configuredTestCommand) ... if (scripts?.test) ... if (composerScripts?.test) ... if (makefileTest) ... } — The R4 command-priority ordering (test.command → package.json scripts.test → composer.json scripts.test → Makefile test) is implemented here independently as selectTestCommand. The same four-source priority sequence also exists in discoverRegressionCommand in test-regression.js. R27 of the spec requires docs and runtime to share a discovery helper so they cannot diverge, yet the diff introduces two parallel implementations instead of extracting a shared helper. (at src/docs/lib/test-env-detection.js); Avoid Overengineering — export function discoverRegressionCommand(root, config = {}) { ... if (config?.test?.command) candidates.push(priority 10 ...); ... if (pkg?.scripts?.test) candidates.push(priority 20 ...); ... if (composer?.scripts?.test) candidates.push(priority 30 ...); ... if (makeTarget) candidates.push(priority 40 ...); ... } — The same R4 four-source discovery priority order (test.command, package.json, composer.json, Makefile) appears here in discoverRegressionCommand and also in selectTestCommand in test-env-detection.js. Two separate implementations of identical ordering logic violates DRY; a single shared priority-ordering helper should have been extracted and reused by both the docs-detection and runtime-execution paths. (at src/flow/lib/test-regression.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T12:10:14.282Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function readMakeTestTarget(root) { return extractMakeTestTarget(readMakefile(path.join(root, \"Makefile\"))); } — This private helper is a single-expression composition wrapper called exactly once inside discoverRegressionCommand. The call site is simple enough to inline directly (extractMakeTestTarget(readMakefile(path.join(root, \"Makefile\")))), making readMakeTestTarget a textbook single-caller indirection layer with no reuse benefit. (at src/flow/lib/test-regression.js); function readBoundedText(filePath, maxBytes) { const stat = fs.statSync(filePath); ... return fs.readFileSync(filePath, \"utf8\"); } — readBoundedText is only ever called by readBoundedJsonIfExists within the same file. Despite adding a size-check, it is a private helper with a single caller; its logic could be inlined into readBoundedJsonIfExists without increasing complexity, eliminating the indirection layer. (at src/docs/lib/test-env-detection.js); function selectTestCommand({ configuredTestCommand, scripts, composerScripts, makefileTest }) { if (configuredTestCommand) ... if (scripts?.test) ... if (composerScripts?.test) ... if (makefileTest) ... } — The R4 command-priority ordering (test.command → package.json scripts.test → composer.json scripts.test → Makefile test) is implemented here independently as selectTestCommand. The same four-source priority sequence also exists in discoverRegressionCommand in test-regression.js. R27 of the spec requires docs and runtime to share a discovery helper so they cannot diverge, yet the diff introduces two parallel implementations instead of extracting a shared helper. (at src/docs/lib/test-env-detection.js); export function discoverRegressionCommand(root, config = {}) { ... if (config?.test?.command) candidates.push(priority 10 ...); ... if (pkg?.scripts?.test) candidates.push(priority 20 ...); ... if (composer?.scripts?.test) candidates.push(priority 30 ...); ... if (makeTarget) candidates.push(priority 40 ...); ... } — The same R4 four-source discovery priority order (test.command, package.json, composer.json, Makefile) appears here in discoverRegressionCommand and also in selectTestCommand in test-env-detection.js. Two separate implementations of identical ordering logic violates DRY; a single shared priority-ordering helper should have been extracted and reused by both the docs-detection and runtime-execution paths. (at src/flow/lib/test-regression.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: share test command source selection",
+      "resolution": "Added src/lib/test-command-sources.js so docs detection and runtime regression discovery use the same ordered source selection. Inlined the single-caller Makefile and bounded JSON wrappers reported by gate.",
+      "taskId": null,
+      "timestamp": "2026-05-15T12:22:18.688Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — previously passed (skipped on retry); R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All five new test files introduced under specs/257-project-level-test-breakage-detection/tests/ carry a // spec: R<N> ... header covering all 37 requirements (R1–R37). Files: artifact-review-gate.test.js, flow-docs-prompts.test.js, prepare-config-analysis.test.js, regression-classifier.test.js, report-finalize-retro.test.js. Previously passing tests updated in the same diff (definition-impl-order.test.js, get-next-action.test.js) retain their existing headers and are not newly introduced test files requiring new headers.; Avoid Overengineering — const DOWNSTREAM_ARTIFACTS = [\n  TEST_EXECUTE_RESULT_FILE,\n  TEST_RESULT_REVIEW_FILE,\n  TEST_RESULT_REVIEW_MD_FILE,\n  \"retro.json\",\n  \"report.json\",\n  RAW_OUTPUT_RELATIVE,\n  TEMP_SUMMARY_RELATIVE,\n]; — This seven-element array is byte-for-byte identical to DOWNSTREAM_AFTER_REVIEW_APPLY defined in run-review.js. Both are introduced by the diff. Since test-artifacts.js already exports related constants (DURABLE_TEST_ARTIFACT_RELATIVE_PATHS, TEST_EXECUTE_RESULT_FILE, RAW_OUTPUT_RELATIVE, TEMP_SUMMARY_RELATIVE), the combined cleanup list should be a single exported constant shared by both consumers rather than duplicated. (at src/flow/lib/run-test-execute.js); Avoid Overengineering — const DOWNSTREAM_AFTER_REVIEW_APPLY = [\n  TEST_EXECUTE_RESULT_FILE,\n  TEST_RESULT_REVIEW_FILE,\n  TEST_RESULT_REVIEW_MD_FILE,\n  \"retro.json\",\n  \"report.json\",\n  RAW_OUTPUT_RELATIVE,\n  TEMP_SUMMARY_RELATIVE,\n]; — Duplicate of DOWNSTREAM_ARTIFACTS in run-test-execute.js — same seven entries in the same order introduced by the diff. The guardrail requires extraction to a helper when the same code shape appears in two or more places; test-artifacts.js is the natural home for this shared list. (at src/flow/lib/run-review.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T12:28:20.287Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "const DOWNSTREAM_ARTIFACTS = [\n  TEST_EXECUTE_RESULT_FILE,\n  TEST_RESULT_REVIEW_FILE,\n  TEST_RESULT_REVIEW_MD_FILE,\n  \"retro.json\",\n  \"report.json\",\n  RAW_OUTPUT_RELATIVE,\n  TEMP_SUMMARY_RELATIVE,\n]; — This seven-element array is byte-for-byte identical to DOWNSTREAM_AFTER_REVIEW_APPLY defined in run-review.js. Both are introduced by the diff. Since test-artifacts.js already exports related constants (DURABLE_TEST_ARTIFACT_RELATIVE_PATHS, TEST_EXECUTE_RESULT_FILE, RAW_OUTPUT_RELATIVE, TEMP_SUMMARY_RELATIVE), the combined cleanup list should be a single exported constant shared by both consumers rather than duplicated. (at src/flow/lib/run-test-execute.js); const DOWNSTREAM_AFTER_REVIEW_APPLY = [\n  TEST_EXECUTE_RESULT_FILE,\n  TEST_RESULT_REVIEW_FILE,\n  TEST_RESULT_REVIEW_MD_FILE,\n  \"retro.json\",\n  \"report.json\",\n  RAW_OUTPUT_RELATIVE,\n  TEMP_SUMMARY_RELATIVE,\n]; — Duplicate of DOWNSTREAM_ARTIFACTS in run-test-execute.js — same seven entries in the same order introduced by the diff. The guardrail requires extraction to a helper when the same code shape appears in two or more places; test-artifacts.js is the natural home for this shared list. (at src/flow/lib/run-review.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: share resettable test artifact list",
+      "resolution": "Moved the duplicated downstream artifact cleanup list into RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS in test-artifacts.js and reused it from run-test-execute and run-review.",
+      "taskId": null,
+      "timestamp": "2026-05-15T12:36:59.331Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — previously passed (skipped on retry); R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All 37 requirements (R1–R37) are covered by test files added under specs/257-project-level-test-breakage-detection/tests/ — artifact-review-gate.test.js (R8 R9 R15 R16 R26 R30 R31 R33), flow-docs-prompts.test.js (R19 R24 R28 R29 R32 R34 R35), prepare-config-analysis.test.js (R1 R2 R3 R13 R21 R27 R36), regression-classifier.test.js (R4 R5 R6 R7 R10 R11 R12 R14 R20 R22 R23), report-finalize-retro.test.js (R17 R18 R25 R37). Every file carries a `// spec: R<N>…` header as required.; Avoid Overengineering — export function collectAnalysisProjectFiles(analysis) { if (!analysis || typeof analysis !== \"object\") return new Set(); return projectFilePathsFromAnalysis(analysis, { strict: true }); } — This exported 3-line wrapper delegates entirely to projectFilePathsFromAnalysis with a null guard, and its only caller in the diff is classifyRegression within the same file. It is an indirection layer with a single caller: the null guard and the `strict: true` option could be inlined directly into classifyRegression, eliminating the extra named abstraction. (at src/flow/lib/test-regression.js); Avoid Overengineering — export function validateRegression(regression) { … } — validateRegression is exported from test-artifacts.js but its sole caller in the diff is validateTestExecuteResultV2 within the same file. The validation logic it contains could be inlined into validateTestExecuteResultV2 or kept private (unexported). Exporting a function with a single internal caller creates an unused indirection surface. (at src/flow/lib/test-artifacts.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T12:44:47.672Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "export function collectAnalysisProjectFiles(analysis) { if (!analysis || typeof analysis !== \"object\") return new Set(); return projectFilePathsFromAnalysis(analysis, { strict: true }); } — This exported 3-line wrapper delegates entirely to projectFilePathsFromAnalysis with a null guard, and its only caller in the diff is classifyRegression within the same file. It is an indirection layer with a single caller: the null guard and the `strict: true` option could be inlined directly into classifyRegression, eliminating the extra named abstraction. (at src/flow/lib/test-regression.js); export function validateRegression(regression) { … } — validateRegression is exported from test-artifacts.js but its sole caller in the diff is validateTestExecuteResultV2 within the same file. The validation logic it contains could be inlined into validateTestExecuteResultV2 or kept private (unexported). Exporting a function with a single internal caller creates an unused indirection surface. (at src/flow/lib/test-artifacts.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: remove single-caller exported helpers",
+      "resolution": "Inlined collectAnalysisProjectFiles into classifyRegression and made validateRegression private inside test-artifacts.js, removing the exported single-caller surfaces reported by gate.",
+      "taskId": null,
+      "timestamp": "2026-05-15T12:51:00.165Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — previously passed (skipped on retry); R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — Five new spec test files are added under specs/257-project-level-test-breakage-detection/tests/, each carrying a valid '// spec: R<N> ...' header. Coverage spans all 37 requirements: prepare-config-analysis.test.js (R1 R2 R3 R13 R21 R27 R36), regression-classifier.test.js (R4 R5 R6 R7 R10 R11 R12 R14 R20 R22 R23), artifact-review-gate.test.js (R8 R9 R15 R16 R26 R30 R31 R33), flow-docs-prompts.test.js (R19 R24 R28 R29 R32 R34 R35), report-finalize-retro.test.js (R17 R18 R25 R37). No previously passing violation is reintroduced by the diff.; Avoid Overengineering — validateSummaryEntries function — fs.existsSync(filePath) + src.includes(evidence.test_name) + range boundary check — The same code shape — file-exists check, test-name-in-source check, and raw_output_lines range boundary check on each summary entry — already exists in validateTestExecuteResultEvidence inside the newly introduced test-artifacts.js, which was created precisely as the shared authoritative validator for these checks. Duplicating identical predicate logic in a second location violates the DRY rule requiring extraction of a common helper when the same shape appears in two or more places. (at src/flow/lib/run-test-execute.js:validateSummaryEntries); Avoid Overengineering — validateSummaryAgainstFiles function — fs.existsSync(filePath) + src.includes(evidence.test_name) + rawText.includes(entry.id) — The core predicate operations — checking file existence, test-name presence in source, and requirement-id presence in raw output for each summary entry — appear identically in validateTestExecuteResultEvidence in test-artifacts.js. Three occurrences of the same check logic across run-test-execute.js, run-test-result-review.js, and test-artifacts.js means the shared authoritative helper is not being used for the common predicates, constituting a DRY violation. (at src/flow/lib/run-test-result-review.js:validateSummaryAgainstFiles)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T12:59:53.024Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "validateSummaryEntries function — fs.existsSync(filePath) + src.includes(evidence.test_name) + range boundary check — The same code shape — file-exists check, test-name-in-source check, and raw_output_lines range boundary check on each summary entry — already exists in validateTestExecuteResultEvidence inside the newly introduced test-artifacts.js, which was created precisely as the shared authoritative validator for these checks. Duplicating identical predicate logic in a second location violates the DRY rule requiring extraction of a common helper when the same shape appears in two or more places. (at src/flow/lib/run-test-execute.js:validateSummaryEntries); validateSummaryAgainstFiles function — fs.existsSync(filePath) + src.includes(evidence.test_name) + rawText.includes(entry.id) — The core predicate operations — checking file existence, test-name presence in source, and requirement-id presence in raw output for each summary entry — appear identically in validateTestExecuteResultEvidence in test-artifacts.js. Three occurrences of the same check logic across run-test-execute.js, run-test-result-review.js, and test-artifacts.js means the shared authoritative helper is not being used for the common predicates, constituting a DRY violation. (at src/flow/lib/run-test-result-review.js:validateSummaryAgainstFiles)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: share summary evidence validation",
+      "resolution": "Added validateSummaryEvidence in test-artifacts.js and reused it from run-test-execute and run-test-result-review, removing duplicated file/name/raw-range/output-id checks.",
+      "taskId": null,
+      "timestamp": "2026-05-15T14:18:30.681Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); R13 — previously passed (skipped on retry); R14 — previously passed (skipped on retry); R15 — previously passed (skipped on retry); R16 — previously passed (skipped on retry); R17 — previously passed (skipped on retry); R18 — previously passed (skipped on retry); R19 — previously passed (skipped on retry); R20 — previously passed (skipped on retry); R21 — previously passed (skipped on retry); R22 — previously passed (skipped on retry); R23 — previously passed (skipped on retry); R24 — previously passed (skipped on retry); R25 — previously passed (skipped on retry); R26 — previously passed (skipped on retry); R27 — previously passed (skipped on retry); R28 — previously passed (skipped on retry); R29 — previously passed (skipped on retry); R30 — previously passed (skipped on retry); R31 — previously passed (skipped on retry); R32 — previously passed (skipped on retry); R33 — previously passed (skipped on retry); R34 — previously passed (skipped on retry); R35 — previously passed (skipped on retry); R36 — previously passed (skipped on retry); R37 — previously passed (skipped on retry); Spec Test Coverage — All five new test files added under specs/257-project-level-test-breakage-detection/tests/ carry properly-formatted // spec: R<N> ... headers. Together they declare coverage of every requirement R1–R37: prepare-config-analysis.test.js (R1 R2 R3 R13 R21 R27 R36), regression-classifier.test.js (R4 R5 R6 R7 R10 R11 R12 R14 R20 R22 R23), artifact-review-gate.test.js (R8 R9 R15 R16 R26 R30 R31 R33), flow-docs-prompts.test.js (R19 R24 R28 R29 R32 R34 R35), and report-finalize-retro.test.js (R17 R18 R25 R37). No previously-covered requirement lost its test file. This guardrail passed in the prior evaluation and no new violation is introduced.; Avoid Overengineering — export function toProcessResult(res, opts = {}) { ... } — toProcessResult is a new exported function that is never imported or called anywhere in the diff. The identical process-result object shape ({started, exitCode, signal, timedOut, spawnError, stdout, stderr}) is constructed inline inside runProcessDetailed in src/flow/lib/test-regression.js (which imports only runCmdAsync from process.js). This is both dead code and a DRY violation: the helper was extracted but not used, leaving the same shape built in two separate locations. (at src/lib/process.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-15T14:41:45.127Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "export function toProcessResult(res, opts = {}) { ... } — toProcessResult is a new exported function that is never imported or called anywhere in the diff. The identical process-result object shape ({started, exitCode, signal, timedOut, spawnError, stdout, stderr}) is constructed inline inside runProcessDetailed in src/flow/lib/test-regression.js (which imports only runCmdAsync from process.js). This is both dead code and a DRY violation: the helper was extracted but not used, leaving the same shape built in two separate locations. (at src/lib/process.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: remove unused process result export",
+      "resolution": "Deleted the unused toProcessResult export from process.js and updated the R23 spec test to inspect the actual runProcessDetailed implementation in test-regression.js.",
+      "taskId": null,
+      "timestamp": "2026-05-15T22:53:44.884Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-16T06:26:40.154Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-05-16T06:28:47.039Z"
+    },
+    {
+      "step": "spec-review-triage/spec-repair",
+      "reason": "Inserted spec-review-triage and spec-repair between spec review and spec gate.",
+      "trigger": "flow-store migration",
+      "resolution": "Synthesized spec review triage and repair status from surrounding spec review, repair, and gate steps.",
+      "taskId": null,
+      "timestamp": "2026-05-16T07:54:49.687Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-16T07:54:51.932Z"
+    }
+  ]
+}

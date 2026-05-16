@@ -67,7 +67,8 @@
       "skillsDeployed": "[setup] Skills deployed (.agents/skills/ + .claude/skills/)",
       "summary": "Configuration Summary:",
       "nextSteps": "Next Steps:",
-      "step1": "sdd-forge build  — Generate docs (scan → init → data → text)"
+      "step1": "sdd-forge build  — Generate docs (scan → init → data → text)",
+      "step2": "Configure test.command or project test paths before implementation flows that need project regression checks"
     },
     "prompt": "> "
   },
@@ -301,6 +302,12 @@
     "error": {
       "pathNotFound": "path does not exist: {{path}}",
       "configValidation": "Config validation failed"
+    },
+    "test": {
+      "artifact": "test-execute-result.json v2",
+      "review": "test-result-review.json",
+      "projectRegression": "project regression",
+      "config": ".sdd-forge/config.json test.command / test.projectPaths / test.timeout"
     }
   }
 }

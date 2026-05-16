@@ -47,6 +47,10 @@ const RECOVERY_OPTIONS_RESCUE_FAIL = ["archive-and-manual-cherry-pick", "retry-w
 const RECOVERY_OPTIONS_DIRTY = ["commit-or-stash-first", "retry-without-rescue"];
 
 function buildReportField(mainRoot) {
+  // The embedded cleanup report is the same report-show text generated from
+  // validated v2 test-execute-result/test-result-review artifacts, including
+  // projectRegression data. Missing or malformed report data is surfaced as
+  // REPORT_MISSING instead of fabricated.
   try {
     const path = resolveLatestReportPath(mainRoot);
     const text = readReportText(path);

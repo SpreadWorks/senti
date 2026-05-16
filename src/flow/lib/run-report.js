@@ -17,14 +17,14 @@ import { collectGitSummary } from "../../lib/git-helpers.js";
 import { generateReport, saveReport } from "../commands/report.js";
 import { loadIssueLog } from "./set-issue-log.js";
 import { FlowCommand } from "./base-command.js";
+import { buildTestResultsFromArtifacts } from "./test-artifacts.js";
 
 function readJsonIfExists(filePath) {
   if (!fs.existsSync(filePath)) return null;
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (err) {
-    process.stderr.write(`[sdd-forge] run-report: failed to parse ${filePath}: ${err.message}\n`);
-    return null;
+    throw new Error(`[sdd-forge] run-report: failed to parse ${filePath}: ${err.message}`);
   }
 }
 
@@ -46,8 +46,8 @@ export class RunReportCommand extends FlowCommand {
 
     const specDir = path.dirname(path.resolve(root, state.spec));
     const retro = readJsonIfExists(path.join(specDir, "retro.json"));
-    const testExecuteResult = readJsonIfExists(path.join(specDir, "test-execute-result.json"));
-    const testResultReview = readJsonIfExists(path.join(specDir, "test-result-review.json"));
+    const hasTestExecuteResult = fs.existsSync(path.join(specDir, "test-execute-result.json"));
+    const hasTestResultReview = fs.existsSync(path.join(specDir, "test-result-review.json"));
 
     const results = {};
     if (retro) {
@@ -57,21 +57,9 @@ export class RunReportCommand extends FlowCommand {
         requirements: retro.requirements,
       };
     }
-    if (testExecuteResult) {
-      results.testExecute = {
-        status: "done",
-        version: testExecuteResult.version,
-        rawOutputPath: testExecuteResult.raw_output_path,
-        summary: testExecuteResult.summary,
-      };
-    }
-    if (testResultReview) {
-      results.testResultReview = {
-        status: "done",
-        verdict: testResultReview.verdict,
-        checkedItems: testResultReview.checked_items,
-        invalidReason: testResultReview.invalid_reason,
-      };
+    // Shared loader preserves results.testExecute.projectRegression for report rendering.
+    if (hasTestExecuteResult || hasTestResultReview) {
+      Object.assign(results, buildTestResultsFromArtifacts(specDir));
     }
 
     const report = generateReport({

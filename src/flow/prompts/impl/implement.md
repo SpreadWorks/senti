@@ -1,10 +1,9 @@
    - Read the spec to understand requirements.
    - **Test-only spec detection (autoApprove mode):** If the spec's Goal, Scope, and Requirements indicate that only tests are being added (no production code changes), and `autoApprove: true`:
      1. Set `sdd-forge flow set step implement skipped`.
-     2. Set `sdd-forge flow set step gate-impl skipped`.
-     3. **Do NOT skip `test-execute` or `test-result-review`.** They run regardless because the spec's tests still need to be executed and their results verified — that is the entire point of a test-only spec (spec 251 single-execution-point rule).
-     4. The dispatcher promotes `test-execute` next.
-     5. Display: "auto: test-only spec detected — implement / gate-impl skipped; test-execute will run"
+     2. **Do NOT skip `test-execute`, `test-result-review`, or the flow-level `gate-impl`.** They run regardless because the spec's tests still need execution, artifact review, and regression gate validation.
+     3. The dispatcher promotes `test-execute` next.
+     4. Display: "auto: test-only spec detected — implement skipped; test-execute will run"
      - If unsure whether the spec is test-only, proceed with normal implementation (err on the side of caution).
    - **Context gathering (supplement-first):** Build understanding in tiers — stop as soon as sufficient. Do NOT re-read material already in context.
      1. The spec (just read above) and test files from the plan phase are the primary inputs. Proceed if they are sufficient.
@@ -47,6 +46,8 @@
    - Aim to make tests pass.
    - **Update requirements as you go**: `sdd-forge flow set req <index> done` for each completed requirement.
    - **Do NOT run tests in this step.** Test execution is centralized in the `test-execute` step that runs after `implement` completes. Implement code so it is self-consistent; the dispatcher will invoke `test-execute` next.
+   - **Prepare/docs scan hard stop:** if preparation or later execution reports that `.sdd-forge/output/analysis.json` cannot be created, read, or validated, stop through the normal flow error path. Do not mask it with manual `flow set step`.
+   - **v2 test artifact contract:** `test-execute` produces `test-execute-result.json` version `"2"` and raw output. Started project regression failures still create a normal artifact and advance to `test-result-review`; prerequisite failures before the command starts are hard stops and must be fixed before rerunning.
    - **MUST: If implementation reveals a pre-existing bug outside the current spec's scope**, record it in issue-log (`sdd-forge flow set issue-log --step implement --reason "..."`) before adjusting the spec or applying a workaround.
    - **On complete**:
      - Run guardrail lint check: `sdd-forge flow run lint`. If violations are found, fix them before proceeding. If lint passes with no guardrail articles defined, this is normal — proceed.

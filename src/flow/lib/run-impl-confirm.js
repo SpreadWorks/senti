@@ -68,9 +68,9 @@ export class RunImplConfirmCommand extends FlowCommand {
     // Determine next step
     let next;
     if (allDone) {
-      next = "review";
+      next = "test-execute";
     } else if (noRequirements) {
-      next = "review";
+      next = "test-execute";
     } else {
       next = "fix";
     }

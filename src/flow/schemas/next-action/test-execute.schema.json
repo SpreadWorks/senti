@@ -1,9 +1,11 @@
 {
   "type": "object",
-  "required": ["completed", "result_path"],
+  "required": ["completed", "result_path", "raw_output_path", "regression", "artifact_version"],
   "properties": {
     "completed": { "type": "boolean" },
     "result_path": { "type": "string" },
-    "raw_output_path": { "type": "string" }
+    "raw_output_path": { "type": "string" },
+    "regression": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+    "artifact_version": { "type": "string", "enum": ["2"] }
   }
 }

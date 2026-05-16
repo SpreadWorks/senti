@@ -158,6 +158,73 @@ export function listUncommittedFiles(opts = {}) {
     .filter(Boolean);
 }
 
+function normalizeStatus(rawStatus) {
+  if (rawStatus === "??") return "untracked";
+  if (rawStatus.includes("R")) return "renamed";
+  if (rawStatus.includes("D")) return "deleted";
+  if (rawStatus.includes("A")) return "added";
+  return "modified";
+}
+
+function normalizeGitPath(p) {
+  return p.replace(/^"|"$/g, "").split("\\").join("/");
+}
+
+function parsePorcelainLine(line) {
+  const rawStatus = line.slice(0, 2);
+  const body = line.slice(3).trim();
+  const status = normalizeStatus(rawStatus);
+  if (status === "renamed" && body.includes(" -> ")) {
+    const [oldPath, newPath] = body.split(" -> ");
+    return { status, old_path: normalizeGitPath(oldPath), path: normalizeGitPath(newPath) };
+  }
+  return { status, path: normalizeGitPath(body) };
+}
+
+/**
+ * List changed files with stable status details for regression evidence.
+ *
+ * Includes committed changes against baseBranch, working tree changes, and
+ * untracked files. Returned entries are root-relative POSIX paths sorted by
+ * path/status.
+ *
+ * @param {{cwd?: string, baseBranch?: string}} [opts]
+ * @returns {Array<{status:string,path:string,old_path?:string}>}
+ */
+export function listChangedFilesDetailed(opts = {}) {
+  const cwd = opts.cwd;
+  const byKey = new Map();
+  const add = (entry) => {
+    if (!entry?.path) return;
+    const key = `${entry.status}:${entry.old_path || ""}:${entry.path}`;
+    byKey.set(key, entry);
+  };
+
+  if (opts.baseBranch) {
+    const committed = runGit(["diff", "--name-status", `${opts.baseBranch}...HEAD`], { cwd });
+    assertOk(committed, "listChangedFilesDetailed committed diff failed");
+    for (const line of committed.stdout.split("\n").filter(Boolean)) {
+      const parts = line.split("\t");
+      if (parts[0]?.startsWith("R")) add({ status: "renamed", old_path: normalizeGitPath(parts[1]), path: normalizeGitPath(parts[2]) });
+      else if (parts[0] === "A") add({ status: "added", path: normalizeGitPath(parts[1]) });
+      else if (parts[0] === "D") add({ status: "deleted", path: normalizeGitPath(parts[1]) });
+      else add({ status: "modified", path: normalizeGitPath(parts[1]) });
+    }
+  }
+
+  const porcelain = runGit(["status", "--porcelain"], { cwd });
+  assertOk(porcelain, "listChangedFilesDetailed status failed");
+  for (const line of porcelain.stdout.split("\n").filter(Boolean)) {
+    add(parsePorcelainLine(line));
+  }
+
+  return [...byKey.values()].sort((a, b) => {
+    const ap = `${a.path}:${a.status}:${a.old_path || ""}`;
+    const bp = `${b.path}:${b.status}:${b.old_path || ""}`;
+    return ap.localeCompare(bp);
+  });
+}
+
 /**
  * Post a comment to a GitHub issue.
  * @param {number|string} issueNumber

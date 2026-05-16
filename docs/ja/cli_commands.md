@@ -53,7 +53,6 @@
 | `sdd-forge flow set request` | ユーザーリクエストテキストをフロー状態に保存 | テキスト |
 | `sdd-forge flow set step` | 指定ステップのステータスを更新 | ステップ ID・ステータス |
 | `sdd-forge flow set summary` | 要件配列（JSON）をフロー状態に保存 | JSON 配列文字列 |
-| `sdd-forge flow set test-summary` | テスト実行サマリー（件数・種別）を記録 | `--unit`, `--integration`, `--acceptance` |
 | `sdd-forge flow run finalize` | コミット・マージ/PR 作成・ドキュメント同期・後片付けを実行 | `--mode`, `--steps`, `--merge-strategy`, `--message`, `--dry-run` |
 | `sdd-forge flow run gate` | スペックの構造・ガードレール準拠を検証するゲートチェック | `--spec`, `--phase`, `--skip-guardrail` |
 | `sdd-forge flow run impl-confirm` | 要件の完了状況を確認して実装の準備状態を評価 | `--mode` |
@@ -61,6 +60,8 @@
 | `sdd-forge flow run report` | フロー実行レポート（report.json）を生成 | `--dry-run` |
 | `sdd-forge flow run retro` | AI によるスペック精度の振り返り（retro.json）を実行 | `--force`, `--dry-run` |
 | `sdd-forge flow run review` | コードレビューワークフローを実行し改善提案を生成・適用 | `--phase`, `--dry-run`, `--skip-confirm` |
+| `sdd-forge flow run test-execute` | spec-local テストと必要な project regression を実行し、version `"2"` の `test-execute-result.json` と raw output を保存 | `.sdd-forge/config.json` の `test.command`, `test.projectPaths`, `test.timeout` |
+| `sdd-forge flow run test-result-review` | `test-execute-result.json` v2、raw output、project regression evidence を機械的に検証し `test-result-review.json` を保存 | なし |
 | `sdd-forge flow run sync` | ドキュメントのビルド・レビュー・コミットまでを一括実行 | `--dry-run` |
 <!-- {{/text}} -->
 
@@ -407,14 +408,6 @@ sdd-forge flow set step <id> <status>
 sdd-forge flow set summary '[{"desc":"要件1","status":"pending"}]'
 ```
 
-#### `sdd-forge flow set test-summary`
-
-テスト実行後に単体・結合・受け入れテストの件数をフロー状態の `metrics.test.summary` に記録します。
-
-```
-sdd-forge flow set test-summary --unit <n> [--integration <n>] [--acceptance <n>]
-```
-
 #### `sdd-forge flow run finalize`
 
 コミット・retro 生成・レポート生成・マージまたは PR 作成・ドキュメント同期・ブランチ削除を順番に実行します。`--mode all` で全ステップを、`--mode select --steps 1,2` で任意のステップを実行します。
@@ -478,6 +471,14 @@ sdd-forge flow run retro [--force] [--dry-run]
 ```
 sdd-forge flow run review [--phase <test>] [--dry-run] [--skip-confirm]
 ```
+
+#### `sdd-forge flow run test-execute`
+
+impl フェーズのテスト実行を集約します。spec-local テスト結果は `summary[]` に、project-level regression は version `"2"` の `test-execute-result.json` の `regression` に保存します。root regression command は top-level `test.command`、`package.json`、`composer.json`、`Makefile` の順に解決し、`test.projectPaths` と `test.timeout` を使用します。`commands.test` は task prompt 用の別設定です。
+
+#### `sdd-forge flow run test-result-review`
+
+`test-execute-result.json` v2、`tests/.raw/test-execution.log`、`test-result-review.json` の整合性を機械的に検証します。flow-level `gate-impl`、report、finalize はこの v2 artifact を読み、旧来の flow-state test summary は正としません。
 
 #### `sdd-forge flow run sync`
 

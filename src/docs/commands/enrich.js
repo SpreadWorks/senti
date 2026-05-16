@@ -23,7 +23,7 @@ import { filterByDocsExclude } from "../lib/analysis-filter.js";
 import { createLogger } from "../../lib/progress.js";
 import { translate } from "../../lib/i18n.js";
 import { repairJson } from "../../lib/json-parse.js";
-import { ANALYSIS_META_KEYS } from "../lib/analysis-entry.js";
+import { iterateAnalysisCategories } from "../lib/analysis-entry.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 import { Command } from "../../lib/command.js";
@@ -61,12 +61,8 @@ function printHelp() {
  */
 function collectEntries(analysis) {
   const entries = [];
-  for (const cat of Object.keys(analysis)) {
-    if (ANALYSIS_META_KEYS.has(cat)) continue;
-    const catData = analysis[cat];
-    if (!catData || typeof catData !== "object") continue;
+  for (const [cat, catData] of iterateAnalysisCategories(analysis)) {
     const items = catData.entries;
-    if (!Array.isArray(items)) continue;
     for (let i = 0; i < items.length; i++) {
       entries.push({
         category: cat,
@@ -556,4 +552,3 @@ export default class DocsEnrichCommand extends Command {
     return runEnrich(ctx.docsCtx, ctx._rawArgs || []);
   }
 }
-

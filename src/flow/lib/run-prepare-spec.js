@@ -7,9 +7,10 @@
 
 import fs from "fs";
 import path from "path";
-import { isInsideWorktree } from "../../lib/cli.js";
-import { sddDir } from "../../lib/config.js";
-import { assertOk } from "../../lib/process.js";
+import { isInsideWorktree, PKG_DIR } from "../../lib/cli.js";
+import { sddDir, sddOutputDir } from "../../lib/config.js";
+import { assertOk, runCmd } from "../../lib/process.js";
+import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { buildInitialSteps } from "../../lib/flow-helpers.js";
 import { findStepById } from "../definition.js";
 import { getWorktreeStatus, runGit } from "../../lib/git-helpers.js";
@@ -101,6 +102,24 @@ function buildDraftTemplate() {
       notes: "",
     },
   }, null, 2) + "\n";
+}
+
+function runDocsScanAndValidate(root) {
+  const res = runCmd(process.execPath, [path.join(PKG_DIR, "sdd-forge.js"), "docs", "scan"], {
+    cwd: root,
+    timeout: 600000,
+    env: { ...process.env, SDD_FORGE_WORK_ROOT: root },
+  });
+  assertOk(res, "docs scan failed during prepare-spec");
+  const analysisPath = path.join(sddOutputDir(root), "analysis.json");
+  if (!fs.existsSync(analysisPath)) throw new Error(`analysis.json not found after docs scan: ${analysisPath}`);
+  let analysis;
+  try {
+    analysis = JSON.parse(fs.readFileSync(analysisPath, "utf8"));
+    [...iterateAnalysisCategories(analysis, { strict: true })];
+  } catch (err) {
+    throw new Error(`analysis.json is unreadable or invalid after docs scan: ${err.message}`);
+  }
 }
 
 export class RunPrepareSpecCommand extends FlowCommand {
@@ -264,6 +283,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       runGitTrim(root, ["worktree", "add", worktreePath, "-b", branchName, resolvedBase]);
       writeSpecFiles();
       writeFlowState({ worktree: true });
+      runDocsScanAndValidate(specRoot);
       flowManager.addActiveFlow(specDirName, "worktree");
       lines.push(
         `created worktree: ${worktreePath}`,
@@ -277,6 +297,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
     } else if (skipBranch) {
       writeSpecFiles();
       writeFlowState();
+      runDocsScanAndValidate(specRoot);
       flowManager.addActiveFlow(specDirName, "local");
       lines.push(
         ...createdFileLines,
@@ -288,6 +309,7 @@ export class RunPrepareSpecCommand extends FlowCommand {
       runGitTrim(root, ["checkout", "-b", branchName, resolvedBase]);
       writeSpecFiles();
       writeFlowState();
+      runDocsScanAndValidate(specRoot);
       flowManager.addActiveFlow(specDirName, "branch");
       lines.push(
         `created branch: ${branchName} (from ${resolvedBase})`,

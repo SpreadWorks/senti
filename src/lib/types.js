@@ -58,6 +58,13 @@
  */
 
 /**
+ * @typedef {Object} TestConfig
+ * @property {string} [command] - Root project regression command parsed as argv-style tokens.
+ * @property {string[]} [projectPaths] - Root-relative POSIX project-level test file paths or directory prefixes.
+ * @property {number} [timeout] - Project regression timeout in seconds.
+ */
+
+/**
  * @typedef {Object} AgentConfig
  * @property {string} [default]              - Default agent provider name
  * @property {string} [workDir]              - Working directory for agent execution
@@ -82,7 +89,7 @@
  * @property {number} [concurrency]          - Per-file concurrency (default: 5)
  * @property {AgentConfig} [agent]           - AI agent invocation settings
  * @property {FlowConfig} [flow]             - Flow configuration
+ * @property {TestConfig} [test]             - Project-level regression test configuration
  * @property {CommandsConfig} [commands]     - External command availability
  * @property {LogsConfig} [logs]             - Logging configuration
  */
-

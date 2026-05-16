@@ -31,7 +31,7 @@ import { translate } from "../../lib/i18n.js";
 import { container } from "../../lib/container.js";
 import { resolveDocsContext } from "../lib/docs-context.js";
 
-import { isEmptyEntry, buildSummary, ANALYSIS_META_KEYS } from "../lib/analysis-entry.js";
+import { isEmptyEntry, buildSummary, iterateAnalysisCategories } from "../lib/analysis-entry.js";
 
 const logger = createLogger("scan");
 
@@ -80,10 +80,7 @@ function loadScanSources(dataDir, existing, presetKey) {
  */
 function buildExistingEntryIndex(existing) {
   const index = new Map();
-  for (const cat of Object.keys(existing)) {
-    if (ANALYSIS_META_KEYS.has(cat)) continue;
-    const catData = existing[cat];
-    if (!catData || !Array.isArray(catData.entries)) continue;
+  for (const [cat, catData] of iterateAnalysisCategories(existing)) {
     for (const entry of catData.entries) {
       if (entry && entry.file) {
         if (!index.has(entry.file)) index.set(entry.file, []);
@@ -115,10 +112,7 @@ function entryMatchKey(category, entry) {
 
 function buildExistingIdIndex(existing) {
   const index = new Map();
-  for (const cat of Object.keys(existing)) {
-    if (ANALYSIS_META_KEYS.has(cat)) continue;
-    const catData = existing[cat];
-    if (!catData || !Array.isArray(catData.entries)) continue;
+  for (const [cat, catData] of iterateAnalysisCategories(existing)) {
     for (const entry of catData.entries) {
       if (entry && entry.file && entry.id) {
         const key = entryMatchKey(cat, entry);
@@ -188,9 +182,7 @@ function resetCategories(root, resetValue) {
     throw new Error(`Failed to parse ${outputPath}: ${err.message}`);
   }
 
-  const allCategories = Object.keys(analysis).filter(
-    (k) => !ANALYSIS_META_KEYS.has(k) && analysis[k]?.entries,
-  );
+  const allCategories = [...iterateAnalysisCategories(analysis)].map(([k]) => k);
 
   const targets = resetValue
     ? resetValue.split(",").map((s) => s.trim()).filter(Boolean)
@@ -484,4 +476,3 @@ export default class DocsScanCommand extends Command {
     return runScan(ctx.docsCtx, ctx._rawArgs || []);
   }
 }
-

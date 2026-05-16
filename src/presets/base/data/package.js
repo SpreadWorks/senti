@@ -7,8 +7,10 @@
 
 import fs from "fs";
 import path from "path";
+import { hasMakeTestTarget, readMakefile } from "../../../lib/makefile.js";
 
 const PACKAGE_FILES = new Set(["package.json", "composer.json"]);
+const MAKE_FILES = new Set(["Makefile", "makefile"]);
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");
@@ -19,6 +21,8 @@ export default function register(container) {
     packageDeps = null;
     packageScripts = null;
     composerDeps = null;
+    composerScripts = null;
+    makefileTest = null;
     static summary = {};
   }
 
@@ -26,19 +30,25 @@ export default function register(container) {
     static Entry = PackageEntry;
 
     match(relPath) {
-      return PACKAGE_FILES.has(path.basename(relPath));
+      const base = path.basename(relPath);
+      return PACKAGE_FILES.has(base) || MAKE_FILES.has(base);
     }
 
     parse(absPath) {
       const entry = new PackageEntry();
+      const fileName = path.basename(absPath);
+      if (MAKE_FILES.has(fileName)) {
+        if (hasMakeTestTarget(readMakefile(absPath, { ignoreTooLarge: true }))) {
+          entry.makefileTest = true;
+        }
+        return entry;
+      }
       let parsed;
       try {
         parsed = JSON.parse(fs.readFileSync(absPath, "utf8"));
       } catch (_) {
         return entry;
       }
-
-      const fileName = path.basename(absPath);
 
       if (fileName === "package.json") {
         entry.packageDeps = {
@@ -55,6 +65,9 @@ export default function register(container) {
           require: parsed.require || {},
           requireDev: parsed["require-dev"] || {},
         };
+        if (parsed.scripts && Object.keys(parsed.scripts).length > 0) {
+          entry.composerScripts = parsed.scripts;
+        }
       }
 
       return entry;

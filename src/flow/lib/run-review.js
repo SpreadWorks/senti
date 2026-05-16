@@ -11,8 +11,12 @@ const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
-import { resolveNodeFor, FLOW_DEFINITION, flattenSteps } from "../definition.js";
+import { resolveNodeFor, FLOW_DEFINITION, flattenSteps, findStepById } from "../definition.js";
 import path from "path";
+import fs from "fs";
+import {
+  RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS,
+} from "./test-artifacts.js";
 
 // ---------------------------------------------------------------------------
 // Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
@@ -141,6 +145,33 @@ export function updateReviewRetryCounter(ctx, result) {
 }
 
 export { REVIEW_PHASE_KEYS };
+
+// Review-applied code changes can alter file contents without changing the
+// changed-file path list. When proposals are produced, this reset owner deletes
+// stale downstream artifacts and sends the flow back to test-execute.
+function removeReviewDownstreamArtifacts(root, state) {
+  const specDir = path.dirname(path.resolve(root, state.spec));
+  for (const rel of RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS) {
+    const target = path.join(specDir, rel);
+    if (fs.existsSync(target)) fs.rmSync(target, { force: true });
+  }
+}
+
+export function resetImplEvidenceAfterReviewProposals(ctx, result) {
+  if (ctx?.phase) return false;
+  if ((result?.artifacts?.proposalCount ?? 0) <= 0) return false;
+  removeReviewDownstreamArtifacts(ctx.root, ctx.flowState);
+  ctx.flowManager.mutate((state) => {
+    for (const id of ["test-execute", "test-result-review", "review", "gate-impl", "retro"]) {
+      const step = findStepById(state.steps, id);
+      if (!step) continue;
+      step.status = "pending";
+      delete step.finishedAt;
+      delete step.startedAt;
+    }
+  });
+  return true;
+}
 
 const PHASE_REVIEW_PARSERS = {
   test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
@@ -301,7 +332,7 @@ export class RunReviewCommand extends FlowCommand {
     return {
       result: noChanges ? "no-changes" : noProposals ? "no-proposals" : "ok",
       changed,
-      artifacts: { proposalCount },
+      artifacts: { proposalCount, dryRun },
       next,
       output: stdout,
     };

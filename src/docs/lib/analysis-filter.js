@@ -6,7 +6,7 @@
  */
 
 import { globToRegex } from "./scanner.js";
-import { ANALYSIS_META_KEYS } from "./analysis-entry.js";
+import { ANALYSIS_META_KEYS, iterateAnalysisCategories } from "./analysis-entry.js";
 
 /**
  * Filter entries by docs.exclude glob patterns.
@@ -38,19 +38,10 @@ export function filterAnalysisByDocsExclude(analysis, excludePatterns) {
   if (!excludePatterns?.length) return analysis;
 
   const filtered = {};
-  for (const [key, val] of Object.entries(analysis)) {
-    if (ANALYSIS_META_KEYS.has(key)) {
-      filtered[key] = val;
-      continue;
-    }
-    if (!val || typeof val !== "object") {
-      filtered[key] = val;
-      continue;
-    }
-    if (!Array.isArray(val.entries)) {
-      filtered[key] = val;
-      continue;
-    }
+  for (const key of ANALYSIS_META_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(analysis, key)) filtered[key] = analysis[key];
+  }
+  for (const [key, val] of iterateAnalysisCategories(analysis)) {
     filtered[key] = {
       ...val,
       entries: filterByDocsExclude(val.entries, excludePatterns),

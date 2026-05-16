@@ -22,7 +22,8 @@ import { pushSection, DIVIDER, formatDurationSeconds } from "../../lib/formatter
  * @returns {{ data: Object, text: string }}
  */
 export function generateReport(input) {
-  const { state, results, issueLog, implDiffStat, commitMessages } = input;
+  const { state, results, implDiffStat, commitMessages } = input;
+  const issueLog = input.issueLog || input.redolog || { entries: [] };
 
   // Implementation
   const implementation = {
@@ -93,6 +94,7 @@ export function generateReport(input) {
       verdict: testResultReview?.verdict || null,
       invalidReason: testResultReview?.invalidReason || null,
       rawOutputPath: testExecute?.rawOutputPath || null,
+      projectRegression: testExecute?.projectRegression || null,
     };
   }
 
@@ -201,6 +203,10 @@ function formatText(data) {
     if (t.rawOutputPath) {
       lines.push(`    raw_output: ${t.rawOutputPath}`);
     }
+    if (t.projectRegression) {
+      const r = t.projectRegression;
+      lines.push(`    Project regression: required=${r.required} result=${r.result || "skipped"} mode=${r.mode || "none"}${r.category ? ` category=${r.category}` : ""}`);
+    }
   } else {
     lines.push("    No test data");
   }
@@ -225,5 +231,6 @@ function formatText(data) {
 export function saveReport(root, specPath, reportData) {
   const specDir = path.dirname(path.resolve(root, specPath));
   const reportPath = path.join(specDir, "report.json");
+  fs.mkdirSync(specDir, { recursive: true });
   fs.writeFileSync(reportPath, JSON.stringify(reportData, null, 2) + "\n");
 }

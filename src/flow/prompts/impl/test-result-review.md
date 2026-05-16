@@ -10,6 +10,7 @@
      3. **test_count_consistency** — total number of tests reported (sum of `summary[]` entries) matches the test count in the raw output.
      4. **stack_trace_validity** — for `result: "fail"` entries with stack traces, the file/line referenced exists in the actual code.
      5. **summary_completeness** — every testable requirement (from `spec.json`, `requirements[].testable !== false`) is present in `summary[]` exactly once. No missing IDs, no duplicates, no unknown IDs.
+     6. **project_regression_verification** — `test-execute-result.json` version `"2"` contains a valid `regression` object; required regressions have raw start/end markers and non-required regressions have a valid category/reason/classified_paths snapshot.
    - **Outputs:**
      - `specs/<spec>/test-result-review.json` (machine-readable verdict, schema = `src/flow/schemas/test-result-review.schema.json`)
      - `specs/<spec>/test-result-review.md` (human-readable verdict + checked_items)
@@ -22,7 +23,8 @@
          { "check": "req_id_in_output", "result": "pass", "detail": "R1..R5 all appear in raw output" },
          { "check": "test_count_consistency", "result": "pass", "detail": "5 reported, 5 in raw output" },
          { "check": "stack_trace_validity", "result": "pass", "detail": "no failures" },
-         { "check": "summary_completeness", "result": "pass", "detail": "all testable requirements present" }
+         { "check": "summary_completeness", "result": "pass", "detail": "all testable requirements present" },
+         { "check": "project_regression_verification", "result": "pass", "detail": "v2 regression evidence verified" }
        ],
        "result_file_path": "specs/<spec>/test-execute-result.json",
        "raw_output_path": "specs/<spec>/tests/.raw/test-execution.log"

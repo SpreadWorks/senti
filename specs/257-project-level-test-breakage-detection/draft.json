@@ -1,0 +1,290 @@
+{
+  "devType": "feature",
+  "goal": "project-level tests の破壊検知を review-test ではなく test-execute / test-result-review / gate-impl の実行フェーズ責務として明確化し、review-test から project-level tests の全文入力を外しても品質保証の穴が残らない状態にする。",
+  "analysis": {
+    "problem": "現状の test-execute はテストコマンドを AI agent に発見・実行させるが、spec-local tests と project-level regression tests の実行契約が明確ではない。test-result-review も spec-local tests と raw output の整合性確認を主に想定しており、project-level tests の失敗を requirement summary や gate-impl の修正対象としてどう扱うかが曖昧である。このまま review-test から project-level tests の全文入力を外すと、既存 tests/ の破壊検知がどの段階で保証されるか不明確になる。",
+    "proposedApproach": "test-execute の契約に、spec-local tests の requirement coverage 実行と project-level regression 実行を区別して記録するルールを追加する。src や project-level tests を変更した場合に project-level regression を実行する条件を定義し、test-execute-result.json / raw output / test-result-review / gate-impl が同じ失敗を一貫して扱えるようにする。",
+    "validation": "review-test の入力削減そのものは別 board で扱い、本件では実行フェーズの保証を強めるため root problem に対応している。既存の single execution point 設計は維持し、gate-impl が test-result-review と test-execute-result.json を precheck する既存構造を拡張する方針なので、責務分離と品質維持を両立できる。"
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] test-execute が spec-local tests と project-level regression tests をどう扱うかの実行契約を定義する",
+      "[must] src または project-level tests を変更した場合に project-level regression 実行を要求する条件を定義する",
+      "[must] test-execute-result.json に project-level regression の結果を記録する粒度を定義する",
+      "[must] test-result-review が project-level regression の raw output と result artifact の整合性を検証できるようにする",
+      "[must] gate-impl が project-level test failure を実装修正対象として扱う条件を明確にする"
+    ],
+    "out": [
+      "review-test の指示プロンプト本文の改善",
+      "review-test に project-level tests の全文を渡し続ける設計",
+      "spec-local tests の coverage 判定そのもの",
+      "project-level tests の全面的な再編成やテストスイート移動"
+    ]
+  },
+  "impactOnExisting": [
+    "src/flow/lib/run-test-execute.js の agent prompt / artifact expectation",
+    "src/flow/lib/run-test-result-review.js の verification checks",
+    "src/flow/lib/run-gate.js の integration gate precheck",
+    "src/flow/prompts/impl/test-execute.md と test-result-review.md の手順",
+    "src/flow/schemas/test-execute-result.schema.json の summary 表現が project-level regression を表せるか",
+    "report / retro が test-execute-result.json を読む表示・集計"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #322 の内容どおり、project-level tests の破壊検知を test-execute / test-result-review / gate-impl 側で保証する範囲で進めますか？",
+      "answer": "Issue #322 の内容どおり、主目的は project-level tests の破壊検知を test-execute / test-result-review / gate-impl 側で保証することに置く。ただし、その保証に必要な supporting work は同じ Issue に含める。具体的には、flow 開始時の analysis 準備、test-execute-result v2 schema migration、test-result-review / gate / report / retro の v2 consumer 更新、test command discovery / config 読取 / classifier helper / deterministic tests を含める。review-test 入力削減や review-test prompt 改善は別 board のままとする。",
+      "evidence": "Issue #322 body: Goal / In Scope / Acceptance Criteria. ユーザー選択: [1] Issue #322 の内容どおり進める。",
+      "why": "review-test 入力削減とは別 board に分けつつ、品質保証の穴を残さないため実行フェーズ側の保証を先行または同時に強める必要がある。schema や consumer を更新せずに test-execute / gate だけを変えると、artifact を信頼できず、最終 report や retro 側で v2 を読めないため保証が途切れる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "project-level regression は、実行が必要な場合に full project test command を必須にしますか？それとも関連 project-level tests の実行でも合格可能にしますか？",
+      "answer": "条件付き full / targeted とする。`src/`、test runner、runtime config、test execution / review / gate の契約に触る変更は、project の root test runner から発見した full project test command を必須にする。この repository では `npm test` が例に当たるが、generic flow では固定しない。root test command discovery は deterministic にする。優先順位と正規化結果は、`.sdd-forge/config.json` の `test.command` はその文字列をそのまま command にする、`package.json` の `scripts.test` は `npm test` にする、`composer.json` の `scripts.test` は `composer test` にする、`Makefile` の `test` target は `make test` にする。Python config (`pyproject.toml` / `setup.cfg` / `tox.ini`) からは pytest/tox command を自動推測しない。Python projects は explicit `.sdd-forge/config.json` `test.command` が必須で、未設定なら unsupported/ambiguous として fail する。README など文章からの推測は使わない。higher-priority source があれば lower-priority source は無視する。同じ selected source / priority 内で複数候補がある場合だけ ambiguous discovery として fail する。発見した root test command は `regression.root_test_command`、発見元は `regression.root_test_command_source` に記録する。project-level test-only 変更は関連 project-level tests の targeted 実行でも合格可能にするが、targeted command は root test runner 経由に限定する。例: `npm test -- tests/foo.test.js`。`mode=targeted` の場合は `target_paths` を必須にし、targeted 実行で justify する changed test-only file paths を記録する。test-result-review と gate-impl は、command token の先頭が `root_test_command` の token 列と完全一致し、かつ `target_paths` の各 entry が正規化済み path token として command に含まれることを確認する。docs-only / spec artifact-only / non-project-only 変更は project-level regression 不要とする。",
+      "evidence": "ユーザー選択: [1] 条件付き full / targeted、追加選択: [1] runtime / test contract は full、追加選択: [1] targeted は root test runner 経由のみ、追加選択: [1] `target_paths` 必須。src/flow/prompts/impl/test-execute.md は test-execute を single execution point とし、package.json / config / docs から test command を発見して raw output を保存する。",
+      "why": "review-test から project-level tests を外す補償として runtime と test execution 契約の変更は full regression が必要。一方、project-level test-only 変更は対象 test 自体の検証で足りる場合があるため targeted を許容する。targeted を root test runner 経由に限定すると、project の test setup / config / reporter を迂回せず、gate が妥当な project-level regression 実行として検証しやすい。`target_paths` がないと、関係ない test だけ実行した command でも targeted regression として見えてしまう。command discovery の優先順位と source を記録すると、複数候補がある project でも gate/review が同じ根拠で検証できる。full command を `npm test` 固定にしないことで、プロジェクト固有の package manager / test runner を generic flow に持ち込まない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "project-level regression 実行が必要になる変更条件は、`src/` 変更、root `tests/` 変更、設定・テンプレート変更のどこまで含めますか？",
+      "answer": "project-level regression の trigger 対象は、`analysis.json` に entry される project file、deterministic に test-only と証明できる project-level test file、または実行・設定・テスト契約に影響するファイルとする。`analysis.json` に載る変更ファイルは、project structure として意味があるため required とする。project-level test file は、`.sdd-forge/config.json` の `test.projectPaths` に入った root-relative path prefix / exact file で証明できる changed file だけを指す。path 名や directory 名だけの推測は使わない。`test.projectPaths` が未設定、または match しない通常ファイルは分類不能として full regression required に倒す。加えて、`package.json` / lock file / test config、`.sdd-forge/config.json` の test command または agent/test 関連設定、test execution / review / gate の prompt / library / template / skill contract に触る変更、分類不能な新規ファイルや通常ファイルの変更も required とする。docs-only / spec-artifact-only / non-project-only は対象外とし、`regression.required=false` の category は `docs-only` / `spec-artifact-only` / `non-project-only` に限定する。",
+      "evidence": "ユーザー提案: `analysis.json` にエントリーされていて、かつ説明文だけのファイルでない場合を trigger にする。ユーザー承認: はい。src/flow/prompts/impl/test-execute.md は package.json / composer.json / Makefile / pyproject / .sdd-forge/config.json / README からテストコマンドを発見すると定義している。src/flow/lib/run-test-execute.js、run-test-result-review.js、run-gate.js が実行・検証・integration gate precheck を担う。",
+      "why": "`src/` や `tests/` の固定 path はプロジェクトごとに異なる。`analysis.json` を project file の根拠にすると、プロジェクト固有の構造に寄りすぎず、docs/spec artifact だけの変更を不要扱いにできる。project-level test file も名前や directory では一般化できないため、project 側の明示 config で証明できる場合だけ targeted の候補にする。分類不能な変更は安全側で full regression required にすることで、必要な project-level regression を不要または targeted と誤判定しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "`test-execute-result.json` では project-level regression を requirement ごとの summary に混ぜますか？それとも regression 専用の別フィールドに分けますか？",
+      "answer": "project-level regression は `summary[]` に混ぜず、単数の `regression` object に記録する。`regression` は `required` を必須にし、required=true の場合は `mode` (`full` または `targeted`)、`root_test_command`、`root_test_command_source`、`command`、`result` (`pass` または `fail`)、`raw_output_lines`、`changed_files` snapshot を必須にする。`changed_files[]` は `{ status, path }` を基本形とし、rename は `{ status: \"renamed\", old_path, path }` とする。status enum は `added` / `modified` / `deleted` / `renamed` / `untracked`。`root_test_command_source` の enum は `config`、`package-json`、`composer-json`、`makefile` とする。`mode=full` では `command` token 列は `root_test_command` token 列と一致する。`mode=targeted` では `target_paths` を conditionally required にし、classifier が test-only と証明した changed file paths をすべて含める。`command` token 列の先頭は `root_test_command` token 列と完全一致し、追加 arg として `target_paths` の各 entry を正規化済み path token として含む。v2 artifact では `summary[].evidence.raw_output_lines` と `regression.raw_output_lines` の両方を `{ start_line, end_line }` の range object に統一し、1-based line number で raw log の該当範囲を指す。required=false の場合は `category`、`reason`、`classified_paths`、`changed_files` snapshot を必須にする。",
+      "evidence": "ユーザー選択: [1] 別フィールド、追加選択: [1] 単数 regression object。src/flow/schemas/test-execute-result.schema.json は `summary[]` を requirement entry として定義し、src/flow/lib/run-retro.js は `summary[]` を requirements と突き合わせて集計している。",
+      "why": "この Issue の regression 判定は project-level regression の必要有無と実行結果という単一の契約で足りる。full / targeted の違いは mode で表せるため、配列にして複数コマンド対応を先取りする必要はない。v2 で raw output の参照を range object に統一すると、artifact 内の行番号形式が揃い、JSON schema と reviewer の照合条件を明確にできる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "`test-result-review` は project-level regression の実行有無と失敗をどの artifact で検証すべきですか？",
+      "answer": "`regression.required` が true の場合、`regression.root_test_command`、`regression.root_test_command_source`、`regression.command`、`regression.result`、`regression.raw_output_lines` を必須にし、test-result-review が result artifact と raw output の該当行を突き合わせる。deterministic runner ownership は project-level regression command に限定する。既存の requirement-level test execution / `summary[]` 生成はこの Issue で全面置換しない。AI agent が requirement summary のために既存経路を使うことは許容するが、project-level regression の command execution、standardized marker、`regression` object を agent が作成・上書きしてはならない。agent は final `test-execute-result.json` を直接書かず、一時 summary artifact だけを書く。runner は regression execution 後に agent summary を読み込み、runner-owned `regression` / `raw_output_path` / markers と統合し、final v2 `test-execute-result.json` を compose / validate / persist する。`summary[]` は valid v2 artifact では引き続き必須で、requirements がある場合は各 requirement の entry を持つ。`regression.required=false` は project-level regression の省略だけを意味し、requirement-level test execution / summary[] の既存責務は維持する。`regression.result=\"fail\"` の場合も summary[] は schema 上必須で、summary 生成自体が失敗した場合は artifact integrity failure として test-execute step failure にする。prerequisite failure で normal artifact を書かない場合は summary[] も存在しない。開始 marker は `[sdd-forge:test-execute:regression:start] command=<json-string>`、終了 marker は `[sdd-forge:test-execute:regression:end] result=<pass|fail> exit_code=<number|null> signal=<string|null> timeout=<true|false>` とする。`regression.raw_output_lines` は `{ start_line, end_line }` の range object として扱い、その line range に開始 marker と終了 marker の両方が含まれ、開始 marker の command が `regression.command` と一致し、終了 marker の result が `regression.result` と一致することを最低条件にする。`regression` は単数 object として扱う。",
+      "evidence": "ユーザー選択: [1] required / command / result / raw lines、追加選択: [1] test-result-review に専用 check を必須化。src/flow/lib/run-test-result-review.js は test-execute-result.json と tests/.raw/test-execution.log を読み、file_path_exists / req_id_in_output / test_count_consistency / stack_trace_validity / summary_completeness を検証している。",
+      "why": "agent が artifact と marker の両方を書くだけでは、内部整合性は確認できても実際に command が実行された保証にならない。`run-test-execute` 側で command を実行し marker を書くと、test-result-review と gate-impl は runner-authored raw log を根拠に実行有無と結果を機械的に検証できる。range object は配列より意味が明示的で、実ログ本文の重複保存も避けられる。専用 check がないと、review が regression を見たか gate から判断しづらい。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "project-level test failure は gate-impl で常に blocking として扱いますか？",
+      "answer": "project-level regression command が実行され、test command 自体が non-zero exit になった場合は、valid v2 `test-execute-result.json` を書き、`regression.result=\"fail\"` と raw markers を残す。その後 downstream の test-result-review / gate-impl まで進み、gate-impl で常に blocking とする。command discovery / config validation / runner prerequisite failure のように command を実行できない失敗だけは q20 の step failure として normal artifact を書かず downstream を止める。base branch の test behavior との比較、detached worktree baseline、pre-existing failure の分類、`pre_existing` result state はこの Issue の scope から除外する。",
+      "evidence": "ユーザー選択: [1] 今回変更由来は blocking。追加ユーザー決定: base 側のテスト挙動を flow 内で追うべきではないため、pre-existing 判定と base 比較を排除する。src/flow/lib/run-gate.js の integration gate precheck は test-result-review.json と test-execute-result.json を読み、review verdict != pass や result.summary[] の fail を gate FAIL として扱っている。",
+      "why": "pre-existing 判定を始めると base branch 側の test behavior まで追う必要があり、flow の責務が広がる。project-level regression の目的は、現 flow の artifact と raw output から required な regression が実行され pass したことを保証することに絞る。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "この変更の spec-local tests は、agent を実行せず prompt / schema / gate precheck の deterministic tests に限定しますか？",
+      "answer": "deterministic tests に限定する。実 AI agent を呼ばず、prompt / schema / gate precheck / artifact parsing に加えて、classifier rules、changed-file enumeration、docs scan failure handling、command discovery、config validation、command tokenization、path matching、standardized raw log marker validation、stale artifact deletion、v2 consumer migration を unit / fixture tests で検証する。",
+      "evidence": "ユーザー選択: [1] deterministic tests 限定。tests/agent/ は実 agent CLI に依存するため npm test のデフォルト実行から除外される運用であり、今回の対象は artifact schema と deterministic precheck で検証できる。",
+      "why": "この Issue の主対象は test execution artifact の契約、review verification の入力、gate precheck の判定、classifier の機械判定であり、実 provider の品質ではない。agent 実行を含めると provider quota / CLI 環境に左右されるため、回帰検知としては deterministic tests が適している。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "gate-impl は `regression.required=true` のとき、command / result / raw_output_lines の欠落、raw output との不一致、失敗、または skipped をどう扱いますか？",
+      "answer": "`regression.required=true` の場合、`regression.root_test_command` / `regression.root_test_command_source` / `regression.command` / `regression.result` / `regression.raw_output_lines` の欠落、raw output との不一致、`result=fail`、または実行すべき regression が skipped された状態は gate FAIL として blocking にする。`pre_existing` state は扱わない。`regression.raw_output_lines` は `{ start_line, end_line }` の range object とし、無効な range、raw log 範囲外の参照、line range 内に standardized start/end marker がない場合、marker の command/result が artifact と一致しない場合も gate FAIL とする。gate-impl は checked item `{ check: \"project_regression_verification\", result: \"pass\", detail: \"...\" }` を必須 artifact として確認するだけでなく、classifier、test-execute-result.json、raw log に対する deterministic validation を独立に実行する。gate-impl は current trigger-relevant changed-file snapshot も再取得し、`regression.changed_files` と一致しない場合は stale regression evidence として FAIL し、test-execute rerun を要求する。`regression.result=fail` が raw marker で正しく証明されている場合、test-result-review は artifact integrity として pass してよいが、gate-impl は fail result を blocking する。`regression.required=false` の場合も skipped/not-required reason を必須にする。",
+      "evidence": "ユーザー選択: [1] missing/unverifiable/failed は blocking。src/flow/lib/run-gate.js の integration gate precheck は test-result-review.json と test-execute-result.json を読み、review verdict != pass や test-execute-result の fail を gate FAIL として扱う。",
+      "why": "review-test から project-level tests の全文入力を外す補償は、実行フェーズで regression が実行・検証されたことを gate が保証して初めて成立する。欠落や照合不能を許容すると、agent が regression を省略しても通過できる。review は別 agent による検証結果として有用だが、gate がそれだけを信じると deterministic precheck の責務が弱くなるため、gate も同じ contract を機械的に確認する。base 側の test behavior との比較は flow の責務を広げるため扱わず、fail は gate FAIL とする。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q9",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "project-level regression の結果は downstream のどこに表示しますか？",
+      "answer": "project-level regression の結果は test-result-review と gate-impl の判定に使い、最終的な `report.json` では completed `test-execute-result.json` がある場合に `data.tests.projectRegression` object として表示する。report 側は既存 `report.json` の命名に合わせて camelCase にする。`projectRegression.required=true` の場合は `required`、`mode`、`rootTestCommand`、`rootTestCommandSource`、`command`、`result`、`rawOutputLines` を持ち、`mode=targeted` では `targetPaths` も持つ。`required=false` の場合は `required`、`category`、`reason`、`classifiedPaths` を持つ。valid v2 artifact with `regression.result=\"fail\"` は report が実行された場合に render できなければならない。ただし normal flow は gate FAIL で止まるため、通常は gate FAIL 後に report/retro は自動生成されない。command discovery / config / runner prerequisite failure で test-execute が normal artifact を書かずに止まった場合は report は自動生成されず、失敗理由は command output / issue-log が source of truth になる。text report には `Project regression: required=<true|false> result=<pass|fail|skipped> mode=<full|targeted|none>` の 1 行を表示し、required=false の場合は `category=<docs-only|spec-artifact-only|non-project-only>` も同じ行に含める。`retro.json` の requirement 集計には混ぜない。",
+      "evidence": "ユーザー選択: [1] test-result-review / gate / report.json、追加選択: [1] `project_regression` object、追加選択: [1] `data.tests.projectRegression` に置き JSON と text report の両方に表示。src/flow/lib/run-retro.js は `summary[]` を requirements と突き合わせて集計するため、project-level regression を混ぜると requirement 達成度の意味が曖昧になる。",
+      "why": "実行結果、失敗、skipped/not-required 理由は最終成果物から確認できる必要がある。既存 report は test 情報を `data.tests` にまとめているため、project-level regression も `data.tests.projectRegression` に置くと配置が自然で、text report にも出すことで人間が最終レポートから状態を確認できる。一方、retro は requirement coverage の集計責務を維持するため、project-level regression は report 側で可視化し、retro の requirement summary からは分離する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q10",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "project-level regression を不要扱いにした理由をどう記録しますか？",
+      "answer": "`regression.required=false` の場合は、構造化された aggregate `category`、人間向けの `reason`、機械検証用の `classified_paths` を必須にする。許可カテゴリは `docs-only`、`spec-artifact-only`、`non-project-only` に限定し、test-result-review と gate-impl が category / reason / classified_paths の存在と許可カテゴリを検証する。generated SDD artifacts は project regression trigger からは除外するが、changed_files snapshot と `classified_paths` には spec-artifact-only evidence として含める。`classified_paths` は required=false と分類した changed files を flow-root-relative path で列挙する。aggregate category の precedence は、すべて docs-only なら `docs-only`、すべて spec-artifact-only なら `spec-artifact-only`、docs-only と spec-artifact-only が混在するが project-affecting changed file が 0 件なら `non-project-only` とする。metadata-only や unsupported ignored files は専用 skip category を作らず、この 3 category に該当しなければ required/full に倒す。",
+      "evidence": "ユーザー選択: [1] category + reason 必須。review-draft-questions finding 7 は、理由なしの `required=false` では agent が project-level tests を黙って省略できると指摘している。",
+      "why": "構造化 category があると gate が project-level regression 省略の妥当性を機械的に確認できる。free-text だけでは許可された省略かどうかを安定して判定できない。docs と spec artifact が混在する diff は project に影響しないが、単一 category では正しく表現できないため `non-project-only` を用意する。`no-runtime-impact` や metadata-only は解釈範囲が広く、q2/q3 の trigger 条件と衝突し得るため許可カテゴリから外す。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q11",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "既存動作は、project-level regression 専用 artifact がなく、`summary[]` は requirement 単位であるという理解で spec を書いてよいですか？",
+      "answer": "その理解で進める。現状の `test-execute-result.json` には project-level regression 専用 field がなく、`summary[]` は spec requirements に対応する実行結果の集計として扱われている。今回の不具合は、project-level regression の必要有無、実行 command、raw log 参照、結果、不要理由を専用 contract として表現・検証できない点として扱う。",
+      "evidence": "ユーザー選択: [1] 既存動作前提を追加。src/flow/schemas/test-execute-result.schema.json は required fields として version / raw_output_path / summary を定義し、additionalProperties=false で project-level regression 専用 field を許可していない。src/flow/lib/run-retro.js は `summary[]` を requirements と突き合わせて集計する。",
+      "why": "既存構造の前提を明示すると、`summary[]` に regression を混ぜず専用 `regression` object を追加する理由が spec で説明できる。何を今回の欠落として扱うかも実装者と reviewer が共有できる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q12",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "project-level regression が必要かどうかの判定 source はどこに置きますか？",
+      "answer": "flow 開始時に effective flow root で `sdd-forge docs scan` を実行し、`.sdd-forge/output/analysis.json` を更新する。worktree mode では worktree 作成後の worktree root、branch/local mode では current flow root で実行する。`docs scan` が失敗する、`analysis.json` が作れない、または読めない場合は、regression 判定の前提不成立として flow を FAIL で止める。analysis は prepare-time snapshot とし、test-execute / gate 前には再 scan しない。prepare 後に作成された source-like file や analysis にない normal file は unknown regular file として full regression required に倒す。`analysis.json` と変更ファイル一覧を使う deterministic classifier を共通処理として置く。test-execute は command 実行前に trigger-relevant changed-file snapshot を作り、`regression.changed_files` に status/path 付きで保存する。`regression.changed_files` は generated SDD artifacts を除外した committed diff + working tree + untracked files の final-state deduplicated list とする。generated SDD artifacts は `changed_files` には入れず、required=false の `classified_paths` に spec-artifact-only evidence として入れる。同じ path が複数 source から出た場合は working tree state を優先する。rename は single entry `{ status: \"renamed\", old_path, path }` として保持し、rename 後に new path がさらに modified でも status は `renamed` のままにする。delete+recreate は current path が存在するなら `modified` または `added`、存在しないなら `deleted` とする。test-result-review は artifact snapshot と classifier rules を検証し、gate-impl は current trigger-relevant snapshot と artifact snapshot の一致も確認する。これにより test command が生成した untracked output で gate 判定がずれず、post-test source edits も stale evidence として検出できる。classifier order は固定する。まず generated SDD artifacts を trigger から除外して spec-artifact-only evidence として分類し、次に docs-only / spec-artifact-only を required=false として分類し、その後に test.projectPaths trigger、analysis project file trigger、execution/config/test-contract trigger、unknown regular file trigger を適用する。test.projectPaths は analysis entry より先に評価し、configured project test path が analysis にも載っている場合でも test-only targeted 候補にできる。docs-only は `docs/**`、root `README*`、root `AGENTS.md`、root `CLAUDE.md`、root markdown files (`*.md`) だけとする。source directory 配下の markdown や unmatched regular files は docs-only ではなく full regression required に倒す。spec-artifact-only は現在の spec directory `specs/<current-spec>/**`、`.sdd-forge/output/**`、`.sdd-forge/current-spec`、agent work dir (`.tmp/**` など config の `agent.workDir`) だけとする。analysis entry は docs-only / spec-artifact-only 分類を override しない。`analysis.json` から project file paths を取り出す処理は formal helper に集約し、consumer が各 category を直接走査しない。helper は `.sdd-forge/output/analysis.json` を読み、top-level metadata key (`analyzedAt` / `enrichedAt` / `generatedAt`) を除いた各 category の `entries[]` から `file` を持つ entry だけを project file path として返す。想定外 shape の category は analysis contract error として fail する。変更ファイル一覧は gate が見る差分と同じ範囲から取得する。diff base は active flow status / flow state の `baseBranch` を唯一の source とし、取得できない場合は fail する。committed and tracked changes は NUL-delimited `git diff --name-status -z <baseBranch>...HEAD` と `git diff --name-status -z HEAD` を使い、untracked files は `git ls-files --others --exclude-standard -z` を使う。untracked regular files outside generated SDD artifacts are classified normally and may force full regression. file-level normalization に失敗した path、または flow root 外 path は hard fail とする。rename/delete status を保持し、すべて flow root からの相対 path に正規化する。ただし `.sdd-forge/config.json`、template、skill、flow library の変更は除外しない。test-execute は分類結果を `test-execute-result.json.regression` に記録し、test-result-review と gate-impl は同じ分類ルールで再確認する。`analysis.json` に entry される project file、実行・設定・テスト契約に影響するファイル、分類不能な通常ファイルは full regression required。project-level test file は `.sdd-forge/config.json` の `test.projectPaths` で証明できる changed file だけを指し、その場合だけ targeted 候補にできる。証明できない場合は分類不能として full required に倒す。docs-only / spec-artifact-only / non-project-only なら required=false とする。",
+      "evidence": "review-draft-questions finding 1 は、誰が regression-required を判定し gate が何を読むか未定義と指摘した。ユーザー提案: `analysis.json` entry を使う。ユーザー承認: はい。追加ユーザー決定: flow 開始時に `docs scan` を走らせる。追加ユーザー決定: `analysis.json` が作れない・読めないなら前提が崩れるので fail で止める。現行 `run-prepare-spec.js` には `docs scan` 呼び出しがなく、`flow get context` は既存 `.sdd-forge/output/analysis.json` を読むだけで missing 時に `sdd-forge docs scan` を案内する。",
+      "why": "AI の自己申告だけにすると、本来必要な project-level regression を不要扱いにできてしまう。flow 開始時に scan した analysis を classifier の入力にすると、project-specific な `src/` / `tests/` 固定に寄らず、flow 内の変更差分を判定できる。flow 自身が生成する analysis や current spec artifacts を trigger に含めると、計画・レビューの成果物だけで regression required になってしまうため除外する。project-level test file も構成や命名が project ごとに違うため、証明できない場合は full に倒す。analysis が作れない・読めない状態で分類を続けると、この設計の前提が崩れるため flow fail として止める。共通分類ルールで test-execute / review / gate が同じ判断を使うと、required 判定と skipped 検出が揺れにくい。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q13",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "targeted regression では、どの test または変更ファイルを対象にしたかを記録しますか？",
+      "answer": "`mode=targeted` は q2 で許可した project-level test-only 変更に限定する。`mode=targeted` の場合は `target_paths` を必須にする。`target_paths` には targeted 実行で justify する changed test-only file paths だけを記録する。test-name filter や alias は `target_paths` に入れない。classifier が `test.projectPaths` で test-only と証明した changed file はすべて `target_paths` に含める。1 つでも欠ける場合は targeted regression invalid として fail にする。rename の old path または new path のどちらかが configured project test path に match する場合、または matched project test path に delete status が含まれる場合、targeted mode は invalid とし full regression required に倒す。この場合 `target_paths` は使わない。`src/`、runtime config、test runner、test execution / review / gate contract、分類不能な通常ファイルの変更では `mode=targeted` を使えず、full project test command が必須。test-result-review と gate-impl は、`regression.command` token 列の先頭が `root_test_command` token 列と完全一致し、かつ `target_paths` の各 entry が正規化済み path token として command に含まれることを確認する。test-name filter しか渡せない場合は targeted を使わず full に倒す。",
+      "evidence": "review-draft-questions finding 2 は、`npm test -- unrelated.test.js` のように関係ない test だけ実行しても valid に見える穴を指摘した。ユーザー選択: [1] `target_paths` 必須。",
+      "why": "targeted 実行を許可するなら、何を対象にしたかを artifact に残さないと coverage を検証できない。`target_paths` を changed test file paths に限定すると、command filter と changed file coverage という 2 つの意味が混ざらない。delete / rename は old path を実行できず、new path だけでは削除された coverage を検証できないため full に倒す。`target_paths` を classifier の test-only changed files と照合し、さらに command token とも照合すれば、関係ない test だけ実行する抜け道を減らせる。targeted を test-only と証明できる変更に限定することで、runtime 変更や implementation 変更で full regression を避ける抜け道を作らない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q14",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "pre-existing failure の分類や base branch との比較を、この Issue で扱いますか？",
+      "answer": "扱わない。base branch の test behavior 比較、detached worktree baseline、issue-log による pre-existing 分類、`regression.result=pre_existing` はこの Issue の scope から外す。`regression.required=true` で `result=fail` の場合は gate FAIL とする。",
+      "evidence": "review-draft-questions finding 3 は pre-existing 分離方針と fail blocking 方針の衝突を指摘した。追加ユーザー決定: base 側のテスト挙動に関しては排除すべきであり、比較を始めると base の責務まで追うことになるため良くない。",
+      "why": "pre-existing 判定は base 側のテスト挙動を flow 内で扱うことになり、過去に制御不能になった領域を再導入する。project-level regression contract は、現 flow の required 判定・実行・raw output 検証・gate blocking に集中させる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q15",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "`test-execute-result.json` に `regression` contract を追加する際、schema version をどう扱いますか？",
+      "answer": "`test-execute-result.json.version` を `\"2\"` に上げる。v2 は `regression` object を含む新しい artifact contract とし、test-result-review / gate-impl / report は v2 を期待する。alpha 方針に従い v1 互換は残さない。",
+      "evidence": "ユーザー選択: [1] version: \"2\" に上げる。src/flow/schemas/test-execute-result.schema.json は `version` を必須にし、現在は const `\"1\"`。`additionalProperties=false` のため、現行 schema では `regression` を追加できない。src/flow/lib/run-gate.js と run-retro.js も version `\"1\"` を期待している。",
+      "why": "`regression` の追加により artifact の形と意味が変わる。同じ version のまま拡張すると、古い artifact と新しい artifact を consumer が区別できない。alpha 期間は後方互換を残さない方針なので v2 へ明示的に上げる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q16",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "v2 artifact では `raw_output_lines` の形式を `summary[]` と `regression` で統一しますか？",
+      "answer": "v2 artifact では `summary[].evidence.raw_output_lines` と `regression.raw_output_lines` をどちらも `{ start_line, end_line }` の range object に統一する。既存 v1 の `[start, end]` 配列形式は残さない。",
+      "evidence": "review-draft-questions finding 5 は、既存 `summary[].evidence.raw_output_lines` が配列で、新しい `regression.raw_output_lines` が object だと artifact 内に 2 つの行番号形式が混在すると指摘した。ユーザー選択: [1] object に統一。",
+      "why": "v2 に上げるなら artifact 内の line range 表現も揃える方が実装・schema・review/gate の検証が単純になる。alpha 方針により v1 互換を残さないため、既存配列形式を維持する必要はない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q17",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "test-result-review は project-level regression の検証結果をどう記録しますか？",
+      "answer": "`test-result-review.json.checked_items[]` に `project_regression_verification` check を必須で追加する。`test-result-review.json` 自体に version field は追加しないが、schema / prompt / gate contract は in-place で tighten し、alpha 方針により old review artifact 互換は残さない。run-test-result-review は AI reviewer の回答を受け入れる前に、shared classifier / marker validator を deterministic に実行する。required inputs は `.sdd-forge/output/analysis.json`、`.sdd-forge/config.json`、`test-execute-result.json`、raw log、`regression.changed_files` snapshot とする。形は既存 schema に合わせて `{ \"check\": \"project_regression_verification\", \"result\": \"pass\" | \"fail\", \"detail\": \"...\" }` とする。この check は `regression.required` 判定、required=false の category/reason/classified_paths、required=true の root_test_command/root_test_command_source/command/result/raw_output_lines、raw log range 内の standardized start/end marker、token-boundary command matching、targeted の target_paths coverage を検証する。`regression.result=\"fail\"` でも raw markers と artifact が一致していれば artifact integrity として `project_regression_verification` は pass できる。deterministic validation が fail した場合は AI review の内容に関係なく review verdict を `fail` にする。`project_regression_verification` が pass しない場合、または必須 check が欠落する場合、review verdict は `fail` とし、`invalid_reason` に理由を書く。review verdict は既存 checks とこの check がすべて pass の場合だけ `pass` にできる。gate-impl はこの review check を必須とするが、review check を信頼するだけでなく q8 の deterministic validation も独立に実行する。",
+      "evidence": "review-draft-questions finding 6 は、現行 review prompt が 5 checks だけで regression 検証 check 名と verdict semantics が未定義と指摘した。ユーザー選択: [1] 専用 check を必須化。",
+      "why": "専用 check があると、gate-impl が test-result-review によって project-level regression contract が検証済みか確認できる。既存 check に混ぜると、どこで regression を検証したかが不明確になる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q18",
+      "status": "dropped",
+      "category": "dependency-integration-boundary",
+      "question": "`report.json` のどこに project-level regression を表示しますか？",
+      "answer": "",
+      "evidence": "",
+      "why": "",
+      "droppedReason": "Merged into q9. q9 is the single source for report JSON/text placement and failure rendering behavior."
+    },
+    {
+      "id": "q19",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "flow 開始時に `analysis.json` をどう準備しますか？",
+      "answer": "flow 開始時の `docs scan` policy は q12 に集約する。実装配置としては prepare path に入れ、全 SDD flow で mandatory にする。worktree mode では worktree 作成後に worktree root で `sdd-forge docs scan` を実行する。branch/local mode では current flow root で実行する。config guard は設けない。`docs scan` が失敗する、`.sdd-forge/output/analysis.json` が作れない、または読めない場合は、prepare step を FAIL で止める。",
+      "evidence": "ユーザー決定: flow 開始時に `docs scan` を走らせる。追加ユーザー決定: `analysis.json` が作れない・読めないのであれば前提が全て崩れるので fail で止める。現行 `docs build` は最初に `docs scan` を実行するが、`prepare-spec` には scan 呼び出しがない。`finalize-sync` の `docs build` は test/gate 後なので regression 判定の input source には遅い。",
+      "why": "classifier contract 自体は q12 が持ち、q19 は実装の置き場所だけを明確にする。ユーザー決定は flow 開始時の scan であり、test 実行直前だけに遅らせると draft/spec/gate など earlier step の context と analysis が古いままになる。finalize-sync まで待つと、test-execute / gate-impl の時点では最新 analysis を前提にできない。analysis がない状態で代替判定を続けると設計前提が崩れるため、prepare fail として止める。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q20",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "project-level regression が required なのに test command を発見できない場合はどう扱いますか？",
+      "answer": "project-level regression が required で、full または targeted の root test command を発見できない場合、同じ優先順位内で複数候補があり一意に決まらない場合、spawn `ENOENT` など child process を開始できない runner prerequisite failure の場合は test-execute step を fail で止め、normal な `test-execute-result.json` は書かない。invalid config と unsupported configured command syntax は q23/q24 に従い prepare/config loading で fail する。step 開始時には stale `test-execute-result.json`、raw log、`test-result-review.json`、`test-result-review.md`、`retro.json`、`report.json` を削除する。child process を開始できた後の non-zero exit、shell exit 127、signal termination、timeout は valid v2 artifact と raw markers を書き、`regression.result=\"fail\"` として downstream に渡す。flow は prerequisite failure の時点で停止し、test-result-review / gate-impl / retro / report は自動実行しない。失敗理由は command stderr/stdout と issue-log に persist する。issue-log entry は minimum fields として `step=\"test-execute\"`、`failure_kind` (`command_discovery` / `spawn_failure`)、`message`、`root_test_command_source` (nullable)、`candidate_commands` (array, empty allowed)、`changed_files_count`、`timestamp` を持つ。command discovery failure で selected source がない場合は `root_test_command_source=null`、候補がない場合は `candidate_commands=[]` とする。もし downstream が手動で呼ばれた場合は、`test-execute-result.json` absence を hard fail として扱う。manual report も prerequisite failure で normal artifact がなければ hard fail し、issue-log failure を代替 report として render しない。",
+      "evidence": "review-draft-questions finding 1 は command discovery failure の扱いが未定義と指摘した。既存 test-execute prompt は、テストコマンドを判断できない場合に明示的な error を書いて non-zero exit する方針を持つ。",
+      "why": "必要な regression があるのに test command が不明な状態で先へ進むと、project-level tests の破壊検知を保証できない。normal artifact を optional にすると downstream の挙動が揺れるため、失敗時は normal result artifact を残さない。downstream を続行させると stale artifact や欠落 artifact を誤って扱う可能性があるため、test-execute failure で flow を止める。これは base branch や過去失敗との比較問題ではなく、今回の flow が必要な検証を実行できない問題なので、fail で止めるのが一貫している。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q21",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "この Issue で調整する実装箇所はどこですか？",
+      "answer": "`test-execute-result.json` を write/read/validate/render するすべての code、schema、prompt、fixture、snapshot、test を v2 に揃える。以下は最小対象であり、実装時に検索して追加 consumer があれば同じ Issue で更新する。`src/flow/schemas/test-execute-result.schema.json`、`src/flow/prompts/impl/test-execute.md`、`src/flow/lib/run-test-execute.js`、`src/flow/schemas/test-result-review.schema.json`、`src/flow/prompts/impl/test-result-review.md`、`src/flow/lib/run-test-result-review.js`、`src/flow/lib/run-gate.js`、`src/flow/lib/run-report.js`、`src/flow/lib/run-retro.js`、artifact schema validation helper、CLI commands that read test artifacts、fixture builders、snapshot tests の v2 line range / regression 分離対応、flow 開始時 docs scan を入れる prepare-spec 実行経路 (`src/flow/lib/run-prepare-spec.js` と、この step から呼ばれる helper)、test command discovery / deterministic command execution / command tokenization / path normalization / changed-file enumeration / classifier helper、`src/lib/config.js` と型コメントの `test.command` / `test.projectPaths` / `test.timeout` validation、configuration docs/templates/setup output、関連 fixture、spec-local deterministic tests、既存 unit/e2e tests とする。v1 互換コードは残さない。config/docs/templates を変更した場合は project rule に従って `sdd-forge upgrade` を実行する。",
+      "evidence": "review-draft-questions finding 2 は、受け入れ条件に対して変更対象が不足していると指摘した。既存コードでは test-execute artifact schema、test-result-review schema、gate precheck、report generation、retro aggregation、prepare-spec がそれぞれ関連責務を持つ。",
+      "why": "schema だけを変えても prompt / runner / reviewer / gate / report が追随しなければ保証にならない。v2 で raw line range の形も変わるため、既存 fixtures や tests も同じ issue で更新する必要がある。retro は requirement summary の責務を維持し、v2 summary range を読めることと regression を混ぜないことを確認する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q22",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "この設計で明示しておくべきリスクと許容方針は何ですか？",
+      "answer": "false negative は許容しない。分類不能、analysis にない通常ファイル、実行・設定・テスト契約に触る可能性がある変更は required/full に寄せる。false positive は許容する。余分に full regression が走ることはコストだが、破壊検知漏れより小さい。generated SDD artifacts は classifier から除外し、flow 自身の analysis/report/spec output が自己 trigger しないようにする。generic flow なので `src/` や `npm test` のような project-specific 前提を product code に固定しない。`docs scan` や `analysis.json` の生成・読込に失敗した場合は fail で止める。review/gate は agent の説明を信じるのではなく、artifact と raw log と classifier の結果を検証する。targeted は `test.projectPaths` で test-only と証明できる changed files だけに限定し、全 changed test-only files が `target_paths` に含まれ、かつ command に正規化済み path token として出ていることを見る。複雑な alias/filter や証明できない test file は full に倒れる可能性がある。",
+      "evidence": "review-draft-questions finding 8 は risk coverage が不足していると指摘した。ユーザー決定により base branch 比較は扱わず、analysis.json を前提にし、前提が崩れた場合は fail とする。",
+      "why": "この Issue の目的は project-level test breakage detection の保証であり、便利な分類よりも検知漏れを避けることを優先する。プロジェクトごとの構成差を完全に理解しようとすると flow が複雑化するため、曖昧な場合は required/full に倒す。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q23",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "`.sdd-forge/config.json` の test command / project test path contract はどう定義しますか？",
+      "answer": "`.sdd-forge/config.json` に optional な `test` object を定義する。`test.command` は non-empty string の full project test command とする。`test.command` の syntax は q24 の allowed grammar で prepare/config loading 時に検証し、unsupported syntax は every flow で fail する。`test.timeout` は optional positive integer seconds とし、project-level regression command execution timeout に使う。未設定なら既存 `agent.timeout` を流用し、それも未設定なら 600 秒にする。`test.projectPaths` は root-relative POSIX-style path string の配列とする。entry が `/` で終わる場合だけ directory prefix として扱い、path boundary で match する。`/` で終わらない entry は exact file path としてのみ扱う。filesystem の現在状態で directory かどうかを推測しない。absolute path、`..`、空文字、glob、shell metacharacter を含む entry は invalid config として prepare/config loading で fail し、docs-only/spec-only flow であっても先に進めない。`test.command` がある場合は root test command discovery の最優先 source になる。`test.projectPaths` がない場合、targeted mode は使えず、project-level test-only と証明できない変更は full regression required に倒す。",
+      "evidence": "review-draft-questions は config contract が未定義と指摘した。ユーザーは project ごとに directory 構成や file name が違うため、機械判定には project-specific な推測を入れるべきでないと指摘した。",
+      "why": "project-level test path は project ごとに違うため、package 側の `src/` に固定ロジックを置くべきではない。config で明示された path だけを test-only として扱うと、generic flow のまま targeted を許可できる。invalid config を fail にすると、誤った path 指定で regression を省略する事故を避けられる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q24",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "command matching と target path matching はどう機械的に検証しますか？",
+      "answer": "共有 helper で command string を token 化して検証する。allowed grammar は argv-style simple command とする。quote / escape、leading env assignment tokens (`KEY=value`)、normal args (`npm run test -- --runInBand`、`node ./scripts/test.js`) は許可するが、shell expansion は実行しない。leading env assignment tokens は child process の env に反映し、spawn argv からは除く。`|`、`&&`、`;`、subshell、redirect、glob expansion など shell control / expansion syntax を含む regression command は unsupported として fail する。`mode=full` は `command` tokens が `root_test_command` tokens と完全一致することを要求する。`mode=targeted` は `command` tokens の先頭が `root_test_command` tokens と完全一致し、その後の tokens に正規化済み `target_paths` の各 path が token として含まれることを要求する。env assignment や wrapper が必要な project は、それを含めた simple command を `test.command` に書く。raw string prefix 判定は使わない。",
+      "evidence": "review-draft-questions は raw string prefix が `npm test` と `npm test:unit` のような誤一致を許すと指摘した。",
+      "why": "文字列 prefix では別 command を誤って root command と見なす。token 境界で比較すると、shell を実行せずに deterministic に検証できる。複雑な shell command を許すと validation が project-specific になりやすいため、wrapper や env assignment が project に必要な場合は config の root command として明示し、targeted の追加 arg だけを検証対象にする。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q25",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "`test.command` / `test.projectPaths` の config documentation と templates はこの Issue の scope に含めますか？",
+      "answer": "含める。`.sdd-forge/config.json` の新しい `test.command` / `test.projectPaths` / `test.timeout` contract は runtime behavior に直結するため、config validation、type comments、configuration docs、templates/setup output、generated skills/config docs の更新を acceptance scope に含める。template や preset を変更した場合は project rule に従い `sdd-forge upgrade` を実行し、生成物が古いまま残らないことを確認する。",
+      "evidence": "review-draft-coverage は q21 が config docs/templates を実装対象に含めたが QA として明示されていないと指摘した。AGENTS.md project rule は templates/presets 変更時に `sdd-forge upgrade` を実行することを要求している。",
+      "why": "config key を追加しても docs/templates が古いと、ユーザーは project ごとの test command と project test paths を正しく設定できない。今回の classifier と command discovery はこの config に依存するため、実装だけでなく設定方法の生成物も同じ Issue で更新する必要がある。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-13T00:38:56Z",
+    "notes": "User approved draft decisions; draft question and coverage reviews passed."
+  }
+}

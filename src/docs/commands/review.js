@@ -14,7 +14,7 @@ import { Command } from "../../lib/command.js";
 import { translate } from "../../lib/i18n.js";
 import { getChapterFiles } from "../lib/command-context.js";
 import { parseDirectives } from "../lib/directive-parser.js";
-import { ANALYSIS_META_KEYS } from "../lib/analysis-entry.js";
+import { iterateAnalysisCategories } from "../lib/analysis-entry.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -267,7 +267,7 @@ function runReview(rawArgs, container) {
   // Analysis coverage check
   if (fs.existsSync(analysisPath)) {
     const analysis = JSON.parse(fs.readFileSync(analysisPath, "utf8"));
-    const analysisCategories = Object.keys(analysis).filter((k) => !ANALYSIS_META_KEYS.has(k));
+    const analysisCategories = [...iterateAnalysisCategories(analysis)].map(([k]) => k);
 
     if (analysisCategories.length > 0) {
       const referencedSources = new Set();
@@ -309,4 +309,3 @@ export default class DocsReviewCommand extends Command {
     return runReview(ctx._rawArgs || [], this.container);
   }
 }
-

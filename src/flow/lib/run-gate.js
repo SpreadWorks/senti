@@ -47,6 +47,7 @@ import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./gate-step.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { validateDraftLifecycle } from "./draft-lifecycle.js";
+import { assertIntegrationRegressionEvidence } from "./test-artifacts.js";
 
 export { resolveGateStepId };
 
@@ -107,10 +108,12 @@ export const PHASE_TO_LEVEL = Object.freeze({
 /**
  * spec 251 R17: precheck for integration gate. Verifies the artifacts
  * produced by test-execute and test-result-review are present, valid, and
- * carry verdict="pass". Returns a gateFail envelope when the precheck fails;
+ * carry verdict="pass" with test-execute-result version "2". Returns a gateFail envelope when the precheck fails;
  * returns null when the gate may proceed to the AI guardrail pipeline.
+ * Current changedFiles are classified through the same git-helpers-backed
+ * regression classifier that test-execute uses.
  */
-function checkIntegrationTestArtifacts(root, state, level, phase) {
+function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
   const specPath = state.spec;
   const specDir = path.dirname(path.resolve(root, specPath));
   const reviewPath = path.join(specDir, "test-result-review.json");
@@ -126,38 +129,11 @@ function checkIntegrationTestArtifacts(root, state, level, phase) {
       "test-execute-result.json missing — run test-execute step before integration gate",
     ]);
   }
-  let review;
   try {
-    review = JSON.parse(fs.readFileSync(reviewPath, "utf8"));
+    assertIntegrationRegressionEvidence({ root, state, specDir, config });
   } catch (err) {
     return gateFail(level, phase, specPath, [], [
-      `test-result-review.json is not valid JSON: ${err.message}`,
-    ]);
-  }
-  if (review?.verdict !== "pass") {
-    const reason = review?.invalid_reason || "verdict is not 'pass'";
-    return gateFail(level, phase, specPath, [], [
-      `test-result-review verdict='${review?.verdict}' (${reason}); test artifacts cannot be trusted`,
-    ]);
-  }
-  let result;
-  try {
-    result = JSON.parse(fs.readFileSync(resultPath, "utf8"));
-  } catch (err) {
-    return gateFail(level, phase, specPath, [], [
-      `test-execute-result.json is not valid JSON: ${err.message}`,
-    ]);
-  }
-  if (result?.version !== "1") {
-    return gateFail(level, phase, specPath, [], [
-      `test-execute-result.json version='${result?.version}', expected '1'`,
-    ]);
-  }
-  const failed = (result.summary || []).filter((s) => s?.result === "fail");
-  if (failed.length > 0) {
-    const ids = failed.map((s) => s.id).filter(Boolean).join(", ");
-    return gateFail(level, phase, specPath, [], [
-      `test-execute-result.json reports ${failed.length} failed requirement(s): ${ids}`,
+      `test artifact validation failed: ${err.message}`,
     ]);
   }
   return null;
@@ -223,7 +199,7 @@ const UNTRACKED_DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1 MiB
  * limit throws an Error tagged with `code = "UNTRACKED_LIMIT_EXCEEDED"`.
  *
  * @param {string} root absolute path to the repository (or worktree) root
- * @param {{maxFiles?: number, maxFileSize?: number}} [options]
+ * @param {{maxFiles?: number, maxFileSize?: number, excludeFile?: Function}} [options]
  * @returns {Promise<string>} concatenated unified diff text, or "" if none
  */
 export async function collectUntrackedDiff(root, options = {}) {
@@ -244,7 +220,11 @@ export async function collectUntrackedDiff(root, options = {}) {
     throw wrapped;
   }
   // -z output: NUL-separated, no trailing entry
-  const files = listStdout.split("\0").filter((p) => p.length > 0);
+  const excludeFile = typeof options.excludeFile === "function" ? options.excludeFile : () => false;
+  const files = listStdout
+    .split("\0")
+    .filter((p) => p.length > 0)
+    .filter((p) => !excludeFile(p));
   if (files.length === 0) return "";
 
   if (files.length > maxFiles) {
@@ -321,6 +301,15 @@ function collectPerFileDiffsForGate(committed, uncommitted, untracked) {
     merged.set(file, (merged.get(file) || "") + d);
   }
   return merged;
+}
+
+function isGeneratedSpecArtifactForGate(relPath, specPath) {
+  if (!specPath) return false;
+  const specDir = path.posix.dirname(specPath.split(path.sep).join("/"));
+  const normalized = relPath.split(path.sep).join("/");
+  if (!normalized.startsWith(`${specDir}/`)) return false;
+  if (/^specs\/[^/]+\/tests\/[^/]+\.(test|spec)\.(js|mjs|ts)$/.test(normalized)) return false;
+  return true;
 }
 
 function sectionAt(lines, lineIdx) {
@@ -817,7 +806,7 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
     "- Exhaustive enumeration: emit ONE violation entry per occurrence/edit location. Repeated occurrences of the same vague phrase in different places are distinct entries — distinguishable by `where`. Do NOT group or summarize.",
     "- For document-level guardrails (rule violations that have no concrete passage to quote — e.g. a missing required section): emit one OR MORE entries, one per distinct gap. Use `target` as a short gap descriptor (e.g. \"missing section: Acceptance Criteria\") and `where` as the artifact name (e.g. \"spec.json\").",
     "- Each violation entry requires non-empty `target`, `where`, and `why_violates`. Duplicate (target, where) pairs within the same guardrail FAIL are forbidden.",
-    "- When a `## Diff Scope Constraint` section is present below, list ONLY violations introduced by the diff (lines added or modified, marked with `+`).",
+    "- When a diff-scope section is present below, list ONLY violations introduced by the diff (lines added or modified, marked with `+`).",
     "- Use skip only when the article cannot be evaluated without runtime evidence not provided.",
     "- If an article is inapplicable by nature of the content, mark it as pass with a short reason.",
     "- Matched Spec Acknowledgment Rationale is context only. Exception permission comes from the guardrail article clause, not from the rationale section alone.",
@@ -2101,7 +2090,7 @@ export class RunGateCommand extends FlowCommand {
     // pipeline. Missing / unverified results are treated as FAIL with no
     // retry budget consumption, since the failure is structural.
     if (phase === "integration") {
-      const integrationCheck = checkIntegrationTestArtifacts(root, state, level, phase);
+      const integrationCheck = checkIntegrationTestArtifacts(root, state, level, phase, ctx.config || {});
       if (integrationCheck) return integrationCheck;
     }
 
@@ -2151,7 +2140,9 @@ export class RunGateCommand extends FlowCommand {
 
     const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
     const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", root);
-    const untracked = await collectUntrackedDiff(root);
+    const untracked = await collectUntrackedDiff(root, {
+      excludeFile: (relPath) => isGeneratedSpecArtifactForGate(relPath, state.spec),
+    });
     const diff = committed + uncommitted + untracked;
 
     if (!diff.trim()) {

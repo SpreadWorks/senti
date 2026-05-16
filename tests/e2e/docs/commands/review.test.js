@@ -172,8 +172,8 @@ describe("review CLI", () => {
 
     writeJson(tmp, ".sdd-forge/output/analysis.json", {
       analyzedAt: "2026-01-01",
-      modules: [{ name: "foo" }, { name: "bar" }],
-      controllers: [{ name: "UserController" }],
+      modules: { entries: [{ name: "foo" }, { name: "bar" }] },
+      controllers: { entries: [{ name: "UserController" }] },
     });
 
     const result = runReview(tmp);

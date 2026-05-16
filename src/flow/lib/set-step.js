@@ -17,6 +17,12 @@ import { resolveAutoCheckInput, buildSkipVerdict } from "./resolve-auto-check-in
 import { resolveNodeFor, FLOW_DEFINITION } from "../definition.js";
 import { validateTestHeaders, formatValidationMessages } from "./test-headers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
+import {
+  assertIntegrationRegressionEvidence,
+  readJsonStrict,
+  validateTestExecuteResultV2,
+  validateTestResultReview,
+} from "./test-artifacts.js";
 
 function collectSideEffects(stepId) {
   const node = resolveNodeFor(FLOW_DEFINITION, stepId);
@@ -55,6 +61,50 @@ function preValidateTestStep(ctx) {
   );
 }
 
+function validatePostHookManagedStep(ctx, id) {
+  const state = ctx.flowManager.load();
+  if (!state?.spec) {
+    return Envelope.fail(
+      "set",
+      "step",
+      "STEP_ARTIFACT_VALIDATION_FAILED",
+      `${id} cannot be marked done without an active flow spec`,
+    );
+  }
+  const specDir = resolveSpecDir(path.resolve(ctx.root, state.spec));
+  try {
+    if (id === "test-execute") {
+      validateTestExecuteResultV2(readJsonStrict(path.join(specDir, "test-execute-result.json")));
+    } else if (id === "test-result-review") {
+      const review = validateTestResultReview(readJsonStrict(path.join(specDir, "test-result-review.json")));
+      if (review.verdict !== "pass") throw new Error("test-result-review verdict is not pass");
+    } else if (id === "gate-impl") {
+      assertIntegrationRegressionEvidence({
+        root: ctx.root,
+        state,
+        specDir,
+        config: container.has("config") ? (container.get("config") || {}) : {},
+      });
+    } else if (id === "retro") {
+      assertIntegrationRegressionEvidence({
+        root: ctx.root,
+        state,
+        specDir,
+        config: container.has("config") ? (container.get("config") || {}) : {},
+      });
+      readJsonStrict(path.join(specDir, "retro.json"));
+    }
+  } catch (err) {
+    return Envelope.fail(
+      "set",
+      "step",
+      "STEP_ARTIFACT_VALIDATION_FAILED",
+      `${id} cannot be marked done without valid current v2 test artifacts: ${err.message}`,
+    );
+  }
+  return null;
+}
+
 export default class SetStepCommand extends FlowCommand {
   async execute(ctx) {
     const { id, status } = ctx;
@@ -75,6 +125,10 @@ export default class SetStepCommand extends FlowCommand {
     // spec 249: pre-validate test step done before persisting state.
     if (id === "test" && status === "done") {
       const fail = preValidateTestStep(ctx);
+      if (fail) return fail;
+    }
+    if (status === "done" && ["test-execute", "test-result-review", "gate-impl", "retro"].includes(id)) {
+      const fail = validatePostHookManagedStep(ctx, id);
       if (fail) return fail;
     }
 

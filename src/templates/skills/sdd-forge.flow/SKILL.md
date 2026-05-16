@@ -99,7 +99,7 @@ B.4. **Prepare spec (silent)**
 
 Proceed to **C. Dispatcher loop**.
 
-Note: Test execution is centralized in the impl-phase `test-execute` step (spec 251). The dispatcher invokes it after `implement` and persists `test-execute-result.json` + raw output. Subsequent steps (`test-result-review`, `review`, `gate-impl`, `retro`) read those artifacts and do not re-run tests.
+Note: Test execution is centralized in the impl-phase `test-execute` step. The dispatcher invokes it after `implement` and persists `test-execute-result.json` version `"2"` + raw output. Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those artifacts and do not re-run tests. Prepare/docs-scan and `analysis.json` read/validation failures are hard stops. A started project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion.
 
 ### C. Dispatcher loop
 
@@ -133,6 +133,7 @@ C.2. **Execute instructions**
    - When the current step's work is finished, advance step status:
      - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — the hook handles the transition; do nothing further.
      - **`flow run review`**: draft review phases (`review-draft-questions` / `review-draft-coverage`) auto-complete on PASS or ADVISORY via post hook. `review-spec` auto-completes via post hook for PASS / ADVISORY / FAIL; FAIL advances to `spec-review-triage`. `review-test` still follows its prompt instructions. Impl/task review still auto-dones via post hook.
+     - **`flow run test-execute` / `flow run test-result-review` / `flow run retro`**: post hooks validate current v2 artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures.
      - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
 
 C.3. **Loop**

@@ -67,7 +67,8 @@
       "skillsDeployed": "[setup] Skills を配置しました (.agents/skills/ + .claude/skills/)",
       "summary": "設定サマリ:",
       "nextSteps": "次のステップ:",
-      "step1": "sdd-forge build  — ドキュメント一括生成（scan → init → data → text）"
+      "step1": "sdd-forge build  — ドキュメント一括生成（scan → init → data → text）",
+      "step2": "実装フローで project regression が必要になる場合は test.command または project test paths を設定してください"
     },
     "prompt": "> "
   },
@@ -301,6 +302,12 @@
     "error": {
       "pathNotFound": "パスが存在しません: {{path}}",
       "configValidation": "設定のバリデーションに失敗しました"
+    },
+    "test": {
+      "artifact": "test-execute-result.json v2",
+      "review": "test-result-review.json",
+      "projectRegression": "project regression",
+      "config": ".sdd-forge/config.json test.command / test.projectPaths / test.timeout"
     }
   }
 }

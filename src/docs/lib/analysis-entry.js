@@ -76,3 +76,47 @@ export function buildSummary(EntryClass, entries) {
 
   return result;
 }
+
+/**
+ * Iterate top-level analysis categories while ignoring metadata keys.
+ *
+ * @param {Object} analysis
+ * @param {{strict?: boolean}} [opts]
+ * @returns {IterableIterator<[string, Object]>}
+ */
+export function* iterateAnalysisCategories(analysis, opts = {}) {
+  if (!analysis || typeof analysis !== "object") {
+    if (opts.strict) throw new Error("analysis must be an object");
+    return;
+  }
+  for (const [key, value] of Object.entries(analysis)) {
+    if (ANALYSIS_META_KEYS.has(key)) continue;
+    const valid = value && typeof value === "object" && Array.isArray(value.entries);
+    if (!valid) {
+      if (opts.strict) throw new Error(`invalid analysis category '${key}': entries[] is required`);
+      continue;
+    }
+    yield [key, value];
+  }
+}
+
+function normalizeAnalysisPath(filePath) {
+  return filePath.split(/[\\/]+/).join("/");
+}
+
+/**
+ * Extract project file paths recorded by analysis.json entries.
+ *
+ * @param {Object} analysis
+ * @param {{strict?: boolean}} [opts]
+ * @returns {Set<string>}
+ */
+export function projectFilePathsFromAnalysis(analysis, opts = {}) {
+  const files = new Set();
+  for (const [, category] of iterateAnalysisCategories(analysis, opts)) {
+    for (const entry of category.entries) {
+      if (typeof entry?.file === "string") files.add(normalizeAnalysisPath(entry.file));
+    }
+  }
+  return files;
+}

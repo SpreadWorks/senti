@@ -9,7 +9,7 @@
 
 import path from "path";
 import { repoRoot, sourceRoot, isInsideWorktree, getMainRepoPath } from "./cli.js";
-import { loadConfig, sddConfigPath, sddDir, sddOutputDir, resolveWorkDir } from "./config.js";
+import { loadConfig, loadJsonFile, sddConfigPath, sddDir, sddOutputDir, resolveWorkDir } from "./config.js";
 import { Logger } from "./log.js";
 import { Agent } from "./agent.js";
 import { ProviderRegistry } from "./provider.js";
@@ -28,13 +28,12 @@ import {
   Heading,
   Fragment,
 } from "../docs/lib/renderable.js";
-import { AnalysisEntry, ANALYSIS_META_KEYS } from "../docs/lib/analysis-entry.js";
+import { AnalysisEntry, ANALYSIS_META_KEYS, iterateAnalysisCategories } from "../docs/lib/analysis-entry.js";
 import { findFiles, collectFiles, patternToRegex, parseFile, parsePHPFile, parseJSFile, camelToSnake, pluralize, getFileStats } from "../docs/lib/scanner.js";
 import { stripBlockComments, extractArrayBody, extractTopLevelKeys, extractQuotedStrings } from "../docs/lib/php-array-parser.js";
 import { getLangHandler } from "../docs/lib/lang-factory.js";
 import { hasPathPrefix, hasSegmentPath, hasAnyPathPrefix } from "../presets/lib/path-match.js";
 import { parseTOML } from "../docs/lib/toml-parser.js";
-import { loadJsonFile } from "./config.js";
 
 export class Container {
   constructor() {
@@ -140,11 +139,12 @@ export function initContainer(opts = {}) {
   let config = null;
   let configLoaded = false;
   try {
-    config = loadConfig(root);
+    config = loadConfig(root, { allowMissingType: true });
     configLoaded = true;
   } catch (err) {
     if (err?.code !== "ERR_MISSING_FILE") {
       process.stderr.write(`[sdd-forge] config load failed: ${err?.message}\n`);
+      throw err;
     }
   }
 
@@ -184,6 +184,7 @@ export function initContainer(opts = {}) {
   container.register("base.Scannable", Scannable);
   container.register("base.AnalysisEntry", AnalysisEntry);
   container.register("base.ANALYSIS_META_KEYS", ANALYSIS_META_KEYS);
+  container.register("base.iterateAnalysisCategories", iterateAnalysisCategories);
   container.register("base.Renderable", Renderable);
   container.register("base.Table", Table);
   container.register("base.BulletList", BulletList);

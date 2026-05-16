@@ -2,6 +2,8 @@
  * src/flow/lib/gate-step.js
  *
  * Gate step / gate phase mapping — derived from definition.js.
+ * Project regression validation belongs to the flow-level integration phase;
+ * task-level gate-impl remains mapped to task-impl.
  */
 
 import { FLOW_DEFINITION, TASK_DEFINITION, collectLeafIds, resolveNodeFor, collectGatePhaseEntries } from "../definition.js";

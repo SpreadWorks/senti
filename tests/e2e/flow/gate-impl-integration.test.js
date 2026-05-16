@@ -314,7 +314,7 @@ describe("gate-impl integration (spec 202)", () => {
         assert.equal(env.data.result, "pass");
       } else {
         assert.notEqual(res.status, 0, "stale spec.md marker response should fail");
-        assert.match(`${res.stdout}\n${res.stderr}`, /unknown guardrail_id/);
+        assert.match(`${res.stdout}\n${res.stderr}`, /unknown guardrail_id.*REQ-SPEC/s);
       }
     });
   }

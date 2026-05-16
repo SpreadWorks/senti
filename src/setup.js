@@ -567,6 +567,7 @@ async function main() {
   // Final summary
   console.log(`\n  ${t("setup.messages.nextSteps")}`);
   console.log(`    ${t("setup.messages.step1")}`);
+  console.log(`    ${t("setup.messages.step2")}`);
   console.log("");
 
   process.stdin.unref();

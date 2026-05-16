@@ -13,14 +13,12 @@ import path from "path";
 import { sourceRoot, parseArgs } from "../../lib/cli.js";
 import { sddOutputDir } from "../../lib/config.js";
 import { globToRegex } from "../../docs/lib/scanner.js";
+import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { pushSection, DIVIDER } from "../../lib/formatter.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 
 const DEFAULT_MAX_FILES = 10;
-
-// Meta keys to skip when reading analysis categories
-const META_KEYS = new Set(["analyzedAt", "enrichedAt"]);
 
 function printHelp() {
   console.log([
@@ -121,10 +119,7 @@ function computeCoverage(root, src, cfg) {
 
   // Files analyzed by any DataSource (from analysis.json entries)
   const analyzedFiles = new Set();
-  for (const key of Object.keys(analysis)) {
-    if (META_KEYS.has(key)) continue;
-    const cat = analysis[key];
-    if (!cat || !Array.isArray(cat.entries)) continue;
+  for (const [, cat] of iterateAnalysisCategories(analysis)) {
     for (const entry of cat.entries) {
       if (entry?.file) analyzedFiles.add(entry.file);
     }

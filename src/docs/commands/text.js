@@ -33,6 +33,7 @@ import { Command } from "../../lib/command.js";
 import { createLogger } from "../../lib/progress.js";
 import { translate } from "../../lib/i18n.js";
 import { getChapterFiles, loadFullAnalysis } from "../lib/command-context.js";
+import { iterateAnalysisCategories } from "../lib/analysis-entry.js";
 import { repairJson } from "../../lib/json-parse.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 
@@ -558,10 +559,7 @@ function detectChangedChapters(analysis, srcRoot) {
   const chapters = new Set();
   let hasChapterField = false;
 
-  for (const catKey of Object.keys(analysis)) {
-    const catData = analysis[catKey];
-    if (!catData || !Array.isArray(catData.entries)) continue;
-
+  for (const [, catData] of iterateAnalysisCategories(analysis)) {
     for (const entry of catData.entries) {
       if (!entry.chapter) continue;
       hasChapterField = true;
@@ -782,4 +780,3 @@ export default class DocsTextCommand extends Command {
     return result;
   }
 }
-

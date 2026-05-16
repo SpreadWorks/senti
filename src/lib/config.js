@@ -241,6 +241,15 @@ const CONFIG_SCHEMA = {
       },
     },
 
+    test: {
+      type: "object",
+      properties: {
+        command: { type: "string", minLength: 1 },
+        projectPaths: { type: "array", items: { type: "string", minLength: 1 } },
+        timeout: { type: "number", minimum: 1 },
+      },
+    },
+
     commands: {
       type: "object",
       properties: {
@@ -296,12 +305,18 @@ const CONFIG_SCHEMA = {
  * @param {*} raw - Parsed config object
  * @returns {import("./types.js").SddConfig} Validated config
  */
-export function validate(raw) {
+const MISSING_TYPE_ERROR = "type: required field is missing";
+
+export function validate(raw, options = {}) {
   if (!raw || typeof raw !== "object") {
     throw new Error("config must be a non-null object");
   }
 
   const errors = validateSchema(raw, CONFIG_SCHEMA);
+  if (options.allowMissingType === true) {
+    const index = errors.indexOf(MISSING_TYPE_ERROR);
+    if (index !== -1) errors.splice(index, 1);
+  }
 
   // Cross-field validation: defaultLanguage must be in languages
   if (Array.isArray(raw.docs?.languages) && typeof raw.docs?.defaultLanguage === "string") {
@@ -331,11 +346,43 @@ export function validate(raw) {
     }
   }
 
+  if (raw.test) {
+    if (typeof raw.test.command === "string") {
+      validateTestCommand(raw.test.command, errors);
+    }
+    if (Array.isArray(raw.test.projectPaths)) {
+      raw.test.projectPaths.forEach((entry, index) => validateProjectTestPath(entry, index, errors));
+    }
+    if (raw.test.timeout != null && !Number.isInteger(raw.test.timeout)) {
+      errors.push("'test.timeout' must be a positive integer number of seconds");
+    }
+  }
+
   if (errors.length > 0) {
     throw new Error(`Config validation failed:\n  - ${errors.join("\n  - ")}`);
   }
 
   return /** @type {import("./types.js").SddConfig} */ (raw);
+}
+
+const TEST_COMMAND_FORBIDDEN = /(\|\||&&|[|&;<>`$()]|\*|\?|\[|\]|\{|\})/;
+
+function validateTestCommand(command, errors) {
+  if (TEST_COMMAND_FORBIDDEN.test(command)) {
+    errors.push("'test.command' contains unsupported shell control or expansion syntax");
+  }
+}
+
+function validateProjectTestPath(entry, index, errors) {
+  const prefix = `'test.projectPaths[${index}]'`;
+  if (typeof entry !== "string" || entry.length === 0) {
+    errors.push(`${prefix} must be a non-empty string`);
+    return;
+  }
+  if (path.isAbsolute(entry)) errors.push(`${prefix} must be root-relative`);
+  const hasParentTraversal = entry === ".." || entry.startsWith("../") || entry.endsWith("/..") || entry.includes("/../");
+  if (entry.includes("\\") || hasParentTraversal) errors.push(`${prefix} must be a root-relative POSIX path without parent traversal`);
+  if (/[*?[\\\]{};$|&<>`$()]/.test(entry)) errors.push(`${prefix} must not contain globs or shell metacharacters`);
 }
 
 // ---------------------------------------------------------------------------
@@ -348,7 +395,7 @@ export function validate(raw) {
  * @param {string} root - リポジトリルート
  * @returns {import("./types.js").SddConfig}
  */
-export function loadConfig(root) {
+export function loadConfig(root, options = {}) {
   const raw = loadJsonFile(sddConfigPath(root));
-  return validate(raw);
+  return validate(raw, options);
 }

@@ -6,7 +6,7 @@
  */
 
 import { createI18n } from "../../lib/i18n.js";
-import { ANALYSIS_META_KEYS } from "./analysis-entry.js";
+import { iterateAnalysisCategories } from "./analysis-entry.js";
 
 /**
  * analysis.json をプロンプト用テキストに変換する。
@@ -55,14 +55,8 @@ export function summaryToText(analysis) {
 function enrichedSummaryToText(analysis) {
   const parts = [];
 
-  for (const cat of Object.keys(analysis)) {
-    if (ANALYSIS_META_KEYS.has(cat)) continue;
-    const data = analysis[cat];
-    if (!data || typeof data !== "object") continue;
-    const items = data.entries;
-    if (!Array.isArray(items)) continue;
-
-    const enrichedItems = items.filter((item) => item.summary);
+  for (const [cat, data] of iterateAnalysisCategories(analysis)) {
+    const enrichedItems = data.entries.filter((item) => item.summary);
     if (enrichedItems.length === 0) continue;
 
     parts.push(`${cat} (${enrichedItems.length} entries):`);
@@ -179,4 +173,3 @@ export function buildForgePrompt({ lang, userPrompt, round, maxRuns, reviewFeedb
     reviewFeedback || noFeedback,
   ].join("\n");
 }
-

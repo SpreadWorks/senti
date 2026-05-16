@@ -8,7 +8,7 @@
 import fs from "fs";
 import path from "path";
 import { createI18n } from "../../lib/i18n.js";
-import { ANALYSIS_META_KEYS } from "./analysis-entry.js";
+import { iterateAnalysisCategories } from "./analysis-entry.js";
 import { minify } from "./minify.js";
 
 /**
@@ -103,14 +103,8 @@ export function getEnrichedContext(analysis, fileName, mode, srcRoot) {
   const chapterName = chapterNameFromFile(fileName);
   const entries = [];
 
-  for (const cat of Object.keys(analysis)) {
-    if (ANALYSIS_META_KEYS.has(cat)) continue;
-    const data = analysis[cat];
-    if (!data || typeof data !== "object") continue;
-    const items = data.entries;
-    if (!Array.isArray(items)) continue;
-
-    for (const item of items) {
+  for (const [, data] of iterateAnalysisCategories(analysis)) {
+    for (const item of data.entries) {
       if (item.chapter === chapterName && (item.summary || item.detail)) {
         entries.push(item);
       }

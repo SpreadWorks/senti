@@ -490,6 +490,7 @@ export const FLOW_COMMANDS = {
 
         const planPhases = ["draft", "spec", "test"];
         if (planPhases.includes(ctx.phase)) return;
+        if (!ctx.dryRun && reviewMod.resetImplEvidenceAfterReviewProposals(ctx, result)) return;
         const stepId = "review";
         tryUpdateStepStatus(ctx, stepId, "done");
       },
@@ -778,7 +779,11 @@ export const FLOW_COMMANDS = {
         "  specs/<spec>/test-execute-result.json (machine-readable summary)",
         "  specs/<spec>/tests/.raw/test-execution.log (raw stdout/stderr)",
       ].join("\n"),
-      post(ctx) {
+      async post(ctx) {
+        const path = await import("node:path");
+        const { readJsonStrict, validateTestExecuteResultV2 } = await import("./lib/test-artifacts.js");
+        const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+        validateTestExecuteResultV2(readJsonStrict(path.join(specDir, "test-execute-result.json")));
         tryUpdateStepStatus(ctx, "test-execute", "done");
       },
     },
@@ -792,7 +797,12 @@ export const FLOW_COMMANDS = {
         "Verify test-execute-result.json integrity against raw output and code.",
         "Persists specs/<spec>/test-result-review.json and test-result-review.md.",
       ].join("\n"),
-      post(ctx) {
+      async post(ctx) {
+        const path = await import("node:path");
+        const { readJsonStrict, validateTestResultReview } = await import("./lib/test-artifacts.js");
+        const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+        const review = validateTestResultReview(readJsonStrict(path.join(specDir, "test-result-review.json")));
+        if (review.verdict !== "pass") throw new Error("test-result-review verdict is not pass");
         tryUpdateStepStatus(ctx, "test-result-review", "done");
       },
     },

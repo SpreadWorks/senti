@@ -1,99 +1,297 @@
 /**
  * src/flow/lib/run-test-execute.js
  *
- * FlowCommand: test-execute — invoke an AI agent to discover the project's
- * test command, execute it, and persist a structured result file plus the raw
- * stdout/stderr log. This is the single execution point for tests during the
- * impl phase; downstream steps (test-result-review, review-impl, gate-impl,
- * retro) read the persisted artifacts and MUST NOT rerun tests.
+ * Deterministic test execution entry point. The runner owns project-level
+ * regression execution and composes test-execute-result.json version "2".
+ *
+ * Root regression discovery is delegated to test-regression.js and follows:
+ * test.command argv parsing with KEY=value env support and shell pipe /
+ * semicolon / redirection / subshell / glob rejection, then package.json
+ * scripts.test via npm test --, composer.json scripts.test via composer
+ * run-script test --, and Makefile test via make test. Unknown analysis,
+ * execution, config, or test-contract file changes force full regression.
+ * test.projectPaths drives targeted project test-file classification.
+ * Skipped categories are docs-only, spec-artifact-only, non-project-only, and
+ * mixed-non-trigger. The temporary summary path lives under tests/.raw and is
+ * deleted during cleanup.
+ * Required regression raw output uses explicit start marker / end marker
+ * sections. Started exit code 127, non-zero exit, signal, and timeout
+ * outcomes become v2 fail artifacts.
  */
 
 import fs from "fs";
 import path from "path";
 import { container } from "../../lib/container.js";
-import { repairJson } from "../../lib/json-parse.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
+import { sddOutputDir } from "../../lib/config.js";
+import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
+import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import {
+  RAW_OUTPUT_RELATIVE,
+  RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS,
+  TEMP_SUMMARY_RELATIVE,
+  TEST_EXECUTE_RESULT_FILE,
+  readJsonStrict,
+  validateSummaryEvidence,
+} from "./test-artifacts.js";
+import {
+  classifyRegression,
+  discoverRegressionCommand,
+  listRegressionChangedFiles,
+  resolveTestTimeoutSeconds,
+  runProcessDetailed,
+} from "./test-regression.js";
 
-const RESULT_FILENAME = "test-execute-result.json";
-const RAW_OUTPUT_RELATIVE = "tests/.raw/test-execution.log";
-
-const SYSTEM_PROMPT = [
-  "You are a test execution agent.",
-  "1. Discover the project's test runner from declarative config (package.json scripts.test, composer.json, Makefile, pyproject.toml, .sdd-forge/config.json's commands.test, README).",
-  "2. Run the test command with verbose flags so individual test names appear.",
-  "3. Capture full stdout/stderr verbatim (no AI summarization).",
-  "4. Write specs/<spec>/test-execute-result.json (machine summary) and specs/<spec>/tests/.raw/test-execution.log (raw output).",
-  "5. Output JSON: { completed: boolean, result_path: string, raw_output_path: string }.",
-  "If no test command can be determined, return { completed: false } with error details written into summary[0].error.",
-].join("\n");
-
-function ensureAgent(commandId) {
-  const agent = container.get("agent");
-  if (!agent.resolve(commandId)) {
-    throw new Error(`no AI agent configured for ${commandId} (set agent.default in config.json)`);
-  }
-  return agent;
+function removeIfExists(filePath) {
+  if (fs.existsSync(filePath)) fs.rmSync(filePath, { force: true });
 }
 
-function buildPrompt(specDir, requirements) {
-  const reqText = (requirements || [])
+function recordPrerequisiteIssue(root, state, err) {
+  const issueLog = loadIssueLog(root, state.spec);
+  let changedFileCount = null;
+  try {
+    changedFileCount = listChangedFilesDetailed({ cwd: root, baseBranch: state.baseBranch || "main" }).length;
+  } catch (_) {
+    changedFileCount = null;
+  }
+  issueLog.entries.push({
+    step: "test-execute",
+    reason: `test-execute prerequisite failed before normal v2 artifact creation: ${err.message || String(err)}`,
+    failureKind: "prerequisite",
+    message: err.message || String(err),
+    commandSource: err.commandSource || null,
+    commandCandidates: Array.isArray(err.commandCandidates) ? err.commandCandidates : [],
+    changedFileCount,
+    trigger: "sdd-forge flow run test-execute",
+    resolution: "fix the prerequisite failure and rerun test-execute",
+    taskId: null,
+    timestamp: new Date().toISOString(),
+  });
+  saveIssueLog(root, state.spec, issueLog);
+}
+
+function listSpecTestFiles(specDir) {
+  const testsDir = path.join(specDir, "tests");
+  if (!fs.existsSync(testsDir)) return [];
+  return fs.readdirSync(testsDir)
+    .filter((name) => /\.(test|spec)\.(js|mjs|ts)$/.test(name))
+    .sort()
+    .map((name) => path.join(testsDir, name));
+}
+
+function extractRequirementTestName(filePath, reqId) {
+  const src = fs.readFileSync(filePath, "utf8");
+  const re = new RegExp(`(?:it|test)\\(\\s*["'\`](${reqId}: [^"'\`]+)["'\`]`);
+  return src.match(re)?.[1] || `${reqId}: requirement verification`;
+}
+
+function findSpecTestFileForReq(specDir, reqId) {
+  for (const file of listSpecTestFiles(specDir)) {
+    const firstLine = fs.readFileSync(file, "utf8").split(/\r?\n/, 1)[0];
+    if (new RegExp(`\\b${reqId}\\b`).test(firstLine)) return file;
+  }
+  return listSpecTestFiles(specDir)[0] || path.join(specDir, "tests", "missing.test.js");
+}
+
+function appendRaw(lines, sectionLines) {
+  const start = lines.length + 1;
+  lines.push(...sectionLines);
+  return { start_line: start, end_line: lines.length };
+}
+
+function processLines(result) {
+  const lines = [];
+  if (result.stdout) lines.push(...result.stdout.split(/\r?\n/).filter((line) => line.length > 0));
+  if (result.stderr) lines.push(...result.stderr.split(/\r?\n/).filter((line) => line.length > 0));
+  if (result.spawnError) lines.push(`spawnError: ${result.spawnError}`);
+  if (result.signal) lines.push(`signal: ${result.signal}`);
+  if (result.timedOut) lines.push("timeout: true");
+  lines.push(`exitCode: ${result.exitCode}`);
+  return lines;
+}
+
+async function runSpecLocalTests(root, specDir, timeoutMs) {
+  const files = listSpecTestFiles(specDir);
+  if (files.length === 0) {
+    return {
+      command: "node --test",
+      result: { started: true, exitCode: 0, signal: null, timedOut: false, spawnError: null, stdout: "", stderr: "" },
+    };
+  }
+  const argv = ["node", "--test", ...files.map((file) => path.relative(root, file))];
+  const result = await runProcessDetailed({ argv, env: {}, source: "spec-local-tests" }, { cwd: root, timeoutMs });
+  return { command: argv.join(" "), result };
+}
+
+function buildSummary({ root, specDir, requirements, specLocal, range }) {
+  const pass = specLocalPassed(specLocal);
+  return requirements
     .filter((r) => r.testable !== false)
-    .map((r) => `- ${r.id}: ${r.desc}`)
-    .join("\n");
-  return [
-    `Spec directory: ${specDir}`,
-    `Result file path: ${path.join(specDir, RESULT_FILENAME)}`,
-    `Raw output path: ${path.join(specDir, RAW_OUTPUT_RELATIVE)}`,
-    "",
-    "Testable requirements (must each appear in summary[]):",
-    reqText || "(none)",
-    "",
-    "Discover the test command, execute it verbosely, and write the artifacts.",
-    "Return ONLY a JSON object: { \"completed\": true, \"result_path\": \"...\", \"raw_output_path\": \"...\" }.",
-  ].join("\n");
+    .map((req) => {
+      const file = findSpecTestFileForReq(specDir, req.id);
+      return {
+        id: req.id,
+        result: pass ? "pass" : "fail",
+        ...(pass ? {} : { error: "spec-local requirement tests failed" }),
+        evidence: {
+          test_file: path.relative(root, file).split(path.sep).join("/"),
+          test_name: extractRequirementTestName(file, req.id),
+          command: specLocal.command,
+          raw_output_lines: range,
+        },
+      };
+    });
+}
+
+function processPassed(result) {
+  return result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError;
+}
+
+function specLocalPassed(specLocal) {
+  return processPassed(specLocal.result);
+}
+
+function buildSkippedRegression(classification) {
+  return {
+    required: false,
+    result: "skipped",
+    mode: "none",
+    category: classification.category,
+    reason: classification.reason,
+    classified_paths: classification.classifiedPaths,
+    trigger_relevant_changed_files: classification.triggerRelevantChangedFiles,
+    changed_files: classification.changedFiles,
+  };
+}
+
+function buildRequiredRegression({ classification, rootCommand, command, result, range }) {
+  const pass = processPassed(result);
+  return {
+    required: true,
+    mode: classification.mode,
+    root_test_command: rootCommand.toString(),
+    root_test_command_source: rootCommand.source,
+    command: command.toString(),
+    result: pass ? "pass" : "fail",
+    raw_output_lines: range,
+    trigger_relevant_changed_files: classification.triggerRelevantChangedFiles,
+    changed_files: classification.changedFiles,
+    ...(classification.mode === "targeted" ? { target_paths: [...classification.targetPaths] } : {}),
+    process: {
+      started: result.started,
+      exitCode: result.exitCode,
+      signal: result.signal,
+      timedOut: result.timedOut,
+      spawnError: result.spawnError,
+    },
+  };
 }
 
 export default class RunTestExecuteCommand extends FlowCommand {
   async execute(ctx) {
     const { root } = ctx;
+    const config = container.get("config") || {};
     const state = ctx.flowState;
     const specDir = resolveSpecDir(path.resolve(root, state.spec));
-    const rawOutputDir = path.join(specDir, "tests", ".raw");
-    fs.mkdirSync(rawOutputDir, { recursive: true });
-
-    const specJsonPath = path.join(specDir, "spec.json");
-    const spec = JSON.parse(fs.readFileSync(specJsonPath, "utf8"));
-    const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
-
-    const agent = ensureAgent("flow.test.execute");
-    const prompt = buildPrompt(specDir, requirements);
-    const reply = await agent.call(prompt, {
-      commandId: "flow.test.execute",
-      systemPrompt: SYSTEM_PROMPT,
-    });
-
-    const text = typeof reply === "string" ? reply : (reply?.text ?? "");
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = repairJson(text);
-    }
-
-    const resultPath = path.join(specDir, RESULT_FILENAME);
     const rawOutputPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
-    const exists = fs.existsSync(resultPath);
+    fs.mkdirSync(path.dirname(rawOutputPath), { recursive: true });
 
-    return {
-      result: parsed?.completed && exists ? "ok" : "fail",
-      changed: exists ? [path.relative(root, resultPath)] : [],
-      artifacts: {
-        result_path: parsed?.result_path || path.relative(root, resultPath),
-        raw_output_path: parsed?.raw_output_path || path.relative(root, rawOutputPath),
-        completed: !!parsed?.completed,
+    // Removes test-execute-result.json, test-result-review.json,
+    // test-result-review.md, retro.json, report.json, tests/.raw/test-execution.log,
+    // and tests/.raw/requirement-summary.json before rebuilding evidence.
+    for (const rel of RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS) removeIfExists(path.join(specDir, rel));
+
+    try {
+      const spec = readJsonStrict(path.join(specDir, "spec.json"));
+      const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
+      const analysisPath = path.join(sddOutputDir(root), "analysis.json");
+      if (!fs.existsSync(analysisPath)) {
+        throw new Error(`analysis.json not found at ${analysisPath}: run docs scan before test-execute`);
+      }
+      const analysis = readJsonStrict(analysisPath);
+
+      const timeoutMs = resolveTestTimeoutSeconds(config) * 1000;
+      const rawLines = [];
+      const specLocal = await runSpecLocalTests(root, specDir, timeoutMs);
+      if (specLocal.result.spawnError && !specLocal.result.started) {
+        throw new Error(`spec-local test command failed to start: ${specLocal.result.spawnError}`);
+      }
+      const specRange = appendRaw(rawLines, [
+        "[sdd-forge] spec-local tests start",
+        `command: ${specLocal.command}`,
+        ...processLines(specLocal.result),
+        ...requirements
+          .filter((r) => r.testable !== false)
+          .map((req) => `[sdd-forge] requirement ${req.id} result ${specLocalPassed(specLocal) ? "pass" : "fail"}`),
+        "[sdd-forge] spec-local tests end",
+      ]);
+      const summary = buildSummary({ root, specDir, requirements, specLocal, range: specRange });
+      const tempSummaryPath = path.join(specDir, TEMP_SUMMARY_RELATIVE);
+      fs.writeFileSync(tempSummaryPath, JSON.stringify(summary, null, 2) + "\n");
+      validateSummaryEvidence(readJsonStrict(tempSummaryPath), {
+        root,
+        rawText: rawLines.join("\n"),
+        rawLines,
+        requirements,
+      });
+
+      const changedFiles = listRegressionChangedFiles({ root, state });
+      const classification = classifyRegression({ root, state, analysis, config, changedFiles });
+      let regression;
+      if (!classification.required) {
+        regression = buildSkippedRegression(classification);
+      } else {
+        const rootCommand = discoverRegressionCommand(root, config);
+        const command = classification.mode === "targeted" ? rootCommand.withTargets(classification.targetPaths) : rootCommand;
+        const result = await runProcessDetailed(command, { cwd: root, timeoutMs });
+        if (result.spawnError && !result.started) {
+          throw new Error(`project regression command failed to start: ${result.spawnError}`);
+        }
+        const regressionResult = processPassed(result) ? "pass" : "fail";
+        const range = appendRaw(rawLines, [
+          `[sdd-forge] project regression start command=${command.toString()} mode=${classification.mode}`,
+          `command: ${command.toString()}`,
+          `mode: ${classification.mode}`,
+          ...processLines(result),
+          `result: ${regressionResult}`,
+          `[sdd-forge] project regression end result=${regressionResult}`,
+        ]);
+        regression = buildRequiredRegression({ classification, rootCommand, command, result, range });
+      }
+
+      fs.writeFileSync(rawOutputPath, rawLines.join("\n") + "\n");
+      const resultPath = path.join(specDir, TEST_EXECUTE_RESULT_FILE);
+      const artifact = {
+        version: "2",
+        raw_output_path: path.relative(root, rawOutputPath).split(path.sep).join("/"),
+        summary,
+        regression,
+      };
+      fs.writeFileSync(resultPath, JSON.stringify(artifact, null, 2) + "\n");
+      removeIfExists(path.join(specDir, TEMP_SUMMARY_RELATIVE));
+
+      return {
+        result: "ok",
+        changed: [
+          path.relative(root, resultPath),
+          path.relative(root, rawOutputPath),
+        ],
+        artifacts: {
+          result_path: path.relative(root, resultPath),
+        raw_output_path: path.relative(root, rawOutputPath),
+        completed: true,
+        artifact_version: "2",
+        regression: regression.result,
       },
-      next: parsed?.completed ? "test-result-review" : null,
-    };
+        next: "test-result-review",
+      };
+    } catch (err) {
+      const resultPath = path.join(specDir, TEST_EXECUTE_RESULT_FILE);
+      if (!fs.existsSync(resultPath)) {
+        recordPrerequisiteIssue(root, state, err);
+      }
+      throw err;
+    }
   }
 }

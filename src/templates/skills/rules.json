@@ -55,6 +55,12 @@
       "body": "**MUST: `sdd-forge` コマンドをチェーン (`&&` `;` `|`) または background 実行してはならない。** 各 `sdd-forge` 呼び出しは独立した foreground Bash で実行し、結果を確認してから次へ進む。"
     },
     {
+      "id": "post-hook-managed-test-artifacts",
+      "phase": ["flow.test-execute", "flow.test-result-review", "flow.gate-impl", "flow.retro"],
+      "state": [],
+      "body": "**MUST: `test-execute` / `test-result-review` / flow-level `gate-impl` / `retro` の完了を手動で偽装してはならない。** これらは post-hook と deterministic validator が v2 `test-execute-result.json`、`test-result-review.json`、project regression evidence、raw log を検証してから進める。prerequisite failure は hard stop として修正してから再実行する。"
+    },
+    {
       "id": "no-shared-repo-git-ops",
       "phase": ["flow.draft", "flow.review-draft-questions", "flow.draft-refine", "flow.review-draft-coverage", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.spec-review-triage", "flow.spec-repair", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
       "state": ["worktreeActive"],

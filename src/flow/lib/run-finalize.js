@@ -20,6 +20,10 @@ import {
 } from "../../lib/git-helpers.js";
 import { container } from "../../lib/container.js";
 import { POINTER_REL_PATH as LAST_FINALIZED_SPEC_POINTER_REL_PATH } from "./run-report-show.js";
+import {
+  DURABLE_TEST_ARTIFACT_RELATIVE_PATHS,
+  buildTestResultsFromArtifacts,
+} from "./test-artifacts.js";
 
 export function finalizeOnError(stepName, trigger) {
   return (ctx, err) => {
@@ -149,29 +153,33 @@ export async function executeCommitPost(ctx) {
   const results = ctx._results || {};
 
   // report
-  try {
-    const { generateReport, saveReport } = await import("../commands/report.js");
+  const { generateReport, saveReport } = await import("../commands/report.js");
 
-    const { diffStat: implDiffStat, commitMessages } = collectGitSummary(root, state.baseBranch);
-
-    let issueLog = { entries: [] };
-    try {
-      issueLog = loadIssueLog(root, state.spec);
-    } catch (_) { /* no issue-log */ }
-
-    const report = generateReport({
-      state,
-      results,
-      redolog: issueLog,
-      implDiffStat,
-      commitMessages,
-    });
-
-    try { saveReport(root, state.spec, report); } catch (e) { report.saveError = e.message; }
-    results.report = { status: "done", ...report };
-  } catch (e) {
-    results.report = { status: "failed", message: String(e.message || e) };
+  const { diffStat: implDiffStat, commitMessages } = collectGitSummary(root, state.baseBranch);
+  const specAbsDir = path.dirname(path.resolve(root, state.spec));
+  // Shared loader validates test-execute-result.json v2 / test-result-review.json
+  // and preserves results.testExecute.projectRegression for finalize report rendering.
+  const testExecutePath = path.join(specAbsDir, "test-execute-result.json");
+  const testResultReviewPath = path.join(specAbsDir, "test-result-review.json");
+  if (fs.existsSync(testExecutePath) || fs.existsSync(testResultReviewPath)) {
+    Object.assign(results, buildTestResultsFromArtifacts(specAbsDir));
   }
+
+  let issueLog = { entries: [] };
+  try {
+    issueLog = loadIssueLog(root, state.spec);
+  } catch (_) { /* no issue-log */ }
+
+  const report = generateReport({
+    state,
+    results,
+    issueLog,
+    implDiffStat,
+    commitMessages,
+  });
+
+  saveReport(root, state.spec, report);
+  results.report = { status: "done", ...report };
 
   // post report to issue
   if (!state.issue) {
@@ -190,9 +198,9 @@ export async function executeCommitPost(ctx) {
     }
   }
 
-  // commit retro + report files
+  // commit only durable impl-phase test/report artifacts
   const specDir = path.posix.join("specs", specIdFromPath(state.spec));
-  runGit(["add", "--", specDir], { cwd: root });
+  runGit(["add", "--", ...DURABLE_TEST_ARTIFACT_RELATIVE_PATHS.map((p) => path.posix.join(specDir, p))], { cwd: root });
   try {
     commitOrSkip(["-m", "chore: add retro and report"], { cwd: root });
   } catch (e) {

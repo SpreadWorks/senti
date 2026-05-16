@@ -529,21 +529,6 @@ export class FlowStore {
     }, opts);
   }
 
-  setTestSummary(summary, opts) {
-    const target = opts?.baseline ? "baseline" : "summary";
-    const mode = opts?.mode ?? "replace";
-    this.mutate((state) => {
-      const scope = resolveMutationScope(state, opts);
-      if (!scope.test) scope.test = {};
-      if (mode === "fallback") {
-        const existing = scope.test[target] || {};
-        scope.test[target] = { ...existing, failed: summary.failed };
-      } else {
-        scope.test[target] = summary;
-      }
-    });
-  }
-
   setRequest(text) { this.mutate((state) => { state.request = text; }); }
   setIssue(issue) { this.mutate((state) => { state.issue = issue; }); }
 
@@ -629,7 +614,6 @@ export class FlowStore {
       if (!task) throw new Error(`unknown task id: ${taskId}`);
       task.status = "done";
       if (state.currentTaskId === taskId) state.currentTaskId = null;
-      aggregateTaskSummaryIntoParent(state, task);
 
       // Spec 226: forest propagation. When all children of a parent are
       // done/skipped, the parent becomes done as well. Walk upward from this
@@ -659,7 +643,6 @@ export class FlowStore {
         if (allDone && parent.status !== "done") {
           parent.status = "done";
           if (state.currentTaskId === parent.id) state.currentTaskId = null;
-          aggregateTaskSummaryIntoParent(state, parent);
         } else {
           break;
         }
@@ -707,22 +690,6 @@ export class FlowStore {
       if (currentBranch === `feature/${entry.spec}`) return entry;
     }
     return null;
-  }
-}
-
-/**
- * Aggregate a completed task's test.summary counts into the parent state's
- * test.summary. Sums unit / integration / acceptance fields. No-op when the
- * task has no summary.
- */
-function aggregateTaskSummaryIntoParent(state, task) {
-  const taskSummary = task?.test?.summary;
-  if (!taskSummary || typeof taskSummary !== "object") return;
-  if (!state.test) state.test = {};
-  if (!state.test.summary) state.test.summary = {};
-  for (const key of ["unit", "integration", "acceptance"]) {
-    const add = Number(taskSummary[key]) || 0;
-    state.test.summary[key] = (Number(state.test.summary[key]) || 0) + add;
   }
 }
 

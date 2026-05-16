@@ -1,9 +1,9 @@
 {
   "type": "object",
-  "required": ["version", "raw_output_path", "summary"],
+  "required": ["version", "raw_output_path", "summary", "regression"],
   "additionalProperties": false,
   "properties": {
-    "version": { "type": "string", "const": "1" },
+    "version": { "type": "string", "enum": ["2"] },
     "raw_output_path": { "type": "string" },
     "summary": {
       "type": "array",
@@ -24,11 +24,89 @@
               "test_name": { "type": "string" },
               "command": { "type": "string" },
               "raw_output_lines": {
-                "type": "array",
-                "minItems": 2,
-                "maxItems": 2,
-                "items": { "type": "integer", "minimum": 0 }
+                "type": "object",
+                "required": ["start_line", "end_line"],
+                "additionalProperties": false,
+                "properties": {
+                  "start_line": { "type": "integer", "minimum": 1 },
+                  "end_line": { "type": "integer", "minimum": 1 }
+                }
               }
+            }
+          }
+        }
+      }
+    },
+    "regression": {
+      "type": "object",
+      "required": ["required", "result", "mode", "changed_files", "trigger_relevant_changed_files"],
+      "additionalProperties": false,
+      "properties": {
+        "required": { "type": "boolean" },
+        "result": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+        "mode": { "type": "string", "enum": ["full", "targeted", "none"] },
+        "root_test_command": { "type": "string" },
+        "root_test_command_source": { "type": "string" },
+        "command": { "type": "string" },
+        "target_paths": { "type": "array", "items": { "type": "string" } },
+        "raw_output_lines": {
+          "type": "object",
+          "required": ["start_line", "end_line"],
+          "additionalProperties": false,
+          "properties": {
+            "start_line": { "type": "integer", "minimum": 1 },
+            "end_line": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "process": {
+          "type": "object",
+          "required": ["started", "exitCode", "signal", "timedOut", "spawnError"],
+          "additionalProperties": false,
+          "properties": {
+            "started": { "type": "boolean" },
+            "exitCode": { "type": ["integer", "null"] },
+            "signal": { "type": ["string", "null"] },
+            "timedOut": { "type": "boolean" },
+            "spawnError": { "type": ["string", "null"] }
+          }
+        },
+        "changed_files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["status", "path"],
+            "additionalProperties": false,
+            "properties": {
+              "status": { "type": "string" },
+              "path": { "type": "string" },
+              "old_path": { "type": "string" }
+            }
+          }
+        },
+        "trigger_relevant_changed_files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["status", "path"],
+            "additionalProperties": false,
+            "properties": {
+              "status": { "type": "string" },
+              "path": { "type": "string" },
+              "old_path": { "type": "string" }
+            }
+          }
+        },
+        "category": { "type": "string", "enum": ["docs-only", "spec-artifact-only", "non-project-only", "mixed-non-trigger"] },
+        "reason": { "type": "string" },
+        "classified_paths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "category"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string" },
+              "category": { "type": "string", "enum": ["docs-only", "spec-artifact-only", "non-project-only", "mixed-non-trigger"] }
             }
           }
         }
