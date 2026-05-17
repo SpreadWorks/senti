@@ -237,6 +237,43 @@ describe("dispatcher (unified runner)", () => {
       }
     });
 
+    it("runtime log write is best-effort when cleanup removes the log directory", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-dispatcher-"));
+      try {
+        const agentWorkDir = path.join(tmp, ".agent-work");
+        container.register("paths", { root: tmp, agentWorkDir });
+
+        class Cmd extends Command {
+          static outputMode = "envelope";
+          execute() {
+            fs.rmSync(agentWorkDir, { recursive: true, force: true });
+            return { ok: true };
+          }
+        }
+
+        const entry = {
+          command: async () => ({ default: Cmd }),
+          args: { options: ["--log-file"] },
+          requiresFlow: false,
+        };
+        const out = [];
+        await dispatch({
+          container,
+          entry,
+          argv: [],
+          envelopeType: "run",
+          envelopeKey: "finalize-cleanup",
+          runtimeLog: true,
+          stdout: (s) => out.push(s),
+          buildHookCtx: () => ({ specId: "demo-flow" }),
+        });
+
+        assert.equal(JSON.parse(out.join("")).ok, true);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
     it("raw mode lets the command write stdout itself", async () => {
       class Cmd extends Command {
         static outputMode = "raw";

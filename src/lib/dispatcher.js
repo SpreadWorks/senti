@@ -117,20 +117,25 @@ class RuntimeLog {
     if (this.truncated) return;
     const text = line.endsWith("\n") ? line : `${line}\n`;
     const remaining = this.maxBytes - this.bytesWritten;
-    if (Buffer.byteLength(text) <= remaining) {
-      fs.appendFileSync(this.filePath, text);
-      this.bytesWritten += Buffer.byteLength(text);
-      return;
-    }
+    try {
+      if (Buffer.byteLength(text) <= remaining) {
+        fs.appendFileSync(this.filePath, text);
+        this.bytesWritten += Buffer.byteLength(text);
+        return;
+      }
 
-    const markerBytes = Buffer.byteLength(RUNTIME_LOG_TRUNCATED_MARKER);
-    const allowed = Math.max(0, remaining - markerBytes);
-    if (allowed > 0) {
-      fs.appendFileSync(this.filePath, Buffer.from(text).subarray(0, allowed));
+      const markerBytes = Buffer.byteLength(RUNTIME_LOG_TRUNCATED_MARKER);
+      const allowed = Math.max(0, remaining - markerBytes);
+      if (allowed > 0) {
+        fs.appendFileSync(this.filePath, Buffer.from(text).subarray(0, allowed));
+      }
+      fs.appendFileSync(this.filePath, RUNTIME_LOG_TRUNCATED_MARKER);
+      this.bytesWritten = this.maxBytes;
+      this.truncated = true;
+    } catch (err) {
+      if (err?.code !== "ENOENT") throw err;
+      this.truncated = true;
     }
-    fs.appendFileSync(this.filePath, RUNTIME_LOG_TRUNCATED_MARKER);
-    this.bytesWritten = this.maxBytes;
-    this.truncated = true;
   }
 }
 
