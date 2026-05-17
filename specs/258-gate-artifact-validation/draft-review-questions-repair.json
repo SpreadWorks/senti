@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-review-questions-repair",
+  "sourceReview": "draft-review-questions.md",
+  "generatedAt": "2026-05-17T00:34:17.844Z",
+  "summary": "Removed the two QA entries identified by the review as implementation or test strategy details that should be decided by project patterns during implementation, while preserving all other draft content and keeping approval unapproved.",
+  "items": [
+    {
+      "findingTitle": "1. q4 asks implementation details",
+      "target": "qa[q4]",
+      "decision": "applied",
+      "rationale": "The review found q4 asks the user to choose an internal representation strategy for artifact contracts. That should be determined from the existing project architecture during implementation rather than asked as a draft QA item.",
+      "evidence": "q4 asked whether artifact contract should be represented as a dedicated spec.json field or through existing requirements / acceptance_criteria / constraints, which is an implementation design choice rather than a user-facing product decision.",
+      "changedFields": [
+        "draft.qa"
+      ]
+    },
+    {
+      "findingTitle": "2. q5 asks implementation/test strategy details",
+      "target": "qa[q5]",
+      "decision": "applied",
+      "rationale": "The review found q5 asks the user to choose the implementation test strategy. Test coverage should be derived from existing test patterns and risk during implementation rather than asked as a draft QA item.",
+      "evidence": "q5 asked whether to proceed with unit coverage for the validator failure matrix and e2e coverage for gate-impl placeholder failure, which is an internal testing approach decision.",
+      "changedFields": [
+        "draft.qa"
+      ]
+    }
+  ]
+}

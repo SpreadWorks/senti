@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three blocking findings remain valid and should be repaired in spec.json before gate.",
+  "items": [
+    {
+      "title": "Gate scope is ambiguous between task and integration gate-impl",
+      "target": "R1/R2/T-2 and Overview > Data Flow",
+      "decision": "apply",
+      "rationale": "The flow has task-level gate-impl and flow-level gate-impl paths, while test-execute-result.json and test-result-review.json are produced only before the flow-level integration gate. The spec must restrict artifact trust validation to phase=integration.",
+      "evidence": "spec-review.json blockingFindings[0]; src/flow/lib/run-gate.js PHASE_TO_LEVEL maps task-impl to task and integration to integration; src/flow/definition.js has flow gate-impl after test-result-review."
+    },
+    {
+      "title": "User-permission audit record has no deterministic contract",
+      "target": "R5 and Clarifications > user-permission exception",
+      "decision": "apply",
+      "rationale": "The current spec mentions an audit record but does not define machine-readable fields or relation to the active flow, so tests cannot distinguish explicit permission from unrelated free-form issue-log text.",
+      "evidence": "spec-review.json blockingFindings[1]; spec.json R5 and clarifications define permission concept without artifact path, marker, or field-level contract."
+    },
+    {
+      "title": "Placeholder sentinel scan scope is undefined",
+      "target": "R3 and Clarifications > placeholder definition",
+      "decision": "apply",
+      "rationale": "The sentinel rule references execution-evidence values but does not name the JSON paths or raw-log behavior. The implementation and tests need an exact scan set.",
+      "evidence": "spec-review.json blockingFindings[2]; spec.json R3 and clarifications mention placeholder/TODO/TBD without enumerating artifact fields."
+    }
+  ]
+}

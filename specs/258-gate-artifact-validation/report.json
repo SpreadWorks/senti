@@ -1,0 +1,288 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".agents/skills/sdd-forge.flow/SKILL.md             |   21 +-\n .claude/skills/sdd-forge.flow/SKILL.md             |   21 +-\n .sdd-forge/output/analysis.json                    |   74 +-\n .../draft-review-coverage.md                       |    3 +\n .../draft-review-questions-repair.json             |   29 +\n .../draft-review-questions.md                      |   20 +\n specs/258-gate-artifact-validation/draft.json      |  121 ++\n specs/258-gate-artifact-validation/file-map.json   |   31 +\n specs/258-gate-artifact-validation/flow.json       | 1990 ++++++++++++++++++++\n specs/258-gate-artifact-validation/issue-log.json  |  397 ++++\n specs/258-gate-artifact-validation/issue.md        |   50 +\n specs/258-gate-artifact-validation/review.md       |   26 +\n .../258-gate-artifact-validation/spec-repair.json  |   58 +\n .../spec-review-triage.json                        |   29 +\n .../258-gate-artifact-validation/spec-review.json  |   58 +\n specs/258-gate-artifact-validation/spec-review.md  |   36 +\n specs/258-gate-artifact-validation/spec.json       |  274 +++\n specs/258-gate-artifact-validation/spec.md         |  127 ++\n specs/258-gate-artifact-validation/tasks/T-1.md    |   20 +\n specs/258-gate-artifact-validation/tasks/T-2.md    |   20 +\n specs/258-gate-artifact-validation/tasks/T-3.md    |   20 +\n specs/258-gate-artifact-validation/tasks/T-4.md    |   20 +\n specs/258-gate-artifact-validation/test-review.md  |    9 +\n .../tests/artifact-trust-validator.test.js         |  992 ++++++++++\n specs/258-gate-artifact-validation/tests/spec.md   |  163 ++\n src/flow/lib/run-finalize.js                       |    9 +-\n src/flow/lib/run-gate.js                           |   44 +-\n src/flow/lib/test-artifacts.js                     |  434 ++++-\n src/flow/prompts/impl/implement.md                 |    1 +\n src/templates/partials/core-principle.md           |    7 +-\n .../partials/placeholder-artifact-permission.md    |    4 +\n src/templates/skills/sdd-forge.flow/SKILL.md       |    6 +-\n 32 files changed, 5001 insertions(+), 113 deletions(-)",
+      "commits": [
+        "Validate gate implementation artifacts"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 31,
+      "entries": [
+        {
+          "step": "review-draft-questions",
+          "reason": "draft question review applied automatic repair because q4 and q5 asked implementation details",
+          "resolution": "accepted CLI repair that dropped implementation-detail questions and kept requirement-level pending questions"
+        },
+        {
+          "step": "gate-draft",
+          "reason": "qa[3]: invalid category \"consumer-contracts\"",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "gate-draft failed because draft qa category consumer-contracts is not in the allowed draft lifecycle enum",
+          "resolution": "changed q6 category to dependency-integration-boundary based on src/flow/lib/draft-lifecycle.js enum"
+        },
+        {
+          "step": "gate-draft",
+          "reason": "Single Responsibility — The draft addresses one user-defined concern: validating required flow artifacts in gate-impl to block placeholder-based fulfillment claims.; Unambiguous Requirements — 既存の test-execute / test-result-review / regression evidence 検証との整合を保つ。 — The requirement uses a vague condition, \"整合を保つ\", without stating verifiable compatibility criteria. (at scopeVerification.in[4]); Unambiguous Requirements — 必要な unit / integration / e2e テストを追加または更新する。 — The phrase \"必要な\" does not define which tests are required or what condition makes the test coverage sufficient. (at scopeVerification.in[5]); Unambiguous Requirements — known set は ad-hoc な最小集合でよく、拡張可能な実装にする。 — The terms \"最小集合\" and \"拡張可能\" do not state verifiable conditions for what must be implemented. (at qa[1].answer); Complete Context — 既存の test-execute / test-result-review / regression evidence 検証との整合を保つ。 — Two independent reviewers could disagree on whether existing validation consistency has been preserved because no measurable criteria are given. (at scopeVerification.in[4]); Complete Context — 必要な unit / integration / e2e テストを追加または更新する。 — The draft does not specify the required test scenarios or acceptance threshold, so reviewers may disagree on whether the implementation satisfies it. (at scopeVerification.in[5]); Complete Context — known set は ad-hoc な最小集合でよく、拡張可能な実装にする。 — The required placeholder set size and extensibility behavior are not defined specifically enough for consistent review. (at qa[1].answer); No Hardcoded Secrets — The draft does not include source code containing API keys, passwords, tokens, or other secrets.; Prioritize Requirements — missing priorities for more than three requirements — The draft lists six in-scope requirement items but does not assign each one a priority of must, should, or nice-to-have. (at scopeVerification.in); Impact on Existing Features — The draft includes an impactOnExisting section listing expected impacts on gate-impl, spec schema or prompts, artifact producer/consumer flow, generated skills, and normal flows.; Present Recommendations with Reasoning — Each listed question has a recommended answer and concise reasoning grounded in issue context, existing code evidence, or project rules.; Explore Before Asking — The draft records codebase evidence from docs/project rules and source files before answering the questions.; Proactively Raise Related Implications — The draft raises related implications such as artifact scope, user permission auditing, responsibility boundaries, migration scope, upgrade requirements, and existing flow impact.; Confirm Brainstorm vs. Decision Before Critiquing — The content does not critique a brainstorming decision, so the guardrail is inapplicable by nature of this draft.; Capture Digressions in draft.md — No discussion digression is present in the supplied content, so there is no digression to capture.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing CLI commands or options, and explicitly excludes migration of past spec artifacts.",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "gate-draft guardrails failed for vague draft requirements and missing priorities in scopeVerification.in",
+          "resolution": "added must priorities to each in-scope item, replaced vague consistency wording with concrete artifact validation preservation, and specified placeholder sentinel/hash fail conditions"
+        },
+        {
+          "step": "gate-draft",
+          "reason": "Single Responsibility — The draft stays within the user-defined Issue scope of validating required flow artifacts before gate-impl.; Unambiguous Requirements — `ARTIFACT_PLACEHOLDER` または同等に識別可能な failure code — The phrase allows an unspecified equivalent failure code without defining what makes it equivalently identifiable. This is not a directly verifiable condition. (at scopeVerification.in[2]); Unambiguous Requirements — placeholder または不完全 artifact — The term `不完全 artifact` is broader than the listed missing, malformed, placeholder, and valid cases and does not define a verifiable boundary. (at scopeVerification.in[2]); Complete Context — `ARTIFACT_PLACEHOLDER` または同等に識別可能な failure code — Two reviewers could disagree about whether a different failure code is sufficiently identifiable. The requirement should name the allowed code or define an exact acceptance rule for alternatives. (at scopeVerification.in[2]); Complete Context — placeholder または不完全 artifact — The draft does not define all conditions that make an artifact `不完全`. Independent reviewers may disagree about whether a non-placeholder but partially populated artifact satisfies the requirement. (at scopeVerification.in[2]); No Hardcoded Secrets — The draft contains no source code and no API keys, passwords, tokens, or other secrets.; Prioritize Requirements — The in-scope requirements number more than three and each is explicitly marked `must`.; Impact on Existing Features — The draft includes an `impactOnExisting` section listing impacts on existing gate, schema, artifact, template, skill, and normal-flow behavior.; Present Recommendations with Reasoning — Each answered question includes a recommended answer plus evidence and reasoning grounded in issue details, existing code, or project rules.; Explore Before Asking — The questions include evidence from existing source files, prompts, project rules, and the issue context before asking or answering.; Proactively Raise Related Implications — The draft raises related implications in `impactOnExisting`, `decisionPoints`, and `deferredToSpec`.; Confirm Brainstorm vs. Decision Before Critiquing — The content does not critique a brainstorming idea as a final decision, so the guardrail is inapplicable by nature of the draft.; Capture Digressions in draft.md — No digression is present in the provided content, so there is nothing requiring capture in draft.md.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing CLI commands or options.",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "gate-draft still failed because scopeVerification.in allowed an unspecified equivalent failure code and undefined incomplete artifact boundary",
+          "resolution": "replaced the vague phrase with an exact ARTIFACT_PLACEHOLDER failure code and enumerated missing, invalid JSON, missing key, empty summary, raw mismatch, unknown requirement, and placeholder hash cases"
+        },
+        {
+          "step": "gate",
+          "reason": "requirements[2].desc: unresolved marker \"TBD\" in value (flow-level gate-impl (phase=integration) shall reject known placeholder artifacts when sentinel strings placeholder, TODO, or TBD appear in test-execute-result.json summary[].evidence.command, summary[].evidence.test_name, summary[].evidence.test_file, regression.command, regression.root_test_command, or test-result-review.json checked_items[].detail, or when a JSON artifact hash matches a documented placeholder fixture hash used by tests; file-map.json path values and tests/.raw/test-execution.log are not globally sentinel-scanned.); acceptance_criteria[6]: unresolved marker \"TBD\" in value (Given placeholder, TODO, or TBD appears only in file-map.json path values or in unreferenced raw log text, sentinel scanning does not fail the artifact by itself.)",
+          "resolution": null
+        },
+        {
+          "step": "gate",
+          "reason": "spec gate failed because placeholder sentinel names TODO and TBD were interpreted as unresolved markers in spec.json",
+          "resolution": "rewrote the sentinel wording to configured placeholder sentinel strings without literal unresolved marker tokens"
+        },
+        {
+          "step": "gate",
+          "reason": "Single Responsibility — The spec addresses one user-defined concern: validating required flow artifacts before flow-level gate-impl accepts implementation fulfillment.; Task Single Responsibility — Each task has a single shared concern: validator creation, gate wiring, placeholder guidance, or regression tests.; Unambiguous Requirements — The requirements use concrete artifact names, phases, failure codes, paths, and conditions rather than vague adjectives.; Complete Context — The requirements define enough concrete artifact paths, JSON fields, phases, and pass/fail conditions for reviewers to evaluate implementation satisfaction.; REQ Diff-Verifiability — The requirements are framed around files, JSON fields, failure codes, and tests that can be checked from a unified diff and test execution summary.; No Hardcoded Secrets — The content does not include source code or any hardcoded API keys, passwords, tokens, or other secrets.; No Silent Error Swallowing — The content does not include source code with catch blocks or error-discarding behavior.; Prioritize Requirements — There are more than three requirements, and each requirement includes priority \"must\".; Impact on Existing Features — The spec lists impacts on existing behavior, including preserving existing validation, excluding task-level gate-impl, and excluding downstream retro/report artifacts.; Bounded Resource Usage — flow-level gate-impl (phase=integration) shall reject known placeholder artifacts when configured placeholder sentinel strings appear in test-execute-result.json summary[].evidence.command, summary[].evidence.test_name, summary[].evidence.test_file, regression.command, regression.root_test_command, or test-result-review.json checked_items[].detail, or when a JSON artifact hash matches a documented placeholder fixture hash used by tests; file-map.json path values and tests/.raw/test-execution.log are not globally sentinel-scanned. — The requirement introduces sentinel scanning over repeated JSON arrays but does not state explicit upper bounds for count or size. (at requirements[2].desc); Spec Includes Test Strategy — The spec includes test strategy details in each task and requirement R6 defines required automated test coverage.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, so the content does not present unresolved points as fabricated answers.; Include 'Why This Approach' Rationale — The alternatives_considered section and background explain why the selected artifact-validation approach was chosen.; Spec Test Coverage — This cannot be evaluated from the provided spec content alone because it requires implementation diff or filesystem evidence that test files exist under specs/<specid>/tests/ with // spec: headers.; Backward-Compatible CLI Interface — The spec does not remove or change the meaning of existing CLI commands or options.; Exit Code Contract — The content does not add or modify a CLI command; it modifies flow-level gate behavior and failure envelopes.; Validate User Input at Entry Point — The content does not add or modify user-facing CLI command arguments.",
+          "resolution": null
+        },
+        {
+          "step": "gate",
+          "reason": "spec gate failed bounded resource usage because sentinel scanning over repeated JSON arrays had no count or size limit",
+          "resolution": "added explicit scan bounds of 200 summary entries, 200 checked_items entries, and 1 MiB per JSON artifact before ARTIFACT_PLACEHOLDER"
+        },
+        {
+          "step": "review-test",
+          "reason": "test review failed because the AI fix response included prose before the FILE path and applyTestFixes treated it as an outside path",
+          "resolution": "recorded the failure and will inspect the generated test design plus current test file, then manually repair spec-local tests before re-running review"
+        },
+        {
+          "step": "implement",
+          "reason": "pre-existing finalize post-hook behavior writes report.json for a nonexistent spec path during an existing unit test, leaving an unrelated nonexistent/ untracked artifact that pollutes regression changed_files",
+          "resolution": "guard executeCommitPost so missing spec paths skip report generation instead of writing outside a real spec directory"
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — Runtime contract lists the four integration trust inputs and excludes task-impl/retro/report, but the diff does not update spec.json to define the artifact contract using existing schema fields.; R2 — Integration gate now validates required artifacts before guardrail evaluation and maps missing, malformed, schema/key, unknown requirement, raw range, and evidence mismatch failures to ARTIFACT_PLACEHOLDER.; R3 — Sentinel paths and entry limits are mostly implemented, but the 1 MiB limit is applied per string value, not per JSON artifact, so scanning can inspect far more than 1 MiB within one artifact.; R4 — Existing raw output evidence validation is weakened: passing summary entries no longer require raw output to contain the requirement id, because the new range check accepts evidence.test_name instead.; R5 — Guidance was added, but the diff shows no gate-impl implementation validating placeholder-permission.json fields or enforcing the exception path.; R6 — Added spec-scoped automated tests with a spec header covering valid artifacts, missing artifacts, malformed JSON artifacts, sentinel rejection, file-map unknown requirement rejection, and permission exception behavior.",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "gate fail: R1/R3/R4/R5 artifact trust validation gaps",
+          "resolution": "Tighten JSON artifact sentinel scan budgeting, require requirement id in raw evidence ranges, and make artifact contract/permission enforcement clearer before re-running gate."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — Diff adds an integration-only code contract excluding retro/report, but does not update spec.json to list the required trust inputs as the spec artifact contract.; R2 — previously passed (skipped on retry); R3 — Sentinel scanning covers the listed fields with 200-entry/1MiB budgets and avoids global file-map/raw-log scans, but sentinel strings are hardcoded rather than configured as required.; R4 — Existing v2 validation, review verdict pass enforcement via assertIntegrationRegressionEvidence, stricter spec-local evidence checks, and regression freshness checks are still invoked before gate success.; R5 — Diff adds flow guidance about explicit placeholder permission, but shows no gate-impl implementation validating placeholder-permission.json fields or requiring artifactPaths to contain the placeholder path before tolerating placeholders.; R6 — previously passed (skipped on retry)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: address gate R1/R3/R5 failures",
+          "resolution": "Added explicit artifact contract text to spec.json, made placeholder sentinels configurable with defaults, and clarified permission enforcement for detected placeholder hits."
+        },
+        {
+          "step": "gate",
+          "reason": "gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R5 (jaccard=0.64): Diff adds flow guidance for explicit placeholder permission, but shows no gate-impl implementation enforcing placeholder-permission.json fields before tolerating placeholder artifacts. ↔ Diff adds flow guidance about explicit placeholder permission, but shows no gate-impl implementation validating placeholder-permission.json fields or requiring artifactPaths to contain the placeholder path before tolerating placeholders.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: make placeholder permission enforcement explicit",
+          "resolution": "Renamed the permission enforcement path and documented that gate integration precheck enforces placeholder-permission.json before tolerating detected placeholders."
+        },
+        {
+          "step": "gate",
+          "reason": "gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R5 (jaccard=0.57): Diff adds flow guidance for explicit placeholder permission, but shows no flow-level gate-impl implementation validating placeholder-permission.json fields or failing placeholders unless that record exists. ↔ Diff adds flow guidance about explicit placeholder permission, but shows no gate-impl implementation validating placeholder-permission.json fields or requiring artifactPaths to contain the placeholder path before tolerating placeholders.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: expose R5 implementation files in file-map",
+          "resolution": "Added src/flow/lib/test-artifacts.js and src/flow/lib/run-gate.js to R5 so gate evaluation sees placeholder-permission enforcement code, not only guidance files."
+        },
+        {
+          "step": "gate",
+          "reason": "gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R1 (jaccard=0.67): Code contract lists the four integration trust inputs and excludes task-level/retro/report, but the diff does not update spec.json to define the required artifact contract in schema-supported fields. ↔ Runtime contract lists the four integration trust inputs and excludes task-impl/retro/report, but the diff does not update spec.json to define the artifact contract using existing schema fields.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: expose spec artifact contract in R1 file-map",
+          "resolution": "Added specs/258-gate-artifact-validation/spec.json to R1 so gate evaluation can see the schema-supported artifact contract text added to constraints."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — Diff defines integration trust inputs in code, but shows no spec.json update listing the required contract in schema-supported fields; therefore the spec artifact contract requirement is not implemented.; R2 — previously passed (skipped on retry); R3 — Diff adds targeted sentinel scanning for the specified JSON paths with 200-entry and 1MiB scan budgets, excludes file-map paths/raw log global scanning, returns ARTIFACT_PLACEHOLDER on hits, and checks documented JSON placeholder hashes.; R4 — previously passed (skipped on retry); R5 — Flow guidance now requires explicit user permission before placeholder artifacts, and integration gate rejects detected placeholder sentinel/hash artifacts unless placeholder-permission.json has version 1, phase integration, approvedByUser true, includes the artifact path, and non-empty permissionText/reason/createdAt.; R6 — previously passed (skipped on retry)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: stage spec artifact contract for gate diff",
+          "resolution": "Staged spec.json and file-map.json so gate diff context includes the schema-supported artifact contract and R1 mapping."
+        },
+        {
+          "step": "gate",
+          "reason": "test artifact validation failed: project regression changed_files snapshot is stale; rerun test-execute",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: refresh stale regression snapshot",
+          "resolution": "Staging spec artifacts changed the regression changed_files snapshot; rerun test-execute to regenerate v2 trust artifacts before gate."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — spec.json lists the four required integration trust inputs and explicitly excludes task-level gate-impl, retro.json, and report.json; contract code only requires inputs for gate-impl phase=integration.; R2 — Integration gate now prevalidates required artifacts and returns ARTIFACT_PLACEHOLDER before guardrail evaluation for missing/malformed artifacts, schema/key failures, empty or unknown requirement summaries, raw line range errors, and raw evidence mismatches.; R3 — Sentinel scanning is present on the required JSON paths with 200-entry and 1 MiB budgets, and file-map/raw log are not globally scanned, but configured sentinels are converted to regexes with word boundaries and a broken escapeRegExp replacement, so arbitrary configured sentinel strings may not be rejected when they appear.; R4 — Integration gate still validates test-execute-result.json version 2, requires test-result-review verdict pass via assertIntegrationRegressionEvidence, enforces spec-local evidence paths under spec tests, and preserves regression snapshot freshness checks.; R5 — Flow guidance now requires explicit user permission for placeholders, and gate validation requires specs/<spec>/placeholder-permission.json with version 1, integration phase, approvedByUser true, covering artifactPaths, and non-empty permissionText/reason/createdAt before tolerating detected placeholder artifacts.; R6 — Added automated tests under specs/258-gate-artifact-validation/tests with a spec header and coverage for valid, missing, malformed, sentinel, unknown file-map requirement, and explicit-permission scenarios.",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: literal configured sentinel matching",
+          "resolution": "Removed regex word-boundary wrapping from configured placeholder sentinels and added coverage for a non-word sentinel string."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — Sentinel scanning paths and entry limits are implemented, but escapeRegExp replaces regex metacharacters with the literal '\\{{PROMPT}}' instead of escaping the matched character, so configured sentinel strings containing regex metacharacters will not be reliably detected.; R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: make regex escaping explicit",
+          "resolution": "Changed escapeRegExp to a function replacement so configured sentinel metacharacters are escaped character-by-character."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 15,
+      "question": 0,
+      "issueLog": 17
+    },
+    "tokenMetrics": {
+      "input": 1635511,
+      "output": 162202,
+      "cacheRead": 7578624,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 77,
+      "durationMs": 3646680,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 328020
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 11201
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 79388
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 189647
+        },
+        {
+          "phase": "gate",
+          "durationMs": 51843
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 2198847
+        },
+        {
+          "phase": "review",
+          "durationMs": 380519
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 407215
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/258-gate-artifact-validation/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": true,
+        "mode": "full",
+        "root_test_command": "npm test --",
+        "root_test_command_source": "package.json:scripts.test",
+        "command": "npm test --",
+        "result": "pass",
+        "raw_output_lines": {
+          "start_line": 415,
+          "end_line": 5610
+        },
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/258-gate-artifact-validation/tasks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/258-gate-artifact-validation/tasks/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/test-artifacts.js"
+          }
+        ],
+        "process": {
+          "started": true,
+          "exitCode": 0,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        }
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    }
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Validate gate implementation artifacts\n    32 files changed, 5001 insertions(+), 113 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 15\n    Q&A ......................... 0\n    issue-log ................... 17\n    agent calls ................. 77\n    input tokens ................ 1,635,511\n    output tokens ............... 162,202\n    cache-read tokens ........... 7,578,624\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 3646.7s\n      review-draft-questions .... 328.0s\n      review-draft-coverage ..... 11.2s\n      gate-draft ................ 79.4s\n      review-spec ............... 189.6s\n      gate ...................... 51.8s\n      review-test ............... 2198.8s\n      review .................... 380.5s\n      gate-impl ................. 407.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/258-gate-artifact-validation/tests/.raw/test-execution.log\n    Project regression: required=true result=pass mode=full\n\n  Issue Log (31)\n  ────────────────────────────────────────────────\n    [review-draft-questions] draft question review applied automatic repair because q4 and q5 asked implementation details\n    [gate-draft] qa[3]: invalid category \"consumer-contracts\"\n    [gate-draft] gate-draft failed because draft qa category consumer-contracts is not in the allowed draft lifecycle enum\n    [gate-draft] Single Responsibility — The draft addresses one user-defined concern: validating required flow artifacts in gate-impl to block placeholder-based fulfillment claims.; Unambiguous Requirements — 既存の test-execute / test-result-review / regression evidence 検証との整合を保つ。 — The requirement uses a vague condition, \"整合を保つ\", without stating verifiable compatibility criteria. (at scopeVerification.in[4]); Unambiguous Requirements — 必要な unit / integration / e2e テストを追加または更新する。 — The phrase \"必要な\" does not define which tests are required or what condition makes the test coverage sufficient. (at scopeVerification.in[5]); Unambiguous Requirements — known set は ad-hoc な最小集合でよく、拡張可能な実装にする。 — The terms \"最小集合\" and \"拡張可能\" do not state verifiable conditions for what must be implemented. (at qa[1].answer); Complete Context — 既存の test-execute / test-result-review / regression evidence 検証との整合を保つ。 — Two independent reviewers could disagree on whether existing validation consistency has been preserved because no measurable criteria are given. (at scopeVerification.in[4]); Complete Context — 必要な unit / integration / e2e テストを追加または更新する。 — The draft does not specify the required test scenarios or acceptance threshold, so reviewers may disagree on whether the implementation satisfies it. (at scopeVerification.in[5]); Complete Context — known set は ad-hoc な最小集合でよく、拡張可能な実装にする。 — The required placeholder set size and extensibility behavior are not defined specifically enough for consistent review. (at qa[1].answer); No Hardcoded Secrets — The draft does not include source code containing API keys, passwords, tokens, or other secrets.; Prioritize Requirements — missing priorities for more than three requirements — The draft lists six in-scope requirement items but does not assign each one a priority of must, should, or nice-to-have. (at scopeVerification.in); Impact on Existing Features — The draft includes an impactOnExisting section listing expected impacts on gate-impl, spec schema or prompts, artifact producer/consumer flow, generated skills, and normal flows.; Present Recommendations with Reasoning — Each listed question has a recommended answer and concise reasoning grounded in issue context, existing code evidence, or project rules.; Explore Before Asking — The draft records codebase evidence from docs/project rules and source files before answering the questions.; Proactively Raise Related Implications — The draft raises related implications such as artifact scope, user permission auditing, responsibility boundaries, migration scope, upgrade requirements, and existing flow impact.; Confirm Brainstorm vs. Decision Before Critiquing — The content does not critique a brainstorming decision, so the guardrail is inapplicable by nature of this draft.; Capture Digressions in draft.md — No discussion digression is present in the supplied content, so there is no digression to capture.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing CLI commands or options, and explicitly excludes migration of past spec artifacts.\n    [gate-draft] gate-draft guardrails failed for vague draft requirements and missing priorities in scopeVerification.in\n    [gate-draft] Single Responsibility — The draft stays within the user-defined Issue scope of validating required flow artifacts before gate-impl.; Unambiguous Requirements — `ARTIFACT_PLACEHOLDER` または同等に識別可能な failure code — The phrase allows an unspecified equivalent failure code without defining what makes it equivalently identifiable. This is not a directly verifiable condition. (at scopeVerification.in[2]); Unambiguous Requirements — placeholder または不完全 artifact — The term `不完全 artifact` is broader than the listed missing, malformed, placeholder, and valid cases and does not define a verifiable boundary. (at scopeVerification.in[2]); Complete Context — `ARTIFACT_PLACEHOLDER` または同等に識別可能な failure code — Two reviewers could disagree about whether a different failure code is sufficiently identifiable. The requirement should name the allowed code or define an exact acceptance rule for alternatives. (at scopeVerification.in[2]); Complete Context — placeholder または不完全 artifact — The draft does not define all conditions that make an artifact `不完全`. Independent reviewers may disagree about whether a non-placeholder but partially populated artifact satisfies the requirement. (at scopeVerification.in[2]); No Hardcoded Secrets — The draft contains no source code and no API keys, passwords, tokens, or other secrets.; Prioritize Requirements — The in-scope requirements number more than three and each is explicitly marked `must`.; Impact on Existing Features — The draft includes an `impactOnExisting` section listing impacts on existing gate, schema, artifact, template, skill, and normal-flow behavior.; Present Recommendations with Reasoning — Each answered question includes a recommended answer plus evidence and reasoning grounded in issue details, existing code, or project rules.; Explore Before Asking — The questions include evidence from existing source files, prompts, project rules, and the issue context before asking or answering.; Proactively Raise Related Implications — The draft raises related implications in `impactOnExisting`, `decisionPoints`, and `deferredToSpec`.; Confirm Brainstorm vs. Decision Before Critiquing — The content does not critique a brainstorming idea as a final decision, so the guardrail is inapplicable by nature of the draft.; Capture Digressions in draft.md — No digression is present in the provided content, so there is nothing requiring capture in draft.md.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing CLI commands or options.\n    [gate-draft] gate-draft still failed because scopeVerification.in allowed an unspecified equivalent failure code and undefined incomplete artifact boundary\n    [gate] requirements[2].desc: unresolved marker \"TBD\" in value (flow-level gate-impl (phase=integration) shall reject known placeholder artifacts when sentinel strings placeholder, TODO, or TBD appear in test-execute-result.json summary[].evidence.command, summary[].evidence.test_name, summary[].evidence.test_file, regression.command, regression.root_test_command, or test-result-review.json checked_items[].detail, or when a JSON artifact hash matches a documented placeholder fixture hash used by tests; file-map.json path values and tests/.raw/test-execution.log are not globally sentinel-scanned.); acceptance_criteria[6]: unresolved marker \"TBD\" in value (Given placeholder, TODO, or TBD appears only in file-map.json path values or in unreferenced raw log text, sentinel scanning does not fail the artifact by itself.)\n    [gate] spec gate failed because placeholder sentinel names TODO and TBD were interpreted as unresolved markers in spec.json\n    [gate] Single Responsibility — The spec addresses one user-defined concern: validating required flow artifacts before flow-level gate-impl accepts implementation fulfillment.; Task Single Responsibility — Each task has a single shared concern: validator creation, gate wiring, placeholder guidance, or regression tests.; Unambiguous Requirements — The requirements use concrete artifact names, phases, failure codes, paths, and conditions rather than vague adjectives.; Complete Context — The requirements define enough concrete artifact paths, JSON fields, phases, and pass/fail conditions for reviewers to evaluate implementation satisfaction.; REQ Diff-Verifiability — The requirements are framed around files, JSON fields, failure codes, and tests that can be checked from a unified diff and test execution summary.; No Hardcoded Secrets — The content does not include source code or any hardcoded API keys, passwords, tokens, or other secrets.; No Silent Error Swallowing — The content does not include source code with catch blocks or error-discarding behavior.; Prioritize Requirements — There are more than three requirements, and each requirement includes priority \"must\".; Impact on Existing Features — The spec lists impacts on existing behavior, including preserving existing validation, excluding task-level gate-impl, and excluding downstream retro/report artifacts.; Bounded Resource Usage — flow-level gate-impl (phase=integration) shall reject known placeholder artifacts when configured placeholder sentinel strings appear in test-execute-result.json summary[].evidence.command, summary[].evidence.test_name, summary[].evidence.test_file, regression.command, regression.root_test_command, or test-result-review.json checked_items[].detail, or when a JSON artifact hash matches a documented placeholder fixture hash used by tests; file-map.json path values and tests/.raw/test-execution.log are not globally sentinel-scanned. — The requirement introduces sentinel scanning over repeated JSON arrays but does not state explicit upper bounds for count or size. (at requirements[2].desc); Spec Includes Test Strategy — The spec includes test strategy details in each task and requirement R6 defines required automated test coverage.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, so the content does not present unresolved points as fabricated answers.; Include 'Why This Approach' Rationale — The alternatives_considered section and background explain why the selected artifact-validation approach was chosen.; Spec Test Coverage — This cannot be evaluated from the provided spec content alone because it requires implementation diff or filesystem evidence that test files exist under specs/<specid>/tests/ with // spec: headers.; Backward-Compatible CLI Interface — The spec does not remove or change the meaning of existing CLI commands or options.; Exit Code Contract — The content does not add or modify a CLI command; it modifies flow-level gate behavior and failure envelopes.; Validate User Input at Entry Point — The content does not add or modify user-facing CLI command arguments.\n    [gate] spec gate failed bounded resource usage because sentinel scanning over repeated JSON arrays had no count or size limit\n    [review-test] test review failed because the AI fix response included prose before the FILE path and applyTestFixes treated it as an outside path\n    [implement] pre-existing finalize post-hook behavior writes report.json for a nonexistent spec path during an existing unit test, leaving an unrelated nonexistent/ untracked artifact that pollutes regression changed_files\n    [gate] R1 — Runtime contract lists the four integration trust inputs and excludes task-impl/retro/report, but the diff does not update spec.json to define the artifact contract using existing schema fields.; R2 — Integration gate now validates required artifacts before guardrail evaluation and maps missing, malformed, schema/key, unknown requirement, raw range, and evidence mismatch failures to ARTIFACT_PLACEHOLDER.; R3 — Sentinel paths and entry limits are mostly implemented, but the 1 MiB limit is applied per string value, not per JSON artifact, so scanning can inspect far more than 1 MiB within one artifact.; R4 — Existing raw output evidence validation is weakened: passing summary entries no longer require raw output to contain the requirement id, because the new range check accepts evidence.test_name instead.; R5 — Guidance was added, but the diff shows no gate-impl implementation validating placeholder-permission.json fields or enforcing the exception path.; R6 — Added spec-scoped automated tests with a spec header covering valid artifacts, missing artifacts, malformed JSON artifacts, sentinel rejection, file-map unknown requirement rejection, and permission exception behavior.\n    [gate-impl] gate fail: R1/R3/R4/R5 artifact trust validation gaps\n    [gate] R1 — Diff adds an integration-only code contract excluding retro/report, but does not update spec.json to list the required trust inputs as the spec artifact contract.; R2 — previously passed (skipped on retry); R3 — Sentinel scanning covers the listed fields with 200-entry/1MiB budgets and avoids global file-map/raw-log scans, but sentinel strings are hardcoded rather than configured as required.; R4 — Existing v2 validation, review verdict pass enforcement via assertIntegrationRegressionEvidence, stricter spec-local evidence checks, and regression freshness checks are still invoked before gate success.; R5 — Diff adds flow guidance about explicit placeholder permission, but shows no gate-impl implementation validating placeholder-permission.json fields or requiring artifactPaths to contain the placeholder path before tolerating placeholders.; R6 — previously passed (skipped on retry)\n    [gate-impl] fix: address gate R1/R3/R5 failures\n    [gate] gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R5 (jaccard=0.64): Diff adds flow guidance for explicit placeholder permission, but shows no gate-impl implementation enforcing placeholder-permission.json fields before tolerating placeholder artifacts. ↔ Diff adds flow guidance about explicit placeholder permission, but shows no gate-impl implementation validating placeholder-permission.json fields or requiring artifactPaths to contain the placeholder path before tolerating placeholders.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.\n    [gate-impl] fix: make placeholder permission enforcement explicit\n    [gate] gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R5 (jaccard=0.57): Diff adds flow guidance for explicit placeholder permission, but shows no flow-level gate-impl implementation validating placeholder-permission.json fields or failing placeholders unless that record exists. ↔ Diff adds flow guidance about explicit placeholder permission, but shows no gate-impl implementation validating placeholder-permission.json fields or requiring artifactPaths to contain the placeholder path before tolerating placeholders.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.\n    [gate-impl] fix: expose R5 implementation files in file-map\n    [gate] gate-impl escalation: repeated similar FAIL detected for phase \"integration\".\nMatching (guardrail, similar prior reason) pairs:\n  R1 (jaccard=0.67): Code contract lists the four integration trust inputs and excludes task-level/retro/report, but the diff does not update spec.json to define the required artifact contract in schema-supported fields. ↔ Runtime contract lists the four integration trust inputs and excludes task-impl/retro/report, but the diff does not update spec.json to define the artifact contract using existing schema fields.\n\nThe AI has failed on a semantically similar requirement to a previous attempt.\nFix the spec wording or implementation so the failure mode changes, then retry.\n    [gate-impl] fix: expose spec artifact contract in R1 file-map\n    [gate] R1 — Diff defines integration trust inputs in code, but shows no spec.json update listing the required contract in schema-supported fields; therefore the spec artifact contract requirement is not implemented.; R2 — previously passed (skipped on retry); R3 — Diff adds targeted sentinel scanning for the specified JSON paths with 200-entry and 1MiB scan budgets, excludes file-map paths/raw log global scanning, returns ARTIFACT_PLACEHOLDER on hits, and checks documented JSON placeholder hashes.; R4 — previously passed (skipped on retry); R5 — Flow guidance now requires explicit user permission before placeholder artifacts, and integration gate rejects detected placeholder sentinel/hash artifacts unless placeholder-permission.json has version 1, phase integration, approvedByUser true, includes the artifact path, and non-empty permissionText/reason/createdAt.; R6 — previously passed (skipped on retry)\n    [gate-impl] fix: stage spec artifact contract for gate diff\n    [gate] test artifact validation failed: project regression changed_files snapshot is stale; rerun test-execute\n    [gate-impl] fix: refresh stale regression snapshot\n    [gate] R1 — spec.json lists the four required integration trust inputs and explicitly excludes task-level gate-impl, retro.json, and report.json; contract code only requires inputs for gate-impl phase=integration.; R2 — Integration gate now prevalidates required artifacts and returns ARTIFACT_PLACEHOLDER before guardrail evaluation for missing/malformed artifacts, schema/key failures, empty or unknown requirement summaries, raw line range errors, and raw evidence mismatches.; R3 — Sentinel scanning is present on the required JSON paths with 200-entry and 1 MiB budgets, and file-map/raw log are not globally scanned, but configured sentinels are converted to regexes with word boundaries and a broken escapeRegExp replacement, so arbitrary configured sentinel strings may not be rejected when they appear.; R4 — Integration gate still validates test-execute-result.json version 2, requires test-result-review verdict pass via assertIntegrationRegressionEvidence, enforces spec-local evidence paths under spec tests, and preserves regression snapshot freshness checks.; R5 — Flow guidance now requires explicit user permission for placeholders, and gate validation requires specs/<spec>/placeholder-permission.json with version 1, integration phase, approvedByUser true, covering artifactPaths, and non-empty permissionText/reason/createdAt before tolerating detected placeholder artifacts.; R6 — Added automated tests under specs/258-gate-artifact-validation/tests with a spec header and coverage for valid, missing, malformed, sentinel, unknown file-map requirement, and explicit-permission scenarios.\n    [gate-impl] fix: literal configured sentinel matching\n    [gate] R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — Sentinel scanning paths and entry limits are implemented, but escapeRegExp replaces regex metacharacters with the literal '\\{{PROMPT}}' instead of escaping the matched character, so configured sentinel strings containing regex metacharacters will not be reliably detected.; R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry)\n    [gate-impl] fix: make regex escaping explicit"
+}

@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied all three triaged spec review fixes: gate scope, permission audit contract, and sentinel scan scope.",
+  "items": [
+    {
+      "title": "Gate scope is ambiguous between task and integration gate-impl",
+      "target": "R1/R2/T-2 and Overview > Data Flow",
+      "decision": "applied",
+      "rationale": "The spec now limits artifact trust validation to flow-level gate-impl (phase=integration) and explicitly excludes task-level gate-impl (phase=task-impl) from requiring test-execute-result.json and test-result-review.json.",
+      "evidence": "spec.json goal, scope.in[0..1], scope.out[0], requirements R1/R2/R4, acceptance_criteria[0..5], overview decisions, and T-2 now name flow-level gate-impl (phase=integration).",
+      "changedFields": [
+        "goal",
+        "scope.in",
+        "scope.out",
+        "overview.modules",
+        "overview.data_flow",
+        "overview.decisions",
+        "background",
+        "requirements[0].desc",
+        "requirements[1].desc",
+        "requirements[3].desc",
+        "acceptance_criteria",
+        "tasks[1]"
+      ]
+    },
+    {
+      "title": "User-permission audit record has no deterministic contract",
+      "target": "R5 and Clarifications > user-permission exception",
+      "decision": "applied",
+      "rationale": "The spec now defines specs/<spec>/placeholder-permission.json as the deterministic audit record and lists required fields and relation to placeholder artifact paths.",
+      "evidence": "spec.json scope.in[2], requirements[4].desc, acceptance_criteria[5], clarifications[2].a, and overview.decisions define version, phase, approvedByUser, artifactPaths, permissionText, reason, and createdAt.",
+      "changedFields": [
+        "scope.in[2]",
+        "overview.decisions",
+        "requirements[4].desc",
+        "acceptance_criteria[5]",
+        "clarifications[2].a",
+        "tasks[2]"
+      ]
+    },
+    {
+      "title": "Placeholder sentinel scan scope is undefined",
+      "target": "R3 and Clarifications > placeholder definition",
+      "decision": "applied",
+      "rationale": "The spec now enumerates the exact JSON paths subject to sentinel rejection and states that file-map path values and raw log text are not globally sentinel-scanned.",
+      "evidence": "spec.json requirements[2].desc, acceptance_criteria[5..6], clarifications[1].a, and overview.decisions define the scan set and exclusions.",
+      "changedFields": [
+        "overview.decisions",
+        "requirements[2].desc",
+        "acceptance_criteria[5]",
+        "acceptance_criteria[6]",
+        "clarifications[1].a"
+      ]
+    }
+  ]
+}

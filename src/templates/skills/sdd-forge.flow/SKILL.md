@@ -101,6 +101,8 @@ Proceed to **C. Dispatcher loop**.
 
 Note: Test execution is centralized in the impl-phase `test-execute` step. The dispatcher invokes it after `implement` and persists `test-execute-result.json` version `"2"` + raw output. Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those artifacts and do not re-run tests. Prepare/docs-scan and `analysis.json` read/validation failures are hard stops. A started project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion.
 
+<!-- include("@templates/partials/placeholder-artifact-permission.md") -->
+
 ### C. Dispatcher loop
 
 Repeat until the loop exit condition is met:

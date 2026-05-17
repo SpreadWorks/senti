@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-05-17T00:44:36.150Z",
+  "verdict": "FAIL",
+  "counts": {
+    "blocking": 3,
+    "nonBlocking": 2,
+    "total": 5
+  },
+  "blockingFindings": [
+    {
+      "kind": "blocking",
+      "title": "Gate scope is ambiguous between task and integration gate-impl",
+      "target": "R1/R2/T-2 and Overview > Data Flow",
+      "body": "**Target:** R1/R2/T-2 and Overview > Data Flow\n**Issue:** The codebase has both task-level gate-impl mapped to phase task-impl and flow-level gate-impl mapped to phase integration. The required artifacts in this spec are produced by flow-level test-execute/test-result-review and are not available during task-level gate-impl. The spec repeatedly says gate-impl without explicitly limiting the new trust precondition to the integration phase.\n**Required change:** State whether artifact trust validation applies only to flow-level gate-impl / phase=integration after test-result-review, or define the separate task-level artifact data path if task-impl must also be covered.\n**Why blocking:** If implemented for task-impl, normal task gates can fail before the artifacts exist; if implemented only for integration, tests and gate expectations remain ambiguous because the same gate-impl step name is used for both paths.",
+      "issue": "The codebase has both task-level gate-impl mapped to phase task-impl and flow-level gate-impl mapped to phase integration. The required artifacts in this spec are produced by flow-level test-execute/test-result-review and are not available during task-level gate-impl. The spec repeatedly says gate-impl without explicitly limiting the new trust precondition to the integration phase.",
+      "requiredChange": "State whether artifact trust validation applies only to flow-level gate-impl / phase=integration after test-result-review, or define the separate task-level artifact data path if task-impl must also be covered.",
+      "whyBlocking": "If implemented for task-impl, normal task gates can fail before the artifacts exist; if implemented only for integration, tests and gate expectations remain ambiguous because the same gate-impl step name is used for both paths."
+    },
+    {
+      "kind": "blocking",
+      "title": "User-permission audit record has no deterministic contract",
+      "target": "R5 and Clarifications > user-permission exception",
+      "body": "**Target:** R5 and Clarifications > user-permission exception\n**Issue:** The spec allows placeholder artifacts when the active flow contains an explicit user-permission audit record, but existing issue-log.json entries are free-form step/reason/trigger/resolution records and there is no defined field, marker, artifact path, association rule, or ordering rule that proves explicit user permission.\n**Required change:** Define the exact audit record contract gate-impl must accept, including artifact location, required fields or marker values, and how it must relate to the current flow/phase and placeholder artifact.\n**Why blocking:** The exception path cannot be implemented or tested deterministically; an implementation would either rely on brittle free-text matching or risk accepting unrelated issue-log entries as permission.",
+      "issue": "The spec allows placeholder artifacts when the active flow contains an explicit user-permission audit record, but existing issue-log.json entries are free-form step/reason/trigger/resolution records and there is no defined field, marker, artifact path, association rule, or ordering rule that proves explicit user permission.",
+      "requiredChange": "Define the exact audit record contract gate-impl must accept, including artifact location, required fields or marker values, and how it must relate to the current flow/phase and placeholder artifact.",
+      "whyBlocking": "The exception path cannot be implemented or tested deterministically; an implementation would either rely on brittle free-text matching or risk accepting unrelated issue-log entries as permission."
+    },
+    {
+      "kind": "blocking",
+      "title": "Placeholder sentinel scan scope is undefined",
+      "target": "R3 and Clarifications > placeholder definition",
+      "body": "**Target:** R3 and Clarifications > placeholder definition\n**Issue:** The spec says placeholder/TODO/TBD should fail when found in a value that claims execution evidence, but existing artifacts contain many string fields across summary evidence, regression evidence, review checked_items, result paths, file-map paths, and the raw log. The spec does not identify which fields count as execution-evidence values or whether raw log/file-map strings are scanned.\n**Required change:** Enumerate the exact fields or JSON paths in each required artifact that are subject to sentinel rejection, and state how file-map.json values and tests/.raw/test-execution.log are handled.\n**Why blocking:** Tests cannot define reliable sentinel cases, and implementation may either reject legitimate commands/paths/log output containing TODO/TBD or miss placeholders in fields the spec intended to protect.",
+      "issue": "The spec says placeholder/TODO/TBD should fail when found in a value that claims execution evidence, but existing artifacts contain many string fields across summary evidence, regression evidence, review checked_items, result paths, file-map paths, and the raw log. The spec does not identify which fields count as execution-evidence values or whether raw log/file-map strings are scanned.",
+      "requiredChange": "Enumerate the exact fields or JSON paths in each required artifact that are subject to sentinel rejection, and state how file-map.json values and tests/.raw/test-execution.log are handled.",
+      "whyBlocking": "Tests cannot define reliable sentinel cases, and implementation may either reject legitimate commands/paths/log output containing TODO/TBD or miss placeholders in fields the spec intended to protect."
+    }
+  ],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Document placeholder hash normalization",
+      "target": "R3/T-1",
+      "body": "**Target:** R3/T-1\n**Improvement:** Specify whether placeholder fixture hashes are computed from raw file bytes or canonicalized JSON, and where the documented fixture hash list lives.\n**Why non-blocking:** The implementation can still create a fixture and test around it, but an explicit normalization rule would prevent future hash drift.",
+      "improvement": "Specify whether placeholder fixture hashes are computed from raw file bytes or canonicalized JSON, and where the documented fixture hash list lives.",
+      "whyNonBlocking": "The implementation can still create a fixture and test around it, but an explicit normalization rule would prevent future hash drift."
+    },
+    {
+      "kind": "improvement",
+      "title": "Clarify stale artifact scope",
+      "target": "Scope In and T-1",
+      "body": "**Target:** Scope In and T-1\n**Improvement:** Clarify whether stale means only the existing regression snapshot stale checks, or whether file-map/raw-log/test-review staleness introduces additional rules.\n**Why non-blocking:** R2, R4, and the acceptance criteria already define the main observable invalid classes, but the extra stale wording could lead to broader-than-intended validation.",
+      "improvement": "Clarify whether stale means only the existing regression snapshot stale checks, or whether file-map/raw-log/test-review staleness introduces additional rules.",
+      "whyNonBlocking": "R2, R4, and the acceptance criteria already define the main observable invalid classes, but the extra stale wording could lead to broader-than-intended validation."
+    }
+  ]
+}

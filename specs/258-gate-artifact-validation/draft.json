@@ -1,0 +1,121 @@
+{
+  "devType": "feature",
+  "goal": "gate-impl が flow 必須 artifact の実在と non-placeholder 条件を検証し、未生成または手書き placeholder による req fulfillment 主張をブロックできるようにする。",
+  "analysis": {
+    "problem": "現在の impl フローは `test-execute-result.json` v2 と `test-result-review.json` の整合性、project regression の stale 判定、`file-map.json` を使った requirement-to-file 対応を持つ。一方で、flow が要求する artifact 一式について、spec で valid 条件を明示し、gate-impl が artifact ごとに placeholder ではないことを機械的に検証する契約が不足している。そのため、AI が実機実行を経ていない手書き JSON を置いて req fulfillment を done と主張する余地が残る。",
+    "proposedApproach": "spec 段階で flow 必須 artifact と各 artifact の valid 条件を要求として定義し、gate-impl の precondition に artifact 実在・構造・evidence・placeholder 判定を追加する。実行不能環境で placeholder を必要とする場合は、明示的な user 許可がない限り PASS できないルールを skill / prompt 側にも反映する。",
+    "validation": "artifact の存在だけでなく、raw output との対応、requirement ID の網羅、known placeholder 値や空配列の拒否などを gate-impl 前段で確認すれば、表面的な done 主張では PASS できなくなる。既存の test-result-review と regression stale 判定は活かしつつ、検証対象を flow 必須 artifact contract 全体に広げるため、Issue の根本問題に対応する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #328 は `test-execute-result.json` と `file-map.json` のような flow 必須 artifact が手書き placeholder で埋められ、req fulfillment が done と主張される問題を対象にしている。",
+      "`src/flow/lib/test-artifacts.js` は `test-execute-result.json` version `2`、`test-result-review.json`、raw output、regression snapshot を検証する既存ロジックを持つ。",
+      "`src/flow/lib/run-test-result-review.js` は `test-execute-result.json` を raw output、spec-local test files、project regression contract に照合して `test-result-review.json` を生成する。",
+      "`src/flow/lib/run-gate.js` の integration gate precheck は `test-result-review.json` と `test-execute-result.json` の存在と `assertIntegrationRegressionEvidence` を確認してから gate を進める。",
+      "`src/flow/lib/req-map.js` は `file-map.json` を requirement id から source file path への対応として読み書きし、diff files との reconciliation に使う。",
+      "`src/flow/prompts/impl/test-execute.md` は test-execute を単一の test 実行点とし、retro / review-impl / gate-impl は生成済み result file を読むと定義している。",
+      "draft guardrail は要件の曖昧さを避け、既存機能への影響と検証可能条件を明示することを要求している。",
+      "プロジェクトルール上、テンプレートや skill を変更した場合は `sdd-forge upgrade` を実行して配布先 skill / 設定に反映する必要がある。"
+    ],
+    "decisionPoints": [
+      "flow 必須 artifact の対象範囲をどこまで含めるか。",
+      "各 artifact の non-placeholder 条件を spec.json にどの粒度で記録するか。",
+      "gate-impl が artifact precondition 違反をどの error code と remediation message で返すか。",
+      "実機実行不可環境で placeholder を許容する user 許可の条件をどう扱うか。",
+      "既存の test-result-review / regression stale 判定と新しい artifact contract の責務境界をどう分けるか。",
+      "artifact contract を既存 spec schema に追加するか、既存 requirements / acceptance_criteria / constraints の中で表現するか。",
+      "既存 flow / tests / finalize artifact handling に対する互換性と migration 不要範囲をどう定義するか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。Node.js 組み込みモジュールのみで実装する。",
+      "alpha 版ポリシーにより、旧フォーマット維持のための後方互換コードは追加しない。",
+      "値の構造的制約が必要な場合は、オブジェクトリテラルの loosely typed contract ではなく専用クラスで invariant と振る舞いを持たせる。",
+      "同じ validation pattern が 2 箇所以上で繰り返される場合は共通 helper に抽出する。",
+      "`src/templates/` や skill template を変更した場合は `sdd-forge upgrade` を実行する。",
+      "AI 実行を伴う関連箇所を変更した場合は、通常テストに加えて必要に応じて `npm run test:agent` を実行する。"
+    ],
+    "requiresUserJudgment": [
+      "なし。Issue 本文、既存 artifact 検証、project rules から draft 段階の判断は解決済み。"
+    ],
+    "deferredToSpec": [
+      "artifact contract を専用 schema field として追加するか、既存 requirements / acceptance_criteria / constraints で表現するかは、既存 spec schema と gate 実装を読んで spec step で決める。",
+      "具体的な JSON schema 変更内容と class / helper の配置。",
+      "gate-impl precondition の実装ファイルとテストファイルの分割。",
+      "既存 integration gate precheck と新 artifact validation helper の呼び出し順。",
+      "error envelope の exact payload と test assertion の粒度。",
+      "upgrade による generated skill / template 反映範囲。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: spec 段階で flow 必須 artifact と valid 条件を明示できる contract を定義する。",
+      "must: gate-impl の precondition で artifact の実在、構造、evidence、non-placeholder 条件を検証する。",
+      "must: artifact が missing、invalid JSON、required key missing、empty summary、raw output mismatch、unknown requirement ID、known placeholder sentinel/hash match のいずれかに該当する場合、failure code `ARTIFACT_PLACEHOLDER` で実装 phase に差し戻す。",
+      "must: 実機実行不可環境で placeholder を使う場合の user 許可ルールを skill / prompt に追加し、許可記録がない placeholder は gate-impl fail にする。",
+      "must: 既存の `test-execute-result.json` v2、`test-result-review.json` verdict、regression snapshot stale 判定を維持し、既存 PASS 条件を緩和しない。",
+      "must: unit test で artifact validator の missing / malformed / placeholder / valid cases を確認し、e2e または integration test で gate-impl が placeholder artifact を fail することを確認する。"
+    ],
+    "out": [
+      "test-execute の単一実行点という設計の変更。",
+      "GitHub Projects / issue publish workflow の変更。",
+      "外部依存の追加。",
+      "過去 spec artifact の migration。",
+      "npm publish / dist-tag の実行。"
+    ]
+  },
+  "impactOnExisting": [
+    "gate-impl は artifact 不備を AI guardrail 評価前にブロックする可能性がある。",
+    "spec.json schema または spec authoring prompt に artifact contract 記述が追加される可能性がある。",
+    "test-execute-result.json / test-result-review.json / file-map.json を生成または消費する既存フローの責務が明確化される。",
+    "template / skill を変更する場合、`.agents/skills/` と `.claude/skills/` へ upgrade 反映が必要になる。",
+    "既存の正常フローは、実 test-execute と test-result-review を経た artifact であれば PASS 条件を満たす必要がある。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "artifact contract の初期対象は、`test-execute-result.json` / `test-result-review.json` / `file-map.json` に限定しますか。それとも `retro.json`、`report.json`、`tests/.raw/test-execution.log` も gate-impl の必須検証対象に含めますか。",
+      "answer": "`test-execute-result.json`、`test-result-review.json`、`file-map.json`、および `tests/.raw/test-execution.log` を初期対象にする。`retro.json` と `report.json` は gate-impl 後続の集計 / 報告 artifact として初期 gate precondition から外す。",
+      "evidence": "Issue #328 は `test-execute-result.json` と `file-map.json` を例示している。`src/flow/lib/run-test-result-review.js` は `test-execute-result.json` と raw output を照合する。`src/flow/lib/test-artifacts.js` は `test-result-review.json` と raw output range を検証する。`src/flow/lib/req-map.js` は `file-map.json` を requirement-to-file mapping として扱う。",
+      "why": "gate-impl 前に信頼性を担保すべき artifact は、req fulfillment と実行証跡に直接関わるものに限定する。retro / report は検証済み artifact から派生する後続出力であり、初期スコープに含めると責務が広がる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "non-placeholder 条件は、初期実装では空配列・必須 key 欠落・raw output 不一致の拒否までを必須にし、known placeholder hash / sentinel 値の拒否は後続拡張にしますか。それとも初期実装から hash / sentinel 値の拒否も必須にしますか。",
+      "answer": "初期実装から、空配列・必須 key 欠落・raw output 不一致・known placeholder sentinel / hash の拒否を必須にする。known placeholder set は、空 object / 空 summary / `placeholder` 文字列 / `TODO` / `TBD` / 手書き artifact と判別できる固定 hash のいずれかに一致した場合に fail する集合として spec に列挙する。",
+      "evidence": "Issue #328 は valid 条件の例として「配列が空でない」「特定 key が存在」「ハッシュが既知 placeholder 集合と一致しない」を挙げている。`src/flow/lib/test-artifacts.js` は version、summary、regression、raw_output_lines を構造検証している。",
+      "why": "Issue の目的は手書き placeholder による偽装防止であり、構造だけではもっとも単純な placeholder JSON を通す余地が残る。known set を最小実装にすれば、初期スコープを保ちながら根本リスクを直接扱える。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "実機実行不可環境で AI が placeholder artifact を置く必要がある場合、明示的な user 許可があれば gate-impl を進められる例外を設けますか。それとも placeholder は user 許可があっても常に gate fail としますか。",
+      "answer": "明示的な user 許可がある場合だけ例外を設ける。許可は skill / prompt ルールで要求し、artifact または issue-log に監査可能な形で残っていない場合は gate-impl fail とする。",
+      "evidence": "Issue #328 は「AI が placeholder を書く必要があるケースでは、明示的に user 許可を取得する skill rule を追加」と指定している。SDD flow の issue-log rule は workaround や環境制約を記録する運用を要求している。",
+      "why": "実行不能環境を完全にブロックすると作業継続手段がなくなる一方、無記録の placeholder 許可は問題を再発させる。明示許可と監査記録を条件にすれば、例外の濫用を gate で抑止できる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "新しい artifact contract の consumer は gate-impl / retro / report のどこまでとし、実装側は artifact 生成者にどの不変条件を守らせるべきですか。",
+      "answer": "consumer は gate-impl と test-result-review を主対象にする。retro / report は gate 済み artifact の読者であり、contract の一次判定者にはしない。artifact 生成者は version、requirement ID membership、raw output range、test file / test name evidence、file-map の requirement ID 整合、regression snapshot の鮮度を守る。",
+      "evidence": "`src/flow/lib/run-test-result-review.js` は summary membership、raw output、test file / test name evidence を確認する。`src/flow/lib/test-artifacts.js` は regression snapshot と stale 判定を持つ。`src/flow/lib/req-map.js` は spec requirements と `file-map.json` の requirement ID を照合する。",
+      "why": "contract の判定責務を gate-impl / test-result-review に集約すると、retro / report は信頼済み入力を扱うだけで済む。既存の単一 test 実行点と artifact review の責務境界を壊さない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-17T00:36:45.974Z",
+    "notes": "Draft review passed."
+  }
+}

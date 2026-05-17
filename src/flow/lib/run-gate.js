@@ -47,7 +47,7 @@ import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./gate-step.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { validateDraftLifecycle } from "./draft-lifecycle.js";
-import { assertIntegrationRegressionEvidence } from "./test-artifacts.js";
+import { validateIntegrationArtifactTrust } from "./test-artifacts.js";
 
 export { resolveGateStepId };
 
@@ -106,35 +106,27 @@ export const PHASE_TO_LEVEL = Object.freeze({
 });
 
 /**
- * spec 251 R17: precheck for integration gate. Verifies the artifacts
- * produced by test-execute and test-result-review are present, valid, and
- * carry verdict="pass" with test-execute-result version "2". Returns a gateFail envelope when the precheck fails;
- * returns null when the gate may proceed to the AI guardrail pipeline.
- * Current changedFiles are classified through the same git-helpers-backed
- * regression classifier that test-execute uses.
+ * spec 251 R17 and spec 258: precheck for integration gate. Verifies the
+ * full trust-input set produced by test-execute / test-result-review before
+ * delegating to the AI guardrail pipeline. The validator also enforces
+ * placeholder-permission.json before any detected placeholder artifact can be
+ * tolerated.
  */
 function checkIntegrationTestArtifacts(root, state, level, phase, config = {}) {
   const specPath = state.spec;
   const specDir = path.dirname(path.resolve(root, specPath));
-  const reviewPath = path.join(specDir, "test-result-review.json");
-  const resultPath = path.join(specDir, "test-execute-result.json");
-
-  if (!fs.existsSync(reviewPath)) {
-    return gateFail(level, phase, specPath, [], [
-      "test-result-review.json missing — run test-result-review step before integration gate",
-    ]);
-  }
-  if (!fs.existsSync(resultPath)) {
-    return gateFail(level, phase, specPath, [], [
-      "test-execute-result.json missing — run test-execute step before integration gate",
-    ]);
-  }
-  try {
-    assertIntegrationRegressionEvidence({ root, state, specDir, config });
-  } catch (err) {
-    return gateFail(level, phase, specPath, [], [
-      `test artifact validation failed: ${err.message}`,
-    ]);
+  const result = validateIntegrationArtifactTrust({
+    root,
+    specDir,
+    phase,
+    specPath,
+    state,
+    config,
+  });
+  if (!result.ok) {
+    return Envelope.fail("run", "gate", result.code, [
+      `test artifact validation failed: ${result.reason}`,
+    ], { phase, level, spec: specPath });
   }
   return null;
 }

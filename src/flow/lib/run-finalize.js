@@ -150,13 +150,18 @@ export function runMigrationHook(root, specRelPath) {
 export async function executeCommitPost(ctx) {
   const { root } = ctx;
   const state = ctx.flowState;
-  const results = ctx._results || {};
+  const results = ctx._results ||= {};
+  const specAbsPath = state?.spec ? path.resolve(root, state.spec) : null;
+  if (!specAbsPath || !fs.existsSync(specAbsPath)) {
+    results.report = { status: "skipped", reason: "spec missing" };
+    return;
+  }
 
   // report
   const { generateReport, saveReport } = await import("../commands/report.js");
 
   const { diffStat: implDiffStat, commitMessages } = collectGitSummary(root, state.baseBranch);
-  const specAbsDir = path.dirname(path.resolve(root, state.spec));
+  const specAbsDir = path.dirname(specAbsPath);
   // Shared loader validates test-execute-result.json v2 / test-result-review.json
   // and preserves results.testExecute.projectRegression for finalize report rendering.
   const testExecutePath = path.join(specAbsDir, "test-execute-result.json");

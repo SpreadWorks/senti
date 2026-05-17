@@ -275,6 +275,11 @@ Proceed to **C. Dispatcher loop**.
 
 Note: Test execution is centralized in the impl-phase `test-execute` step. The dispatcher invokes it after `implement` and persists `test-execute-result.json` version `"2"` + raw output. Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those artifacts and do not re-run tests. Prepare/docs-scan and `analysis.json` read/validation failures are hard stops. A started project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion.
 
+Placeholder artifact permission:
+- Do not write placeholder test artifacts to satisfy the flow.
+- If real execution is unavailable and the user explicitly permits a placeholder, record `specs/<spec>/placeholder-permission.json` with `version: 1`, `phase: "integration"`, `approvedByUser: true`, `artifactPaths`, `permissionText`, `reason`, and `createdAt`.
+- Without that record, flow-level `gate-impl` rejects the artifact with `ARTIFACT_PLACEHOLDER`.
+
 ### C. Dispatcher loop
 
 Repeat until the loop exit condition is met:

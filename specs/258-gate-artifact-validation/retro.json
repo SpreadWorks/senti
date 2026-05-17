@@ -1,0 +1,43 @@
+{
+  "spec": "specs/258-gate-artifact-validation/spec.json",
+  "date": "2026-05-17T13:58:10.544Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "The spec artifact contract shall list test-execute-result.json, test-result-review.json, file-map.json, and tests/.raw/test-execution.log as required trust inputs for flow-level gate-impl (phase=integration), shall exclude task-level gate-impl (phase=task-impl), and shall exclude retro.json and report.json from gate-impl precondition validation.",
+      "status": "done",
+      "note": "R1: lists exactly the required flow-level gate-impl integration trust inputs"
+    },
+    {
+      "desc": "flow-level gate-impl (phase=integration) shall fail with failure code ARTIFACT_PLACEHOLDER before AI guardrail evaluation when any required trust input is missing, invalid JSON where JSON is expected, missing required keys, has an empty requirement summary, references an unknown requirement id, points raw_output_lines outside tests/.raw/test-execution.log, or mismatches raw output evidence.",
+      "status": "done",
+      "note": "R2: rejects missing required trust input ${artifact} with ARTIFACT_PLACEHOLDER"
+    },
+    {
+      "desc": "flow-level gate-impl (phase=integration) shall reject known placeholder artifacts when configured placeholder sentinel strings appear in test-execute-result.json summary[].evidence.command, summary[].evidence.test_name, summary[].evidence.test_file, regression.command, regression.root_test_command, or test-result-review.json checked_items[].detail, or when a JSON artifact hash matches a documented placeholder fixture hash used by tests; file-map.json path values and tests/.raw/test-execution.log are not globally sentinel-scanned; sentinel scanning shall inspect at most 200 summary entries, 200 checked_items entries, and 1 MiB per JSON artifact before returning ARTIFACT_PLACEHOLDER.",
+      "status": "done",
+      "note": "R3: rejects configured placeholder sentinel in ${tc.name}"
+    },
+    {
+      "desc": "flow-level gate-impl (phase=integration) shall preserve existing validation for test-execute-result.json version 2, test-result-review verdict pass, spec-local test evidence, and regression snapshot freshness; an implementation shall not turn any current failing condition into a pass.",
+      "status": "done",
+      "note": "R4: preserves existing v2 artifact version validation failures"
+    },
+    {
+      "desc": "The implementation shall add automated tests under specs/258-gate-artifact-validation/tests with spec headers covering valid artifacts, missing artifacts, malformed artifacts, placeholder sentinel rejection, file-map unknown requirement rejection, and the explicit-permission exception path.",
+      "status": "done",
+      "note": "R6: accepts a placeholder only when the deterministic permission artifact covers it"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
