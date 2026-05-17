@@ -1,1 +1,5 @@
 prefix_rule(pattern=["sdd-forge", "flow"], decision="allow")
+prefix_rule(pattern=["/bin/bash", "-lc", "sdd-forge flow"], decision="allow")
+prefix_rule(pattern=["node", "src/sdd-forge.js"], decision="allow")
+prefix_rule(pattern=["node", "tests/run.js"], decision="allow")
+prefix_rule(pattern=["node", "--test"], decision="allow")
