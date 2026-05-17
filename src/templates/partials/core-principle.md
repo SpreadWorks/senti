@@ -38,7 +38,8 @@ The following user-facing choices are explicit exceptions to the auto-select rul
 <!-- {{data("base.skills.rule", {id: "no-chain-sddforge"})}} -->
 <!-- {{/data}} -->
 
-**Temporary output path rule (MANDATORY):**
+**Flow runtime log rule (MANDATORY):**
 - Never hardcode `/tmp/...` for flow-related logs or temporary files.
-- Use the resolved work directory with this priority: `SDD_FORGE_WORK_DIR` env > `config.agent.workDir` > `.tmp`.
-- If a command output must be redirected to a file, place it under the resolved work directory.
+- When a flow command needs an agent/tmp/log base directory for the current invocation, pass `--agent-work-dir <path>` to `sdd-forge flow run ...`.
+- When preserving human-readable command output, pass `--log-file <path>` to `sdd-forge flow run ...`; if omitted, the CLI writes a default runtime log under `<agentWorkDir>/logs/<flowId>/`.
+- Do not wrap flow commands with environment-variable prefixes or shell redirection just to capture logs; keep the command prefix as `sdd-forge flow run ...` so approval-prefix rules can match it.

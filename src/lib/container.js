@@ -92,17 +92,14 @@ export const container = new Container();
 /**
  * Build path service object. All fields are absolute paths.
  *
- * Work-directory priority: SDD_FORGE_WORK_DIR env > config.agent.workDir > .tmp.
- * `logDir` is computed once here and reused by Logger (R4): when inside a
- * worktree, the log directory is resolved against the main repo so that
- * logs written from a worktree land alongside main-repo logs.
+ * Work-directory priority: opts.agentWorkDirOverride > config.agent.workDir > .tmp.
+ * `logDir` is computed once here and reused by Logger.
  */
-function buildPaths(root, config) {
-  const agentWorkDir = resolveWorkDir(root, config);
-  const logBase = isInsideWorktree(root) ? getMainRepoPath(root) : root;
+function buildPaths(root, config, opts = {}) {
+  const agentWorkDir = resolveWorkDir(root, config, opts);
   const logDir = config?.logs?.dir
-    ? path.resolve(config.logs.dir)
-    : path.join(resolveWorkDir(logBase, config), "logs");
+    ? path.resolve(root, config.logs.dir)
+    : path.join(agentWorkDir, "logs");
   return Object.freeze({
     root,
     srcRoot: sourceRoot(),
@@ -126,6 +123,7 @@ function buildPaths(root, config) {
  *
  * @param {Object} [opts]
  * @param {string} [opts.entryCommand] - Full argv string for Logger metadata
+ * @param {string} [opts.agentWorkDirOverride] - Per-invocation agent work dir
  */
 export function initContainer(opts = {}) {
   // Idempotent: if already initialized (e.g. by sdd-forge.js before a
@@ -148,7 +146,9 @@ export function initContainer(opts = {}) {
     }
   }
 
-  const paths = buildPaths(root, config);
+  const paths = buildPaths(root, config, {
+    agentWorkDirOverride: opts.agentWorkDirOverride,
+  });
 
   container.register("root", root);
   container.register("config", config);

@@ -1,0 +1,63 @@
+{
+  "spec": "specs/258-flow-runtime-log-options/spec.json",
+  "date": "2026-05-17T08:34:11.085Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "flow run commands shall accept --agent-work-dir <path> and use it as the per-invocation agent/tmp/log base directory before container paths are constructed.",
+      "status": "done",
+      "note": "R1: every flow run command registry entry exposes --agent-work-dir"
+    },
+    {
+      "desc": "SDD_FORGE_WORK_DIR shall no longer affect resolveWorkDir, container paths, agent temp files, dumps, or log directories.",
+      "status": "done",
+      "note": "R2: SDD_FORGE_WORK_DIR no longer changes resolveWorkDir"
+    },
+    {
+      "desc": "flow run commands shall accept --log-file <path>; explicit relative paths shall resolve from the execution root.",
+      "status": "done",
+      "note": "R3: every flow run command registry entry exposes --log-file"
+    },
+    {
+      "desc": "when --log-file is omitted, flow run commands shall create a default runtime log at <agentWorkDir>/logs/<flowId>/<action>-<phase>-<timestamp>.log for active flows and <agentWorkDir>/logs/no-flow/<command>-<timestamp>.log when no active flow exists.",
+      "status": "done",
+      "note": "R4: default runtime log paths are derived under agentWorkDir/logs by flow id"
+    },
+    {
+      "desc": "final JSON envelopes shall continue to be emitted on stdout without human-readable runtime log text mixed into the envelope stream.",
+      "status": "done",
+      "note": "R5: envelope JSON remains stdout-only while runtime log text is separated"
+    },
+    {
+      "desc": "runtime logs shall capture human-readable progress, warnings, stderr-equivalent diagnostics, and relevant AI invocation/log pointers, but shall not include a duplicate final JSON envelope as a machine contract.",
+      "status": "done",
+      "note": "R6: runtime logs capture human-readable diagnostics without duplicating the final envelope contract"
+    },
+    {
+      "desc": "source templates, generated skills, and user-facing docs shall replace SDD_FORGE_WORK_DIR and shell redirect examples with --agent-work-dir and --log-file examples.",
+      "status": "done",
+      "note": "R7: generated agent instructions use --agent-work-dir and --log-file, not env prefixes or redirects"
+    },
+    {
+      "desc": "tests shall cover early --agent-work-dir parsing, SDD_FORGE_WORK_DIR removal, explicit and default --log-file path behavior, stdout envelope preservation, and instruction updates.",
+      "status": "done",
+      "note": "R8: permanent unit coverage exists for config, container, dispatcher, registry, and templates"
+    },
+    {
+      "desc": "invalid or missing --agent-work-dir and --log-file option values shall fail at the CLI entry/dispatch boundary with a non-zero exit code and a JSON error envelope.",
+      "status": "done",
+      "note": "R9: missing option values fail at the dispatch boundary with ARGS_ERROR envelopes"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

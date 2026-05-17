@@ -1,7 +1,7 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "path";
-import { loadJsonFile, loadPackageField, loadConfig } from "../../../src/lib/config.js";
+import { loadJsonFile, loadPackageField, loadConfig, resolveWorkDir } from "../../../src/lib/config.js";
 import { createTmpDir, removeTmpDir, writeJson, writeFile } from "../../helpers/tmp-dir.js";
 
 describe("loadJsonFile", () => {
@@ -59,5 +59,27 @@ describe("loadConfig", () => {
   it("throws when config is missing", () => {
     tmp = createTmpDir();
     assert.throws(() => loadConfig(tmp), /Missing file/);
+  });
+});
+
+describe("resolveWorkDir", () => {
+  let savedEnv;
+
+  afterEach(() => {
+    if (savedEnv === undefined) delete process.env.SDD_FORGE_WORK_DIR;
+    else process.env.SDD_FORGE_WORK_DIR = savedEnv;
+  });
+
+  it("ignores SDD_FORGE_WORK_DIR and uses config.agent.workDir", () => {
+    savedEnv = process.env.SDD_FORGE_WORK_DIR;
+    process.env.SDD_FORGE_WORK_DIR = ".env-work";
+    assert.equal(resolveWorkDir("/project", { agent: { workDir: ".config-work" } }), "/project/.config-work");
+  });
+
+  it("uses agentWorkDir override before config.agent.workDir", () => {
+    assert.equal(
+      resolveWorkDir("/project", { agent: { workDir: ".config-work" } }, { agentWorkDirOverride: ".agent-work" }),
+      "/project/.agent-work",
+    );
   });
 });

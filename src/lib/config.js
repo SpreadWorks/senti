@@ -81,17 +81,18 @@ export function sddOutputDir(root) {
  * Resolve agent work directory.
  *
  * Priority:
- *   1) SDD_FORGE_WORK_DIR environment variable
+ *   1) opts.agentWorkDirOverride
  *   2) config.agent.workDir
  *   3) ".tmp" (default)
  *
  * @param {string} root - Repository root
  * @param {Object} [cfg] - SDD config object
+ * @param {Object} [opts]
+ * @param {string} [opts.agentWorkDirOverride] - Per-invocation override
  * @returns {string} Absolute path to work directory
  */
-export function resolveWorkDir(root, cfg) {
-  const envWorkDir = process.env.SDD_FORGE_WORK_DIR;
-  const dir = envWorkDir || cfg?.agent?.workDir || ".tmp";
+export function resolveWorkDir(root, cfg, opts = {}) {
+  const dir = opts.agentWorkDirOverride || cfg?.agent?.workDir || ".tmp";
   return path.resolve(root, dir);
 }
 

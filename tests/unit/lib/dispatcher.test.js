@@ -1,5 +1,8 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { Container } from "../../../src/lib/container.js";
 import { Command } from "../../../src/lib/command.js";
 import { dispatch } from "../../../src/lib/dispatcher.js";
@@ -103,6 +106,135 @@ describe("dispatcher (unified runner)", () => {
       const parsed = JSON.parse(out.join(""));
       assert.equal(parsed.ok, true);
       assert.equal(parsed.data.data, 42);
+    });
+
+    it("flow run envelope mode writes human-readable runtime log without changing stdout envelope", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-dispatcher-"));
+      try {
+        container.register("paths", {
+          root: tmp,
+          agentWorkDir: path.join(tmp, ".agent-work"),
+        });
+
+        class Cmd extends Command {
+          static outputMode = "envelope";
+          execute() {
+            process.stderr.write("human progress\n");
+            return { data: 42 };
+          }
+        }
+
+        const entry = {
+          command: async () => ({ default: Cmd }),
+          args: { options: ["--log-file"] },
+          requiresFlow: false,
+        };
+        const out = [];
+        const logFile = "logs/runtime.log";
+        await dispatch({
+          container,
+          entry,
+          argv: ["--log-file", logFile],
+          envelopeType: "run",
+          envelopeKey: "gate",
+          stdout: (s) => out.push(s),
+          buildHookCtx: () => ({ specId: "demo-flow" }),
+        });
+
+        const parsed = JSON.parse(out.join(""));
+        assert.equal(parsed.ok, true);
+        assert.equal(parsed.data.data, 42);
+        assert.doesNotMatch(out.join(""), /human progress/);
+
+        const logText = fs.readFileSync(path.join(tmp, logFile), "utf8");
+        assert.match(logText, /start flow run gate/);
+        assert.match(logText, /human progress/);
+        assert.doesNotMatch(logText, /"ok": true/);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("flow run uses default runtime log path under agentWorkDir/logs/<flowId>", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-dispatcher-"));
+      try {
+        const agentWorkDir = path.join(tmp, ".agent-work");
+        container.register("paths", { root: tmp, agentWorkDir });
+
+        class Cmd extends Command {
+          static outputMode = "envelope";
+          execute() {
+            process.stderr.write("active flow progress\n");
+            return { ok: true };
+          }
+        }
+
+        const entry = {
+          command: async () => ({ default: Cmd }),
+          args: { options: ["--log-file", "--phase"] },
+          requiresFlow: false,
+        };
+        const out = [];
+        await dispatch({
+          container,
+          entry,
+          argv: ["--phase", "draft"],
+          envelopeType: "run",
+          envelopeKey: "gate",
+          stdout: (s) => out.push(s),
+          buildHookCtx: () => ({ specId: "demo-flow" }),
+        });
+
+        assert.equal(JSON.parse(out.join("")).ok, true);
+        const logDir = path.join(agentWorkDir, "logs", "demo-flow");
+        const files = fs.readdirSync(logDir);
+        assert.equal(files.length, 1);
+        assert.match(files[0], /^gate-draft-/);
+        assert.match(fs.readFileSync(path.join(logDir, files[0]), "utf8"), /active flow progress/);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("flow run without active flow uses no-flow default runtime log path without phase suffix", async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sdd-dispatcher-"));
+      try {
+        const agentWorkDir = path.join(tmp, ".agent-work");
+        container.register("paths", { root: tmp, agentWorkDir });
+
+        class Cmd extends Command {
+          static outputMode = "envelope";
+          execute() {
+            process.stderr.write("no flow progress\n");
+            return { ok: true };
+          }
+        }
+
+        const entry = {
+          command: async () => ({ default: Cmd }),
+          args: { options: ["--log-file", "--phase"] },
+          requiresFlow: false,
+        };
+        const out = [];
+        await dispatch({
+          container,
+          entry,
+          argv: ["--phase", "draft"],
+          envelopeType: "run",
+          envelopeKey: "auto-check",
+          stdout: (s) => out.push(s),
+        });
+
+        assert.equal(JSON.parse(out.join("")).ok, true);
+        const logDir = path.join(agentWorkDir, "logs", "no-flow");
+        const files = fs.readdirSync(logDir);
+        assert.equal(files.length, 1);
+        assert.match(files[0], /^auto-check-/);
+        assert.doesNotMatch(files[0], /^auto-check-draft-/);
+        assert.match(fs.readFileSync(path.join(logDir, files[0]), "utf8"), /no flow progress/);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
     });
 
     it("raw mode lets the command write stdout itself", async () => {

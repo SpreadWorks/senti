@@ -46,6 +46,7 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
     argv,
     envelopeType,
     envelopeKey,
+    runtimeLog: group === "run",
     buildHookCtx: (c) => resolveFlowContext(c),
   });
 }

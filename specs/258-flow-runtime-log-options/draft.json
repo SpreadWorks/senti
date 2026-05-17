@@ -1,0 +1,107 @@
+{
+  "devType": "feature",
+  "goal": "Flow run commands shall accept explicit agent work directory and runtime log options so outer agents no longer need env SDD_FORGE_WORK_DIR or shell redirects. Default per-flow runtime logs shall be written under the resolved agent work directory while preserving the final JSON envelope on stdout.",
+  "analysis": {
+    "problem": "Outer agents currently compose commands such as env SDD_FORGE_WORK_DIR=... sdd-forge flow run ... > file 2>&1 because temporary output and command capture are described as shell-level concerns. That command shape starts with env and uses shell redirection, so Codex approval prefix rules cannot reliably match stable prefixes such as sdd-forge flow run gate.",
+    "proposedApproach": "Move the per-invocation agent work directory override and human-readable runtime log capture into first-class CLI options: --agent-work-dir and --log-file. Update flow command parsing, container path initialization, runtime logging, templates, generated skills, and docs so agent-facing instructions use the new options instead of env SDD_FORGE_WORK_DIR or shell redirects.",
+    "validation": "The approach addresses the root problem because the command line can start with sdd-forge and remain free of shell redirects while still producing inspectable logs. Existing code centralizes work directory resolution in src/lib/config.js and src/lib/container.js, and command output is emitted through src/lib/dispatcher.js, so the change has clear integration points."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "src/lib/config.js resolveWorkDir currently prefers process.env.SDD_FORGE_WORK_DIR over config.agent.workDir and .tmp.",
+      "src/lib/container.js builds paths.agentWorkDir and logDir once during initContainer, before namespace dispatchers run.",
+      "src/lib/dispatcher.js owns parsed command input, stdout/stderr writers, envelope writing, pre/post hooks, and error envelope emission.",
+      "src/lib/agent.js uses paths.agentWorkDir for ensureWorkDir, schema temp files, and provider workDirFlag injection.",
+      "src/templates/partials/core-principle.md and generated flow skills instruct agents to use SDD_FORGE_WORK_DIR and shell redirection for temporary command output.",
+      "Issue #326 requires final JSON envelopes to remain on stdout while runtime logs receive progress, warnings, stderr-equivalent output, and AI call logs.",
+      "Project rules prohibit adding external dependencies and prefer removing legacy compatibility during alpha.",
+      "Explicit relative --log-file paths should resolve from the execution root so --log-file .tmp/name.log mirrors the current shell redirect location.",
+      "--agent-work-dir is a flow run public option; implementation may pre-scan raw CLI args before container initialization so paths.agentWorkDir is available early.",
+      "Runtime logs are human-readable operation logs; stdout remains the authoritative channel for the final JSON envelope."
+    ],
+    "decisionPoints": [
+      "How --agent-work-dir is parsed early enough to affect initContainer path construction.",
+      "Whether --agent-work-dir is accepted only by flow run commands or by every sdd-forge command that initializes the shared container.",
+      "How --log-file defaults are named and grouped under <agentWorkDir>/logs/<flowId>/.",
+      "Which output streams and diagnostics are copied into the runtime log without corrupting stdout JSON envelopes.",
+      "How templates, generated skills, and docs are updated so outer agents stop composing env SDD_FORGE_WORK_DIR and shell redirects.",
+      "How SDD_FORGE_WORK_DIR tests and documentation are removed or rewritten."
+    ],
+    "resolvedByProjectRules": [
+      "Do not add third-party dependencies; use Node.js built-in modules only.",
+      "Alpha policy allows removal of the SDD_FORGE_WORK_DIR compatibility path instead of keeping fallback code.",
+      "Template changes under src/templates require sdd-forge upgrade so generated .agents and .claude skills are refreshed.",
+      "The final JSON envelope must remain machine-readable on stdout and must not be mixed with human-readable runtime logs.",
+      "Worktree flow implementation must stay inside the active worktree path until finalize cleanup releases it."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "Exact timestamp format for default runtime log filenames.",
+      "Exact action and phase token derivation for default log filenames.",
+      "Exact runtime logger class or helper boundaries.",
+      "Exact tests for dispatcher logging, early agentWorkDir override parsing, generated skill updates, and SDD_FORGE_WORK_DIR removal."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "Add --agent-work-dir to replace SDD_FORGE_WORK_DIR as the per-invocation agent work directory override.",
+      "Add --log-file and default per-flow runtime log creation for flow run command execution.",
+      "Keep final JSON envelope output on stdout.",
+      "Capture human-readable progress, warnings, stderr-equivalent diagnostics, and AI invocation log pointers in runtime logs.",
+      "Default runtime log location under <agentWorkDir>/logs/<flowId>/ for active flows and <agentWorkDir>/logs/no-flow/ when no active flow exists.",
+      "Update source templates, generated skills, AGENTS/docs references, and tests that mention SDD_FORGE_WORK_DIR or shell redirect guidance."
+    ],
+    "out": [
+      "Changing SDD_FORGE_WORK_ROOT or SDD_FORGE_SOURCE_ROOT behavior.",
+      "Changing GitHub workflow board behavior.",
+      "Replacing the existing structured JSONL Logger format.",
+      "Changing provider profile selection semantics for SDD_FORGE_PROFILE.",
+      "Adding external logging packages or shell-based logging wrappers."
+    ]
+  },
+  "impactOnExisting": [
+    "Flow command argument parsing and help text will accept new runtime logging options.",
+    "Container initialization must support an early per-invocation agentWorkDir override.",
+    "Agent invocation paths, schema temp paths, enrich dump paths, and default log paths will resolve from the new option or config.agent.workDir.",
+    "Generated flow skill instructions will stop recommending SDD_FORGE_WORK_DIR and shell redirects.",
+    "Tests covering resolveWorkDir env priority must be replaced with tests covering --agent-work-dir priority and default log behavior."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "明示された相対 --log-file パスは、実行 root 基準と agentWorkDir 基準のどちらで解決するべきですか。実行 root は sdd-forge が対象にするプロジェクトルート、agentWorkDir は AI agent の一時ファイルとログの基準ディレクトリです。",
+      "answer": "実行 root 基準で解決する。たとえば worktree root で --log-file .tmp/review.log を指定した場合は、その worktree の .tmp/review.log に書く。",
+      "evidence": "Issue #326 は shell redirect の代替を目的としており、現行の > .tmp/name.log は実行 root からの相対パスとして解決される。src/lib/dispatcher.js は stdout/stderr を管理し、sdd-forge CLI は root を container に登録している。",
+      "why": "既存の shell redirect 運用と同じ場所に保存でき、--agent-work-dir .tmp と --log-file .tmp/name.log の組み合わせで .tmp/.tmp/name.log のような二重解決を避けられるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "--agent-work-dir は flow run 専用のオプションにするべきですか。それとも sdd-forge 全体で使える共通オプションにするべきですか。",
+      "answer": "公開仕様としては flow run 専用にする。ただし実装では src/sdd-forge.js が raw args を早期に pre-scan し、initContainer に agentWorkDir override を渡せるようにする。",
+      "evidence": "Issue #326 の対象は flow run 系コマンド。src/sdd-forge.js は namespace dispatcher の import 前に initContainer を呼び、src/lib/container.js は initContainer 中に paths.agentWorkDir を確定している。",
+      "why": "ユーザー向けスコープを Issue どおり flow run に絞りつつ、Agent や Logger が参照する paths.agentWorkDir を container 初期化前に決定できるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "runtime log は人間向けの動作ログだけに限定し、最終 JSON envelope のコピーは含めない契約でよいですか。JSON envelope は sdd-forge コマンドが stdout に出す機械読み取り用の最終結果です。",
+      "answer": "runtime log には最終 JSON envelope のコピーを含めない。stdout の envelope を唯一の機械読み取り結果として維持する。",
+      "evidence": "Issue #326 は final JSON envelope continues to go to stdout と明記している。src/lib/dispatcher.js は envelope mode で JSON を stdout に書く単一箇所を持つ。",
+      "why": "人間向けログと機械読み取り結果を分離し、ログ追記や警告出力で JSON envelope のパース契約を壊さないため。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-16T14:03:00.000Z",
+    "notes": "Draft coverage review passed via manual fallback; no blocking user-decision gaps remain."
+  }
+}

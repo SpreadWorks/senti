@@ -22,6 +22,17 @@ import { initContainer } from "./lib/container.js";
 
 const rawArgs = process.argv.slice(2);
 const [subCmd, ...rest] = rawArgs;
+let agentWorkDirOverride = null;
+if (subCmd === "flow" && rest[0] === "run") {
+  for (let i = 2; i < rest.length; i += 1) {
+    if (rest[i] === "--agent-work-dir") {
+      const value = rest[i + 1];
+      const normalized = value == null ? "" : String(value).trim();
+      if (normalized !== "" && !normalized.startsWith("-")) agentWorkDirOverride = normalized;
+      break;
+    }
+  }
+}
 
 // version (-v / --version / -V)
 if (subCmd === "-v" || subCmd === "--version" || subCmd === "-V") {
@@ -42,7 +53,10 @@ if (!subCmd || subCmd === "-h" || subCmd === "--help" || subCmd === "help") {
 
 // Initialize the shared dependency container once; dispatchers and commands
 // below import `container` directly from ./lib/container.js.
-initContainer({ entryCommand: rawArgs.join(" ") });
+initContainer({
+  entryCommand: rawArgs.join(" "),
+  agentWorkDirOverride,
+});
 
 /** Namespace dispatchers — receive subcommand + rest args */
 const NAMESPACE_SCRIPTS = {

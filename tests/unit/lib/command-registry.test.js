@@ -52,4 +52,14 @@ describe("unified command registry (R3)", () => {
     visit(allCommands);
     assert.ok(seen.size > 0);
   });
+
+  it("flow run entries accept runtime log options", async () => {
+    const { flowCommands } = await import("../../../src/lib/command-registry.js");
+    for (const [name, entry] of Object.entries(flowCommands.run)) {
+      if (typeof entry?.command !== "function") continue;
+      const options = entry.args?.options || [];
+      assert.ok(options.includes("--agent-work-dir"), `flow run ${name} must accept --agent-work-dir`);
+      assert.ok(options.includes("--log-file"), `flow run ${name} must accept --log-file`);
+    }
+  });
 });

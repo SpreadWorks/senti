@@ -1,0 +1,322 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/258-flow-runtime-log-options/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "test_name": "R1: every flow run command registry entry exposes --agent-work-dir",
+        "command": "node --test specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "test_name": "R2: SDD_FORGE_WORK_DIR no longer changes resolveWorkDir",
+        "command": "node --test specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "test_name": "R3: every flow run command registry entry exposes --log-file",
+        "command": "node --test specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "test_name": "R4: default runtime log paths are derived under agentWorkDir/logs by flow id",
+        "command": "node --test specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "test_name": "R5: envelope JSON remains stdout-only while runtime log text is separated",
+        "command": "node --test specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "test_name": "R6: runtime logs capture human-readable diagnostics without duplicating the final envelope contract",
+        "command": "node --test specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "test_name": "R7: generated agent instructions use --agent-work-dir and --log-file, not env prefixes or redirects",
+        "command": "node --test specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "test_name": "R8: permanent unit coverage exists for config, container, dispatcher, registry, and templates",
+        "command": "node --test specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    },
+    {
+      "id": "R9",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "test_name": "R9: missing option values fail at the dispatch boundary with ARGS_ERROR envelopes",
+        "command": "node --test specs/258-flow-runtime-log-options/tests/flow-runtime-options.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 84
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": true,
+    "mode": "full",
+    "root_test_command": "npm test --",
+    "root_test_command_source": "package.json:scripts.test",
+    "command": "npm test --",
+    "result": "pass",
+    "raw_output_lines": {
+      "start_line": 85,
+      "end_line": 5277
+    },
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "nonexistent/"
+      },
+      {
+        "status": "untracked",
+        "path": "specs/258-flow-runtime-log-options/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/cli.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/config.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/container.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/dispatcher.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/sdd-forge.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/docs/enrich-dump-path.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/commands/review.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/get-step-instructions.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/run-review-advisory.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/agent.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/cli.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/command-registry.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/config.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/container-init.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/dispatcher.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "nonexistent/"
+      },
+      {
+        "status": "untracked",
+        "path": "specs/258-flow-runtime-log-options/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/registry.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/agent.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/cli.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/config.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/container.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/dispatcher.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/sdd-forge.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/docs/enrich-dump-path.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/commands/review.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/get-step-instructions.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/run-review-advisory.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/agent.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/cli.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/command-registry.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/config.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/container-init.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/dispatcher.test.js"
+      }
+    ],
+    "process": {
+      "started": true,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null
+    }
+  }
+}

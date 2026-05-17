@@ -14,6 +14,8 @@
  * Writes to stdout and setExitCode can be injected for testing.
  */
 
+import fs from "fs";
+import path from "path";
 import { parseArgs as cliParseArgs } from "./cli.js";
 import { Command } from "./command.js";
 import { Envelope } from "./flow-envelope.js";
@@ -38,8 +40,11 @@ function splitArgsBySpec(argv, flagSet, optionSet) {
       continue;
     }
     if (optionSet.has(a)) {
+      if (i + 1 >= argv.length || String(argv[i + 1]).trim() === "" || String(argv[i + 1]).startsWith("-")) {
+        throw new Error(`Missing value for option: ${a}`);
+      }
       nonPositional.push(a);
-      if (i + 1 < argv.length) nonPositional.push(argv[++i]);
+      nonPositional.push(argv[++i]);
       continue;
     }
     // Unrecognized `-`-prefixed token → unknown option; non-dash tokens fall
@@ -95,6 +100,59 @@ export function parseEntryInput(entry, argv) {
   return parsed;
 }
 
+const RUNTIME_LOG_MAX_BYTES = 5 * 1024 * 1024;
+const RUNTIME_LOG_TRUNCATED_MARKER = "\n[sdd-forge] runtime log truncated: size limit reached\n";
+
+class RuntimeLog {
+  constructor(filePath, maxBytes = RUNTIME_LOG_MAX_BYTES) {
+    this.filePath = filePath;
+    this.maxBytes = maxBytes;
+    this.bytesWritten = 0;
+    this.truncated = false;
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, "");
+  }
+
+  write(line) {
+    if (this.truncated) return;
+    const text = line.endsWith("\n") ? line : `${line}\n`;
+    const remaining = this.maxBytes - this.bytesWritten;
+    if (Buffer.byteLength(text) <= remaining) {
+      fs.appendFileSync(this.filePath, text);
+      this.bytesWritten += Buffer.byteLength(text);
+      return;
+    }
+
+    const markerBytes = Buffer.byteLength(RUNTIME_LOG_TRUNCATED_MARKER);
+    const allowed = Math.max(0, remaining - markerBytes);
+    if (allowed > 0) {
+      fs.appendFileSync(this.filePath, Buffer.from(text).subarray(0, allowed));
+    }
+    fs.appendFileSync(this.filePath, RUNTIME_LOG_TRUNCATED_MARKER);
+    this.bytesWritten = this.maxBytes;
+    this.truncated = true;
+  }
+}
+
+function resolveRuntimeLogPath({ container, input, envelopeKey, hookCtx }) {
+  const paths = container.get("paths");
+  if (input.logFile) return path.resolve(paths.root, input.logFile);
+
+  const hasActiveFlow = Boolean(hookCtx?.specId);
+  const flowId = String(hasActiveFlow ? hookCtx.specId : "no-flow")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "no-flow";
+  const commandKey = String(envelopeKey || "run")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "run";
+  const phase = hasActiveFlow && input.phase
+    ? `-${String(input.phase).replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "run"}`
+    : "";
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const fileName = `${commandKey}${phase}-${timestamp}.log`;
+  return path.join(paths.agentWorkDir, "logs", flowId, fileName);
+}
+
 /**
  * Dispatch a single entry.
  *
@@ -107,6 +165,7 @@ export function parseEntryInput(entry, argv) {
  * @param {(s: string) => void} [args.stdout]        override for tests
  * @param {(code: number) => void} [args.setExitCode] override for tests
  * @param {(s: string) => void} [args.stderr]        override for tests
+ * @param {boolean} [args.runtimeLog]  enable flow-run human-readable runtime log
  */
 export async function dispatch({
   container,
@@ -114,13 +173,16 @@ export async function dispatch({
   argv,
   envelopeType,
   envelopeKey,
+  runtimeLog: enableRuntimeLog = false,
   stdout,
   stderr,
   setExitCode,
   buildHookCtx,
 }) {
   const writeOut = stdout || ((s) => process.stdout.write(s));
-  const writeErr = stderr || ((s) => process.stderr.write(s));
+  let runtimeLog = null;
+  const baseWriteErr = stderr || ((s) => process.stderr.write(s));
+  const writeErr = (s) => baseWriteErr(s);
   const setExit = setExitCode || ((code) => { process.exitCode = code; });
 
   // 1. Parse argv → input. _rawArgs preserved for legacy adapters that
@@ -171,6 +233,20 @@ export async function dispatch({
     ? { ...buildHookCtx(container, input), ...input }
     : { container, ...input };
 
+  let restoreStderr = null;
+  if ((enableRuntimeLog === true || (envelopeType === "run" && (entry.args?.options || []).includes("--log-file"))) && container.has("paths")) {
+    runtimeLog = new RuntimeLog(resolveRuntimeLogPath({ container, input, envelopeKey, hookCtx }));
+    runtimeLog.write(`[sdd-forge] start flow run ${envelopeKey || "?"}`);
+    const originalStderrWrite = process.stderr.write;
+    process.stderr.write = function(chunk, encoding, cb) {
+      if (runtimeLog) runtimeLog.write(String(chunk));
+      return originalStderrWrite.call(this, chunk, encoding, cb);
+    };
+    restoreStderr = () => {
+      process.stderr.write = originalStderrWrite;
+    };
+  }
+
   const emitPreconditionFailure = (code, message) => {
     const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", code, message);
     writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
@@ -181,6 +257,7 @@ export async function dispatch({
   // precondition but the container has no config registered (setup not run).
   if (entry.requiresConfig && container.get("config") == null) {
     emitPreconditionFailure("NO_CONFIG", "config.json not found. Run sdd-forge setup first.");
+    if (restoreStderr) restoreStderr();
     return;
   }
 
@@ -188,6 +265,7 @@ export async function dispatch({
   // Skipped for non-flow entries or when buildHookCtx is absent.
   if (entry.requiresFlow !== false && buildHookCtx && !hookCtx.flowState) {
     emitPreconditionFailure("NO_FLOW", "no active flow (flow.json not found)");
+    if (restoreStderr) restoreStderr();
     return;
   }
 
@@ -197,6 +275,7 @@ export async function dispatch({
       await entry.pre(hookCtx);
     } catch (err) {
       await emitFailure({ err, mode, entry, envelopeType, envelopeKey, writeOut, writeErr, setExit });
+      if (restoreStderr) restoreStderr();
       return;
     }
   }
@@ -247,6 +326,8 @@ export async function dispatch({
     } else if (postFailed) {
       setExit(1);
     }
+    if (runtimeLog) runtimeLog.write(`[sdd-forge] end flow run ${envelopeKey || "?"}`);
+    if (restoreStderr) restoreStderr();
     return;
   }
 
@@ -259,6 +340,8 @@ export async function dispatch({
     }
   }
   await emitFailure({ err: caught, mode, entry, envelopeType, envelopeKey, writeOut, writeErr, setExit });
+  if (runtimeLog) runtimeLog.write(`[sdd-forge] failed flow run ${envelopeKey || "?"}: ${caught?.message || caught}`);
+  if (restoreStderr) restoreStderr();
 }
 
 async function resolveOutputMode(entry) {

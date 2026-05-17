@@ -54,12 +54,12 @@
 | `sdd-forge flow set step` | 指定ステップのステータスを更新 | ステップ ID・ステータス |
 | `sdd-forge flow set summary` | 要件配列（JSON）をフロー状態に保存 | JSON 配列文字列 |
 | `sdd-forge flow run finalize` | コミット・マージ/PR 作成・ドキュメント同期・後片付けを実行 | `--mode`, `--steps`, `--merge-strategy`, `--message`, `--dry-run` |
-| `sdd-forge flow run gate` | スペックの構造・ガードレール準拠を検証するゲートチェック | `--spec`, `--phase`, `--skip-guardrail` |
+| `sdd-forge flow run gate` | スペックの構造・ガードレール準拠を検証するゲートチェック | `--spec`, `--phase`, `--skip-guardrail`, `--agent-work-dir`, `--log-file` |
 | `sdd-forge flow run impl-confirm` | 要件の完了状況を確認して実装の準備状態を評価 | `--mode` |
 | `sdd-forge flow run lint` | ガードレールルールに基づき変更ファイルの lint チェックを実行 | `--base` |
 | `sdd-forge flow run report` | フロー実行レポート（report.json）を生成 | `--dry-run` |
 | `sdd-forge flow run retro` | AI によるスペック精度の振り返り（retro.json）を実行 | `--force`, `--dry-run` |
-| `sdd-forge flow run review` | コードレビューワークフローを実行し改善提案を生成・適用 | `--phase`, `--dry-run`, `--skip-confirm` |
+| `sdd-forge flow run review` | コードレビューワークフローを実行し改善提案を生成・適用 | `--phase`, `--dry-run`, `--skip-confirm`, `--agent-work-dir`, `--log-file` |
 | `sdd-forge flow run test-execute` | spec-local テストと必要な project regression を実行し、version `"2"` の `test-execute-result.json` と raw output を保存 | `.sdd-forge/config.json` の `test.command`, `test.projectPaths`, `test.timeout` |
 | `sdd-forge flow run test-result-review` | `test-execute-result.json` v2、raw output、project regression evidence を機械的に検証し `test-result-review.json` を保存 | なし |
 | `sdd-forge flow run sync` | ドキュメントのビルド・レビュー・コミットまでを一括実行 | `--dry-run` |
@@ -429,7 +429,7 @@ sdd-forge flow run finalize --mode <all|select> [options]
 スペックファイルの構造チェック（未解決トークン・必須セクション・ユーザー確認状態）と AI によるガードレール準拠チェックを実行します。`--phase post` を指定すると `## User Confirmation` のチェック状態も検証します。
 
 ```
-sdd-forge flow run gate [--spec <path>] [--phase <pre|post>] [--skip-guardrail]
+sdd-forge flow run gate [--spec <path>] [--phase <pre|post>] [--skip-guardrail] [--agent-work-dir <path>] [--log-file <path>]
 ```
 
 #### `sdd-forge flow run impl-confirm`
@@ -469,7 +469,7 @@ sdd-forge flow run retro [--force] [--dry-run]
 実装差分に対してコードレビューを実行し、改善提案の生成・評価・適用を行います。`--phase test` を指定するとテストカバレッジのギャップ分析（最大 3 ラウンド）を実行します。
 
 ```
-sdd-forge flow run review [--phase <test>] [--dry-run] [--skip-confirm]
+sdd-forge flow run review [--phase <test>] [--dry-run] [--skip-confirm] [--agent-work-dir <path>] [--log-file <path>]
 ```
 
 #### `sdd-forge flow run test-execute`

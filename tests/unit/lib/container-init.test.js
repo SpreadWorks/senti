@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "path";
-import { mkdirSync } from "fs";
+import { mkdirSync, readFileSync } from "fs";
 import { container, initContainer } from "../../../src/lib/container.js";
 import { createTmpDir, removeTmpDir, writeJson } from "../../helpers/tmp-dir.js";
 
@@ -66,5 +66,28 @@ describe("initContainer — config registration contract (R1, #175)", () => {
       const cls = container.get(name);
       assert.equal(typeof cls, "function", `${name} should be a class`);
     }
+  });
+
+  it("uses agentWorkDirOverride for agent work dir and default log dir", () => {
+    mkdirSync(join(tmp, ".sdd-forge"), { recursive: true });
+    writeJson(tmp, ".sdd-forge/config.json", {
+      lang: "ja",
+      type: "node-cli",
+      docs: { languages: ["ja"], defaultLanguage: "ja" },
+      agent: { workDir: ".tmp" },
+    });
+
+    initContainer({ agentWorkDirOverride: ".agent-run" });
+
+    const paths = container.get("paths");
+    assert.equal(paths.agentWorkDir, join(tmp, ".agent-run"));
+    assert.equal(paths.logDir, join(tmp, ".agent-run", "logs"));
+  });
+
+  it("CLI entrypoint pre-scans flow run --agent-work-dir before initContainer", () => {
+    const source = readFileSync(join(process.cwd(), "src/sdd-forge.js"), "utf8");
+    assert.match(source, /let agentWorkDirOverride = null/, "entrypoint must have early flow-run scanner state");
+    assert.match(source, /agentWorkDirOverride,/, "initContainer must receive the override");
+    assert.match(source, /subCmd\s*===\s*"flow"\s*&&\s*rest\[0\]\s*===\s*"run"/, "scanner must be scoped to flow run");
   });
 });

@@ -91,6 +91,8 @@ describe("flow run review --phase test CLI", () => {
   it("passes --phase test through to review command", () => {
     const result = execFileSync("node", [FLOW_CMD, ...FLOW_CMD_ARGS_PREFIX, "run", "review", "--help"], { encoding: "utf8" });
     assert.match(result, /--phase/);
+    assert.match(result, /--agent-work-dir/);
+    assert.match(result, /--log-file/);
   });
 
   it("errors when no active flow with --phase test", () => {

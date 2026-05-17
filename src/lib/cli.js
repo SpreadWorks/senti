@@ -72,7 +72,11 @@ export function parseArgs(argv, spec) {
       continue;
     }
     if (options.has(a)) {
-      opts[flagKey(a)] = String(argv[i + 1] || "").trim();
+      const value = argv[i + 1];
+      if (value == null || String(value).trim() === "" || String(value).startsWith("-")) {
+        throw new Error(`Missing value for option: ${a}`);
+      }
+      opts[flagKey(a)] = String(value).trim();
       i += 1;
       continue;
     }

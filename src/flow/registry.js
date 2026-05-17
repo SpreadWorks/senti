@@ -25,6 +25,7 @@ import { flattenSteps } from "./definition.js";
  * for finalize leaves (per spec 251 design principle).
  */
 const FINALIZE_SUCCESS_STATUSES = new Set(["done", "completed", "skipped"]);
+const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir", "--log-file"];
 
 function isFinalizeSuccess(result) {
   return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || ""));
@@ -401,7 +402,7 @@ export const FLOW_COMMANDS = {
       },
       command: () => import("./lib/run-gate.js"),
       args: {
-        options: ["--spec", "--phase"],
+        options: ["--spec", "--phase", ...FLOW_RUN_RUNTIME_OPTIONS],
         flags: ["--skip-guardrail"],
       },
       help: [
@@ -412,6 +413,8 @@ export const FLOW_COMMANDS = {
         "Options:",
         "  --spec <path>                 Path to spec (directory / spec.json / legacy spec.md; auto-resolved from flow.json)",
         `  --phase <${VALID_GATE_PHASES.join("|")}>  Gate phase (default: auto-resolve from in-progress step)`,
+        "  --agent-work-dir <path>       Per-invocation agent/tmp/log base directory",
+        "  --log-file <path>             Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
         "  --skip-guardrail              Skip AI guardrail compliance check",
       ].join("\n"),
       async post(ctx, result) {
@@ -444,7 +447,7 @@ export const FLOW_COMMANDS = {
       command: () => import("./lib/run-review.js"),
       args: {
         flags: ["--dry-run", "--skip-confirm"],
-        options: ["--phase"],
+        options: ["--phase", ...FLOW_RUN_RUNTIME_OPTIONS],
       },
       help: [
         "Usage: sdd-forge flow run review [options]",
@@ -453,6 +456,8 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         `  --phase <type>   Review phase: ${VALID_REVIEW_PHASES.map((p) => `'${p}'`).join(", ")}`,
+        "  --agent-work-dir <path>  Per-invocation agent/tmp/log base directory",
+        "  --log-file <path>        Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
         "  --dry-run        Show proposals without applying",
         "  --skip-confirm   Skip initial confirmation prompt",
       ].join("\n"),
@@ -499,7 +504,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.auto-check",
       command: () => import("./lib/run-auto-check.js"),
       requiresFlow: false,
-      args: { options: ["--run-id"] },
+      args: { options: ["--run-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run auto-check [--run-id <id>]",
         "",
@@ -517,6 +522,8 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         "  --run-id <runId>   Target preparing flow (required when no active flow)",
+        "  --agent-work-dir <path>  Per-invocation agent/tmp/log base directory",
+        "  --log-file <path>        Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
       ].join("\n"),
     },
     // impl-confirm is a read-only check, not the finalize action itself.
@@ -524,7 +531,7 @@ export const FLOW_COMMANDS = {
     "impl-confirm": {
       helpKey: "flow.run.impl-confirm",
       command: () => import("./lib/run-impl-confirm.js"),
-      args: { options: ["--mode"] },
+      args: { options: ["--mode", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run impl-confirm [options]",
         "",
@@ -534,13 +541,15 @@ export const FLOW_COMMANDS = {
         "  --mode <overview|detail>  Check mode (default: overview)",
         "    overview: summarize requirements status from flow.json",
         "    detail:   also compare git diff against requirements",
+        "  --agent-work-dir <path>   Per-invocation agent/tmp/log base directory",
+        "  --log-file <path>         Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
       ].join("\n"),
     },
     "finalize-commit": {
       helpKey: "flow.run.finalize-commit",
       command: () => import("./lib/run-finalize-commit.js"),
       args: {
-        options: ["--message"],
+        options: ["--message", ...FLOW_RUN_RUNTIME_OPTIONS],
       },
       help: [
         "Usage: sdd-forge flow run finalize-commit [options]",
@@ -549,6 +558,8 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         "  --message <msg>  Custom commit message",
+        "  --agent-work-dir <path>  Per-invocation agent/tmp/log base directory",
+        "  --log-file <path>        Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
       ].join("\n"),
       async post(ctx, result) {
         // R11: skip side effects on preflight_failed / failed. The step is
@@ -568,6 +579,7 @@ export const FLOW_COMMANDS = {
     "finalize-merge": {
       helpKey: "flow.run.finalize-merge",
       command: () => import("./lib/run-finalize-merge.js"),
+      args: { options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run finalize-merge",
         "",
@@ -636,6 +648,7 @@ export const FLOW_COMMANDS = {
     "finalize-sync": {
       helpKey: "flow.run.finalize-sync",
       command: () => import("./lib/run-finalize-sync.js"),
+      args: { options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run finalize-sync",
         "",
@@ -655,7 +668,7 @@ export const FLOW_COMMANDS = {
     "finalize-cleanup": {
       helpKey: "flow.run.finalize-cleanup",
       command: () => import("./lib/run-finalize-cleanup.js"),
-      args: { flags: ["--auto-rescue", "--force"] },
+      args: { flags: ["--auto-rescue", "--force"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run finalize-cleanup [--auto-rescue | --force]",
         "",
@@ -690,7 +703,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.sync",
       requiresFlow: false,
       command: () => import("./lib/run-sync.js"),
-      args: { flags: ["--dry-run"] },
+      args: { flags: ["--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run sync [options]",
         "",
@@ -703,7 +716,7 @@ export const FLOW_COMMANDS = {
     "reopen-draft": {
       helpKey: "flow.run.reopen-draft",
       command: () => import("./lib/run-reopen-draft.js"),
-      args: { options: ["--reason"] },
+      args: { options: ["--reason", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run reopen-draft [--reason <text>]",
         "",
@@ -717,7 +730,7 @@ export const FLOW_COMMANDS = {
     "start-task": {
       helpKey: "flow.run.start-task",
       command: () => import("./lib/run-start-task.js"),
-      args: { options: ["--task-id"] },
+      args: { options: ["--task-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run start-task --task-id <id>",
         "",
@@ -729,7 +742,7 @@ export const FLOW_COMMANDS = {
     "complete-task": {
       helpKey: "flow.run.complete-task",
       command: () => import("./lib/run-complete-task.js"),
-      args: { options: ["--task-id"] },
+      args: { options: ["--task-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run complete-task [--task-id <id>]",
         "",
@@ -741,7 +754,7 @@ export const FLOW_COMMANDS = {
     "update-overview": {
       helpKey: "flow.run.update-overview",
       command: () => import("./lib/run-update-overview.js"),
-      args: { options: ["--json"] },
+      args: { options: ["--json", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run update-overview --json '<additions>'",
         "",
@@ -758,7 +771,7 @@ export const FLOW_COMMANDS = {
     lint: {
       helpKey: "flow.run.lint",
       command: () => import("./lib/run-lint.js"),
-      args: { options: ["--base"] },
+      args: { options: ["--base", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run lint [options]",
         "",
@@ -771,7 +784,7 @@ export const FLOW_COMMANDS = {
     "test-execute": {
       helpKey: "flow.run.test-execute",
       command: () => import("./lib/run-test-execute.js"),
-      args: { flags: [], options: [] },
+      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run test-execute",
         "",
@@ -790,7 +803,7 @@ export const FLOW_COMMANDS = {
     "test-result-review": {
       helpKey: "flow.run.test-result-review",
       command: () => import("./lib/run-test-result-review.js"),
-      args: { flags: [], options: [] },
+      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run test-result-review",
         "",
@@ -810,7 +823,7 @@ export const FLOW_COMMANDS = {
     retro: {
       helpKey: "flow.run.retro",
       command: () => import("./lib/run-retro.js"),
-      args: { flags: ["--force", "--dry-run"] },
+      args: { flags: ["--force", "--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run retro [options]",
         "",
@@ -830,7 +843,7 @@ export const FLOW_COMMANDS = {
     report: {
       helpKey: "flow.run.report",
       command: () => import("./lib/run-report.js"),
-      args: { flags: ["--dry-run"] },
+      args: { flags: ["--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run report [options]",
         "",

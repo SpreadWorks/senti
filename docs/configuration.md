@@ -62,7 +62,7 @@ sdd-forge is configured through a single project-level JSON file (`.sdd-forge/co
 | `flow.commands.context.search.mode` | No | `"ngram"` \| `"ai"` | — | Search mode used when retrieving flow context. |
 | `commands.gh` | No | `"enable"` \| `"disable"` | `"disable"` | Whether the GitHub CLI (`gh`) is available for PR-related flow steps. |
 | `logs.enabled` | No | boolean | `false` | Enable unified JSONL logging of agent requests and responses. |
-| `logs.dir` | No | string | `"{agent.workDir}/logs"` | Directory where log files are written. |
+| `logs.dir` | No | string | `"{agent.workDir}/logs"` | Directory for unified JSONL agent logs. Flow runtime logs can be directed per invocation with `--log-file`; when omitted, `flow run` writes under `<agentWorkDir>/logs/<flowId>/`. |
 | `chapters` | No | object[] | preset defaults | Override or reorder the chapter list. Each entry requires a `chapter` filename and supports optional `desc` and `exclude` fields. |
 | `experimental.workflow.enable` | No | boolean | `false` | Enable the experimental workflow feature. |
 | `experimental.workflow.languages.source` | No | string | — | Source language for the experimental workflow. |
@@ -186,6 +186,8 @@ Configure how sdd-forge interacts with Git during flow finalization.
 **Logging**
 
 Enable JSONL logging to record agent prompts and responses. Logs are written as daily `.jsonl` files and per-request JSON files under the configured directory.
+
+Flow runtime command logs are separate human-readable files. Use `sdd-forge flow run <action> --agent-work-dir .tmp --log-file .tmp/<name>.log` when an operator-readable log path is needed.
 
 ```json
 {

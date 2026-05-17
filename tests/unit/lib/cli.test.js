@@ -52,6 +52,15 @@ describe("parseArgs", () => {
     });
   });
 
+  it("throws when an option value is missing", () => {
+    assert.throws(() => parseArgs(["--type"], { options: ["--type"] }), {
+      message: /Missing value for option: --type/,
+    });
+    assert.throws(() => parseArgs(["--type", "--agent"], { options: ["--type", "--agent"] }), {
+      message: /Missing value for option: --type/,
+    });
+  });
+
   it("skips --", () => {
     const result = parseArgs(["--"], { flags: [] });
     assert.equal(result.help, false);
