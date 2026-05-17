@@ -40,13 +40,13 @@ src/spec/commands/    (cli)
 
 | Directory | Files | Role |
 | --- | --- | --- |
-| src/flow | 69 | flow merge orchestrator, flow reporting command, flow review orchestrator, spec rationale section builder for prompts, lib, flow-context, controller, get guardrail flow command, cli, flow decision engine, command, library, finalize merge command wrapper, flow-command, test-header-validator |
+| src/flow | 69 | flow merge orchestrator, flow reporting command, Comprehensive flow review orchestrator, Workflow definition and state-derivation core, spec rationale section builder for prompts, lib, Draft lifecycle domain model and validator, flow-context, Gate phase resolver, controller, Context search and retrieval engine, get guardrail flow command, cli, flow decision engine, Prompt retrieval command, command, Spec view renderer, library, Auto-check input resolver, Resolved flow context builder, Auto-check evaluator, Finalize cleanup and rescue orchestrator, Finalize commit step command, finalize merge command wrapper, Finalize lifecycle utility layer, flow-command, test-header-validator |
 | src/docs | 46 | command, cli, docs command, AI enrichment pipeline command, documentation generation orchestrator, documentation integrity reviewer, source analysis scanner, text directive fill command, model, DataSource implementation, lib, analysis entry core library, analysis exclusion filter, parser and transformer, prompt composition library, resolver composition, library, test environment detector, text fill prompt library |
-| src/lib | 38 | lib, Metric dimension normalizer shared by agent runner and metrics aggregator, Agent runtime: spawns AI CLI, normalizes I/O, retries, and logs invocations, Shared CLI primitives: argv parser, root resolver, worktree detection, route, model, Validation constants, guardrail loading, merging, and filtering, lint-executor, middleware, view, Fluent builder for AI prompts assembled from labeled sections, Provider plug-ins: per-CLI argument flags and stdout parsers, rules validation and rendering, skill deployment pipeline, spec-json-io |
-| src | 10 | cli |
+| src/lib | 38 | lib, Metric dimension normalizer shared by agent runner and metrics aggregator, route, model, Validation constants, guardrail loading, merging, and filtering, lint-executor, middleware, view, Fluent builder for AI prompts assembled from labeled sections, Provider plug-ins: per-CLI argument flags and stdout parsers, rules validation and rendering, skill deployment pipeline, spec-json-io |
+| src | 10 | cli, Flow CLI entrypoint and dispatcher |
 | src/check | 3 | cli, coverage check command |
 | src/metrics | 1 | metrics token subcommand: tokenization cost/time aggregator with caching |
-| src/spec | 1 | — |
+| src/spec | 1 | CLI command implementation for schema-validated spec-to-Markdown rendering |
 <!-- {{/data}} -->
 
 ### Shared Libraries
