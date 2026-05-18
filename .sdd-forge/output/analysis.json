@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-17T14:14:18.188Z",
+  "analyzedAt": "2026-05-18T00:25:20.719Z",
   "package": {
     "entries": [
       {
@@ -2525,9 +2525,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "fff4eeaa08d38bde58c2f448375a28c1",
-        "lines": 2461,
-        "mtime": "2026-05-16T13:40:49.761Z",
+        "hash": "22dfc27560016429594afbb604b25f50",
+        "lines": 2484,
+        "mtime": "2026-05-18T00:05:36.188Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2572,6 +2572,8 @@
           "buildTestFixPrompt",
           "measurePromptChars",
           "assertTestReviewPromptWithinLimit",
+          "classifyReviewCommandError",
+          "parseReviewCliArgsForError",
           "parseGaps",
           "applyTestFixes",
           "formatTestReviewMd",
@@ -2629,6 +2631,7 @@
           "../../lib/prompt-builder.js",
           "../lib/acknowledged-rationale.js",
           "../../lib/schema-validate.js",
+          "../lib/review-failure.js",
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
           "../../lib/constants.js",
@@ -2682,24 +2685,9 @@
         "extends": "Command",
         "usedBy": null,
         "id": "331cf497",
-        "summary": "`src/flow/commands/review.js` implements the full review pipeline for draft, spec, code, and tests. It combines git diffs, spec context, guardrails, and AI-assisted loops to generate and optionally repair review artifacts.",
-        "detail": "The command aggregates review inputs from spec files, requirement maps, touched files, and committed/staged diffs while excluding non-review paths. It defines multiple review modes, including loop-based per-file review, cross-checking, proposal parsing/filtering, and max-attempt retry logic tied to phase definitions. It uses schema validation and JSON-repair fallbacks for structured AI output, then persists outputs like `review.md`, `spec-review.md/json`, and test-review artifacts. Draft review includes QA-stage handling and a repair path that validates and writes corrected `draft.json` plus audit traces. The module centralizes safety checks such as path-bound test fixes and prompt-size limits to reduce malformed outputs and unsafe writes.",
-        "chapter": "cli_commands",
-        "role": "Comprehensive flow review orchestrator",
         "enrich": {
-          "processedAt": "2026-05-17T09:29:02.183Z",
           "attempts": 1
-        },
-        "keywords": [
-          "code review automation",
-          "spec review",
-          "draft QA",
-          "test gap analysis",
-          "git diff analysis",
-          "AI prompt schema",
-          "retry loop",
-          "artifact generation"
-        ]
+        }
       },
       {
         "file": "src/flow/definition.js",
@@ -3351,9 +3339,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "9601d066d5283bffbe696cbb35b30d66",
-        "lines": 176,
-        "mtime": "2026-05-08T07:44:34.911Z",
+        "hash": "ee227a512825f9216253a8f1b34f9e88",
+        "lines": 197,
+        "mtime": "2026-05-18T00:05:36.188Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -3372,7 +3360,8 @@
           "./get-step-instructions.js",
           "../definition.js",
           "../../lib/flow-helpers.js",
-          "../../lib/skill-rules.js"
+          "../../lib/skill-rules.js",
+          "./review-failure.js"
         ],
         "exports": [
           "default"
@@ -3380,22 +3369,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "`get-next-action` computes the next flow instruction payload, including context and output schema hints. It derives decisions from flow state, step definitions, and persistent skill rules.",
-        "detail": "The command loads JSON schemas from a configurable directory and resolves the active task and state-set flags. It can promote pending tasks and determines step-specific instructions through flow definition mappings. Cached rule loading is used to inject persistent rule blocks into generated guidance content. Missing rule coverage for a step is treated as a hard error to prevent ambiguous execution. The result structure includes action, instructions, context descriptors, schema, and approval requirements.",
-        "chapter": "internal_design",
-        "role": "flow decision engine",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
-        },
-        "keywords": [
-          "next action",
-          "flow state machine",
-          "schema loading",
-          "rule injection",
-          "task promotion",
-          "step instruction resolution"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/get-prompt.js",
@@ -3505,9 +3481,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "ce4ee22db1253308e771a5b20ac2b127",
-        "lines": 192,
-        "mtime": "2026-05-10T06:31:17.508Z",
+        "hash": "c5aa0f8a910419fcb69c8cfbd1af3393",
+        "lines": 208,
+        "mtime": "2026-05-18T00:05:36.188Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -3516,6 +3492,7 @@
           "zeroProviderBucket",
           "applyEntry",
           "applyProviderEntry",
+          "buildStatusReviewStop",
           "buildStatusOutput"
         ],
         "imports": [
@@ -3523,7 +3500,8 @@
           "../../lib/agent-metrics.js",
           "../../lib/spec-json.js",
           "../definition.js",
-          "./base-command.js"
+          "./base-command.js",
+          "./review-failure.js"
         ],
         "exports": [
           "buildMetricsSummary",
@@ -3537,23 +3515,9 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "Implements `flow get status`, aggregating flow state, derived phase, requirements, and metrics token/activity totals into a status report.",
-        "detail": "Builds metrics buckets per phase and provider using `TOKEN_KEYS` and `ACTIVITY_COUNTERS`, normalizing agent metric dimensions before summation. `buildReportTotals` flattens summary into top-level tokens and activity counters. `GetStatusCommand` returns the current flow's status (or a specific run via runId lookup), or `{ active: false }` when no flow is active. Used as the data source for the `flow-status` skill.",
-        "chapter": "cli_commands",
-        "role": "command",
         "enrich": {
-          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow status",
-          "metrics",
-          "tokens",
-          "activity",
-          "phase",
-          "run id",
-          "summary"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/get-step-instructions.js",
@@ -3911,6 +3875,48 @@
         ]
       },
       {
+        "file": "src/flow/lib/review-failure.js",
+        "hash": "0683fc89d808c6f3aa10553c4e727e62",
+        "lines": 336,
+        "mtime": "2026-05-18T00:05:36.188Z",
+        "className": "review-failure",
+        "methods": [
+          "reviewPhaseForStepId",
+          "ReviewFailure",
+          "writeReviewStopState",
+          "clearReviewStopState",
+          "buildReviewStopView",
+          "requireString",
+          "cleanReason",
+          "retryResetCommand",
+          "retryReviewCommand",
+          "countReviewRetry",
+          "fallbackRecoveryCommand",
+          "matchesInputSizeFailure",
+          "matchesProviderFailure"
+        ],
+        "imports": [],
+        "exports": [
+          "reviewPhaseForStepId",
+          "ReviewFailure",
+          "writeReviewStopState",
+          "clearReviewStopState",
+          "buildReviewStopView",
+          "REVIEW_FAILURE_MARKER_PREFIX"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-retry.js"
+        ],
+        "id": "02496236",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/lib/run-auto-check.js",
         "hash": "e63ebc08bfbd90f49d5a83b3565a3900",
         "lines": 339,
@@ -4228,7 +4234,7 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4376,7 +4382,7 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4406,7 +4412,7 @@
         "usedBy": null,
         "id": "e6534160",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4484,7 +4490,7 @@
         "usedBy": null,
         "id": "59eeacc6",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4513,7 +4519,7 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4546,7 +4552,7 @@
         ],
         "id": "3754ab40",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4576,7 +4582,7 @@
         "usedBy": null,
         "id": "43872d6b",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4640,14 +4646,14 @@
         "usedBy": null,
         "id": "862e7d08",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "d4255ab6491264b1999ec9a25122e3d1",
-        "lines": 349,
-        "mtime": "2026-05-16T13:39:35.044Z",
+        "hash": "67425de36e72fe4bd5e0399ebaebbbfb",
+        "lines": 386,
+        "mtime": "2026-05-18T00:05:36.189Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -4665,7 +4671,9 @@
           "parsePhaseReviewOutput",
           "parseTestReviewOutput",
           "parseSpecReviewOutput",
-          "parseProposalReviewOutput"
+          "parseProposalReviewOutput",
+          "normalizeReviewSubprocessRetryCount",
+          "normalizeReviewSubprocessRetryDelayMs"
         ],
         "imports": [
           "../../lib/cli.js",
@@ -4676,6 +4684,7 @@
           "../definition.js",
           "path",
           "fs",
+          "./review-failure.js",
           "./test-artifacts.js"
         ],
         "exports": [
@@ -4699,7 +4708,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -4817,7 +4826,7 @@
         "usedBy": null,
         "id": "41745e8b",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4848,7 +4857,7 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4882,7 +4891,7 @@
         "usedBy": null,
         "id": "d001ca9b",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4908,7 +4917,7 @@
         "usedBy": null,
         "id": "831b8f64",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4933,7 +4942,7 @@
         "usedBy": null,
         "id": "2c71e989",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -5232,9 +5241,9 @@
       },
       {
         "file": "src/flow/lib/set-retry.js",
-        "hash": "f6d04d9f7bd6a4079d88e030608683e4",
-        "lines": 116,
-        "mtime": "2026-05-12T01:17:35.555Z",
+        "hash": "770fc71b953d72dcc405ea84c9408f1a",
+        "lines": 122,
+        "mtime": "2026-05-18T00:05:36.189Z",
         "className": "set-retry",
         "methods": [
           "normalizeReviewResetPhase",
@@ -5245,7 +5254,8 @@
           "../../lib/flow-envelope.js",
           "./run-gate.js",
           "./run-review.js",
-          "../definition.js"
+          "../definition.js",
+          "./review-failure.js"
         ],
         "exports": [
           "default"
@@ -5254,7 +5264,7 @@
         "usedBy": null,
         "id": "ee559b7a",
         "enrich": {
-          "attempts": 5
+          "attempts": 1
         }
       },
       {
@@ -5289,7 +5299,7 @@
         "usedBy": null,
         "id": "d4cb8d93",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -10706,10 +10716,10 @@
       }
     ],
     "summary": {
-      "total": 299,
-      "totalMethods": 1181
+      "total": 300,
+      "totalMethods": 1199
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-17T14:15:37.762Z"
+  "enrichedAt": "2026-05-18T00:26:10.391Z"
 }
