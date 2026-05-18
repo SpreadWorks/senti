@@ -1,0 +1,12 @@
+   - Run `sdd-forge flow run scenario-validity`.
+   - Phase split: `plan/test` writes tests only, this `plan/scenario-validity` step performs pre-implementation runtime validity, `plan/review-test` performs static anti-pattern review, and `impl/test-execute` performs post-implementation project verification.
+   - This step runs only `specs/<spec>/tests/` files whose basenames match `*.test.js`, `*.spec.js`, `*.test.ts`, `*.spec.ts`, `*.test.mjs`, or `*.spec.mjs`.
+   - It must not run the project-wide regression suite. That verification remains in `impl/test-execute` after implementation.
+   - Before executing tests, the command checks implementation-target changes with `git diff --name-only <baseBranch> -- src/ tests/ package.json .sdd-forge/config.json`. Any returned disallowed path blocks as `invalid_test`.
+   - Outputs:
+     - `specs/<spec>/scenario-validity-result.json`
+     - `specs/<spec>/tests/.raw/scenario-validity.log`
+   - A passing scenario-validity result requires every testable requirement to classify as `expected_fail`.
+   - Blocking classifications are `unexpected_pass`, `invalid_test`, `skipped`, and `not_run`.
+   - If the command blocks, fix the spec-local tests or remove disallowed implementation-target changes, then rerun this step. Do not start implementation while scenario-validity is blocked.
+   - **On complete:** the registry post-hook marks this step done automatically. Do not call `flow set step scenario-validity done` manually.

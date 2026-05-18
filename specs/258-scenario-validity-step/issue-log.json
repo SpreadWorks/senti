@@ -1,0 +1,356 @@
+{
+  "entries": [
+    {
+      "step": "review-draft-questions",
+      "reason": "Draft review subprocess failed in sandbox because runtime logs targeted the main repository .tmp/logs path as read-only.",
+      "trigger": "sdd-forge flow run review --phase draft returned subprocess error with repeated EROFS log write failures.",
+      "resolution": "Re-ran the draft review outside the sandbox using the claude profile and captured output in the worktree .tmp log.",
+      "guardrailCandidate": "When flow review subprocesses fail with sandbox log path EROFS, rerun once outside the sandbox and record the workaround.",
+      "taskId": null,
+      "timestamp": "2026-05-17T09:28:28.398Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[3]: invalid category \"test-strategy\"",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-17T11:58:30.547Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Draft gate failed because q4 used test-strategy, which is not a valid draft QA category enum.",
+      "trigger": "sdd-forge flow run gate --phase draft reported qa[3]: invalid category test-strategy.",
+      "resolution": "Changed q4 category to acceptance-criteria and prepared to rerun draft gate.",
+      "guardrailCandidate": "When creating draft QA, use only schema-declared category enum values from the prompt.",
+      "taskId": null,
+      "timestamp": "2026-05-17T11:59:10.627Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec is scoped to one user-defined concern: adding a plan-phase scenario-validity step and its directly required flow, artifact, prompt, template, and test updates.; Task Single Responsibility — Each task is centered on one shared concern within the scenario-validity change, such as flow wiring, runner behavior, artifact handling, prompts/templates, or integration coverage.; Unambiguous Requirements — process details — The requirement does not define which process fields must be present, so the condition is not directly verifiable from the stated text. (at requirements[4].desc); Unambiguous Requirements — handle the new artifacts consistently — The term \"consistently\" is vague and does not state a concrete verifiable condition for durable and resettable artifact handling. (at requirements[7].desc); Complete Context — process details — Two reviewers could disagree about what process details are sufficient because the required fields are not enumerated. (at requirements[4].desc); Complete Context — implementation-target source changes — The requirement does not define which paths or change types count as implementation-target source changes, so reviewers could disagree on whether the precondition is satisfied. (at requirements[3].desc); REQ Diff-Verifiability — The requirements are framed around observable diffs, generated artifacts, command wiring, prompt/template changes, and test summaries rather than future-only guarantees or out-of-diff invariants.; No Hardcoded Secrets — The content is a specification and contains no API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — The content does not include source code with catch blocks or error-discarding behavior.; Prioritize Requirements — There are more than three requirements, and every requirement includes a priority value of \"must\".; Impact on Existing Features — The spec lists impacts on existing flow behavior, test-execute responsibility, artifact handling, prompts, templates, and explicitly excludes changes such as root npm test behavior outside the scenario-validity integration.; Bounded Resource Usage — The spec acknowledges bounded-resource-usage in constraints and states the retry limit is exactly 3 and test discovery is bounded to spec-local test filename patterns.; Spec Includes Test Strategy — The spec includes test strategy details in task-level test_strategy fields and acceptance criteria covering unit and spec-local tests.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, indicating no unresolved points are being fabricated.; Include 'Why This Approach' Rationale — The spec includes rationale through background, design principles, decisions, clarifications, and alternatives_considered explaining why the approach was chosen.; Spec Test Coverage — The spec requires spec-local fixture tests under specs/258-scenario-validity-step/tests/ and automated coverage for the listed requirements and integration behavior.; Backward-Compatible CLI Interface — The spec adds an internal flow command and does not remove or change the meaning of existing commands or options.; Exit Code Contract — The spec states the new flow command returns non-zero through the envelope failure path when scenario-validity blocks progress, and defines pass/block conditions.; Validate User Input at Entry Point — The added flow command is specified as internal and accepts no user-facing positional arguments, so there are no user-facing arguments requiring validation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-17T12:07:49.446Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "process details — The requirement does not define which process fields must be present, so the condition is not directly verifiable from the stated text. (at requirements[4].desc); handle the new artifacts consistently — The term \"consistently\" is vague and does not state a concrete verifiable condition for durable and resettable artifact handling. (at requirements[7].desc)"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "process details — Two reviewers could disagree about what process details are sufficient because the required fields are not enumerated. (at requirements[4].desc); implementation-target source changes — The requirement does not define which paths or change types count as implementation-target source changes, so reviewers could disagree on whether the precondition is satisfied. (at requirements[3].desc)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "Spec gate failed because R4, R5, and R8 used ambiguous terms for implementation-target changes, process details, and artifact consistency.",
+      "trigger": "sdd-forge flow run gate reported unambiguous-requirements and complete-context failures for requirements[3], requirements[4], and requirements[7].",
+      "resolution": "Enumerated the git diff path scope and allow-list, the required process fields, and the exact durable/resettable artifact handling behavior.",
+      "guardrailCandidate": "When writing spec requirements, replace vague artifact or process terms with exact field names, path lists, and command predicates before running gate.",
+      "taskId": null,
+      "timestamp": "2026-05-17T12:08:36.506Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses one user-defined concern: adding the scenario-validity plan-phase gate and its directly related artifacts, prompts, wiring, and tests.; Task Single Responsibility — Each task is scoped to one shared concern within the scenario-validity feature, such as flow wiring, runner behavior, artifact handling, prompts/templates, or integration coverage.; Unambiguous Requirements — existing spec test filename patterns — The phrase relies on an unstated external definition of which filename patterns count as existing. The requirement should name the concrete patterns or reference a specific helper/contract in verifiable terms. (at requirements[2].desc); Unambiguous Requirements — existing test-execute artifacts — The phrase does not explicitly identify which artifacts are covered. The requirement should name the specific files or artifact contract to avoid ambiguity. (at requirements[11].desc); Complete Context — existing spec test filename patterns — Two reviewers could disagree on which filename patterns are included unless they infer context from the current codebase. The requirement should state the concrete patterns or a specific named source of truth. (at requirements[2].desc); Complete Context — existing test-execute artifacts — The requirement does not specify the exact artifacts or behavior that must remain covered. Reviewers could disagree about the required scope of the interaction test. (at requirements[11].desc); REQ Diff-Verifiability — No new diff-scope violation is provided; the requirements are framed as artifact, code, prompt, and test outcomes that can be checked from diff plus test summary.; No Hardcoded Secrets — The content contains no API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — The content does not introduce empty catch blocks or instructions to silently discard errors.; Prioritize Requirements — There are more than three requirements and each requirement includes priority \"must\".; Impact on Existing Features — The spec lists impacts on existing flow behavior, prompts, templates, registry wiring, finalize artifact handling, and test-execute responsibility.; Bounded Resource Usage — The spec acknowledges bounded-resource-usage in constraints with this guardrail_id and states concrete bounds: maxAttempts 3 and bounded test discovery under specs/<spec>/tests/ matching spec test filename patterns.; Spec Includes Test Strategy — The spec includes task-level test_strategy entries and acceptance criteria covering what to test and how.; Record Unresolved Points as Open Questions — The spec includes an open_questions section and leaves it empty, indicating no unresolved points are being fabricated.; Include 'Why This Approach' Rationale — The spec includes rationale through background, design principles, decisions with evidence, clarifications, and alternatives_considered.; Spec Test Coverage — The spec requires spec-local tests under specs/258-scenario-validity-step/tests/ and references requirement-header coverage through existing // spec: Rn header validation.; Backward-Compatible CLI Interface — The spec adds an internal flow command and does not remove or change the meaning of an existing command or option.; Exit Code Contract — The spec states scenario-validity blocks through the envelope failure path with a non-zero result when progress is blocked.; Validate User Input at Entry Point — The spec states the new command is internal and accepts no user-facing positional arguments.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-17T12:09:21.997Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "existing spec test filename patterns — The phrase relies on an unstated external definition of which filename patterns count as existing. The requirement should name the concrete patterns or reference a specific helper/contract in verifiable terms. (at requirements[2].desc); existing test-execute artifacts — The phrase does not explicitly identify which artifacts are covered. The requirement should name the specific files or artifact contract to avoid ambiguity. (at requirements[11].desc)"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "existing spec test filename patterns — Two reviewers could disagree on which filename patterns are included unless they infer context from the current codebase. The requirement should state the concrete patterns or a specific named source of truth. (at requirements[2].desc); existing test-execute artifacts — The requirement does not specify the exact artifacts or behavior that must remain covered. Reviewers could disagree about the required scope of the interaction test. (at requirements[11].desc)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "Spec gate failed again because R3 used existing spec test filename patterns and R12 used existing test-execute artifacts without exact names.",
+      "trigger": "sdd-forge flow run gate reported unambiguous-requirements and complete-context failures for requirements[2] and requirements[11].",
+      "resolution": "Replaced the filename reference with *.{test,spec}.{js,ts,mjs} and named test-execute-result.json plus tests/.raw/test-execution.log explicitly.",
+      "guardrailCandidate": "Do not rely on words like existing patterns or existing artifacts in requirements; name concrete patterns and files.",
+      "taskId": null,
+      "timestamp": "2026-05-17T12:09:53.852Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "R1 — FLOW_DEFINITION adds scenario-validity after test and before review-test with required action, instructions key, schema ref, and maxAttempts 3.; R2 — Registry adds internal scenario-validity command requiring active flow, importing run-scenario-validity, using no args, and only marking done when result is pass.; R3 — Discovers files only under specs/<spec>/tests/ matching .test/.spec js/ts/mjs basenames and executes only those files with node; no root regression command is invoked.; R4 — Preflight does block before test execution and writes invalid_test, but it does not actually run the required git diff --name-only <baseBranch> -- src/ tests/ package.json .sdd-forge/config.json command; it uses listChangedFilesDetailed with baseBranch...HEAD plus git status instead.; R5 — scenario-validity writes both artifacts only on handled pass/preflight/block paths; early errors before artifact construction, and validation errors before result write, can leave scenario-validity-result.json missing, so not every invocation is covered.; R6 — summary classifications are limited to expected_fail, unexpected_pass, invalid_test, skipped, or not_run; result is pass only when every summary entry is expected_fail; R7 — validateScenarioValidityResult requires evidence.test_file, test_name, command, raw_output_lines for every summary entry, validates raw_output_path is tests/.raw/scenario-validity.log, and checks raw_output_lines range is within the provided raw log lines.; R8 — Scenario-validity result/log are added to durable and resettable artifact lists; finalize exclusion uses the durable list, and scenario-validity removes stale result/log before rewriting.; R9 — Prompts were updated for the new phase split, but not all four prompts describe the full split. plan/test omits review-test as static anti-pattern review, and impl/test-execute omits plan/test/review-test roles.; R10 — review-test prompt explicitly lists all six Issue #329 anti-pattern classes.; R11 — Template and installed .agents/.claude skill outputs include scenario-validity in plan-phase guidance and command list.; R12 — Added automated tests cover flow ordering, registry wiring, pass/block classifications, artifact validation, prompt wording, upgrade/template output, and scenario/test-execute artifact coexistence.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T01:02:40.568Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R4",
+          "reason": "Preflight does block before test execution and writes invalid_test, but it does not actually run the required git diff --name-only <baseBranch> -- src/ tests/ package.json .sdd-forge/config.json command; it uses listChangedFilesDetailed with baseBranch...HEAD plus git status instead."
+        },
+        {
+          "guardrail_id": "R5",
+          "reason": "scenario-validity writes both artifacts only on handled pass/preflight/block paths; early errors before artifact construction, and validation errors before result write, can leave scenario-validity-result.json missing, so not every invocation is covered."
+        },
+        {
+          "guardrail_id": "R9",
+          "reason": "Prompts were updated for the new phase split, but not all four prompts describe the full split. plan/test omits review-test as static anti-pattern review, and impl/test-execute omits plan/test/review-test roles."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R6",
+        "R7",
+        "R8",
+        "R10",
+        "R11",
+        "R12"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — Preflight runs the specified git diff before test execution, blocks on disallowed implementation-target paths, writes invalid_test summaries/log artifacts, and skips running tests when blocked.; R5 — Artifacts are intended to be written, but the new run-scenario-validity module appears syntactically invalid in isAllowedScenarioValidityPath, so invocation may fail before artifact-writing logic runs.; R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — plan/test and impl/test-execute describe the full split, but plan/scenario-validity and plan/review-test do not fully describe all required phase responsibilities, especially plan/test writes tests and impl/test-execute post-implementation/root regression in review-test.; R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T01:09:18.744Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R5",
+          "reason": "Artifacts are intended to be written, but the new run-scenario-validity module appears syntactically invalid in isAllowedScenarioValidityPath, so invocation may fail before artifact-writing logic runs."
+        },
+        {
+          "guardrail_id": "R9",
+          "reason": "plan/test and impl/test-execute describe the full split, but plan/scenario-validity and plan/review-test do not fully describe all required phase responsibilities, especially plan/test writes tests and impl/test-execute post-implementation/root regression in review-test."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R6",
+        "R7",
+        "R8",
+        "R10",
+        "R11",
+        "R12"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — scenario-validity writes both result and raw log artifacts in normal, preflight-block, and fallback error paths; result includes required top-level/process fields and builds one summary entry per testable requirement.; R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — All four prompts explicitly describe the phase split: plan/test writes tests, scenario-validity handles pre-implementation spec-local runtime validation, review-test performs static anti-pattern review, and impl/test-execute handles post-implementation verification plus root regression.; R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); No Hardcoded Secrets — No added diff lines contain API keys, passwords, tokens, or other hardcoded secret values.; No Silent Error Swallowing — Added error handling either records fallback artifacts and rethrows or propagates validation errors; no empty catch blocks or silent discard patterns are introduced.; No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:1); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step/.sdd-forge/config.json\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:2); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:3); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:4); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:5); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:6); No Disabling Existing Tests — The diff adds and updates tests, but does not skip, comment out, or delete existing tests to bypass failures.; Escalate Pre-Existing Test Failures — No runtime test failure evidence is provided, so whether a pre-existing failing test was discovered cannot be evaluated from the diff alone.; Project Test Integrity — The diff adds relevant tests, but the guardrail also requires all project tests to pass and no test run evidence is provided.; Code Placement — New scenario-validity command logic is placed under flow command/lib modules, artifacts validation under test-artifacts, registry wiring under registry, and prompts/templates in their existing owning locations.; Avoid Overengineering — The added helpers are used by the scenario-validity implementation or tests, shared code shape is factored into helpers, and the spec content provides the design direction for the non-trivial change.; Exit Code Contract — The spec states scenario-validity must return non-zero through the envelope failure path when blocked, and the implementation throws blocking errors for failure classifications/preflight blocks so the dispatcher can emit non-zero exits.; No Synchronous I/O in Hot Paths — const firstLine = fs.readFileSync(file, \"utf8\").split(/\\r?\\n/, 1)[0]; — This synchronous file read is inside a filter over discovered test files, which is a bulk-processing path. The guardrail prohibits synchronous I/O inside loops or bulk-processing paths. (at src/flow/lib/run-scenario-validity.js:135); No Synchronous I/O in Hot Paths — const src = fs.readFileSync(filePath, \"utf8\"); — This synchronous file read is called while building per-requirement summary entries and can repeat across requirements. The guardrail prohibits synchronous I/O inside loops or bulk-processing paths. (at src/flow/lib/run-scenario-validity.js:141); No Synchronous I/O in Hot Paths — const src = fs.readFileSync(filePath, \"utf8\"); — This synchronous file read is called during per-requirement classification and can repeat across requirements. The guardrail prohibits synchronous I/O inside loops or bulk-processing paths. (at src/flow/lib/run-scenario-validity.js:148); Validate User Input at Entry Point — The added CLI command is marked internal, requires an active flow, accepts no positional user-facing arguments, and uses empty args metadata so unexpected arguments are rejected before command execution.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T01:14:27.871Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-sensitive-data-in-logs",
+          "reason": "\"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:1); \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step/.sdd-forge/config.json\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:2); \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:3); \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:4); \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:5); \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:6)"
+        },
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "const firstLine = fs.readFileSync(file, \"utf8\").split(/\\r?\\n/, 1)[0]; — This synchronous file read is inside a filter over discovered test files, which is a bulk-processing path. The guardrail prohibits synchronous I/O inside loops or bulk-processing paths. (at src/flow/lib/run-scenario-validity.js:135); const src = fs.readFileSync(filePath, \"utf8\"); — This synchronous file read is called while building per-requirement summary entries and can repeat across requirements. The guardrail prohibits synchronous I/O inside loops or bulk-processing paths. (at src/flow/lib/run-scenario-validity.js:141); const src = fs.readFileSync(filePath, \"utf8\"); — This synchronous file read is called during per-requirement classification and can repeat across requirements. The guardrail prohibits synchronous I/O inside loops or bulk-processing paths. (at src/flow/lib/run-scenario-validity.js:148)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-disabling-existing-tests",
+        "code-placement",
+        "no-overengineering",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: resolved stale project regression failure and gate guardrail noise",
+      "resolution": "Re-ran test-execute outside sandbox after fixing scenario-validity prompt wording, removed generated nonexistent report artifact, confirmed spec-local tests and npm test regression now pass, and replaced synchronous scenario-validity source reads with async reads.",
+      "taskId": null,
+      "timestamp": "2026-05-18T01:35:40.380Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); No Hardcoded Secrets — The added diff content does not introduce API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — Added error handling records spawn errors or writes fallback artifacts and rethrows; no empty catch block or silent discard is introduced.; No Sensitive Data in Logs — The added log and artifact strings do not explicitly include passwords, tokens, or personally identifiable information.; No Disabling Existing Tests — The diff adds and updates tests for the new behavior; it does not skip, comment out, or delete existing tests to bypass failures.; Escalate Pre-Existing Test Failures — No test execution evidence is provided showing a pre-existing failing test was discovered, so the escalation requirement cannot be evaluated.; Project Test Integrity — The diff adds relevant automated tests, but no runtime evidence is provided that all project tests pass.; Code Placement — The added logic is placed in flow command, flow definition, registry, prompt, template, git helper, and test artifact helper modules that own the relevant responsibilities.; Avoid Overengineering — function isScenarioValidityPreflightTarget(filePath) — This helper is introduced with a single caller in listScenarioValidityPreflightFiles, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:64); Avoid Overengineering — function aggregateScenarioValidityProcess(records) — This helper is introduced with a single caller in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:179); Avoid Overengineering — function buildBlockedPreflightSummary({ root, specDir, testEntries, requirements, command, range }) — This helper is introduced with a single caller in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:242); Avoid Overengineering — function resolveTimeoutSeconds(config = {}) — This helper is introduced with a single caller in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:263); Avoid Overengineering — function blockError(message) — This helper is introduced with a single caller context in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:270); Avoid Overengineering — Before implementing a non-trivial change, present the design direction (data flow, layer boundaries, chosen pattern) to the user; only proceed after confirmation. — The provided content contains a non-trivial implementation diff, but it includes no evidence that the design direction was presented to the user and confirmed before implementation. (at implementation evidence); Exit Code Contract — The spec states scenario-validity returns non-zero through the envelope failure path when it blocks, and the implementation throws on blocking classifications so the command failure path can produce a non-zero exit.; No Synchronous I/O in Hot Paths — const content = fs.readFileSync(filePath, \"utf8\"); — This synchronous file read is added in readBoundedText, which is called from validateScenarioValidityResult while iterating over every summary entry. That is synchronous I/O inside a bulk-processing path. (at src/flow/lib/test-artifacts.js:111); No Synchronous I/O in Hot Paths — if (!fs.existsSync(testPath)) throw new Error(`${entry.id}: test file missing: ${evidence.test_file}`); — This synchronous filesystem check is added inside the loop over every scenario-validity summary entry, which is a bulk-processing path. (at src/flow/lib/test-artifacts.js:205); No Synchronous I/O in Hot Paths — const stat = fs.statSync(filePath); — This synchronous stat is added in readBoundedText, which is called from validateScenarioValidityResult while iterating over summary entries. That places synchronous I/O inside a bulk-processing path. (at src/flow/lib/test-artifacts.js:107); No Synchronous I/O in Hot Paths — if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return []; — This synchronous filesystem access is added in recursive test discovery, which is a bulk-processing path over files and directories. (at src/flow/lib/run-scenario-validity.js:21); No Synchronous I/O in Hot Paths — for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { — This synchronous directory read is added inside recursive file discovery, a bulk-processing path over spec-local test files. (at src/flow/lib/run-scenario-validity.js:23); Validate User Input at Entry Point — The added scenario-validity flow command is internal, requires an active flow, accepts no user-facing positional arguments, and the registry argument metadata rejects unexpected args before execution.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T01:36:36.736Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function isScenarioValidityPreflightTarget(filePath) — This helper is introduced with a single caller in listScenarioValidityPreflightFiles, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:64); function aggregateScenarioValidityProcess(records) — This helper is introduced with a single caller in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:179); function buildBlockedPreflightSummary({ root, specDir, testEntries, requirements, command, range }) — This helper is introduced with a single caller in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:242); function resolveTimeoutSeconds(config = {}) — This helper is introduced with a single caller in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:263); function blockError(message) — This helper is introduced with a single caller context in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:270); Before implementing a non-trivial change, present the design direction (data flow, layer boundaries, chosen pattern) to the user; only proceed after confirmation. — The provided content contains a non-trivial implementation diff, but it includes no evidence that the design direction was presented to the user and confirmed before implementation. (at implementation evidence)"
+        },
+        {
+          "guardrail_id": "no-synchronous-io-in-hot-paths",
+          "reason": "const content = fs.readFileSync(filePath, \"utf8\"); — This synchronous file read is added in readBoundedText, which is called from validateScenarioValidityResult while iterating over every summary entry. That is synchronous I/O inside a bulk-processing path. (at src/flow/lib/test-artifacts.js:111); if (!fs.existsSync(testPath)) throw new Error(`${entry.id}: test file missing: ${evidence.test_file}`); — This synchronous filesystem check is added inside the loop over every scenario-validity summary entry, which is a bulk-processing path. (at src/flow/lib/test-artifacts.js:205); const stat = fs.statSync(filePath); — This synchronous stat is added in readBoundedText, which is called from validateScenarioValidityResult while iterating over summary entries. That places synchronous I/O inside a bulk-processing path. (at src/flow/lib/test-artifacts.js:107); if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return []; — This synchronous filesystem access is added in recursive test discovery, which is a bulk-processing path over files and directories. (at src/flow/lib/run-scenario-validity.js:21); for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { — This synchronous directory read is added inside recursive file discovery, a bulk-processing path over spec-local test files. (at src/flow/lib/run-scenario-validity.js:23)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "code-placement",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: addressed gate overengineering and synchronous IO findings",
+      "resolution": "Collapsed single-use scenario-validity helpers into execute/listing flow, made spec test discovery async, removed synchronous filesystem reads from scenario-validity artifact validation hot path by validating against loaded test sources, and reran test-execute plus test-result-review with project regression pass.",
+      "taskId": null,
+      "timestamp": "2026-05-18T01:47:51.237Z"
+    },
+    {
+      "step": "gate-impl",
+      "level": "task",
+      "phase": "task-impl",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); No Hardcoded Secrets — No added diff lines contain API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — Added error handling either returns structured spawn-error metadata, handles expected missing test directories, writes fallback artifacts, or rethrows errors; no empty catch blocks or silent discards are introduced.; No Sensitive Data in Logs — The added logging/artifact output records commands, paths, process metadata, and test output, but does not explicitly log passwords, tokens, or personally identifiable information.; No Disabling Existing Tests — The diff updates and adds tests but does not skip, comment out, or delete existing tests to bypass failures.; Escalate Pre-Existing Test Failures — No runtime evidence about pre-existing test failures is provided, so escalation behavior cannot be evaluated from the diff alone.; Project Test Integrity — The diff adds relevant project tests, but no test-run evidence is provided to verify that all project tests pass.; Code Placement — New scenario-validity logic is placed in flow command, registry, prompt, schema, and test-artifact helper modules that own the corresponding responsibilities.; Avoid Overengineering — async function removeIfExists(filePath) {\n  await fs.promises.rm(filePath, { force: true });\n} — This adds an indirection layer with a single caller around one built-in call. The guardrail prohibits indirection layers that have a single caller. (at src/flow/lib/run-scenario-validity.js); Exit Code Contract — The spec states scenario-validity returns non-zero through the envelope failure path when it blocks, and the added command throws on blocking classifications so dispatcher failure handling can produce a non-zero result.; No Synchronous I/O in Hot Paths — Added synchronous file reads/writes appear in test setup or fallback artifact handling, not inside loops or bulk-processing paths in production hot paths.; Validate User Input at Entry Point — The added scenario-validity command is marked internal, accepts no positional arguments, and tests verify positional arguments are rejected before execution.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T01:52:30.815Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "async function removeIfExists(filePath) {\n  await fs.promises.rm(filePath, { force: true });\n} — This adds an indirection layer with a single caller around one built-in call. The guardrail prohibits indirection layers that have a single caller. (at src/flow/lib/run-scenario-validity.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "no-sensitive-data-in-logs",
+        "no-disabling-existing-tests",
+        "code-placement",
+        "exit-code-contract",
+        "no-synchronous-io-in-hot-paths",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: removed remaining single-use removeIfExists wrapper",
+      "resolution": "Inlined fs.promises.rm calls at the only cleanup site, reran spec-local tests plus test-execute and test-result-review, and confirmed project regression remains pass.",
+      "taskId": null,
+      "timestamp": "2026-05-18T01:58:57.392Z"
+    },
+    {
+      "step": "gate-impl",
+      "phase": "task-impl",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"task-impl\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: R1 — FLOW_DEFINITION adds scenario-validity after test and before review-test with required action, instructions key, schema ref, and maxAttempts 3.; R2 — Registry adds internal scenario-validity command requiring active flow, importing run-scenario-validity, using no args, and only marking done when result is pass.; R3 — Discovers files only under specs/<spec>/tests/ matching .test/.spec js/ts/mjs basenames and executes only those files with node; no root regression command is invoked.; R4 — Preflight does block before test execution and writes invalid_test, but it does not actually run the required git diff --name-only <baseBranch> -- src/ tests/ package.json .sdd-forge/config.json command; it uses listChangedFilesDetailed with baseBranch...HEAD plus git status instead.; R5 — scenario-validity writes both artifacts only on handled pass/preflight/block paths; early errors before artifact construction, and validation errors before result write, can leave scenario-validity-result.json missing, so not every invocation is covered.; R6 — summary classifications are limited to expected_fail, unexpected_pass, invalid_test, skipped, or not_run; result is pass only when every summary entry is expected_fail; R7 — validateScenarioValidityResult requires evidence.test_file, test_name, command, raw_output_lines for every summary entry, validates raw_output_path is tests/.raw/scenario-validity.log, and checks raw_output_lines range is within the provided raw log lines.; R8 — Scenario-validity result/log are added to durable and resettable artifact lists; finalize exclusion uses the durable list, and scenario-validity removes stale result/log before rewriting.; R9 — Prompts were updated for the new phase split, but not all four prompts describe the full split. plan/test omits review-test as static anti-pattern review, and impl/test-execute omits plan/test/review-test roles.; R10 — review-test prompt explicitly lists all six Issue #329 anti-pattern classes.; R11 — Template and installed .agents/.claude skill outputs include scenario-validity in plan-phase guidance and command list.; R12 — Added automated tests cover flow ordering, registry wiring, pass/block classifications, artifact validation, prompt wording, upgrade/template output, and scenario/test-execute artifact coexistence.\n  attempt 2: R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — Preflight runs the specified git diff before test execution, blocks on disallowed implementation-target paths, writes invalid_test summaries/log artifacts, and skips running tests when blocked.; R5 — Artifacts are intended to be written, but the new run-scenario-validity module appears syntactically invalid in isAllowedScenarioValidityPath, so invocation may fail before artifact-writing logic runs.; R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — plan/test and impl/test-execute describe the full split, but plan/scenario-validity and plan/review-test do not fully describe all required phase responsibilities, especially plan/test writes tests and impl/test-execute post-implementation/root regression in review-test.; R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry)\n  attempt 3: R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — scenario-validity writes both result and raw log artifacts in normal, preflight-block, and fallback error paths; result includes required top-level/process fields and builds one summary entry per testable requirement.; R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — All four prompts explicitly describe the phase split: plan/test writes tests, scenario-validity handles pre-implementation spec-local runtime validation, review-test performs static anti-pattern review, and impl/test-execute handles post-implementation verification plus root regression.; R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); No Hardcoded Secrets — No added diff lines contain API keys, passwords, tokens, or other hardcoded secret values.; No Silent Error Swallowing — Added error handling either records fallback artifacts and rethrows or propagates validation errors; no empty catch blocks or silent discard patterns are introduced.; No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:1); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step/.sdd-forge/config.json\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:2); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:3); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:4); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:5); No Sensitive Data in Logs — \"/home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-258-scenario-validity-step\" — The added log line contains an absolute local user path including the username, which is personally identifiable information. Logs must mask or exclude PII. (at logs/sdd-forge-2026-05-17.jsonl:6); No Disabling Existing Tests — The diff adds and updates tests, but does not skip, comment out, or delete existing tests to bypass failures.; Escalate Pre-Existing Test Failures — No runtime test failure evidence is provided, so whether a pre-existing failing test was discovered cannot be evaluated from the diff alone.; Project Test Integrity — The diff adds relevant tests, but the guardrail also requires all project tests to pass and no test run evidence is provided.; Code Placement — New scenario-validity command logic is placed under flow command/lib modules, artifacts validation under test-artifacts, registry wiring under registry, and prompts/templates in their existing owning locations.; Avoid Overengineering — The added helpers are used by the scenario-validity implementation or tests, shared code shape is factored into helpers, and the spec content provides the design direction for the non-trivial change.; Exit Code Contract — The spec states scenario-validity must return non-zero through the envelope failure path when blocked, and the implementation throws blocking errors for failure classifications/preflight blocks so the dispatcher can emit non-zero exits.; No Synchronous I/O in Hot Paths — const firstLine = fs.readFileSync(file, \"utf8\").split(/\\r?\\n/, 1)[0]; — This synchronous file read is inside a filter over discovered test files, which is a bulk-processing path. The guardrail prohibits synchronous I/O inside loops or bulk-processing paths. (at src/flow/lib/run-scenario-validity.js:135); No Synchronous I/O in Hot Paths — const src = fs.readFileSync(filePath, \"utf8\"); — This synchronous file read is called while building per-requirement summary entries and can repeat across requirements. The guardrail prohibits synchronous I/O inside loops or bulk-processing paths. (at src/flow/lib/run-scenario-validity.js:141); No Synchronous I/O in Hot Paths — const src = fs.readFileSync(filePath, \"utf8\"); — This synchronous file read is called during per-requirement classification and can repeat across requirements. The guardrail prohibits synchronous I/O inside loops or bulk-processing paths. (at src/flow/lib/run-scenario-validity.js:148); Validate User Input at Entry Point — The added CLI command is marked internal, requires an active flow, accepts no positional user-facing arguments, and uses empty args metadata so unexpected arguments are rejected before command execution.\n  attempt 4: R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); No Hardcoded Secrets — The added diff content does not introduce API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — Added error handling records spawn errors or writes fallback artifacts and rethrows; no empty catch block or silent discard is introduced.; No Sensitive Data in Logs — The added log and artifact strings do not explicitly include passwords, tokens, or personally identifiable information.; No Disabling Existing Tests — The diff adds and updates tests for the new behavior; it does not skip, comment out, or delete existing tests to bypass failures.; Escalate Pre-Existing Test Failures — No test execution evidence is provided showing a pre-existing failing test was discovered, so the escalation requirement cannot be evaluated.; Project Test Integrity — The diff adds relevant automated tests, but no runtime evidence is provided that all project tests pass.; Code Placement — The added logic is placed in flow command, flow definition, registry, prompt, template, git helper, and test artifact helper modules that own the relevant responsibilities.; Avoid Overengineering — function isScenarioValidityPreflightTarget(filePath) — This helper is introduced with a single caller in listScenarioValidityPreflightFiles, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:64); Avoid Overengineering — function aggregateScenarioValidityProcess(records) — This helper is introduced with a single caller in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:179); Avoid Overengineering — function buildBlockedPreflightSummary({ root, specDir, testEntries, requirements, command, range }) — This helper is introduced with a single caller in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:242); Avoid Overengineering — function resolveTimeoutSeconds(config = {}) — This helper is introduced with a single caller in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:263); Avoid Overengineering — function blockError(message) — This helper is introduced with a single caller context in execute, creating an indirection layer that the guardrail prohibits when it has only one caller. (at src/flow/lib/run-scenario-validity.js:270); Avoid Overengineering — Before implementing a non-trivial change, present the design direction (data flow, layer boundaries, chosen pattern) to the user; only proceed after confirmation. — The provided content contains a non-trivial implementation diff, but it includes no evidence that the design direction was presented to the user and confirmed before implementation. (at implementation evidence); Exit Code Contract — The spec states scenario-validity returns non-zero through the envelope failure path when it blocks, and the implementation throws on blocking classifications so the command failure path can produce a non-zero exit.; No Synchronous I/O in Hot Paths — const content = fs.readFileSync(filePath, \"utf8\"); — This synchronous file read is added in readBoundedText, which is called from validateScenarioValidityResult while iterating over every summary entry. That is synchronous I/O inside a bulk-processing path. (at src/flow/lib/test-artifacts.js:111); No Synchronous I/O in Hot Paths — if (!fs.existsSync(testPath)) throw new Error(`${entry.id}: test file missing: ${evidence.test_file}`); — This synchronous filesystem check is added inside the loop over every scenario-validity summary entry, which is a bulk-processing path. (at src/flow/lib/test-artifacts.js:205); No Synchronous I/O in Hot Paths — const stat = fs.statSync(filePath); — This synchronous stat is added in readBoundedText, which is called from validateScenarioValidityResult while iterating over summary entries. That places synchronous I/O inside a bulk-processing path. (at src/flow/lib/test-artifacts.js:107); No Synchronous I/O in Hot Paths — if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return []; — This synchronous filesystem access is added in recursive test discovery, which is a bulk-processing path over files and directories. (at src/flow/lib/run-scenario-validity.js:21); No Synchronous I/O in Hot Paths — for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { — This synchronous directory read is added inside recursive file discovery, a bulk-processing path over spec-local test files. (at src/flow/lib/run-scenario-validity.js:23); Validate User Input at Entry Point — The added scenario-validity flow command is internal, requires an active flow, accepts no user-facing positional arguments, and the registry argument metadata rejects unexpected args before execution.\n  attempt 5: R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — previously passed (skipped on retry); R11 — previously passed (skipped on retry); R12 — previously passed (skipped on retry); No Hardcoded Secrets — No added diff lines contain API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — Added error handling either returns structured spawn-error metadata, handles expected missing test directories, writes fallback artifacts, or rethrows errors; no empty catch blocks or silent discards are introduced.; No Sensitive Data in Logs — The added logging/artifact output records commands, paths, process metadata, and test output, but does not explicitly log passwords, tokens, or personally identifiable information.; No Disabling Existing Tests — The diff updates and adds tests but does not skip, comment out, or delete existing tests to bypass failures.; Escalate Pre-Existing Test Failures — No runtime evidence about pre-existing test failures is provided, so escalation behavior cannot be evaluated from the diff alone.; Project Test Integrity — The diff adds relevant project tests, but no test-run evidence is provided to verify that all project tests pass.; Code Placement — New scenario-validity logic is placed in flow command, registry, prompt, schema, and test-artifact helper modules that own the corresponding responsibilities.; Avoid Overengineering — async function removeIfExists(filePath) {\n  await fs.promises.rm(filePath, { force: true });\n} — This adds an indirection layer with a single caller around one built-in call. The guardrail prohibits indirection layers that have a single caller. (at src/flow/lib/run-scenario-validity.js); Exit Code Contract — The spec states scenario-validity returns non-zero through the envelope failure path when it blocks, and the added command throws on blocking classifications so dispatcher failure handling can produce a non-zero result.; No Synchronous I/O in Hot Paths — Added synchronous file reads/writes appear in test setup or fallback artifact handling, not inside loops or bulk-processing paths in production hot paths.; Validate User Input at Entry Point — The added scenario-validity command is marked internal, accepts no positional arguments, and tests verify positional arguments are rejected before execution.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-18T01:59:21.625Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "user-approved override: treat gate-impl as passed after retry exhaustion",
+      "resolution": "All requirement checks had passed, the final gate failure was a single-use removeIfExists wrapper that was removed, spec-local tests passed, test-execute passed with project regression pass, and test-result-review passed. User explicitly approved proceeding if implementation content has no issue.",
+      "taskId": null,
+      "timestamp": "2026-05-18T02:06:58.432Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "user-approved override after fresh artifacts",
+      "resolution": "After removing generated nonexistent fixture output, reran test-execute and test-result-review; artifacts are current, project regression is pass, and user approved treating gate-impl as passed after the final gate-only retry exhaustion.",
+      "taskId": null,
+      "timestamp": "2026-05-18T02:09:50.128Z"
+    },
+    {
+      "step": "draft-review-triage/repair",
+      "reason": "Inserted draft review triage and repair leaves before their mapped consumer steps.",
+      "trigger": "flow-store migration",
+      "resolution": "Synthesized draft triage and repair status from their mapped consumer steps and rewrote legacy draft review artifact references to JSON names.",
+      "taskId": null,
+      "timestamp": "2026-05-18T02:22:31.271Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-18T02:18:01.844Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in .agents/skills/sdd-forge.flow/SKILL.md, .claude/skills/sdd-forge.flow/SKILL.md, .sdd-forge/output/analysis.json, src/flow/lib/test-artifacts.js, src/flow/registry.js, src/templates/skills/sdd-forge.flow/SKILL.md, tests/unit/flow/flow-steps.test.js. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-05-18T02:19:12.099Z"
+    }
+  ]
+}

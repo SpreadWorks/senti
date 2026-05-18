@@ -30,6 +30,10 @@ import { draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 const FINALIZE_SUCCESS_STATUSES = new Set(["done", "completed", "skipped"]);
 const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir", "--log-file"];
 const DRAFT_REVIEW_RECORDED_VERDICTS = new Set(["PASS", "ADVISORY", "FAIL"]);
+const NO_ARGS = Object.freeze({
+  flags: Object.freeze([]),
+  options: Object.freeze([]),
+});
 
 export const DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY = Object.freeze({
   review: "detection",
@@ -877,6 +881,23 @@ export const FLOW_COMMANDS = {
         const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
         validateTestExecuteResultV2(readJsonStrict(path.join(specDir, "test-execute-result.json")));
         tryUpdateStepStatus(ctx, "test-execute", "done");
+      },
+    },
+    "scenario-validity": {
+      helpKey: "flow.run.scenario-validity",
+      internal: true,
+      requiresFlow: true,
+      command: () => import("./lib/run-scenario-validity.js"),
+      args: NO_ARGS,
+      help: [
+        "Usage: sdd-forge flow run scenario-validity",
+        "",
+        "Execute pre-implementation spec-local tests and persist:",
+        "  specs/<spec>/scenario-validity-result.json",
+        "  specs/<spec>/tests/.raw/scenario-validity.log",
+      ].join("\n"),
+      post(ctx, result) {
+        if (result?.result === "pass") tryUpdateStepStatus(ctx, "scenario-validity", "done");
       },
     },
     "test-result-review": {

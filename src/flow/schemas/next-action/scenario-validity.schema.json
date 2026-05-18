@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["completed", "result_path", "raw_output_path", "artifact_version", "result"],
+  "properties": {
+    "completed": { "type": "boolean" },
+    "result": { "type": "string", "enum": ["pass", "block"] },
+    "result_path": { "type": "string" },
+    "raw_output_path": { "type": "string" },
+    "artifact_version": { "type": "string", "enum": ["1"] }
+  }
+}

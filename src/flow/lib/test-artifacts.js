@@ -12,6 +12,8 @@ export const RAW_OUTPUT_RELATIVE = "tests/.raw/test-execution.log";
 export const TEMP_SUMMARY_RELATIVE = "tests/.raw/requirement-summary.json";
 export const FILE_MAP_RELATIVE = "file-map.json";
 export const PLACEHOLDER_PERMISSION_FILE = "placeholder-permission.json";
+export const SCENARIO_VALIDITY_RESULT_FILE = "scenario-validity-result.json";
+export const SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE = "tests/.raw/scenario-validity.log";
 const ARTIFACT_PLACEHOLDER = "ARTIFACT_PLACEHOLDER";
 // Spec R3 intentionally limits sentinel scans to the first 200 entries even
 // when schema validation accepts larger bounded artifact arrays.
@@ -44,23 +46,42 @@ const INTEGRATION_TRUST_INPUTS = Object.freeze([
   FILE_MAP_RELATIVE,
   RAW_OUTPUT_RELATIVE,
 ]);
-export const DURABLE_TEST_ARTIFACT_RELATIVE_PATHS = Object.freeze([
+const BASE_TEST_ARTIFACT_RELATIVE_PATHS = Object.freeze([
+  SCENARIO_VALIDITY_RESULT_FILE,
   TEST_EXECUTE_RESULT_FILE,
   TEST_RESULT_REVIEW_FILE,
   TEST_RESULT_REVIEW_MD_FILE,
   "retro.json",
   "report.json",
+  SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
   RAW_OUTPUT_RELATIVE,
 ]);
+export const DURABLE_TEST_ARTIFACT_RELATIVE_PATHS = BASE_TEST_ARTIFACT_RELATIVE_PATHS;
 export const RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS = Object.freeze([
-  TEST_EXECUTE_RESULT_FILE,
-  TEST_RESULT_REVIEW_FILE,
-  TEST_RESULT_REVIEW_MD_FILE,
-  "retro.json",
-  "report.json",
-  RAW_OUTPUT_RELATIVE,
+  ...BASE_TEST_ARTIFACT_RELATIVE_PATHS,
   TEMP_SUMMARY_RELATIVE,
 ]);
+export const SCENARIO_VALIDITY_CLASSIFICATIONS = Object.freeze(new Set([
+  "expected_fail",
+  "unexpected_pass",
+  "invalid_test",
+  "skipped",
+  "not_run",
+]));
+const SCENARIO_VALIDITY_EVIDENCE_FIELDS = Object.freeze([
+  "test_file",
+  "test_name",
+  "command",
+  "raw_output_lines",
+]);
+const SCENARIO_VALIDITY_CLASSIFICATIONS_REQUIRING_TEST_FILE = Object.freeze(new Set([
+  "expected_fail",
+  "unexpected_pass",
+  "skipped",
+]));
+const MAX_SCENARIO_VALIDITY_RAW_OUTPUT_CHARS = 20 * 1024 * 1024;
+const MAX_SCENARIO_VALIDITY_SUMMARY_ENTRIES = 500;
+const SCENARIO_VALIDITY_TEST_FILE_RE = /\.(test|spec)\.(js|ts|mjs)$/;
 
 export class GateArtifactTrustContract {
   constructor({ step, phase, requiredTrustInputs }) {
@@ -203,6 +224,13 @@ function assertEvidenceRangeWithinLimit(range, label) {
   }
 }
 
+function scenarioValidityRawOutputPath(root, specDir) {
+  return path.posix.join(
+    path.relative(root, specDir).split(path.sep).join("/"),
+    SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
+  );
+}
+
 export function validateTestExecuteResultV2(result) {
   if (!result || typeof result !== "object") throw new Error("test-execute-result.json must be an object");
   if (result.version !== "2") throw new Error(`test-execute-result.json version='${result.version}', expected '2'`);
@@ -217,6 +245,137 @@ export function validateTestExecuteResultV2(result) {
     assertEvidenceRangeWithinLimit(entry.evidence.raw_output_lines, `summary[${entry.id}].evidence`);
   }
   validateRegression(result.regression);
+  return result;
+}
+
+function assertProcessMetadata(processMetadata, label = "process") {
+  if (!processMetadata || typeof processMetadata !== "object") throw new Error(`${label} is required`);
+  if (typeof processMetadata.started !== "boolean") throw new Error(`${label}.started must be boolean`);
+  if (processMetadata.exitCode !== null && !Number.isInteger(processMetadata.exitCode)) {
+    throw new Error(`${label}.exitCode must be integer or null`);
+  }
+  if (processMetadata.signal !== null && typeof processMetadata.signal !== "string") {
+    throw new Error(`${label}.signal must be string or null`);
+  }
+  if (typeof processMetadata.timedOut !== "boolean") throw new Error(`${label}.timedOut must be boolean`);
+  if (processMetadata.spawnError !== null && typeof processMetadata.spawnError !== "string") {
+    throw new Error(`${label}.spawnError must be string or null`);
+  }
+}
+
+function assertRequiredFields(value, fields, label) {
+  if (!value || typeof value !== "object") throw new Error(`${label} is required`);
+  for (const field of fields) {
+    if (value[field] == null) throw new Error(`${label}.${field} is required`);
+  }
+}
+
+function assertNonEmptyString(value, label) {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`${label} must be a non-empty string`);
+  }
+}
+
+function assertScenarioValidityEvidence(evidence, label) {
+  assertRequiredFields(evidence, SCENARIO_VALIDITY_EVIDENCE_FIELDS, label);
+  assertNonEmptyString(evidence.test_file, `${label}.test_file`);
+  assertNonEmptyString(evidence.test_name, `${label}.test_name`);
+  assertNonEmptyString(evidence.command, `${label}.command`);
+  assertRange(evidence.raw_output_lines, `${label}.raw_output_lines`);
+}
+
+function assertScenarioValidityTestFilePath(root, specDir, testFile) {
+  const testPath = path.resolve(root, testFile);
+  const testDir = path.join(specDir, "tests");
+  const relative = path.relative(testDir, testPath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(`test file must be under specs/<spec>/tests: ${testFile}`);
+  }
+  if (!SCENARIO_VALIDITY_TEST_FILE_RE.test(path.basename(testPath))) {
+    throw new Error(`test file must match scenario-validity test pattern: ${testFile}`);
+  }
+  return testPath;
+}
+
+function assertScenarioValiditySummaryEntry(entry) {
+  if (!entry || typeof entry !== "object") throw new Error("summary[] entry must be an object");
+  if (typeof entry.id !== "string" || entry.id.length === 0) throw new Error("summary[].id is required");
+}
+
+export function validateScenarioValidityResult(result, { root, specDir, requirements = [], rawText = "", rawLines = [], testFileSources = new Map() } = {}) {
+  if (!result || typeof result !== "object") throw new Error("scenario-validity-result.json must be an object");
+  if (typeof root !== "string" || root.length === 0) throw new Error("root is required");
+  if (typeof specDir !== "string" || specDir.length === 0) throw new Error("specDir is required");
+  if (result.version !== "1") throw new Error(`scenario-validity-result.json version='${result.version}', expected '1'`);
+  if (!Array.isArray(rawLines) || rawLines.length === 0) {
+    if (typeof rawText !== "string" || rawText.length === 0) {
+      throw new Error("scenario-validity rawText or rawLines is required");
+    }
+    rawLines = rawText.split(/\r?\n/);
+  }
+  if (typeof rawText !== "string" || rawText.length === 0) {
+    rawText = rawLines.join("\n");
+  }
+  if (rawText.length > MAX_SCENARIO_VALIDITY_RAW_OUTPUT_CHARS) {
+    throw new Error(`scenario-validity raw output exceeds ${MAX_SCENARIO_VALIDITY_RAW_OUTPUT_CHARS} characters`);
+  }
+  if (result.raw_output_path !== scenarioValidityRawOutputPath(root, specDir)) {
+    throw new Error("raw_output_path must point to tests/.raw/scenario-validity.log");
+  }
+  if (typeof result.command !== "string" || result.command.length === 0) {
+    throw new Error("command is required");
+  }
+  assertProcessMetadata(result.process);
+  if (result.result !== "pass" && result.result !== "block") {
+    throw new Error("result must be pass or block");
+  }
+  if (!Array.isArray(result.summary)) throw new Error("summary[] is required");
+  if (requirements.length > MAX_SCENARIO_VALIDITY_SUMMARY_ENTRIES) {
+    throw new Error(`requirements exceeds scenario-validity maximum ${MAX_SCENARIO_VALIDITY_SUMMARY_ENTRIES}`);
+  }
+  if (result.summary.length > MAX_SCENARIO_VALIDITY_SUMMARY_ENTRIES) {
+    throw new Error(`summary exceeds scenario-validity maximum ${MAX_SCENARIO_VALIDITY_SUMMARY_ENTRIES}`);
+  }
+
+  const expected = requirements.filter((r) => r.testable !== false).map((r) => r.id);
+  if (result.summary.length > expected.length) {
+    throw new Error("summary contains more entries than testable requirements");
+  }
+  const expectedSet = new Set(expected);
+  const seen = new Set();
+  const duplicates = [];
+  const unknown = [];
+  for (const entry of result.summary) {
+    assertScenarioValiditySummaryEntry(entry);
+    if (seen.has(entry.id)) duplicates.push(entry.id);
+    seen.add(entry.id);
+    if (!expectedSet.has(entry.id)) unknown.push(entry.id);
+  }
+  const missing = expected.filter((id) => !seen.has(id));
+  if (missing.length || unknown.length || duplicates.length) {
+    throw new Error(`summary membership invalid: missing=${missing.join(",")} unknown=${unknown.join(",")} duplicate=${duplicates.join(",")}`);
+  }
+
+  for (const entry of result.summary) {
+    if (!SCENARIO_VALIDITY_CLASSIFICATIONS.has(entry.classification)) {
+      throw new Error(`${entry.id}: classification invalid: ${entry.classification}`);
+    }
+    const evidence = entry.evidence;
+    assertScenarioValidityEvidence(evidence, `${entry.id}: evidence`);
+    if (evidence.raw_output_lines.end_line > rawLines.length) {
+      throw new Error(`${entry.id}: raw_output_lines is outside raw output`);
+    }
+    if (SCENARIO_VALIDITY_CLASSIFICATIONS_REQUIRING_TEST_FILE.has(entry.classification)) {
+      const testPath = assertScenarioValidityTestFilePath(root, specDir, evidence.test_file);
+      const source = testFileSources.get(evidence.test_file) || testFileSources.get(testPath);
+      if (source && !source.includes(evidence.test_name)) {
+        throw new Error(`${entry.id}: test name not found in ${evidence.test_file}: ${evidence.test_name}`);
+      }
+    }
+    if (rawText && !rawText.includes(entry.id)) {
+      throw new Error(`${entry.id}: raw output does not contain requirement id`);
+    }
+  }
   return result;
 }
 
@@ -236,22 +395,9 @@ function validateRegression(regression) {
       throw new Error("regression.target_paths[] is required for targeted mode");
     }
     assertRange(regression.raw_output_lines, "regression");
-    if (!regression.process || typeof regression.process !== "object") throw new Error("regression.process is required");
-    if (typeof regression.process.started !== "boolean") throw new Error("regression.process.started must be boolean");
-    if (regression.process.exitCode !== null && !Number.isInteger(regression.process.exitCode)) {
-      throw new Error("regression.process.exitCode must be integer or null");
-    }
-    if (regression.process.signal !== null && typeof regression.process.signal !== "string") {
-      throw new Error("regression.process.signal must be string or null");
-    }
-    if (typeof regression.process.timedOut !== "boolean") throw new Error("regression.process.timedOut must be boolean");
-    if (regression.process.spawnError !== null && typeof regression.process.spawnError !== "string") {
-      throw new Error("regression.process.spawnError must be string or null");
-    }
+    assertProcessMetadata(regression.process, "regression.process");
   } else {
-    for (const key of ["category", "reason", "classified_paths"]) {
-      if (regression[key] == null) throw new Error(`regression.${key} is required when required=false`);
-    }
+    assertRequiredFields(regression, ["category", "reason", "classified_paths"], "regression");
     if (!["docs-only", "spec-artifact-only", "non-project-only", "mixed-non-trigger"].includes(regression.category)) {
       throw new Error(`regression.category invalid: ${regression.category}`);
     }

@@ -188,22 +188,27 @@ function parsePorcelainLine(line) {
  * untracked files. Returned entries are root-relative POSIX paths sorted by
  * path/status.
  *
- * @param {{cwd?: string, baseBranch?: string}} [opts]
+ * @param {{cwd?: string, baseBranch?: string, untrackedFiles?: "normal"|"all", maxChangedFileEntries?: number}} [opts]
  * @returns {Array<{status:string,path:string,old_path?:string}>}
  */
 export function listChangedFilesDetailed(opts = {}) {
   const cwd = opts.cwd;
+  const maxChangedFileEntries = normalizeChangedFilesLimit(opts.maxChangedFileEntries);
+  const untrackedFiles = normalizeUntrackedFilesMode(opts.untrackedFiles);
   const byKey = new Map();
   const add = (entry) => {
     if (!entry?.path) return;
     const key = `${entry.status}:${entry.old_path || ""}:${entry.path}`;
     byKey.set(key, entry);
+    if (byKey.size > maxChangedFileEntries) {
+      throw new Error(`listChangedFilesDetailed returned more than ${maxChangedFileEntries} entries`);
+    }
   };
 
   if (opts.baseBranch) {
     const committed = runGit(["diff", "--name-status", `${opts.baseBranch}...HEAD`], { cwd });
     assertOk(committed, "listChangedFilesDetailed committed diff failed");
-    for (const line of committed.stdout.split("\n").filter(Boolean)) {
+    for (const line of splitBoundedGitOutput(committed.stdout, maxChangedFileEntries, "committed diff")) {
       const parts = line.split("\t");
       if (parts[0]?.startsWith("R")) add({ status: "renamed", old_path: normalizeGitPath(parts[1]), path: normalizeGitPath(parts[2]) });
       else if (parts[0] === "A") add({ status: "added", path: normalizeGitPath(parts[1]) });
@@ -212,9 +217,10 @@ export function listChangedFilesDetailed(opts = {}) {
     }
   }
 
-  const porcelain = runGit(["status", "--porcelain"], { cwd });
+  const statusArgs = ["status", "--porcelain", `--untracked-files=${untrackedFiles}`];
+  const porcelain = runGit(statusArgs, { cwd });
   assertOk(porcelain, "listChangedFilesDetailed status failed");
-  for (const line of porcelain.stdout.split("\n").filter(Boolean)) {
+  for (const line of splitBoundedGitOutput(porcelain.stdout, maxChangedFileEntries, "status")) {
     add(parsePorcelainLine(line));
   }
 
@@ -223,6 +229,30 @@ export function listChangedFilesDetailed(opts = {}) {
     const bp = `${b.path}:${b.status}:${b.old_path || ""}`;
     return ap.localeCompare(bp);
   });
+}
+
+function normalizeChangedFilesLimit(value) {
+  const limit = value ?? 2000;
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 10000) {
+    throw new Error("listChangedFilesDetailed maxChangedFileEntries must be a positive safe integer <= 10000");
+  }
+  return limit;
+}
+
+function normalizeUntrackedFilesMode(value) {
+  const mode = value ?? "normal";
+  if (mode !== "normal" && mode !== "all") {
+    throw new Error("listChangedFilesDetailed untrackedFiles must be 'normal' or 'all'");
+  }
+  return mode;
+}
+
+function splitBoundedGitOutput(stdout, maxEntries, label) {
+  const lines = stdout.split("\n").filter(Boolean);
+  if (lines.length > maxEntries) {
+    throw new Error(`listChangedFilesDetailed ${label} returned ${lines.length} entries (max ${maxEntries})`);
+  }
+  return lines;
 }
 
 /**

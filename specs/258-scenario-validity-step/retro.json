@@ -1,0 +1,68 @@
+{
+  "spec": "specs/258-scenario-validity-step/spec.json",
+  "date": "2026-05-18T02:16:09.900Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "FLOW_DEFINITION includes a plan-phase leaf id scenario-validity after test and before review-test. The leaf action is run-scenario-validity, its instructions key is plan.scenario-validity, its output schema is next-action/scenario-validity.schema.json, and its maxAttempts resolves to 3.",
+      "status": "done",
+      "note": "R1: FLOW_DEFINITION plan leaves contain test -> scenario-validity -> review-test contiguously"
+    },
+    {
+      "desc": "The flow registry exposes sdd-forge flow run scenario-validity as an internal flow command that requires an active flow, runs the scenario-validity command implementation, accepts no user-facing positional arguments, and marks the scenario-validity step done only when the result passes.",
+      "status": "done",
+      "note": "R2: registry exposes internal active-flow-only scenario-validity command metadata"
+    },
+    {
+      "desc": "scenario-validity discovers and runs only spec-local test files under specs/<spec>/tests/ whose basenames match *.{test,spec}.{js,ts,mjs}. It does not run the project root regression command.",
+      "status": "done",
+      "note": "R3: discovery returns only active spec-local tests"
+    },
+    {
+      "desc": "Before running tests, scenario-validity runs git diff --name-only <baseBranch> -- src/ tests/ package.json .sdd-forge/config.json. If any returned path is outside specs/<spec>/tests/, specs/<spec>/spec.json, specs/<spec>/draft.json, specs/<spec>/issue-log.json, specs/<spec>/spec-review.md, and specs/<spec>/draft-review-*.md, it writes a block result with classification invalid_test and does not execute tests.",
+      "status": "done",
+      "note": "R4: preflight allows spec-local test and spec artifact changes and proceeds to runtime execution"
+    },
+    {
+      "desc": "scenario-validity writes specs/<spec>/scenario-validity-result.json and specs/<spec>/tests/.raw/scenario-validity.log on every invocation. The result file contains version, raw_output_path, command, process.started, process.exitCode, process.signal, process.timedOut, process.spawnError, and one summary entry for every testable requirement.",
+      "status": "done",
+      "note": "R5: scenario-validity artifact records command and process fields"
+    },
+    {
+      "desc": "Each scenario-validity summary entry uses one of expected_fail, unexpected_pass, invalid_test, skipped, or not_run. The step passes only when every testable requirement has expected_fail and none has any blocking classification.",
+      "status": "done",
+      "note": "R6: real command flow marks scenario-validity done on expected_fail pass"
+    },
+    {
+      "desc": "scenario-validity validates that each summary entry has evidence containing test_file, test_name, command, and raw_output_lines, and that raw_output_lines points into tests/.raw/scenario-validity.log.",
+      "status": "done",
+      "note": "R7: summary evidence points to the scenario-validity raw output"
+    },
+    {
+      "desc": "test-artifact helpers add scenario-validity-result.json and tests/.raw/scenario-validity.log to DURABLE_TEST_ARTIFACT_RELATIVE_PATHS and RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS. run-finalize-commit excludes both files from the implementation commit artifact staging, and rerunning scenario-validity removes both stale files before writing new artifacts.",
+      "status": "done",
+      "note": "R8: test artifact helpers classify scenario-validity artifacts as durable and resettable"
+    },
+    {
+      "desc": "Generated sdd-forge.flow skill template and installed skill output include scenario-validity in the plan-phase dispatcher guidance after running sdd-forge upgrade.",
+      "status": "done",
+      "note": "R11: skill template and installed skill mention scenario-validity after upgrade"
+    },
+    {
+      "desc": "Automated tests cover the new flow definition order, registry command, scenario-validity pass/block classifications, artifact validation, prompt wording, template upgrade output, and coexistence with test-execute-result.json plus tests/.raw/test-execution.log.",
+      "status": "done",
+      "note": "R12: prompts keep scenario-validity separate from test-execute and list review anti-patterns"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 2,
+    "not_testable_count": 2,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

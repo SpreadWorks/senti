@@ -1,4 +1,5 @@
-   - **Single execution point:** This step is the **only** place where tests run. retro / review-impl / gate-impl read the result file produced here; they MUST NOT re-run tests.
+   - **Post-implementation execution point:** `impl/test-execute` verifies spec-local tests against implemented code and owns root regression. Earlier, `plan/test` writes tests only, `plan/scenario-validity` performs the pre-implementation runtime check, and `plan/review-test` performs static anti-pattern review.
+   - **Downstream artifact use:** `test-result-review`, `review`, `gate-impl`, and `retro` read `specs/<spec>/test-execute-result.json` and `specs/<spec>/tests/.raw/test-execution.log`; they MUST NOT re-run tests.
    - **Test command discovery:** Determine the test runner from the project's declarative configuration in this priority order:
      1. `.sdd-forge/config.json` top-level `test.command`
      2. `package.json` `scripts.test`, executed as argv `["npm","test","--"]`

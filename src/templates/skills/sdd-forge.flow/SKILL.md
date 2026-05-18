@@ -28,7 +28,7 @@ All flow step IDs are defined in the CLI schema. The dispatcher obtains the curr
 - After reading `docs/` files: `sdd-forge flow set metric <current-phase> docsRead`
 - After reading `src/` files: `sdd-forge flow set metric <current-phase> srcRead`
 
-The current phase can be determined from the current step (e.g. `draft`, `spec`, `gate`, `test`, `implement`, `test-execute`, `test-result-review`, `review`, `gate-impl`, `retro`, `finalize`).
+Use the metric phase/key from `sdd-forge flow get status` / `sdd-forge flow get next-action` when recording metrics. Phase examples: `plan`, `draft`, `spec`, `gate`, `impl`, `finalize`. Step-key examples returned by next-action include `test`, `scenario-validity`, `review-test`, `review`, `gate-impl`, and `retro`.
 
 Note: `sdd-forge flow get context` automatically records these metrics via hooks — manual recording is only needed for direct Read tool usage.
 
@@ -99,7 +99,10 @@ B.4. **Prepare spec (silent)**
 
 Proceed to **C. Dispatcher loop**.
 
-Note: Test execution is centralized in the impl-phase `test-execute` step. The dispatcher invokes it after `implement` and persists `test-execute-result.json` version `"2"` + raw output. Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those artifacts and do not re-run tests. Prepare/docs-scan and `analysis.json` read/validation failures are hard stops. A started project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion.
+Note:
+- Plan-phase test flow: next-action selects `test`, `scenario-validity`, and `review-test`. `test` writes spec-local tests, `scenario-validity` persists `scenario-validity-result.json` and `tests/.raw/scenario-validity.log`, and `review-test` performs static test review.
+- Impl-phase test flow: `test-execute` runs after `implement`, owns root regression, and persists `test-execute-result.json` version `"2"` plus raw output. Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those impl-phase artifacts and do not re-run tests.
+- Hard stops: Prepare/docs-scan and `analysis.json` read/validation failures stop the flow. A started project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion.
 
 <!-- include("@templates/partials/placeholder-artifact-permission.md") -->
 
@@ -146,7 +149,7 @@ C.2. **Execute instructions**
         - `review-spec` records detection output via post hook. PASS / ADVISORY complete review, while FAIL completes review and advances to `spec-review-triage`.
         - `review-test` still follows its prompt instructions.
         - Impl/task review writes detection output only; its post hook advances according to the existing impl/task review route.
-      - **`flow run test-execute` / `flow run test-result-review` / `flow run retro`**: post hooks validate current v2 artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures.
+      - **`flow run scenario-validity` / `flow run test-execute` / `flow run test-result-review` / `flow run retro`**: post hooks validate current artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures.
       - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
 
 C.3. **Loop**
@@ -240,6 +243,7 @@ sdd-forge flow set retry reset <gate|review> <phase> --yes
 sdd-forge flow prepare --title "..." [--base branch] [--worktree] [--no-branch] [--issue N] [--request "..."] [--run-id <id>]
 sdd-forge flow run gate [--phase <draft|spec|task-spec|task-impl|integration>] [--agent-work-dir <path>] [--log-file <path>]
 sdd-forge flow run review [--phase <draft|spec|test|impl>] [--agent-work-dir <path>] [--log-file <path>]
+sdd-forge flow run scenario-validity
 sdd-forge flow run test-execute
 sdd-forge flow run test-result-review
 sdd-forge flow run impl-confirm --mode <overview|detail>

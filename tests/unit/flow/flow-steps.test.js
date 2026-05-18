@@ -24,6 +24,15 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
     );
   });
 
+  it("has plan gate ordering and scenario-validity before review-test", () => {
+    const expectedPrefix = [
+      "branch", "prepare-spec", "draft", "review-draft-questions", "draft-questions-triage", "draft-questions-repair", "draft-refine",
+      "review-draft-coverage", "draft-coverage-triage", "draft-coverage-repair", "gate-draft",
+      "spec", "review-spec", "spec-review-triage", "spec-repair", "gate", "approval", "test", "scenario-validity", "review-test",
+    ];
+    assert.deepEqual(FLOW_STEPS.slice(0, expectedPrefix.length), expectedPrefix);
+  });
+
   it("does not contain approach (removed in spec 178)", () => {
     assert.ok(!FLOW_STEPS.includes("approach"), "approach should be removed");
   });

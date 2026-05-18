@@ -1,0 +1,154 @@
+{
+  "devType": "feature",
+  "goal": "Add a plan-phase scenario-validity step that executes spec verification tests before implementation and records whether they fail for the intended reason. This closes the gap where tests are only statically reviewed before implementation and can contain logically impossible or tautological assertions.",
+  "analysis": {
+    "problem": "The current plan/test step writes spec-local tests but explicitly does not run them, while impl/test-execute runs after implementation. This means the flow can approve tests that are syntactically present but logically impossible, tautological, skipped, or otherwise unable to prove an implementation requirement before code is written.",
+    "proposedApproach": "Introduce a plan-phase scenario-validity verification point after test authoring that runs the spec-local tests in an implementation-absent state, persists a machine-readable result and raw output, blocks on invalid or unexpectedly passing tests, and updates prompts, schemas, flow definition, registry behavior, templates, and tests accordingly.",
+    "validation": "Runtime execution before implementation directly tests the missing invariant: each testable requirement has a test that fails before the corresponding implementation exists. Static review remains useful for anti-pattern detection, but it no longer carries the full burden of proving scenario validity."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #329 identifies a real prior failure mode from spec 251 (#308): an impossible assertion passed review-test and was discovered only after implementation.",
+      "src/flow/prompts/plan/test.md says plan/test writes tests under specs/<spec>/tests/ and that those tests should fail before implementation.",
+      "src/flow/prompts/plan/test.md also says not to run tests in the test step because execution is centralized in impl-phase test-execute.",
+      "src/flow/prompts/impl/test-execute.md says test-execute is the only place where tests run and writes test-execute-result.json plus raw test output.",
+      "src/flow/definition.js currently orders plan steps as test followed by review-test, with no scenario-validity or gate-test leaf.",
+      "User selected q1 option 1: scenario-validity is the blocking runtime gate immediately after plan/test; no separate gate-test step is added.",
+      "User selected q2 option 1: scenario-validity runs in the current plan worktree and detects implementation-file changes as a precondition.",
+      "User selected q3 option 1: each testable requirement must have an expected_fail result; unexpected_pass, invalid_test, skipped, and not_run block the flow.",
+      "User selected q4 option 1: scenario-validity runs only spec-local tests under specs/<spec>/tests/; root regression remains in impl/test-execute.",
+      "User selected q5 option 1: test-execute wording changes to the impl-phase regression/final verification execution point, while scenario-validity is the plan-phase pre-implementation execution point.",
+      "User selected q6 option 1: scenario-validity block leaves result and raw output artifacts, allows up to 3 repair/retry attempts, then stops for the user.",
+      "User selected q7 option 1: review-test anti-pattern guidance includes all six listed patterns from Issue #329.",
+      "Spec-local tests are historical verification tests and are not part of npm test by default.",
+      "Project rules require template changes to be followed by sdd-forge upgrade.",
+      "Project rules prohibit adding external dependencies; implementation must use Node.js built-in modules only."
+    ],
+    "decisionPoints": [
+      "Where scenario-validity sits relative to review-test and whether it acts as the missing gate-test concept.",
+      "What counts as an implementation-absent state for runtime verification.",
+      "What pass/fail semantics prove scenario validity for each testable requirement.",
+      "How spec-local tests are discovered and executed during scenario-validity.",
+      "How the new step changes the single execution point language in test-execute.",
+      "What artifact schema and blocking behavior downstream steps consume."
+    ],
+    "resolvedByProjectRules": [
+      "Use no external dependencies.",
+      "Preserve the user-defined Issue as one spec; do not split it into separate specs.",
+      "Use worktree isolation for this flow.",
+      "Run sdd-forge upgrade after changing templates or presets.",
+      "Record raw command output to files for long-running verification commands."
+    ],
+    "requiresUserJudgment": [
+      "Which failure classes block the flow and which, if any, are allowed as expected pre-implementation failures.",
+      "Which anti-patterns review-test must check statically after runtime scenario-validity exists."
+    ],
+    "deferredToSpec": [
+      "Exact class and function names for the scenario-validity runner.",
+      "Exact JSON schema fields for scenario-validity-result.json.",
+      "Precise registry post-hook wiring.",
+      "Specific unit and e2e test filenames.",
+      "Exact wording of prompt updates and template updates."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "Add a plan-phase scenario-validity step to the SDD flow.",
+      "Execute spec-local verification tests before implementation and preserve raw output.",
+      "Classify expected failure, unexpected pass, invalid test, skipped, and not-run outcomes.",
+      "Update plan/test, review-test, and impl/test-execute prompt language.",
+      "Update flow definition, command registry behavior, schemas, finalize artifact listing, tests, and generated skill templates.",
+      "Run sdd-forge upgrade after template changes."
+    ],
+    "out": [
+      "Changing the project-wide npm test contract beyond what is needed to support scenario-validity.",
+      "Adding external test frameworks or third-party dependencies.",
+      "Retrofitting historical specs to include scenario-validity artifacts.",
+      "Publishing an npm release."
+    ]
+  },
+  "impactOnExisting": [
+    "Plan-phase flow sequencing changes for every new SDD flow.",
+    "Test authoring and review prompts will no longer describe impl/test-execute as the sole place any tests can run.",
+    "Downstream implementation, review, gate, and finalize steps may need to recognize scenario-validity artifacts.",
+    "Template-generated skills must reflect the new flow so user environments receive the behavior after upgrade."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "scenario-validity は plan/test の直後に置く blocking runtime gate とし、現行には存在しない gate-test という別 step 名は追加しない、という扱いでよいですか？ここでの runtime gate は、テストを実際に実行して条件を満たさなければ次へ進ませない検証点です。",
+      "answer": "はい。scenario-validity は plan/test の直後に置く blocking runtime gate とし、別の gate-test step は追加しない。",
+      "evidence": "User selected option 1 during draft-refine q1. src/flow/definition.js currently has plan/test followed by review-test and no gate-test leaf.",
+      "why": "Issue #329 の目的は実装前テスト実行による妥当性確認であり、別 gate 名を増やすより scenario-validity に責務を集約する方が既存 flow への影響を抑えられるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "実装不在状態は、plan phase の現 worktree をそのまま使い、実装対象ファイルの変更が混入していないことを前提条件で検出する方式でよいですか？代替は base branch の detached worktree で spec-local tests だけを実行する方式です。",
+      "answer": "はい。plan phase の現 worktree を使い、実装対象ファイルの変更が混入していないことを precondition で検出する。",
+      "evidence": "User selected option 1 during draft-refine q2. Flow is already using an isolated worktree for this spec.",
+      "why": "plan phase では実装変更が存在しない前提なので、その worktree で spec-local tests を実行する方が単純で、detached worktree への spec-local tests 持ち込み処理も不要になるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "合格条件は、testable な各 requirement が少なくとも 1 件の expected_fail を持ち、unexpected_pass / invalid_test / skipped / not_run が 1 件でもあれば block とする、でよいですか？expected_fail は、実装前なので意図した assertion failure が起きた状態です。",
+      "answer": "はい。testable な各 requirement に少なくとも 1 件の expected_fail が必要で、unexpected_pass / invalid_test / skipped / not_run は 1 件でも block とする。",
+      "evidence": "User selected option 1 during draft-refine q3. Issue #329 requires verifying tests fail without implementation, not merely that some test somewhere fails.",
+      "why": "requirement 単位で実装前 fail を要求しないと、一部 requirement が未検証または通過していても scenario-validity が成功してしまい、Issue #329 の根本問題を閉じられないため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "scenario-validity が実行する対象は specs/<spec>/tests/ 配下の spec-local tests に限定し、root regression command は impl/test-execute に残す、でよいですか？spec-local tests は当該 spec の要件検証用で、npm test の通常対象ではありません。",
+      "answer": "はい。scenario-validity は specs/<spec>/tests/ 配下の spec-local tests のみを実行し、root regression command は impl/test-execute に残す。",
+      "evidence": "User selected option 1 during draft-refine q4. src/flow/prompts/plan/test.md defines specs/<spec>/tests/ as spec verification tests and notes they are not run by npm test.",
+      "why": "scenario-validity の目的はこの spec の requirement tests が実装前に fail することの確認であり、project-wide regression を混ぜると既存失敗や実装後検証の責務と混同するため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "test-execute の説明は「唯一のテスト実行点」から「impl phase の regression / final verification の唯一の実行点」に変更し、scenario-validity を plan phase の例外的な事前実行点として明記する、でよいですか？",
+      "answer": "はい。test-execute は impl phase の regression / final verification の実行点として説明し、scenario-validity は plan phase の実装前実行点として明記する。",
+      "evidence": "User selected option 1 during draft-refine q5. src/flow/prompts/impl/test-execute.md currently says test-execute is the only place where tests run.",
+      "why": "scenario-validity 追加後に「唯一のテスト実行点」という表現を残すと事実と矛盾するため、phase ごとの責務として表現を分ける必要がある。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "scenario-validity が block した場合は、result artifact と raw output を残し、テスト修正後に同じ step を最大 3 回まで再実行し、上限到達時はユーザーへ停止する、でよいですか？",
+      "answer": "はい。block 時は result artifact と raw output を残し、テスト修正後の同 step 再実行を最大 3 回まで許容し、上限到達時はユーザーへ停止する。",
+      "evidence": "User selected option 1 during draft-refine q6. Current flow nodes commonly use finite maxAttempts values, including review-test maxAttempts 3.",
+      "why": "軽微な test repair の自動収束を許しつつ、無制限 retry による停止不能状態を避けるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "review-test の anti-pattern guidance は、production code を経由しない assertion、入力値を expected に戻す round-trip、常時 match する regex、existence-only check、catch-all PASS、split 後 separator literal 要求を必須検出対象としてよいですか？",
+      "answer": "はい。production code を経由しない assertion、入力値を expected に戻す round-trip、常時 match する regex、existence-only check、catch-all PASS、split 後 separator literal 要求の 6 種を必須検出対象にする。",
+      "evidence": "User selected option 1 during draft-refine q7. Issue #329 lists these anti-pattern candidates and identifies split separator literal assertion as the originating failure case.",
+      "why": "runtime の scenario-validity に加えて静的 review 側にも代表的な危険パターンを明示し、tautological / impossible assertion の混入を二重に防ぐため。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-17T11:57:49.633Z",
+    "notes": "Draft review passed."
+  }
+}
