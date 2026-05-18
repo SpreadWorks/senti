@@ -37,6 +37,7 @@ import { Command } from "../../lib/command.js";
 import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { buildAcknowledgedRationaleSection } from "../lib/acknowledged-rationale.js";
 import { validateSchema } from "../../lib/schema-validate.js";
+import { ReviewFailure } from "../lib/review-failure.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -886,6 +887,25 @@ function assertTestReviewPromptWithinLimit(prompt, label) {
     `${TEST_REVIEW_PROMPT_TOO_LARGE_CODE}: ${label} prompt is ${chars} chars; `
     + `limit is ${TEST_REVIEW_PROMPT_CHAR_LIMIT}. Narrow review-test inputs before calling the agent.`,
   );
+}
+
+function classifyReviewCommandError(err, phase) {
+  const message = String(err?.stack || err?.message || err || "");
+  const recoveryCommand = phase ? `sdd-forge flow run review --phase ${phase}` : "sdd-forge flow run review";
+  return ReviewFailure.fromMessage({ phase: phase || "impl", message, recoveryCommand });
+}
+
+function parseReviewCliArgsForError(rawArgs) {
+  try {
+    const cli = parseArgs(rawArgs, {
+      flags: ["--dry-run", "--skip-confirm"],
+      options: ["--phase"],
+      defaults: { phase: null },
+    });
+    return { ...cli, phase: VALID_PHASES.includes(cli.phase) ? cli.phase : null };
+  } catch (_) {
+    return { phase: null };
+  }
 }
 
 /**
@@ -2454,6 +2474,9 @@ export default class FlowReviewCommand extends Command {
 if (import.meta.url === `file://${process.argv[1]}`) {
   initContainer();
   runReview(process.argv.slice(2)).catch((err) => {
+    const cli = parseReviewCliArgsForError(process.argv.slice(2));
+    const failure = classifyReviewCommandError(err, cli.phase);
+    if (failure) console.error(failure.toMarkerLine());
     console.error(err?.stack || String(err));
     process.exit(1);
   });

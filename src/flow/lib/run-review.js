@@ -15,6 +15,11 @@ import { resolveNodeFor, FLOW_DEFINITION, flattenSteps, findStepById } from "../
 import path from "path";
 import fs from "fs";
 import {
+  ReviewFailure,
+  clearReviewStopState,
+  writeReviewStopState,
+} from "./review-failure.js";
+import {
   RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS,
 } from "./test-artifacts.js";
 
@@ -104,12 +109,13 @@ export function checkReviewRetryBelowMax(ctx, phase) {
   }
   const count = countReviewRetry(flowState.metrics, persistedPhase);
   if (count < max) return null;
+  const failure = ReviewFailure.maxAttemptsExceeded({ phase: persistedPhase, attempts: count, max });
   return Envelope.fail("run", "review", "REVIEW_MAX_ATTEMPTS_EXCEEDED",
     [
       `review retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${persistedPhase}".`,
       "Stop the automatic retry loop and return control to the user. Use `sdd-forge flow set retry reset review <phase> --yes` to recover.",
     ],
-    { phase: persistedPhase, attempts: count, max });
+    failure.toEnvelopeData());
 }
 
 function isImplPass(result) {
@@ -142,6 +148,9 @@ export function updateReviewRetryCounter(ctx, result) {
     ? { phase: persistedPhase, counter: "reviewRetry", delta: 0, reset: true }
     : { phase: persistedPhase, counter: "reviewRetry", delta: 1 };
   mgr.appendMetric(payload, { taskId: null }); // R19: explicit flow-scope
+  if (isPass && typeof mgr.mutate === "function") {
+    mgr.mutate((state) => clearReviewStopState(state, persistedPhase));
+  }
 }
 
 export { REVIEW_PHASE_KEYS };
@@ -227,9 +236,20 @@ export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, par
 
 const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;
-const NON_RETRYABLE_REVIEW_ERRORS = Object.freeze([
-  "TEST_REVIEW_PROMPT_TOO_LARGE",
-]);
+const MAX_REVIEW_SUBPROCESS_RETRIES = 2;
+const MAX_REVIEW_SUBPROCESS_RETRY_DELAY_MS = 30_000;
+
+function normalizeReviewSubprocessRetryCount(value) {
+  const parsed = Number(value ?? DEFAULT_RETRY_COUNT);
+  if (!Number.isFinite(parsed)) return DEFAULT_RETRY_COUNT;
+  return Math.min(MAX_REVIEW_SUBPROCESS_RETRIES, Math.max(0, Math.trunc(parsed)));
+}
+
+function normalizeReviewSubprocessRetryDelayMs(value) {
+  const parsed = Number(value ?? DEFAULT_RETRY_DELAY_MS);
+  if (!Number.isFinite(parsed)) return DEFAULT_RETRY_DELAY_MS;
+  return Math.min(MAX_REVIEW_SUBPROCESS_RETRY_DELAY_MS, Math.max(0, Math.trunc(parsed)));
+}
 
 /**
  * Run a command function with mechanical subprocess retry logic.
@@ -242,21 +262,22 @@ const NON_RETRYABLE_REVIEW_ERRORS = Object.freeze([
  * @returns {Promise<{ ok: boolean, status: number, stdout: string, stderr: string, signal: string|null, killed: boolean }>}
  */
 export async function runCmdWithRetry(cmdFn, opts = {}) {
-  const retryCount = opts.retryCount ?? DEFAULT_RETRY_COUNT;
-  const retryDelayMs = opts.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+  const retryCount = normalizeReviewSubprocessRetryCount(opts.retryCount);
+  const retryDelayMs = normalizeReviewSubprocessRetryDelayMs(opts.retryDelayMs);
 
   let lastRes;
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     lastRes = cmdFn();
     if (lastRes.ok) return lastRes;
-
-    // Do not retry on killed/signal (timeout, external termination)
-    if (lastRes.signal || lastRes.killed) return lastRes;
-    if (NON_RETRYABLE_REVIEW_ERRORS.some((code) => (lastRes.stderr || "").includes(code))) {
-      return lastRes;
-    }
+    const failure = ReviewFailure.fromSubprocessResult({
+      phase: opts.phase || "impl",
+      result: lastRes,
+    });
 
     if (attempt < retryCount) {
+      if (!failure.shouldRetrySubprocess({ attempt: attempt + 1, maxAttempts: retryCount + 1 })) {
+        return lastRes;
+      }
       const next = attempt + 2;
       const total = retryCount + 1;
       process.stderr.write(`[review] retry ${next}/${total} after ${retryDelayMs}ms...\n`);
@@ -283,6 +304,10 @@ export class RunReviewCommand extends FlowCommand {
     // spec 253: enforce review maxAttempts (R2 R3) before any subprocess work
     const preCheck = checkReviewRetryBelowMax(ctx, phase);
     if (preCheck) return preCheck;
+    const persistedPhase = reviewPhaseKeyForCtx(ctx, phase);
+    if (ctx.flowManager) {
+      ctx.flowManager.mutate((state) => clearReviewStopState(state, persistedPhase));
+    }
 
     const dryRun = ctx.dryRun || false;
     const skipConfirm = ctx.skipConfirm || false;
@@ -297,10 +322,22 @@ export class RunReviewCommand extends FlowCommand {
     const timeoutMs = agentTimeout != null ? Number(agentTimeout) * 1000 : DEFAULT_AGENT_TIMEOUT_MS;
     const res = await runCmdWithRetry(
       () => runCmd("node", [scriptPath, ...args], { cwd: root, timeout: timeoutMs }),
+      { phase: persistedPhase },
     );
 
     const stdout = (res.stdout || "").trim();
     const stderr = (res.stderr || "").trim();
+    if (!res.ok) {
+      const failure = ReviewFailure.fromSubprocessResult({ phase: persistedPhase, result: res });
+      if (failure.shouldPersistStopState()) {
+        if (ctx.flowManager) {
+          ctx.flowManager.mutate((state) => writeReviewStopState(state, failure));
+        }
+        return Envelope.fail("run", "review", failure.toEnvelopeCode(),
+          [`review stopped: ${failure.reason}`],
+          failure.toEnvelopeData());
+      }
+    }
 
     // Route to draft review parser
     if (phase === "draft") {

@@ -24,6 +24,7 @@ import {
 } from "../definition.js";
 import { promoteNextPending } from "../../lib/flow-helpers.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
+import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -169,6 +170,26 @@ export default class GetNextActionCommand extends FlowCommand {
     };
     if (state.autoUpgrade?.available === true) {
       result.autoUpgrade = state.autoUpgrade;
+    }
+    const reviewPhase = reviewPhaseForStepId(target.stepId);
+    if (reviewPhase) {
+      const reviewStop = buildReviewStopView(state, {
+        surface: "next-action",
+        phase: reviewPhase,
+        maxAttempts: derived.maxAttempts,
+      });
+      if (reviewStop) {
+        result.reviewStop = reviewStop;
+        Object.assign(result, {
+          stopReason: reviewStop.stopReason,
+          classification: reviewStop.classification,
+          phase: reviewStop.phase,
+          retryBudgetConsumed: reviewStop.retryBudgetConsumed,
+          recoveryCommand: reviewStop.recoveryCommand,
+          ...(reviewStop.reason && { reason: reviewStop.reason }),
+          ...(reviewStop.recoveryHint && { recoveryHint: reviewStop.recoveryHint }),
+        });
+      }
     }
     return result;
   }

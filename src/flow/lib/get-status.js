@@ -8,8 +8,9 @@
 import { derivePhase } from "../../lib/flow-helpers.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { loadSpecRequirements } from "../../lib/spec-json.js";
-import { flattenSteps } from "../definition.js";
+import { FLOW_DEFINITION, flattenSteps, resolveNodeFor } from "../definition.js";
 import { FlowCommand } from "./base-command.js";
+import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
 export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
@@ -127,6 +128,19 @@ export function buildReportTotals(summaryTotal) {
   return { activity, tokens };
 }
 
+function buildStatusReviewStop(state, leafSteps) {
+  const active = leafSteps.find((step) => step.status === "in_progress");
+  const reviewPhase = reviewPhaseForStepId(active?.id);
+  if (!reviewPhase) return null;
+  const maxAttempts = resolveNodeFor(FLOW_DEFINITION, active.id)?.resolveMaxAttempts(state);
+  if (!Number.isSafeInteger(maxAttempts)) return null;
+  return buildReviewStopView(state, {
+    surface: "status",
+    phase: reviewPhase,
+    maxAttempts,
+  });
+}
+
 function buildStatusOutput(state, root) {
   const phase = state.steps ? derivePhase(state) : null;
   // spec 251 R42: count leaf steps via flattenSteps so nested impl-phase
@@ -138,6 +152,7 @@ function buildStatusOutput(state, root) {
   const requirements = loadSpecRequirements(root, state.spec);
   const doneReqs = requirements.filter((r) => r.status === "done").length;
   const totalReqs = requirements.length;
+  const reviewStop = buildStatusReviewStop(state, leafSteps);
 
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
@@ -159,6 +174,7 @@ function buildStatusOutput(state, root) {
     notes: state.notes || [],
     metrics: state.metrics || [],
     metricsSummary: buildMetricsSummary(state.metrics || []),
+    ...(reviewStop && { reviewStop }),
     mergeStrategy: state.mergeStrategy || null,
     autoApprove,
   };

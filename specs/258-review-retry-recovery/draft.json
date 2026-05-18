@@ -1,0 +1,145 @@
+{
+  "devType": "feature",
+  "goal": "review retry / recovery model を整理し、review verdict FAIL、subprocess failure、provider failure、input size failure、maxAttempts 到達を区別して扱えるようにする。CLI envelope / next-action / status から停止理由と復旧操作を判断できる状態にする。",
+  "analysis": {
+    "problem": "現在の review 周辺は reviewRetry、subprocess retry、provider error、input size error、maxAttempts 到達が別々の場所で扱われており、どの失敗が retry budget を消費するのか、どの復旧操作を提示するのかが一貫した契約として見えにくい。特に task-scope review は flow-scope review と同じ CLI enforcement ではなく、停止理由や復旧手順の表示が利用者に伝わりにくい。",
+    "proposedApproach": "失敗分類を requirement として定義し、各分類ごとに retry budget 消費、step status、issue-log 記録、recovery hint、envelope / next-action / status 表示の期待値を明文化する。実装は既存の flow definition、run-review、set-retry、get-next-action、get-status の責務に沿って、分類と復旧情報を分散させずに参照できる形にする。",
+    "validation": "Issue の完了条件は、failure taxonomy、retry 対象分類、provider quota / input size failure の非消費扱い、maxAttempts envelope、停止理由と復旧操作の表示、task-scope policy の明文化に分解できる。この approach は表面上の文言追加ではなく、CLI が返す契約と review retry の消費条件を揃えるため、根本問題である failure handling の混同を解消できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #327 は provider quota / input size failure が reviewRetry を消費せず、復旧ヒントを返すことを完了条件に含めている。",
+      "Issue #327 は review verdict FAIL、subprocess failure、provider failure、input size failure、maxAttempts 到達を分類対象としている。",
+      "Issue #327 は blocking / non-blocking review 分離、review-test 入力削減、project-level tests の破壊検知、gate-impl no-progress guard を out of scope としている。",
+      "src/flow/lib/run-review.js は flow-scope review の maxAttempts を subprocess 実行前に checkReviewRetryBelowMax で検査する。",
+      "src/flow/lib/run-review.js は flowState.currentTaskId がある場合に review retry enforcement をスキップしており、task-scope review は現在 soft limit 扱いである。",
+      "src/flow/lib/run-review.js の subprocess retry は signal / killed と TEST_REVIEW_PROMPT_TOO_LARGE を非 retry とし、それ以外の失敗を機械的 retry 対象としている。",
+      "src/flow/lib/run-review.js の REVIEW_MAX_ATTEMPTS_EXCEEDED は data に phase / attempts / max を含めるが、recovery command は errors message 側にある。",
+      "src/flow/definition.js は review-draft-questions、review-draft-coverage、review-spec、review-test、impl review の maxAttempts を flow 定義から解決する。",
+      "src/flow/lib/set-retry.js は flow set retry reset <gate|review> <phase> --yes で reviewRetry / gateRetry を reset entry として記録する。",
+      "src/flow/lib/get-status.js の metricsSummary は reset entries を解釈しない audit-only raw totals であり、現在の retry count は countReviewRetry / countGateRetry 側で解決する。"
+    ],
+    "decisionPoints": [
+      "failure taxonomy をどこまで CLI contract として定義するか。",
+      "provider quota、rate limit、API error、input length error を provider failure と input size failure にどう分類するか。",
+      "各 failure classification が reviewRetry を消費するか、step status を進めるか、issue-log に何を残すか。",
+      "run-review の mechanical subprocess retry 対象 / 非対象をどの構造で表すか。",
+      "REVIEW_MAX_ATTEMPTS_EXCEEDED の data に recovery command を含めるか、既存 message contract のままにするか。",
+      "next-action / status のどちらに停止理由と復旧操作を出すか、または両方に出すか。",
+      "task-scope review を flow-scope と同じ CLI enforcement に揃えるか、soft limit として明文化するか。",
+      "provider failure や input size failure の issue-log 記録を必須にするか、recovery hint 表示に留めるか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。Node.js 組み込みモジュールと既存 CLI 構造で実装する。",
+      "alpha 版ポリシーにより旧フォーマットや非推奨パスの後方互換コードは追加しない。",
+      "同じ分類・復旧 hint 生成が複数箇所に必要な場合は共通ヘルパーに抽出する。",
+      "意味のある値や分類はオブジェクトリテラルの type 風 union ではなく、必要に応じて専用クラスで invariant と振る舞いを持たせる。",
+      "src/ 以下にプロジェクト固有情報を含めない。",
+      "テンプレートや skill template を変更した場合は sdd-forge upgrade を実行する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "failure taxonomy の具体的なクラス名、関数名、ファイル配置。",
+      "envelope / status / next-action の具体的な JSON field 名。",
+      "subprocess stderr / stdout から provider quota や input size failure を識別する詳細条件。",
+      "テストケースの配置と fixture の具体化。",
+      "既存 review prompt 文言との整合方法。",
+      "task-scope review を soft limit として残す場合の prompt / status 文言。",
+      "provider failure reason を stderr / stdout から抽出する具体条件。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "review verdict FAIL、subprocess failure、provider failure、input size failure、maxAttempts 到達の分類定義。",
+      "各分類ごとの retry budget 消費、step status、issue-log、recovery hint の扱い。",
+      "run-review の subprocess retry 対象 / 非対象分類の明確化。",
+      "rate limit / input length / provider error に対する CLI recovery hint。",
+      "next-action または status による停止理由と復旧操作の表示。",
+      "task-scope review retry policy の明文化、または flow-scope enforcement との統一。"
+    ],
+    "out": [
+      "review の blocking / non-blocking 分離そのもの。",
+      "review-test の入力削減。",
+      "project-level tests の破壊検知。",
+      "gate-impl の no-progress guard。",
+      "GitHub Issue publish workflow の変更。",
+      "AI provider CLI 自体の quota や rate limit 回避。"
+    ]
+  },
+  "impactOnExisting": [
+    "flow run review の failure handling と retry budget 消費契約。",
+    "flow get next-action / flow get status の停止理由表示。",
+    "flow set retry reset review <phase> --yes の復旧導線。",
+    "review-draft-questions、review-draft-coverage、review-spec、review-test、impl review の maxAttempts enforcement。",
+    "task-scope review prompt と impl task review の運用契約。",
+    "レビュー失敗時の issue-log / metrics の監査情報。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "task-scope review の retry policy は、flow-scope review と同じ CLI enforcement に揃えますか。それとも現在の soft limit を明文化して残しますか。task-scope review は、個別 task 実装レビューのことで、現在は flowState.currentTaskId がある場合に reviewRetry enforcement をスキップしています。",
+      "answer": "現在の scope では task-scope review は soft limit として残し、policy を明文化する。flow-scope と同じ CLI enforcement への統一は、task lifecycle と currentTaskId の扱いまで広がるため、この Issue では停止理由・復旧表示・policy 文書化を優先する。",
+      "evidence": "src/flow/lib/run-review.js は flowState.currentTaskId != null の場合に checkReviewRetryBelowMax をスキップする。Issue #327 の完了条件は task-scope review の retry policy 明文化を含むが、CLI enforcement 統一までは必須としていない。",
+      "why": "Issue の主目的は failure handling の混同解消であり、task-scope lifecycle の再設計は scope を広げる。soft limit を明文化すれば現在の挙動を契約化し、将来の enforcement 統一を別判断にできる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "review が停止した理由と復旧操作は、next-action と status の両方に表示しますか。それとも next-action を主表示、status を要約表示にしますか。next-action は次に AI / skill が実行すべき操作を返す CLI、status は現在の flow 状態を返す CLI です。",
+      "answer": "next-action には停止理由・retry 消費有無・復旧コマンドを詳細表示し、status には現在止まっている理由と次の復旧操作を要約表示する。",
+      "evidence": "Issue #327 は next-action / status が停止理由と復旧コマンドを表示できることを scope に含め、完了条件では next-action または status で理由と復旧操作が分かることを求めている。",
+      "why": "next-action は次に実行する操作の contract に近く詳細表示に向く。status は一覧確認に使われるため、要約を出すことで利用者が停止状態を把握できる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "REVIEW_MAX_ATTEMPTS_EXCEEDED の envelope data には、phase / attempts / max に加えて recovery command を必ず含めますか。現在は recovery command が error message 側にあり、data contract としては固定されていません。",
+      "answer": "REVIEW_MAX_ATTEMPTS_EXCEEDED の data に recoveryCommand を必ず含める。既存の phase / attempts / max は維持し、message 側の案内だけに依存しない。",
+      "evidence": "src/flow/lib/run-review.js の checkReviewRetryBelowMax は data に phase / attempts / max を返すが、復旧コマンドは errors message にだけ含まれている。Issue #327 の完了条件は maxAttempts 到達時の envelope に phase / attempts / max / recovery command が含まれることを求めている。",
+      "why": "機械処理と status 表示が message parsing に依存しない。既存 data contract にフィールドを追加するだけなので、alpha policy とも矛盾しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "provider quota、rate limit、API error、input length error が起きた場合、issue-log への記録を必須にしますか。それとも reviewRetry を消費しない recovery hint を返すことを主契約とし、issue-log は実際に回避策や仕様判断が発生した場合だけにしますか。",
+      "answer": "provider quota、rate limit、API error、input length error では reviewRetry を消費せず、failure data と recovery hint を主契約にする。issue-log は workaround、仕様判断、未解決の手動復旧が発生した場合に記録する。",
+      "evidence": "Issue #327 は provider quota / input size failure が reviewRetry を消費せず復旧ヒントを返すことを完了条件にしている。プロジェクトの issue-log ルールは、問題の修正・回避策・未解決事項を記録することを求めている。",
+      "why": "transient provider failure を毎回 issue-log に残すと監査ログがノイズ化する。一方で workaround や手動復旧が必要な場合は、再発防止と文脈保持のため issue-log に残す必要がある。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "failure taxonomy の分類粒度は、provider failure の下位理由として rate limit / quota / API error を持たせますか。それとも rate limit、quota、API error を独立した failure category として扱いますか。",
+      "answer": "taxonomy は review verdict failure、subprocess failure、provider failure、input size failure、maxAttempts exceeded を上位分類にする。rate limit / quota / API error は provider failure の reason として扱う。",
+      "evidence": "Issue #327 は分類対象として review verdict FAIL、subprocess failure、provider failure、input size failure、maxAttempts 到達を列挙し、rate limit / provider quota / API error / input length error の recovery hint 整理を残課題にしている。",
+      "why": "上位分類を Issue の語彙に合わせると、retry budget と step status の判断が安定する。下位 reason は recovery hint の分岐として扱えば分類が増えすぎない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "この変更のテストは、run-review の retry budget 非消費、maxAttempts envelope、next-action / status の復旧表示、task-scope policy の4観点を必須にしますか。AI provider の実呼び出しを伴う agent test は、該当ファイルを変更した場合だけ追加実行する方針でよいですか。",
+      "answer": "テストは、run-review の retry budget 非消費、maxAttempts envelope、next-action / status の復旧表示、task-scope policy の4観点を必須にする。AI provider の実呼び出しを伴う npm run test:agent は、src/lib/agent.js など agent command 関連を変更した場合に実行する。",
+      "evidence": "Issue #327 の完了条件は retry 消費、recovery hint、maxAttempts envelope、next-action / status、task-scope policy を含む。AGENTS.md は src/lib/agent.js、src/docs/commands/enrich.js、src/docs/commands/text.js など AI command 関連変更時に npm run test:agent を実行するよう求めている。",
+      "why": "failure handling は CLI contract の回帰が起きやすいため、unit / integration で envelope と status を検証する必要がある。agent 実行テストは高コストなので、該当モジュール変更時に限定する。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-17T00:36:17.998Z",
+    "notes": "Draft review passed."
+  }
+}

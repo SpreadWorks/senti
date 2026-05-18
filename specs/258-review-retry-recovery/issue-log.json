@@ -1,0 +1,197 @@
+{
+  "entries": [
+    {
+      "step": "review-draft-questions",
+      "reason": "draft review failed because sandbox blocked the configured main repository log path while running from the worktree",
+      "trigger": "sdd-forge flow run review --phase draft returned EROFS for /home/nakano/workspace/sdd-forge/.tmp/logs",
+      "resolution": "reran the same draft review command with escalated permissions and confirmed PASS",
+      "guardrailCandidate": "when a worktree command writes configured logs under the main repository, rerun with explicit escalation after confirming sandbox EROFS",
+      "taskId": null,
+      "timestamp": "2026-05-17T00:33:27.069Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses one user-defined concern: review retry and recovery classification, surfacing, and related policy.; Task Single Responsibility — Each task is scoped to a shared concern within the review retry/recovery model and does not combine unrelated actions.; Unambiguous Requirements — recoveryCommand または同等の構造化情報 — The phrase allows an unspecified equivalent instead of naming verifiable fields or accepted alternatives. Reviewers could disagree on what counts as equivalent structured information. (at requirements.R5.desc); Complete Context — recoveryCommand または同等の構造化情報 — The requirement is not specific enough for independent reviewers to agree on satisfaction because the acceptable substitute for recoveryCommand is undefined. (at requirements.R5.desc); REQ Diff-Verifiability — The requirements can be checked from code diff and test summaries: fields, retry behavior, persisted state, markers, prompts/status output, and tests are observable.; No Hardcoded Secrets — The content does not include API keys, passwords, tokens, or other secrets.; No Silent Error Swallowing — The content does not introduce empty catch blocks or code that silently discards errors.; Prioritize Requirements — There are more than three requirements, and each listed requirement has a priority of must or should.; Impact on Existing Features — The spec lists impact on existing commands and behavior through scope, constraints, data_flow, decisions, and requirements, including preserving existing CLI command/option meanings.; Bounded Resource Usage — run-review の subprocess retry 対象 / 非対象を明示的な分類にする。 — The spec discusses subprocess retries but does not state an explicit retry count or upper bound for the retry processing. (at scope.in[2]); Bounded Resource Usage — run-review の mechanical subprocess retry は failure taxonomy を参照し、retry する失敗 / retry しない失敗を明示的に分類する。signal / killed と input size failure は retry しない。 — The requirement governs retry behavior but does not state an explicit retry count or upper bound. (at requirements.R2.desc); Bounded Resource Usage — Unit tests for runCmdWithRetry, checkReviewRetryBelowMax, provider/input failure envelopes, and reviewRetry metric non-consumption. — The task test strategy references retry logic without requiring verification of an explicit upper bound for subprocess retry processing. (at tasks.T-2.test_strategy); Spec Includes Test Strategy — The spec includes task-level test_strategy entries and acceptance criteria describing what to test and how.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, so no unresolved point is represented with a fabricated answer.; Include 'Why This Approach' Rationale — The spec includes rationale in decisions, clarifications, and alternatives_considered explaining why the approach was chosen.; Spec Test Coverage — Tests cover R1 through R6 and R9 with spec headers under specs/258-review-retry-recovery/tests/. — The guardrail requires test code to be written under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file. The content only plans this coverage and does not provide evidence of actual test files with required headers. (at tasks.T-5.acceptance[0]); Backward-Compatible CLI Interface — The spec explicitly states existing CLI command and option meanings are not removed or changed, and existing phase/attempts/max fields are maintained.; Exit Code Contract — The spec states CLI failure conditions return non-zero exit code JSON envelopes, and provider/input size/maxAttempts envelopes carry machine-processable data.; Validate User Input at Entry Point — The spec states no new user-facing CLI arguments are added and existing validation for the named commands is maintained.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-17T03:00:33.687Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "recoveryCommand または同等の構造化情報 — The phrase allows an unspecified equivalent instead of naming verifiable fields or accepted alternatives. Reviewers could disagree on what counts as equivalent structured information. (at requirements.R5.desc)"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "recoveryCommand または同等の構造化情報 — The requirement is not specific enough for independent reviewers to agree on satisfaction because the acceptable substitute for recoveryCommand is undefined. (at requirements.R5.desc)"
+        },
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "run-review の subprocess retry 対象 / 非対象を明示的な分類にする。 — The spec discusses subprocess retries but does not state an explicit retry count or upper bound for the retry processing. (at scope.in[2]); run-review の mechanical subprocess retry は failure taxonomy を参照し、retry する失敗 / retry しない失敗を明示的に分類する。signal / killed と input size failure は retry しない。 — The requirement governs retry behavior but does not state an explicit retry count or upper bound. (at requirements.R2.desc); Unit tests for runCmdWithRetry, checkReviewRetryBelowMax, provider/input failure envelopes, and reviewRetry metric non-consumption. — The task test strategy references retry logic without requiring verification of an explicit upper bound for subprocess retry processing. (at tasks.T-2.test_strategy)"
+        },
+        {
+          "guardrail_id": "spec-test-coverage",
+          "reason": "Tests cover R1 through R6 and R9 with spec headers under specs/258-review-retry-recovery/tests/. — The guardrail requires test code to be written under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file. The content only plans this coverage and does not provide evidence of actual test files with required headers. (at tasks.T-5.acceptance[0])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate failed on ambiguous recovery fields, missing subprocess retry bound, and test-step wording that implied tests already existed",
+      "trigger": "sdd-forge flow run gate reported unambiguous-requirements, complete-context, bounded-resource-usage, and spec-test-coverage failures",
+      "resolution": "updated R5 to require recoveryCommand explicitly, added maximum 3 subprocess attempts, and reworded T-5 to describe the test plan before the test step",
+      "guardrailCandidate": "spec text that describes future test files should say test plan before the SDD test step creates concrete files",
+      "taskId": null,
+      "timestamp": "2026-05-17T03:01:12.854Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The content stays within the user-defined scope of review retry and recovery handling.; Task Single Responsibility — Each task addresses a single concern within the review retry/recovery model.; Unambiguous Requirements — Requirements use concrete classifications, fields, commands, and observable CLI behaviors rather than vague adjectives.; Complete Context — Each requirement is specific enough to evaluate from implementation behavior and named output fields.; REQ Diff-Verifiability — The requirements can be checked from diffs and test summaries through named files, fields, commands, and expected outputs.; No Hardcoded Secrets — The content does not introduce source code containing API keys, passwords, tokens, or other secrets.; No Silent Error Swallowing — The content does not specify empty catch blocks or silent error discarding.; Prioritize Requirements — There are more than three requirements and each requirement has a priority field.; Impact on Existing Features — The spec describes impacts on existing CLI commands, options, status, next-action, retry metrics, and issue-log behavior.; Bounded Resource Usage — task-scope review retry policy を soft limit として明文化する。 — The spec introduces retry policy for task-scope review as a soft limit without stating an explicit retry count bound. The guardrail requires retries to have explicit upper bounds. (at scope.in[6]); Bounded Resource Usage — task-scope review はこの spec では soft limit として残し、prompt / status 表示で policy を明文化する。CLI enforcement 統一は task lifecycle まで広がるため扱わない。 — This preserves task-scope review retries as a soft limit and explicitly avoids CLI enforcement, but gives no explicit retry count bound. The guardrail prohibits designs that allow unbounded retry processing. (at overview.decisions[4].text); Bounded Resource Usage — task-scope review は既存 lifecycle の soft limit として扱い、flow-scope retry enforcement とは明確に区別する。 — The retry behavior is defined as a soft limit rather than an explicit bounded count. The guardrail requires retry processing to have an explicit upper bound. (at design_principles[2]); Bounded Resource Usage — task-scope review は soft limit として残すことを prompt または CLI-facing status 表示に明記し、flow-scope review enforcement と区別できるようにする。 — The requirement asks to keep task-scope review as a soft limit without specifying the maximum retry count. Retry designs must state explicit bounds. (at requirements[7].desc); Bounded Resource Usage — task-scope review の soft limit policy が task review prompt または CLI-facing output に現れ、flow-scope enforcement と混同しない。 — The acceptance criterion validates visibility of a soft-limit retry policy but does not require an explicit retry count bound. The guardrail requires bounded retries. (at acceptance_criteria[6]); Bounded Resource Usage — この spec では soft limit として残し、policy を明文化する。CLI enforcement 統一は task lifecycle と currentTaskId の扱いまで広がるため扱わない。 — This clarification keeps task-scope review retries as a soft limit and excludes enforcement work without giving a maximum count. That leaves retry processing without an explicit upper bound. (at clarifications[0].a); Bounded Resource Usage — Make task-scope review's soft limit policy explicit and distinguish it from flow-scope CLI enforcement. — The task goal documents a soft retry limit but does not specify a concrete upper bound. The guardrail requires retry bounds to be explicit. (at tasks[3].goal); Spec Includes Test Strategy — The spec includes per-task test_strategy entries and acceptance criteria covering expected tests.; Record Unresolved Points as Open Questions — The Open Questions section is present and unresolved points are not fabricated in the content.; Include 'Why This Approach' Rationale — The spec includes rationale in decisions, clarifications, and alternatives_considered explaining why the approach was chosen.; Spec Test Coverage — The provided content is a spec artifact and does not include an implementation diff showing whether test files were written under specs/<specid>/tests/ with required headers.; Backward-Compatible CLI Interface — The spec explicitly preserves existing CLI commands and option meanings while adding fields and display information.; Exit Code Contract — The spec states CLI failure conditions return non-zero exit-code JSON envelopes and defines machine-processable failure data.; Validate User Input at Entry Point — The spec states no new user-facing CLI arguments are added and existing validation is maintained.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-17T03:06:16.888Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "task-scope review retry policy を soft limit として明文化する。 — The spec introduces retry policy for task-scope review as a soft limit without stating an explicit retry count bound. The guardrail requires retries to have explicit upper bounds. (at scope.in[6]); task-scope review はこの spec では soft limit として残し、prompt / status 表示で policy を明文化する。CLI enforcement 統一は task lifecycle まで広がるため扱わない。 — This preserves task-scope review retries as a soft limit and explicitly avoids CLI enforcement, but gives no explicit retry count bound. The guardrail prohibits designs that allow unbounded retry processing. (at overview.decisions[4].text); task-scope review は既存 lifecycle の soft limit として扱い、flow-scope retry enforcement とは明確に区別する。 — The retry behavior is defined as a soft limit rather than an explicit bounded count. The guardrail requires retry processing to have an explicit upper bound. (at design_principles[2]); task-scope review は soft limit として残すことを prompt または CLI-facing status 表示に明記し、flow-scope review enforcement と区別できるようにする。 — The requirement asks to keep task-scope review as a soft limit without specifying the maximum retry count. Retry designs must state explicit bounds. (at requirements[7].desc); task-scope review の soft limit policy が task review prompt または CLI-facing output に現れ、flow-scope enforcement と混同しない。 — The acceptance criterion validates visibility of a soft-limit retry policy but does not require an explicit retry count bound. The guardrail requires bounded retries. (at acceptance_criteria[6]); この spec では soft limit として残し、policy を明文化する。CLI enforcement 統一は task lifecycle と currentTaskId の扱いまで広がるため扱わない。 — This clarification keeps task-scope review retries as a soft limit and excludes enforcement work without giving a maximum count. That leaves retry processing without an explicit upper bound. (at clarifications[0].a); Make task-scope review's soft limit policy explicit and distinguish it from flow-scope CLI enforcement. — The task goal documents a soft retry limit but does not specify a concrete upper bound. The guardrail requires retry bounds to be explicit. (at tasks[3].goal)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate retry still failed because task-scope review soft limit did not state an explicit retry upper bound",
+      "trigger": "bounded-resource-usage violations on scope, decision, design principle, R7, acceptance criterion, clarification, and T-4 goal",
+      "resolution": "specified next-action maxAttempts as the soft upper bound for task-scope review and noted the current TASK_DEFINITION default is 1",
+      "guardrailCandidate": "every retry policy described as soft must still state the resolved numeric upper bound or where that bound comes from",
+      "taskId": null,
+      "timestamp": "2026-05-17T03:07:09.021Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "review-test command stalled after internal review retries; the spawned fixer prompt expanded into broad project-level test gaps and did not finish",
+      "trigger": "sdd-forge flow run review --phase test wrote only retry lines to .tmp/review-test-258.log and remained running for over 20 minutes",
+      "resolution": "terminated the hung review-test process tree; continue from the CLI next-action after constraining test evidence to spec-local contract coverage",
+      "guardrailCandidate": "review-test auto-fix prompts should stay scoped to the current spec-local test files and avoid pulling unrelated worktree test inventories",
+      "taskId": null,
+      "timestamp": "2026-05-17T08:26:58.511Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "review-test reached the maxAttempts=3 CLI invocation limit without PASS; the auto-fix agent prefixed normal prose before the FILE marker and applyTestFixes rejected it as an outside-tests write",
+      "trigger": "sdd-forge flow run review --phase test returned ERROR after 11 issues and applyTestFixes rejected output beginning with explanatory prose before ### FILE",
+      "resolution": "expanded spec-local test coverage manually, but review-test remains blocked by auto-fix output parsing; stop per next-action maxAttempts rule without marking review-test done",
+      "guardrailCandidate": "test review auto-fix should ignore harmless preamble before the first ### FILE marker or enforce FILE-only output before applyTestFixes path validation",
+      "taskId": null,
+      "timestamp": "2026-05-17T11:05:20.194Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — src/flow/lib/review-failure.js defines a ReviewFailure taxonomy with all five required classifications and separates provider/input-size/max-attempts/verdict/subprocess handling.; R2 — run-review now classifies subprocess failures via ReviewFailure, uses shouldRetrySubprocess for retry decisions, does not retry signal/killed or input size/provider classifications, and caps mechanical retryCount to 2 retries/3 total attempts.; R3 — Provider/input-size failures use retryBudgetConsumed=false, return envelope data with required fields, persist matching reviewStop data, and return before reviewRetry is incremented.; R4 — REVIEW_MAX_ATTEMPTS_EXCEEDED now builds ReviewFailure.maxAttemptsExceeded and returns toEnvelopeData containing phase, attempts, max, and recoveryCommand while preserving existing fields.; R5 — get-next-action now builds a reviewStop view from flow.json reviewStop or reviewRetry metrics for review steps and projects stopReason, classification, retryBudgetConsumed, and recoveryCommand into the result.; R6 — get-status now derives reviewStop for the active review step from persisted reviewStop or reviewRetry metrics and includes a status summary plus recoveryCommand in the status output.; R9 — review.js catch path classifies provider/input-size errors via ReviewFailure.fromMessage and emits one stderr marker line with classification, reason, recoveryHint, and recoveryCommand; ReviewFailure marker parsing supports structured marker classification for run-review.; R7 — Task review prompt explicitly states task-scope is a non-CLI-enforced soft limit from next-action maxAttempts, notes current default 1, and distinguishes it from flow-scope CLI enforcement.; R8 — CLI-facing review guidance explicitly says not to add issue-log entries solely for provider/input-size failures and to record only for workaround, specification decision changes, or unresolved manual recovery; helper requiresIssueLog encodes the same policy.; Spec Test Coverage — The diff adds test code under specs/258-review-retry-recovery/tests/ and the test file starts with a // spec: R1 R2 R3 R4 R5 R6 R7 R8 R9 header.; Avoid Overengineering — missing pre-implementation design confirmation — The guardrail requires presenting the design direction to the user before a non-trivial change and proceeding only after confirmation. The provided content includes a non-trivial implementation diff but no evidence of prior design direction or user confirmation. (at implementation process evidence)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-17T14:55:19.131Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "missing pre-implementation design confirmation — The guardrail requires presenting the design direction to the user before a non-trivial change and proceeding only after confirmation. The provided content includes a non-trivial implementation diff but no evidence of prior design direction or user confirmation. (at implementation process evidence)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R9",
+        "R7",
+        "R8",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: documented no-overengineering design confirmation evidence in spec constraints and clarifications",
+      "resolution": "gate failed only on missing pre-implementation design confirmation evidence; spec now points to user_approval.approved=true, autoApprove selection, and the user's explicit instruction to treat review as passed and proceed",
+      "taskId": null,
+      "timestamp": "2026-05-17T14:56:43.426Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); Spec Test Coverage — The added test file is under specs/258-review-retry-recovery/tests/ and includes a non-empty // spec: R<N> header. No diff-scope test code lacks the required location or header.; Avoid Overengineering — function applyReviewStopProjection(result, reviewStop) — This adds a single-caller indirection layer around a small assignment/projection operation. The guardrail explicitly prohibits introducing indirection layers that have a single caller. (at src/flow/lib/get-next-action.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-17T15:04:13.085Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function applyReviewStopProjection(result, reviewStop) — This adds a single-caller indirection layer around a small assignment/projection operation. The guardrail explicitly prohibits introducing indirection layers that have a single caller. (at src/flow/lib/get-next-action.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R9",
+        "R7",
+        "R8",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: removed single-caller applyReviewStopProjection helper",
+      "resolution": "gate failed no-overengineering because applyReviewStopProjection was a thin one-call indirection; get-next-action now projects reviewStop fields inline without the helper",
+      "taskId": null,
+      "timestamp": "2026-05-17T15:04:57.445Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-18T00:02:13.193Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in .sdd-forge/output/analysis.json. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-05-18T00:03:04.518Z"
+    }
+  ]
+}

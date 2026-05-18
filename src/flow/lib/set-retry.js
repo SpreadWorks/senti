@@ -12,6 +12,7 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { countGateRetry } from "./run-gate.js";
 import { countReviewRetry } from "./run-review.js";
 import { flattenSteps } from "../definition.js";
+import { clearReviewStopState } from "./review-failure.js";
 
 const VALID_ACTIONS = Object.freeze(["reset"]);
 const VALID_KINDS = Object.freeze(["gate", "review"]);
@@ -108,6 +109,11 @@ export default class SetRetryCommand extends FlowCommand {
         { phase: p, counter, delta: 0, reset: true },
         { taskId: null }, // R19: explicit flow-scope
       );
+    }
+    if (kind === "review") {
+      ctx.flowManager.mutate((state) => {
+        for (const p of resetPhases) clearReviewStopState(state, p);
+      });
     }
 
     return { action, kind, phase, phases: resetPhases, counter, reset: true };

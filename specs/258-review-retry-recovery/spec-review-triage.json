@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "2 blocking findings reviewed; both require small spec changes to define durable review stop state and child-to-wrapper provider failure signaling.",
+  "items": [
+    {
+      "title": "Provider and input failures have no durable stop-state path",
+      "target": "R3/R5/R6, Overview Data Flow",
+      "decision": "apply",
+      "rationale": "The finding blocks implementation because next-action and status run after the failed review process exits. Provider/input failures do not consume reviewRetry, so maxAttempts metrics cannot reconstruct their stop reason.",
+      "evidence": "spec.json R3/R5/R6 require recovery details in later CLI calls, while overview.data_flow does not define where provider/input stop state is persisted or cleared."
+    },
+    {
+      "title": "Provider failure classification lacks a child-to-wrapper contract",
+      "target": "R1/R2/R3, T-1/T-2, Modules/Data Flow",
+      "decision": "apply",
+      "rationale": "The finding blocks reliable classification because provider failures originate inside the child review command and Agent layer, while the run-review wrapper receives only subprocess status/stdout/stderr unless a structured signal is defined.",
+      "evidence": "spec.json R1/R2/R3 require machine-processable provider/input classifications, but modules/data_flow/tasks do not specify whether src/flow/commands/review.js emits a marker for src/flow/lib/run-review.js."
+    }
+  ]
+}

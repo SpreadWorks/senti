@@ -1,0 +1,63 @@
+{
+  "spec": "specs/258-review-retry-recovery/spec.json",
+  "date": "2026-05-17T22:38:29.912Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "review failure taxonomy をコードまたは CLI-facing docs に定義し、少なくとも review verdict failure、subprocess failure、provider failure、input size failure、maxAttempts exceeded を区別する。",
+      "status": "done",
+      "note": "R1: taxonomy exposes the required review failure classifications"
+    },
+    {
+      "desc": "run-review の mechanical subprocess retry は failure taxonomy を参照し、retry する失敗 / retry しない失敗を明示的に分類する。signal / killed と input size failure は retry しない。subprocess 試行回数は既存既定値の最大3回を超えない。",
+      "status": "done",
+      "note": "R2: subprocess retry decisions are classified and bounded"
+    },
+    {
+      "desc": "provider failure と input size failure は reviewRetry を消費せず、failure envelope data と flow.json reviewStop に classification、reason、retryBudgetConsumed=false、recoveryHint、recoveryCommand を含める。",
+      "status": "done",
+      "note": "R3: provider and input size failures do not consume reviewRetry and persist recovery data"
+    },
+    {
+      "desc": "REVIEW_MAX_ATTEMPTS_EXCEEDED の envelope data は phase、attempts、max、recoveryCommand を含む。既存の phase / attempts / max は維持する。",
+      "status": "done",
+      "note": "R4: max attempts envelope data includes recoveryCommand"
+    },
+    {
+      "desc": "flow get next-action は flow.json reviewStop または reviewRetry metrics から review 停止時の stopReason、classification、retryBudgetConsumed、recoveryCommand を返す。",
+      "status": "done",
+      "note": "R5: next-action recovery view is derived from persisted reviewStop"
+    },
+    {
+      "desc": "flow get status は active review step が停止している場合、flow.json reviewStop または reviewRetry metrics から停止理由と次の復旧操作を要約表示する。",
+      "status": "done",
+      "note": "R6: status recovery view summarizes persisted reviewStop and clears by phase"
+    },
+    {
+      "desc": "src/flow/commands/review.js は provider failure または input size failure を検出した場合、run-review wrapper が parse できる machine-readable stderr marker を1行出力する。marker には classification、reason、recoveryHint、recoveryCommand を含める。",
+      "status": "done",
+      "note": "R9: child review marker round-trips provider failure data for run-review"
+    },
+    {
+      "desc": "task-scope review は next-action maxAttempts（現在は1）を上限とする soft limit として残すことを prompt または CLI-facing status 表示に明記し、flow-scope review enforcement と区別できるようにする。",
+      "status": "done",
+      "note": "R7: task review prompt states the soft upper bound for task-scope review"
+    },
+    {
+      "desc": "issue-log は provider / input size failure ごとに必ず記録しない。workaround、仕様判断、未解決の手動復旧が発生した場合に記録する policy を明文化する。",
+      "status": "done",
+      "note": "R8: provider failure data does not require issue-log for transient failures"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

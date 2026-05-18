@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied both triaged blocking findings by adding a durable reviewStop state contract and a child-to-wrapper review failure marker contract.",
+  "items": [
+    {
+      "title": "Provider and input failures have no durable stop-state path",
+      "target": "R3/R5/R6, Overview Data Flow",
+      "decision": "applied",
+      "rationale": "The spec now requires run-review to persist classified review stops in flow.json reviewStop, defines the fields, and states when that stop state is cleared. R3/R5/R6 now reference reviewStop so follow-up next-action/status commands have a durable state source.",
+      "evidence": "spec.json overview.data_flow[] defines reviewStop write/read/clear; requirements R3/R5/R6 reference flow.json reviewStop; acceptance_criteria includes reviewStop persistence and clearing checks.",
+      "changedFields": [
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[R3].desc",
+        "requirements[R5].desc",
+        "requirements[R6].desc",
+        "acceptance_criteria",
+        "tasks[T-1].acceptance",
+        "tasks[T-2].acceptance",
+        "tasks[T-3].acceptance"
+      ]
+    },
+    {
+      "title": "Provider failure classification lacks a child-to-wrapper contract",
+      "target": "R1/R2/R3, T-1/T-2, Modules/Data Flow",
+      "decision": "applied",
+      "rationale": "The spec now requires src/flow/commands/review.js to emit a one-line machine-readable stderr marker for provider/input failures and requires src/flow/lib/run-review.js to parse that marker before raw stderr fallback.",
+      "evidence": "spec.json overview.data_flow[] defines the marker path; requirement R9 defines the marker contract; implementationTargets includes src/flow/commands/review.js; T-2 acceptance/notes and acceptance_criteria cover marker parsing.",
+      "changedFields": [
+        "overview.data_flow",
+        "overview.decisions",
+        "requirements[R9]",
+        "acceptance_criteria",
+        "implementationTargets",
+        "tasks[T-2].acceptance",
+        "tasks[T-2].implementation_notes",
+        "tasks[T-5].acceptance"
+      ]
+    }
+  ]
+}
