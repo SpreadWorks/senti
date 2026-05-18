@@ -1,0 +1,48 @@
+{
+  "spec": "specs/258-task-scoped-impl-flow/spec.json",
+  "date": "2026-05-18T00:50:58.846Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When currentTaskId is null, no task has status in_progress, no task step is in_progress, and a pending leaf task exists, the dispatcher must promote that leaf before returning implementation actions.",
+      "status": "done",
+      "note": "R1: promotes a pending leaf before returning flow-level implementation"
+    },
+    {
+      "desc": "When task work remains but the safe promotion predicate is false and currentTaskId is null, flow-level implement, review, and gate-impl must fail unless explicit broad mode is active for the attempted step.",
+      "status": "done",
+      "note": "R2: ignores legacy task entries without rendered task specs"
+    },
+    {
+      "desc": "Task-level review and gate-impl must use currentTaskId to load the rendered current task spec markdown as the task-scoped input source, and must not use parent requirement IDs or file-map filtering for task gates.",
+      "status": "done",
+      "note": "R3: task gate uses the rendered current task spec as context"
+    },
+    {
+      "desc": "Explicit broad mode must require a non-empty reason before get-next-action can return broad implement or before review/gate can run broad, record the step, reason, timestamp, and task cursor state in flow state, and be visible in status or report output.",
+      "status": "done",
+      "note": "R4: broad implementation requires an audited non-empty reason"
+    },
+    {
+      "desc": "After a task gate passes and task completion side effects run, CLI output must show the completed task id and the next task start or completion state.",
+      "status": "done",
+      "note": "R5: task completion output includes next task guidance"
+    },
+    {
+      "desc": "Final report output should include one row or section per task with task id, task status, implementation summary availability, test-execute result, review result, and gate-impl result when those artifacts exist.",
+      "status": "done",
+      "note": "R6: report output includes task result rows and broad audit records"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

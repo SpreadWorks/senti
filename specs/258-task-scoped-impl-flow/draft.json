@@ -1,0 +1,125 @@
+{
+  "devType": "bugfix",
+  "goal": "task 分解済み flow で implement / review / gate-impl が常に current task の範囲で実行されるようにする。currentTaskId がないまま broad mode に落ちる経路を CLI 側で検出し、明示された broad mode 以外は失敗させる。",
+  "analysis": {
+    "problem": "tasks[] が存在しても currentTaskId が null のまま implementation phase が進められるため、implement / review / gate-impl が task 単位ではなく flow 全体の差分・要件を対象にする。結果として gate-impl の入力過大、長時間ループ、task 分解の意図との不一致が起きる。",
+    "proposedApproach": "flow state の task cursor を implementation phase の境界条件として扱い、task 分解済み flow では currentTaskId なしの implement / review / gate-impl を拒否する。必要な場合だけ明示 broad mode として記録し、task 完了時の次 task への進行手順と最終 report の task 単位結果を CLI 出力に含める。",
+    "validation": "Issue の受け入れ条件は currentTaskId 不在時の失敗、gate-impl 入力の task scope 化、次 task への進行手順表示、bulk 実装の明示記録で検証できる。既存コードには tasks / currentTaskId の state、pending task の促進、task-level gate phase があるため、root problem は既存 cursor の任意運用を強制境界へ変えることで扱える。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #325 は Issue #321 で currentTaskId が null のまま一括実装へ進み、review / gate-impl が全体差分・全要件を対象にした問題を扱う。",
+      "flow.json は tasks[] と currentTaskId を持つ。flow-store は旧 schema を拒否し、taskId 付き metrics / notes / issue-log を扱う。",
+      "get-next-action は active node がない場合に pending task を currentTaskId へ促進する実装を持つが、flow-level implement / review / gate-impl も定義上残っている。",
+      "definition.js には flow-level implement / review / gate-impl と task-level impl / review / gate-impl の両方が定義されている。",
+      "gate-step は currentTaskId がある場合に task-level gate-impl を task-impl phase として解決し、flow-level gate-impl を integration phase として扱う。",
+      "run-review は currentTaskId がある場合に flow-scope retry counter を skip するなど、task scope と flow scope を区別する既存パターンがある。",
+      "spec gate は新規 spec の tasks[] を必須化しており、task decomposition は既存 flow の前提になっている。",
+      "draft guardrail は曖昧な要件を検証可能にし、三つを超える要件には priority を付け、既存機能への影響を明示することを求めている。",
+      "Issue #325 は broad gate の禁止または明示 opt-in を求め、bulk implementation が必要な場合は explicit broad mode として記録することを受け入れ条件に含めている。",
+      "alpha 版ポリシーにより旧フォーマット・非推奨パスのための後方互換コードは保持しない。"
+    ],
+    "decisionPoints": [
+      "task 分解済み flow で currentTaskId が null の implement / review / gate-impl をどの時点で拒否するか。",
+      "broad mode を完全禁止するか、明示 opt-in と監査記録つきで許可するか。",
+      "full gate を final 直前の独立 step として扱う範囲と、既存 integration gate との関係。",
+      "gate-impl に渡す入力を current task の requirements / files / task spec へ限定する契約。",
+      "task 完了後に次 task へ進む手順を CLI 出力でどこまで明示するか。",
+      "final report に含める task 単位の実装・検証結果の粒度。",
+      "既存 flow state / metrics / issue-log / report への互換性と migration の扱い。",
+      "この変更を検証するテストの範囲。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。Node.js 組み込みモジュールと既存 helper だけを使う。",
+      "alpha 版ポリシーにより旧フォーマット維持のための後方互換コードは書かない。",
+      "意味のある値や状態表現を追加する場合は OOP による型表現を優先し、単なる discriminated union もどきは避ける。",
+      "docs/ とソースコードに矛盾がある場合はソースコードを正とする。",
+      "src/templates/ または src/presets を変更した場合は sdd-forge upgrade を実行する。",
+      "実 claude CLI を呼ぶ AI 関連コードを変更した場合は npm run test:agent を実行する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "currentTaskId 必須化を実装する具体的な command boundary。",
+      "task scope 用 prompt / context / diff 抽出の具体的なデータ取得方法。",
+      "bulk 実装を明示 broad mode として記録する state / metric / issue-log の形。",
+      "task 完了後の CLI 出力文言と次アクション表示。",
+      "単体テスト、flow command テスト、必要に応じた agent テストの具体ケース。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: task 分解済み flow における implement / review / gate-impl の currentTaskId 必須化。",
+      "must: current task の requirements / files / task spec へ gate-impl 入力を限定すること。",
+      "must: task 完了後に次 task へ進む手順を CLI 出力で明示すること。",
+      "must: bulk 実装が必要な場合の明示 broad mode と監査記録。",
+      "should: final report への task 単位の実装・検証結果の反映。",
+      "must: 上記を検証するテスト追加または既存テスト更新。"
+    ],
+    "out": [
+      "task 分解アルゴリズム自体の再設計。",
+      "Issue #321 の実装内容の再修正。",
+      "docs 生成パイプラインや preset system の挙動変更。",
+      "外部依存の追加。",
+      "npm publish / dist-tag など release 操作。"
+    ]
+  },
+  "impactOnExisting": [
+    "task 分解済み flow の implementation phase では、currentTaskId がない broad 実行が既定で拒否される。migration plan: CLI error output must show the recovery command to start or restore a task cursor, and the explicit broad mode command when broad execution is intended.",
+    "flow-level implement / review / gate-impl と task-level impl / review / gate-impl の境界が明確になる。",
+    "gate-impl の prompt/context は current task の範囲に縮小され、入力量と評価対象が変わる。",
+    "finalize report は flow 全体だけでなく task 単位の結果も表示する必要がある。",
+    "既存テストは broad mode の扱いと task cursor の進行条件に合わせて期待値を見直す可能性がある。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "task 分解済み flow で currentTaskId が null の場合、broad mode は完全に禁止しますか。それとも明示 opt-in と監査記録がある場合だけ許可しますか。",
+      "answer": "明示 opt-in と監査記録がある場合だけ broad mode を許可する。既定では currentTaskId が null の implement / review / gate-impl を失敗させる。",
+      "evidence": "Issue #325 Expected Improvements: currentTaskId null の broad gate は禁止または明示 opt-in 必須。Acceptance Criteria: bulk implementation が必要な場合は explicit broad mode として記録。",
+      "why": "完全禁止にすると Issue が想定する bulk implementation の例外を表現できない。既定失敗と明示 opt-in の組み合わせなら task cursor を強制しつつ、例外を監査可能にできる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "full gate は final 直前の必須 step として常に実行しますか。それとも broad mode が選ばれた場合や明示コマンド実行時だけ実行しますか。",
+      "answer": "full gate は task 実装がすべて完了した後、final 直前の integration gate として扱う。task gate は current task scope、final 前の gate は flow/integration scope に分離する。",
+      "evidence": "Issue #325 Expected Improvements: full gate は final 直前の別 step として扱う。src/flow/definition.js は task-level gate-impl と flow-level gate-impl を分け、gate-step.js は task-impl と integration phase を区別する。",
+      "why": "task gate と full gate を同じ gate-impl broad fallback にすると、今回の入力過大問題が再発する。phase を分けると task 単位検証と最終統合検証を両立できる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "final report の task 単位結果には、task id、実装 status、test-execute 結果、review 結果、gate-impl 結果を最低限含める扱いでよいですか。",
+      "answer": "はい。final report には task id、task status、実装有無、test-execute 結果、review 結果、gate-impl 結果を最低限含める。",
+      "evidence": "Issue #325 Expected Improvements: final report に task 単位の実装・検証結果を出す。flow state は tasks[]、metrics、notes、issue-log を taskId 付きで保持する。",
+      "why": "task 単位の status と検証結果がないと、task cursor 強制後にどの task がどの検証を通ったかを最終報告で確認できない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "既存の途中 flow が tasks[] を持ち currentTaskId が null の場合、新ルール適用後は即時失敗させますか。それとも一度だけ次 pending task へ自動復旧しますか。",
+      "answer": "implementation phase で tasks[] があり currentTaskId が null のまま implement / review / gate-impl を実行しようとした場合は失敗させる。次 task への自動促進は flow state が定義済みの cursor advance 境界だけで行う。",
+      "evidence": "Issue #325 Acceptance Criteria: task 分解済み flow で currentTaskId なしに implement / review / gate-impl を実行すると失敗する。AGENTS.md alpha 版ポリシー: 後方互換コードは書かず、旧フォーマット・非推奨パスは保持しない。",
+      "why": "mid-implementation の null cursor を自動復旧すると、どの task の作業だったかを誤推定する危険が残る。cursor advance は approval 後や task 完了後の明示された境界に限定する。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [
+    "task scope の files を spec.json.tasks[] から厳密に取得できない場合、差分全体から current task 関連部分だけをどう識別するか。",
+    "明示 broad mode の state 表現を metrics、notes、issue-log、専用フィールドのどれに置くか。",
+    "integration gate と full gate の命名・phase 境界を既存 CLI help とどう同期するか。"
+  ],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-16T23:21:02.961Z",
+    "notes": "Draft review passed."
+  }
+}

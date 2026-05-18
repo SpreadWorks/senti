@@ -9,7 +9,18 @@ import fs from "fs";
 import path from "path";
 import { loadIssueLog } from "../lib/set-issue-log.js";
 import { buildMetricsSummary, buildReportTotals } from "../lib/get-status.js";
+import { buildBoundedBroadModeHistory } from "../lib/task-scope.js";
 import { pushSection, DIVIDER, formatDurationSeconds } from "../../lib/formatter.js";
+import { BROAD_MODE_HISTORY_MAX_ENTRIES } from "../../lib/constants.js";
+
+const MAX_REPORT_TASK_ROWS = 100;
+const MAX_REPORT_FIELD_CHARS = 240;
+
+function capReportField(value) {
+  const text = String(value ?? "");
+  if (text.length <= MAX_REPORT_FIELD_CHARS) return text;
+  return `${text.slice(0, MAX_REPORT_FIELD_CHARS - 3)}...`;
+}
 
 /**
  * Build the structured report data object.
@@ -98,10 +109,112 @@ export function generateReport(input) {
     };
   }
 
-  const data = { implementation, retro, issueLog: issueLogData, metrics, tokenMetrics, tests, sync };
+  const taskRows = buildTaskReportRows(state, results);
+  const boundedBroadMode = buildBoundedBroadModeHistory(state, BROAD_MODE_HISTORY_MAX_ENTRIES);
+  const taskTotal = Array.isArray(state?.tasks) ? state.tasks.length : 0;
+  const tasks = taskRows.slice(0, MAX_REPORT_TASK_ROWS);
+  const broadModeHistory = boundedBroadMode.entries.map((entry) => ({
+    step: capReportField(entry.step),
+    reason: capReportField(entry.reason),
+    ts: capReportField(entry.ts),
+    currentTaskId: entry.currentTaskId == null ? null : capReportField(entry.currentTaskId),
+  }));
+
+  const data = {
+    implementation,
+    retro,
+    issueLog: issueLogData,
+    metrics,
+    tokenMetrics,
+    tests,
+    sync,
+    tasks,
+    taskTotal,
+    tasksTruncated: Math.max(0, taskTotal - tasks.length),
+    broadModeHistory,
+    broadModeHistoryTotal: boundedBroadMode.total,
+    broadModeHistoryTruncated: boundedBroadMode.truncated,
+  };
   const text = formatText(data);
 
   return { data, text };
+}
+
+function buildTaskReportRows(state, results) {
+  if (!Array.isArray(state?.tasks) || state.tasks.length === 0) return [];
+  return state.tasks.map((task) => ({
+    id: capReportField(task.id),
+    status: capReportField(task.status || "unknown"),
+    implementationSummary: task.summary ? "available" : "missing",
+    testExecute: taskArtifactResult(results.testExecute, task, "missing"),
+    review: taskArtifactResult(results.review, task, taskStepResult(task, "review")),
+    gateImpl: taskArtifactResult(results.gateImpl || results.gate, task, taskStepResult(task, "gate-impl")),
+  }));
+}
+
+function taskStepResult(task, stepId) {
+  if (!Array.isArray(task?.steps)) return task.status === "done" ? "available" : "unavailable";
+  const step = task.steps.find((s) => s.id === stepId);
+  return step?.status ? capReportField(step.status) : "unavailable";
+}
+
+function taskArtifactResult(artifact, task, missingValue) {
+  if (!artifact) return missingValue;
+  const taskMatch = taskResultFromArtifact(artifact, task);
+  if (taskMatch) return capReportField(taskMatch);
+  const requirementMatch = requirementResultFromArtifact(artifact, task);
+  if (requirementMatch) return capReportField(requirementMatch);
+  return "available";
+}
+
+function taskResultFromArtifact(artifact, task) {
+  const entries = [
+    ...asArray(artifact.taskResults),
+    ...asArray(artifact.tasks),
+    ...asArray(artifact.summary),
+    ...asArray(artifact.evaluations),
+  ];
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+    if (entry.taskId !== task.id && entry.id !== task.id) continue;
+    return entry.result || entry.verdict || entry.status || "available";
+  }
+  const byTask = artifact.taskResultsById || artifact.tasksById || artifact.byTask;
+  if (byTask && typeof byTask === "object" && byTask[task.id]) {
+    const entry = byTask[task.id];
+    if (typeof entry === "string") return entry;
+    return entry.result || entry.verdict || entry.status || "available";
+  }
+  return null;
+}
+
+function requirementResultFromArtifact(artifact, task) {
+  const requirementIds = new Set(taskRequirementIds(task));
+  if (requirementIds.size === 0) return null;
+  const entries = asArray(artifact.summary).filter((entry) =>
+    requirementIds.has(entry?.id) || requirementIds.has(entry?.requirementId),
+  );
+  if (entries.length === 0) return null;
+  const results = new Set(entries.map((entry) => entry.result || entry.verdict || entry.status || "available"));
+  if (results.size === 1) return results.values().next().value;
+  return [...results].sort().join(",");
+}
+
+function taskRequirementIds(task) {
+  const values = [
+    ...asArray(task.requirements),
+    ...asArray(task.requirementIds),
+    ...asArray(task.requirement_ids),
+  ];
+  return values.map((value) => {
+    if (typeof value === "string") return value;
+    if (value && typeof value === "object") return value.id || value.requirementId || value.requirement_id;
+    return null;
+  }).filter(Boolean);
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 /**
@@ -209,6 +322,28 @@ function formatText(data) {
     }
   } else {
     lines.push("    No test data");
+  }
+
+  if (data.tasks.length > 0) {
+    pushSection(lines, `Tasks (${data.tasks.length}/${data.taskTotal})`, thin);
+    for (const task of data.tasks) {
+      lines.push(
+        `    ${task.id} status=${task.status} impl=${task.implementationSummary} test=${task.testExecute} review=${task.review} gate=${task.gateImpl}`,
+      );
+    }
+    if (data.tasksTruncated > 0) {
+      lines.push(`    ... ${data.tasksTruncated} more task(s) omitted`);
+    }
+  }
+
+  if (data.broadModeHistory.length > 0) {
+    pushSection(lines, `Broad Mode (${data.broadModeHistory.length}/${data.broadModeHistoryTotal})`, thin);
+    for (const entry of data.broadModeHistory) {
+      lines.push(`    ${entry.ts} ${entry.step} currentTaskId=${entry.currentTaskId ?? "null"} reason=${entry.reason}`);
+    }
+    if (data.broadModeHistoryTruncated > 0) {
+      lines.push(`    ... ${data.broadModeHistoryTruncated} older record(s) omitted`);
+    }
   }
 
   // Redo (only if entries exist)

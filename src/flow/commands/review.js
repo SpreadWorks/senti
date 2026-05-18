@@ -590,6 +590,34 @@ function buildChunkReviewInput(chunk, rawPerFileDiffs, fileToReqs) {
   return parts.join("\n\n---\n\n");
 }
 
+function resolveTaskReviewSpec(root, taskSpecPath) {
+  const relPath = String(taskSpecPath || "").trim();
+  if (!relPath) return null;
+  const absPath = path.resolve(root, relPath);
+  if (!absPath.startsWith(root + path.sep)) {
+    throw new Error(`task spec path escapes repository root: ${relPath}`);
+  }
+  if (!fs.existsSync(absPath)) {
+    throw new Error(`task spec not found: ${relPath}`);
+  }
+  return {
+    relPath,
+    text: fs.readFileSync(absPath, "utf8"),
+  };
+}
+
+function buildTaskReviewInput(taskSpec, diff) {
+  return [
+    "## Task Specification",
+    `Path: ${taskSpec.relPath}`,
+    "",
+    taskSpec.text,
+    "",
+    "## Diff",
+    diff,
+  ].join("\n");
+}
+
 function chunkLabel(chunk) {
   const primary = chunk[0];
   return chunk.length > 1
@@ -2265,8 +2293,8 @@ async function runReview(rawArgs) {
   const root = container.get("root");
   const cli = parseArgs(rawArgs, {
     flags: ["--dry-run", "--skip-confirm"],
-    options: ["--phase"],
-    defaults: { dryRun: false, skipConfirm: false, phase: null },
+    options: ["--phase", "--task-spec"],
+    defaults: { dryRun: false, skipConfirm: false, phase: null, taskSpec: null },
   });
 
   if (cli.help) {
@@ -2276,6 +2304,7 @@ async function runReview(rawArgs) {
       "",
       "Options:",
       `  --phase <type>   Review phase: ${phaseDesc}`,
+      "  --task-spec <path>  Use rendered task spec markdown as impl review input",
       "  --dry-run        Show proposals without applying",
       "  --skip-confirm   Skip initial confirmation prompt",
     ].join("\n"));
@@ -2328,28 +2357,15 @@ async function runReview(rawArgs) {
     return;
   }
 
-  // R1 (spec 242): file-map.json is required for impl review
-  const fileMap = await loadReqMap(root, flow, "file");
-  if (!fileMap || Object.keys(fileMap).length === 0) {
-    console.error("Error: file-map.json is required for impl review but was not found or is empty");
-    process.exit(EXIT_ERROR);
-  }
-
   const touchedFiles = collectTouchedFiles(root, mergeBase);
   const reviewGuardrails = filterByPhase(loadMergedGuardrails(root), "review");
+  const taskSpec = resolveTaskReviewSpec(root, cli.taskSpec);
 
   // R2 (spec 242): threshold-based routing
   let rawProposals;
-  if (shouldUseLoopReview(touchedFiles.size)) {
-    rawProposals = await runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, reviewGuardrails);
-  } else {
-    // Legacy single-call path
-    const mapLines = Object.entries(fileMap).map(([reqId, files]) =>
-      `- ${reqId}: ${files.join(", ")}`,
-    );
-    const reviewInput = `## Requirement-File Mapping\n${mapLines.join("\n")}\n\n## Diff\n${diff}`;
-
-    console.error("  [draft] Generating proposals...");
+  if (taskSpec) {
+    const reviewInput = buildTaskReviewInput(taskSpec, diff);
+    console.error(`  [task-review] Generating proposals for ${taskSpec.relPath}...`);
     const draftAgent = ensureAgent("flow.impl.review.propose");
     const draftResult = await callReviewAgent(
       draftAgent,
@@ -2372,6 +2388,48 @@ async function runReview(rawArgs) {
       console.log("No structured proposals found.");
       writeReviewMd(root, flow, []);
       return;
+    }
+  } else {
+    // R1 (spec 242): file-map.json is required for flow-level impl review.
+    const fileMap = await loadReqMap(root, flow, "file");
+    if (!fileMap || Object.keys(fileMap).length === 0) {
+      console.error("Error: file-map.json is required for impl review but was not found or is empty");
+      process.exit(EXIT_ERROR);
+    }
+
+    if (shouldUseLoopReview(touchedFiles.size)) {
+      rawProposals = await runLoopReview(root, flow, mergeBase, fileMap, touchedFiles, reviewGuardrails);
+    } else {
+      // Legacy single-call path
+      const mapLines = Object.entries(fileMap).map(([reqId, files]) =>
+        `- ${reqId}: ${files.join(", ")}`,
+      );
+      const reviewInput = `## Requirement-File Mapping\n${mapLines.join("\n")}\n\n## Diff\n${diff}`;
+
+      console.error("  [draft] Generating proposals...");
+      const draftAgent = ensureAgent("flow.impl.review.propose");
+      const draftResult = await callReviewAgent(
+        draftAgent,
+        reviewInput,
+        "flow.impl.review.propose",
+        buildDraftSystemPrompt(
+          reviewGuardrails,
+          buildReviewAcknowledgedRationale(root, flow, reviewGuardrails),
+        ),
+      );
+
+      if (draftResult.includes("NO_PROPOSALS")) {
+        console.log("No improvement proposals found. Code looks good.");
+        writeReviewMd(root, flow, []);
+        return;
+      }
+
+      rawProposals = parseProposals(draftResult);
+      if (rawProposals.length === 0) {
+        console.log("No structured proposals found.");
+        writeReviewMd(root, flow, []);
+        return;
+      }
     }
   }
 

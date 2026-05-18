@@ -25,6 +25,11 @@ import {
 import { promoteNextPending } from "../../lib/flow-helpers.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
 import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
+import {
+  evaluateTaskScope,
+  taskScopeViolationMessages,
+} from "./task-scope.js";
+import { Envelope } from "../../lib/flow-envelope.js";
 
 const DEFAULT_SCHEMA_DIR = fileURLToPath(new URL("../schemas/", import.meta.url));
 
@@ -75,7 +80,7 @@ function injectPersistentRules(baseContent, target, state) {
 
 function buildContextDescriptor(kinds, target, state) {
   const paths = {};
-  if (state.spec && kinds.includes("spec")) {
+  if (state.spec && kinds.includes("spec") && target.scope !== "task") {
     paths.spec = state.spec;
   }
   if (target.scope === "task" && kinds.includes("task_spec")) {
@@ -85,6 +90,39 @@ function buildContextDescriptor(kinds, target, state) {
   return { kinds, paths };
 }
 
+function isFlowImplementationStep(target) {
+  return target?.scope === "flow"
+    && ["implement", "review", "gate-impl"].includes(target.stepId);
+}
+
+function promoteNextTaskAndFirstStep(state) {
+  const taskId = promoteNextPending(state);
+  if (!taskId) return false;
+  const task = findCurrentTask(state);
+  if (!task || !Array.isArray(task.steps)) return true;
+  const pending = task.steps.find((s) => s.status === "pending");
+  if (pending) pending.status = "in_progress";
+  return true;
+}
+
+function promoteNextAvailableTarget(state) {
+  const task = findCurrentTask(state);
+  if (task && Array.isArray(task.steps)) {
+    const pending = task.steps.find((s) => s.status === "pending");
+    if (pending) {
+      pending.status = "in_progress";
+      return true;
+    }
+  }
+  const leaf = promoteNextPendingLeaf(state.steps);
+  if (leaf) {
+    leaf.status = "in_progress";
+    return true;
+  }
+  state.currentTaskId = null;
+  return promoteNextTaskAndFirstStep(state);
+}
+
 export default class GetNextActionCommand extends FlowCommand {
   constructor() {
     super({ requiresFlow: false });
@@ -92,48 +130,56 @@ export default class GetNextActionCommand extends FlowCommand {
 
   execute(ctx) {
     if (!ctx.flowState) {
-      return { taskId: null, step: null, action: null, instructions: null, context: null, output_schema: null, requires_approval: false };
+      return {
+        taskId: null,
+        step: null,
+        action: null,
+        instructions: null,
+        context: null,
+        output_schema: null,
+        requires_approval: false,
+      };
     }
     let state = ctx.flowState;
 
     let target = findActiveNode(state.steps, state.tasks, state.currentTaskId);
-    if (!target) {
-      let promoted = false;
-      const task = findCurrentTask(state);
-      if (task && Array.isArray(task.steps)) {
-        const pending = task.steps.find((s) => s.status === "pending");
-        if (pending) {
-          pending.status = "in_progress";
-          promoted = true;
-        }
+    if (isFlowImplementationStep(target)) {
+      const decision = evaluateTaskScope(state, target.stepId);
+      if (decision.kind === "invalid-current-task" || decision.kind === "blocked") {
+        return Envelope.fail(
+          "get",
+          "next-action",
+          "TASK_CURSOR_REQUIRED",
+          taskScopeViolationMessages(decision, target.stepId),
+          { step: target.stepId, currentTaskId: state.currentTaskId ?? null },
+        );
       }
-      if (!promoted) {
-        const leaf = promoteNextPendingLeaf(state.steps);
-        if (leaf) {
-          leaf.status = "in_progress";
-          promoted = true;
-        }
-      }
-      if (!promoted) {
-        state.currentTaskId = null;
-        const taskId = promoteNextPending(state);
-        if (taskId) {
-          const promotedTask = findCurrentTask(state);
-          if (promotedTask) {
-            const pending = promotedTask.steps.find((s) => s.status === "pending");
-            if (pending) pending.status = "in_progress";
-          }
-          promoted = true;
-        }
-      }
-      if (promoted) {
-        ctx.flowManager.save(state);
+      if (decision.promotable) {
+        ctx.flowManager.mutate((s) => { promoteNextTaskAndFirstStep(s); });
         state = ctx.flowManager.load();
         target = findActiveNode(state.steps, state.tasks, state.currentTaskId);
       }
     }
     if (!target) {
-      return { taskId: null, step: null, action: "completed", instructions: null, context: null, output_schema: null, requires_approval: false };
+      let promoted = false;
+      ctx.flowManager.mutate((s) => {
+        promoted = promoteNextAvailableTarget(s);
+      });
+      if (promoted) {
+        state = ctx.flowManager.load();
+        target = findActiveNode(state.steps, state.tasks, state.currentTaskId);
+      }
+    }
+    if (!target) {
+      return {
+        taskId: null,
+        step: null,
+        action: "completed",
+        instructions: null,
+        context: null,
+        output_schema: null,
+        requires_approval: false,
+      };
     }
 
     const derived = deriveNextAction(target.scope, target.stepId, state);

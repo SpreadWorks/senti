@@ -1,0 +1,177 @@
+/**
+ * Task-scope cursor enforcement shared by implementation dispatchers.
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+import { findNextPendingTask, isTaskTerminalStatus } from "../../lib/flow-helpers.js";
+
+export const BROAD_STEPS = Object.freeze(["implement", "review", "gate-impl"]);
+
+export class TaskScopeDecision {
+  constructor({ kind, task = null, record = null, reason = "" }) {
+    this.kind = kind;
+    this.task = task;
+    this.record = record;
+    this.reason = reason;
+    Object.freeze(this);
+  }
+
+  get ok() {
+    return this.kind === "flow" || this.kind === "task" || this.kind === "broad";
+  }
+
+  get promotable() {
+    return this.kind === "promote";
+  }
+
+  get blocked() {
+    return this.kind === "blocked" || this.kind === "invalid-current-task";
+  }
+}
+
+function taskHasInProgressStep(task) {
+  return Array.isArray(task?.steps) && task.steps.some((s) => s.status === "in_progress");
+}
+
+function isActionableTask(task) {
+  return typeof task?.spec === "string" && task.spec.trim() !== "";
+}
+
+function hasTaskWork(state) {
+  return Array.isArray(state?.tasks)
+    && state.tasks.some((t) => isActionableTask(t) && !isTaskTerminalStatus(t.status));
+}
+
+function hasInProgressTask(state) {
+  return Array.isArray(state?.tasks)
+    && state.tasks.some((t) => isActionableTask(t) && t.status === "in_progress");
+}
+
+function hasAnyInProgressTaskStep(state) {
+  return Array.isArray(state?.tasks)
+    && state.tasks.some((t) => isActionableTask(t) && taskHasInProgressStep(t));
+}
+
+function findNextPendingActionableTask(tasks) {
+  return findNextPendingTask(tasks.filter((task) => isActionableTask(task)));
+}
+
+export function latestBroadModeRecord(state, step) {
+  const history = Array.isArray(state?.broadModeHistory) ? state.broadModeHistory : [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    const entry = history[i];
+    if (entry?.step !== step) continue;
+    if (entry.currentTaskId !== (state.currentTaskId ?? null)) continue;
+    if (typeof entry.reason !== "string" || entry.reason.trim() === "") continue;
+    return entry;
+  }
+  return null;
+}
+
+export function buildBoundedBroadModeHistory(state, limit) {
+  const max = Number.isSafeInteger(limit) && limit > 0 ? limit : 50;
+  const history = Array.isArray(state?.broadModeHistory) ? state.broadModeHistory : [];
+  const entries = history.slice(-max).map((entry) => ({
+    step: entry.step,
+    reason: entry.reason,
+    ts: entry.ts,
+    currentTaskId: entry.currentTaskId ?? null,
+  }));
+  return {
+    entries,
+    total: history.length,
+    truncated: Math.max(0, history.length - entries.length),
+  };
+}
+
+export function createBroadModeRecord(state, step, reason) {
+  const normalizedStep = String(step || "").trim();
+  const normalizedReason = String(reason || "").trim();
+  if (!BROAD_STEPS.includes(normalizedStep)) {
+    throw new Error(`invalid broad mode step: ${normalizedStep} (valid: ${BROAD_STEPS.join(", ")})`);
+  }
+  if (!normalizedReason) {
+    throw new Error("broad mode reason is required");
+  }
+  return {
+    step: normalizedStep,
+    reason: normalizedReason,
+    ts: new Date().toISOString(),
+    currentTaskId: state?.currentTaskId ?? null,
+  };
+}
+
+export function assertAuditedBroadMode(decision, step) {
+  if (decision?.kind !== "broad") return null;
+  const record = decision.record;
+  if (!record || record.step !== step || typeof record.reason !== "string" || record.reason.trim() === "") {
+    throw new Error(`audited broad mode record is required before broad ${step} execution`);
+  }
+  return {
+    step: record.step,
+    reason: record.reason,
+    ts: record.ts,
+    currentTaskId: record.currentTaskId ?? null,
+  };
+}
+
+export function evaluateTaskScope(state, step) {
+  if (!hasTaskWork(state)) return new TaskScopeDecision({ kind: "flow" });
+
+  if (state.currentTaskId != null) {
+    const task = Array.isArray(state.tasks)
+      ? state.tasks.find((t) => t.id === state.currentTaskId)
+      : null;
+    if (!task) {
+      return new TaskScopeDecision({
+        kind: "invalid-current-task",
+        reason: `currentTaskId '${state.currentTaskId}' does not match any task`,
+      });
+    }
+    return new TaskScopeDecision({ kind: "task", task });
+  }
+
+  const record = latestBroadModeRecord(state, step);
+  if (record) return new TaskScopeDecision({ kind: "broad", record });
+
+  const next = findNextPendingActionableTask(state.tasks);
+  if (next && !hasInProgressTask(state) && !hasAnyInProgressTaskStep(state)) {
+    return new TaskScopeDecision({ kind: "promote", task: next });
+  }
+
+  return new TaskScopeDecision({
+    kind: "blocked",
+    reason: "task work remains but currentTaskId is null and safe promotion is not possible",
+  });
+}
+
+export function taskScopeViolationMessages(decision, step) {
+  const reason = decision?.reason || "task cursor is required";
+  return [
+    `${reason}.`,
+    `Restore a task cursor with: sdd-forge flow run start-task --task-id <task-id>`,
+    `For intentional broad ${step} work, first run: sdd-forge flow set broad on --step ${step} --reason "<reason>"`,
+  ];
+}
+
+export function resolveCurrentTaskSpec({ root, state }) {
+  const decision = evaluateTaskScope(state, "gate-impl");
+  if (decision.kind !== "task") {
+    throw new Error(decision.reason || "currentTaskId is required for task-scoped operation");
+  }
+  const task = decision.task;
+  if (!task.spec) {
+    throw new Error(`task spec missing for ${task.id}`);
+  }
+  const abs = path.resolve(root, task.spec);
+  if (!fs.existsSync(abs)) {
+    throw new Error(`task spec missing for ${task.id}: ${task.spec}`);
+  }
+  return {
+    task,
+    relPath: task.spec,
+    absPath: abs,
+    text: fs.readFileSync(abs, "utf8"),
+  };
+}

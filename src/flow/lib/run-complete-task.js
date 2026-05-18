@@ -62,8 +62,14 @@ export class RunCompleteTaskCommand extends FlowCommand {
     fm.mutate((s) => {
       promoted = promoteNextPending(s);
     });
+    const nextAction = promoted
+      ? `next task ${promoted} is current; run sdd-forge flow get next-action`
+      : "no pending tasks remain; continue with integration verification";
 
     return Envelope.ok("run", "complete-task", {
+      completedTaskId: taskId,
+      nextTaskId: promoted,
+      nextAction,
       taskId,
       completed: true,
       promoted,

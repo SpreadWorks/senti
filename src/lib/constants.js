@@ -119,7 +119,14 @@ export const VALID_REVIEW_PHASES = Object.freeze([
   "test",
   "spec",
   "draft",
+  "impl",
 ]);
+
+// ---------------------------------------------------------------------------
+// Bounded flow audit output
+// ---------------------------------------------------------------------------
+
+export const BROAD_MODE_HISTORY_MAX_ENTRIES = 50;
 
 // ---------------------------------------------------------------------------
 // Impl-confirm modes

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three blocking findings are valid and require direct spec repair: task input source, broad implementation entrypoint, and safe cursor promotion predicate.",
+  "items": [
+    {
+      "title": "Task-scoped requirement/file source is undefined",
+      "target": "R3 / Scope In / T-3",
+      "decision": "apply",
+      "rationale": "The spec currently requires task-scoped requirements and files without defining a concrete source. That blocks implementation and tests for prompt/context scoping.",
+      "evidence": "spec.json R3 and T-3 mention current task requirements/files, but task schema only contains goal, acceptance, implementation_notes, and test_strategy."
+    },
+    {
+      "title": "Broad implementation opt-in has no CLI integration point",
+      "target": "Goal / R2 / R4 / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "Implementation is exposed through next-action run-impl rather than a flow run implement command, so broad implementation needs a defined entrypoint or explicit narrowing.",
+      "evidence": "spec.json R2/R4 include implement in strict/broad mode, while acceptance criteria mention only review and gate broad execution."
+    },
+    {
+      "title": "Null cursor recovery predicate conflicts with mid-implementation failure policy",
+      "target": "R1 / R2 / Clarifications",
+      "decision": "apply",
+      "rationale": "The spec must define the safe boundary for auto-promotion so implementation cannot promote over in-progress or orphaned task state.",
+      "evidence": "spec.json R1 promotes pending tasks when non-terminal tasks exist, while R2 and clarifications require null cursor failure outside dispatcher-owned boundaries."
+    }
+  ]
+}

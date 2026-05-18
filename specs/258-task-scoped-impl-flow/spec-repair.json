@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied the three blocking spec review repairs: concrete task input source, broad implement entrypoint, and safe cursor promotion predicate.",
+  "items": [
+    {
+      "title": "Task-scoped requirement/file source is undefined",
+      "target": "R3 / Scope In / T-3",
+      "decision": "applied",
+      "rationale": "Defined rendered current task spec markdown as the task-scoped source and explicitly excluded parent requirement ID and file-map filtering for task gates.",
+      "evidence": "spec.json requirements R3, clarifications, overview decisions, and T-3 acceptance now state the task spec markdown source.",
+      "changedFields": [
+        "overview.data_flow[1].text",
+        "overview.decisions[4]",
+        "requirements[2].desc",
+        "acceptance_criteria[6]",
+        "clarifications[3]",
+        "tasks[2].acceptance"
+      ]
+    },
+    {
+      "title": "Broad implementation opt-in has no CLI integration point",
+      "target": "Goal / R2 / R4 / Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "Defined get-next-action as the implementation entrypoint for broad mode and required a matching step=implement audit record before broad run-impl can be returned.",
+      "evidence": "spec.json R4, acceptance criteria, clarification, and T-2 implementation notes now cover broad implement opt-in.",
+      "changedFields": [
+        "overview.data_flow[2].text",
+        "requirements[3].desc",
+        "acceptance_criteria[4]",
+        "clarifications[4]",
+        "tasks[1].acceptance",
+        "tasks[1].implementation_notes"
+      ]
+    },
+    {
+      "title": "Null cursor recovery predicate conflicts with mid-implementation failure policy",
+      "target": "R1 / R2 / Clarifications",
+      "decision": "applied",
+      "rationale": "Replaced broad promotion wording with an explicit safe promotion predicate and added the failure case for orphaned in-progress task state.",
+      "evidence": "spec.json R1, R2, acceptance criteria, clarification, and data flow now define the safe predicate.",
+      "changedFields": [
+        "overview.data_flow[0].text",
+        "requirements[0].desc",
+        "requirements[1].desc",
+        "acceptance_criteria[0]",
+        "acceptance_criteria[1]",
+        "clarifications[1].a"
+      ]
+    }
+  ]
+}

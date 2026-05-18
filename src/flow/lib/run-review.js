@@ -7,7 +7,6 @@
 
 import { PKG_DIR } from "../../lib/cli.js";
 import { runCmd } from "../../lib/process.js";
-const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 import { VALID_REVIEW_PHASES } from "../../lib/constants.js";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
@@ -22,6 +21,15 @@ import {
 import {
   RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS,
 } from "./test-artifacts.js";
+import {
+  assertAuditedBroadMode,
+  evaluateTaskScope,
+  resolveCurrentTaskSpec,
+  taskScopeViolationMessages,
+} from "./task-scope.js";
+
+const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
+const IMPL_REVIEW_PHASE = "impl";
 
 // ---------------------------------------------------------------------------
 // Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
@@ -38,7 +46,21 @@ const REVIEW_NODE_ID_BY_PHASE = Object.freeze({
 const REVIEW_PHASE_KEYS = Object.freeze(Object.keys(REVIEW_NODE_ID_BY_PHASE));
 
 function persistedPhaseKey(ctxPhase) {
-  return ctxPhase == null ? "impl" : ctxPhase;
+  return ctxPhase == null ? IMPL_REVIEW_PHASE : ctxPhase;
+}
+
+function isImplementationReviewPhase(phase) {
+  return phase == null || phase === IMPL_REVIEW_PHASE;
+}
+
+function taskCursorRequiredReviewFailure(decision, state) {
+  return Envelope.fail(
+    "run",
+    "review",
+    "TASK_CURSOR_REQUIRED",
+    taskScopeViolationMessages(decision, "review"),
+    { currentTaskId: state?.currentTaskId ?? null },
+  );
 }
 
 function resolveDraftReviewPhaseKey(flowState = {}) {
@@ -311,10 +333,26 @@ export class RunReviewCommand extends FlowCommand {
 
     const dryRun = ctx.dryRun || false;
     const skipConfirm = ctx.skipConfirm || false;
+    let taskReviewSpec = null;
+    let broadMode = null;
+
+    if (isImplementationReviewPhase(phase)) {
+      const decision = evaluateTaskScope(ctx.flowState, "review");
+      if (decision.kind === "invalid-current-task" || decision.kind === "blocked" || decision.promotable) {
+        return taskCursorRequiredReviewFailure(decision, ctx.flowState);
+      }
+      if (decision.kind === "task") {
+        const taskSpec = resolveCurrentTaskSpec({ root, state: ctx.flowState });
+        taskReviewSpec = taskSpec;
+      } else if (decision.kind === "broad") {
+        broadMode = assertAuditedBroadMode(decision, "review");
+      }
+    }
 
     const scriptPath = path.join(PKG_DIR, "flow", "commands", "review.js");
     const args = [];
-    if (phase) args.push("--phase", phase);
+    if (phase && phase !== IMPL_REVIEW_PHASE) args.push("--phase", phase);
+    if (taskReviewSpec) args.push("--task-spec", taskReviewSpec.relPath);
     if (dryRun) args.push("--dry-run");
     if (skipConfirm) args.push("--skip-confirm");
 
@@ -372,10 +410,17 @@ export class RunReviewCommand extends FlowCommand {
 
     const next = noChanges || noProposals || proposalCount === 0 ? "gate-impl" : "apply";
 
+    const artifacts = { proposalCount, dryRun };
+    if (taskReviewSpec) {
+      artifacts.taskId = taskReviewSpec.task.id;
+      artifacts.target = taskReviewSpec.relPath;
+    }
+    if (broadMode) artifacts.broadMode = broadMode;
+
     return {
       result: noChanges ? "no-changes" : noProposals ? "no-proposals" : "ok",
       changed,
-      artifacts: { proposalCount, dryRun },
+      artifacts,
       next,
       output: stdout,
     };

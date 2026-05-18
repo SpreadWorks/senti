@@ -7,10 +7,12 @@
 
 import { derivePhase } from "../../lib/flow-helpers.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
+import { BROAD_MODE_HISTORY_MAX_ENTRIES } from "../../lib/constants.js";
 import { loadSpecRequirements } from "../../lib/spec-json.js";
 import { FLOW_DEFINITION, flattenSteps, resolveNodeFor } from "../definition.js";
 import { FlowCommand } from "./base-command.js";
 import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
+import { buildBoundedBroadModeHistory } from "./task-scope.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
 export const TOKEN_KEYS = ["input", "output", "cacheRead", "cacheCreation"];
@@ -156,6 +158,7 @@ function buildStatusOutput(state, root) {
 
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
+  const broadMode = buildBoundedBroadModeHistory(state, BROAD_MODE_HISTORY_MAX_ENTRIES);
 
   return {
     active: true,
@@ -177,6 +180,9 @@ function buildStatusOutput(state, root) {
     ...(reviewStop && { reviewStop }),
     mergeStrategy: state.mergeStrategy || null,
     autoApprove,
+    broadModeHistory: broadMode.entries,
+    broadModeHistoryTotal: broadMode.total,
+    broadModeHistoryTruncated: broadMode.truncated,
   };
 }
 

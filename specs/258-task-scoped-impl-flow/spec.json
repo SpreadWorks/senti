@@ -1,0 +1,289 @@
+{
+  "goal": "task 分解済み flow で implement / review / gate-impl が current task の範囲で実行されることを CLI が強制する。currentTaskId がない broad 実行は既定で失敗し、明示 opt-in された broad mode だけを監査記録つきで許可する。",
+  "scope": {
+    "in": [
+      "must: task 分解済み flow における implement / review / gate-impl の currentTaskId 必須化。",
+      "must: current task の requirements / files / task spec へ gate-impl 入力を限定すること。",
+      "must: task 完了後に次 task へ進む手順を CLI 出力で明示すること。",
+      "must: bulk 実装が必要な場合の明示 broad mode と監査記録。",
+      "should: final report への task 単位の実装・検証結果の反映。",
+      "must: 上記を検証するテスト追加または既存テスト更新。"
+    ],
+    "out": [
+      "task 分解アルゴリズム自体の再設計。",
+      "Issue #321 の実装内容の再修正。",
+      "docs 生成パイプラインや preset system の挙動変更。",
+      "外部依存の追加。",
+      "npm publish / dist-tag など release 操作。"
+    ]
+  },
+  "constraints": [
+    "Node.js 組み込みモジュールのみを使い、外部依存は追加しない。",
+    "alpha 版ポリシーに従い、旧 flow 形式や非推奨 broad fallback の後方互換コードは追加しない。",
+    "backward-compatible-cli-interface: currentTaskId がない broad 実行を既定失敗へ変更するため、CLI error output は recovery command と explicit broad mode command を表示する migration plan を含める。",
+    "exit-code-contract: task 分解済み flow で currentTaskId が null のまま implement / review / gate-impl を実行しようとした場合、明示 broad mode がない限り command は ok:false envelope と非ゼロ終了で失敗する。",
+    "validate-user-input-at-entry-point: broad mode を有効化する user-facing argument は reason の非空文字列を必須にし、未知 task id や空 reason を entry point で拒否する。",
+    "src/templates/ または src/presets のテンプレートを変更した場合は sdd-forge upgrade を実行する。"
+    ,
+    "spec-test-coverage acknowledged exception: spec-local requirement tests remain under specs/258-task-scoped-impl-flow/tests/ with requirement coverage, while tests/e2e/flow/gate-impl-integration.test.js is updated only as a project regression fixture because the new currentTaskId invariant invalidates its old task-impl setup.",
+    "no-overengineering acknowledged exception: shared task-scope, broad-mode, report-row, and task-review helpers are intentionally named because the same cursor, audit, bounded-reporting, and task-spec input rules are used across dispatcher, review, gate, status, report, and tests; inlining them would duplicate policy checks and make R1-R6 enforcement inconsistent."
+  ],
+  "design_principles": [
+    "task cursor は flow state の正規 source of truth とし、AI や operator の記憶に依存しない。",
+    "task-level gate と integration gate は同じ gate-impl 名を共有しても、入力 scope と phase を明確に分ける。",
+    "broad mode は例外経路として扱い、理由・時刻・対象 step を audit trail に残す。",
+    "task 完了後の次アクションは CLI output に表示し、ユーザーが次 task の開始手順を推測しないで済むようにする。"
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/lib/get-next-action.js` resolves the next flow or task action. It must prefer pending task promotion over flow-level implementation steps when tasks remain."
+      },
+      {
+        "text": "`src/flow/lib/run-review.js` and `src/flow/lib/run-gate.js` execute review and gate commands. They must reject unintended broad execution for task-decomposed flows."
+      },
+      {
+        "text": "`src/lib/flow-store.js` and `src/lib/flow-helpers.js` own tasks[], currentTaskId, notes, metrics, and task promotion state."
+      },
+      {
+        "text": "`src/flow/lib/run-finalize-cleanup.js` builds the final report. It must surface task-level implementation and verification results when tasks exist."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "After approval syncs spec tasks into flow.json, the dispatcher promotes a pending task only when no task is already in_progress and no task step is in_progress."
+      },
+      {
+        "text": "Review and gate commands load flow state, derive task scope from currentTaskId, and use the current task spec markdown as the task-scoped input source."
+      },
+      {
+        "text": "Explicit broad mode writes an audit entry to flow state before broad implement/review/gate can run; final reporting reads that audit trail with task metrics."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Existing flow state already has tasks[] and currentTaskId, so this spec strengthens enforcement instead of introducing a parallel cursor.",
+        "evidence": "src/lib/flow-store.js rejects missing tasks/currentTaskId fields and resolves metrics/notes by currentTaskId. src/lib/flow-helpers.js exposes promoteNextPending(state)."
+      },
+      {
+        "text": "[VERIFY] Task gate and integration gate are already separable phases; the fix should preserve that phase boundary.",
+        "evidence": "src/flow/definition.js defines task-level gate-impl and flow-level gate-impl. src/flow/lib/gate-step.js resolves task gate-impl to task-impl and flow gate-impl to integration."
+      },
+      {
+        "text": "Default behavior is strict task scope. Broad mode remains available only through explicit opt-in with a non-empty reason.",
+        "evidence": "Issue #325 asks to prohibit broad gate with currentTaskId null or require explicit opt-in, and requires bulk implementation to be recorded as explicit broad mode.",
+        "consideredAlternatives": "Complete broad mode removal was rejected because the Issue explicitly preserves bulk implementation as an auditable exception."
+      },
+      {
+        "text": "Mid-implementation null cursor is not auto-recovered. Auto-promotion is allowed only at dispatcher cursor boundaries before task work starts or after task completion.",
+        "evidence": "Issue #325 requires implement/review/gate-impl without currentTaskId to fail in task-decomposed flow. AGENTS.md alpha policy rejects compatibility shims for old paths."
+      },
+      {
+        "text": "Task-scoped gate/review inputs use the rendered current task spec as the source. Parent requirement filtering and file-map filtering are not used for task gates.",
+        "evidence": "spec-review.json finding notes task schema has goal, acceptance, implementation_notes, and test_strategy. Therefore the task spec markdown is the concrete task-scoped source."
+      },
+      {
+        "text": "Impact list: task-decomposed implementation rejects unintended broad execution, task review/gate inputs shrink to task spec scope, final reports include task rows, and tests cover new cursor failures.",
+        "evidence": "Derived from scope.in, R1-R6, acceptance criteria, and Issue #325 Expected Improvements."
+      }
+    ]
+  },
+  "background": "Issue #325 reports that Issue #321 decomposed work into T-1 through T-7, but implementation continued with currentTaskId null. Review and gate-impl then evaluated the whole diff and all requirements, causing excessive input and long-running loops. The codebase already stores tasks[] and currentTaskId and has task-level definitions, but flow-level implementation actions can still run when task work remains. This spec turns task cursor usage into a CLI-enforced invariant.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When currentTaskId is null, no task has status in_progress, no task step is in_progress, and a pending leaf task exists, the dispatcher must promote that leaf before returning implementation actions.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "When task work remains but the safe promotion predicate is false and currentTaskId is null, flow-level implement, review, and gate-impl must fail unless explicit broad mode is active for the attempted step.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Task-level review and gate-impl must use currentTaskId to load the rendered current task spec markdown as the task-scoped input source, and must not use parent requirement IDs or file-map filtering for task gates.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Explicit broad mode must require a non-empty reason before get-next-action can return broad implement or before review/gate can run broad, record the step, reason, timestamp, and task cursor state in flow state, and be visible in status or report output.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "After a task gate passes and task completion side effects run, CLI output must show the completed task id and the next task start or completion state.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Final report output should include one row or section per task with task id, task status, implementation summary availability, test-execute result, review result, and gate-impl result when those artifacts exist.",
+      "priority": "should",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "Given a flow with tasks[] containing a pending leaf task, currentTaskId null, no in_progress task, and no in_progress task step, `sdd-forge flow get next-action` returns a task-scoped action and sets currentTaskId to that task.",
+    "Given a flow with an in_progress task or in_progress task step but currentTaskId null, `sdd-forge flow get next-action` fails with recovery guidance unless explicit broad mode for implement is active.",
+    "Given a task-decomposed implementation flow with currentTaskId null and no explicit broad mode, `sdd-forge flow run review` fails before spawning the review agent.",
+    "Given a task-decomposed implementation flow with currentTaskId null and no explicit broad mode, `sdd-forge flow run gate --phase integration` or auto-resolved gate-impl fails before building a broad prompt.",
+    "Given explicit broad mode with a non-empty reason, the broad implement, review, or gate path records the reason and attempted step in flow state.",
+    "Given currentTaskId is set, task review/gate prompt input includes the rendered task spec markdown and excludes parent requirement ID filtering and file-map filtering.",
+    "Given a task gate PASS, the command output shows the completed task id and either the next currentTaskId or that no pending tasks remain.",
+    "Given finalized task-decomposed flow artifacts, the final report includes task-level implementation and verification results."
+  ],
+  "clarifications": [
+    {
+      "q": "Should broad mode be completely removed?",
+      "a": "No. Broad mode is allowed only as an explicit exception with a non-empty reason and audit record, because Issue #325 includes bulk implementation as a required exceptional path."
+    },
+    {
+      "q": "How should existing midway flows with tasks[] and currentTaskId null behave?",
+      "a": "Implementation commands fail unless currentTaskId is null, no task has status in_progress, no task step is in_progress, and a pending leaf task can be promoted before work starts."
+    },
+    {
+      "q": "What source defines task-scoped review and gate inputs?",
+      "a": "The rendered current task spec markdown is the task-scoped source. Task gates do not filter parent requirement IDs or file-map entries because the existing task schema does not provide structured requirement IDs or file sets."
+    },
+    {
+      "q": "How can broad implementation be opted into?",
+      "a": "A broad mode audit record must be created before get-next-action may return a broad implement action. The record includes step=implement, a non-empty reason, timestamp, and the null cursor state."
+    },
+    {
+      "q": "What exit code contract applies to new failures?",
+      "a": "User-triggered task scope violations return ok:false flow envelopes and non-zero process exit through the existing flow command error path."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Remove broad mode entirely.",
+      "reason": "Rejected because Issue #325 requires bulk implementation to be possible when it is recorded as explicit broad mode."
+    },
+    {
+      "option": "Keep current broad fallback and rely on skill instructions.",
+      "reason": "Rejected because the reported bug is that AI or operator memory can bypass task order; CLI state must enforce the cursor."
+    },
+    {
+      "option": "Auto-recover any null currentTaskId by choosing the next pending task.",
+      "reason": "Rejected for mid-implementation commands because the correct task cannot be inferred after manual edits or review changes have occurred."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "currentTaskId",
+    "tasks",
+    "task cursor",
+    "task-scoped gate",
+    "gate-impl",
+    "run-review",
+    "get-next-action",
+    "broad mode",
+    "flow state",
+    "final report",
+    "task implementation"
+  ],
+  "implementationTargets": [
+    "src/flow/lib/get-next-action.js",
+    "src/flow/lib/run-review.js",
+    "src/flow/lib/run-gate.js",
+    "src/lib/flow-store.js",
+    "src/lib/flow-helpers.js",
+    "src/flow/lib/run-finalize-cleanup.js",
+    "src/flow/registry.js",
+    "tests/flow"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Enforce task cursor",
+      "goal": "Promote pending tasks before flow-level implementation actions and reject null currentTaskId when task work remains.",
+      "acceptance": [
+        "get-next-action promotes the next pending task before flow-level implement/review/gate-impl when task work remains.",
+        "Implementation-phase commands fail with ok:false when task work remains and currentTaskId is null without explicit broad mode.",
+        "Failure output includes recovery guidance for starting or restoring a task cursor."
+      ],
+      "implementation_notes": "Focus on dispatcher and command preflight boundaries in get-next-action, run-review, and run-gate. Reuse existing promoteNextPending and flow envelope patterns. Add a small class if a reusable task-scope decision object is needed.",
+      "test_strategy": "Unit tests for get-next-action promotion and command preflight rejection with synthetic flow states.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Record broad mode",
+      "goal": "Add explicit broad mode opt-in with non-empty reason and an audit record that downstream commands can verify.",
+      "acceptance": [
+        "Broad mode cannot be enabled with an empty reason.",
+        "Broad mode records step, reason, timestamp, and currentTaskId at the time of opt-in.",
+        "get-next-action returns broad implement only when the audit record matches step=implement.",
+        "Review or gate broad execution succeeds only when the audit record matches the attempted broad step."
+      ],
+      "implementation_notes": "Expose the smallest CLI surface that fits existing flow set/run command patterns. Validate user-facing args at the entry point. Store audit data in flow state using the existing append-only state style. The implement entrypoint is get-next-action: it may return flow-level run-impl only when broad mode has an audit record for step=implement.",
+      "test_strategy": "Command tests for valid and invalid broad mode opt-in plus command preflight behavior with and without the record.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Scope task gates",
+      "goal": "Ensure task-level review and gate prompts use current task requirements, task spec, and task metrics instead of flow-wide requirements.",
+      "acceptance": [
+        "Task gate prompt input references the rendered current task spec markdown.",
+        "Task gate prompt input does not use parent requirement ID filtering or file-map filtering.",
+        "Task review and gate retry metrics remain task-scoped when currentTaskId is set.",
+        "Integration gate remains flow-scoped only after no pending tasks remain or explicit broad mode is active."
+      ],
+      "implementation_notes": "Work in prompt/context assembly paths and gate phase resolution. Preserve existing task-impl versus integration phase separation.",
+      "test_strategy": "Prompt/context unit tests or snapshot-style assertions that currentTaskId changes the included requirement/task content.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Report task results",
+      "goal": "Show task completion and verification results in task completion output and the final report.",
+      "acceptance": [
+        "Task gate PASS output includes completed task id and next task id or no-pending-task state.",
+        "Final report includes task id, task status, implementation summary availability, test-execute result, review result, and gate-impl result when present.",
+        "Explicit broad mode records appear in status or final report output."
+      ],
+      "implementation_notes": "Use existing task state, metrics, notes, issue-log, and finalize report assembly. Do not invent report data when artifacts are missing; display missing values explicitly.",
+      "test_strategy": "Unit tests for report rendering with multiple tasks, missing artifacts, and broad mode audit entries.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-5",
+      "title": "Cover task flow",
+      "goal": "Add regression tests for task cursor enforcement, broad mode audit behavior, task-scoped gate inputs, and task result reporting.",
+      "acceptance": [
+        "Tests cover currentTaskId null failure for review and gate in task-decomposed flow.",
+        "Tests cover next-action task promotion after tasks are synced.",
+        "Tests cover explicit broad mode audit and final report task output."
+      ],
+      "implementation_notes": "Prefer existing tests/flow patterns and spec-local tests under specs/258-task-scoped-impl-flow/tests with spec requirement headers.",
+      "test_strategy": "Run targeted tests first, then npm test. Run npm run test:agent only if agent invocation boundaries or AI prompts are changed.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-17T00:36:05.238Z",
+    "notes": "autoApprove: approved gate-passed spec for Issue #325"
+  }
+}

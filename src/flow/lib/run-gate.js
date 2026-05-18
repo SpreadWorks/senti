@@ -48,6 +48,13 @@ import { resolveGateStepId, resolveGatePhaseFromState } from "./gate-step.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { validateDraftLifecycle } from "./draft-lifecycle.js";
 import { validateIntegrationArtifactTrust } from "./test-artifacts.js";
+import { assertIntegrationRegressionEvidence } from "./test-artifacts.js";
+import {
+  assertAuditedBroadMode,
+  evaluateTaskScope,
+  resolveCurrentTaskSpec,
+  taskScopeViolationMessages,
+} from "./task-scope.js";
 
 export { resolveGateStepId };
 
@@ -169,6 +176,7 @@ function runGitDiff(args, errorMessage, cwd) {
 
 const UNTRACKED_DEFAULT_MAX_FILES = 500;
 const UNTRACKED_DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1 MiB
+const TASK_IMPL_GATE_DIFF_MAX_BYTES = 1024 * 1024; // 1 MiB
 
 /**
  * Synthesize a unified diff for every untracked file in `root` and return the
@@ -293,6 +301,16 @@ function collectPerFileDiffsForGate(committed, uncommitted, untracked) {
     merged.set(file, (merged.get(file) || "") + d);
   }
   return merged;
+}
+
+function taskCursorRequiredGateFailure(scopeDecision, phase, state) {
+  return Envelope.fail(
+    "run",
+    "gate",
+    "TASK_CURSOR_REQUIRED",
+    taskScopeViolationMessages(scopeDecision, "gate-impl"),
+    { phase, currentTaskId: state.currentTaskId ?? null },
+  );
 }
 
 function isGeneratedSpecArtifactForGate(relPath, specPath) {
@@ -2077,6 +2095,27 @@ export class RunGateCommand extends FlowCommand {
     if (!state?.spec) throw new Error("no active flow found");
     if (!state.baseBranch) throw new Error("baseBranch not set in flow.json");
 
+    const scopeDecision = evaluateTaskScope(state, "gate-impl");
+    if (phase === "task-impl") {
+      if (scopeDecision.kind === "task") {
+        return await this.executeTaskImplGate(ctx, root, level, phase, skipGuardrail);
+      }
+      if (scopeDecision.kind === "invalid-current-task" || scopeDecision.kind === "blocked" || scopeDecision.promotable) {
+        return taskCursorRequiredGateFailure(scopeDecision, phase, state);
+      }
+      if (scopeDecision.kind === "broad") {
+        assertAuditedBroadMode(scopeDecision, "gate-impl");
+      }
+    }
+    if (phase === "integration") {
+      if (scopeDecision.kind === "invalid-current-task" || scopeDecision.kind === "blocked" || scopeDecision.promotable) {
+        return taskCursorRequiredGateFailure(scopeDecision, phase, state);
+      }
+      if (scopeDecision.kind === "broad") {
+        assertAuditedBroadMode(scopeDecision, "gate-impl");
+      }
+    }
+
     // spec 251 R17: integration gate verifies the upstream test-execute /
     // test-result-review artifacts before delegating to the AI guardrail
     // pipeline. Missing / unverified results are treated as FAIL with no
@@ -2274,6 +2313,47 @@ export class RunGateCommand extends FlowCommand {
       return gateFail(level, phase, specPath, combined, []);
     }
     return gatePass(level, phase, specPath, combined, fileMapWarnings);
+  }
+
+  async executeTaskImplGate(ctx, root, level, phase, skipGuardrail) {
+    const state = ctx.flowState;
+    const taskSpec = resolveCurrentTaskSpec({ root, state });
+    const committed = runGitDiff([`${state.baseBranch}...HEAD`], "failed to get git diff", root);
+    const uncommitted = runGitDiff(["HEAD"], "failed to get uncommitted git diff", root);
+    const untracked = await collectUntrackedDiff(root, {
+      excludeFile: (relPath) => isGeneratedSpecArtifactForGate(relPath, state.spec),
+    });
+    const diff = committed + uncommitted + untracked;
+    if (!diff.trim()) {
+      return gateFail(level, phase, taskSpec.relPath, [], [
+        "no changes found (committed or uncommitted) against base branch",
+      ]);
+    }
+    const diffBytes = Buffer.byteLength(diff, "utf8");
+    if (diffBytes > TASK_IMPL_GATE_DIFF_MAX_BYTES) {
+      return gateFail(level, phase, taskSpec.relPath, [], [
+        `task implementation diff is ${diffBytes} bytes, exceeds limit ${TASK_IMPL_GATE_DIFF_MAX_BYTES}`,
+      ]);
+    }
+
+    const gitState = computeGitState(root);
+    ctx.gitState = gitState;
+    const issueLog = loadIssueLog(root, state.spec);
+    const targetText = `${taskSpec.text}\n\n## Git Diff\n${diff}`;
+
+    return runGateFlow({
+      root,
+      config: ctx.config,
+      level,
+      phase,
+      targetPath: taskSpec.relPath,
+      targetText,
+      textCheck: () => [],
+      checkerRole:
+        "You are a task implementation compliance checker. Check this task specification against the implementation diff.",
+      skipGuardrail,
+      ctx: { ...ctx, issueLog, gitState },
+    });
   }
 
   reconcileFileMapWarnings(root, state) {

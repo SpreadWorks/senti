@@ -309,6 +309,18 @@ export const FLOW_COMMANDS = {
       args: { positional: ["reqId"], rest: "paths" },
       help: "Usage: sdd-forge flow set files <reqId> <path...>\n\nAppend file paths to file-map.json for a requirement. Deduplicates.",
     },
+    broad: {
+      helpKey: "flow.set.broad",
+      command: () => import("./lib/set-broad.js"),
+      args: { positional: ["action"], options: ["--step", "--reason"] },
+      help: [
+        "Usage: sdd-forge flow set broad on --step <implement|review|gate-impl> --reason <text>",
+        "",
+        "Record an audited broad-mode exception for task-decomposed implementation.",
+        "The reason must be non-empty. The record stores step, reason, timestamp,",
+        "and currentTaskId at the time of opt-in.",
+      ].join("\n"),
+    },
     metric: {
       helpKey: "flow.set.metric",
       command: () => import("./lib/set-metric.js"),
