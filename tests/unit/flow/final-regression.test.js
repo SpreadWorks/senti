@@ -7,21 +7,32 @@ import { validateFinalRegressionResult } from "../../../src/flow/lib/test-artifa
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 import { initGitRepo, commitAll } from "../../helpers/git-repo.js";
 
+const FIXTURE_PATH = "final-regression-fixture.js";
+const PASSING_FIXTURE_BODY = "console.log('initial pass');\n";
+
 function setupProject(tmp, scriptBody) {
   fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
   writeFile(tmp, "specs/001-test/spec.md", "# Spec\n");
-  writeFile(tmp, "final-regression-fixture.js", scriptBody);
+  writeFile(tmp, FIXTURE_PATH, scriptBody);
   initGitRepo(tmp);
   commitAll(tmp, "initial");
   return {
     root: tmp,
-    config: { test: { command: "node final-regression-fixture.js", timeout: 5 } },
+    config: { test: { command: `node ${FIXTURE_PATH}`, timeout: 5 } },
     flowState: {
       spec: "specs/001-test/spec.md",
       baseBranch: "main",
       featureBranch: "feature/001-test",
     },
   };
+}
+
+function writeChangedFileReferencingFailureFixture(tmp, message) {
+  writeFile(tmp, FIXTURE_PATH, [
+    `console.error(${JSON.stringify(`${FIXTURE_PATH}: ${message}`)});`,
+    "process.exit(1);",
+    "",
+  ].join("\n"));
 }
 
 function readJson(filePath) {
@@ -51,8 +62,8 @@ describe("flow run final-regression", () => {
 
   it("classifies current-change failure, records issue-log, and allows one repair retry", async () => {
     tmp = createTmpDir("final-regression-fail-");
-    const ctx = setupProject(tmp, "console.log('initial pass');\n");
-    writeFile(tmp, "final-regression-fixture.js", "console.error('boom');\nprocess.exit(1);\n");
+    const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
+    writeChangedFileReferencingFailureFixture(tmp, "boom");
 
     const result = await new RunFinalRegressionCommand().execute(ctx);
 
@@ -88,8 +99,8 @@ describe("flow run final-regression", () => {
 
   it("stops on the second final-regression failure", async () => {
     tmp = createTmpDir("final-regression-second-fail-");
-    const ctx = setupProject(tmp, "console.log('initial pass');\n");
-    writeFile(tmp, "final-regression-fixture.js", "process.exit(1);\n");
+    const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);
+    writeChangedFileReferencingFailureFixture(tmp, "still failing");
 
     await new RunFinalRegressionCommand().execute(ctx);
     const second = await new RunFinalRegressionCommand().execute(ctx);

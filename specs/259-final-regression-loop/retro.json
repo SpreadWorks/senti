@@ -1,0 +1,63 @@
+{
+  "spec": "specs/259-final-regression-loop/spec.json",
+  "date": "2026-05-18T13:17:06.454Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Normal test-execute shall not run full project regression by default. When changed files require full project regression and test.testExecuteRegression is absent or targeted, test-execute-result.json shall record regression.required=false with category full-regression-deferred and a reason naming final-regression. When test.testExecuteRegression=skip, it shall record category project-regression-skipped. When test.testExecuteRegression=full, test-execute may run the full command and must include project regression start/end markers in the raw log.",
+      "status": "done",
+      "note": "R1: default test-execute defers full project regression to final-regression"
+    },
+    {
+      "desc": "flow run final-regression shall run after retro and before finalize, execute the project regression command, write final-regression-result.json and tests/.raw/final-regression.log, and mark final-regression done only when the artifact validates with result pass.",
+      "status": "done",
+      "note": "R2: final-regression pass writes the result artifact and raw log"
+    },
+    {
+      "desc": "final-regression-result.json shall include version, result, completed, failureKind, command, rawOutputPath, retryable, nextAction, changedFiles, previousFailureKind, rawOutputLines, and process metadata. Pass artifacts shall have failureKind=null, retryable=false, and nextAction=finalize-commit. Fail artifacts shall include a non-null failureKind and a nextAction that routes to exactly one repair or stop path.",
+      "status": "done",
+      "note": "R3: pass artifact has required routing fields and finalize-commit next action"
+    },
+    {
+      "desc": "final-regression shall classify caused_by_current_change only when raw output or failing test metadata specifically references at least one changedFiles entry. If no such link exists, it shall not choose regression-repair; it shall classify as pre_existing, invalid_project_test, or a retryable=false stop category such as infra_failure, timeout, dependency_failure, sandbox_restriction, permission_error, or child_process_eprem. invalid_project_test shall route to test-repair, not regression-repair.",
+      "status": "done",
+      "note": "R4: generic failure without changed-file evidence does not route to regression-repair"
+    },
+    {
+      "desc": "final-regression shall not mutate implementation files or test files while classifying a failure. The first caused_by_current_change failure may emit nextAction=regression-repair and the first invalid_project_test failure may emit nextAction=test-repair. The second final-regression failure for the same flow shall write previousFailureKind, set retryable=false, and set nextAction=stop.",
+      "status": "done",
+      "note": "R5: invalid project test routes to test-repair once, then stops without mutating project files"
+    },
+    {
+      "desc": "test-result-review shall validate targeted or explicit full project regression evidence using the raw output text read from tests/.raw/test-execution.log. It shall pass rawOutputText to validateTestExecuteResultEvidence so missing start/end markers fail deterministically and valid markers pass.",
+      "status": "done",
+      "note": "R6: test-result-review validates full regression markers from rawOutputText"
+    },
+    {
+      "desc": "get-next-action shall expose final-regression as an impl-phase mainline step after retro, use next-action/final-regression.schema.json, require no user approval for normal execution, and route a passing final-regression to finalize-commit.",
+      "status": "done",
+      "note": "R7: final-regression is a mainline impl step before finalize-commit"
+    },
+    {
+      "desc": "gate-impl shall not block solely because full project regression was deferred from test-execute. It may block targeted or explicit full test-execute regression failures, invalid v2 artifacts, missing test-result-review pass, or failed final-regression evidence when that evidence exists.",
+      "status": "done",
+      "note": "R9: deferred full regression evidence validates without project regression markers"
+    },
+    {
+      "desc": "The completed implementation shall include spec-local tests under specs/259-final-regression-loop/tests with // spec: R<N> headers covering the new behavior, and focused shared unit tests may be added or updated for changed public flow contracts.",
+      "status": "done",
+      "note": "R10: spec-local headers cover every testable requirement"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -39,6 +39,13 @@ const FAILURE_NEXT_ACTION = Object.freeze({
   child_process_eprem: "stop",
   invalid_project_test: "test-repair",
 });
+const MAX_FAILURE_EVIDENCE_CHARS = 256 * 1024;
+const MAX_CHANGED_FILES_TO_MATCH = 1000;
+const FAILURE_EVIDENCE_INPUT_COUNT = 4;
+const FAILURE_EVIDENCE_JOINER_CHARS = FAILURE_EVIDENCE_INPUT_COUNT - 1;
+const MAX_FAILURE_EVIDENCE_SOURCE_CHARS = Math.floor(
+  (MAX_FAILURE_EVIDENCE_CHARS - FAILURE_EVIDENCE_JOINER_CHARS) / FAILURE_EVIDENCE_INPUT_COUNT,
+);
 
 class FinalRegressionDecision {
   constructor({ failureKind, retryable, nextAction }) {
@@ -174,17 +181,67 @@ function classifyChangeScope({ root, state, config, changedFiles }) {
   return classification.required ? "current-change" : "pre-existing";
 }
 
+function boundedText(value, maxChars) {
+  const text = String(value ?? "");
+  if (text.length <= maxChars) return text;
+  if (maxChars <= 1) return text.slice(0, maxChars);
+  const head = Math.floor((maxChars - 1) / 2);
+  const tail = maxChars - 1 - head;
+  return `${text.slice(0, head)}\n${text.slice(-tail)}`;
+}
+
+function boundedEvidenceSource(value) {
+  return boundedText(value, MAX_FAILURE_EVIDENCE_SOURCE_CHARS);
+}
+
+function failureEvidenceText(result, discoveryError) {
+  const text = [
+    discoveryError?.message,
+    result?.spawnError,
+    result?.stdout,
+    result?.stderr,
+  ].map(boundedEvidenceSource).join("\n");
+  return boundedText(text, MAX_FAILURE_EVIDENCE_CHARS);
+}
+
+function normalizeFailureMatchText(text) {
+  return String(text ?? "").replaceAll("\\", "/").toLowerCase();
+}
+
+function changedFilePath(entry) {
+  if (typeof entry === "string") return entry;
+  return typeof entry?.path === "string" ? entry.path : null;
+}
+
+function failureReferencesChangedFile(normalizedText, changedFiles) {
+  return (changedFiles || []).some((entry) => {
+    const filePath = changedFilePath(entry);
+    if (!filePath) return false;
+    const normalizedPath = normalizeFailureMatchText(filePath).replace(/^\.\//, "");
+    return normalizedPath.length > 0 && normalizedText.includes(normalizedPath);
+  });
+}
+
+function changedFilesWithinMatchLimit(changedFiles) {
+  const files = changedFiles || [];
+  return files.length <= MAX_CHANGED_FILES_TO_MATCH ? files : null;
+}
+
 function classifyFailure({ result, discoveryError = null, root, state, config, changedFiles }) {
-  const text = `${discoveryError?.message || ""}\n${result?.spawnError || ""}\n${result?.stderr || ""}`.toLowerCase();
+  const text = failureEvidenceText(result, discoveryError);
+  const normalizedText = normalizeFailureMatchText(text);
   if (discoveryError) return "invalid_project_test";
   if (result?.timedOut) return "timeout";
-  if (/\beperm\b/.test(text)) return "child_process_eprem";
-  if (/sandbox/.test(text)) return "sandbox_restriction";
-  if (/\beacces\b|permission denied/.test(text)) return "permission_error";
-  if (/\benoent\b|not found|command not found/.test(text)) return "dependency_failure";
+  if (/\beperm\b/.test(normalizedText)) return "child_process_eprem";
+  if (/sandbox/.test(normalizedText)) return "sandbox_restriction";
+  if (/\beacces\b|permission denied/.test(normalizedText)) return "permission_error";
+  if (/\benoent\b|not found|command not found/.test(normalizedText)) return "dependency_failure";
   if (result?.signal) return "infra_failure";
   if (result?.exitCode === 127) return "dependency_failure";
+  const changedFilesForMatching = changedFilesWithinMatchLimit(changedFiles);
+  if (!changedFilesForMatching) return "infra_failure";
   if (classifyChangeScope({ root, state, config, changedFiles }) === "pre-existing") return "pre_existing";
+  if (!failureReferencesChangedFile(normalizedText, changedFilesForMatching)) return "pre_existing";
   return "caused_by_current_change";
 }
 

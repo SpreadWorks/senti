@@ -10,6 +10,7 @@ import path from "path";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import { FlowCommand } from "./base-command.js";
 import {
+  MAX_RAW_OUTPUT_BYTES,
   RAW_OUTPUT_RELATIVE,
   TEST_EXECUTE_RESULT_FILE,
   TEST_RESULT_REVIEW_FILE,
@@ -28,9 +29,9 @@ function fail(check, detail) {
   return { check, result: "fail", detail };
 }
 
-function validateSummary(result, { root, rawText, rawLines, requirements }) {
+function validateSummary(result, { root, rawOutputText, rawLines, requirements }) {
   try {
-    validateSummaryEvidence(result.summary, { root, rawText, rawLines, requirements });
+    validateSummaryEvidence(result.summary, { root, rawText: rawOutputText, rawLines, requirements });
   } catch (err) {
     return fail("summary_evidence", err.message);
   }
@@ -48,13 +49,21 @@ function validateRegressionRawRange(result, rawLines) {
   return pass("raw_output_lines", "regression line range is within raw output");
 }
 
-function validateProjectRegression(result, { root, rawText, rawLines, requirements }) {
+function validateProjectRegression(result, { root, rawOutputText, rawLines, requirements }) {
   try {
-    validateTestExecuteResultEvidence(result, { root, rawText, rawLines, requirements, summary: false });
+    validateTestExecuteResultEvidence(result, { root, rawOutputText, rawLines, requirements, summary: false });
   } catch (err) {
     return fail("project_regression_verification", err.message);
   }
   return pass("project_regression_verification", "project regression evidence is valid; gate-impl owns blocking on regression.result fail");
+}
+
+function readRawOutputText(rawOutputPath) {
+  const stat = fs.statSync(rawOutputPath);
+  if (stat.size > MAX_RAW_OUTPUT_BYTES) {
+    throw new Error(`${RAW_OUTPUT_RELATIVE} exceeds max size ${MAX_RAW_OUTPUT_BYTES} bytes`);
+  }
+  return fs.readFileSync(rawOutputPath, "utf8");
 }
 
 function writeMarkdown(specDir, review) {
@@ -80,13 +89,15 @@ export default class RunTestResultReviewCommand extends FlowCommand {
 
     const spec = readJsonStrict(path.join(specDir, "spec.json"));
     const result = validateTestExecuteResultV2(readJsonStrict(resultPath));
-    const rawText = fs.readFileSync(rawOutputPath, "utf8");
-    const rawLines = rawText.split(/\r?\n/);
+    const rawOutputText = readRawOutputText(rawOutputPath);
+    const rawLines = rawOutputText.split(/\r?\n/);
+    const requirements = spec.requirements || [];
+    const evidenceContext = { root, rawOutputText, rawLines, requirements };
 
     const checked_items = [
-      validateSummary(result, { root, rawText, rawLines, requirements: spec.requirements || [] }),
+      validateSummary(result, evidenceContext),
       validateRegressionRawRange(result, rawLines),
-      validateProjectRegression(result, { root, rawText, rawLines, requirements: spec.requirements || [] }),
+      validateProjectRegression(result, evidenceContext),
     ];
     const failed = checked_items.filter((item) => item.result !== "pass");
     const review = {

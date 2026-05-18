@@ -21,6 +21,7 @@
     "test.testExecuteRegression is validated at the config boundary and may only be targeted, full, or skip.",
     "flow run final-regression has no user-facing arguments in this spec; any future option must be validated at the CLI registry boundary.",
     "exit-code-contract: flow run final-regression succeeds with exit code 0 only when final-regression-result.json validates with result pass. A fail artifact, invalid artifact, missing raw log, invalid command, timeout, permission, sandbox, dependency, or process error returns a failed envelope and non-zero process exit.",
+    "bounded-resource-usage: raw test and final-regression logs are bounded by artifact validators to 64 MiB and 200000 raw lines; per-evidence raw ranges are capped at 2000 lines. final-regression failure matching inspects at most 256 KiB of combined failure evidence and at most 1000 changed files; exceeding the changed-file match cap stops as infra_failure instead of routing to regression-repair.",
     "backward-compatible-cli-interface: existing test-execute command remains available and the explicit test.testExecuteRegression=full setting is the migration path for users who intentionally want full regression inside test-execute.",
     "Templates or presets changed by this work must be propagated with sdd-forge upgrade before finalize."
   ],
@@ -49,6 +50,18 @@
       },
       {
         "text": "src/flow/prompts and src/templates/skills/sdd-forge.flow/SKILL.md describe the split responsibilities for test-execute, test-result-review, gate-impl, retro, final-regression, and finalize."
+      },
+      {
+        "text": "src/flow/lib/run-test-result-review.js now forwards rawOutputText to validateTestExecuteResultEvidence for project regression marker checks.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "src/flow/lib/run-final-regression.js now requires failure output to reference a changed file before routing to regression-repair.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "src/flow/prompts/plan/scenario-validity.md now describes impl/final-regression as the default full project regression point.",
+        "added_by_task": "T-4"
       }
     ],
     "data_flow": [
@@ -60,6 +73,18 @@
       },
       {
         "text": "On final-regression failure, final-regression-result.json records failureKind, retryable, nextAction, rawOutputPath, changedFiles, and previousFailureKind; issue-log records the failure."
+      },
+      {
+        "text": "test-result-review reads tests/.raw/test-execution.log, passes that text as rawOutputText, and lets test-artifacts validate full regression markers deterministically.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "final-regression combines stdout, stderr, spawn errors, and discovery errors as failure evidence, then matches repo-relative changedFiles before choosing caused_by_current_change.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "plan/scenario-validity remains spec-local pre-implementation validation, while impl/test-execute handles spec-local/targeted evidence and impl/final-regression handles full regression.",
+        "added_by_task": "T-4"
       }
     ],
     "decisions": [
@@ -86,6 +111,18 @@
       {
         "text": "[VERIFY] issue #330's board/issue body explicitly marks existing implementation as uncommitted work and instructs this spec not to re-implement it.",
         "evidence": "Issue #330 body lists already implemented final-regression step, registry command, runner, artifact fields, issue-log recording, test-execute policy, config schema, prompt/template/locale updates, and unit tests."
+      },
+      {
+        "text": "T-1 fixed the rawText/rawOutputText mismatch rather than changing the artifact validator contract.",
+        "added_by_task": "T-1"
+      },
+      {
+        "text": "T-2 keeps unlinked final-regression failures out of the normal repair loop by classifying them as pre_existing or another stop/test-repair category.",
+        "added_by_task": "T-2"
+      },
+      {
+        "text": "T-4 changed only the stale scenario-validity prompt because templates and installed skills already used final-regression wording.",
+        "added_by_task": "T-4"
       }
     ]
   },
@@ -95,61 +132,71 @@
       "id": "R1",
       "priority": "must",
       "desc": "Normal test-execute shall not run full project regression by default. When changed files require full project regression and test.testExecuteRegression is absent or targeted, test-execute-result.json shall record regression.required=false with category full-regression-deferred and a reason naming final-regression. When test.testExecuteRegression=skip, it shall record category project-regression-skipped. When test.testExecuteRegression=full, test-execute may run the full command and must include project regression start/end markers in the raw log.",
-      "testable": true
+      "testable": true,
+      "status": "done"
     },
     {
       "id": "R2",
       "priority": "must",
       "desc": "flow run final-regression shall run after retro and before finalize, execute the project regression command, write final-regression-result.json and tests/.raw/final-regression.log, and mark final-regression done only when the artifact validates with result pass.",
-      "testable": true
+      "testable": true,
+      "status": "done"
     },
     {
       "id": "R3",
       "priority": "must",
       "desc": "final-regression-result.json shall include version, result, completed, failureKind, command, rawOutputPath, retryable, nextAction, changedFiles, previousFailureKind, rawOutputLines, and process metadata. Pass artifacts shall have failureKind=null, retryable=false, and nextAction=finalize-commit. Fail artifacts shall include a non-null failureKind and a nextAction that routes to exactly one repair or stop path.",
-      "testable": true
+      "testable": true,
+      "status": "done"
     },
     {
       "id": "R4",
       "priority": "must",
       "desc": "final-regression shall classify caused_by_current_change only when raw output or failing test metadata specifically references at least one changedFiles entry. If no such link exists, it shall not choose regression-repair; it shall classify as pre_existing, invalid_project_test, or a retryable=false stop category such as infra_failure, timeout, dependency_failure, sandbox_restriction, permission_error, or child_process_eprem. invalid_project_test shall route to test-repair, not regression-repair.",
-      "testable": true
+      "testable": true,
+      "status": "done"
     },
     {
       "id": "R5",
       "priority": "must",
       "desc": "final-regression shall not mutate implementation files or test files while classifying a failure. The first caused_by_current_change failure may emit nextAction=regression-repair and the first invalid_project_test failure may emit nextAction=test-repair. The second final-regression failure for the same flow shall write previousFailureKind, set retryable=false, and set nextAction=stop.",
-      "testable": true
+      "testable": true,
+      "status": "done"
     },
     {
       "id": "R6",
       "priority": "must",
       "desc": "test-result-review shall validate targeted or explicit full project regression evidence using the raw output text read from tests/.raw/test-execution.log. It shall pass rawOutputText to validateTestExecuteResultEvidence so missing start/end markers fail deterministically and valid markers pass.",
-      "testable": true
+      "testable": true,
+      "status": "done"
     },
     {
       "id": "R7",
       "priority": "should",
       "desc": "get-next-action shall expose final-regression as an impl-phase mainline step after retro, use next-action/final-regression.schema.json, require no user approval for normal execution, and route a passing final-regression to finalize-commit.",
-      "testable": true
+      "testable": true,
+      "status": "done"
     },
     {
       "id": "R8",
       "priority": "should",
       "desc": "Any edited prompt, template, skill, guardrail, report, retro, or locale text that mentions full project regression shall name impl/final-regression as the default full project regression step. Edited text shall not state that default project-wide regression remains in impl/test-execute.",
-      "testable": false
+      "testable": false,
+      "status": "done"
     },
     {
       "id": "R9",
       "priority": "should",
       "desc": "gate-impl shall not block solely because full project regression was deferred from test-execute. It may block targeted or explicit full test-execute regression failures, invalid v2 artifacts, missing test-result-review pass, or failed final-regression evidence when that evidence exists.",
-      "testable": true
+      "testable": true,
+      "status": "done"
     },
     {
       "id": "R10",
       "priority": "must",
       "desc": "The completed implementation shall include spec-local tests under specs/259-final-regression-loop/tests with // spec: R<N> headers covering the new behavior, and focused shared unit tests may be added or updated for changed public flow contracts.",
-      "testable": true
+      "testable": true,
+      "status": "done"
     }
   ],
   "acceptance_criteria": [
@@ -183,7 +230,11 @@
     },
     {
       "q": "How is CLI success defined for final-regression?",
-      "a": "The command succeeds only when final-regression-result.json validates and result is pass. Fail artifacts and invalid artifacts are non-zero failures."
+      "a": "exit-code-contract: The command succeeds only when final-regression-result.json validates and result is pass. Fail artifacts, invalid artifacts, missing raw logs, invalid command discovery, timeout, permission, sandbox, dependency, signal, and child-process EPERM outcomes are failed envelopes and non-zero CLI failures."
+    },
+    {
+      "q": "Where is project-test-integrity runtime evidence produced?",
+      "a": "project-test-integrity: Task-level impl/review/gate steps must not run tests. Runtime evidence is produced by the spec-level test-execute and test-result-review steps, with full project evidence produced by final-regression before finalize."
     }
   ],
   "alternatives_considered": [

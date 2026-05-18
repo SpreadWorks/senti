@@ -30,6 +30,7 @@ Recent SDD flows repeatedly ran full project regression from test-execute. When 
 - test.testExecuteRegression is validated at the config boundary and may only be targeted, full, or skip.
 - flow run final-regression has no user-facing arguments in this spec; any future option must be validated at the CLI registry boundary.
 - exit-code-contract: flow run final-regression succeeds with exit code 0 only when final-regression-result.json validates with result pass. A fail artifact, invalid artifact, missing raw log, invalid command, timeout, permission, sandbox, dependency, or process error returns a failed envelope and non-zero process exit.
+- bounded-resource-usage: raw test and final-regression logs are bounded by artifact validators to 64 MiB and 200000 raw lines; per-evidence raw ranges are capped at 2000 lines. final-regression failure matching inspects at most 256 KiB of combined failure evidence and at most 1000 changed files; exceeding the changed-file match cap stops as infra_failure instead of routing to regression-repair.
 - backward-compatible-cli-interface: existing test-execute command remains available and the explicit test.testExecuteRegression=full setting is the migration path for users who intentionally want full regression inside test-execute.
 - Templates or presets changed by this work must be propagated with sdd-forge upgrade before finalize.
 
@@ -47,11 +48,17 @@ Recent SDD flows repeatedly ran full project regression from test-execute. When 
 - src/flow/lib/test-artifacts.js validates test-execute-result.json and final-regression-result.json contracts.
 - src/flow/lib/run-test-result-review.js validates test-execute-result.json against raw output before review, gate-impl, retro, and final-regression.
 - src/flow/prompts and src/templates/skills/sdd-forge.flow/SKILL.md describe the split responsibilities for test-execute, test-result-review, gate-impl, retro, final-regression, and finalize.
+- src/flow/lib/run-test-result-review.js now forwards rawOutputText to validateTestExecuteResultEvidence for project regression marker checks.
+- src/flow/lib/run-final-regression.js now requires failure output to reference a changed file before routing to regression-repair.
+- src/flow/prompts/plan/scenario-validity.md now describes impl/final-regression as the default full project regression point.
 
 ### Data Flow
 - implement -> test-execute writes spec-local and targeted/deferred evidence -> test-result-review validates artifact integrity -> review and gate-impl inspect the v2 artifact without running tests.
 - retro summarizes test-execute and test-result-review evidence -> final-regression runs the full project command by default -> finalize-commit starts only after final-regression pass.
 - On final-regression failure, final-regression-result.json records failureKind, retryable, nextAction, rawOutputPath, changedFiles, and previousFailureKind; issue-log records the failure.
+- test-result-review reads tests/.raw/test-execution.log, passes that text as rawOutputText, and lets test-artifacts validate full regression markers deterministically.
+- final-regression combines stdout, stderr, spawn errors, and discovery errors as failure evidence, then matches repo-relative changedFiles before choosing caused_by_current_change.
+- plan/scenario-validity remains spec-local pre-implementation validation, while impl/test-execute handles spec-local/targeted evidence and impl/final-regression handles full regression.
 
 ### Decisions
 - [VERIFY] final-regression step exists after retro and before finalize, with registry command and pass-only post-hook.
@@ -60,6 +67,9 @@ Recent SDD flows repeatedly ran full project regression from test-execute. When 
 - [CORRECTION] test-result-review must pass rawOutputText to validateTestExecuteResultEvidence, not rawText.
 - [CORRECTION] scenario-validity prompt still assigns post-implementation project verification to impl/test-execute.
 - [VERIFY] issue #330's board/issue body explicitly marks existing implementation as uncommitted work and instructs this spec not to re-implement it.
+- T-1 fixed the rawText/rawOutputText mismatch rather than changing the artifact validator contract.
+- T-2 keeps unlinked final-regression failures out of the normal repair loop by classifying them as pre_existing or another stop/test-repair category.
+- T-4 changed only the stale scenario-validity prompt because templates and installed skills already used final-regression wording.
 
 ## Clarifications (Q&A)
 - Q: Does this spec re-implement the already present 30a7 changes?
@@ -71,7 +81,9 @@ Recent SDD flows repeatedly ran full project regression from test-execute. When 
 - Q: What happens if a final-regression repair changes files after prior evidence exists?
   - A: flow run final-regression does not apply that repair. It emits nextAction only. If the user or agent edits files afterward, that edit is outside the final-regression command and remains subject to the existing stale-artifact reset behavior before finalize can rely on new evidence.
 - Q: How is CLI success defined for final-regression?
-  - A: The command succeeds only when final-regression-result.json validates and result is pass. Fail artifacts and invalid artifacts are non-zero failures.
+  - A: exit-code-contract: The command succeeds only when final-regression-result.json validates and result is pass. Fail artifacts, invalid artifacts, missing raw logs, invalid command discovery, timeout, permission, sandbox, dependency, signal, and child-process EPERM outcomes are failed envelopes and non-zero CLI failures.
+- Q: Where is project-test-integrity runtime evidence produced?
+  - A: project-test-integrity: Task-level impl/review/gate steps must not run tests. Runtime evidence is produced by the spec-level test-execute and test-result-review steps, with full project evidence produced by final-regression before finalize.
 
 ## Alternatives Considered
 - Keep full project regression in test-execute and optimize classification — Rejected because it leaves full npm test -- inside the same artifact invalidation loop that issue #330 is trying to remove.
