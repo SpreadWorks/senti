@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-16T15:13:37.244Z",
+  "analyzedAt": "2026-05-18T01:13:18.877Z",
   "package": {
     "entries": [
       {
@@ -2389,9 +2389,9 @@
       },
       {
         "file": "src/flow.js",
-        "hash": "1715a8b0cc367641edadcc70d3fa3132",
-        "lines": 96,
-        "mtime": "2026-04-19T01:49:14.514Z",
+        "hash": "b58564517357f3d57e5e25001e524232",
+        "lines": 97,
+        "mtime": "2026-05-17T09:27:44.024Z",
         "className": "flow",
         "methods": [
           "run",
@@ -2409,19 +2409,8 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Implements the flow CLI entrypoint and command dispatch for flow subcommands. It routes arguments to registered command handlers and enforces exit behavior.",
-        "detail": "The module initializes the DI container, resolves flow context, and delegates execution through a common dispatch helper. It handles grouped command envelopes and special routing for run/resume/prepare convenience aliases. Errors and missing commands return standardized non-zero exit codes. This file acts as the top-level orchestrator for flow command invocation.",
-        "chapter": "cli_commands",
-        "role": "cli",
-        "keywords": [
-          "flow cli",
-          "command dispatch",
-          "entrypoint",
-          "exit codes"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/commands/merge.js",
@@ -2481,13 +2470,21 @@
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "d850ee47ee3b0678cdc9fc7cd7cb7283",
-        "lines": 237,
-        "mtime": "2026-05-16T08:19:57.845Z",
+        "hash": "d06bc9202057e5387e3b0c407e238423",
+        "lines": 372,
+        "mtime": "2026-05-18T01:10:37.245Z",
         "className": "report",
         "methods": [
           "generateReport",
           "saveReport",
+          "capReportField",
+          "buildTaskReportRows",
+          "taskStepResult",
+          "taskArtifactResult",
+          "taskResultFromArtifact",
+          "requirementResultFromArtifact",
+          "taskRequirementIds",
+          "asArray",
           "formatText"
         ],
         "imports": [
@@ -2495,7 +2492,9 @@
           "path",
           "../lib/set-issue-log.js",
           "../lib/get-status.js",
-          "../../lib/formatter.js"
+          "../lib/task-scope.js",
+          "../../lib/formatter.js",
+          "../../lib/constants.js"
         ],
         "exports": [
           "generateReport",
@@ -2504,28 +2503,15 @@
         "extends": null,
         "usedBy": null,
         "id": "5f80ffd2",
-        "summary": "`flow report` generates and persists structured status reports for flow execution metrics. It emits both machine-readable data and formatted terminal text.",
-        "detail": "The command combines issue-log input with metric and total calculators to produce a normalized report object. A formatter renders aligned textual sections with dividers and human-friendly duration strings for CLI display. Persistence writes `report.json` beside the target spec path, creating directories when needed. This dual-output pattern supports both automation consumption and quick operator inspection.",
-        "chapter": "cli_commands",
-        "role": "flow reporting command",
         "enrich": {
-          "processedAt": "2026-05-16T10:53:00.843Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow report",
-          "metrics summary",
-          "status totals",
-          "report.json",
-          "CLI formatting",
-          "duration formatting"
-        ]
+        }
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "fff4eeaa08d38bde58c2f448375a28c1",
-        "lines": 2461,
-        "mtime": "2026-05-16T15:13:36.954Z",
+        "hash": "f03e83adea0100c3d54b0ff274e89fa1",
+        "lines": 2542,
+        "mtime": "2026-05-18T01:10:37.246Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2558,6 +2544,8 @@
           "invertFileMap",
           "collectPerFileDiffs",
           "buildChunkReviewInput",
+          "resolveTaskReviewSpec",
+          "buildTaskReviewInput",
           "chunkLabel",
           "runLoopReview",
           "runReviewLoop",
@@ -2570,6 +2558,8 @@
           "buildTestFixPrompt",
           "measurePromptChars",
           "assertTestReviewPromptWithinLimit",
+          "classifyReviewCommandError",
+          "parseReviewCliArgsForError",
           "parseGaps",
           "applyTestFixes",
           "formatTestReviewMd",
@@ -2627,6 +2617,7 @@
           "../../lib/prompt-builder.js",
           "../lib/acknowledged-rationale.js",
           "../../lib/schema-validate.js",
+          "../lib/review-failure.js",
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
           "../../lib/constants.js",
@@ -2679,7 +2670,10 @@
         ],
         "extends": "Command",
         "usedBy": null,
-        "id": "331cf497"
+        "id": "331cf497",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/definition.js",
@@ -2738,7 +2732,7 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -2890,7 +2884,8 @@
           "src/flow/lib/set-files.js",
           "src/flow/lib/run-test-execute.js",
           "src/flow/lib/run-test-result-review.js",
-          "src/flow/lib/set-retry.js"
+          "src/flow/lib/set-retry.js",
+          "src/flow/lib/set-broad.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -2985,7 +2980,7 @@
         ],
         "id": "9c36c232",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3100,7 +3095,7 @@
         ],
         "id": "9bbc3f1d",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3197,7 +3192,7 @@
         ],
         "id": "1261e39f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3275,9 +3270,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "9601d066d5283bffbe696cbb35b30d66",
-        "lines": 176,
-        "mtime": "2026-05-08T07:44:34.911Z",
+        "hash": "3cd81e654d797619f3e78d13c147a13f",
+        "lines": 243,
+        "mtime": "2026-05-18T01:10:37.246Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -3286,7 +3281,10 @@
           "deriveStateSet",
           "getRulesCached",
           "injectPersistentRules",
-          "buildContextDescriptor"
+          "buildContextDescriptor",
+          "isFlowImplementationStep",
+          "promoteNextTaskAndFirstStep",
+          "promoteNextAvailableTarget"
         ],
         "imports": [
           "fs",
@@ -3296,7 +3294,10 @@
           "./get-step-instructions.js",
           "../definition.js",
           "../../lib/flow-helpers.js",
-          "../../lib/skill-rules.js"
+          "../../lib/skill-rules.js",
+          "./review-failure.js",
+          "./task-scope.js",
+          "../../lib/flow-envelope.js"
         ],
         "exports": [
           "default"
@@ -3304,22 +3305,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
-        "summary": "`get-next-action` computes the next flow instruction payload, including context and output schema hints. It derives decisions from flow state, step definitions, and persistent skill rules.",
-        "detail": "The command loads JSON schemas from a configurable directory and resolves the active task and state-set flags. It can promote pending tasks and determines step-specific instructions through flow definition mappings. Cached rule loading is used to inject persistent rule blocks into generated guidance content. Missing rule coverage for a step is treated as a hard error to prevent ambiguous execution. The result structure includes action, instructions, context descriptors, schema, and approval requirements.",
-        "chapter": "internal_design",
-        "role": "flow decision engine",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
-        },
-        "keywords": [
-          "next action",
-          "flow state machine",
-          "schema loading",
-          "rule injection",
-          "task promotion",
-          "step instruction resolution"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/get-prompt.js",
@@ -3341,7 +3329,7 @@
         "usedBy": null,
         "id": "410dfcc9",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3417,9 +3405,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "ce4ee22db1253308e771a5b20ac2b127",
-        "lines": 192,
-        "mtime": "2026-05-10T06:31:17.508Z",
+        "hash": "8195489823efa9bba3d3597932d66e55",
+        "lines": 214,
+        "mtime": "2026-05-18T01:10:37.246Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -3428,14 +3416,18 @@
           "zeroProviderBucket",
           "applyEntry",
           "applyProviderEntry",
+          "buildStatusReviewStop",
           "buildStatusOutput"
         ],
         "imports": [
           "../../lib/flow-helpers.js",
           "../../lib/agent-metrics.js",
+          "../../lib/constants.js",
           "../../lib/spec-json.js",
           "../definition.js",
-          "./base-command.js"
+          "./base-command.js",
+          "./review-failure.js",
+          "./task-scope.js"
         ],
         "exports": [
           "buildMetricsSummary",
@@ -3449,23 +3441,9 @@
           "src/flow/lib/get-qa-count.js"
         ],
         "id": "9aca938f",
-        "summary": "Implements `flow get status`, aggregating flow state, derived phase, requirements, and metrics token/activity totals into a status report.",
-        "detail": "Builds metrics buckets per phase and provider using `TOKEN_KEYS` and `ACTIVITY_COUNTERS`, normalizing agent metric dimensions before summation. `buildReportTotals` flattens summary into top-level tokens and activity counters. `GetStatusCommand` returns the current flow's status (or a specific run via runId lookup), or `{ active: false }` when no flow is active. Used as the data source for the `flow-status` skill.",
-        "chapter": "cli_commands",
-        "role": "command",
         "enrich": {
-          "processedAt": "2026-05-10T06:32:36.982Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow status",
-          "metrics",
-          "tokens",
-          "activity",
-          "phase",
-          "run id",
-          "summary"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/get-step-instructions.js",
@@ -3621,7 +3599,7 @@
         ],
         "id": "a93faae0",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3710,7 +3688,7 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -3741,7 +3719,7 @@
         ],
         "id": "d569f2a6",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3784,6 +3762,48 @@
         ]
       },
       {
+        "file": "src/flow/lib/review-failure.js",
+        "hash": "0683fc89d808c6f3aa10553c4e727e62",
+        "lines": 336,
+        "mtime": "2026-05-18T00:05:36.188Z",
+        "className": "review-failure",
+        "methods": [
+          "reviewPhaseForStepId",
+          "ReviewFailure",
+          "writeReviewStopState",
+          "clearReviewStopState",
+          "buildReviewStopView",
+          "requireString",
+          "cleanReason",
+          "retryResetCommand",
+          "retryReviewCommand",
+          "countReviewRetry",
+          "fallbackRecoveryCommand",
+          "matchesInputSizeFailure",
+          "matchesProviderFailure"
+        ],
+        "imports": [],
+        "exports": [
+          "reviewPhaseForStepId",
+          "ReviewFailure",
+          "writeReviewStopState",
+          "clearReviewStopState",
+          "buildReviewStopView",
+          "REVIEW_FAILURE_MARKER_PREFIX"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-retry.js"
+        ],
+        "id": "fcf92359",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/lib/run-auto-check.js",
         "hash": "e63ebc08bfbd90f49d5a83b3565a3900",
         "lines": 339,
@@ -3823,14 +3843,14 @@
         ],
         "id": "62c43842",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
         "file": "src/flow/lib/run-complete-task.js",
-        "hash": "d8c8cfa03111a77b40cca00ce600824d",
-        "lines": 75,
-        "mtime": "2026-04-25T05:14:13.540Z",
+        "hash": "adc6320850783b54f6816b26d347ad79",
+        "lines": 81,
+        "mtime": "2026-05-18T01:10:37.246Z",
         "className": "run-complete-task",
         "methods": [
           "RunCompleteTaskCommand"
@@ -3848,23 +3868,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "112e5208",
-        "summary": "This file defines the command for completing the current flow task and returning a standardized execution envelope. It coordinates flow lifecycle updates through the flow manager and helper utilities.",
-        "detail": "The command extends the shared flow command base and delegates state access and mutation to FlowManager-backed operations. It uses Envelope.ok and Envelope.fail to emit consistent machine-readable outcomes for success and failure paths. Guard clauses handle missing active flow and invalid task/step progression conditions before any mutation is committed. It advances task progression using shared helper logic so completion behavior stays consistent with the rest of the flow system. The module keeps command wiring small and pushes domain logic into library components.",
-        "chapter": "cli_commands",
-        "role": "controller",
         "enrich": {
-          "processedAt": "2026-04-25T05:14:42.832Z",
           "attempts": 1
-        },
-        "keywords": [
-          "complete task",
-          "flow manager",
-          "envelope response",
-          "task lifecycle",
-          "command execution",
-          "error handling",
-          "state transition"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
@@ -3905,7 +3911,7 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3934,7 +3940,7 @@
         "usedBy": null,
         "id": "1e686d63",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4016,9 +4022,9 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "fd83c5512da865d8afbd3880f43c7aea",
-        "lines": 212,
-        "mtime": "2026-05-16T08:19:57.845Z",
+        "hash": "42e4d1d0b67540a8c3b756d48d4d16e1",
+        "lines": 217,
+        "mtime": "2026-05-17T14:14:01.333Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
@@ -4067,9 +4073,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "3951600f88bca584de66440dae2cb09e",
-        "lines": 2368,
-        "mtime": "2026-05-16T08:19:57.846Z",
+        "hash": "bd4fa49a07e2bb9cf4c7f2699d9e1d70",
+        "lines": 2440,
+        "mtime": "2026-05-18T01:10:37.247Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4104,6 +4110,7 @@
           "runGitDiff",
           "splitDiffByFile",
           "collectPerFileDiffsForGate",
+          "taskCursorRequiredGateFailure",
           "isGeneratedSpecArtifactForGate",
           "sectionAt",
           "findUnresolvedMatch",
@@ -4155,6 +4162,8 @@
           "../../lib/flow-envelope.js",
           "./draft-lifecycle.js",
           "./test-artifacts.js",
+          "./test-artifacts.js",
+          "./task-scope.js",
           "../definition.js"
         ],
         "exports": [
@@ -4240,7 +4249,7 @@
         "usedBy": null,
         "id": "e6534160",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4318,7 +4327,7 @@
         "usedBy": null,
         "id": "59eeacc6",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4347,7 +4356,7 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4380,7 +4389,7 @@
         ],
         "id": "3754ab40",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4410,7 +4419,7 @@
         "usedBy": null,
         "id": "43872d6b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4474,14 +4483,14 @@
         "usedBy": null,
         "id": "862e7d08",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "d4255ab6491264b1999ec9a25122e3d1",
-        "lines": 349,
-        "mtime": "2026-05-16T15:13:36.958Z",
+        "hash": "22e60e0840b2662be0cb7d4fd40cfc68",
+        "lines": 431,
+        "mtime": "2026-05-18T01:10:37.247Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -4492,6 +4501,8 @@
           "runCmdWithRetry",
           "RunReviewCommand",
           "persistedPhaseKey",
+          "isImplementationReviewPhase",
+          "taskCursorRequiredReviewFailure",
           "resolveDraftReviewPhaseKey",
           "reviewPhaseKeyForCtx",
           "isImplPass",
@@ -4499,7 +4510,9 @@
           "parsePhaseReviewOutput",
           "parseTestReviewOutput",
           "parseSpecReviewOutput",
-          "parseProposalReviewOutput"
+          "parseProposalReviewOutput",
+          "normalizeReviewSubprocessRetryCount",
+          "normalizeReviewSubprocessRetryDelayMs"
         ],
         "imports": [
           "../../lib/cli.js",
@@ -4510,7 +4523,9 @@
           "../definition.js",
           "path",
           "fs",
-          "./test-artifacts.js"
+          "./review-failure.js",
+          "./test-artifacts.js",
+          "./task-scope.js"
         ],
         "exports": [
           "countReviewRetry",
@@ -4531,7 +4546,10 @@
         "usedBy": [
           "src/flow/lib/set-retry.js"
         ],
-        "id": "d4e97204"
+        "id": "d4e97204",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-start-task.js",
@@ -4648,7 +4666,7 @@
         "usedBy": null,
         "id": "41745e8b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4679,7 +4697,7 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4713,8 +4731,22 @@
         "usedBy": null,
         "id": "d001ca9b",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 2
+        },
+        "summary": "Updates a spec overview by validating JSON additions, merging allowed sections, and re-rendering `spec.md`. It wraps file persistence and command execution with flow-aware error envelopes.",
+        "detail": "The module defines `persistOverviewUpdate` to load `spec.json`, enforce a size cap, apply structured additions, and write back normalized JSON output. After persistence, it triggers `renderSpecView` using a `FlowManager` and root path derived from the spec directory, then reports whether markdown changed. Input validation is strict: `--json` must parse into an object containing only `modules`, `data_flow`, and `decisions`, each as string arrays. `RunUpdateOverviewCommand` checks active flow state, resolves the spec directory, and returns success/failure using `Envelope` codes for predictable CLI handling.",
+        "chapter": "cli_commands",
+        "role": "Flow command for safely applying overview deltas to spec artifacts.",
+        "keywords": [
+          "flow command",
+          "overview update",
+          "spec.json merge",
+          "JSON validation",
+          "spec rendering",
+          "error envelope",
+          "stateful CLI"
+        ]
       },
       {
         "file": "src/flow/lib/set-approval.js",
@@ -4739,8 +4771,21 @@
         "usedBy": null,
         "id": "831b8f64",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 2
+        },
+        "summary": "Handles approval metadata updates in spec documents with field-level validation and optional markdown re-rendering. It enforces approval status and timestamp correctness before persisting.",
+        "detail": "`SetApprovalCommand` extends the flow command base and validates approval-related inputs such as ISO-8601 date formatting and note length constraints. It resolves the target spec path from flow context, then reads and writes `spec.json` through shared helpers to keep schema behavior consistent. After mutation, it calls `renderSpecView` so markdown reflects updated approval state. Failures are surfaced through structured `Envelope.fail` responses, keeping command behavior deterministic.",
+        "chapter": "cli_commands",
+        "role": "Flow command for managing `user_approval` state in spec metadata.",
+        "keywords": [
+          "approval workflow",
+          "ISO 8601 validation",
+          "spec metadata",
+          "flow state",
+          "render spec",
+          "command envelope"
+        ]
       },
       {
         "file": "src/flow/lib/set-auto.js",
@@ -4764,8 +4809,56 @@
         "usedBy": null,
         "id": "2c71e989",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 4
+        },
+        "summary": "Controls auto-approval mode and integrates optional auto-check execution depending on context. It validates allowed values and returns structured status payloads.",
+        "detail": "`SetAutoCommand` accepts only values defined in `VALID_AUTO_VALUES`, preventing unsupported toggles. For disable paths, it returns `autoApprove: false` and may include a preparing run identifier when applicable. For enable paths, it can execute `runAutoCheckCore`, combine trust/skipping decisions via resolver helpers, and return detailed check output. All invalid input or resolution failures are wrapped in envelope-style error responses for uniform CLI contracts.",
+        "chapter": "cli_commands",
+        "role": "Flow command that toggles automatic approval behavior with guard checks.",
+        "keywords": [
+          "auto approve",
+          "auto check",
+          "preparing run",
+          "flow automation",
+          "trusted mode",
+          "validation constants"
+        ]
+      },
+      {
+        "file": "src/flow/lib/set-broad.js",
+        "hash": "0b55e8233838863557599d9ef1f98aab",
+        "lines": 36,
+        "mtime": "2026-05-18T01:10:37.247Z",
+        "className": "set-broad",
+        "methods": [],
+        "imports": [
+          "./base-command.js",
+          "../../lib/flow-envelope.js",
+          "./task-scope.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "b77c2c3d",
+        "summary": "Sets broad mode for eligible flow steps by generating and storing an audited broad-scope record. It rejects invalid mode input with explicit command errors.",
+        "detail": "`SetBroadCommand` is a thin command wrapper around task-scope broad-mode logic. It delegates record creation to `createBroadModeRecord`, which centralizes step/reason validation and history shape. On invalid requests, it emits `INVALID_BROAD_MODE` failures with direct error messages. Successful execution returns a canonical `broadMode` object that downstream flow logic can audit.",
+        "chapter": "cli_commands",
+        "role": "Flow command to declare broad-scope execution intent for task-scoped steps.",
+        "enrich": {
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "broad mode",
+          "task scope",
+          "audit record",
+          "flow command",
+          "scope override",
+          "input validation"
+        ]
       },
       {
         "file": "src/flow/lib/set-files.js",
@@ -5063,9 +5156,9 @@
       },
       {
         "file": "src/flow/lib/set-retry.js",
-        "hash": "f6d04d9f7bd6a4079d88e030608683e4",
-        "lines": 116,
-        "mtime": "2026-05-12T01:17:35.555Z",
+        "hash": "770fc71b953d72dcc405ea84c9408f1a",
+        "lines": 122,
+        "mtime": "2026-05-18T00:05:36.189Z",
         "className": "set-retry",
         "methods": [
           "normalizeReviewResetPhase",
@@ -5076,7 +5169,8 @@
           "../../lib/flow-envelope.js",
           "./run-gate.js",
           "./run-review.js",
-          "../definition.js"
+          "../definition.js",
+          "./review-failure.js"
         ],
         "exports": [
           "default"
@@ -5084,9 +5178,22 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "ee559b7a",
+        "summary": "Resets retry counters for gate/review phases with strict action-kind-phase validation. It coordinates retry state cleanup and phase-aware reset semantics.",
+        "detail": "The module defines allowed actions (`reset`) and kinds (`gate`, `review`) and maps each to valid phases and counter keys. It normalizes review reset behavior, including multi-phase expansion when needed, then computes current retry counts with kind-specific functions. `SetRetryCommand` validates arguments, clears review stop-state when relevant, and refuses unsupported combinations via envelope failures. On success it returns a detailed reset summary including affected phases, counter name, and confirmation flags.",
+        "chapter": "cli_commands",
+        "role": "Flow command for controlled retry counter resets in gate/review pipelines.",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "retry reset",
+          "gate phase",
+          "review phase",
+          "counter management",
+          "flow recovery",
+          "command validation"
+        ]
       },
       {
         "file": "src/flow/lib/set-step.js",
@@ -5120,8 +5227,21 @@
         "usedBy": null,
         "id": "d4cb8d93",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 2
+        },
+        "summary": "Updates individual step status in the flow and enforces pre/post validation hooks for test-managed stages. It also triggers side effects and optional auto-check integrations.",
+        "detail": "`SetStepCommand` validates usage and allowed statuses, then coordinates step updates against flow definitions and helper resolvers. It performs specialized checks for test-related phases, including artifact schema validation and review consistency files in spec directories. Pre/post hook logic blocks transitions when managed artifacts are missing or malformed, returning explicit envelope failures. The module also synchronizes spec tasks, computes skip verdicts, and returns enriched response payloads with side-effect metadata when applicable.",
+        "chapter": "cli_commands",
+        "role": "Primary command for transitioning flow step states with guardrails.",
+        "keywords": [
+          "step status",
+          "flow transition",
+          "test artifact validation",
+          "post hook checks",
+          "auto check input",
+          "side effects"
+        ]
       },
       {
         "file": "src/flow/lib/set-summary.js",
@@ -5201,12 +5321,80 @@
         ]
       },
       {
+        "file": "src/flow/lib/task-scope.js",
+        "hash": "726b6641cca33aa39254027504e2abbf",
+        "lines": 178,
+        "mtime": "2026-05-18T01:10:37.247Z",
+        "className": "task-scope",
+        "methods": [
+          "TaskScopeDecision",
+          "latestBroadModeRecord",
+          "buildBoundedBroadModeHistory",
+          "createBroadModeRecord",
+          "assertAuditedBroadMode",
+          "evaluateTaskScope",
+          "taskScopeViolationMessages",
+          "resolveCurrentTaskSpec",
+          "taskHasInProgressStep",
+          "isActionableTask",
+          "hasTaskWork",
+          "hasInProgressTask",
+          "hasAnyInProgressTaskStep",
+          "findNextPendingActionableTask"
+        ],
+        "imports": [
+          "node:fs",
+          "node:path",
+          "../../lib/flow-helpers.js"
+        ],
+        "exports": [
+          "TaskScopeDecision",
+          "latestBroadModeRecord",
+          "buildBoundedBroadModeHistory",
+          "createBroadModeRecord",
+          "assertAuditedBroadMode",
+          "evaluateTaskScope",
+          "taskScopeViolationMessages",
+          "resolveCurrentTaskSpec",
+          "BROAD_STEPS"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-broad.js"
+        ],
+        "id": "5fd87c16",
+        "summary": "Implements task-scope decision logic, broad-mode auditing, and current-task resolution for flow operations. It is the core policy engine deciding whether actions run at flow, task, or promoted scope.",
+        "detail": "The module defines `TaskScopeDecision` with helper predicates for valid, blocked, and promotable outcomes. It inspects task arrays to detect actionable work, in-progress states, and pending candidates, then evaluates scope decisions per step and broad-mode rules. Broad execution is guarded by auditable records with bounded history and strict step/reason checks, preventing silent scope escalation. It also resolves current task specs safely from disk, validating existence and returning both text content and path metadata.",
+        "chapter": "internal_design",
+        "role": "Scope policy layer for task-oriented flow execution.",
+        "enrich": {
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "task scope",
+          "decision engine",
+          "broad mode audit",
+          "flow policy",
+          "task promotion",
+          "spec resolution"
+        ]
+      },
+      {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "d6fb11051b1c22a99fb91cc3aa92ea71",
-        "lines": 222,
-        "mtime": "2026-05-16T08:19:57.847Z",
+        "hash": "b9010a67ef133d1902e95a6dc8defbd2",
+        "lines": 634,
+        "mtime": "2026-05-17T14:14:01.346Z",
         "className": "test-artifacts",
         "methods": [
+          "GateArtifactTrustContract",
+          "GateArtifactTrustSuccess",
+          "GateArtifactTrustFailure",
+          "buildGateArtifactTrustContract",
           "readJsonStrict",
           "validateTestExecuteResultV2",
           "validateSummaryEvidence",
@@ -5215,16 +5403,44 @@
           "loadValidatedTestArtifacts",
           "buildTestResultsFromArtifacts",
           "assertIntegrationRegressionEvidence",
+          "validateIntegrationArtifactTrust",
+          "assertFileSizeWithinLimit",
+          "assertMaxItems",
+          "readBoundedJson",
+          "loadJsonArtifact",
+          "readBoundedText",
+          "readBoundedRawOutput",
+          "resolveRepoRelativePathInside",
           "assertRange",
-          "validateRegression"
+          "assertEvidenceRangeWithinLimit",
+          "validateRegression",
+          "nonEmptyString",
+          "escapeRegExp",
+          "configuredPlaceholderSentinels",
+          "placeholderSentinelPatterns",
+          "createSentinelScanBudget",
+          "hasPlaceholderSentinel",
+          "assertPlaceholderPermission",
+          "enforcePlaceholderPermissionArtifactForHit",
+          "validateFileMap",
+          "scanPlaceholderHashes",
+          "findPlaceholderFieldHit",
+          "scanPlaceholderSentinels",
+          "validateRequiredTrustInputs"
         ],
         "imports": [
           "fs",
           "path",
+          "crypto",
+          "string_decoder",
           "../../lib/config.js",
           "./test-regression.js"
         ],
         "exports": [
+          "GateArtifactTrustContract",
+          "GateArtifactTrustSuccess",
+          "GateArtifactTrustFailure",
+          "buildGateArtifactTrustContract",
           "readJsonStrict",
           "validateTestExecuteResultV2",
           "validateSummaryEvidence",
@@ -5233,11 +5449,14 @@
           "loadValidatedTestArtifacts",
           "buildTestResultsFromArtifacts",
           "assertIntegrationRegressionEvidence",
+          "validateIntegrationArtifactTrust",
           "TEST_EXECUTE_RESULT_FILE",
           "TEST_RESULT_REVIEW_FILE",
           "TEST_RESULT_REVIEW_MD_FILE",
           "RAW_OUTPUT_RELATIVE",
           "TEMP_SUMMARY_RELATIVE",
+          "FILE_MAP_RELATIVE",
+          "PLACEHOLDER_PERMISSION_FILE",
           "DURABLE_TEST_ARTIFACT_RELATIVE_PATHS",
           "RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS"
         ],
@@ -5255,9 +5474,22 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "0b1b96b3",
+        "summary": "Provides comprehensive test artifact loading, validation, and trust evaluation for integration and gate decisions. It enforces strict size, shape, evidence, and placeholder-sentinel constraints.",
+        "detail": "The module defines artifact constants, trust result classes, and hard limits for JSON/text size, line counts, and item cardinality. It validates test execution and review artifacts deeply, including regression process fields, evidence line ranges, membership integrity, and required verification items. Path resolution functions prevent escaping allowed directories, and placeholder detection scans hashes/fields/sentinels with optional explicit permission files. Integration trust checks compare artifact snapshots against current repository analysis, detecting stale regression inputs and forcing reruns when drift is found.",
+        "chapter": "internal_design",
+        "role": "Artifact integrity and trust framework for test-driven flow gates.",
         "enrich": {
+          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "artifact validation",
+          "test evidence",
+          "regression trust",
+          "placeholder sentinel",
+          "path safety",
+          "integration gate"
+        ]
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -5369,14 +5601,27 @@
         ],
         "id": "2980d983",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 2
+        },
+        "summary": "Discovers, parses, classifies, and executes project regression test commands. It also classifies changed files to decide whether regression is trigger-relevant.",
+        "detail": "The module models commands with `ParsedCommand`, rejecting shell control syntax and supporting env-prefixed token parsing from plain strings. Command discovery selects sources from config/package/composer/make targets via test-command source helpers. Change classification separates project-trigger paths from docs/spec/generated artifacts and computes a regression category for policy decisions. Execution helpers run commands with timeout/env control and return structured process outcomes including spawn errors and termination metadata.",
+        "chapter": "internal_design",
+        "role": "Regression command orchestration and change-impact classification.",
+        "keywords": [
+          "regression command",
+          "command parsing",
+          "change classification",
+          "test timeout",
+          "process execution",
+          "trigger relevance"
+        ]
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "8b7961aa6332d6b57e586b4c26057dc2",
-        "lines": 861,
-        "mtime": "2026-05-16T08:19:57.847Z",
+        "hash": "f52eadfaef2222337af6913538a4bc34",
+        "lines": 886,
+        "mtime": "2026-05-18T01:10:37.247Z",
         "className": "registry",
         "methods": [
           "isFinalizeSuccess",
@@ -5398,9 +5643,22 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
+        "summary": "Registers flow subcommands and orchestrates lifecycle hooks, finalize behavior, and best-effort status updates. It centralizes command wiring and cross-step coordination.",
+        "detail": "The registry imports phase and step resolvers, defines success criteria for finalize statuses, and tracks runtime options passed through run commands. It includes helpers to route updates to the main-repo flow manager, reset downstream skipped steps, and append issue logs without hard-failing noncritical paths. Command entries expose usage text and hook logic for pre/post/error handling around major phases like commit and merge. Additional guard checks validate test artifacts at key points to keep finalize paths consistent with gate expectations.",
+        "chapter": "cli_commands",
+        "role": "Central flow command map and lifecycle coordinator.",
         "enrich": {
+          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "command registry",
+          "finalize pipeline",
+          "step status update",
+          "hook orchestration",
+          "issue log",
+          "flow lifecycle"
+        ]
       },
       {
         "file": "src/help.js",
@@ -5553,7 +5811,23 @@
         "usedBy": [
           "src/lib/container.js"
         ],
-        "id": "13ddf392"
+        "id": "13ddf392",
+        "summary": "Implements agent invocation with provider profiles, retries, logging, and output parsing filters. It standardizes external agent execution under controlled runtime contracts.",
+        "detail": "`Agent` resolves provider/config profiles, builds invocation args (including prompt/schema injection), and can spill large schema payloads to temporary files. It applies retry policies with exponential backoff and delegates per-call execution through child process spawning with timeout handling. Streaming noise is filtered using event-pattern stripping before provider-specific parsing, improving stability across agent outputs. `runWithLogging` records start/end/error telemetry and accumulates request metrics while preserving command-level failure semantics.",
+        "chapter": "internal_design",
+        "role": "Execution runtime for AI/agent subprocess calls and telemetry.",
+        "enrich": {
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "agent runtime",
+          "provider profile",
+          "retry backoff",
+          "child process",
+          "stream filtering",
+          "request logging"
+        ]
       },
       {
         "file": "src/lib/agents-md.js",
@@ -5595,9 +5869,9 @@
       },
       {
         "file": "src/lib/cli.js",
-        "hash": "150316fa63f63fc715b85bdfb4e3f0c3",
-        "lines": 149,
-        "mtime": "2026-05-10T06:31:17.509Z",
+        "hash": "d25621086afe51d51e47578609a9cf66",
+        "lines": 153,
+        "mtime": "2026-05-17T09:27:44.024Z",
         "className": "cli",
         "methods": [
           "repoRoot",
@@ -5637,23 +5911,21 @@
           "src/upgrade.js"
         ],
         "id": "f351ecc4",
-        "summary": "CLI helpers for argv parsing, repo/source root resolution, version lookup, and worktree detection.",
-        "detail": "Exposes PKG_DIR (sdd-forge install path), repoRoot()/sourceRoot() honoring SDD_FORGE_WORK_ROOT/SOURCE_ROOT env overrides with git rev-parse fallback, and parseArgs() that converts kebab-case --flags into camelCase keys based on a spec object. isInsideWorktree() checks whether .git is a file (linked worktree) and getMainRepoPath() resolves the main repo via gitCommonDir. Also provides getPackageVersion() reading package.json and formatUTCTimestamp() emitting 'YYYY-MM-DD HH:MM:SS UTC' strings. Throws on unknown options to enforce strict CLI parsing.",
+        "summary": "Defines core CLI utilities for repository path resolution, argument parsing, and utility formatting. It handles worktree detection and version/timestamp helpers.",
+        "detail": "The module exports canonical roots (`repoRoot`, `sourceRoot`) with environment overrides and git-based fallback behavior. `parseArgs` handles flag/option extraction with explicit missing-value and unknown-option errors for strict command inputs. Worktree helpers detect linked checkouts and derive main repository paths from `.git` indirection. It also exposes package version lookup and UTC timestamp formatting used by user-facing outputs and logs.",
         "chapter": "cli_commands",
-        "role": "Shared CLI primitives: argv parser, root resolver, worktree detection",
+        "role": "Foundational CLI/path helper layer shared across commands.",
         "enrich": {
-          "processedAt": "2026-05-10T06:32:29.323Z",
+          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
         },
         "keywords": [
-          "cli",
-          "parseArgs",
-          "repoRoot",
-          "worktree",
-          "git",
-          "version",
-          "timestamp",
-          "argv"
+          "CLI parsing",
+          "repo root",
+          "worktree detection",
+          "option parser",
+          "version helper",
+          "UTC timestamp"
         ]
       },
       {
@@ -5738,9 +6010,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "e09d87c883f74275f7fc892818090fa1",
-        "lines": 402,
-        "mtime": "2026-05-16T08:19:57.848Z",
+        "hash": "750cd1feb2ccfa8a66997838bdcf205a",
+        "lines": 403,
+        "mtime": "2026-05-17T09:27:44.025Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -5793,15 +6065,28 @@
           "src/upgrade.js"
         ],
         "id": "dff6e5b4",
+        "summary": "Loads and validates project configuration with schema checks and default resolution. It defines paths and policy-level validators for test-related settings.",
+        "detail": "The module declares defaults (language, concurrency), resolves `.sdd-forge` directories, and reads JSON/package fields with controlled error behavior. `validate` enforces object shape through schema validation and surfaces aggregated, human-readable error lists. It includes command-specific checks such as forbidden shell syntax in test commands and root-relative constraints for project test paths. `loadConfig` ties file read and validation into one entry point used by container/bootstrap code.",
+        "chapter": "configuration",
+        "role": "Configuration schema, defaults, and loader utilities.",
         "enrich": {
+          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "config schema",
+          "loadConfig",
+          "validation errors",
+          "default values",
+          "test command policy",
+          "sdd paths"
+        ]
       },
       {
         "file": "src/lib/constants.js",
-        "hash": "446a4171a6ef519ab4121423175ad99a",
-        "lines": 159,
-        "mtime": "2026-05-08T23:39:55.624Z",
+        "hash": "0de7acfa5ecddf2a7e9324c00784dc6a",
+        "lines": 166,
+        "mtime": "2026-05-18T01:10:37.247Z",
         "className": "constants",
         "methods": [],
         "imports": [],
@@ -5816,6 +6101,7 @@
           "VALID_METRIC_COUNTERS",
           "VALID_CHECK_TARGETS",
           "VALID_REVIEW_PHASES",
+          "BROAD_MODE_HISTORY_MAX_ENTRIES",
           "VALID_IMPL_CONFIRM_MODES",
           "VALID_AUTO_VALUES",
           "VALID_REQ_STATUSES",
@@ -5836,31 +6122,28 @@
           "src/upgrade.js"
         ],
         "id": "74b5e1c3",
-        "summary": "Centralizes frozen enums for valid phases, statuses, gate levels, metric counters, and review phases used across the flow subsystem.",
-        "detail": "Each export is an Object.freeze'd array acting as a single source of truth for validation: VALID_PHASES, VALID_STEP_STATUSES, VALID_GATE_PHASES, VALID_GATE_LEVELS, VALID_LEVEL_PHASE_COMBINATIONS, VALID_GUARDRAIL_CATEGORIES, VALID_GUARDRAIL_PHASES, VALID_METRIC_COUNTERS, VALID_CHECK_TARGETS, VALID_REVIEW_PHASES, VALID_IMPL_CONFIRM_MODES, VALID_AUTO_VALUES, and VALID_REQ_STATUSES. EXIT_SUCCESS (0) and EXIT_ERROR (1) standardize CLI exit codes. Other modules import these to validate command arguments and reject unknown values via Envelope.fail patterns, ensuring consistent vocabulary across registry.js, set-retry.js, run-review.js, and gate logic.",
-        "chapter": "configuration",
-        "role": "Validation constants",
+        "summary": "Provides immutable constant sets for phases, statuses, categories, and operational flags across the flow system. It acts as a shared contract to keep command behavior consistent.",
+        "detail": "The file exports curated `Object.freeze` arrays for gate/review/guardrail domains and allowed value combinations. It includes broad-mode history limits, request/status enums, and generic success/error exit codes. Centralizing these constants prevents divergent literals and simplifies input validation in command modules. The constants are consumed broadly by set/run helpers and registry logic as canonical reference data.",
+        "chapter": "internal_design",
+        "role": "Shared domain constants for flow validation and control.",
         "enrich": {
-          "processedAt": "2026-05-08T23:40:35.893Z",
+          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
         },
         "keywords": [
-          "constants",
-          "enums",
-          "Object.freeze",
-          "valid phases",
+          "domain constants",
+          "flow phases",
+          "status enums",
+          "guardrails",
           "exit codes",
-          "gate levels",
-          "metric counters",
-          "review phases",
-          "single source of truth"
+          "immutable config"
         ]
       },
       {
         "file": "src/lib/container.js",
-        "hash": "e9cfa562e7fc4c283bf7130c761ed189",
+        "hash": "8263fb38d56f078fdb98bd6f3350a13d",
         "lines": 217,
-        "mtime": "2026-05-16T08:19:57.848Z",
+        "mtime": "2026-05-17T09:27:44.025Z",
         "className": "container",
         "methods": [
           "Container",
@@ -5902,25 +6185,41 @@
           "src/spec.js"
         ],
         "id": "fc4eae43",
+        "summary": "Builds the dependency container and runtime path map for the CLI application. It wires core services such as config, flow manager, logging, providers, and analysis/scanning helpers.",
+        "detail": "`Container` is a lightweight registry with strict missing-dependency errors and preset storage accessors. `buildPaths` derives root/work/output/log directories, including agent work/log locations normalized from config. `initContainer` loads configuration, initializes major services, and reports config load failures to stderr before rethrowing. The module also imports scanner/parsing/data-source components so the app can assemble docs analysis and preset-aware behavior through one bootstrap layer.",
+        "chapter": "project_structure",
+        "role": "Application composition root and dependency injection container.",
         "enrich": {
+          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "dependency container",
+          "bootstrap",
+          "service wiring",
+          "path resolution",
+          "flow manager",
+          "application context"
+        ]
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "f5c63bc6ebb5aebd4457c60e1241a162",
-        "lines": 284,
-        "mtime": "2026-04-28T14:24:54.055Z",
+        "hash": "6a5abd1bcdc3c923205d32c34b0b5af5",
+        "lines": 372,
+        "mtime": "2026-05-17T09:30:01.433Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
           "dispatch",
           "throwUnexpected",
           "splitArgsBySpec",
+          "resolveRuntimeLogPath",
           "resolveOutputMode",
           "emitFailure"
         ],
         "imports": [
+          "fs",
+          "path",
           "./cli.js",
           "./command.js",
           "./flow-envelope.js"
@@ -5938,21 +6237,21 @@
           "src/spec.js"
         ],
         "id": "18d5f63b",
-        "summary": "Generic command dispatcher that parses CLI args, runs pre/post/onError hooks, and emits envelope-formatted output.",
-        "detail": "Provides `parseEntryInput` which splits argv around a positional spec, validates flag/option sets, and returns parsed args (or short-circuits on `-h/--help`). `dispatch` resolves the entry's output mode, executes the command's `pre` hook, runs the underlying `Command`, then the `post` hook, writing JSON envelopes via `Envelope.toJSON()`. On thrown errors it routes through `onError` and `emitFailure`, ensuring non-zero exit codes via the injected `setExitCode`. Output streams (`stdout`, `stderr`) are injectable to support testing.",
+        "summary": "Implements unified command dispatch with argument partitioning, output mode handling, runtime log capture, and envelope-based error reporting. It is the execution gateway between CLI input and command handlers.",
+        "detail": "The dispatcher splits positional/non-positional args based on entry specs and supports both standard parse logic and command-specific parsing modes. `RuntimeLog` writes bounded stderr mirrors with truncation markers to avoid unbounded log growth. `dispatch` wraps pre/run/post/onError hooks, temporarily intercepts stderr for runtime logs, and emits JSON envelopes for both success and failure flows. Output mode resolution is dynamic per command module, defaulting safely when module metadata is unavailable.",
         "chapter": "project_structure",
-        "role": "lib",
+        "role": "Core dispatch pipeline for command execution and structured output.",
         "enrich": {
-          "processedAt": "2026-04-28T14:26:51.136Z",
+          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
         },
         "keywords": [
-          "dispatcher",
-          "argument parsing",
-          "hooks",
-          "envelope",
-          "command lifecycle",
-          "exit code"
+          "command dispatcher",
+          "envelope output",
+          "runtime logging",
+          "hook lifecycle",
+          "argument splitting",
+          "error emission"
         ]
       },
       {
@@ -6045,8 +6344,21 @@
         ],
         "id": "09ff0ab4",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-18T01:14:25.898Z",
+          "attempts": 2
+        },
+        "summary": "Defines shared flow-state helpers, constants, and task utilities for phase derivation and step/task initialization. It underpins state transitions across the flow subsystem.",
+        "detail": "The module exports filenames, scan limits, TTL values, and derived maps such as `FLOW_STEPS`, `PHASE_MAP`, and task-phase mappings. Utility functions resolve spec names/directories, derive current phase from completed steps, and build initial nested step/task state structures. It provides terminal-status and pending-task search helpers used for promotion and scoped progression logic. Additional helpers like `specIdFromPath` normalize identifiers from spec paths for cross-module consistency.",
+        "chapter": "internal_design",
+        "role": "Shared flow-state utility layer for lifecycle and task progression.",
+        "keywords": [
+          "flow helpers",
+          "phase derivation",
+          "state initialization",
+          "task promotion",
+          "spec directory",
+          "step mapping"
+        ]
       },
       {
         "file": "src/lib/flow-manager.js",
@@ -6077,7 +6389,7 @@
         ],
         "id": "3d2ed4c0",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6123,7 +6435,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6215,7 +6527,7 @@
         ],
         "id": "61b28e9c",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6566,7 +6878,7 @@
         "usedBy": null,
         "id": "2ee46a6f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6740,7 +7052,7 @@
         ],
         "id": "6196b26c",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -7082,7 +7394,7 @@
         "usedBy": null,
         "id": "10bbe237",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -7098,7 +7410,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -10066,9 +10378,9 @@
       },
       {
         "file": "src/sdd-forge.js",
-        "hash": "346c9c4fee6145d8345ebf408f7ff018",
-        "lines": 86,
-        "mtime": "2026-04-22T10:40:07.074Z",
+        "hash": "fe63a20630699291506b1230b8a25bd0",
+        "lines": 100,
+        "mtime": "2026-05-17T09:27:44.025Z",
         "className": "sdd-forge",
         "methods": [],
         "imports": [
@@ -10082,23 +10394,9 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
-        "summary": "Acts as the top-level CLI entrypoint and dispatcher for `sdd-forge`. It routes subcommands to namespace scripts or independent command modules with consistent exit behavior.",
-        "detail": "The file parses raw argv once, handles top-level help/version behavior, and rewrites `process.argv` before dynamic imports. It maintains command maps for namespace dispatchers and independent scripts, enabling lightweight command routing without a monolithic parser. Errors in module loading or command execution are trapped and mapped to shared error exit codes. When a module exposes `main`, execution is delegated there; otherwise, import side effects perform command work. This design keeps startup minimal while preserving explicit command boundaries.",
-        "chapter": "project_structure",
-        "role": "cli",
         "enrich": {
-          "processedAt": "2026-04-22T13:01:40.985Z",
           "attempts": 1
-        },
-        "keywords": [
-          "CLI entrypoint",
-          "command dispatch",
-          "dynamic import",
-          "argv routing",
-          "namespace script",
-          "exit code handling",
-          "bootstrap"
-        ]
+        }
       },
       {
         "file": "src/setup.js",
@@ -10146,7 +10444,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -10220,7 +10518,7 @@
         "usedBy": null,
         "id": "d63c4335",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -10269,10 +10567,10 @@
       }
     ],
     "summary": {
-      "total": 299,
-      "totalMethods": 1154
+      "total": 302,
+      "totalMethods": 1229
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-16T10:53:30.865Z"
+  "enrichedAt": "2026-05-18T01:14:27.235Z"
 }
