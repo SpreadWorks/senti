@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-18T07:51:27.458Z",
+  "analyzedAt": "2026-05-18T13:29:40.033Z",
   "package": {
     "entries": [
       {
@@ -2409,7 +2409,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -2502,7 +2502,10 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "5f80ffd2"
+        "id": "5f80ffd2",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/commands/review.js",
@@ -2665,7 +2668,7 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -2727,7 +2730,10 @@
         "usedBy": [
           "src/flow/registry.js"
         ],
-        "id": "2cb27b93"
+        "id": "2cb27b93",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -2976,7 +2982,7 @@
         ],
         "id": "9c36c232",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -3010,7 +3016,7 @@
         ],
         "id": "41c7d805",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3125,7 +3131,7 @@
         ],
         "id": "9bbc3f1d",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -3222,7 +3228,7 @@
         ],
         "id": "1261e39f",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -3336,7 +3342,7 @@
         "usedBy": null,
         "id": "c68afd69",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -3359,7 +3365,7 @@
         "usedBy": null,
         "id": "410dfcc9",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -3472,7 +3478,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -3629,7 +3635,7 @@
         ],
         "id": "a93faae0",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -3718,7 +3724,7 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -3749,7 +3755,7 @@
         ],
         "id": "d569f2a6",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -3830,7 +3836,7 @@
         ],
         "id": "fcf92359",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -3873,7 +3879,7 @@
         ],
         "id": "62c43842",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -3899,20 +3905,39 @@
         "usedBy": null,
         "id": "112e5208",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 4
+        },
+        "summary": "Completes the active flow task and advances execution to the next pending step when possible.",
+        "detail": "The command extends the flow command base and operates against the currently active flow state. It returns structured `Envelope.fail` responses for missing flow context or invalid completion conditions. On success, it uses step-promotion logic to move the workflow forward and returns an `Envelope.ok` payload for downstream consumers.",
+        "chapter": "cli_commands",
+        "role": "flow task completion command",
+        "keywords": [
+          "task completion",
+          "flow progression",
+          "step transition",
+          "state update",
+          "envelope response"
+        ]
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "0bdbb59ecb97426fdd88763e36e653a0",
-        "lines": 314,
-        "mtime": "2026-05-18T04:45:00.917Z",
+        "hash": "8b7fdd81cb318685c6b3b68c4bb356ae",
+        "lines": 371,
+        "mtime": "2026-05-18T13:29:13.534Z",
         "className": "run-final-regression",
         "methods": [
           "appendRaw",
           "commandDiscoveryProcess",
           "readAnalysisIfExists",
           "classifyChangeScope",
+          "boundedText",
+          "boundedEvidenceSource",
+          "failureEvidenceText",
+          "normalizeFailureMatchText",
+          "changedFilePath",
+          "failureReferencesChangedFile",
+          "changedFilesWithinMatchLimit",
           "classifyFailure",
           "previousFinalRegressionFailures",
           "recordFinalRegressionFailure"
@@ -3933,7 +3958,23 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "49364661"
+        "id": "49364661",
+        "summary": "Runs and evaluates final regression checks, then persists machine-readable artifacts and failure evidence.",
+        "detail": "This module defines helper classes for final-regression decisions, process metadata, and serialized artifacts. It captures command output, bounds evidence text size, and classifies failure causes using normalized text plus changed-file scope analysis. It writes both raw output and structured JSON result files under the spec directory and appends failure entries to the issue log. Failure kinds are mapped to explicit next actions so later flow behavior remains deterministic.",
+        "chapter": "internal_design",
+        "role": "final regression classifier and artifact recorder",
+        "enrich": {
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "final regression",
+          "failure classification",
+          "evidence capture",
+          "issue log",
+          "change scope detection",
+          "next-action routing"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
@@ -3974,8 +4015,21 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 5
+        },
+        "summary": "Performs finalize cleanup for worktrees and main-repo reconciliation with rescue and rollback paths.",
+        "detail": "The module implements cleanup orchestration with report attachment, orphan-commit discovery, and audit-log persistence. It can run an auto-rescue strategy that checks main-repo cleanliness, creates a temporary worktree, and attempts cherry-pick based recovery. Multiple recovery option sets are exposed for locked repos, dirty states, and rescue failures, and forced teardown paths are available when normal cleanup cannot proceed. Snapshot-based issue-log append and restore helpers protect consistency during partial failures.",
+        "chapter": "internal_design",
+        "role": "finalize cleanup and recovery orchestrator",
+        "keywords": [
+          "worktree cleanup",
+          "auto rescue",
+          "cherry-pick recovery",
+          "orphan commits",
+          "audit log",
+          "teardown"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
@@ -4003,8 +4057,20 @@
         "usedBy": null,
         "id": "1e686d63",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 5
+        },
+        "summary": "Finalizes commit staging with preflight checks and explicit artifact pathspec handling.",
+        "detail": "The command runs finalize preflight before attempting commit-related operations. It builds spec-scoped pathspecs from durable test artifact definitions and includes temporary summary artifacts when staging changes. The return payload is normalized with user-facing commit status messaging for consistent finalize-step output.",
+        "chapter": "cli_commands",
+        "role": "finalize commit step command",
+        "keywords": [
+          "finalize commit",
+          "preflight",
+          "artifact staging",
+          "pathspec",
+          "test artifacts"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-merge.js",
@@ -4131,8 +4197,20 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 4
+        },
+        "summary": "Provides shared finalize primitives for preflight, commit decisions, migration hooks, and post-commit bookkeeping.",
+        "detail": "It defines reusable helpers for error handling, pointer-file updates, and skip-or-commit resolution. Git preflight logic resolves the common git directory and validates write access via lock-file probes to fail early on permission problems. Additional checks verify branch/worktree conditions and support spec-only skip behavior where appropriate. Post-commit hooks can run spec-local migration scripts and stage durable test artifacts when result files exist.",
+        "chapter": "internal_design",
+        "role": "finalize core helper library",
+        "keywords": [
+          "finalize preflight",
+          "git write access",
+          "pointer file",
+          "migration hook",
+          "commit post-processing"
+        ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -4295,8 +4373,22 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 3
+        },
+        "summary": "Implements the flow gate engine across draft, spec, task-impl, and integration phases with strict evaluation and retry controls.",
+        "detail": "The module validates phase-level constraints, collects git diffs (including bounded untracked content), and runs artifact integrity checks before inference. It builds guardrail and requirement prompts, enforces JSON-only response schemas, and parses evaluations with explicit key/value validation. Retry governance includes max-attempt resolution, no-progress detection from git/worktree fingerprints, repeated-fail similarity checks, and escalation logging. Phase-specific handlers return pass/fail envelopes with reasons, warnings, and issue-log side effects to keep gate outcomes auditable.",
+        "chapter": "internal_design",
+        "role": "multi-phase gate evaluator",
+        "keywords": [
+          "quality gate",
+          "guardrail evaluation",
+          "JSON schema validation",
+          "retry budget",
+          "diff analysis",
+          "issue log escalation",
+          "phase orchestration"
+        ]
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -4325,8 +4417,20 @@
         "usedBy": null,
         "id": "e6534160",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 5
+        },
+        "summary": "Confirms implementation status by comparing changed files and requirement progress against the active spec.",
+        "detail": "The command validates confirm mode values and reads active flow context to resolve the target spec. It computes file changes from git diff against the base branch and summarizes requirement statuses into done, pending, and in-progress buckets. The result object provides a compact progress snapshot for implementation confirmation decisions.",
+        "chapter": "cli_commands",
+        "role": "implementation confirmation command",
+        "keywords": [
+          "implementation confirmation",
+          "requirement status",
+          "git diff",
+          "base branch",
+          "progress summary"
+        ]
       },
       {
         "file": "src/flow/lib/run-lint.js",
@@ -4403,8 +4507,21 @@
         "usedBy": null,
         "id": "59eeacc6",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 5
+        },
+        "summary": "Prepares a new spec workspace by creating branch-scoped directories, draft/spec stubs, and flow state.",
+        "detail": "It includes utilities for branch detection, slug generation, index allocation, and base-branch verification. The command can enforce clean-worktree requirements or isolate work in a dedicated worktree path when requested. It also runs docs scan validation and checks that generated analysis artifacts are readable. Spec scaffolding writes `spec.json`, `draft.json`, and issue body files when missing, then persists initialized flow metadata.",
+        "chapter": "cli_commands",
+        "role": "spec preparation and scaffolding command",
+        "keywords": [
+          "spec scaffolding",
+          "worktree setup",
+          "draft template",
+          "branch detection",
+          "docs scan",
+          "flow initialization"
+        ]
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
@@ -4435,8 +4552,20 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 3
+        },
+        "summary": "Reopens draft work by resetting flow steps and clearing stale draft-review artifacts with a validated reason.",
+        "detail": "The module derives reset targets from configured draft review routes and defines artifact sets to clean. It validates the reopen reason with type, length, and null-byte constraints before mutating flow state. Results are returned as structured envelopes and include issue-log updates for traceability.",
+        "chapter": "cli_commands",
+        "role": "draft reopen/reset command",
+        "keywords": [
+          "draft reopen",
+          "artifact reset",
+          "step rollback",
+          "reason validation",
+          "issue logging"
+        ]
       },
       {
         "file": "src/flow/lib/run-report-show.js",
@@ -4468,8 +4597,20 @@
         ],
         "id": "3754ab40",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 5
+        },
+        "summary": "Shows the latest finalized report by resolving a pointer file and validating report payload integrity.",
+        "detail": "The command reads `.sdd-forge/last-finalized-spec`, resolves the corresponding `report.json`, and emits typed errors when pointer or report data is missing. Report text loading validates JSON parseability and required fields, including project regression data when test artifacts are present. On success it prints report text directly; on failure it writes a CLI error and exits non-zero.",
+        "chapter": "cli_commands",
+        "role": "report display command",
+        "keywords": [
+          "latest report pointer",
+          "report validation",
+          "stdout output",
+          "artifact integrity",
+          "error codes"
+        ]
       },
       {
         "file": "src/flow/lib/run-report.js",
@@ -4498,8 +4639,20 @@
         "usedBy": null,
         "id": "43872d6b",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 5
+        },
+        "summary": "Builds and saves a flow report by combining git context, issue history, test artifacts, and retrospective data.",
+        "detail": "The command requires base-branch context from flow state and resolves the active spec directory. It conditionally loads retro and test-result artifacts, then delegates report generation and persistence to shared report utilities. Output includes changed report paths and metadata suitable for finalize/reporting steps.",
+        "chapter": "cli_commands",
+        "role": "flow report generation command",
+        "keywords": [
+          "report generation",
+          "git summary",
+          "issue log",
+          "retro integration",
+          "test artifacts"
+        ]
       },
       {
         "file": "src/flow/lib/run-resume.js",
@@ -4562,8 +4715,21 @@
         "usedBy": null,
         "id": "862e7d08",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-18T13:31:12.050Z",
+          "attempts": 5
+        },
+        "summary": "Generates `retro.json` by mapping requirement outcomes from test execution and test-result review artifacts.",
+        "detail": "The command validates existence and schema of `test-execute-result.json` and `test-result-review.json` before aggregation. It loads normalized spec requirements and produces done/not-done entries with notes derived from test evidence or errors. Missing requirements and artifact validation failures return explicit envelope errors with actionable messages. Successful execution writes the retrospective file and returns artifact/location metadata.",
+        "chapter": "cli_commands",
+        "role": "retrospective synthesis command",
+        "keywords": [
+          "retrospective summary",
+          "requirement coverage",
+          "test review validation",
+          "retro.json",
+          "evidence mapping",
+          "artifact checks"
+        ]
       },
       {
         "file": "src/flow/lib/run-review.js",
@@ -4632,7 +4798,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4685,7 +4851,7 @@
         "usedBy": null,
         "id": "c99f2f87",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4799,13 +4965,16 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "41745e8b"
+        "id": "41745e8b",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
-        "hash": "49659d840d23a2e79b047a53231def8f",
-        "lines": 118,
-        "mtime": "2026-05-16T08:19:57.846Z",
+        "hash": "7a5f885dbc5f3c5ddc9574d80dc392a2",
+        "lines": 129,
+        "mtime": "2026-05-18T13:29:13.534Z",
         "className": "run-test-result-review",
         "methods": [
           "pass",
@@ -4813,6 +4982,7 @@
           "validateSummary",
           "validateRegressionRawRange",
           "validateProjectRegression",
+          "readRawOutputText",
           "writeMarkdown"
         ],
         "imports": [
@@ -4829,7 +4999,7 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 4
+          "attempts": 1
         }
       },
       {
@@ -5519,9 +5689,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "00492b5aee9ee9756892fc22ba1194ab",
+        "hash": "268dc2f50dca7ba5e88339b62a89a6e4",
         "lines": 844,
-        "mtime": "2026-05-18T03:07:19.706Z",
+        "mtime": "2026-05-18T13:29:13.534Z",
         "className": "test-artifacts",
         "methods": [
           "GateArtifactTrustContract",
@@ -5606,6 +5776,7 @@
           "PLACEHOLDER_PERMISSION_FILE",
           "SCENARIO_VALIDITY_RESULT_FILE",
           "SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE",
+          "MAX_RAW_OUTPUT_BYTES",
           "DURABLE_TEST_ARTIFACT_RELATIVE_PATHS",
           "RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS",
           "SCENARIO_VALIDITY_CLASSIFICATIONS"
@@ -5625,7 +5796,10 @@
           "src/flow/lib/run-test-result-review.js",
           "src/flow/lib/set-step.js"
         ],
-        "id": "0b1b96b3"
+        "id": "0b1b96b3",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -5747,7 +5921,10 @@
           "src/flow/lib/run-test-execute.js",
           "src/flow/lib/test-artifacts.js"
         ],
-        "id": "2980d983"
+        "id": "2980d983",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/registry.js",
@@ -5782,7 +5959,10 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "d64f4095"
+        "id": "d64f4095",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/help.js",
@@ -6188,7 +6368,10 @@
           "src/setup.js",
           "src/upgrade.js"
         ],
-        "id": "dff6e5b4"
+        "id": "dff6e5b4",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/constants.js",
@@ -6497,7 +6680,7 @@
         ],
         "id": "3d2ed4c0",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -6555,7 +6738,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6650,7 +6833,7 @@
         ],
         "id": "61b28e9c",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -7001,7 +7184,7 @@
         "usedBy": null,
         "id": "2ee46a6f",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7175,7 +7358,7 @@
         ],
         "id": "6196b26c",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7517,7 +7700,7 @@
         "usedBy": null,
         "id": "10bbe237",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -7531,7 +7714,10 @@
         "exports": [],
         "extends": null,
         "usedBy": null,
-        "id": "69d5afb4"
+        "id": "69d5afb4",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/metrics.js",
@@ -10515,7 +10701,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -10564,7 +10750,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10638,7 +10824,7 @@
         "usedBy": null,
         "id": "d63c4335",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -10688,9 +10874,9 @@
     ],
     "summary": {
       "total": 305,
-      "totalMethods": 1308
+      "totalMethods": 1316
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-18T02:27:17.593Z"
+  "enrichedAt": "2026-05-18T13:32:11.779Z"
 }
