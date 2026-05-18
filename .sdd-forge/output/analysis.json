@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-18T01:13:18.877Z",
+  "analyzedAt": "2026-05-18T01:53:40.231Z",
   "package": {
     "entries": [
       {
@@ -2409,7 +2409,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -2504,14 +2504,14 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "f03e83adea0100c3d54b0ff274e89fa1",
-        "lines": 2542,
-        "mtime": "2026-05-18T01:10:37.246Z",
+        "hash": "0cc1fa8c62172710b02bc13b0704e660",
+        "lines": 2328,
+        "mtime": "2026-05-18T01:53:12.523Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2592,14 +2592,13 @@
           "formatDraftReviewQaEntries",
           "buildDraftQuestionReviewPrompt",
           "buildDraftReviewPrompt",
-          "formatDraftReviewMd",
-          "formatDraftIssuesForRepair",
-          "parseDraftRepairOutput",
-          "buildDraftRepairPrompt",
-          "validateDraftRepairShape",
-          "validateDraftRepairAudit",
-          "repairDraftReviewFindings",
-          "approveDraftAfterCoverageReview",
+          "normalizeDraftReviewText",
+          "buildDraftReviewStage",
+          "resolveDraftReviewClassification",
+          "issueToDraftReviewFinding",
+          "addDraftReviewFindingToBucket",
+          "buildDraftReviewArtifact",
+          "writeJsonArtifact",
           "runDraftReview",
           "runReview",
           "stripPreamble",
@@ -2618,6 +2617,7 @@
           "../lib/acknowledged-rationale.js",
           "../../lib/schema-validate.js",
           "../lib/review-failure.js",
+          "../lib/draft-review-routes.js",
           "../../lib/git-helpers.js",
           "../../lib/constants.js",
           "../../lib/constants.js",
@@ -2655,11 +2655,7 @@
           "buildGapAnalysisPrompt",
           "buildTestFixPrompt",
           "buildDraftReviewPrompt",
-          "formatDraftReviewMd",
-          "buildDraftRepairPrompt",
-          "parseDraftRepairOutput",
-          "validateDraftRepairShape",
-          "validateDraftRepairAudit",
+          "buildDraftReviewArtifact",
           "shouldUseLoopReview",
           "groupByDiffContent",
           "buildPerFileReviewInput",
@@ -2677,9 +2673,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "716f151b15f961e5823f041cfbed7ae6",
-        "lines": 675,
-        "mtime": "2026-05-15T08:08:18.479Z",
+        "hash": "ac6b09fe2e754de8dea3957f20d954ef",
+        "lines": 726,
+        "mtime": "2026-05-18T01:53:12.524Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2701,11 +2697,15 @@
           "isPlainObject",
           "createMaxAttempts",
           "createPlanReviewNode",
+          "createDraftReviewLeafNode",
+          "createDraftReviewRouteNodes",
           "assertDepth",
           "findBranchIndexForLeaf",
           "getLastLeaf"
         ],
-        "imports": [],
+        "imports": [
+          "./lib/draft-review-routes.js"
+        ],
         "exports": [
           "collectGatePhaseEntries",
           "collectLeafIds",
@@ -2732,7 +2732,7 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -2980,7 +2980,41 @@
         ],
         "id": "9c36c232",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
+        }
+      },
+      {
+        "file": "src/flow/lib/draft-review-routes.js",
+        "hash": "e8a3e0afb98b6a78f3e24f72bad2a93c",
+        "lines": 83,
+        "mtime": "2026-05-18T01:53:12.524Z",
+        "className": "draft-review-routes",
+        "methods": [
+          "DraftReviewRoute",
+          "draftReviewRouteForRetryPhase",
+          "draftReviewRouteForKey",
+          "requireNonEmptyString"
+        ],
+        "imports": [],
+        "exports": [
+          "DraftReviewRoute",
+          "draftReviewRouteForRetryPhase",
+          "draftReviewRouteForKey",
+          "DRAFT_REVIEW_ROUTES",
+          "DRAFT_REVIEW_ARTIFACT_LIMIT",
+          "DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/definition.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-reopen-draft.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/registry.js"
+        ],
+        "id": "41c7d805",
+        "enrich": {
+          "attempts": 1
         }
       },
       {
@@ -3095,7 +3129,7 @@
         ],
         "id": "9bbc3f1d",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3192,7 +3226,7 @@
         ],
         "id": "1261e39f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3306,7 +3340,7 @@
         "usedBy": null,
         "id": "c68afd69",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3329,7 +3363,7 @@
         "usedBy": null,
         "id": "410dfcc9",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3442,7 +3476,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3599,7 +3633,7 @@
         ],
         "id": "a93faae0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3688,7 +3722,7 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -3719,7 +3753,7 @@
         ],
         "id": "d569f2a6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3800,7 +3834,7 @@
         ],
         "id": "fcf92359",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3843,7 +3877,7 @@
         ],
         "id": "62c43842",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -3869,7 +3903,7 @@
         "usedBy": null,
         "id": "112e5208",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3911,7 +3945,7 @@
         "usedBy": null,
         "id": "40e4daa5",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -3940,7 +3974,7 @@
         "usedBy": null,
         "id": "1e686d63",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4068,14 +4102,14 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "bd4fa49a07e2bb9cf4c7f2699d9e1d70",
-        "lines": 2440,
-        "mtime": "2026-05-18T01:10:37.247Z",
+        "hash": "77c478b8906f74bdaf29f39d8ce4251a",
+        "lines": 2722,
+        "mtime": "2026-05-18T01:53:12.524Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4121,6 +4155,17 @@
           "computeForestDepth",
           "walkStrings",
           "checkDraftJson",
+          "draftFindingTitleTargetKey",
+          "readDraftArtifact",
+          "validateArtifactObject",
+          "validateRequiredString",
+          "validateRequiredStringFields",
+          "validateDraftReviewArtifact",
+          "validateDraftTriageArtifact",
+          "validateDraftRepairArtifact",
+          "validateDraftReviewArtifactSet",
+          "draftReviewRouteSetsForValidation",
+          "validateDraftReviewArtifacts",
           "buildGuardrailPrompt",
           "extractJsonCandidate",
           "parseEvaluationsArray",
@@ -4164,6 +4209,7 @@
           "./test-artifacts.js",
           "./test-artifacts.js",
           "./task-scope.js",
+          "./draft-review-routes.js",
           "../definition.js"
         ],
         "exports": [
@@ -4201,6 +4247,7 @@
           "checkSpecJson",
           "validateSpecRepairAudit",
           "checkDraftJson",
+          "validateDraftReviewArtifactSet",
           "buildGuardrailPrompt",
           "buildImplCheckPrompt",
           "checkGuardrail",
@@ -4249,7 +4296,7 @@
         "usedBy": null,
         "id": "e6534160",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4327,17 +4374,19 @@
         "usedBy": null,
         "id": "59eeacc6",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
         "file": "src/flow/lib/run-reopen-draft.js",
-        "hash": "666b0c96d24bab65fb97e028740a35ad",
-        "lines": 159,
-        "mtime": "2026-05-15T08:13:21.479Z",
+        "hash": "5d58417d3f23491b514d312d1ef471f0",
+        "lines": 179,
+        "mtime": "2026-05-18T01:53:12.524Z",
         "className": "run-reopen-draft",
         "methods": [
           "RunReopenDraftCommand",
+          "draftReviewArtifactNamesForReopen",
+          "draftReviewResetStepIdsForReopen",
           "validateReason",
           "setStepStatusAndClearTimestamps",
           "appendIssueLog"
@@ -4347,7 +4396,8 @@
           "../../lib/flow-manager.js",
           "../../lib/flow-envelope.js",
           "./set-issue-log.js",
-          "../definition.js"
+          "../definition.js",
+          "./draft-review-routes.js"
         ],
         "exports": [
           "RunReopenDraftCommand"
@@ -4356,7 +4406,7 @@
         "usedBy": null,
         "id": "82a89eee",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -4389,7 +4439,7 @@
         ],
         "id": "3754ab40",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4419,7 +4469,7 @@
         "usedBy": null,
         "id": "43872d6b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4483,14 +4533,14 @@
         "usedBy": null,
         "id": "862e7d08",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "22e60e0840b2662be0cb7d4fd40cfc68",
-        "lines": 431,
-        "mtime": "2026-05-18T01:10:37.247Z",
+        "hash": "1553b74bcc11aee5055aeb3fa3ba9429",
+        "lines": 466,
+        "mtime": "2026-05-18T01:53:12.525Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -4507,6 +4557,9 @@
           "reviewPhaseKeyForCtx",
           "isImplPass",
           "removeReviewDownstreamArtifacts",
+          "resolvePhaseReviewNextStep",
+          "resolveDraftReviewRoute",
+          "resolveDraftReviewNextStep",
           "parsePhaseReviewOutput",
           "parseTestReviewOutput",
           "parseSpecReviewOutput",
@@ -4525,7 +4578,8 @@
           "fs",
           "./review-failure.js",
           "./test-artifacts.js",
-          "./task-scope.js"
+          "./task-scope.js",
+          "./draft-review-routes.js"
         ],
         "exports": [
           "countReviewRetry",
@@ -4540,7 +4594,8 @@
           "PHASE_REVIEW_PARSERS",
           "parseTestReviewOutput",
           "parseSpecReviewOutput",
-          "parseProposalReviewOutput"
+          "parseProposalReviewOutput",
+          "resolveDraftReviewNextStep"
         ],
         "extends": "FlowCommand",
         "usedBy": [
@@ -4666,7 +4721,7 @@
         "usedBy": null,
         "id": "41745e8b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4697,7 +4752,7 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5619,12 +5674,15 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "f52eadfaef2222337af6913538a4bc34",
-        "lines": 886,
-        "mtime": "2026-05-18T01:10:37.247Z",
+        "hash": "94f554c2b97100cbd55b3b4ab33b2bad",
+        "lines": 953,
+        "mtime": "2026-05-18T01:53:12.525Z",
         "className": "registry",
         "methods": [
+          "assertDraftReviewRegistryHookBoundary",
           "isFinalizeSuccess",
+          "isDraftReviewRecordedVerdict",
+          "writeEmptyDraftReviewRouteArtifacts",
           "resolveMainRepoFlowManager",
           "resetSkippedDownstreamSteps",
           "deriveActivePhase",
@@ -5633,32 +5691,24 @@
         ],
         "imports": [
           "../lib/flow-helpers.js",
+          "fs",
+          "path",
           "../lib/constants.js",
           "./lib/gate-step.js",
-          "./definition.js"
+          "./definition.js",
+          "./lib/draft-review-routes.js"
         ],
         "exports": [
+          "assertDraftReviewRegistryHookBoundary",
+          "DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY",
           "FLOW_COMMANDS"
         ],
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Registers flow subcommands and orchestrates lifecycle hooks, finalize behavior, and best-effort status updates. It centralizes command wiring and cross-step coordination.",
-        "detail": "The registry imports phase and step resolvers, defines success criteria for finalize statuses, and tracks runtime options passed through run commands. It includes helpers to route updates to the main-repo flow manager, reset downstream skipped steps, and append issue logs without hard-failing noncritical paths. Command entries expose usage text and hook logic for pre/post/error handling around major phases like commit and merge. Additional guard checks validate test artifacts at key points to keep finalize paths consistent with gate expectations.",
-        "chapter": "cli_commands",
-        "role": "Central flow command map and lifecycle coordinator.",
         "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
-        },
-        "keywords": [
-          "command registry",
-          "finalize pipeline",
-          "step status update",
-          "hook orchestration",
-          "issue log",
-          "flow lifecycle"
-        ]
+        }
       },
       {
         "file": "src/help.js",
@@ -6389,14 +6439,14 @@
         ],
         "id": "3d2ed4c0",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "d6f943c659e691688b081e5592cb8615",
-        "lines": 751,
-        "mtime": "2026-05-16T08:19:57.848Z",
+        "hash": "8025c065447c7af6654f7143504f9e33",
+        "lines": 911,
+        "mtime": "2026-05-18T01:53:12.526Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -6406,9 +6456,20 @@
           "specFlowPath",
           "specIdFromBranch",
           "assertFlowStateSchema",
+          "flowStepList",
+          "boundedFlowStepListForMigration",
+          "shouldMarkInsertedDraftReviewLeafDone",
+          "createMigratedDraftReviewStep",
           "migrateDraftReviewSteps",
           "migrateDraftRefineStep",
           "migrateSpecReviewTriageAndRepairSteps",
+          "migrateDraftReviewTriageAndRepairSteps",
+          "writeJsonArtifactIfMissing",
+          "createEmptyDraftMigrationArtifact",
+          "createEmptyDraftReviewArtifact",
+          "createEmptyDraftTriageArtifact",
+          "createEmptyDraftRepairArtifact",
+          "writeEmptyDraftReviewMigrationArtifacts",
           "appendFlowMigrationLog",
           "migrateFlowState",
           "validateTaskShape"
@@ -6421,7 +6482,8 @@
           "./git-helpers.js",
           "./config.js",
           "./flow-helpers.js",
-          "../flow/definition.js"
+          "../flow/definition.js",
+          "../flow/lib/draft-review-routes.js"
         ],
         "exports": [
           "resolveTaskIdForEntry",
@@ -6435,7 +6497,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -6527,7 +6589,7 @@
         ],
         "id": "61b28e9c",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6878,7 +6940,7 @@
         "usedBy": null,
         "id": "2ee46a6f",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7052,7 +7114,7 @@
         ],
         "id": "6196b26c",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7394,7 +7456,7 @@
         "usedBy": null,
         "id": "10bbe237",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7410,7 +7472,7 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10395,7 +10457,7 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -10444,7 +10506,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10518,7 +10580,7 @@
         "usedBy": null,
         "id": "d63c4335",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -10567,10 +10629,10 @@
       }
     ],
     "summary": {
-      "total": 302,
-      "totalMethods": 1229
+      "total": 303,
+      "totalMethods": 1264
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-18T01:14:27.235Z"
+  "enrichedAt": "2026-05-18T01:54:43.214Z"
 }
