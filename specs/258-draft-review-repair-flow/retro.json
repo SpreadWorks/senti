@@ -1,0 +1,68 @@
+{
+  "spec": "specs/258-draft-review-repair-flow/spec.json",
+  "date": "2026-05-18T01:39:26.238Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Draft review execution shall not write draft.json or draft repair audit files. `review-draft-questions` and `review-draft-coverage` shall write a JSON review artifact for their stage. If a markdown summary is kept, no downstream command shall read it for machine decisions.",
+      "status": "done",
+      "note": "R1: TC-1 review-draft-questions does not mutate draft.json or write repair audit"
+    },
+    {
+      "desc": "Each draft review JSON artifact shall include version, phase, sourceDraft, generatedAt, verdict, summary, blockingFindings[], advisoryFindings[], and repairTargets[]. Each of those arrays shall contain at most 20 items. Each finding/target shall include title, target, rationale, evidence, and classification. classification shall be exactly one of blocking, advisory, or repair_target and shall match the array that contains the item.",
+      "status": "done",
+      "note": "R2: TC-4 accepts a well-formed minimal review artifact"
+    },
+    {
+      "desc": "The plan flow shall include explicit draft question triage/repair leaves between review-draft-questions and draft-refine, and explicit draft coverage triage/repair leaves between review-draft-coverage and gate-draft.",
+      "status": "done",
+      "note": "R3: declares questions and coverage triage/repair leaves in consumer order"
+    },
+    {
+      "desc": "Draft triage artifacts shall include version, phase, sourceReview, summary, and items[]. items[] shall contain at most 40 entries. Each item shall correspond to a blocking finding or repair target from the source review artifact and record title, target, decision, rationale, and evidence. Allowed decisions are apply, invalid, already_resolved, downgraded_to_non_blocking, and requires_user_decision.",
+      "status": "done",
+      "note": "R4: TC-9 accepts a well-formed triage artifact and rejects stray sourceTriage"
+    },
+    {
+      "desc": "Draft repair artifacts shall include version, phase, sourceTriage, summary, and items[]. items[] shall contain at most 40 entries. Each item shall correspond to a triage item with decision apply and record title, target, rationale, evidence, and changed draft.json field paths. If coverage repair has no unresolved requires_user_decision item, it shall set draft.json approval.approved to true and confirmedAt to the repair time before gate-draft.",
+      "status": "done",
+      "note": "R5: TC-13 accepts a well-formed repair artifact"
+    },
+    {
+      "desc": "Draft repair steps shall be the only draft review path that mutates draft.json after a draft review finding. Review and triage steps shall not mutate draft.json.",
+      "status": "done",
+      "note": "R6: TC-18 / TC-38 draft.json is unchanged through review/triage and changed by repair"
+    },
+    {
+      "desc": "Draft review routing shall distinguish PASS, ADVISORY, and FAIL: PASS has no blocking findings and no repair targets; ADVISORY has advisory findings or repair targets that can proceed through triage/repair; FAIL has at least one blocking finding. Triage decision apply requires a repair item, invalid/already_resolved/downgraded_to_non_blocking resolves the item without repair, and requires_user_decision leaves gate-draft blocked until draft QA is reopened or answered.",
+      "status": "done",
+      "note": "R7: TC-19 PASS: empty review arrays → PASS, registry completes empty triage/repair artifacts"
+    },
+    {
+      "desc": "gate-draft shall validate draft review, triage, and repair artifact JSON shape, phase/source links, item count consistency, allowed decisions, unresolved requires_user_decision items, and draft approval after coverage repair. It shall fail when a required artifact is missing or inconsistent.",
+      "status": "done",
+      "note": "R8: passes for a well-formed artifact set with approved draft"
+    },
+    {
+      "desc": "Active-flow migration shall insert draft-questions-triage, draft-questions-repair, draft-coverage-triage, and draft-coverage-repair leaves when missing. Consumer mapping is draft-questions-triage -> draft-questions-repair, draft-questions-repair -> draft-refine, draft-coverage-triage -> draft-coverage-repair, and draft-coverage-repair -> gate-draft. If a mapped consumer step is already done or in_progress, the inserted leaf shall be marked done and an empty JSON artifact shall be generated when gate-draft would validate it; otherwise the inserted leaf shall be pending. Migration shall update old draft review artifact references to the new JSON names and shall not preserve old markdown-only fallback behavior.",
+      "status": "done",
+      "note": "R9: TC-29 all consumers pending → 4 leaves inserted as pending in correct positions"
+    },
+    {
+      "desc": "Spec-local tests shall cover draft review non-mutation, draft triage/repair artifact shape, gate-draft artifact validation failures, and PASS/ADVISORY/FAIL routing through the new draft steps.",
+      "status": "done",
+      "note": "R11: covers PASS/ADVISORY/FAIL routing (TC-35 / TC-36 / TC-37)"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

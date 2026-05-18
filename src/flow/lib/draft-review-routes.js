@@ -1,0 +1,82 @@
+/**
+ * Shared draft review route metadata.
+ *
+ * Review records findings, triage records disposition, and repair records the
+ * draft mutation audit. Keep the workflow step ids and artifact names together
+ * so routing, migration, gate validation, and docs cannot drift independently.
+ */
+
+function requireNonEmptyString(value, field) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`invalid draft review route: ${field} must be non-empty`);
+  }
+  return value;
+}
+
+export class DraftReviewRoute {
+  constructor({
+    key,
+    label,
+    retryPhase,
+    reviewStepId,
+    triageStepId,
+    repairStepId,
+    reviewArtifact,
+    triageArtifact,
+    repairArtifact,
+    passNextStepId,
+  }) {
+    this.key = requireNonEmptyString(key, "key");
+    this.label = requireNonEmptyString(label, "label");
+    this.retryPhase = requireNonEmptyString(retryPhase, "retryPhase");
+    this.reviewStepId = requireNonEmptyString(reviewStepId, "reviewStepId");
+    this.triageStepId = requireNonEmptyString(triageStepId, "triageStepId");
+    this.repairStepId = requireNonEmptyString(repairStepId, "repairStepId");
+    this.reviewArtifact = requireNonEmptyString(reviewArtifact, "reviewArtifact");
+    this.triageArtifact = requireNonEmptyString(triageArtifact, "triageArtifact");
+    this.repairArtifact = requireNonEmptyString(repairArtifact, "repairArtifact");
+    this.passNextStepId = requireNonEmptyString(passNextStepId, "passNextStepId");
+    Object.freeze(this);
+  }
+}
+
+export const DRAFT_REVIEW_ROUTES = Object.freeze([
+  new DraftReviewRoute({
+    key: "questions",
+    label: "Draft questions",
+    retryPhase: "draft-questions",
+    reviewStepId: "review-draft-questions",
+    triageStepId: "draft-questions-triage",
+    repairStepId: "draft-questions-repair",
+    reviewArtifact: "draft-review-questions.json",
+    triageArtifact: "draft-questions-triage.json",
+    repairArtifact: "draft-questions-repair.json",
+    passNextStepId: "draft-refine",
+  }),
+  new DraftReviewRoute({
+    key: "coverage",
+    label: "Draft coverage",
+    retryPhase: "draft-coverage",
+    reviewStepId: "review-draft-coverage",
+    triageStepId: "draft-coverage-triage",
+    repairStepId: "draft-coverage-repair",
+    reviewArtifact: "draft-review-coverage.json",
+    triageArtifact: "draft-coverage-triage.json",
+    repairArtifact: "draft-coverage-repair.json",
+    passNextStepId: "gate-draft",
+  }),
+]);
+
+export const DRAFT_REVIEW_ARTIFACT_LIMIT = 20;
+export const DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT = 40;
+
+const ROUTE_BY_RETRY_PHASE = new Map(DRAFT_REVIEW_ROUTES.map((route) => [route.retryPhase, route]));
+const ROUTE_BY_KEY = new Map(DRAFT_REVIEW_ROUTES.map((route) => [route.key, route]));
+
+export function draftReviewRouteForRetryPhase(retryPhase) {
+  return ROUTE_BY_RETRY_PHASE.get(retryPhase) || null;
+}
+
+export function draftReviewRouteForKey(key) {
+  return ROUTE_BY_KEY.get(key) || null;
+}

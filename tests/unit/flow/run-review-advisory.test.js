@@ -8,17 +8,19 @@ import {
 } from "../../../src/flow/lib/run-review.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
 
-describe("draft review advisory verdict", () => {
-  it("parses ADVISORY as a non-blocking draft review result", () => {
+describe("draft coverage review advisory routing", () => {
+  it("parses ADVISORY as a non-blocking draft review result routed to coverage triage", () => {
+    const coverageReviewName = "draft-review-coverage";
+    const coverageArtifactPath = `specs/demo/${coverageReviewName}.json`;
     const result = parseProposalReviewOutput(
       { ok: true },
       "Draft review ADVISORY. 2 finding(s) recorded; proceeding.",
-      "  [draft-review-coverage] Results saved to specs/demo/draft-review-coverage.md\n  [draft-review-coverage] verdict=ADVISORY findings=2 retryPhase=draft-coverage",
+      `  [${coverageReviewName}] Results saved to ${coverageArtifactPath}\n  [${coverageReviewName}] verdict=ADVISORY findings=2 retryPhase=draft-coverage`,
     );
 
     assert.equal(result.result, "ok");
-    assert.equal(result.next, "gate-draft");
-    assert.deepEqual(result.changed, ["specs/demo/draft-review-coverage.md"]);
+    assert.equal(result.next, "draft-coverage-triage");
+    assert.deepEqual(result.changed, [coverageArtifactPath]);
     assert.deepEqual(result.artifacts, {
       phase: "draft",
       verdict: "ADVISORY",

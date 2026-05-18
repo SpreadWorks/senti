@@ -277,10 +277,12 @@ describe("flow get next-action", () => {
       const state = setupActiveFlow(tmp);
       // Simulate a post-gate state: branch/prepare-spec/draft/draft reviews/gate-draft all done,
       // next pending step is `spec`. No step is currently in_progress.
-      const prefixDone = ["branch", "prepare-spec", "draft", "review-draft-questions", "draft-refine", "review-draft-coverage", "gate-draft"];
-      for (const s of flattenSteps(state.steps)) {
-        s.status = prefixDone.includes(s.id) ? "done" : "pending";
-      }
+      const steps = flattenSteps(state.steps);
+      const gateDraftIndex = steps.findIndex((step) => step.id === "gate-draft");
+      assert.notEqual(gateDraftIndex, -1, "gate-draft fixture step must exist");
+      steps.forEach((step, index) => {
+        step.status = index <= gateDraftIndex ? "done" : "pending";
+      });
       makeFlowManager(tmp).save(state);
 
       const { envelope, exitCode } = runCli(tmp, ["flow", "get", "next-action"]);

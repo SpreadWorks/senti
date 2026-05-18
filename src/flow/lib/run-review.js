@@ -27,9 +27,14 @@ import {
   resolveCurrentTaskSpec,
   taskScopeViolationMessages,
 } from "./task-scope.js";
+import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const IMPL_REVIEW_PHASE = "impl";
+const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
+const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "FAIL"]);
+const REVIEW_VERDICTS = new Set(REVIEW_VERDICT_VALUES);
+const REVIEW_VERDICT_PATTERN = new RegExp(`verdict=(${REVIEW_VERDICT_VALUES.join("|")})`);
 
 // ---------------------------------------------------------------------------
 // Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
@@ -210,11 +215,34 @@ const PHASE_REVIEW_PARSERS = {
   draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft", commandId: "flow.draft.review" },
 };
 
+function resolvePhaseReviewNextStep({ phase, verdict, retryPhase, next, failNext }) {
+  if (phase !== "draft") return verdict === "FAIL" ? failNext : next;
+  return resolveDraftReviewNextStep({ verdict, retryPhase });
+}
+
+function resolveDraftReviewRoute(retryPhase) {
+  const resolvedRetryPhase = retryPhase || DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE;
+  const resolvedRoute = draftReviewRouteForRetryPhase(resolvedRetryPhase);
+  if (!resolvedRoute) {
+    throw new Error(`unknown draft review retry phase: ${resolvedRetryPhase}`);
+  }
+  return resolvedRoute;
+}
+
+function resolveDraftReviewNextStep({ verdict, retryPhase }) {
+  if (!REVIEW_VERDICTS.has(verdict)) {
+    throw new Error(`unknown draft review verdict: ${verdict}`);
+  }
+  const route = resolveDraftReviewRoute(retryPhase);
+  return verdict === "PASS" ? route.passNextStepId : route.triageStepId;
+}
+
 function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, countKey, countWord, label, next, failNext = null }) {
-  const verdictMatch = stderr.match(/verdict=(PASS|FAIL|ADVISORY)/);
+  const verdictMatch = stderr.match(REVIEW_VERDICT_PATTERN);
   const countMatch = stderr.match(countPattern);
   const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
   const retryPhaseMatch = stderr.match(/retryPhase=([a-z-]+)/);
+  const retryPhase = retryPhaseMatch ? retryPhaseMatch[1] : null;
 
   const verdict = verdictMatch ? verdictMatch[1] : (res.ok ? "PASS" : "FAIL");
   const count = countMatch ? parseInt(countMatch[countMatch.length - 1], 10) : null;
@@ -233,11 +261,15 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
     );
   }
 
+  const resolvedNext = resolvePhaseReviewNextStep({ phase, verdict, retryPhase, next, failNext });
+  const artifacts = { phase, verdict, [countKey]: count ?? 0 };
+  if (retryPhase) artifacts.retryPhase = retryPhase;
+
   return {
     result: "ok",
     changed,
-    artifacts: { phase, verdict, [countKey]: count ?? 0, ...(retryPhaseMatch && { retryPhase: retryPhaseMatch[1] }) },
-    next: verdict === "FAIL" ? failNext : next,
+    artifacts,
+    next: resolvedNext,
     output: stdout,
   };
 }
@@ -428,3 +460,6 @@ export class RunReviewCommand extends FlowCommand {
 }
 
 export default RunReviewCommand;
+export {
+  resolveDraftReviewNextStep,
+};

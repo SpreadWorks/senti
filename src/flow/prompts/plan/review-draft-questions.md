@@ -5,6 +5,11 @@
      - a question is empty, duplicated, not self-contained, or clearly asks for internal implementation details that project patterns should decide.
      - a pending/approved question appears to include an answer or rationale instead of only the question text.
    - Do not ask "what else is missing"; do not add questions for category coverage; do not propose `NEW` QA entries.
-   - The review writes a detection report to `draft-review-questions.md`.
-   - Findings are advisory, but the review command applies one AI repair pass to `draft.json` before proceeding. Do not manually add follow-up questions and do not re-run this stage automatically.
-   - The CLI marks this step done when the review returns PASS or ADVISORY. Gate-draft remains the blocking validation step.
+   - The review writes the `draft-review-questions.json` artifact.
+   - The review step is detection only. It must not edit `draft.json` and must not write repair audit files.
+   - A review result entry is one object in `blockingFindings[]`, `advisoryFindings[]`, or `repairTargets[]`.
+   - `repairTargets[]` identifies candidate mutations for the repair step; it does not authorize mutation during review.
+   - PASS means no review result entries. ADVISORY means advisory findings or repair targets exist but can proceed through triage. FAIL means at least one blocking finding exists.
+   - The `draft-review-questions.json` artifact must contain at most 20 total review result entries. Each result entry may contain only the schema-defined fields. Each string field in each entry must be at most 1000 characters. The JSON artifact must stay under 1 MiB. If more defects seem possible, report the highest-impact entries and stop.
+   - The CLI marks this step done after the review artifact is written. PASS advances to `draft-refine` after the registry hook writes empty triage/repair bookkeeping artifacts. ADVISORY and FAIL advance to `draft-questions-triage`, which disposes any findings or repair targets.
+   - Do not manually add follow-up questions and do not re-run this stage automatically. Gate-draft remains the blocking validation step.

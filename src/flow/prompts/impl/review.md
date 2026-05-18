@@ -1,5 +1,7 @@
    - Step status is automatically managed by `sdd-forge flow run review` hooks (pre sets in_progress, post sets done).
    - Run `sdd-forge flow run review` to perform AI-powered code review.
+   - Responsibility boundary: this step records detection output only. It does not make triage disposition, perform repair mutation/audit, or perform gate validation.
+   - Downstream ownership: triage steps accept/reject findings, repair steps mutate/audit accepted findings, and gate steps mechanically validate readiness.
    - The review generates proposals for code quality improvements. Results are saved to review.md.
    - If a proposal concerns an intentional guardrail exception and the applicable guardrail article permits acknowledged exceptions, remediate by recording the guardrail id in `spec.json.constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`. Do not use `design_principles`, approval notes, overview entries, task text, or review notes as exception acknowledgments.
    - **If proposals exist** (proposals in review.md):

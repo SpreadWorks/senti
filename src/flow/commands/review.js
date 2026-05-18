@@ -38,6 +38,7 @@ import { PromptBuilder } from "../../lib/prompt-builder.js";
 import { buildAcknowledgedRationaleSection } from "../lib/acknowledged-rationale.js";
 import { validateSchema } from "../../lib/schema-validate.js";
 import { ReviewFailure } from "../lib/review-failure.js";
+import { draftReviewRouteForKey } from "../lib/draft-review-routes.js";
 
 /**
  * Local helper for review-phase agent invocations. The Agent service handles
@@ -89,27 +90,19 @@ function resolveDraftReviewStage(flow) {
   const steps = Array.isArray(flow?.steps) ? flattenSteps(flow.steps) : [];
   const byId = new Map(steps.map((step) => [step.id, step]));
   if (byId.get("review-draft-coverage")?.status === "in_progress") {
-    return {
-      key: "coverage",
-      retryPhase: "draft-coverage",
+    return buildDraftReviewStage("coverage", {
       commandId: "flow.draft.review.coverage.propose",
-      artifact: "draft-review-coverage.md",
-      repairArtifact: "draft-review-coverage-repair.json",
-      repairPhase: "draft-review-coverage-repair",
+      findingClassification: "blocking",
       countLabel: "findings",
       tag: "draft-review-coverage",
-    };
+    });
   }
-  return {
-    key: "questions",
-    retryPhase: "draft-questions",
+  return buildDraftReviewStage("questions", {
     commandId: "flow.draft.review.questions.propose",
-    artifact: "draft-review-questions.md",
-    repairArtifact: "draft-review-questions-repair.json",
-    repairPhase: "draft-review-questions-repair",
+    findingClassification: "repair_target",
     countLabel: "questions",
     tag: "draft-review-questions",
-  };
+  });
 }
 
 const LOOP_REVIEW_THRESHOLD = 10;
@@ -315,12 +308,15 @@ function buildReviewAcknowledgedRationale(root, flow, guardrails) {
  * Parse proposals from draft output.
  * Also extracts the first '**File:** <path>' marker in the body (if any).
  * @param {string} text
+ * @param {{limit?: number}} [options]
  * @returns {{ title: string, body: string, file: string|null }[]}
  */
-function parseProposals(text) {
+function parseProposals(text, options = {}) {
+  const limit = Number.isInteger(options.limit) && options.limit >= 0 ? options.limit : Infinity;
   const proposals = [];
   const parts = text.split(/^### /m).filter(Boolean);
   for (const part of parts) {
+    if (proposals.length >= limit) break;
     const nlIdx = part.indexOf("\n");
     const title = nlIdx >= 0 ? part.slice(0, nlIdx).trim() : part.trim();
     const body = nlIdx >= 0 ? part.slice(nlIdx + 1).trim() : "";
@@ -1789,6 +1785,7 @@ function buildDraftQuestionReviewPrompt(draftJson, requestText) {
     "Output a numbered list of issues in this format:",
     "### 1. <title>",
     "**QA:** q<N> (the qa.id)",
+    "**Classification:** repair_target",
     "**Issue:** <which finite structural defect is present>",
     "**Suggestion:** <concrete correction to the existing QA entry>",
     "",
@@ -1832,6 +1829,7 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
     "Output a numbered list of blocking gaps in this format:",
     "### 1. <title>",
     "**QA:** q<N> (related qa.id, or 'GLOBAL' if no single QA entry applies)",
+    "**Classification:** blocking",
     "**Blocking decision:** <the user decision that is still required>",
     "**Why blocking:** <why the spec cannot be written without this decision>",
     "",
@@ -1855,348 +1853,159 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
   ].join("\n");
 }
 
-function formatDraftReviewMd(issues, stage, verdict) {
-  const title = stage.key === "questions" ? "Draft Question Review Results" : "Draft Coverage Review Results";
-  const lines = [`# ${title}`, ""];
-  if (issues.length === 0) {
-    lines.push("No issues found. PASS.");
-  } else {
-    lines.push(`${issues.length} advisory finding(s) recorded. ${verdict}.`, "");
-    for (let i = 0; i < issues.length; i++) {
-      lines.push(`### ${i + 1}. ${issues[i].title}`);
-      if (issues[i].body) lines.push(issues[i].body);
-      lines.push("");
+const DRAFT_REVIEW_CLASSIFICATIONS = Object.freeze(["blocking", "advisory", "repair_target"]);
+const DRAFT_REVIEW_ARRAY_CAP = 20;
+const DRAFT_REVIEW_FIELD_MAX_CHARS = 1000;
+const DRAFT_REVIEW_TRUNCATION_SUFFIX = " [truncated]";
+
+function normalizeDraftReviewText(value, fallback) {
+  const text = typeof value === "string" && value.trim() !== "" ? value.trim() : fallback;
+  return text.length > DRAFT_REVIEW_FIELD_MAX_CHARS
+    ? `${text.slice(0, DRAFT_REVIEW_FIELD_MAX_CHARS - DRAFT_REVIEW_TRUNCATION_SUFFIX.length)}${DRAFT_REVIEW_TRUNCATION_SUFFIX}`
+    : text;
+}
+
+class DraftReviewFinding {
+  constructor({ title, target, rationale, evidence, classification }) {
+    if (!DRAFT_REVIEW_CLASSIFICATIONS.includes(classification)) {
+      throw new Error(`invalid draft review classification: ${classification}`);
     }
-    lines.push("These findings are advisory for spec writing. The draft review step may proceed; gate-draft remains the blocking validation step.");
-  }
-  return lines.join("\n");
-}
-
-function formatDraftIssuesForRepair(issues) {
-  if (!issues.length) return "NO_PROPOSALS";
-  return issues.map((issue, index) => [
-    `### ${index + 1}. ${issue.title}`,
-    issue.body || "",
-  ].filter(Boolean).join("\n")).join("\n\n");
-}
-
-const DRAFT_REPAIR_TOP_LEVEL_FIELDS = Object.freeze([
-  "devType",
-  "goal",
-  "analysis",
-  "decisionMap",
-  "scopeVerification",
-  "impactOnExisting",
-  "qa",
-  "openQuestions",
-  "approval",
-]);
-
-const DRAFT_REPAIR_DECISIONS = Object.freeze([
-  "applied",
-  "invalid",
-  "already_resolved",
-  "deferred_to_spec",
-  "requires_user_decision",
-  "downgraded_to_non_blocking",
-]);
-
-const DRAFT_REPAIR_DRAFT_SCHEMA = Object.freeze({
-  type: "object",
-  required: DRAFT_REPAIR_TOP_LEVEL_FIELDS,
-  additionalProperties: false,
-  properties: Object.fromEntries(DRAFT_REPAIR_TOP_LEVEL_FIELDS.map((field) => [field, {}])),
-});
-
-const DRAFT_REPAIR_AUDIT_ITEM_SCHEMA = Object.freeze({
-  type: "object",
-  required: ["findingTitle", "target", "decision", "rationale", "evidence", "changedFields"],
-  additionalProperties: false,
-  properties: {
-    findingTitle: { type: "string", minLength: 1 },
-    target: { type: "string", minLength: 1 },
-    decision: { type: "string", enum: DRAFT_REPAIR_DECISIONS },
-    rationale: { type: "string", minLength: 1 },
-    evidence: { type: "string", minLength: 1 },
-    changedFields: {
-      type: "array",
-      items: { type: "string", minLength: 1 },
-    },
-  },
-});
-
-const DRAFT_REPAIR_AUDIT_SCHEMA = Object.freeze({
-  type: "object",
-  required: ["version", "phase", "sourceReview", "generatedAt", "summary", "items"],
-  additionalProperties: false,
-  properties: {
-    version: { type: "integer", enum: [1] },
-    phase: {
-      type: "string",
-      enum: ["draft-review-questions-repair", "draft-review-coverage-repair"],
-    },
-    sourceReview: {
-      type: "string",
-      enum: ["draft-review-questions.md", "draft-review-coverage.md"],
-    },
-    generatedAt: { type: "string", minLength: 1 },
-    summary: { type: "string", minLength: 1 },
-    items: {
-      type: "array",
-      items: DRAFT_REPAIR_AUDIT_ITEM_SCHEMA,
-    },
-  },
-});
-
-const DRAFT_REPAIR_RESPONSE_SCHEMA = Object.freeze({
-  type: "object",
-  required: ["draft", "audit"],
-  additionalProperties: false,
-  properties: {
-    draft: DRAFT_REPAIR_DRAFT_SCHEMA,
-    audit: DRAFT_REPAIR_AUDIT_SCHEMA,
-  },
-});
-
-const DRAFT_REPAIR_FMT_FALLBACK = [
-  "OUTPUT FORMAT - strictly required:",
-  "Return only a JSON object. No markdown, no preamble, no commentary.",
-  "Schema:",
-  JSON.stringify(DRAFT_REPAIR_RESPONSE_SCHEMA, null, 2),
-].join("\n");
-
-class DraftRepairAuditItem {
-  constructor(item) {
-    this.findingTitle = item.findingTitle;
-    this.target = item.target;
-    this.decision = item.decision;
-    this.rationale = item.rationale;
-    this.evidence = item.evidence;
-    this.changedFields = item.changedFields;
-  }
-
-  requiresUserDecision() {
-    return this.decision === "requires_user_decision";
+    this.title = normalizeDraftReviewText(title, "Untitled finding");
+    this.target = normalizeDraftReviewText(target, "GLOBAL");
+    this.rationale = normalizeDraftReviewText(rationale, "Recorded by draft review.");
+    this.evidence = normalizeDraftReviewText(evidence, "Draft review output.");
+    this.classification = classification;
   }
 
   toJSON() {
     return {
-      findingTitle: this.findingTitle,
+      title: this.title,
       target: this.target,
-      decision: this.decision,
       rationale: this.rationale,
       evidence: this.evidence,
-      changedFields: this.changedFields,
+      classification: this.classification,
     };
   }
 }
 
-class DraftRepairAuditArtifact {
-  constructor(audit) {
-    this.version = audit.version;
-    this.phase = audit.phase;
-    this.sourceReview = audit.sourceReview;
-    this.generatedAt = audit.generatedAt;
-    this.summary = audit.summary;
-    this.items = audit.items.map((item) => new DraftRepairAuditItem(item));
-  }
-
-  requiresUserDecision() {
-    return this.items.some((item) => item.requiresUserDecision());
+class DraftReviewArtifact {
+  constructor({ phase, sourceDraft, blockingFindings = [], advisoryFindings = [], repairTargets = [] }) {
+    this.version = 1;
+    this.phase = phase;
+    this.sourceDraft = sourceDraft;
+    this.generatedAt = new Date().toISOString();
+    this.blockingFindings = blockingFindings.slice(0, DRAFT_REVIEW_ARRAY_CAP);
+    this.advisoryFindings = advisoryFindings.slice(0, DRAFT_REVIEW_ARRAY_CAP);
+    this.repairTargets = repairTargets.slice(0, DRAFT_REVIEW_ARRAY_CAP);
+    this.verdict = this.blockingFindings.length > 0
+      ? "FAIL"
+      : this.advisoryFindings.length > 0 || this.repairTargets.length > 0
+        ? "ADVISORY"
+        : "PASS";
+    this.summary = this.verdict === "PASS"
+      ? "No draft review findings recorded."
+      : `${this.blockingFindings.length} blocking, ${this.advisoryFindings.length} advisory, ${this.repairTargets.length} repair target finding(s) recorded.`;
   }
 
   toJSON() {
     return {
       version: this.version,
       phase: this.phase,
-      sourceReview: this.sourceReview,
+      sourceDraft: this.sourceDraft,
       generatedAt: this.generatedAt,
+      verdict: this.verdict,
       summary: this.summary,
-      items: this.items.map((item) => item.toJSON()),
+      blockingFindings: this.blockingFindings.map((item) => item.toJSON()),
+      advisoryFindings: this.advisoryFindings.map((item) => item.toJSON()),
+      repairTargets: this.repairTargets.map((item) => item.toJSON()),
     };
   }
 }
 
-function parseDraftRepairOutput(raw) {
-  const candidate = extractJsonObjectCandidate(raw);
-  let parsed;
-  try {
-    parsed = JSON.parse(candidate);
-  } catch {
-    parsed = JSON.parse(repairJson(candidate));
-  }
-  const schemaIssues = validateSchema(parsed, DRAFT_REPAIR_RESPONSE_SCHEMA);
-  if (schemaIssues.length > 0) {
-    throw new Error(`draft repair output failed schema validation: ${schemaIssues.join("; ")}`);
-  }
+function buildDraftReviewStage(key, overrides) {
+  const route = draftReviewRouteForKey(key);
   return {
-    draft: parsed.draft,
-    audit: new DraftRepairAuditArtifact(parsed.audit),
+    key,
+    retryPhase: route.retryPhase,
+    artifact: route.reviewArtifact,
+    reviewPhase: route.reviewStepId,
+    ...overrides,
   };
 }
 
-function buildDraftRepairPrompt(draftJson, issues, stage, requestText, contextEntries) {
-  const contextText = contextEntries.map((e) =>
-    `- **${e.file}**: ${e.summary || "(no summary)"}`
-  ).join("\n");
-
-  const stageRules = stage.key === "questions"
-    ? [
-      "Repair only the finite structural defects found in the initial question list.",
-      "Do not answer draft questions.",
-      "Do not add category-quota questions.",
-      "If qa[] is empty, create the initial pending question list from decisionMap.requiresUserJudgment and the request, not from generic category coverage.",
-      "For pending/approved QA entries, answer, evidence, why, and droppedReason must remain empty strings.",
-      "Keep approval.approved false in this stage.",
-    ]
-    : [
-      "Repair the draft so the recorded coverage findings are reflected in draft.json before gate-draft.",
-      "Do not ask the user and do not append iterative follow-up questions.",
-      "Resolve gaps using existing answers, decisionMap, project rules, source context, and conservative implementation choices.",
-      "If a finding can be handled during spec writing, record that decision in decisionMap.deferredToSpec or decisionMap.resolvedByProjectRules.",
-      "Do not resolve pending/approved QA entries in this coverage repair; draft-refine owns question resolution.",
-      "Set approval.approved true with confirmedAt and notes after repair unless an audit item uses requires_user_decision.",
-      "If a finding truly requires a new user decision, do not invent the answer; record requires_user_decision in audit, keep approval.approved false, and preserve the unresolved decision in draft.json.",
-    ];
-
-  return new PromptBuilder()
-    .setRole("You are a draft.json repair agent. Apply recorded draft review findings in one pass and audit every decision.")
-    .setRules([
-      "Return JSON only with exactly two top-level keys: draft and audit.",
-      "draft must be the complete repaired draft.json object.",
-      "audit must record one item for every review finding, in the same order.",
-      "audit.phase, audit.sourceReview, and audit.generatedAt must use the values from Audit Metadata.",
-      "Each audit item must explain whether the finding was applied, invalid, already resolved, deferred to spec, requires a user decision, or downgraded to non-blocking.",
-      "For decision=applied, changedFields must list the draft.json field paths changed for that finding.",
-      "For decisions other than applied, changedFields may be empty but rationale and evidence must explain why no draft mutation is needed.",
-      "Preserve existing user answers and evidence unless a review finding explicitly requires correction.",
-      "Do not remove required top-level fields. Do not add unknown top-level fields.",
-      ...stageRules,
-    ].join("\n"))
-    .setJsonSchema(DRAFT_REPAIR_RESPONSE_SCHEMA)
-    .setFmtFallback(DRAFT_REPAIR_FMT_FALLBACK)
-    .addUserPrompt("## Request / Issue", requestText || "(no request text)")
-    .addUserPrompt("## Review Findings To Repair", formatDraftIssuesForRepair(issues))
-    .addUserPrompt("## Current draft.json", JSON.stringify(draftJson, null, 2))
-    .addUserPrompt("## Audit Metadata", [
-      `phase: ${stage.repairPhase}`,
-      `sourceReview: ${stage.artifact}`,
-      `generatedAt: ${new Date().toISOString()}`,
-    ].join("\n"))
-    .addUserPrompt("## Codebase Context", contextText || "(no context)")
-    .build();
+function resolveDraftReviewClassification(issue, fallbackClassification) {
+  const rawClassification =
+    extractMarkdownField(issue.body, "Classification")
+    || extractMarkdownField(issue.body, "Severity")
+    || extractMarkdownField(issue.body, "Verdict")
+    || "";
+  const normalized = rawClassification.trim().toLowerCase().replace(/[-\s]+/g, "_");
+  if (normalized === "blocking" || normalized === "fail") return "blocking";
+  if (normalized === "advisory" || normalized === "non_blocking" || normalized === "warning") return "advisory";
+  if (normalized === "repair_target" || normalized === "repair") return "repair_target";
+  return fallbackClassification;
 }
 
-function validateDraftRepairShape(draftJson, stage) {
-  const issues = [];
-  if (!draftJson || typeof draftJson !== "object" || Array.isArray(draftJson)) {
-    return ["repair output must be a JSON object"];
-  }
-  const allowed = new Set(DRAFT_REPAIR_TOP_LEVEL_FIELDS);
-  for (const field of Object.keys(draftJson)) {
-    if (!allowed.has(field)) issues.push(`repair output contains unknown top-level field "${field}"`);
-  }
-  for (const field of DRAFT_REPAIR_TOP_LEVEL_FIELDS) {
-    if (!Object.hasOwn(draftJson, field)) issues.push(`repair output missing top-level field "${field}"`);
-  }
-  if (!Array.isArray(draftJson.qa)) {
-    issues.push("repair output must include qa[]");
-  }
-  if (!draftJson.decisionMap || typeof draftJson.decisionMap !== "object" || Array.isArray(draftJson.decisionMap)) {
-    issues.push("repair output must include decisionMap object");
-  }
-  if (stage.key === "questions" && Array.isArray(draftJson.qa)) {
-    for (let i = 0; i < draftJson.qa.length; i++) {
-      const entry = draftJson.qa[i];
-      if (entry?.status === "pending" || entry?.status === "approved" || entry?.status == null) {
-        for (const field of ["answer", "evidence", "why", "droppedReason"]) {
-          if (entry?.[field]) {
-            issues.push(`qa[${i}].${field} must remain empty during question review repair`);
-          }
-        }
-      }
-    }
-  }
-  return issues;
+function issueToDraftReviewFinding(issue, fallbackClassification) {
+  const classification = resolveDraftReviewClassification(issue, fallbackClassification);
+  const qa = extractMarkdownField(issue.body, "QA");
+  const issueText = extractMarkdownField(issue.body, "Issue")
+    || extractMarkdownField(issue.body, "Blocking decision")
+    || issue.body
+    || "Draft review finding.";
+  const suggestion = extractMarkdownField(issue.body, "Suggestion")
+    || extractMarkdownField(issue.body, "Why blocking")
+    || issueText;
+  return new DraftReviewFinding({
+    title: issue.title,
+    target: qa || issue.file || "GLOBAL",
+    rationale: suggestion,
+    evidence: issueText,
+    classification,
+  });
 }
 
-function validateDraftRepairAudit(audit, issues, stage, draftJson) {
-  const validationIssues = [];
-  const serialized = audit instanceof DraftRepairAuditArtifact ? audit.toJSON() : audit;
-  validationIssues.push(...validateSchema(serialized, DRAFT_REPAIR_AUDIT_SCHEMA));
-  if (validationIssues.length > 0) return validationIssues;
-
-  if (audit.phase !== stage.repairPhase) {
-    validationIssues.push(`audit.phase must be ${stage.repairPhase}`);
+function addDraftReviewFindingToBucket(buckets, finding) {
+  if (finding.classification === "blocking") {
+    buckets.blockingFindings.push(finding);
+  } else if (finding.classification === "advisory") {
+    buckets.advisoryFindings.push(finding);
+  } else {
+    buckets.repairTargets.push(finding);
   }
-  if (audit.sourceReview !== stage.artifact) {
-    validationIssues.push(`audit.sourceReview must be ${stage.artifact}`);
-  }
-  if (audit.items.length !== issues.length) {
-    validationIssues.push(`audit.items must contain one item per review finding (${issues.length})`);
-  }
-  for (let i = 0; i < Math.min(audit.items.length, issues.length); i++) {
-    const item = audit.items[i];
-    if (item.findingTitle !== issues[i].title) {
-      validationIssues.push(`audit.items[${i}].findingTitle must match review finding title "${issues[i].title}"`);
-    }
-    if (item.decision === "applied" && item.changedFields.length === 0) {
-      validationIssues.push(`audit.items[${i}].changedFields must be non-empty when decision is applied`);
-    }
-  }
-  if (stage.key === "coverage" && audit.requiresUserDecision() && draftJson?.approval?.approved === true) {
-    validationIssues.push("coverage repair must keep approval.approved false when audit requires a user decision");
-  }
-  return validationIssues;
 }
 
-async function repairDraftReviewFindings(agent, draftPath, auditPath, draftJson, issues, stage, requestText, contextEntries) {
-  if (issues.length === 0) return { draftJson, repaired: false, audit: null };
-
-  const repairPrompt = buildDraftRepairPrompt(draftJson, issues, stage, requestText, contextEntries);
-  const raw = await callReviewAgent(
-    agent,
-    repairPrompt,
-    `${stage.commandId}.repair`,
-    "You repair draft.json in one pass. Return only the required JSON object.",
-  );
-
-  const repairOutput = parseDraftRepairOutput(raw);
-  const repairedDraft = repairOutput.draft;
-  const shapeIssues = validateDraftRepairShape(repairedDraft, stage);
-  const auditIssues = validateDraftRepairAudit(repairOutput.audit, issues, stage, repairedDraft);
-  shapeIssues.push(...auditIssues);
-  if (shapeIssues.length > 0) {
-    throw new Error(`draft repair produced invalid output: ${shapeIssues.join("; ")}`);
+function buildDraftReviewArtifact({ raw, draftPath, proposals, stage }) {
+  if (raw.includes("NO_PROPOSALS") || proposals.length === 0) {
+    return new DraftReviewArtifact({
+      phase: stage.reviewPhase,
+      sourceDraft: draftPath,
+    });
   }
-
-  fs.writeFileSync(draftPath, JSON.stringify(repairedDraft, null, 2) + "\n");
-  fs.writeFileSync(auditPath, JSON.stringify(repairOutput.audit, null, 2) + "\n");
-  return { draftJson: repairedDraft, repaired: true, audit: repairOutput.audit };
-}
-
-function approveDraftAfterCoverageReview(draftPath, draftJson, verdict) {
-  if (verdict !== "PASS" && verdict !== "ADVISORY") return;
-  const approval = draftJson.approval && typeof draftJson.approval === "object"
-    ? draftJson.approval
-    : {};
-  if (approval.approved === true && approval.confirmedAt) return;
-
-  draftJson.approval = {
-    approved: true,
-    confirmedAt: new Date().toISOString(),
-    notes: approval.notes || (
-      verdict === "ADVISORY"
-        ? "Draft review advisory findings recorded; proceeding to spec."
-        : "Draft review passed."
-    ),
+  const buckets = {
+    blockingFindings: [],
+    advisoryFindings: [],
+    repairTargets: [],
   };
-  fs.writeFileSync(draftPath, JSON.stringify(draftJson, null, 2) + "\n");
+  for (const proposal of proposals) {
+    const finding = issueToDraftReviewFinding(proposal, stage.findingClassification);
+    addDraftReviewFindingToBucket(buckets, finding);
+  }
+  return new DraftReviewArtifact({
+    phase: stage.reviewPhase,
+    sourceDraft: draftPath,
+    ...buckets,
+  });
+}
+
+function writeJsonArtifact(filePath, artifact) {
+  fs.writeFileSync(filePath, JSON.stringify(artifact, null, 2) + "\n");
 }
 
 async function runDraftReview(root, flow, config, dryRun) {
   const specDir = path.dirname(flow.spec);
-  const draftPath = path.resolve(root, specDir, "draft.json");
+  const specPath = path.resolve(root, specDir);
+  const draftPath = path.resolve(specPath, "draft.json");
   const stage = resolveDraftReviewStage(flow);
 
   if (!fs.existsSync(draftPath)) {
@@ -2243,49 +2052,26 @@ async function runDraftReview(root, flow, config, dryRun) {
     agent, detectPrompt, stage.commandId, fallbackSystemPrompt,
   );
 
-  const issues = raw.includes("NO_PROPOSALS") ? [] : parseProposals(raw);
-  const verdict = issues.length === 0 ? "PASS" : "ADVISORY";
+  const proposals = raw.includes("NO_PROPOSALS")
+    ? []
+    : parseProposals(raw, { limit: DRAFT_REVIEW_ARRAY_CAP });
 
-  const reviewPath = path.join(path.resolve(root, specDir), stage.artifact);
-  const repairAuditPath = path.join(path.resolve(root, specDir), stage.repairArtifact);
-  fs.writeFileSync(reviewPath, formatDraftReviewMd(issues, stage, verdict));
-
-  let repaired = false;
-  let repairAudit = null;
-  if (issues.length > 0) {
-    console.error(`  [${stage.tag}] Repairing draft.json from advisory findings...`);
-    const repairResult = await repairDraftReviewFindings(
-      agent,
-      draftPath,
-      repairAuditPath,
-      draftJson,
-      issues,
-      stage,
-      requestText,
-      contextEntries,
-    );
-    draftJson = repairResult.draftJson;
-    repaired = repairResult.repaired;
-    repairAudit = repairResult.audit;
-    if (repaired) {
-      fs.appendFileSync(
-        reviewPath,
-        `\n\n## Auto Repair\nOne-pass draft.json repair was applied before proceeding.\n\nAudit: ${stage.repairArtifact}\n`,
-      );
-    }
-  }
-
-  if (stage.key === "coverage" && !repairAudit?.requiresUserDecision()) {
-    approveDraftAfterCoverageReview(draftPath, draftJson, verdict);
-  }
+  const reviewPath = path.join(specPath, stage.artifact);
+  const reviewArtifact = buildDraftReviewArtifact({
+    raw,
+    draftPath: path.relative(specPath, draftPath),
+    proposals,
+    stage,
+  });
+  writeJsonArtifact(reviewPath, reviewArtifact);
 
   console.error(`  [${stage.tag}] Results saved to ${path.relative(root, reviewPath)}`);
-  console.error(`  [${stage.tag}] verdict=${verdict} ${stage.countLabel}=${issues.length} retryPhase=${stage.retryPhase}`);
+  console.error(`  [${stage.tag}] verdict=${reviewArtifact.verdict} ${stage.countLabel}=${proposals.length} retryPhase=${stage.retryPhase}`);
 
-  if (verdict === "PASS") {
+  if (reviewArtifact.verdict === "PASS") {
     console.log("Draft review PASS. QA entries are adequate.");
   } else {
-    console.log(`Draft review ADVISORY. ${issues.length} finding(s) recorded; ${repaired ? "draft.json repaired" : "proceeding"}.`);
+    console.log(`Draft review ${reviewArtifact.verdict}. ${proposals.length} finding(s) recorded for triage.`);
   }
 }
 
@@ -2512,8 +2298,8 @@ export {
   applyTestFixes, formatTestReviewMd, runReviewLoop,
   extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt, formatSpecReviewMd, formatSpecReviewJson, parseSpecReviewFindings,
   isValidSpecOutput, stripPreamble, buildGapAnalysisPrompt, buildTestFixPrompt,
-  buildDraftReviewPrompt, formatDraftReviewMd,
-  buildDraftRepairPrompt, parseDraftRepairOutput, validateDraftRepairShape, validateDraftRepairAudit,
+  buildDraftReviewPrompt,
+  buildDraftReviewArtifact,
   shouldUseLoopReview, groupByDiffContent, buildPerFileReviewInput,
   buildCrossCheckInput, expandProposalsToGroup,
   LOOP_REVIEW_THRESHOLD, MAX_LOOP_CALLS,

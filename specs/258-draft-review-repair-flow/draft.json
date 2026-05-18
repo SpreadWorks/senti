@@ -1,0 +1,167 @@
+{
+  "devType": "feature",
+  "goal": "draft/spec review の責務を、指摘検出、採否判断、repair、gate readiness check に分離する。特に draft review から draft.json の内部 repair を外し、draft 側にも明示的な triage / repair フェーズと機械可読 artifact を追加する。",
+  "analysis": {
+    "problem": "現在の draft review は review 実行中に draft.json repair と repair audit 生成まで行うため、review が指摘記録に専念できず、採否判断、修正適用、gate の責務境界が曖昧になっている。spec 側には spec-review-triage / spec-repair の明示フェーズがある一方、draft 側は同等の分離が未整備で、artifact の機械可読性と gate での整合性確認も不足している。",
+    "proposedApproach": "既存の spec-review-triage / spec-repair と gate の検証パターンを参照し、draft review は検出 artifact の保存に限定する。draft-review-triage / draft-repair 相当の明示フェーズ、JSON artifact、repair audit、flow definition / next-action / registry hook / migration / validation を追加し、FAIL / ADVISORY の扱いを blocking 指摘、advisory 指摘、repair 対象に分ける。",
+    "validation": "この方針は、review、triage、repair、gate の各責務を別 artifact と別 step に分けるため、Issue の根本問題である責務混在を直接解消する。既存の spec 側分離と同じ構造を draft 側へ展開することで、実装・テスト・gate 検証の基準を機械的に定義できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #324 は review を「指摘を記録する仕事」に寄せ、採否判断と repair を明示フェーズへ分離することを求めている。",
+      "Issue #324 は gate を schema / guardrail / required field / artifact 整合性などの機械的 readiness check に寄せることを求めている。",
+      "src/flow/definition.js では plan 配下に review-draft-questions、draft-refine、review-draft-coverage、gate-draft、spec-review-triage、spec-repair が定義されている。",
+      "src/flow/commands/review.js には draft review の artifact と repairArtifact があり、review 実行中に repairDraftReviewFindings が draft.json と repair audit を書く構造がある。",
+      "src/flow/registry.js の review post hook は draft review の PASS / ADVISORY で該当 step を done に進める。",
+      "src/flow/lib/run-gate.js は spec-review-triage.json と spec-repair.json の存在、shape、件数整合性を gate で検証している。",
+      "プロジェクトルールは外部依存追加を禁止し、値の構造的制約は専用クラスで表現する方針を定めている。",
+      "Issue #324 の out of scope は gate / review の名称変更と汎用チェックフレームワーク化である。",
+      "draft 側にも spec-review-triage / spec-repair と同等の責務分離を持つ明示 step を追加する。",
+      "draft review artifact は機械可読 JSON を正とし、markdown は人間向け補助出力としてのみ残す。",
+      "blocking 指摘、advisory 指摘、repair 対象を分類し、step 遷移と gate validation に反映する。",
+      "既存 artifact の migration は、draft review markdown / repair audit を読む経路を新しい JSON review / triage / repair audit 参照へ置き換える処理を対象にし、旧形式を継続利用する fallback は追加しない。",
+      "gate-draft は schema / required field / artifact 整合性を検証し、設計妥当性の再評価は review / triage / repair 側に残す。"
+    ],
+    "decisionPoints": [
+      "draft review JSON artifact の required fields / enum / sourceReview 参照と既存 markdown artifact の扱い",
+      "draft-review-triage / draft-repair 相当フェーズの step 名、順序、post hook、next-action 表示",
+      "blocking 指摘、advisory 指摘、repair 対象の分類基準",
+      "draft repair audit の必須フィールド、sourceReview 参照、gate-draft での整合性検証",
+      "既存 spec の migration 方針と active flow / old artifact への扱い",
+      "review コマンドから内部 repair を外した後の ADVISORY / FAIL の遷移",
+      "追加・更新するテスト範囲と agent 呼び出しを含む回帰検知範囲",
+      "実装対象を draft/spec review 責務分離に限定し、汎用 framework 化へ広げない境界"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。Node.js 組み込みモジュールと既存ヘルパーのみ使用する。",
+      "alpha 版ポリシーにより旧フォーマット互換のための長期的な後方互換コードは追加しない。",
+      "src/ 以下には特定プロジェクト固有の値を含めない。",
+      "同じ実装パターンが複数箇所に出る場合は共通ヘルパーへ抽出する。",
+      "テンプレートや skill を変更した場合は sdd-forge upgrade を実行する。",
+      "gate は readiness check、review は検出、triage は採否判断、repair は適用と audit 記録に分ける。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "artifact JSON schema のフィールド名と required / enum の具体化",
+      "FlowNode 定義、registry post hook、next-action schema の具体的な差分",
+      "review prompt と repair prompt の具体文言",
+      "migration は既存 draft review markdown / repair audit 参照を新しい JSON review / triage / repair audit 参照へ置き換える。対象外: 旧形式 fallback の維持。",
+      "unit / flow / agent テストのファイル単位タスク分解"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: review-draft-questions / review-draft-coverage から draft.json 内部 repair を外す",
+      "must: draft 側の triage / repair 相当フェーズを flow に追加する",
+      "must: draft review artifact を機械可読 JSON として保存する",
+      "must: draft repair audit を review コマンド内生成から repair フェーズ成果物へ移す",
+      "must: review と gate の責務境界を prompt、code、artifact validation で整理する",
+      "must: run-review の FAIL / ADVISORY 扱いを blocking 指摘、advisory 指摘、repair 対象に分ける",
+      "must: flow definition、migration、next-action、registry hook を更新する",
+      "must: draft review が draft.json を直接 repair しないこと、draft triage / repair artifact を gate-draft が検証すること、ADVISORY / FAIL の step 遷移が分かれることをテストする"
+    ],
+    "out": [
+      "gate / review という名称自体の変更",
+      "汎用チェックフレームワーク化",
+      "Issue #324 の責務分離と無関係な flow 全体の再設計",
+      "外部依存の追加"
+    ]
+  },
+  "impactOnExisting": [
+    "plan phase の step 遷移と next-action 表示",
+    "flow run review の draft review 挙動と post hook",
+    "draft.json、draft review artifact、repair audit の保存形式",
+    "gate-draft の artifact 整合性 validation",
+    "flow migration と既存 spec artifact の扱い",
+    "SDD flow skill / prompt / template の配布内容",
+    "flow 関連 unit / integration / agent regression tests"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "今回の goal は、draft review と spec review の双方について、review は指摘記録、triage は採否判断、repair は変更適用、gate は機械的 readiness check に分けること、という理解でよいか。",
+      "answer": "はい。Issue #324 の目的は、review を指摘記録、triage を採否判断、repair を変更適用、gate を機械的 readiness check に分離することとして扱う。",
+      "evidence": "Issue #324 Goal / Changes。src/flow/definition.js には spec-review-triage / spec-repair が既存 step として定義済み。",
+      "why": "Issue の根本問題は責務混在であり、各責務を別 step と別 artifact に分けることで検証可能になるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "draft 側に追加する triage / repair 相当フェーズは、spec-review-triage / spec-repair と同じ責務分離を持つ別 step として flow definition に追加する方針でよいか。",
+      "answer": "はい。draft 側にも spec-review-triage / spec-repair と同じ責務境界を持つ明示 step を追加する。",
+      "evidence": "Issue #324 Changes: draft 側にも draft-review-triage / draft-repair 相当の明示フェーズを追加する。src/flow/definition.js: plan steps include spec-review-triage and spec-repair.",
+      "why": "spec 側の既存パターンへ揃えることで、flow definition、next-action、registry hook、gate validation の拡張点が明確になるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "draft review artifact は機械可読 JSON を正とし、既存の markdown report は廃止または補助出力に留める方針でよいか。",
+      "answer": "はい。draft review artifact は JSON を正とし、markdown report は必要な場合のみ人間向け補助出力に留める。",
+      "evidence": "Issue #324 Changes: draft review artifact を機械可読 JSON として保存する。",
+      "why": "triage / repair / gate が artifact を検証するには、markdown より JSON の方が schema と件数整合性を機械的に扱えるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "blocking 指摘、advisory 指摘、repair 対象は、gate を止める問題、記録のみで進行可能な改善、repair フェーズで適用する項目、の 3 種に分類できれば受け入れ条件を満たすか。",
+      "answer": "はい。blocking、advisory、repair target の 3 種を区別できることを受け入れ条件に含める。",
+      "evidence": "Issue #324 Changes: run-review の FAIL / ADVISORY の扱いを blocking 指摘、advisory 指摘、repair 対象に分ける。",
+      "why": "分類が曖昧なままだと、review が進行可否判断や repair 対象決定を抱え込み続けるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "既存 artifact への migration は、draft review markdown / repair audit を読む経路を新しい JSON review / triage / repair audit 参照へ置き換え、旧形式 fallback の維持は out of scope としてよいか。",
+      "answer": "はい。migration は既存の draft review markdown / repair audit 参照を新しい JSON review / triage / repair audit 参照へ置き換える処理に限定し、旧形式 fallback は追加しない。",
+      "evidence": "AGENTS.md project rule: alpha 版ポリシーでは後方互換コードを書かず、旧フォーマット・非推奨パスは保持しない。",
+      "why": "旧 artifact 互換を残すと責務分離後も review 内 repair 経路や旧形式 validation が残り、Issue の目的と衝突するため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "gate-draft は schema、required field、review/triage/repair artifact の存在と件数整合性を検証し、設計妥当性の再評価は review / triage / repair 側に残す方針でよいか。",
+      "answer": "はい。gate-draft は schema、required field、review / triage / repair artifact の存在と整合性を検証し、設計判断は review / triage / repair へ分離する。",
+      "evidence": "Issue #324 Goal: gate は schema / guardrail / required field / artifact 整合性など機械的 readiness check に寄せる。src/flow/lib/run-gate.js は spec-review-triage / spec-repair artifact 整合性を検証している。",
+      "why": "gate が設計レビューを兼ねると責務混在が再発するため、gate は readiness の機械的検証に限定する必要がある。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "テストは、draft review が draft.json を直接 repair しないこと、draft triage / repair artifact が gate で検証されること、ADVISORY / FAIL の step 遷移が分かれることを必須で確認する方針でよいか。",
+      "answer": "はい。draft review が draft.json を直接 repair しないこと、draft triage / repair artifact が gate で検証されること、ADVISORY / FAIL の step 遷移が分かれることを必須テストにする。",
+      "evidence": "Issue #324 Changes: review から内部 repair を外す、repair audit を repair フェーズ成果物へ移す、FAIL / ADVISORY の扱いを分ける、関連テストを追加・更新する。",
+      "why": "責務分離は挙動の境界が成果物と step 遷移に現れるため、ここをテストしないと実装が旧構造へ戻っても検知できないため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "将来の拡張性は、汎用チェックフレームワーク化ではなく、draft/spec それぞれの review artifact と repair audit contract を明確にする範囲で扱えばよいか。",
+      "answer": "はい。将来拡張性は、汎用 framework 化ではなく、draft/spec の review artifact と repair audit contract を明確にする範囲で扱う。",
+      "evidence": "Issue #324 Out of Scope: 汎用チェックフレームワーク化は含めない。",
+      "why": "今回の scope は責務分離であり、汎用 framework 化まで広げると Issue の単一 concern を越えるため。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-16T12:17:05.948Z",
+    "notes": "Draft review passed."
+  }
+}

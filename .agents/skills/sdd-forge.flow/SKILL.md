@@ -205,10 +205,10 @@ All sections marked REQUIRED must appear regardless of whether the AI internally
 **MUST: 議論の途中で「結論:」「決定:」と独断で締めてはならない。** 設計判断はユーザーが決定者である。AI は選択肢とトレードオフを示し、ユーザーの選択を待つ。
 
 ### Why
-過去のセッションで、AI が議論を勝手に締めて方向性を確定させ、ユーザーが意図しない実装に進んだ事例が 8 件発生している。AI が議論をリードしすぎると、ユーザーの判断機会が奪われる。
+過去のセッションで、AI が議論を勝手に締めて方向性を確定させ、ユーザーが意図しない実装に進んだ事例が 8 件発生している。AI が議論をリードしすぎると、ユーザーの判断機会を奪う。
 
 ### How to apply
-- draft / review-draft-questions / draft-refine / review-draft-coverage / spec / review-spec / spec-review-triage / spec-repair の各フェーズで、複数の選択肢があり得る論点では必ず Choice Format で提示する。
+- このルールが表示されたフェーズでは、複数の選択肢があり得る論点を必ず Choice Format で提示する。
 - 「結論:」「決定:」「方針が確定した」等の語で議論を締めない。「推奨:」「私の見解:」までに留める。
 - ユーザーが明示的に選択肢を指定するまで、AI は最終決定を確定させない。
 
@@ -282,7 +282,7 @@ Placeholder artifact permission:
 
 ### C. Dispatcher loop
 
-Repeat until the loop exit condition is met:
+Repeat until the loop exit condition is met. The loop is bounded by the finite flow schema and the returned `maxAttempts`; stop if the dispatcher cannot make progress within the remaining step count.
 
 C.1. **Ask the CLI for the next action**
    - Run `sdd-forge flow get next-action`.
@@ -310,10 +310,21 @@ C.2. **Execute instructions**
    - Fetch any additional context the instructions request via `sdd-forge flow get context ...` / `sdd-forge flow get guardrail <phase>`.
    - Retry limits: read the resolved numeric maxAttempts from the next-action envelope (`maxAttempts`). When that limit is reached, STOP and return control to the user.
    - When the current step's work is finished, advance step status:
-     - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — the hook handles the transition; do nothing further.
-     - **`flow run review`**: draft review phases (`review-draft-questions` / `review-draft-coverage`) auto-complete on PASS or ADVISORY via post hook. `review-spec` auto-completes via post hook for PASS / ADVISORY / FAIL; FAIL advances to `spec-review-triage`. `review-test` still follows its prompt instructions. Impl/task review still auto-dones via post hook.
-     - **`flow run test-execute` / `flow run test-result-review` / `flow run retro`**: post hooks validate current v2 artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures.
-     - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
+      - If the instructions run a CLI command whose post-hook advances step (`flow run gate`, `flow run impl-confirm`, `flow run finalize-commit`, `flow run finalize-merge`, `flow run finalize-sync`, `flow run finalize-cleanup`, `flow run sync`) — the hook handles the transition; do nothing further.
+      - **`flow run review`**:
+        - Draft review routes:
+
+          | Review step | Triage step | Repair step |
+          |---|---|---|
+          | `review-draft-questions` | `draft-questions-triage` | `draft-questions-repair` |
+          | `review-draft-coverage` | `draft-coverage-triage` | `draft-coverage-repair` |
+
+        - Draft review phases write only detection JSON artifacts. PASS completes the review leaf and registry hook writes empty triage/repair bookkeeping artifacts before advancing to the normal next step. ADVISORY / FAIL enter the route's triage step. Triage records disposition, repair records mutation audit, and gate-draft performs mechanical readiness validation of artifact shape, links, item correspondence, unresolved user decisions, and draft approval.
+        - `review-spec` records detection output via post hook. PASS / ADVISORY complete review, while FAIL completes review and advances to `spec-review-triage`.
+        - `review-test` still follows its prompt instructions.
+        - Impl/task review writes detection output only; its post hook advances according to the existing impl/task review route.
+      - **`flow run test-execute` / `flow run test-result-review` / `flow run retro`**: post hooks validate current v2 artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures.
+      - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
 
 C.3. **Loop**
    - Return to C.1.

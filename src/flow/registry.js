@@ -9,6 +9,8 @@
  */
 
 import { derivePhase } from "../lib/flow-helpers.js";
+import fs from "fs";
+import path from "path";
 import {
   VALID_PHASES,
   VALID_METRIC_COUNTERS,
@@ -18,6 +20,7 @@ import {
 } from "../lib/constants.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./lib/gate-step.js";
 import { flattenSteps } from "./definition.js";
+import { draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -26,9 +29,62 @@ import { flattenSteps } from "./definition.js";
  */
 const FINALIZE_SUCCESS_STATUSES = new Set(["done", "completed", "skipped"]);
 const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir", "--log-file"];
+const DRAFT_REVIEW_RECORDED_VERDICTS = new Set(["PASS", "ADVISORY", "FAIL"]);
+
+export const DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY = Object.freeze({
+  review: "detection",
+  triage: "disposition",
+  repair: "mutation/audit",
+  gate: "mechanical validation",
+  summary: "review as detection, triage as disposition, repair as mutation/audit, gate as mechanical validation",
+});
+
+const DRAFT_REVIEW_REVIEW_RESPONSIBILITIES = Object.freeze([
+  "record detection artifacts only",
+  "delegate accept/reject disposition to triage steps",
+  "delegate mutation/audit output to repair steps",
+  "leave mechanical validation to gate steps",
+]);
+
+const DRAFT_REVIEW_GATE_RESPONSIBILITIES = Object.freeze([
+  "mechanically validate readiness artifacts, schemas, links, unresolved decisions, approval, tests, and guardrail compliance as mechanical validation",
+  "do not perform review detection, triage disposition, or repair mutation/audit",
+]);
+
+export function assertDraftReviewRegistryHookBoundary() {
+  const expected = "review as detection, triage as disposition, repair as mutation/audit, gate as mechanical validation";
+  if (DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary !== expected) {
+    throw new Error(`invalid draft review registry hook boundary: ${DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary}`);
+  }
+}
 
 function isFinalizeSuccess(result) {
   return FINALIZE_SUCCESS_STATUSES.has(String(result?.status || ""));
+}
+
+function isDraftReviewRecordedVerdict(verdict) {
+  return DRAFT_REVIEW_RECORDED_VERDICTS.has(verdict);
+}
+
+function writeEmptyDraftReviewRouteArtifacts(ctx, route) {
+  const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+  const generatedAt = new Date().toISOString();
+  fs.writeFileSync(path.join(specDir, route.triageArtifact), JSON.stringify({
+    version: 1,
+    phase: route.triageStepId,
+    sourceReview: route.reviewArtifact,
+    generatedAt,
+    summary: "No draft review findings to triage.",
+    items: [],
+  }, null, 2) + "\n");
+  fs.writeFileSync(path.join(specDir, route.repairArtifact), JSON.stringify({
+    version: 1,
+    phase: route.repairStepId,
+    sourceTriage: route.triageArtifact,
+    generatedAt,
+    summary: "No draft triage items to repair.",
+    items: [],
+  }, null, 2) + "\n");
 }
 
 /**
@@ -403,6 +459,7 @@ export const FLOW_COMMANDS = {
   run: {
     gate: {
       helpKey: "flow.run.gate",
+      responsibilities: DRAFT_REVIEW_GATE_RESPONSIBILITIES,
       pre(ctx) {
         // When --phase is omitted, phase resolution and stale-step recovery
         // happen inside RunGateCommand.execute (which has exclusive ownership
@@ -421,6 +478,7 @@ export const FLOW_COMMANDS = {
         "Usage: sdd-forge flow run gate [options]",
         "",
         "Run gate check. Resolves target from flow.json if omitted.",
+        `Responsibility boundary: ${DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary}.`,
         "",
         "Options:",
         "  --spec <path>                 Path to spec (directory / spec.json / legacy spec.md; auto-resolved from flow.json)",
@@ -456,6 +514,8 @@ export const FLOW_COMMANDS = {
     },
     review: {
       helpKey: "flow.run.review",
+      draftReviewPostHookBoundary: DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY,
+      responsibilities: DRAFT_REVIEW_REVIEW_RESPONSIBILITIES,
       command: () => import("./lib/run-review.js"),
       args: {
         flags: ["--dry-run", "--skip-confirm"],
@@ -465,6 +525,7 @@ export const FLOW_COMMANDS = {
         "Usage: sdd-forge flow run review [options]",
         "",
         "Run AI code review on current changes.",
+        `Responsibility boundary: ${DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY.summary}.`,
         "",
         "Options:",
         `  --phase <type>   Review phase: ${VALID_REVIEW_PHASES.map((p) => `'${p}'`).join(", ")}`,
@@ -480,15 +541,21 @@ export const FLOW_COMMANDS = {
         reviewMod.updateReviewRetryCounter(ctx, result);
 
         if (ctx.phase === "draft") {
+          assertDraftReviewRegistryHookBoundary();
+          // Registry post hook boundary: review as detection, triage as
+          // disposition, repair as mutation/audit, gate as mechanical
+          // validation. This hook completes routing state only; draft
+          // mutation/audit remains owned by repair leaves.
           const retryPhase = result?.artifacts?.retryPhase;
           const verdict = result?.artifacts?.verdict;
-          const stepId = retryPhase === "draft-coverage"
-            ? "review-draft-coverage"
-            : retryPhase === "draft-questions"
-              ? "review-draft-questions"
-              : null;
-          if (stepId && (verdict === "PASS" || verdict === "ADVISORY")) {
-            tryUpdateStepStatus(ctx, stepId, "done");
+          const routing = draftReviewRouteForRetryPhase(retryPhase);
+          if (routing && isDraftReviewRecordedVerdict(verdict)) {
+            tryUpdateStepStatus(ctx, routing.reviewStepId, "done");
+            if (verdict === "PASS") {
+              writeEmptyDraftReviewRouteArtifacts(ctx, routing);
+              tryUpdateStepStatus(ctx, routing.triageStepId, "done");
+              tryUpdateStepStatus(ctx, routing.repairStepId, "done");
+            }
           }
           return;
         }

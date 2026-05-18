@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied three spec review repairs: draft approval ownership, draft triage decision semantics, and active-flow migration status policy.",
+  "items": [
+    {
+      "title": "Draft approval owner is unspecified after removing review mutation",
+      "target": "R1, R6, R7, Data Flow, gate-draft",
+      "decision": "applied",
+      "rationale": "Assigned draft approval mutation to draft-coverage-repair and required empty repair audit generation for PASS/no-repair paths.",
+      "evidence": "spec.json overview.data_flow[4], requirements R5/R8, acceptance_criteria[3], clarifications[4], tasks T-4/T-5.",
+      "changedFields": [
+        "overview.data_flow",
+        "requirements[4].desc",
+        "requirements[7].desc",
+        "acceptance_criteria",
+        "clarifications",
+        "tasks[3].acceptance",
+        "tasks[4].acceptance"
+      ]
+    },
+    {
+      "title": "Draft triage decision semantics are missing",
+      "target": "R4, R7, R8",
+      "decision": "applied",
+      "rationale": "Added the exact draft triage decision enum and gate meaning for apply, invalid, already_resolved, downgraded_to_non_blocking, and requires_user_decision.",
+      "evidence": "spec.json overview.decisions, requirements R4/R7/R8, acceptance_criteria[5], tasks T-4/T-5.",
+      "changedFields": [
+        "overview.decisions",
+        "requirements[3].desc",
+        "requirements[6].desc",
+        "requirements[7].desc",
+        "acceptance_criteria",
+        "tasks[3].acceptance",
+        "tasks[4].acceptance"
+      ]
+    },
+    {
+      "title": "Active-flow migration lacks status rules for inserted draft leaves",
+      "target": "R9",
+      "decision": "applied",
+      "rationale": "Defined concrete inserted-step status synthesis and empty JSON artifact generation for migrated flows already beyond the following consumer step.",
+      "evidence": "spec.json requirements R9, acceptance_criteria[6], tasks T-2 acceptance and implementation notes.",
+      "changedFields": [
+        "requirements[8].desc",
+        "acceptance_criteria",
+        "tasks[1].acceptance"
+      ]
+    }
+  ]
+}

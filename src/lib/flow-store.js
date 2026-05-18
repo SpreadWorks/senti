@@ -25,6 +25,16 @@ import {
   isTaskTerminalStatus,
 } from "./flow-helpers.js";
 import { findStepById, promoteNextPendingLeaf, flattenSteps } from "../flow/definition.js";
+import { DRAFT_REVIEW_ROUTES } from "../flow/lib/draft-review-routes.js";
+
+const MAX_FLOW_STEPS_FOR_MIGRATION = 200;
+const MAX_FLOW_ARTIFACTS_FOR_MIGRATION = 500;
+const DRAFT_REVIEW_ARTIFACT_REWRITES = new Map(
+  DRAFT_REVIEW_ROUTES.flatMap((route) => [
+    [`draft-review-${route.key}.md`, route.reviewArtifact],
+    [`draft-review-${route.key}-repair.json`, route.repairArtifact],
+  ]),
+);
 
 function specFlowPath(root, specId) {
   return path.join(root, "specs", specId, STATE_FILE);
@@ -91,11 +101,39 @@ function assertFlowStateSchema(state, sourcePath) {
   }
 }
 
+function flowStepList(state) {
+  const plan = Array.isArray(state?.steps)
+    ? state.steps.find((s) => s?.id === "plan" && Array.isArray(s.children))
+    : null;
+  return plan ? plan.children : state?.steps;
+}
+
+function boundedFlowStepListForMigration(state) {
+  const steps = flowStepList(state);
+  if (Array.isArray(steps) && steps.length > MAX_FLOW_STEPS_FOR_MIGRATION) {
+    throw new Error(`flow-store: refusing draft review migration with ${steps.length} steps (max ${MAX_FLOW_STEPS_FOR_MIGRATION})`);
+  }
+  return Array.isArray(steps) ? steps : [];
+}
+
+function shouldMarkInsertedDraftReviewLeafDone(consumerStatus) {
+  return consumerStatus === "done" || consumerStatus === "in_progress";
+}
+
+function createMigratedDraftReviewStep(id, consumer) {
+  const markDone = shouldMarkInsertedDraftReviewLeafDone(consumer.status);
+  const step = { id, status: markDone ? "done" : "pending" };
+  if (markDone) {
+    const timestamp = consumer.finishedAt || consumer.startedAt;
+    if (timestamp) step.finishedAt = timestamp;
+  }
+  return step;
+}
+
 function migrateDraftReviewSteps(state) {
   if (!Array.isArray(state?.steps)) return false;
   let changed = false;
-  const plan = state.steps.find((s) => s?.id === "plan" && Array.isArray(s.children));
-  const steps = plan ? plan.children : state.steps;
+  const steps = flowStepList(state);
   const legacyIndex = steps.findIndex((s) => s?.id === "review-draft");
   if (legacyIndex < 0) return false;
 
@@ -121,8 +159,7 @@ function migrateDraftReviewSteps(state) {
 
 function migrateDraftRefineStep(state) {
   if (!Array.isArray(state?.steps)) return false;
-  const plan = state.steps.find((s) => s?.id === "plan" && Array.isArray(s.children));
-  const steps = plan ? plan.children : state.steps;
+  const steps = flowStepList(state);
   if (steps.some((s) => s?.id === "draft-refine")) return false;
 
   const questionIndex = steps.findIndex((s) => s?.id === "review-draft-questions");
@@ -144,8 +181,7 @@ function migrateDraftRefineStep(state) {
 
 function migrateSpecReviewTriageAndRepairSteps(state) {
   if (!Array.isArray(state?.steps)) return false;
-  const plan = state.steps.find((s) => s?.id === "plan" && Array.isArray(s.children));
-  const steps = plan ? plan.children : state.steps;
+  const steps = flowStepList(state);
 
   const reviewIndex = steps.findIndex((s) => s?.id === "review-spec");
   let repairIndex = steps.findIndex((s) => s?.id === "spec-repair");
@@ -189,6 +225,119 @@ function migrateSpecReviewTriageAndRepairSteps(state) {
   return changed;
 }
 
+function migrateDraftReviewTriageAndRepairSteps(state) {
+  if (!Array.isArray(state?.steps)) return false;
+  const steps = boundedFlowStepListForMigration(state);
+  let changed = false;
+
+  function insertBefore(consumerId, insertedStepIds) {
+    const consumerIndex = steps.findIndex((s) => s?.id === consumerId);
+    if (consumerIndex < 0) return;
+    const consumer = steps[consumerIndex];
+    let insertIndex = consumerIndex;
+    for (const id of insertedStepIds) {
+      if (steps.some((s) => s?.id === id)) continue;
+      const step = createMigratedDraftReviewStep(id, consumer);
+      steps.splice(insertIndex, 0, step);
+      insertIndex++;
+      changed = true;
+    }
+  }
+
+  for (const route of DRAFT_REVIEW_ROUTES) {
+    insertBefore(route.passNextStepId, [route.triageStepId, route.repairStepId]);
+  }
+
+  if (Array.isArray(state.artifacts)) {
+    if (state.artifacts.length > MAX_FLOW_ARTIFACTS_FOR_MIGRATION) {
+      throw new Error(`flow-store: refusing draft review migration with ${state.artifacts.length} artifacts (max ${MAX_FLOW_ARTIFACTS_FOR_MIGRATION})`);
+    }
+    let artifactChanged = false;
+    const rewritten = state.artifacts.map((artifact) => {
+      if (typeof artifact !== "string") return artifact;
+      const filename = path.basename(artifact);
+      const replacement = DRAFT_REVIEW_ARTIFACT_REWRITES.get(filename);
+      if (replacement) {
+        artifactChanged = true;
+        return path.join(path.dirname(artifact), replacement).split(path.sep).join("/");
+      }
+      return artifact;
+    });
+    if (artifactChanged) {
+      state.artifacts = rewritten;
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
+function writeJsonArtifactIfMissing(specDir, filename, data) {
+  const filePath = path.join(specDir, filename);
+  if (fs.existsSync(filePath)) return false;
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n", "utf8");
+  return true;
+}
+
+function createEmptyDraftMigrationArtifact(phaseStepId, summaryLabel) {
+  return {
+    version: 1,
+    phase: phaseStepId,
+    summary: `Migrated empty draft ${summaryLabel} artifact for an already completed flow.`,
+  };
+}
+
+function createEmptyDraftReviewArtifact(route, generatedAt) {
+  return {
+    ...createEmptyDraftMigrationArtifact(route.reviewStepId, "review"),
+    sourceDraft: "draft.json",
+    generatedAt,
+    verdict: "PASS",
+    blockingFindings: [],
+    advisoryFindings: [],
+    repairTargets: [],
+  };
+}
+
+function createEmptyDraftTriageArtifact(route) {
+  return {
+    ...createEmptyDraftMigrationArtifact(route.triageStepId, "triage"),
+    sourceReview: route.reviewArtifact,
+    items: [],
+  };
+}
+
+function createEmptyDraftRepairArtifact(route) {
+  return {
+    ...createEmptyDraftMigrationArtifact(route.repairStepId, "repair"),
+    sourceTriage: route.triageArtifact,
+    items: [],
+  };
+}
+
+function writeEmptyDraftReviewMigrationArtifacts(root, state) {
+  if (!state?.spec) return false;
+  const specDir = path.dirname(path.resolve(root, state.spec));
+  const generatedAt = new Date().toISOString();
+  const stepById = new Map(
+    boundedFlowStepListForMigration(state).map((step) => [step.id, step]),
+  );
+  let changed = false;
+  for (const route of DRAFT_REVIEW_ROUTES) {
+    const repairStep = stepById.get(route.repairStepId);
+    if (repairStep?.status !== "done") continue;
+    const artifacts = [
+      [route.reviewArtifact, createEmptyDraftReviewArtifact(route, generatedAt)],
+      [route.triageArtifact, createEmptyDraftTriageArtifact(route)],
+      [route.repairArtifact, createEmptyDraftRepairArtifact(route)],
+    ];
+    for (const [filename, artifact] of artifacts) {
+      changed = writeJsonArtifactIfMissing(specDir, filename, artifact) || changed;
+    }
+  }
+  return changed;
+}
+
 function appendFlowMigrationLog(root, state, step, reason, resolution) {
   if (!state?.spec) return;
   const specDir = path.dirname(path.resolve(root, state.spec));
@@ -214,8 +363,9 @@ function appendFlowMigrationLog(root, state, step, reason, resolution) {
 function migrateFlowState(state, sourcePath, { persist, root }) {
   const reviewChanged = migrateDraftReviewSteps(state);
   const refineChanged = migrateDraftRefineStep(state);
+  const draftReviewTriageRepairChanged = migrateDraftReviewTriageAndRepairSteps(state);
   const specRepairChanged = migrateSpecReviewTriageAndRepairSteps(state);
-  const changed = reviewChanged || refineChanged || specRepairChanged;
+  const changed = reviewChanged || refineChanged || draftReviewTriageRepairChanged || specRepairChanged;
   if (changed && persist) {
     fs.writeFileSync(sourcePath, JSON.stringify(state, null, 2) + "\n", "utf8");
     if (reviewChanged) {
@@ -243,6 +393,16 @@ function migrateFlowState(state, sourcePath, { persist, root }) {
         "spec-review-triage/spec-repair",
         "Inserted spec-review-triage and spec-repair between spec review and spec gate.",
         "Synthesized spec review triage and repair status from surrounding spec review, repair, and gate steps.",
+      );
+    }
+    if (draftReviewTriageRepairChanged) {
+      writeEmptyDraftReviewMigrationArtifacts(root, state);
+      appendFlowMigrationLog(
+        root,
+        state,
+        "draft-review-triage/repair",
+        "Inserted draft review triage and repair leaves before their mapped consumer steps.",
+        "Synthesized draft triage and repair status from their mapped consumer steps and rewrote legacy draft review artifact references to JSON names.",
       );
     }
   }

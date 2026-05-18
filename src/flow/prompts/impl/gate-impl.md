@@ -1,4 +1,6 @@
    - `sdd-forge flow run gate` (step status is automatically managed by hooks: pre sets gate-impl to in_progress, post sets done on PASS. The CLI auto-resolves the gate phase from the in-progress step: when the active impl step is the overall flow's gate-impl, phase resolves to `integration`; when it is a task's gate-impl, phase resolves to `task-impl`.)
+   - Responsibility boundary: gate is mechanical readiness validation. It checks schemas, artifact links, required fields, unresolved decisions, approval, tests, diff coverage, and guardrail compliance.
+   - Gate does not discover review findings, make triage disposition, or perform repair mutation/audit.
    - Checks spec requirements against `git diff baseBranch...HEAD` + guardrail compliance via AI.
    - If FAIL (`data.result === "fail"`): show ALL failures from `data.artifacts.reasons`. Fix using only the failure reasons and `git diff baseBranch...HEAD` — do NOT re-read the full spec, context, or guardrail. Re-run gate.
    - If a FAIL is an intentional exception and the applicable guardrail article permits acknowledged exceptions, record the guardrail id in `spec.json.constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`; do not use `design_principles`, approval notes, overview entries, or task text for exception acknowledgments.

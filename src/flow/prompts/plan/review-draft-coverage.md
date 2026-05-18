@@ -1,7 +1,14 @@
    - Run `sdd-forge flow run review --phase draft` once to perform the draft coverage review.
-   - This stage is a one-shot final check after `draft-refine`, not a follow-up question loop. It reads answered and dropped `draft.json.qa[]` entries and checks only whether a blocking user decision is still required before the spec can be written.
-   - The review command writes a detection report to `draft-review-coverage.md`.
-   - Findings are advisory, but the review command applies one AI repair pass to `draft.json` before proceeding. After the review report is written, do not append follow-up questions to `draft.json.qa[]`, do not collect more answers, and do not re-run this stage automatically.
+   - This stage is a one-shot final check after `draft-refine`, not a follow-up question loop. It reads `draft.json.qa[]` entries and checks only whether a blocking user decision is still required before the spec can be written.
+   - The review command writes a machine-readable detection artifact to `draft-review-coverage.json`.
+   - The review step is detection only: it must not edit `draft.json`, mutate `draft.json.qa[]`, collect answers, or write repair audit files.
+   - `repairTargets[]` identifies detection-only candidates consumed by triage/repair; review must not apply them.
+   - No findings means `blockingFindings[]`, `advisoryFindings[]`, and `repairTargets[]` are all empty.
+   - Verdict mapping: PASS = no findings; ADVISORY = `advisoryFindings[]` or `repairTargets[]` is non-empty and `blockingFindings[]` is empty; FAIL = `blockingFindings[]` is non-empty.
+   - Select pending/unresolved entries first, preserving file order within that group, then answered/dropped entries. Inspect at most 40 QA entries, at most 2000 characters per entry, and at most 40000 characters total.
+   - Report at most 3 `blockingFindings[]` entries, 3 `advisoryFindings[]` entries, and 3 `repairTargets[]` entries. If more seem possible in any category, report the highest-impact entries and stop.
+   - After the review artifact is written, do not re-run this stage automatically.
    - Do not use this stage to judge answer ambiguity, wording quality, evidence strength, or rationale quality. Ambiguous answers are handled at the moment the answer is collected; gate-draft handles residual structural validation.
-   - Do not manually update, drop, rewrite, or append QA entries in response to review findings. Report at most 3 blocking user-decision gaps; if more seem possible, report the highest-impact blockers and stop.
-   - The CLI marks this step done and sets draft approval when the review returns PASS or ADVISORY. Gate-draft remains the blocking validation step.
+   - The CLI marks this step done after the review artifact is written. PASS advances to `gate-draft` after the registry hook writes empty triage/repair bookkeeping artifacts. ADVISORY and FAIL advance to `draft-coverage-triage`.
+   - `draft-coverage-repair` is responsible for setting draft approval after required repair bookkeeping is complete.
+   - Gate-draft remains the blocking validation step.

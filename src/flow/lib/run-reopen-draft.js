@@ -18,14 +18,33 @@ import { FlowManager } from "../../lib/flow-manager.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { findInProgressLeaf, findStepById } from "../definition.js";
+import { DRAFT_REVIEW_ROUTES } from "./draft-review-routes.js";
 
 const MAX_REASON_LENGTH = 500;
-const PLAN_REOPEN_DRAFT_REVIEW_STEPS = Object.freeze([
-  "review-draft-questions",
-  "draft-refine",
-  "review-draft-coverage",
-  "gate-draft",
-]);
+
+function draftReviewArtifactNamesForReopen() {
+  return DRAFT_REVIEW_ROUTES.flatMap((route) => [
+    route.reviewArtifact,
+    route.triageArtifact,
+    route.repairArtifact,
+  ]);
+}
+
+function draftReviewResetStepIdsForReopen() {
+  return DRAFT_REVIEW_ROUTES.flatMap((route) => [
+    route.reviewStepId,
+    route.triageStepId,
+    route.repairStepId,
+    route.passNextStepId,
+  ]);
+}
+
+const STALE_DRAFT_REVIEW_ARTIFACTS = Object.freeze(
+  draftReviewArtifactNamesForReopen(),
+);
+const PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS = Object.freeze(
+  draftReviewResetStepIdsForReopen(),
+);
 const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
   "spec",
   "review-spec",
@@ -37,7 +56,7 @@ const PLAN_REOPEN_ACTIVE_STEPS = Object.freeze([
   "review-test",
 ]);
 const PLAN_REOPEN_RESET_STEPS = Object.freeze([
-  ...PLAN_REOPEN_DRAFT_REVIEW_STEPS,
+  ...PLAN_REOPEN_DRAFT_REVIEW_RESET_STEPS,
   ...PLAN_REOPEN_ACTIVE_STEPS,
 ]);
 const STALE_ARTIFACTS = Object.freeze([
@@ -46,6 +65,7 @@ const STALE_ARTIFACTS = Object.freeze([
   "spec-review-triage.json",
   "spec-repair.json",
   "draft.json",
+  ...STALE_DRAFT_REVIEW_ARTIFACTS,
   "issue.md",
   "test.md",
 ]);

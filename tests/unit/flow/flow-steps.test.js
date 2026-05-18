@@ -9,12 +9,19 @@ import assert from "node:assert/strict";
 import { FLOW_STEPS, PHASE_MAP } from "../../../src/lib/flow-helpers.js";
 import { FLOW_DEFINITION, resolveNodeFor } from "../../../src/flow/definition.js";
 describe("FLOW_STEPS ordering (plan rework)", () => {
-  it("has split draft review and spec repair before their gates", () => {
-    const first15 = FLOW_STEPS.slice(0, 15);
-    assert.deepEqual(first15, [
-      "branch", "prepare-spec", "draft", "review-draft-questions", "draft-refine", "review-draft-coverage", "gate-draft",
-      "spec", "review-spec", "spec-review-triage", "spec-repair", "gate", "approval", "test", "review-test",
-    ]);
+  it("has draft review triage and repair steps before their consumers", () => {
+    assertStepsAppearInOrder(
+      "review-draft-questions",
+      "draft-questions-triage",
+      "draft-questions-repair",
+      "draft-refine",
+    );
+    assertStepsAppearInOrder(
+      "review-draft-coverage",
+      "draft-coverage-triage",
+      "draft-coverage-repair",
+      "gate-draft",
+    );
   });
 
   it("does not contain approach (removed in spec 178)", () => {
@@ -58,6 +65,20 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
     assert.ok(gateIdx < approvalIdx, "gate should come before approval");
   });
 });
+
+function assertStepsAppearInOrder(...stepIds) {
+  const indexes = stepIds.map((stepId) => {
+    const index = FLOW_STEPS.indexOf(stepId);
+    assert.notEqual(index, -1, `${stepId} must exist`);
+    return index;
+  });
+  for (let i = 1; i < indexes.length; i += 1) {
+    assert.ok(
+      indexes[i - 1] < indexes[i],
+      `${stepIds[i - 1]} must appear before ${stepIds[i]}`,
+    );
+  }
+}
 
 describe("PHASE_MAP (plan rework)", () => {
   it("maps prepare-spec to plan phase", () => {

@@ -11,6 +11,8 @@
  * Max depth: 3 (root list → branch → leaf). Traversal helpers enforce this.
  */
 
+import { draftReviewRouteForKey } from "./lib/draft-review-routes.js";
+
 const MAX_DEPTH = 3;
 
 function isPositiveInteger(value) {
@@ -111,6 +113,28 @@ class FlowNode {
 }
 
 const GATE_IMPL_SIDE_EFFECTS = Object.freeze(["completeTask", "promoteNextTask", "mergeOverview"]);
+const DRAFT_QUESTIONS_ROUTE = draftReviewRouteForKey("questions");
+const DRAFT_COVERAGE_ROUTE = draftReviewRouteForKey("coverage");
+const DRAFT_REVIEW_ROUTE_EXPECTATIONS = Object.freeze([
+  Object.freeze({
+    route: DRAFT_QUESTIONS_ROUTE,
+    triageStepId: "draft-questions-triage",
+    repairStepId: "draft-questions-repair",
+  }),
+  Object.freeze({
+    route: DRAFT_COVERAGE_ROUTE,
+    triageStepId: "draft-coverage-triage",
+    repairStepId: "draft-coverage-repair",
+  }),
+]);
+for (const expectation of DRAFT_REVIEW_ROUTE_EXPECTATIONS) {
+  if (
+    expectation.route.triageStepId !== expectation.triageStepId
+    || expectation.route.repairStepId !== expectation.repairStepId
+  ) {
+    throw new Error(`draft review route mismatch: ${expectation.triageStepId}`);
+  }
+}
 const PLAN_REVIEW_MAX_ATTEMPTS_BY_ID = Object.freeze({
   "review-draft-questions": Object.freeze({ auto: 1, manual: 1 }),
   "review-draft-coverage": Object.freeze({ auto: 1, manual: 1 }),
@@ -129,6 +153,31 @@ function createPlanReviewNode({ id, label, contextKinds }) {
     outputSchemaRef: "next-action/review.schema.json",
     maxAttempts,
   });
+}
+
+function createDraftReviewLeafNode({ id, label }) {
+  return new FlowNode({
+    id,
+    label,
+    action: "write-draft",
+    instructionsKey: `plan.${id}`,
+    contextKinds: ["draft", "issue", "guardrail"],
+    outputSchemaRef: "next-action/spec.schema.json",
+    maxAttempts: 1,
+  });
+}
+
+function createDraftReviewRouteNodes(route) {
+  return [
+    createDraftReviewLeafNode({
+      id: route.triageStepId,
+      label: `${route.label} triage`,
+    }),
+    createDraftReviewLeafNode({
+      id: route.repairStepId,
+      label: `${route.label} repair`,
+    }),
+  ];
 }
 
 // ── FLOW_DEFINITION ─────────────────────────────────────────────────────────
@@ -167,6 +216,7 @@ export const FLOW_DEFINITION = Object.freeze([
         label: "Review (draft questions)",
         contextKinds: ["draft", "issue"],
       }),
+      ...createDraftReviewRouteNodes(DRAFT_QUESTIONS_ROUTE),
       new FlowNode({
         id: "draft-refine",
         label: "Draft refine",
@@ -181,6 +231,7 @@ export const FLOW_DEFINITION = Object.freeze([
         label: "Review (draft coverage)",
         contextKinds: ["draft", "issue"],
       }),
+      ...createDraftReviewRouteNodes(DRAFT_COVERAGE_ROUTE),
       new FlowNode({
         id: "gate-draft",
         label: "Gate (draft)",

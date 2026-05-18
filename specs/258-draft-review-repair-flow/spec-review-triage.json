@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three blocking findings are still valid and require direct spec changes before gate.",
+  "items": [
+    {
+      "title": "Draft approval owner is unspecified after removing review mutation",
+      "target": "R1, R6, R7, Data Flow, gate-draft",
+      "decision": "apply",
+      "rationale": "The spec removes draft review mutation but does not assign draft approval mutation to a later phase, which can leave gate-draft blocked after a clean coverage review.",
+      "evidence": "spec.json R1/R6 prohibit review mutation; current review code has approveDraftAfterCoverageReview(), and gate-draft validates draft lifecycle approval."
+    },
+    {
+      "title": "Draft triage decision semantics are missing",
+      "target": "R4, R7, R8",
+      "decision": "apply",
+      "rationale": "The spec asks gate-draft to validate allowed decisions and unresolved blocking state, but it has no enum or gate meaning for draft triage decisions.",
+      "evidence": "spec.json R4 only says triage records a decision; spec-review.json finding notes existing draft repair has requires_user_decision semantics that are not mapped."
+    },
+    {
+      "title": "Active-flow migration lacks status rules for inserted draft leaves",
+      "target": "R9",
+      "decision": "apply",
+      "rationale": "The spec requires active-flow migration but does not define inserted step statuses for flows already beyond draft review, which can break next-action ordering.",
+      "evidence": "spec.json R9 mentions inserting leaves and artifact reference updates but not status synthesis or old artifact handling."
+    }
+  ]
+}
