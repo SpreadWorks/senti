@@ -1,0 +1,10 @@
+   - Run `sdd-forge flow run final-regression`.
+   - This step is the only default full project regression point. Do not run full project regression from `test-execute`, `review`, `gate-impl`, or `retro`.
+   - On PASS, the registry post-hook marks `final-regression` done and the flow proceeds to `finalize-commit`.
+   - On FAIL, read `specs/<spec>/final-regression-result.json` and `specs/<spec>/tests/.raw/final-regression.log`.
+   - Use `failureKind` and `nextAction` from the artifact:
+     - `caused_by_current_change` → repair the regression, run spec-local evidence as needed, then rerun `final-regression`.
+     - `invalid_project_test` → repair the project test command or test contract, then rerun `final-regression`.
+     - `pre_existing` → stop and ask the user whether to record or split out the existing failure.
+     - `infra_failure`, `timeout`, `dependency_failure`, `sandbox_restriction`, `permission_error`, `child_process_eprem` → stop; do not enter the implementation repair loop.
+   - The command records final-regression failures in `issue-log.json`. If the second final-regression failure returns `nextAction: "stop"`, STOP and return control to the user.

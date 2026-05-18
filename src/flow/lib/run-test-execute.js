@@ -9,8 +9,9 @@
  * semicolon / redirection / subshell / glob rejection, then package.json
  * scripts.test via npm test --, composer.json scripts.test via composer
  * run-script test --, and Makefile test via make test. Unknown analysis,
- * execution, config, or test-contract file changes force full regression.
- * test.projectPaths drives targeted project test-file classification.
+ * execution, config, or test-contract file changes are deferred to
+ * final-regression by default. test.projectPaths drives targeted project
+ * test-file classification for the normal repair loop.
  * Skipped categories are docs-only, spec-artifact-only, non-project-only, and
  * mixed-non-trigger. The temporary summary path lives under tests/.raw and is
  * deleted during cleanup.
@@ -39,6 +40,9 @@ import {
   classifyRegression,
   discoverRegressionCommand,
   listRegressionChangedFiles,
+  planTestExecuteRegression,
+  processOutputLines,
+  processPassed,
   resolveTestTimeoutSeconds,
   runProcessDetailed,
 } from "./test-regression.js";
@@ -100,17 +104,6 @@ function appendRaw(lines, sectionLines) {
   return { start_line: start, end_line: lines.length };
 }
 
-function processLines(result) {
-  const lines = [];
-  if (result.stdout) lines.push(...result.stdout.split(/\r?\n/).filter((line) => line.length > 0));
-  if (result.stderr) lines.push(...result.stderr.split(/\r?\n/).filter((line) => line.length > 0));
-  if (result.spawnError) lines.push(`spawnError: ${result.spawnError}`);
-  if (result.signal) lines.push(`signal: ${result.signal}`);
-  if (result.timedOut) lines.push("timeout: true");
-  lines.push(`exitCode: ${result.exitCode}`);
-  return lines;
-}
-
 async function runSpecLocalTests(root, specDir, timeoutMs) {
   const files = listSpecTestFiles(specDir);
   if (files.length === 0) {
@@ -142,10 +135,6 @@ function buildSummary({ root, specDir, requirements, specLocal, range }) {
         },
       };
     });
-}
-
-function processPassed(result) {
-  return result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError;
 }
 
 function specLocalPassed(specLocal) {
@@ -197,9 +186,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
     const rawOutputPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
     fs.mkdirSync(path.dirname(rawOutputPath), { recursive: true });
 
-    // Removes test-execute-result.json, test-result-review.json,
-    // test-result-review.md, retro.json, report.json, tests/.raw/test-execution.log,
-    // and tests/.raw/requirement-summary.json before rebuilding evidence.
+    // Reset downstream test artifacts before rebuilding spec-local evidence.
     for (const rel of RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS) removeIfExists(path.join(specDir, rel));
 
     try {
@@ -220,7 +207,7 @@ export default class RunTestExecuteCommand extends FlowCommand {
       const specRange = appendRaw(rawLines, [
         "[sdd-forge] spec-local tests start",
         `command: ${specLocal.command}`,
-        ...processLines(specLocal.result),
+        ...processOutputLines(specLocal.result),
         ...requirements
           .filter((r) => r.testable !== false)
           .map((req) => `[sdd-forge] requirement ${req.id} result ${specLocalPassed(specLocal) ? "pass" : "fail"}`),
@@ -238,26 +225,29 @@ export default class RunTestExecuteCommand extends FlowCommand {
 
       const changedFiles = listRegressionChangedFiles({ root, state });
       const classification = classifyRegression({ root, state, analysis, config, changedFiles });
+      const regressionPlan = planTestExecuteRegression(classification, config);
       let regression;
-      if (!classification.required) {
-        regression = buildSkippedRegression(classification);
+      if (!regressionPlan.run) {
+        regression = buildSkippedRegression(regressionPlan.classification);
       } else {
         const rootCommand = discoverRegressionCommand(root, config);
-        const command = classification.mode === "targeted" ? rootCommand.withTargets(classification.targetPaths) : rootCommand;
+        const command = regressionPlan.classification.mode === "targeted"
+          ? rootCommand.withTargets(regressionPlan.classification.targetPaths)
+          : rootCommand;
         const result = await runProcessDetailed(command, { cwd: root, timeoutMs });
         if (result.spawnError && !result.started) {
           throw new Error(`project regression command failed to start: ${result.spawnError}`);
         }
         const regressionResult = processPassed(result) ? "pass" : "fail";
         const range = appendRaw(rawLines, [
-          `[sdd-forge] project regression start command=${command.toString()} mode=${classification.mode}`,
+          `[sdd-forge] project regression start command=${command.toString()} mode=${regressionPlan.classification.mode}`,
           `command: ${command.toString()}`,
-          `mode: ${classification.mode}`,
-          ...processLines(result),
+          `mode: ${regressionPlan.classification.mode}`,
+          ...processOutputLines(result),
           `result: ${regressionResult}`,
           `[sdd-forge] project regression end result=${regressionResult}`,
         ]);
-        regression = buildRequiredRegression({ classification, rootCommand, command, result, range });
+        regression = buildRequiredRegression({ classification: regressionPlan.classification, rootCommand, command, result, range });
       }
 
       fs.writeFileSync(rawOutputPath, rawLines.join("\n") + "\n");

@@ -78,9 +78,10 @@ Post-hook-managed exceptions:
 | `test-execute` | `sdd-forge flow run test-execute` | valid v2 artifact is written |
 | `test-result-review` | `sdd-forge flow run test-result-review` | review verdict is `pass` |
 | `retro` | `sdd-forge flow run retro` | command succeeds |
+| `final-regression` | `sdd-forge flow run final-regression` | final project regression passes |
 | `finalize-*` leaves | `sdd-forge flow run finalize-commit`, `finalize-merge`, `finalize-sync`, `finalize-cleanup` | each command succeeds for its own leaf |
 
-Do not advance these manually. Manual completion must not mask blocked scenario-validity classifications, prerequisite failures, invalid v2 test artifacts, or failed project regression evidence.
+Do not advance these manually. Manual completion must not mask blocked scenario-validity classifications, prerequisite failures, invalid v2 test artifacts, deferred full regression, or failed final-regression evidence.
 
 All flow step IDs are defined in the CLI schema. The dispatcher obtains the current step and instructions from `sdd-forge flow get next-action` — the skill itself does not encode per-step sequencing.
 
@@ -287,8 +288,9 @@ Proceed to **C. Dispatcher loop**.
 
 Note:
 - Plan-phase test flow: next-action selects `test`, `scenario-validity`, and `review-test`. `test` writes spec-local tests, `scenario-validity` persists `scenario-validity-result.json` and `tests/.raw/scenario-validity.log`, and `review-test` performs static test review.
-- Impl-phase test flow: `test-execute` runs after `implement`, owns root regression, and persists `test-execute-result.json` version `"2"` plus raw output. Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those impl-phase artifacts and do not re-run tests.
-- Hard stops: Prepare/docs-scan and `analysis.json` read/validation failures stop the flow. A started project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion.
+- Impl-phase test flow: `test-execute` runs after `implement`, owns spec-local evidence, and persists `test-execute-result.json` version `"2"` plus raw output. It runs targeted project regression only for configured `test.projectPaths` changes unless `test.testExecuteRegression` explicitly overrides that policy. Full project regression is deferred to `final-regression` after `retro`.
+- Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those impl-phase artifacts and do not re-run tests. `final-regression` runs the full project command once after retro and before finalize.
+- Hard stops: Prepare/docs-scan and `analysis.json` read/validation failures stop the flow. A started targeted project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion. `final-regression` failures are classified in `final-regression-result.json`; environment, sandbox, permission, timeout, dependency, and repeated failures stop instead of returning to the normal implementation repair loop.
 
 Placeholder artifact permission:
 - Do not write placeholder test artifacts to satisfy the flow.
@@ -338,7 +340,7 @@ C.2. **Execute instructions**
         - `review-spec` records detection output via post hook. PASS / ADVISORY complete review, while FAIL completes review and advances to `spec-review-triage`.
         - `review-test` still follows its prompt instructions.
         - Impl/task review writes detection output only; its post hook advances according to the existing impl/task review route.
-      - **`flow run scenario-validity` / `flow run test-execute` / `flow run test-result-review` / `flow run retro`**: post hooks validate current artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures.
+      - **`flow run scenario-validity` / `flow run test-execute` / `flow run test-result-review` / `flow run retro` / `flow run final-regression`**: post hooks validate current artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures or final-regression failures.
       - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.
 
 C.3. **Loop**
@@ -496,12 +498,13 @@ sdd-forge flow run scenario-validity
 sdd-forge flow run test-execute
 sdd-forge flow run test-result-review
 sdd-forge flow run impl-confirm --mode <overview|detail>
+sdd-forge flow run retro [--force] [--dry-run]
+sdd-forge flow run final-regression
 sdd-forge flow run finalize-commit [--message "<msg>"]
 sdd-forge flow run finalize-merge
 sdd-forge flow run finalize-sync
 sdd-forge flow run finalize-cleanup
 sdd-forge flow run reopen-draft [--reason "<text>"]
-sdd-forge flow run retro [--force] [--dry-run]
 sdd-forge flow run report [--dry-run]
 sdd-forge snapshot check
 ```

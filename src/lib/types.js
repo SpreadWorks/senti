@@ -62,6 +62,7 @@
  * @property {string} [command] - Root project regression command parsed as argv-style tokens.
  * @property {string[]} [projectPaths] - Root-relative POSIX project-level test file paths or directory prefixes.
  * @property {number} [timeout] - Project regression timeout in seconds.
+ * @property {"targeted"|"full"|"skip"} [testExecuteRegression] - Normal test-execute project regression policy.
  */
 
 /**

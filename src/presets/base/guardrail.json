@@ -263,7 +263,7 @@
     {
       "id": "spec-test-coverage",
       "title": "Spec Test Coverage",
-      "body": "Verify that the implementation conforms to requirements and specifications. New spec behavior coverage MUST be written under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file. Existing shared regression tests under tests/ MAY be updated when production contracts change, but those updates do not substitute for the required spec-local coverage. Per spec 251 (single-execution-point rule), runtime test pass/fail is verified at the integration scope by test-execute and test-result-review; task-impl gates inspect diff and header coverage only.",
+      "body": "Verify that the implementation conforms to requirements and specifications. New spec behavior coverage MUST be written under specs/<specid>/tests/ with a `// spec: R<N> ...` header per file. Existing shared regression tests under tests/ MAY be updated when production contracts change, but those updates do not substitute for the required spec-local coverage. Runtime spec-local pass/fail is verified at the integration scope by test-execute and test-result-review, while full project regression is verified by final-regression before finalize; task-impl gates inspect diff and header coverage only.",
       "meta": {
         "phase": [
           "spec",

@@ -6,7 +6,7 @@
    - **Preconditions:**
      - If `test-result-review.json` is absent or `verdict !== "pass"`: write an explicit error and exit non-zero. Do not produce `retro.json`. Message: `"test-result-review verdict is not pass; cannot aggregate results"`.
      - If `test-execute-result.json` is absent: write `"test-execute step has not been run"` and exit non-zero.
-     - If either file fails JSON schema validation (or `version != "1"`): exit with explicit error.
+     - If either file fails JSON schema validation (or `test-execute-result.json` `version != "2"`): exit with explicit error.
    - **Aggregation rules:**
      - For each testable requirement (`requirements[].testable !== false`):
        - Look up the matching `summary[]` entry by `id`.
@@ -16,4 +16,4 @@
      - The legacy `partial` status is no longer produced.
    - **Output:** `specs/<spec>/retro.json` (schema = `src/flow/schemas/retro.schema.json`).
    - **Invocation:** run `sdd-forge flow run retro` (the runner is responsible for reading artifacts and writing `retro.json`). The mainline run unconditionally overwrites the existing file.
-   - **On complete:** the registry post-hook marks this step done automatically.
+   - **On complete:** the registry post-hook marks this step done automatically. The next mainline step is `final-regression`.

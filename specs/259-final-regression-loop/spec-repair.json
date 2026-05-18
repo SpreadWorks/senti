@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied the three triaged blocking repairs: pass nextAction now targets finalize-commit, final-regression failure classification does not mutate implementation or test files, and invalid_project_test is a bounded test-repair route.",
+  "items": [
+    {
+      "title": "Pass nextAction conflicts with existing finalize step",
+      "target": "R3 / R7",
+      "decision": "applied",
+      "rationale": "Changed the pass artifact contract and acceptance text from finalize to finalize-commit so artifact nextAction matches the executable next flow leaf.",
+      "evidence": "spec.json requirements[2].desc now says nextAction=finalize-commit; acceptance_criteria[2] now says advances to finalize-commit; overview.data_flow[1] now says finalize-commit starts after pass.",
+      "changedFields": [
+        "overview.data_flow[1].text",
+        "requirements[2].desc",
+        "acceptance_criteria[2]"
+      ]
+    },
+    {
+      "title": "Final-regression repair can stale prior evidence",
+      "target": "R5 / final-regression failure repair path",
+      "decision": "applied",
+      "rationale": "Clarified that flow run final-regression never applies file-changing repairs. It emits routing artifacts only; any later user or agent edit is outside the command and remains subject to existing stale-artifact reset behavior.",
+      "evidence": "spec.json requirements[4].desc now states final-regression shall not mutate implementation or test files; clarifications[4] states the command emits nextAction only; acceptance_criteria[5] and tasks[1].acceptance require artifact/issue-log-only writes during failure classification.",
+      "changedFields": [
+        "requirements[4].desc",
+        "acceptance_criteria[5]",
+        "clarifications[4]",
+        "tasks[1].acceptance[3]"
+      ]
+    },
+    {
+      "title": "invalid_project_test retry route is ambiguous",
+      "target": "R4 / R5",
+      "decision": "applied",
+      "rationale": "Aligned invalid_project_test with issue #330's test-repair path and the existing routing map; it is retryable once and then stops on the second final-regression failure.",
+      "evidence": "spec.json requirements[3].desc now states invalid_project_test routes to test-repair, not regression-repair; requirements[4].desc now names invalid_project_test as the first-failure test-repair path; acceptance_criteria[4] covers first and second invalid_project_test routing.",
+      "changedFields": [
+        "requirements[3].desc",
+        "requirements[4].desc",
+        "acceptance_criteria[4]",
+        "clarifications[3].a"
+      ]
+    }
+  ]
+}

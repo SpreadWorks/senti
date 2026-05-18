@@ -30,11 +30,6 @@ import { draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 const FINALIZE_SUCCESS_STATUSES = new Set(["done", "completed", "skipped"]);
 const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir", "--log-file"];
 const DRAFT_REVIEW_RECORDED_VERDICTS = new Set(["PASS", "ADVISORY", "FAIL"]);
-const NO_ARGS = Object.freeze({
-  flags: Object.freeze([]),
-  options: Object.freeze([]),
-});
-
 export const DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY = Object.freeze({
   review: "detection",
   triage: "disposition",
@@ -888,7 +883,7 @@ export const FLOW_COMMANDS = {
       internal: true,
       requiresFlow: true,
       command: () => import("./lib/run-scenario-validity.js"),
-      args: NO_ARGS,
+      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
         "Usage: sdd-forge flow run scenario-validity",
         "",
@@ -937,6 +932,27 @@ export const FLOW_COMMANDS = {
       ].join("\n"),
       post(ctx) {
         tryUpdateStepStatus(ctx, "retro", "done");
+      },
+    },
+    "final-regression": {
+      helpKey: "flow.run.final-regression",
+      command: () => import("./lib/run-final-regression.js"),
+      args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
+      help: [
+        "Usage: sdd-forge flow run final-regression",
+        "",
+        "Run the full project-level regression command after retro and before finalize.",
+        "Persists specs/<spec>/final-regression-result.json and tests/.raw/final-regression.log.",
+      ].join("\n"),
+      async post(ctx, result) {
+        const path = await import("node:path");
+        const { readJsonStrict, validateFinalRegressionResult } = await import("./lib/test-artifacts.js");
+        const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+        const artifact = validateFinalRegressionResult(readJsonStrict(path.join(specDir, "final-regression-result.json")));
+        if (artifact.result !== "pass" || result?.result !== "pass") {
+          throw new Error("final-regression result is not pass");
+        }
+        tryUpdateStepStatus(ctx, "final-regression", "done");
       },
     },
     // report generates a work report from the current flow state.

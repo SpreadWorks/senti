@@ -371,6 +371,15 @@ export const FLOW_DEFINITION = Object.freeze([
         maxAttempts: 2,
       }),
       new FlowNode({
+        id: "final-regression",
+        label: "Final Regression",
+        action: "run-final-regression",
+        instructionsKey: "impl.final-regression",
+        contextKinds: ["spec", "test"],
+        outputSchemaRef: "next-action/final-regression.schema.json",
+        maxAttempts: 2,
+      }),
+      new FlowNode({
         id: "finalize",
         label: "Finalize",
         children: [

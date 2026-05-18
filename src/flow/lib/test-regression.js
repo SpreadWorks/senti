@@ -7,6 +7,7 @@ import { collectTestCommandSources, selectTestCommandSource } from "../../lib/te
 import { projectFilePathsFromAnalysis } from "../../docs/lib/analysis-entry.js";
 
 export const DEFAULT_TEST_TIMEOUT_SECONDS = 600;
+export const TEST_EXECUTE_REGRESSION_POLICIES = Object.freeze(["targeted", "full", "skip"]);
 
 export class ParsedCommand {
   constructor({ env = {}, argv, source, metadata = {} }) {
@@ -43,6 +44,19 @@ export class RegressionClassification {
     this.triggerRelevantChangedFiles = Object.freeze([...(triggerRelevantChangedFiles || [])]);
     this.classifiedPaths = Object.freeze([...(classifiedPaths || [])]);
     this.targetPaths = Object.freeze([...(targetPaths || [])]);
+  }
+}
+
+export class TestExecuteRegressionPlan {
+  constructor({ run, classification, reason }) {
+    if (typeof run !== "boolean") throw new Error("test-execute regression plan run must be boolean");
+    if (!(classification instanceof RegressionClassification)) {
+      throw new Error("test-execute regression plan requires RegressionClassification");
+    }
+    this.run = run;
+    this.classification = classification;
+    this.reason = reason;
+    Object.freeze(this);
   }
 }
 
@@ -272,6 +286,93 @@ export function classifyRegression({ root, state, analysis, config, changedFiles
     changedFiles: triggerFiles,
     triggerRelevantChangedFiles: triggerFiles,
   });
+}
+
+function resolveTestExecuteRegressionPolicy(config = {}) {
+  const policy = config?.test?.testExecuteRegression || "targeted";
+  if (!TEST_EXECUTE_REGRESSION_POLICIES.includes(policy)) {
+    throw new Error(`invalid test.testExecuteRegression: ${policy}`);
+  }
+  return policy;
+}
+
+export function planTestExecuteRegression(classification, config = {}) {
+  if (!(classification instanceof RegressionClassification)) {
+    throw new Error("classification must be RegressionClassification");
+  }
+  if (!classification.required) {
+    return new TestExecuteRegressionPlan({
+      run: false,
+      classification,
+      reason: classification.reason,
+    });
+  }
+
+  const policy = resolveTestExecuteRegressionPolicy(config);
+  if (policy === "full") {
+    return new TestExecuteRegressionPlan({
+      run: true,
+      classification,
+      reason: "test.testExecuteRegression=full",
+    });
+  }
+  if (policy === "skip") {
+    return new TestExecuteRegressionPlan({
+      run: false,
+      classification: new RegressionClassification({
+        required: false,
+        mode: "none",
+        category: "project-regression-skipped",
+        reason: "project regression skipped by test.testExecuteRegression=skip",
+        changedFiles: classification.changedFiles,
+        triggerRelevantChangedFiles: classification.triggerRelevantChangedFiles,
+        classifiedPaths: classification.triggerRelevantChangedFiles.map((entry) => ({
+          path: normalizePath(entry.path),
+          category: "project-regression-skipped",
+        })),
+      }),
+      reason: "test.testExecuteRegression=skip",
+    });
+  }
+  if (classification.mode === "targeted") {
+    return new TestExecuteRegressionPlan({
+      run: true,
+      classification,
+      reason: "targeted project test paths changed",
+    });
+  }
+
+  return new TestExecuteRegressionPlan({
+    run: false,
+    classification: new RegressionClassification({
+      required: false,
+      mode: "none",
+      category: "full-regression-deferred",
+      reason: "full project regression deferred to final-regression",
+      changedFiles: classification.changedFiles,
+      triggerRelevantChangedFiles: classification.triggerRelevantChangedFiles,
+      classifiedPaths: classification.triggerRelevantChangedFiles.map((entry) => ({
+        path: normalizePath(entry.path),
+        category: "full-regression-deferred",
+      })),
+    }),
+    reason: "full project regression deferred to final-regression",
+  });
+}
+
+export function processPassed(result) {
+  return result.exitCode === 0 && !result.signal && !result.timedOut && !result.spawnError;
+}
+
+export function processOutputLines(result) {
+  const lines = [];
+  if (result.stdout) lines.push(...result.stdout.split(/\r?\n/).filter((line) => line.length > 0));
+  if (result.stderr) lines.push(...result.stderr.split(/\r?\n/).filter((line) => line.length > 0));
+  if (result.spawnError) lines.push(`spawnError: ${result.spawnError}`);
+  if (result.signal) lines.push(`signal: ${result.signal}`);
+  if (result.timedOut) lines.push("timeout: true");
+  lines.push(`exitCode: ${result.exitCode}`);
+  return lines;
 }
 
 export async function runProcessDetailed(command, opts = {}) {

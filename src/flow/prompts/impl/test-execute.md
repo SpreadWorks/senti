@@ -1,4 +1,5 @@
-   - **Post-implementation execution point:** `impl/test-execute` verifies spec-local tests against implemented code and owns root regression. Earlier, `plan/test` writes tests only, `plan/scenario-validity` performs the pre-implementation runtime check, and `plan/review-test` performs static anti-pattern review.
+   - **Post-implementation execution point:** `impl/test-execute` verifies spec-local tests against implemented code. Earlier, `plan/test` writes tests only, `plan/scenario-validity` performs the pre-implementation runtime check, and `plan/review-test` performs static anti-pattern review.
+   - **Project regression policy:** normal `test-execute` does not run full project regression by default. It runs targeted project regression only when the changed files are configured by `test.projectPaths`, or full regression only when `.sdd-forge/config.json` explicitly sets `test.testExecuteRegression: "full"`. Otherwise full project regression is recorded as deferred and runs in `impl/final-regression`.
    - **Downstream artifact use:** `test-result-review`, `review`, `gate-impl`, and `retro` read `specs/<spec>/test-execute-result.json` and `specs/<spec>/tests/.raw/test-execution.log`; they MUST NOT re-run tests.
    - **Test command discovery:** Determine the test runner from the project's declarative configuration in this priority order:
      1. `.sdd-forge/config.json` top-level `test.command`
@@ -43,7 +44,7 @@
      }
      ```
    - Each `summary[]` entry MUST include `evidence` with `test_file`, `test_name`, `command`, and `raw_output_lines` as `{start_line,end_line}`.
-   - Required project regression failures that start and exit non-zero, time out, or signal are valid v2 artifacts with `regression.result: "fail"`. Downstream gate blocks them.
+   - Targeted or explicitly enabled project regression failures that start and exit non-zero, time out, or signal are valid v2 artifacts with `regression.result: "fail"`. Downstream gate blocks them. Deferred full project regression is not a gate-impl blocker; `final-regression` owns it after retro.
    - **Verdict values are lowercase:** `"pass"` / `"fail"`. Never `"PASS"` / `"FAIL"`.
    - **MUST: AI summary of raw output is forbidden.** Save the raw stdout/stderr exactly as produced by the test command.
    - **On complete:** the registry post-hook marks this step done automatically. Do not call `flow set step` manually.

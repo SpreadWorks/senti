@@ -94,7 +94,8 @@ export function generateReport(input) {
   let tests = null;
   const testExecute = results.testExecute;
   const testResultReview = results.testResultReview;
-  if (testExecute || testResultReview) {
+  const finalRegression = results.finalRegression;
+  if (testExecute || testResultReview || finalRegression) {
     const summary = Array.isArray(testExecute?.summary) ? testExecute.summary : [];
     const passed = summary.filter((s) => s.result === "pass").length;
     const failed = summary.filter((s) => s.result === "fail").length;
@@ -106,6 +107,7 @@ export function generateReport(input) {
       invalidReason: testResultReview?.invalidReason || null,
       rawOutputPath: testExecute?.rawOutputPath || null,
       projectRegression: testExecute?.projectRegression || null,
+      finalRegression: finalRegression || null,
     };
   }
 
@@ -319,6 +321,10 @@ function formatText(data) {
     if (t.projectRegression) {
       const r = t.projectRegression;
       lines.push(`    Project regression: required=${r.required} result=${r.result || "skipped"} mode=${r.mode || "none"}${r.category ? ` category=${r.category}` : ""}`);
+    }
+    if (t.finalRegression) {
+      const r = t.finalRegression;
+      lines.push(`    Final regression: result=${r.result}${r.failureKind ? ` failureKind=${r.failureKind}` : ""}`);
     }
   } else {
     lines.push("    No test data");

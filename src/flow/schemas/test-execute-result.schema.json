@@ -96,7 +96,17 @@
             }
           }
         },
-        "category": { "type": "string", "enum": ["docs-only", "spec-artifact-only", "non-project-only", "mixed-non-trigger"] },
+        "category": {
+          "type": "string",
+          "enum": [
+            "docs-only",
+            "spec-artifact-only",
+            "non-project-only",
+            "mixed-non-trigger",
+            "full-regression-deferred",
+            "project-regression-skipped"
+          ]
+        },
         "reason": { "type": "string" },
         "classified_paths": {
           "type": "array",
@@ -106,7 +116,17 @@
             "additionalProperties": false,
             "properties": {
               "path": { "type": "string" },
-              "category": { "type": "string", "enum": ["docs-only", "spec-artifact-only", "non-project-only", "mixed-non-trigger"] }
+              "category": {
+                "type": "string",
+                "enum": [
+                  "docs-only",
+                  "spec-artifact-only",
+                  "non-project-only",
+                  "mixed-non-trigger",
+                  "full-regression-deferred",
+                  "project-regression-skipped"
+                ]
+              }
             }
           }
         }

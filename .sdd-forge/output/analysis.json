@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-18T02:26:05.424Z",
+  "analyzedAt": "2026-05-18T07:51:27.458Z",
   "package": {
     "entries": [
       {
@@ -2470,9 +2470,9 @@
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "d06bc9202057e5387e3b0c407e238423",
-        "lines": 372,
-        "mtime": "2026-05-18T01:10:37.245Z",
+        "hash": "38272e8b19c7dc779adc0b8387a93112",
+        "lines": 378,
+        "mtime": "2026-05-18T03:07:29.496Z",
         "className": "report",
         "methods": [
           "generateReport",
@@ -2502,10 +2502,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "5f80ffd2",
-        "enrich": {
-          "attempts": 3
-        }
+        "id": "5f80ffd2"
       },
       {
         "file": "src/flow/commands/review.js",
@@ -2673,9 +2670,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "0ceeee2ea0249a51e41498e7788087cc",
-        "lines": 735,
-        "mtime": "2026-05-18T02:25:43.708Z",
+        "hash": "4d1ba997235b6c26f0c2e7cb5fb68f0b",
+        "lines": 744,
+        "mtime": "2026-05-18T03:00:41.246Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2730,10 +2727,7 @@
         "usedBy": [
           "src/flow/registry.js"
         ],
-        "id": "2cb27b93",
-        "enrich": {
-          "attempts": 1
-        }
+        "id": "2cb27b93"
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -2886,7 +2880,8 @@
           "src/flow/lib/run-test-result-review.js",
           "src/flow/lib/set-retry.js",
           "src/flow/lib/set-broad.js",
-          "src/flow/lib/run-scenario-validity.js"
+          "src/flow/lib/run-scenario-validity.js",
+          "src/flow/lib/run-final-regression.js"
         ],
         "id": "83f60bd3",
         "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
@@ -3908,6 +3903,39 @@
         }
       },
       {
+        "file": "src/flow/lib/run-final-regression.js",
+        "hash": "0bdbb59ecb97426fdd88763e36e653a0",
+        "lines": 314,
+        "mtime": "2026-05-18T04:45:00.917Z",
+        "className": "run-final-regression",
+        "methods": [
+          "appendRaw",
+          "commandDiscoveryProcess",
+          "readAnalysisIfExists",
+          "classifyChangeScope",
+          "classifyFailure",
+          "previousFinalRegressionFailures",
+          "recordFinalRegressionFailure"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "./base-command.js",
+          "../../lib/flow-envelope.js",
+          "../../lib/config.js",
+          "../../lib/spec-json.js",
+          "./test-artifacts.js",
+          "./test-regression.js",
+          "./set-issue-log.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "FlowCommand",
+        "usedBy": null,
+        "id": "49364661"
+      },
+      {
         "file": "src/flow/lib/run-finalize-cleanup.js",
         "hash": "a748fe872a0eb18cd5f4112b03a1e792",
         "lines": 669,
@@ -4737,9 +4765,9 @@
       },
       {
         "file": "src/flow/lib/run-test-execute.js",
-        "hash": "66c0ae5c796adc8b8d73788ef28c0a3e",
-        "lines": 298,
-        "mtime": "2026-05-16T08:19:57.846Z",
+        "hash": "9d9d4a60b3c670fe5e47d867598ebe1c",
+        "lines": 288,
+        "mtime": "2026-05-18T04:41:07.761Z",
         "className": "run-test-execute",
         "methods": [
           "removeIfExists",
@@ -4748,10 +4776,8 @@
           "extractRequirementTestName",
           "findSpecTestFileForReq",
           "appendRaw",
-          "processLines",
           "runSpecLocalTests",
           "buildSummary",
-          "processPassed",
           "specLocalPassed",
           "buildSkippedRegression",
           "buildRequiredRegression"
@@ -4773,10 +4799,7 @@
         ],
         "extends": "FlowCommand",
         "usedBy": null,
-        "id": "41745e8b",
-        "enrich": {
-          "attempts": 4
-        }
+        "id": "41745e8b"
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
@@ -5073,7 +5096,8 @@
           "src/lib/container.js",
           "src/flow/lib/run-reopen-draft.js",
           "src/flow/lib/run-finalize-cleanup.js",
-          "src/flow/lib/run-test-execute.js"
+          "src/flow/lib/run-test-execute.js",
+          "src/flow/lib/run-final-regression.js"
         ],
         "id": "65ac9e4f",
         "summary": "Manages `issue-log.json` loading, validation, persistence, and manual entry insertion for flow diagnostics. It enforces minimum quality constraints on reason and optional text fields.",
@@ -5495,9 +5519,9 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "ff83bbcc78b9ca8e7e8c4b3a8abfc999",
-        "lines": 780,
-        "mtime": "2026-05-18T02:25:43.709Z",
+        "hash": "00492b5aee9ee9756892fc22ba1194ab",
+        "lines": 844,
+        "mtime": "2026-05-18T03:07:19.706Z",
         "className": "test-artifacts",
         "methods": [
           "GateArtifactTrustContract",
@@ -5507,6 +5531,7 @@
           "readJsonStrict",
           "validateTestExecuteResultV2",
           "validateScenarioValidityResult",
+          "validateFinalRegressionResult",
           "validateSummaryEvidence",
           "validateTestExecuteResultEvidence",
           "validateTestResultReview",
@@ -5531,6 +5556,7 @@
           "assertScenarioValidityTestFilePath",
           "assertScenarioValiditySummaryEntry",
           "validateRegression",
+          "validateFinalRegressionFailureKind",
           "nonEmptyString",
           "escapeRegExp",
           "configuredPlaceholderSentinels",
@@ -5561,6 +5587,7 @@
           "readJsonStrict",
           "validateTestExecuteResultV2",
           "validateScenarioValidityResult",
+          "validateFinalRegressionResult",
           "validateSummaryEvidence",
           "validateTestExecuteResultEvidence",
           "validateTestResultReview",
@@ -5571,7 +5598,9 @@
           "TEST_EXECUTE_RESULT_FILE",
           "TEST_RESULT_REVIEW_FILE",
           "TEST_RESULT_REVIEW_MD_FILE",
+          "FINAL_REGRESSION_RESULT_FILE",
           "RAW_OUTPUT_RELATIVE",
+          "FINAL_REGRESSION_RAW_OUTPUT_RELATIVE",
           "TEMP_SUMMARY_RELATIVE",
           "FILE_MAP_RELATIVE",
           "PLACEHOLDER_PERMISSION_FILE",
@@ -5583,6 +5612,7 @@
         ],
         "extends": null,
         "usedBy": [
+          "src/flow/lib/run-final-regression.js",
           "src/flow/lib/run-finalize-commit.js",
           "src/flow/lib/run-finalize.js",
           "src/flow/lib/run-gate.js",
@@ -5595,10 +5625,7 @@
           "src/flow/lib/run-test-result-review.js",
           "src/flow/lib/set-step.js"
         ],
-        "id": "0b1b96b3",
-        "enrich": {
-          "attempts": 1
-        }
+        "id": "0b1b96b3"
       },
       {
         "file": "src/flow/lib/test-headers.js",
@@ -5657,18 +5684,22 @@
       },
       {
         "file": "src/flow/lib/test-regression.js",
-        "hash": "4f274c5eedeb113884c162eb15eee27a",
-        "lines": 313,
-        "mtime": "2026-05-16T08:19:57.847Z",
+        "hash": "a7bb72fdf46b196978fa684902ef4ebc",
+        "lines": 414,
+        "mtime": "2026-05-18T02:57:58.898Z",
         "className": "test-regression",
         "methods": [
           "ParsedCommand",
           "RegressionClassification",
+          "TestExecuteRegressionPlan",
           "parseArgvCommand",
           "discoverRegressionCommand",
           "isProjectTestPath",
           "listRegressionChangedFiles",
           "classifyRegression",
+          "planTestExecuteRegression",
+          "processPassed",
+          "processOutputLines",
           "runProcessDetailed",
           "resolveTestTimeoutSeconds",
           "readJsonIfExists",
@@ -5680,7 +5711,8 @@
           "isDocumentationPath",
           "isTriggerRelevantFile",
           "classifyNonTrigger",
-          "categoryFor"
+          "categoryFor",
+          "resolveTestExecuteRegressionPolicy"
         ],
         "imports": [
           "fs",
@@ -5694,44 +5726,34 @@
         "exports": [
           "ParsedCommand",
           "RegressionClassification",
+          "TestExecuteRegressionPlan",
           "parseArgvCommand",
           "discoverRegressionCommand",
           "isProjectTestPath",
           "listRegressionChangedFiles",
           "classifyRegression",
+          "planTestExecuteRegression",
+          "processPassed",
+          "processOutputLines",
           "runProcessDetailed",
           "resolveTestTimeoutSeconds",
-          "DEFAULT_TEST_TIMEOUT_SECONDS"
+          "DEFAULT_TEST_TIMEOUT_SECONDS",
+          "TEST_EXECUTE_REGRESSION_POLICIES"
         ],
         "extends": null,
         "usedBy": [
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-scenario-validity.js",
           "src/flow/lib/run-test-execute.js",
-          "src/flow/lib/test-artifacts.js",
-          "src/flow/lib/run-scenario-validity.js"
+          "src/flow/lib/test-artifacts.js"
         ],
-        "id": "2980d983",
-        "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
-          "attempts": 2
-        },
-        "summary": "Discovers, parses, classifies, and executes project regression test commands. It also classifies changed files to decide whether regression is trigger-relevant.",
-        "detail": "The module models commands with `ParsedCommand`, rejecting shell control syntax and supporting env-prefixed token parsing from plain strings. Command discovery selects sources from config/package/composer/make targets via test-command source helpers. Change classification separates project-trigger paths from docs/spec/generated artifacts and computes a regression category for policy decisions. Execution helpers run commands with timeout/env control and return structured process outcomes including spawn errors and termination metadata.",
-        "chapter": "internal_design",
-        "role": "Regression command orchestration and change-impact classification.",
-        "keywords": [
-          "regression command",
-          "command parsing",
-          "change classification",
-          "test timeout",
-          "process execution",
-          "trigger relevance"
-        ]
+        "id": "2980d983"
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "06cf86a29cad009fd5ee1b265b919104",
-        "lines": 974,
-        "mtime": "2026-05-18T02:25:43.709Z",
+        "hash": "6c481845bdd4565b1ee4d04781a167ea",
+        "lines": 990,
+        "mtime": "2026-05-18T04:51:26.571Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -5760,10 +5782,7 @@
         ],
         "extends": null,
         "usedBy": null,
-        "id": "d64f4095",
-        "enrich": {
-          "attempts": 1
-        }
+        "id": "d64f4095"
       },
       {
         "file": "src/help.js",
@@ -6115,9 +6134,9 @@
       },
       {
         "file": "src/lib/config.js",
-        "hash": "750cd1feb2ccfa8a66997838bdcf205a",
-        "lines": 403,
-        "mtime": "2026-05-17T09:27:44.025Z",
+        "hash": "227df32754178984da0ca576cbef2cb6",
+        "lines": 404,
+        "mtime": "2026-05-18T02:59:24.725Z",
         "className": "config",
         "methods": [
           "resolveConcurrency",
@@ -6169,23 +6188,7 @@
           "src/setup.js",
           "src/upgrade.js"
         ],
-        "id": "dff6e5b4",
-        "summary": "Loads and validates project configuration with schema checks and default resolution. It defines paths and policy-level validators for test-related settings.",
-        "detail": "The module declares defaults (language, concurrency), resolves `.sdd-forge` directories, and reads JSON/package fields with controlled error behavior. `validate` enforces object shape through schema validation and surfaces aggregated, human-readable error lists. It includes command-specific checks such as forbidden shell syntax in test commands and root-relative constraints for project test paths. `loadConfig` ties file read and validation into one entry point used by container/bootstrap code.",
-        "chapter": "configuration",
-        "role": "Configuration schema, defaults, and loader utilities.",
-        "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "config schema",
-          "loadConfig",
-          "validation errors",
-          "default values",
-          "test command policy",
-          "sdd paths"
-        ]
+        "id": "dff6e5b4"
       },
       {
         "file": "src/lib/constants.js",
@@ -7519,19 +7522,16 @@
       },
       {
         "file": "src/lib/types.js",
-        "hash": "965db4ec716202a07357a54ec4d915ba",
-        "lines": 96,
-        "mtime": "2026-05-16T08:19:57.848Z",
+        "hash": "ab6c2a6bfbe6374f0966573b801cb518",
+        "lines": 97,
+        "mtime": "2026-05-18T02:59:29.600Z",
         "className": "types",
         "methods": [],
         "imports": [],
         "exports": [],
         "extends": null,
         "usedBy": null,
-        "id": "69d5afb4",
-        "enrich": {
-          "attempts": 4
-        }
+        "id": "69d5afb4"
       },
       {
         "file": "src/metrics.js",
@@ -10687,8 +10687,8 @@
       }
     ],
     "summary": {
-      "total": 304,
-      "totalMethods": 1296
+      "total": 305,
+      "totalMethods": 1308
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },

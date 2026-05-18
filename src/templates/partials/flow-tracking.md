@@ -8,6 +8,7 @@ Post-hook-managed exceptions:
 | `test-execute` | `sdd-forge flow run test-execute` | valid v2 artifact is written |
 | `test-result-review` | `sdd-forge flow run test-result-review` | review verdict is `pass` |
 | `retro` | `sdd-forge flow run retro` | command succeeds |
+| `final-regression` | `sdd-forge flow run final-regression` | final project regression passes |
 | `finalize-*` leaves | `sdd-forge flow run finalize-commit`, `finalize-merge`, `finalize-sync`, `finalize-cleanup` | each command succeeds for its own leaf |
 
-Do not advance these manually. Manual completion must not mask blocked scenario-validity classifications, prerequisite failures, invalid v2 test artifacts, or failed project regression evidence.
+Do not advance these manually. Manual completion must not mask blocked scenario-validity classifications, prerequisite failures, invalid v2 test artifacts, deferred full regression, or failed final-regression evidence.

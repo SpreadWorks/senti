@@ -7,7 +7,7 @@ Use this guidance for the per-task implementation step. Mirrors the flow-level i
 - Reuse existing modules and patterns where the task spec or related summary identify them. Avoid premature abstraction.
 - If guardrail articles have not been loaded for this task implementation, use `sdd-forge flow get guardrail task-impl`. The alias `impl` resolves to `task-impl`, but task prompts should use the canonical phase name.
 - Update task-level requirement status as you complete each requirement: `sdd-forge flow set req <index> done`.
-- **Do NOT run tests in this step.** Test execution is centralized in the spec-level `test-execute` step (impl phase mainline). Per-task test execution has been removed (spec 251 single-execution-point rule).
+- **Do NOT run tests in this step.** Spec-local execution is centralized in the spec-level `test-execute` step, and full project regression runs in `final-regression`. Per-task test execution has been removed (spec 251 single-execution-point rule).
 - **MUST: If implementation reveals a pre-existing bug outside the task's scope**, record it in issue-log (`sdd-forge flow set issue-log --step task.impl --reason "..."`) before adjusting the task spec or applying a workaround.
 - **Spec 226: overview contribution is recorded in this step** (the standalone `update-overview` step has been removed). After implementation, invoke `persistOverviewUpdate` from `run-update-overview.js` (spec 207 helper, `applyOverviewAdditions` internally) to append this task's contribution to the parent `spec.json.overview` (modules / data_flow / decisions). The parent `spec.md` is re-rendered deterministically.
-- On complete, the dispatcher returns to the spec-level implementation flow. Test execution remains centralized in `test-execute`.
+- On complete, the dispatcher returns to the spec-level implementation flow. Spec-local execution remains centralized in `test-execute`.

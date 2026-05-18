@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "required": ["completed", "result_path", "raw_output_path", "result", "retryable", "nextAction"],
+  "properties": {
+    "completed": { "type": "boolean" },
+    "result_path": { "type": "string" },
+    "raw_output_path": { "type": "string" },
+    "result": { "type": "string", "enum": ["pass", "fail"] },
+    "failureKind": {
+      "type": ["string", "null"],
+      "enum": [
+        "caused_by_current_change",
+        "pre_existing",
+        "infra_failure",
+        "timeout",
+        "dependency_failure",
+        "sandbox_restriction",
+        "permission_error",
+        "child_process_eprem",
+        "invalid_project_test",
+        null
+      ]
+    },
+    "retryable": { "type": "boolean" },
+    "nextAction": { "type": "string" }
+  }
+}

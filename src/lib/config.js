@@ -248,6 +248,7 @@ const CONFIG_SCHEMA = {
         command: { type: "string", minLength: 1 },
         projectPaths: { type: "array", items: { type: "string", minLength: 1 } },
         timeout: { type: "number", minimum: 1 },
+        testExecuteRegression: { type: "string", enum: ["targeted", "full", "skip"] },
       },
     },
 

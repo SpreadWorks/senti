@@ -1,0 +1,152 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[5]: invalid category \"test-strategy\"; qa[6]: invalid category \"consumer-contracts\"; draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T08:17:05.403Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays within the user-defined Issue #330 scope: moving full project regression out of normal test-execute repair loops into final-regression and finishing the existing implementation.; Unambiguous Requirements — The draft states concrete, verifiable behaviors such as when full regression may run, how failures route, which artifact fields are contractual, and which tests must be included.; Complete Context — 少なくとも unrelated failure を current-change repair loop に入れないための分類精度または fail-safe な停止条件をこの issue で改善する。 — The requirement uses the subjective term '改善する' without a measurable criterion for classification accuracy or a specific fail-safe stop condition. Two reviewers could disagree on whether the implementation improved classification enough. (at qa[2].answer); No Hardcoded Secrets — The draft does not include source code or any API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — The draft does not present a numbered requirements list with more than three items; priority assignment is therefore not required by this guardrail.; Impact on Existing Features — The draft explicitly lists impacts on existing features in impactOnExisting.; Present Recommendations with Reasoning — Each QA item provides a recommended answer first and includes evidence and reasoning grounded in Issue #330 and project rules.; Explore Before Asking — The questions are marked answered and include evidence from Issue #330 and project rules rather than asking unresolved questions that could be answered by exploration.; Proactively Raise Related Implications — The draft raises related implications such as failure routing, retry limits, artifact consumer contracts, gate-impl responsibility, and test coverage.; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not critique a brainstorming idea or evaluate an unconfirmed decision as final.; Capture Digressions in draft.md — No digression discussion is present in the supplied content, so there is no digression to capture in draft.md.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing commands or options; it only describes lifecycle placement and an existing explicit configuration exception.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T08:22:28.097Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "少なくとも unrelated failure を current-change repair loop に入れないための分類精度または fail-safe な停止条件をこの issue で改善する。 — The requirement uses the subjective term '改善する' without a measurable criterion for classification accuracy or a specific fail-safe stop condition. Two reviewers could disagree on whether the implementation improved classification enough. (at qa[2].answer)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec is scoped to one user-defined issue: moving full project regression out of the normal test-execute loop into final-regression and finishing related gaps.; Task Single Responsibility — Each task has a shared concern within its title, goal, acceptance criteria, and implementation notes.; Unambiguous Requirements — Requirements state concrete conditions, artifact fields, routing outcomes, marker expectations, and file locations rather than relying on vague adjectives.; Complete Context — The requirements include enough concrete artifact, command, routing, and file-location detail for independent reviewers to assess satisfaction.; REQ Diff-Verifiability — If either repair changes files, the flow shall refresh spec-local evidence by rerunning test-execute and test-result-review before rerunning final-regression; it shall not rerun normal review or gate-impl only for that final-regression repair. — This requires proving runtime flow ordering across a retry path. PASS/FAIL is not decidable from a standard unified diff and test execution summary alone. (at $.requirements[4].desc); REQ Diff-Verifiability — A repair that changes files refreshes test-execute and test-result-review evidence before final-regression is retried. — This task acceptance criterion depends on runtime sequencing behavior, not only diff content and a test execution summary. (at $.tasks[1].acceptance[2]); REQ Diff-Verifiability — A spec-local test demonstrates a final-regression repair that changes files refreshes test-execute and test-result-review evidence before rerunning final-regression. — This acceptance criterion requires verifying a runtime repair path ordering that cannot be determined from diff and test summary alone. (at $.acceptance_criteria[5]); No Hardcoded Secrets — The content does not include source code containing API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — The content does not include catch blocks or code that discards errors.; Prioritize Requirements — There are more than three requirements, and every requirement has a priority of must or should.; Impact on Existing Features — The spec lists existing behavior impacts throughout scope, background, requirements, and clarifications, including test-execute behavior and final-regression behavior.; Bounded Resource Usage — The spec bounds automatic final-regression repair to one retryable failure and a second failure stops the path.; Spec Includes Test Strategy — The spec includes test strategy details in task-level test_strategy fields and acceptance criteria describing what to test and how.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, indicating no unresolved points are being fabricated.; Include 'Why This Approach' Rationale — The spec includes rationale in background, design principles, decisions, and alternatives_considered.; Spec Test Coverage — The spec requires spec-local coverage under specs/259-final-regression-loop/tests with // spec: R<N> headers.; Backward-Compatible CLI Interface — The matched acknowledgment is present in constraints and states the existing test-execute command remains available with test.testExecuteRegression=full as the migration path.; Exit Code Contract — The constraints and clarifications define success and failure for flow run final-regression, including non-zero failure conditions.; Validate User Input at Entry Point — The spec states final-regression has no user-facing arguments and identifies test.testExecuteRegression validation at the config boundary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T08:46:43.166Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "If either repair changes files, the flow shall refresh spec-local evidence by rerunning test-execute and test-result-review before rerunning final-regression; it shall not rerun normal review or gate-impl only for that final-regression repair. — This requires proving runtime flow ordering across a retry path. PASS/FAIL is not decidable from a standard unified diff and test execution summary alone. (at $.requirements[4].desc); A repair that changes files refreshes test-execute and test-result-review evidence before final-regression is retried. — This task acceptance criterion depends on runtime sequencing behavior, not only diff content and a test execution summary. (at $.tasks[1].acceptance[2]); A spec-local test demonstrates a final-regression repair that changes files refreshes test-execute and test-result-review evidence before rerunning final-regression. — This acceptance criterion requires verifying a runtime repair path ordering that cannot be determined from diff and test summary alone. (at $.acceptance_criteria[5])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec scope is centered on issue #330: moving default full project regression out of test-execute and into final-regression, with related wiring, artifacts, prompts, and tests.; Task Single Responsibility — Each task is organized around one shared concern, such as raw evidence validation, final-regression routing, test-execute policy, flow text alignment, or coverage.; Unambiguous Requirements — The requirements state concrete artifact fields, command behavior, routing outcomes, markers, and file locations that can be checked.; Complete Context — The requirements include enough concrete conditions for reviewers to decide whether the implementation satisfies them without relying on subjective terms alone.; REQ Diff-Verifiability — Any user or agent file edits made after that artifact are outside the final-regression command and remain subject to the existing stale-artifact reset behavior. — This requirement depends on behavior that occurs after the command artifact and outside the implementation diff under review. PASS/FAIL is not decidable from a standard unified diff and test execution summary alone. (at requirements[4].desc); No Hardcoded Secrets — The content does not include source code with API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — The content does not include code with empty catch blocks or silently discarded errors.; Prioritize Requirements — There are more than three requirements, and each requirement includes a priority of must or should.; Impact on Existing Features — The scope, background, requirements, and acceptance criteria describe impacts on existing test-execute, final-regression, gate, review, prompt, template, and CLI flow behavior.; Bounded Resource Usage — The spec does not introduce recursive processing, retries, or bulk data loading without bounds; the final-regression retry behavior is capped at a second failure.; Spec Includes Test Strategy — The spec includes test strategies in tasks and acceptance criteria describing what to test and how.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, indicating no unresolved points are being answered by fabrication.; Include 'Why This Approach' Rationale — The background, design principles, and alternatives considered explain why the final-regression approach was chosen.; Spec Test Coverage — Requirement R10 and task T-5 require spec-local tests under specs/259-final-regression-loop/tests with // spec: R<N> headers.; Backward-Compatible CLI Interface — The spec acknowledges the guardrail in constraints and states that the existing test-execute command remains available, with test.testExecuteRegression=full as the migration path.; Exit Code Contract — The spec states final-regression success and failure exit behavior, including non-zero exits for fail artifacts, invalid artifacts, and process errors.; Validate User Input at Entry Point — The spec states that final-regression has no user-facing arguments and that test.testExecuteRegression is validated at the config boundary with allowed values targeted, full, or skip.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T08:49:00.833Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Any user or agent file edits made after that artifact are outside the final-regression command and remain subject to the existing stale-artifact reset behavior. — This requirement depends on behavior that occurs after the command artifact and outside the implementation diff under review. PASS/FAIL is not decidable from a standard unified diff and test execution summary alone. (at requirements[4].desc)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses one concern: moving full project regression out of the normal test-execute loop into a late final-regression step for issue #330.; Task Single Responsibility — Each task addresses a distinct part of the same final-regression/test-execute flow concern and does not bundle unrelated actions.; Unambiguous Requirements — The requirements state concrete artifact fields, command behavior, routing outcomes, file paths, and marker validation conditions.; Complete Context — The requirements provide enough specific context for reviewers to judge implementation satisfaction, including artifacts, ordering, routing, and validation details.; REQ Diff-Verifiability — \"Prompt, template, skill, guardrail, report, retro, and locale text touched by this issue shall consistently state that impl/test-execute owns spec-local and targeted evidence, while impl/final-regression owns the default full project regression.\" — This requirement depends on judging consistency across every touched text artifact, including potentially subjective wording alignment. PASS/FAIL is not fully decidable from a standard unified diff and test execution summary alone. (at requirements[7].desc); REQ Diff-Verifiability — \"sdd-forge upgrade is run after template or preset changes, and installed skill files reflect the final-regression responsibility split.\" — Whether a command was run is an out-of-diff process invariant unless represented by diff artifacts or test evidence. The requirement must be phrased in terms of verifiable resulting files or test output. (at acceptance_criteria[9]); REQ Diff-Verifiability — \"sdd-forge upgrade has been run after template or preset edits.\" — This acceptance condition depends on a process action rather than a diff-visible artifact or test execution summary. It is not directly decidable from diff plus tests. (at tasks[3].acceptance[2]); No Hardcoded Secrets — The content contains no API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — The content does not include source code with empty catch blocks or silent error discarding.; Prioritize Requirements — There are more than three requirements and each requirement includes a must or should priority.; Impact on Existing Features — The scope, background, and requirements describe impacts on existing test-execute, final-regression, review, gate, prompt, template, and flow behavior.; Bounded Resource Usage — The spec includes explicit retry bounding for final-regression by stopping on the second failure, and no unbounded recursion, retries, or bulk loading design is introduced.; Spec Includes Test Strategy — The spec includes acceptance criteria and per-task test_strategy fields describing what to test and how.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, indicating no unresolved points are being fabricated.; Include 'Why This Approach' Rationale — The background, design principles, and alternatives_considered sections explain why this approach was chosen.; Spec Test Coverage — Requirement R10 and task T-5 require spec-local tests under specs/259-final-regression-loop/tests with // spec: R<N> headers.; Backward-Compatible CLI Interface — The acknowledged exception in constraints directly references backward-compatible-cli-interface and gives a migration path for users who want full regression inside test-execute.; Exit Code Contract — The constraints and clarifications define success and failure exit behavior for flow run final-regression, including non-zero outcomes for fail and invalid artifacts.; Validate User Input at Entry Point — The spec states final-regression has no user-facing arguments and requires future options to be validated at the CLI registry boundary; test.testExecuteRegression validation is also specified at the config boundary.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-18T11:09:47.946Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "\"Prompt, template, skill, guardrail, report, retro, and locale text touched by this issue shall consistently state that impl/test-execute owns spec-local and targeted evidence, while impl/final-regression owns the default full project regression.\" — This requirement depends on judging consistency across every touched text artifact, including potentially subjective wording alignment. PASS/FAIL is not fully decidable from a standard unified diff and test execution summary alone. (at requirements[7].desc); \"sdd-forge upgrade is run after template or preset changes, and installed skill files reflect the final-regression responsibility split.\" — Whether a command was run is an out-of-diff process invariant unless represented by diff artifacts or test evidence. The requirement must be phrased in terms of verifiable resulting files or test output. (at acceptance_criteria[9]); \"sdd-forge upgrade has been run after template or preset edits.\" — This acceptance condition depends on a process action rather than a diff-visible artifact or test execution summary. It is not directly decidable from diff plus tests. (at tasks[3].acceptance[2])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "scenario-validity preflight blocked because this flow intentionally starts from the existing uncommitted 30a7 implementation diff for issue #330",
+      "trigger": "sdd-forge flow run scenario-validity",
+      "resolution": "requires explicit decision: preserve existing implementation diff and continue with a documented scenario-validity exception, or clean/restart from a no-implementation worktree",
+      "taskId": null,
+      "timestamp": "2026-05-18T12:21:28.184Z"
+    },
+    {
+      "step": "scenario-validity",
+      "reason": "user approved continuing past scenario-validity preflight block caused by intentional existing 30a7 implementation diff",
+      "trigger": "user selected option 1",
+      "resolution": "treat scenario-validity block as documented exception for this already-started implementation flow; verify failures through spec-local tests and implementation/test-execute",
+      "taskId": null,
+      "timestamp": "2026-05-18T12:23:52.541Z"
+    }
+  ]
+}

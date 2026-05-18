@@ -26,7 +26,7 @@
     },
     {
       "id": "wait-for-instruction-skill",
-      "phase": ["flow.draft", "flow.review-draft-questions", "flow.draft-questions-triage", "flow.draft-questions-repair", "flow.draft-refine", "flow.review-draft-coverage", "flow.draft-coverage-triage", "flow.draft-coverage-repair", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.spec-review-triage", "flow.spec-repair", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
+      "phase": ["flow.draft", "flow.review-draft-questions", "flow.draft-questions-triage", "flow.draft-questions-repair", "flow.draft-refine", "flow.review-draft-coverage", "flow.draft-coverage-triage", "flow.draft-coverage-repair", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.spec-review-triage", "flow.spec-repair", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.final-regression", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
       "state": [],
       "body": "### MUST\n**MUST: SDD フロー内では、CLI の `requires_approval` が true のアクションだけユーザー承認を要求する。** `requires_approval: false` の通常 step では、実行確認の選択肢を出さずに step instruction を実行する。\n\n### Why\n`requires_approval` は CLI 側が持つ承認境界である。skill 側が全 step で確認を挟むと、review-draft-questions などの機械的 step まで不要に停止し、CLI の承認設計と矛盾する。\n\n### How to apply\n- `flow get next-action` の `requires_approval` が false なら、「実行しますか？」の確認を出さずに指示を実行する。\n- `requires_approval` が true か、autoUpgrade / エラー復旧 / ユーザー回答が必要な QA loop の場合だけ Choice Format で確認する。\n- step 完了後は次の `flow get next-action` を読み、同じルールで判断する。"
     },
@@ -44,25 +44,25 @@
     },
     {
       "id": "choice-format-discipline",
-      "phase": ["flow.draft", "flow.review-draft-questions", "flow.draft-questions-triage", "flow.draft-questions-repair", "flow.draft-refine", "flow.review-draft-coverage", "flow.draft-coverage-triage", "flow.draft-coverage-repair", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.spec-review-triage", "flow.spec-repair", "flow.gate", "flow.approval", "flow.review-test", "flow.review", "flow.gate-impl", "flow.retro", "task.review", "task.gate-impl"],
+      "phase": ["flow.draft", "flow.review-draft-questions", "flow.draft-questions-triage", "flow.draft-questions-repair", "flow.draft-refine", "flow.review-draft-coverage", "flow.draft-coverage-triage", "flow.draft-coverage-repair", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.spec-review-triage", "flow.spec-repair", "flow.gate", "flow.approval", "flow.review-test", "flow.review", "flow.gate-impl", "flow.retro", "flow.final-regression", "task.review", "task.gate-impl"],
       "state": [],
       "body": "**MUST: ユーザーへの全ての質問は Choice Format で提示する。** ラベル + 1 行注釈の選択肢。詳細説明は選択肢ブロックの外（上側）に独立配置する。free-form question 禁止（applied user-requested changes の確認も含む）。"
     },
     {
       "id": "no-chain-sddforge",
-      "phase": ["flow.draft", "flow.review-draft-questions", "flow.draft-questions-triage", "flow.draft-questions-repair", "flow.draft-refine", "flow.review-draft-coverage", "flow.draft-coverage-triage", "flow.draft-coverage-repair", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.spec-review-triage", "flow.spec-repair", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
+      "phase": ["flow.draft", "flow.review-draft-questions", "flow.draft-questions-triage", "flow.draft-questions-repair", "flow.draft-refine", "flow.review-draft-coverage", "flow.draft-coverage-triage", "flow.draft-coverage-repair", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.spec-review-triage", "flow.spec-repair", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.final-regression", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
       "state": [],
       "body": "**MUST: `sdd-forge` コマンドをチェーン (`&&` `;` `|`) または background 実行してはならない。** 各 `sdd-forge` 呼び出しは独立した foreground Bash で実行し、結果を確認してから次へ進む。"
     },
     {
       "id": "post-hook-managed-test-artifacts",
-      "phase": ["flow.test-execute", "flow.test-result-review", "flow.gate-impl", "flow.retro"],
+      "phase": ["flow.test-execute", "flow.test-result-review", "flow.gate-impl", "flow.retro", "flow.final-regression"],
       "state": [],
-      "body": "**MUST: `test-execute` / `test-result-review` / flow-level `gate-impl` / `retro` の完了を手動で偽装してはならない。** これらは post-hook と deterministic validator が v2 `test-execute-result.json`、`test-result-review.json`、project regression evidence、raw log を検証してから進める。prerequisite failure は hard stop として修正してから再実行する。"
+      "body": "**MUST: `test-execute` / `test-result-review` / flow-level `gate-impl` / `retro` / `final-regression` の完了を手動で偽装してはならない。** これらは post-hook と deterministic validator が v2 `test-execute-result.json`、`test-result-review.json`、targeted regression evidence、final-regression artifact、raw log を検証してから進める。prerequisite failure は hard stop として修正してから再実行する。"
     },
     {
       "id": "no-shared-repo-git-ops",
-      "phase": ["flow.draft", "flow.review-draft-questions", "flow.draft-questions-triage", "flow.draft-questions-repair", "flow.draft-refine", "flow.review-draft-coverage", "flow.draft-coverage-triage", "flow.draft-coverage-repair", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.spec-review-triage", "flow.spec-repair", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
+      "phase": ["flow.draft", "flow.review-draft-questions", "flow.draft-questions-triage", "flow.draft-questions-repair", "flow.draft-refine", "flow.review-draft-coverage", "flow.draft-coverage-triage", "flow.draft-coverage-repair", "flow.gate-draft", "flow.spec", "flow.review-spec", "flow.spec-review-triage", "flow.spec-repair", "flow.gate", "flow.approval", "flow.test", "flow.review-test", "flow.implement", "flow.test-execute", "flow.test-result-review", "flow.review", "flow.gate-impl", "flow.retro", "flow.final-regression", "flow.finalize-commit", "flow.finalize-merge", "flow.finalize-sync", "flow.finalize-cleanup", "flow.branch", "flow.prepare-spec", "task.impl", "task.review", "task.gate-impl"],
       "state": ["worktreeActive"],
       "body": "**MUST: active flow 中は main リポジトリで `git stash` / `git stash pop` / `git stash apply` / `git reset --hard` / `git checkout -- <path>` を実行してはならない。** 別ブランチ由来の stale な stash 復元・共有状態破壊を防ぐ。ベースライン比較は短命の detached worktree を使う。"
     }

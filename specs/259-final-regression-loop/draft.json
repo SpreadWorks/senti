@@ -1,0 +1,157 @@
+{
+  "devType": "feature",
+  "goal": "Move full project regression such as npm test -- out of the normal test-execute repair loop and run it as a late final-regression step. Finish and validate the existing uncommitted 30a7 implementation without re-implementing already completed work.",
+  "analysis": {
+    "problem": "Recent SDD flows repeatedly run full project regression from test-execute, so review or gate repairs make the test artifact stale and trigger another expensive npm test -- inside the normal repair loop.",
+    "proposedApproach": "Keep normal test-execute focused on spec-local and targeted evidence, defer full project regression to a final-regression step after retro, and route final-regression failures by failure kind instead of sending them back through the normal gate-impl loop.",
+    "validation": "The approach addresses the root loop because full regression no longer participates in ordinary repair iterations, while final-regression still preserves release confidence before finalize."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #330 says the current working tree already contains uncommitted 30a7 implementation and must not be re-implemented.",
+      "Issue #330 lists final-regression step, registry command, runner, artifact fields, failure issue-log recording, and test.testExecuteRegression policy as already implemented.",
+      "Issue #330 lists get-next-action failures, rawText/rawOutputText evidence validation mismatch, stale scenario-validity wording, coarse failure classification, and missing flow-level measurement as remaining work.",
+      "Full npm test -- should not run anywhere other than final-regression by default; explicit test.testExecuteRegression=full is the configured exception.",
+      "Final-regression failures should not return to the normal gate-impl loop; each failure kind has one return or stop path and automatic repair is limited to one attempt.",
+      "Final-regression result artifacts are a consumer contract for report, review, gate, issue-log, and next-action behavior.",
+      "The requested flow is active as a spec-only flow on main so the existing uncommitted implementation remains available.",
+      "Draft guardrails require one concern, unambiguous requirements, complete context, prioritized requirements, and explicit impact on existing features.",
+      "The project rule prohibits adding external dependencies and requires sdd-forge upgrade after template or preset changes."
+    ],
+    "decisionPoints": [
+      "Where full project regression is allowed to run in the SDD lifecycle.",
+      "Which test-execute regression modes are valid and how targeted, full, and skip policies affect the normal repair loop.",
+      "How final-regression artifacts represent pass, failure classification, retryability, raw output, and next action.",
+      "How final-regression failures route without re-entering review or gate-impl loops unnecessarily.",
+      "What evidence proves full npm test -- no longer enters normal test-execute by default.",
+      "What existing implementation gaps must be fixed before finalization."
+    ],
+    "resolvedByProjectRules": [
+      "Use Node.js built-in modules only; do not add dependencies.",
+      "Do not write compatibility shims for obsolete alpha behavior unless explicitly required by the spec.",
+      "If src/templates or src/presets are changed, run sdd-forge upgrade and keep installed skills in sync.",
+      "Do not modify tests merely to make tests pass; fix product behavior when the scenario is valid.",
+      "Commit messages must be English and must not include sign-off or co-authored-by trailers."
+    ],
+    "requiresUserJudgment": [
+      "No unresolved user judgment remains after applying issue #330's implementation status and failure-routing policy."
+    ],
+    "deferredToSpec": [
+      "Translate the issue's already-implemented and remaining-work lists into must/should requirements.",
+      "Define final-regression artifact acceptance criteria and issue-log expectations.",
+      "Define targeted/full/skip test-execute policy acceptance criteria.",
+      "Define test coverage for next-action wiring, raw output evidence validation, prompt wording, and final-regression behavior.",
+      "Define non-goals that prevent re-implementing the existing 30a7 diff."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "Finish the existing uncommitted 30a7 implementation for moving full project regression to final-regression.",
+      "Fix remaining final-regression next-action, evidence validation, stale prompt wording, and classification issues identified by issue #330.",
+      "Verify that default normal test-execute does not run full npm test -- and records deferral or targeted evidence correctly.",
+      "Run the required template upgrade and focused tests needed to validate the changed flow behavior."
+    ],
+    "out": [
+      "Re-implementing the already present final-regression step, registry command, runner, artifact schema, or test-execute policy from scratch.",
+      "Changing unrelated draft/spec/review/gate/finalize behavior beyond what is needed for final-regression integration.",
+      "Adding external dependencies.",
+      "Publishing to npm."
+    ]
+  },
+  "impactOnExisting": [
+    "test-execute behavior and artifacts",
+    "final-regression and finalize flow ordering",
+    "get-next-action step routing and schemas",
+    "test-result-review evidence validation",
+    "gate-impl expectations around missing full regression evidence",
+    "reports, retro output, prompts, installed skills, guardrails, and locale messages"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "通常の test-execute では、既定で full npm test -- を実行せず、full regression が必要な場合は final-regression へ defer されたことを artifact で確認できればよいですか。",
+      "answer": "はい。通常の test-execute は spec-local または targeted evidence に限定し、既定では full regression を final-regression へ defer したことを artifact で確認できる必要がある。",
+      "evidence": "Issue #330 states: full npm test must not run anywhere other than final-regression, and the normal test-execute default is targeted with full-regression-deferred.",
+      "why": "重い補修ループの主因が test-execute 内の full npm test -- なので、artifact で defer を検証できることが受け入れ条件になる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "test.testExecuteRegression が full に明示設定された場合だけ、通常の test-execute 内で project full regression を実行できる、という例外を維持してよいですか。",
+      "answer": "はい。明示的に test.testExecuteRegression=full が設定された場合だけ、通常の test-execute 内で full regression を実行できる例外を維持する。",
+      "evidence": "Issue #330 says targeted project test paths run in the normal loop, and full regression runs inside test-execute only when full is explicitly configured.",
+      "why": "既定の重いループを避けつつ、利用者が明示的に full を要求した設定は尊重する必要がある。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "final-regression の failureKind 分類は、pre_existing と caused_by_current_change の誤分類リスクをこの issue 内で明確化する必要がありますか。",
+      "answer": "はい。final-regression は raw output または failing test metadata が changedFiles のいずれかへ具体的に結び付く場合だけ caused_by_current_change として regression-repair を選ぶ。結び付きがない失敗は regression-repair に送らず、pre_existing または retryable=false の stop 系 nextAction に分類する。",
+      "evidence": "Issue #330 lists coarse pre_existing / caused_by_current_change classification as remaining work and warns that changed files alone can misclassify unrelated failures.",
+      "why": "変更差分との具体的な結び付きがない failure を repair に送らない条件なら、unrelated failure が current-change repair loop に入ることを検証できるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "final-regression failure は failureKind ごとに戻り先を 1 つに限定し、修復可能な current-change failure も自動 repair は 1 回まで、2 回目は stop としてよいですか。",
+      "answer": "はい。failureKind ごとに単一の戻り先または stop を選び、repairable failure の自動 repair は初回だけ、2 回目は stop とする。",
+      "evidence": "Issue #330 states final-regression failure must not route back into the normal gate-impl loop, lists one return point per failure kind, and limits automatic repair to one attempt.",
+      "why": "戻り先を複数持つと review/gate/test の責務が混線し、同じ failure が再分類されて無駄な修正ループに入る。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "gate-impl は full regression 未実行を blocker とせず、final-regression が後段で project-level confidence を担保する責務分離でよいですか。",
+      "answer": "はい。gate-impl は full regression 未実行を blocker にせず、project-level confidence は後段の final-regression が担保する。",
+      "evidence": "Issue #330 implementation candidates include: gate-impl does not treat missing full regression as a blocker.",
+      "why": "gate-impl が full regression を要求すると、full npm test -- が通常補修ループへ戻り、今回の目的に反する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "完了判定には、final-regression 個別テスト、test-regression policy テスト、get-next-action 関連テスト、raw output evidence validation の回帰テストを含める必要がありますか。",
+      "answer": "はい。既存の passing 個別テストに加え、get-next-action wiring と raw output evidence validation を回帰対象に含める。",
+      "evidence": "Issue #330 says final-regression.test.js and test-regression-policy.test.js pass individually, while get-next-action tests and rawText/rawOutputText validation remain broken.",
+      "why": "残作業として明示された破損箇所を検証しないと、flow の収束性や artifact 信頼性が確認できない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "final-regression-result artifact の consumer は、failureKind、command、rawOutputPath、retryable、nextAction、changedFiles、previousFailureKind を安定した契約として扱ってよいですか。",
+      "answer": "はい。これらの field は final-regression artifact の安定した契約として扱い、validator、report、issue-log、next-action が同じ意味で読む必要がある。",
+      "evidence": "Issue #330 lists these fields as already implemented artifact data and uses them for failure routing, retryability, and log inspection.",
+      "why": "consumer ごとに解釈がずれると、failure 分類や retry 判定が不安定になり、承認漏れや検知漏れにつながる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "既存の未コミット差分にある実装済み項目は再実装せず、レビューして不足分だけ修正することをこの spec の非ゴールとして固定してよいですか。",
+      "answer": "はい。既存の未コミット差分は実装済みとして扱い、再実装せず、不足分の修正と検証だけを行う。",
+      "evidence": "Issue #330 explicitly says the already implemented items are present as uncommitted working tree changes and must not be re-implemented.",
+      "why": "既存 diff を重複実装すると、差分が膨らみ、レビュー対象と責務境界が不明瞭になる。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-18T08:17:23Z",
+    "notes": "autoApprove draft refine and coverage review completed with no unresolved user decision."
+  }
+}

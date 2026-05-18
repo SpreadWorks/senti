@@ -73,6 +73,10 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
     const approvalIdx = FLOW_STEPS.indexOf("approval");
     assert.ok(gateIdx < approvalIdx, "gate should come before approval");
   });
+
+  it("runs final-regression after retro and before finalize", () => {
+    assertStepsAppearInOrder("gate-impl", "retro", "final-regression", "finalize-commit");
+  });
 });
 
 function assertStepsAppearInOrder(...stepIds) {
@@ -112,5 +116,9 @@ describe("PHASE_MAP (plan rework)", () => {
 
   it("maps approval to plan phase", () => {
     assert.equal(PHASE_MAP["approval"], "plan");
+  });
+
+  it("maps final-regression to impl phase", () => {
+    assert.equal(PHASE_MAP["final-regression"], "impl");
   });
 });

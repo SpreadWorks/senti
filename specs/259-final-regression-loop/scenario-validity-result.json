@@ -1,0 +1,169 @@
+{
+  "version": "1",
+  "raw_output_path": "specs/259-final-regression-loop/tests/.raw/scenario-validity.log",
+  "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+  "process": {
+    "started": false,
+    "exitCode": null,
+    "signal": null,
+    "timedOut": false,
+    "spawnError": null
+  },
+  "result": "block",
+  "summary": [
+    {
+      "id": "R1",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js",
+        "test_name": "R1: default test-execute defers full project regression to final-regression",
+        "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 13
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/259-final-regression-loop/tests/final-regression-routing.test.js",
+        "test_name": "R2: final-regression pass writes the result artifact and raw log",
+        "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 13
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/259-final-regression-loop/tests/final-regression-routing.test.js",
+        "test_name": "R3: pass artifact has required routing fields and finalize-commit next action",
+        "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 13
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/259-final-regression-loop/tests/final-regression-routing.test.js",
+        "test_name": "R4: generic failure without changed-file evidence does not route to regression-repair",
+        "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 13
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/259-final-regression-loop/tests/final-regression-routing.test.js",
+        "test_name": "R5: invalid project test routes to test-repair once, then stops without mutating project files",
+        "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 13
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "test_name": "R6: test-result-review validates full regression markers from rawOutputText",
+        "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 13
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/259-final-regression-loop/tests/final-regression-routing.test.js",
+        "test_name": "R7: final-regression is a mainline impl step before finalize-commit",
+        "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 13
+        }
+      }
+    },
+    {
+      "id": "R9",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js",
+        "test_name": "R9: deferred full regression evidence validates without project regression markers",
+        "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 13
+        }
+      }
+    },
+    {
+      "id": "R10",
+      "classification": "invalid_test",
+      "evidence": {
+        "test_file": "specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "test_name": "R10: spec-local headers cover every testable requirement",
+        "command": "node --test specs/259-final-regression-loop/tests/final-regression-routing.test.js specs/259-final-regression-loop/tests/test-execute-regression-policy.test.js specs/259-final-regression-loop/tests/test-result-review-raw-output.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 13
+        }
+      }
+    }
+  ],
+  "preflight": {
+    "invalid_paths": [
+      "src/flow/commands/report.js",
+      "src/flow/definition.js",
+      "src/flow/lib/run-test-execute.js",
+      "src/flow/lib/test-artifacts.js",
+      "src/flow/lib/test-regression.js",
+      "src/flow/prompts/impl/finalize-commit.md",
+      "src/flow/prompts/impl/retro.md",
+      "src/flow/prompts/impl/test-execute.md",
+      "src/flow/prompts/impl/test-result-review.md",
+      "src/flow/prompts/plan/review-test.md",
+      "src/flow/prompts/plan/test.md",
+      "src/flow/prompts/task/impl.md",
+      "src/flow/prompts/task/review.md",
+      "src/flow/registry.js",
+      "src/flow/schemas/test-execute-result.schema.json",
+      "src/lib/config.js",
+      "src/lib/types.js",
+      "src/locale/en/messages.json",
+      "src/locale/en/ui.json",
+      "src/locale/ja/messages.json",
+      "src/locale/ja/ui.json",
+      "src/presets/base/guardrail.json",
+      "src/templates/partials/flow-tracking.md",
+      "src/templates/skills/rules.json",
+      "src/templates/skills/sdd-forge.flow/SKILL.md",
+      "tests/unit/flow/flow-steps.test.js",
+      "tests/unit/flow/get-next-action.test.js",
+      "tests/unit/lib/config-schema-commands-test.test.js",
+      "src/flow/lib/run-final-regression.js",
+      "src/flow/prompts/impl/final-regression.md",
+      "src/flow/schemas/next-action/final-regression.schema.json",
+      "tests/unit/flow/final-regression.test.js",
+      "tests/unit/flow/test-regression-policy.test.js"
+    ]
+  }
+}

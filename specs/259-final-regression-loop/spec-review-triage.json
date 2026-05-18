@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All three blocking findings are valid spec contradictions or missing safety policy and should be repaired in one spec-repair pass. Non-blocking improvements remain advisory memory.",
+  "items": [
+    {
+      "title": "Pass nextAction conflicts with existing finalize step",
+      "target": "R3 / R7",
+      "decision": "apply",
+      "rationale": "The spec currently gives two different pass routing values. The executable next step after final-regression pass is finalize-commit, so the artifact contract must use the same value.",
+      "evidence": "spec.json requirements R3 says nextAction=finalize, while R7 says route to finalize-commit. flow status and definition show finalize-commit is the first finalize leaf after final-regression."
+    },
+    {
+      "title": "Final-regression repair can stale prior evidence",
+      "target": "R5 / final-regression failure repair path",
+      "decision": "apply",
+      "rationale": "A repair after retro can modify files after test-execute, test-result-review, gate-impl, and retro evidence. The spec must require fresh spec-local evidence and artifact consumption before finalize without re-entering review/gate-impl.",
+      "evidence": "spec.json R5 allows one retryable failure but does not state what happens to earlier test-execute/test-result-review/retro evidence when files change after final-regression."
+    },
+    {
+      "title": "invalid_project_test retry route is ambiguous",
+      "target": "R4 / R5",
+      "decision": "apply",
+      "rationale": "invalid_project_test should be a bounded test-repair path, not a non-retryable stop category, because issue #330 explicitly lists invalid_project_test as test-repair -> final-regression.",
+      "evidence": "Issue #330 says invalid_project_test: test-repair -> final-regression. spec.json R4 currently lists invalid_project_test among retryable=false stop categories."
+    }
+  ]
+}

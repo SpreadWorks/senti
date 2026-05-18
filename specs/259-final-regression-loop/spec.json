@@ -1,0 +1,307 @@
+{
+  "goal": "Finish issue #330 by keeping full project regression out of the normal test-execute repair loop and running it as a late final-regression step before finalize.",
+  "scope": {
+    "in": [
+      "Use the existing uncommitted 30a7 implementation as the starting point and finish only the remaining gaps.",
+      "Ensure normal test-execute defaults to spec-local plus targeted evidence and records full-regression deferral instead of running full npm test -- by default.",
+      "Ensure flow run final-regression owns the default full project regression, writes stable artifacts, and advances only after pass validation.",
+      "Fix final-regression next-action wiring, test-result-review raw output validation, stale plan prompt responsibility text, and failure classification rules.",
+      "Add spec-local coverage and focused shared tests proving normal repair loops do not run full npm test -- unless explicitly configured."
+    ],
+    "out": [
+      "Re-implementing already present final-regression step, registry command, runner, artifact validator, or test-execute policy from scratch.",
+      "Changing unrelated draft, spec, review, gate, finalize, or task flow behavior.",
+      "Adding external dependencies.",
+      "Publishing to npm."
+    ]
+  },
+  "constraints": [
+    "No external dependencies; use Node.js built-in modules and existing project helpers only.",
+    "Alpha policy applies: do not keep compatibility code for obsolete internal formats introduced before this spec.",
+    "test.testExecuteRegression is validated at the config boundary and may only be targeted, full, or skip.",
+    "flow run final-regression has no user-facing arguments in this spec; any future option must be validated at the CLI registry boundary.",
+    "exit-code-contract: flow run final-regression succeeds with exit code 0 only when final-regression-result.json validates with result pass. A fail artifact, invalid artifact, missing raw log, invalid command, timeout, permission, sandbox, dependency, or process error returns a failed envelope and non-zero process exit.",
+    "backward-compatible-cli-interface: existing test-execute command remains available and the explicit test.testExecuteRegression=full setting is the migration path for users who intentionally want full regression inside test-execute.",
+    "Templates or presets changed by this work must be propagated with sdd-forge upgrade before finalize."
+  ],
+  "design_principles": [
+    "Keep project-level confidence, spec-local evidence, review, and gate responsibilities in separate flow steps.",
+    "Make failure routing data-driven from artifact fields instead of reclassifying the same final-regression failure on every retry.",
+    "Prefer explicit deferral evidence over silent skipping when full regression is moved out of test-execute.",
+    "Treat issue #330's already-implemented list as existing work; inspect and patch it instead of duplicating it."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/definition.js and src/flow/registry.js define and dispatch the final-regression step."
+      },
+      {
+        "text": "src/flow/lib/run-final-regression.js runs the final project command and writes final-regression-result.json plus tests/.raw/final-regression.log."
+      },
+      {
+        "text": "src/flow/lib/test-regression.js and src/flow/lib/run-test-execute.js plan normal project regression policy for targeted, full, skip, and deferred cases."
+      },
+      {
+        "text": "src/flow/lib/test-artifacts.js validates test-execute-result.json and final-regression-result.json contracts."
+      },
+      {
+        "text": "src/flow/lib/run-test-result-review.js validates test-execute-result.json against raw output before review, gate-impl, retro, and final-regression."
+      },
+      {
+        "text": "src/flow/prompts and src/templates/skills/sdd-forge.flow/SKILL.md describe the split responsibilities for test-execute, test-result-review, gate-impl, retro, final-regression, and finalize."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "implement -> test-execute writes spec-local and targeted/deferred evidence -> test-result-review validates artifact integrity -> review and gate-impl inspect the v2 artifact without running tests."
+      },
+      {
+        "text": "retro summarizes test-execute and test-result-review evidence -> final-regression runs the full project command by default -> finalize-commit starts only after final-regression pass."
+      },
+      {
+        "text": "On final-regression failure, final-regression-result.json records failureKind, retryable, nextAction, rawOutputPath, changedFiles, and previousFailureKind; issue-log records the failure."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] final-regression step exists after retro and before finalize, with registry command and pass-only post-hook.",
+        "evidence": "rg found final-regression in src/flow/definition.js:374-379 and src/flow/registry.js:937-955. The registry reads final-regression-result.json, validates it, throws when result is not pass, and then marks final-regression done."
+      },
+      {
+        "text": "[VERIFY] normal test-execute already has targeted/full/skip policy and deferred categories.",
+        "evidence": "src/flow/lib/test-regression.js:292-359 handles test.testExecuteRegression targeted/full/skip and returns full-regression-deferred or project-regression-skipped. src/flow/schemas/test-execute-result.schema.json includes those categories."
+      },
+      {
+        "text": "[VERIFY] final-regression artifact contract is implemented and includes required routing fields.",
+        "evidence": "src/flow/lib/test-artifacts.js:440-450 validates version, result, completed, command, rawOutputPath, retryable, nextAction, changedFiles, rawOutputLines, and process metadata."
+      },
+      {
+        "text": "[CORRECTION] test-result-review must pass rawOutputText to validateTestExecuteResultEvidence, not rawText.",
+        "evidence": "src/flow/lib/run-test-result-review.js:51-53 passes { rawText }, while src/flow/lib/test-artifacts.js:510-533 expects rawOutputText and checks marker inclusion on that field."
+      },
+      {
+        "text": "[CORRECTION] scenario-validity prompt still assigns post-implementation project verification to impl/test-execute.",
+        "evidence": "src/flow/prompts/plan/scenario-validity.md says impl/test-execute performs post-implementation project verification and that project-wide regression remains there; review-test.md and test.md already point full regression to impl/final-regression."
+      },
+      {
+        "text": "[VERIFY] issue #330's board/issue body explicitly marks existing implementation as uncommitted work and instructs this spec not to re-implement it.",
+        "evidence": "Issue #330 body lists already implemented final-regression step, registry command, runner, artifact fields, issue-log recording, test-execute policy, config schema, prompt/template/locale updates, and unit tests."
+      }
+    ]
+  },
+  "background": "Recent SDD flows repeatedly ran full project regression from test-execute. When review or gate repairs changed code, the test artifact became stale and full npm test -- ran again inside the normal repair loop. Issue #330 moves default full project regression to a final-regression step after retro, while normal test-execute keeps spec-local and targeted evidence. The current working tree already contains most of that implementation; this spec formalizes the remaining fixes and verification.",
+  "requirements": [
+    {
+      "id": "R1",
+      "priority": "must",
+      "desc": "Normal test-execute shall not run full project regression by default. When changed files require full project regression and test.testExecuteRegression is absent or targeted, test-execute-result.json shall record regression.required=false with category full-regression-deferred and a reason naming final-regression. When test.testExecuteRegression=skip, it shall record category project-regression-skipped. When test.testExecuteRegression=full, test-execute may run the full command and must include project regression start/end markers in the raw log.",
+      "testable": true
+    },
+    {
+      "id": "R2",
+      "priority": "must",
+      "desc": "flow run final-regression shall run after retro and before finalize, execute the project regression command, write final-regression-result.json and tests/.raw/final-regression.log, and mark final-regression done only when the artifact validates with result pass.",
+      "testable": true
+    },
+    {
+      "id": "R3",
+      "priority": "must",
+      "desc": "final-regression-result.json shall include version, result, completed, failureKind, command, rawOutputPath, retryable, nextAction, changedFiles, previousFailureKind, rawOutputLines, and process metadata. Pass artifacts shall have failureKind=null, retryable=false, and nextAction=finalize-commit. Fail artifacts shall include a non-null failureKind and a nextAction that routes to exactly one repair or stop path.",
+      "testable": true
+    },
+    {
+      "id": "R4",
+      "priority": "must",
+      "desc": "final-regression shall classify caused_by_current_change only when raw output or failing test metadata specifically references at least one changedFiles entry. If no such link exists, it shall not choose regression-repair; it shall classify as pre_existing, invalid_project_test, or a retryable=false stop category such as infra_failure, timeout, dependency_failure, sandbox_restriction, permission_error, or child_process_eprem. invalid_project_test shall route to test-repair, not regression-repair.",
+      "testable": true
+    },
+    {
+      "id": "R5",
+      "priority": "must",
+      "desc": "final-regression shall not mutate implementation files or test files while classifying a failure. The first caused_by_current_change failure may emit nextAction=regression-repair and the first invalid_project_test failure may emit nextAction=test-repair. The second final-regression failure for the same flow shall write previousFailureKind, set retryable=false, and set nextAction=stop.",
+      "testable": true
+    },
+    {
+      "id": "R6",
+      "priority": "must",
+      "desc": "test-result-review shall validate targeted or explicit full project regression evidence using the raw output text read from tests/.raw/test-execution.log. It shall pass rawOutputText to validateTestExecuteResultEvidence so missing start/end markers fail deterministically and valid markers pass.",
+      "testable": true
+    },
+    {
+      "id": "R7",
+      "priority": "should",
+      "desc": "get-next-action shall expose final-regression as an impl-phase mainline step after retro, use next-action/final-regression.schema.json, require no user approval for normal execution, and route a passing final-regression to finalize-commit.",
+      "testable": true
+    },
+    {
+      "id": "R8",
+      "priority": "should",
+      "desc": "Any edited prompt, template, skill, guardrail, report, retro, or locale text that mentions full project regression shall name impl/final-regression as the default full project regression step. Edited text shall not state that default project-wide regression remains in impl/test-execute.",
+      "testable": false
+    },
+    {
+      "id": "R9",
+      "priority": "should",
+      "desc": "gate-impl shall not block solely because full project regression was deferred from test-execute. It may block targeted or explicit full test-execute regression failures, invalid v2 artifacts, missing test-result-review pass, or failed final-regression evidence when that evidence exists.",
+      "testable": true
+    },
+    {
+      "id": "R10",
+      "priority": "must",
+      "desc": "The completed implementation shall include spec-local tests under specs/259-final-regression-loop/tests with // spec: R<N> headers covering the new behavior, and focused shared unit tests may be added or updated for changed public flow contracts.",
+      "testable": true
+    }
+  ],
+  "acceptance_criteria": [
+    "A spec-local test demonstrates that the default test-execute policy records full-regression-deferred instead of running npm test -- in the normal repair loop.",
+    "A spec-local test demonstrates that test.testExecuteRegression=full is the explicit exception that permits full project regression inside test-execute.",
+    "A spec-local test demonstrates final-regression pass writes the required artifact and raw log and advances to finalize-commit.",
+    "A spec-local test demonstrates first and second caused_by_current_change final-regression failures produce regression-repair then stop routing.",
+    "A spec-local test demonstrates invalid_project_test routes to test-repair on the first failure and stop on the second failure.",
+    "A spec-local test demonstrates final-regression failure classification writes only final-regression artifacts and issue-log entries, not implementation or test file edits.",
+    "A spec-local test demonstrates caused_by_current_change is not selected when the failure output has no link to changedFiles.",
+    "A spec-local test demonstrates run-test-result-review validates raw output markers through rawOutputText and fails when markers are missing.",
+    "Existing focused tests for final-regression, test-regression policy, flow step order, and get-next-action pass.",
+    "When template or preset files change, the corresponding installed skill/config files in .agents and .claude contain the same final-regression responsibility text as the source template or preset."
+  ],
+  "clarifications": [
+    {
+      "q": "Does this spec re-implement the already present 30a7 changes?",
+      "a": "No. The existing uncommitted diff is treated as implemented work. Implementation should inspect, patch, and verify only the remaining gaps."
+    },
+    {
+      "q": "Where may full npm test -- run by default?",
+      "a": "Only in final-regression. test-execute may run full project regression only when test.testExecuteRegression is explicitly set to full."
+    },
+    {
+      "q": "What happens when final-regression fails for an unrelated reason?",
+      "a": "If the failure is not specifically linked to changedFiles, it must not choose regression-repair. It records pre_existing, invalid_project_test, or a stop category and returns control or a bounded test-repair path instead of entering the normal implementation repair loop."
+    },
+    {
+      "q": "What happens if a final-regression repair changes files after prior evidence exists?",
+      "a": "flow run final-regression does not apply that repair. It emits nextAction only. If the user or agent edits files afterward, that edit is outside the final-regression command and remains subject to the existing stale-artifact reset behavior before finalize can rely on new evidence."
+    },
+    {
+      "q": "How is CLI success defined for final-regression?",
+      "a": "The command succeeds only when final-regression-result.json validates and result is pass. Fail artifacts and invalid artifacts are non-zero failures."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Keep full project regression in test-execute and optimize classification",
+      "reason": "Rejected because it leaves full npm test -- inside the same artifact invalidation loop that issue #330 is trying to remove."
+    },
+    {
+      "option": "Skip project regression entirely during normal flows",
+      "reason": "Rejected because release confidence would depend on manual action. final-regression keeps the confidence check inside the flow before finalize."
+    },
+    {
+      "option": "Route every final-regression failure back to gate-impl",
+      "reason": "Rejected because environment, sandbox, dependency, timeout, and pre-existing failures are not implementation defects and would create unnecessary review/gate/test loops."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "final-regression",
+    "test-execute",
+    "testExecuteRegression",
+    "full-regression-deferred",
+    "project-regression-skipped",
+    "test-result-review",
+    "rawOutputText",
+    "get-next-action",
+    "gate-impl",
+    "issue-log",
+    "failureKind",
+    "nextAction",
+    "changedFiles"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Fix raw evidence validation",
+      "goal": "Make test-result-review validate project regression evidence with the raw output text expected by the artifact validator.",
+      "acceptance": [
+        "validateTestExecuteResultEvidence receives rawOutputText from run-test-result-review.",
+        "Valid targeted or explicit full regression markers pass.",
+        "Missing markers fail project_regression_verification."
+      ],
+      "implementation_notes": "Primary target: src/flow/lib/run-test-result-review.js. Add or update focused tests around raw output marker validation.",
+      "test_strategy": "Spec-local unit test plus shared unit coverage for the rawText/rawOutputText mismatch.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Complete final-regression routing",
+      "goal": "Finish final-regression failure classification, retry cap, issue-log recording, and next-action behavior without returning failures to the normal review/gate loop.",
+      "acceptance": [
+        "caused_by_current_change is selected only when failure evidence links to changedFiles.",
+        "Second final-regression failure writes previousFailureKind and nextAction stop.",
+        "Failure classification writes only final-regression artifacts and issue-log entries.",
+        "get-next-action exposes final-regression after retro and before finalize with the expected schema."
+      ],
+      "implementation_notes": "Primary targets: src/flow/lib/run-final-regression.js, src/flow/lib/test-artifacts.js, src/flow/definition.js, src/flow/registry.js, and next-action schema/tests.",
+      "test_strategy": "Spec-local tests for pass/fail routing and shared get-next-action tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Verify test-execute policy",
+      "goal": "Prove normal test-execute no longer runs default full project regression and preserves targeted/full/skip behavior.",
+      "acceptance": [
+        "Default policy records full-regression-deferred for full-only changes.",
+        "Explicit full policy runs project regression in test-execute.",
+        "Skip policy records project-regression-skipped."
+      ],
+      "implementation_notes": "Primary targets: src/flow/lib/test-regression.js, src/flow/lib/run-test-execute.js, schema, and tests/unit/flow/test-regression-policy.test.js.",
+      "test_strategy": "Spec-local policy tests and existing focused unit tests.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Align flow text",
+      "goal": "Remove stale responsibility descriptions so prompts, templates, installed skills, reports, retro, and locale text agree on the final-regression split.",
+      "acceptance": [
+        "scenario-validity no longer says project-wide regression remains in impl/test-execute by default.",
+        "Installed skills and generated templates describe final-regression as the default full regression point.",
+        "Diff-visible installed skill/config files in .agents and .claude match the changed template or preset responsibility text."
+      ],
+      "implementation_notes": "Primary targets include src/flow/prompts, src/templates, src/presets, .agents/skills, .claude/skills, locale files, report and retro text.",
+      "test_strategy": "Static spec-local checks for key wording plus upgrade verification.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-5",
+      "title": "Finalize coverage",
+      "goal": "Add spec-local tests with requirement headers and run the focused test set needed to validate the completed flow contract.",
+      "acceptance": [
+        "specs/259-final-regression-loop/tests contains // spec: R<N> headers for testable requirements.",
+        "Focused tests for final-regression, test-regression policy, get-next-action, flow steps, and raw evidence validation pass.",
+        "The final implementation records evidence that full npm test -- is outside normal repair-loop test-execute by default."
+      ],
+      "implementation_notes": "Keep tests focused. Shared regression tests may cover public flow contracts, but spec-local tests remain required by the spec-test-coverage guardrail.",
+      "test_strategy": "Run spec-local tests first, then focused shared unit tests, then final-regression before finalize.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-18T12:14:28.456Z",
+    "notes": "User asked to continue; autoApprove true; treating approval choice [1] as selected."
+  }
+}

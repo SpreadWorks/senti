@@ -176,7 +176,7 @@ describe("flow get next-action", () => {
       const state = setupActiveFlow(tmp);
       const falsyFlowSteps = [
         "draft", "gate-draft", "spec", "gate", "test",
-        "implement", "test-execute", "test-result-review", "review", "gate-impl", "retro",
+        "implement", "test-execute", "test-result-review", "review", "gate-impl", "retro", "final-regression",
       ];
       for (const id of falsyFlowSteps) {
         setFlowStepInProgress(state, id);

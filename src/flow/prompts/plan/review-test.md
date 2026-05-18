@@ -1,5 +1,5 @@
    - Run `sdd-forge flow run review --phase test` after `scenario-validity` has passed.
-   - Phase split: `plan/test` writes tests only, `plan/scenario-validity` performs pre-implementation runtime validity, this `plan/review-test` step performs static anti-pattern review, and `impl/test-execute` performs post-implementation verification plus root regression.
+   - Phase split: `plan/test` writes tests only, `plan/scenario-validity` performs pre-implementation runtime validity, this `plan/review-test` step performs static anti-pattern review, `impl/test-execute` performs post-implementation spec-local verification, and `impl/final-regression` runs the full project regression.
    - The review generates a test design from spec requirements, compares against actual test code, and identifies gaps.
    - The `review-test` step is static anti-pattern review. Runtime pre-implementation validity belongs to `scenario-validity`.
    - Check for these anti-pattern classes:

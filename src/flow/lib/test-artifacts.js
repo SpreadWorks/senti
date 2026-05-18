@@ -8,7 +8,9 @@ import { classifyRegression, listRegressionChangedFiles } from "./test-regressio
 export const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 export const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
 export const TEST_RESULT_REVIEW_MD_FILE = "test-result-review.md";
+export const FINAL_REGRESSION_RESULT_FILE = "final-regression-result.json";
 export const RAW_OUTPUT_RELATIVE = "tests/.raw/test-execution.log";
+export const FINAL_REGRESSION_RAW_OUTPUT_RELATIVE = "tests/.raw/final-regression.log";
 export const TEMP_SUMMARY_RELATIVE = "tests/.raw/requirement-summary.json";
 export const FILE_MAP_RELATIVE = "file-map.json";
 export const PLACEHOLDER_PERMISSION_FILE = "placeholder-permission.json";
@@ -51,10 +53,12 @@ const BASE_TEST_ARTIFACT_RELATIVE_PATHS = Object.freeze([
   TEST_EXECUTE_RESULT_FILE,
   TEST_RESULT_REVIEW_FILE,
   TEST_RESULT_REVIEW_MD_FILE,
+  FINAL_REGRESSION_RESULT_FILE,
   "retro.json",
   "report.json",
   SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
   RAW_OUTPUT_RELATIVE,
+  FINAL_REGRESSION_RAW_OUTPUT_RELATIVE,
 ]);
 export const DURABLE_TEST_ARTIFACT_RELATIVE_PATHS = BASE_TEST_ARTIFACT_RELATIVE_PATHS;
 export const RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS = Object.freeze([
@@ -398,10 +402,54 @@ function validateRegression(regression) {
     assertProcessMetadata(regression.process, "regression.process");
   } else {
     assertRequiredFields(regression, ["category", "reason", "classified_paths"], "regression");
-    if (!["docs-only", "spec-artifact-only", "non-project-only", "mixed-non-trigger"].includes(regression.category)) {
+    if (![
+      "docs-only",
+      "spec-artifact-only",
+      "non-project-only",
+      "mixed-non-trigger",
+      "full-regression-deferred",
+      "project-regression-skipped",
+    ].includes(regression.category)) {
       throw new Error(`regression.category invalid: ${regression.category}`);
     }
   }
+}
+
+function validateFinalRegressionFailureKind(result) {
+  if (result.result === "pass") {
+    if (result.failureKind !== null) throw new Error("final-regression failureKind must be null on pass");
+    return;
+  }
+  const allowed = [
+    "caused_by_current_change",
+    "pre_existing",
+    "infra_failure",
+    "timeout",
+    "dependency_failure",
+    "sandbox_restriction",
+    "permission_error",
+    "child_process_eprem",
+    "invalid_project_test",
+  ];
+  if (!allowed.includes(result.failureKind)) {
+    throw new Error(`final-regression failureKind invalid: ${result.failureKind}`);
+  }
+}
+
+export function validateFinalRegressionResult(result) {
+  if (!result || typeof result !== "object") throw new Error("final-regression-result.json must be an object");
+  if (result.version !== "1") throw new Error(`final-regression-result.json version='${result.version}', expected '1'`);
+  if (result.result !== "pass" && result.result !== "fail") throw new Error("final-regression result must be pass or fail");
+  if (typeof result.completed !== "boolean") throw new Error("final-regression completed must be boolean");
+  if (typeof result.command !== "string" && result.command !== null) throw new Error("final-regression command must be string or null");
+  if (typeof result.rawOutputPath !== "string" || result.rawOutputPath.length === 0) throw new Error("final-regression rawOutputPath is required");
+  if (typeof result.retryable !== "boolean") throw new Error("final-regression retryable must be boolean");
+  if (typeof result.nextAction !== "string" || result.nextAction.length === 0) throw new Error("final-regression nextAction is required");
+  if (!Array.isArray(result.changedFiles)) throw new Error("final-regression changedFiles[] is required");
+  assertRange(result.rawOutputLines, "final-regression");
+  assertProcessMetadata(result.process, "final-regression.process");
+  validateFinalRegressionFailureKind(result);
+  return result;
 }
 
 export function validateSummaryEvidence(summary, {
@@ -514,6 +562,10 @@ export function loadValidatedTestArtifacts(specDir) {
 
 export function buildTestResultsFromArtifacts(specDir) {
   const { result, review } = loadValidatedTestArtifacts(specDir);
+  const finalRegressionPath = path.join(specDir, FINAL_REGRESSION_RESULT_FILE);
+  const finalRegression = fs.existsSync(finalRegressionPath)
+    ? validateFinalRegressionResult(readJsonStrict(finalRegressionPath))
+    : null;
   return {
     testExecute: {
       status: "done",
@@ -528,6 +580,18 @@ export function buildTestResultsFromArtifacts(specDir) {
       checkedItems: review.checked_items,
       invalidReason: review.invalid_reason,
     },
+    ...(finalRegression
+      ? {
+          finalRegression: {
+            status: "done",
+            result: finalRegression.result,
+            failureKind: finalRegression.failureKind,
+            rawOutputPath: finalRegression.rawOutputPath,
+            retryable: finalRegression.retryable,
+            nextAction: finalRegression.nextAction,
+          },
+        }
+      : {}),
   };
 }
 

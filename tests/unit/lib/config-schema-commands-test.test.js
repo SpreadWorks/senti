@@ -42,4 +42,18 @@ describe("config.commands.test schema", () => {
       commands: { gh: "enable" },
     })));
   });
+
+  it("accepts test.testExecuteRegression policy values", () => {
+    for (const policy of ["targeted", "full", "skip"]) {
+      assert.doesNotThrow(() => validateConfig(baseConfig({
+        test: { testExecuteRegression: policy },
+      })));
+    }
+  });
+
+  it("rejects invalid test.testExecuteRegression policy", () => {
+    assert.throws(() => validateConfig(baseConfig({
+      test: { testExecuteRegression: "always" },
+    })), /testExecuteRegression|enum/i);
+  });
 });
