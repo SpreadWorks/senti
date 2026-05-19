@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-18T14:31:34.119Z",
+  "analyzedAt": "2026-05-19T04:48:29.717Z",
   "package": {
     "entries": [
       {
@@ -2409,7 +2409,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -2504,14 +2504,14 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "0cc1fa8c62172710b02bc13b0704e660",
-        "lines": 2328,
-        "mtime": "2026-05-18T01:53:12.523Z",
+        "hash": "b0459312f0f18551faa7dc86c8b8c6ea",
+        "lines": 2755,
+        "mtime": "2026-05-19T00:41:00.432Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2556,6 +2556,11 @@
           "formatTestFilesForPrompt",
           "buildGapAnalysisPrompt",
           "buildTestFixPrompt",
+          "normalizeTestReviewText",
+          "buildTestReviewPrompt",
+          "parseTestReviewJsonOutput",
+          "parseTestReviewFindings",
+          "buildHeaderBlockingFindings",
           "measurePromptChars",
           "assertTestReviewPromptWithinLimit",
           "classifyReviewCommandError",
@@ -2563,7 +2568,9 @@
           "parseGaps",
           "applyTestFixes",
           "formatTestReviewMd",
-          "formatRemainingGap",
+          "writeTestReviewArtifacts",
+          "writeTestCoverageArtifact",
+          "buildToolingFailureReview",
           "runTestReview",
           "summarizeSpecReviewValue",
           "formatSpecReviewSimpleList",
@@ -2644,6 +2651,8 @@
           "applyTestFixes",
           "formatTestReviewMd",
           "runReviewLoop",
+          "buildTestReviewPrompt",
+          "parseTestReviewFindings",
           "extractGoalAndScope",
           "buildSpecSummaryMarkdown",
           "buildSpecReviewPrompt",
@@ -2668,14 +2677,14 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 3
+          "attempts": 1
         }
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "4d1ba997235b6c26f0c2e7cb5fb68f0b",
-        "lines": 744,
-        "mtime": "2026-05-18T03:00:41.246Z",
+        "hash": "81f5f537ba83663db0a1357b01235b2b",
+        "lines": 790,
+        "mtime": "2026-05-19T04:48:08.662Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2683,6 +2692,7 @@
           "derivePhaseMap",
           "resolveNodeFor",
           "findActiveNode",
+          "findLatestInProgressLeaf",
           "findInProgressLeaf",
           "deriveNextAction",
           "buildInitialNestedSteps",
@@ -2700,6 +2710,8 @@
           "createDraftReviewLeafNode",
           "createDraftReviewRouteNodes",
           "assertDepth",
+          "scanLatestInProgressLeaf",
+          "orderMapForDefinition",
           "findBranchIndexForLeaf",
           "getLastLeaf"
         ],
@@ -2712,6 +2724,7 @@
           "derivePhaseMap",
           "resolveNodeFor",
           "findActiveNode",
+          "findLatestInProgressLeaf",
           "findInProgressLeaf",
           "deriveNextAction",
           "buildInitialNestedSteps",
@@ -2982,7 +2995,7 @@
         ],
         "id": "9c36c232",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -3016,7 +3029,7 @@
         ],
         "id": "41c7d805",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -3104,6 +3117,36 @@
         ]
       },
       {
+        "file": "src/flow/lib/gate-recovery-display.js",
+        "hash": "2dbd3401818b3b403ffed6403366bdd1",
+        "lines": 51,
+        "mtime": "2026-05-19T04:48:08.662Z",
+        "className": "gate-recovery-display",
+        "methods": [
+          "GateRecoveryDisplayPhase",
+          "resolveGateRecoveryDisplayPhase"
+        ],
+        "imports": [
+          "../definition.js",
+          "./gate-step.js",
+          "./run-gate.js",
+          "./retry-recovery.js"
+        ],
+        "exports": [
+          "GateRecoveryDisplayPhase",
+          "resolveGateRecoveryDisplayPhase"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-status.js"
+        ],
+        "id": "21373f9a",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/lib/gate-step.js",
         "hash": "1a0a1d97a3018f071c026bc89303a0e4",
         "lines": 95,
@@ -3127,11 +3170,12 @@
         "extends": null,
         "usedBy": [
           "src/flow/lib/run-gate.js",
-          "src/flow/registry.js"
+          "src/flow/registry.js",
+          "src/flow/lib/gate-recovery-display.js"
         ],
         "id": "9bbc3f1d",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -3228,7 +3272,7 @@
         ],
         "id": "1261e39f",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -3306,9 +3350,9 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "3cd81e654d797619f3e78d13c147a13f",
-        "lines": 243,
-        "mtime": "2026-05-18T01:10:37.246Z",
+        "hash": "1f92529c976d3efe9dd0575f88053da9",
+        "lines": 290,
+        "mtime": "2026-05-19T04:48:08.662Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
@@ -3319,6 +3363,8 @@
           "injectPersistentRules",
           "buildContextDescriptor",
           "isFlowImplementationStep",
+          "attachRetryRecovery",
+          "buildRetryRecoveryForState",
           "promoteNextTaskAndFirstStep",
           "promoteNextAvailableTarget"
         ],
@@ -3332,6 +3378,9 @@
           "../../lib/flow-helpers.js",
           "../../lib/skill-rules.js",
           "./review-failure.js",
+          "./gate-recovery-display.js",
+          "./run-review.js",
+          "./retry-recovery.js",
           "./task-scope.js",
           "../../lib/flow-envelope.js"
         ],
@@ -3342,7 +3391,7 @@
         "usedBy": null,
         "id": "c68afd69",
         "enrich": {
-          "attempts": 4
+          "attempts": 1
         }
       },
       {
@@ -3365,7 +3414,7 @@
         "usedBy": null,
         "id": "410dfcc9",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -3441,9 +3490,9 @@
       },
       {
         "file": "src/flow/lib/get-status.js",
-        "hash": "8195489823efa9bba3d3597932d66e55",
-        "lines": 214,
-        "mtime": "2026-05-18T01:10:37.246Z",
+        "hash": "3d23106e92a005e4503d298a3153b8a6",
+        "lines": 271,
+        "mtime": "2026-05-19T04:48:08.662Z",
         "className": "get-status",
         "methods": [
           "buildMetricsSummary",
@@ -3452,7 +3501,10 @@
           "zeroProviderBucket",
           "applyEntry",
           "applyProviderEntry",
-          "buildStatusReviewStop",
+          "resolveActiveStepMaxAttempts",
+          "buildStatusReviewViews",
+          "buildStatusRetryRecoveryView",
+          "buildStatusGateViews",
           "buildStatusOutput"
         ],
         "imports": [
@@ -3463,6 +3515,9 @@
           "../definition.js",
           "./base-command.js",
           "./review-failure.js",
+          "./gate-recovery-display.js",
+          "./run-review.js",
+          "./retry-recovery.js",
           "./task-scope.js"
         ],
         "exports": [
@@ -3478,7 +3533,7 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 4
+          "attempts": 1
         }
       },
       {
@@ -3635,7 +3690,7 @@
         ],
         "id": "a93faae0",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -3724,7 +3779,7 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -3755,7 +3810,7 @@
         ],
         "id": "d569f2a6",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -3798,10 +3853,122 @@
         ]
       },
       {
+        "file": "src/flow/lib/retry-recovery.js",
+        "hash": "2a891366f0e295c930fbd6a40b526101",
+        "lines": 774,
+        "mtime": "2026-05-19T04:48:08.663Z",
+        "className": "retry-recovery",
+        "methods": [
+          "resolveRecoveryMaxAttempts",
+          "RetryRecoveryInput",
+          "RecoveryTarget",
+          "resolveRecoveryTarget",
+          "RecoveryEvidenceSource",
+          "resolveRecoveryEvidenceSource",
+          "EvidenceFingerprint",
+          "ChangedEvidenceSummary",
+          "ReviewRecoveryBaseline",
+          "RetryRecoveryEntry",
+          "persistReviewRecoveryBaseline",
+          "persistRecoveryBaseline",
+          "evaluateRecoveryEligibility",
+          "evaluateRepeatedRecovery",
+          "buildOneAttemptGrantMetrics",
+          "buildRetryRecoveryView",
+          "buildCurrentRecoveryFingerprint",
+          "buildRecoveryEligibilityForState",
+          "buildStateRetryRecoveryView",
+          "persistCurrentRecoveryBaseline",
+          "applyRetryRecoveryGrant",
+          "applyRecoveredRetryOutcome",
+          "requireString",
+          "requireSafeInteger",
+          "normalizeRelPath",
+          "normalizeChangedPaths",
+          "canonicalReviewPhase",
+          "canonicalPhaseFor",
+          "counterForKind",
+          "specDirFor",
+          "recoveryCommandFor",
+          "readJsonIfExists",
+          "writeJson",
+          "readRecoveryArtifact",
+          "sha256ForFiles",
+          "walkFiles",
+          "sourcePathMatches",
+          "filterPathsForSource",
+          "countRetry",
+          "latestMatchingBaseline",
+          "latestMatchingRecovery",
+          "appendRecoveryBaseline"
+        ],
+        "imports": [
+          "crypto",
+          "fs",
+          "path",
+          "../../lib/git-helpers.js",
+          "./set-issue-log.js"
+        ],
+        "exports": [
+          "resolveRecoveryMaxAttempts",
+          "RetryRecoveryInput",
+          "RecoveryTarget",
+          "resolveRecoveryTarget",
+          "RecoveryEvidenceSource",
+          "resolveRecoveryEvidenceSource",
+          "EvidenceFingerprint",
+          "ChangedEvidenceSummary",
+          "ReviewRecoveryBaseline",
+          "RetryRecoveryEntry",
+          "persistReviewRecoveryBaseline",
+          "persistRecoveryBaseline",
+          "evaluateRecoveryEligibility",
+          "evaluateRepeatedRecovery",
+          "buildOneAttemptGrantMetrics",
+          "buildRetryRecoveryView",
+          "buildCurrentRecoveryFingerprint",
+          "buildRecoveryEligibilityForState",
+          "buildStateRetryRecoveryView",
+          "persistCurrentRecoveryBaseline",
+          "applyRetryRecoveryGrant",
+          "applyRecoveredRetryOutcome",
+          "RECOVERY_ARTIFACT_FILE",
+          "RECOVERY_REASON_MIN_LENGTH",
+          "RECOVERY_REASON_MAX_LENGTH"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/gate-recovery-display.js",
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-status.js",
+          "src/flow/lib/run-gate.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/set-retry.js"
+        ],
+        "id": "3de0db3f",
+        "summary": "Implements evidence-based retry recovery for gate and review phases after retry budgets are exhausted. It persists baselines, recovery grants, and counter mutations in flow artifacts and issue logs.",
+        "detail": "The module defines strict invariants for actions, phases, reasons, and counter values through constructor-validated classes such as RetryRecoveryInput, EvidenceFingerprint, and RetryRecoveryEntry. It canonicalizes review phase aliases and maps each phase to a bounded evidence source, then computes SHA-256 fingerprints from changed files with filesystem fallback logic and truncation limits. Eligibility is decided by either remaining retry budget or evidence changes against the latest stored baseline, producing a structured changed-evidence summary. When a grant is applied, it writes retry-recovery.json, appends issue-log entries, updates flow metrics to allow one reevaluation attempt, and persists the updated flow.json state.",
+        "chapter": "internal_design",
+        "role": "retry recovery policy and persistence engine",
+        "enrich": {
+          "processedAt": "2026-05-19T04:50:35.464Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "retry recovery",
+          "evidence fingerprint",
+          "baseline comparison",
+          "retry budget",
+          "flow metrics",
+          "issue log",
+          "phase canonicalization"
+        ]
+      },
+      {
         "file": "src/flow/lib/review-failure.js",
-        "hash": "0683fc89d808c6f3aa10553c4e727e62",
+        "hash": "73e10e5a2ad5a77c5409e6ee1e497d74",
         "lines": 336,
-        "mtime": "2026-05-18T00:05:36.188Z",
+        "mtime": "2026-05-19T04:48:08.663Z",
         "className": "review-failure",
         "methods": [
           "reviewPhaseForStepId",
@@ -3835,9 +4002,23 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "fcf92359",
+        "summary": "Defines a typed failure taxonomy for review execution and translates failures into recoverable stop-state metadata. It standardizes classification, envelope payloads, and user-facing recovery commands.",
+        "detail": "The file classifies failures into review verdict, subprocess, provider, input-size, and max-attempts categories with constructor-level validation. It can parse structured failure markers from stderr, infer provider or context-length failures via regex patterns, and fall back to subprocess-failure classification. The ReviewFailure class exposes policy methods such as subprocess retry eligibility, stop-state persistence conditions, and marker emission constraints. Helper functions write, clear, and render review stop state, including fallback max-attempts views computed from retry metrics.",
+        "chapter": "internal_design",
+        "role": "review failure classifier and stop-state formatter",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-19T04:50:35.464Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "failure taxonomy",
+          "review stop state",
+          "provider error",
+          "context length",
+          "retry reset",
+          "stderr marker",
+          "envelope mapping"
+        ]
       },
       {
         "file": "src/flow/lib/run-auto-check.js",
@@ -3879,8 +4060,22 @@
         ],
         "id": "62c43842",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-05-19T04:50:35.464Z",
+          "attempts": 8
+        },
+        "summary": "Implements `flow run auto-check` to decide whether a request can proceed in auto mode. It combines static gates with AI scoring and persists eligibility for both active and preparing flows.",
+        "detail": "The command defines a six-dimension weighted rubric, computes a 24-point total, and enforces both a minimum hard-gate sum and a score threshold. It builds a schema-constrained prompt, sanitizes AI outputs to bounded integer scores, and handles missing-agent, call-failure, and parse-failure paths without crashing. The composed verdict merges static gate results, AI validity, and a goal-presence gate into a single eligibility object with explicit reasons. Execution paths separately handle active flow state and preparing records, require `--run-id` in preparing mode, and update or clear `autoCheck` and `autoUpgrade` consistently.",
+        "chapter": "cli_commands",
+        "role": "auto-check command orchestrator",
+        "keywords": [
+          "auto mode eligibility",
+          "static gates",
+          "AI scoring rubric",
+          "hard gate",
+          "flow preparing state",
+          "run-id resolution",
+          "schema-constrained prompt"
+        ]
       },
       {
         "file": "src/flow/lib/run-complete-task.js",
@@ -4214,9 +4409,9 @@
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "77c478b8906f74bdaf29f39d8ce4251a",
-        "lines": 2722,
-        "mtime": "2026-05-18T01:53:12.524Z",
+        "hash": "c2d350dbd641791ef4c939f93920cbdc",
+        "lines": 2754,
+        "mtime": "2026-05-19T04:48:08.663Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4280,6 +4475,8 @@
           "deriveArticleFailReason",
           "checkGuardrail",
           "readGateRetryCount",
+          "hasGateRecoveryBaseline",
+          "persistGateRecoveryBaseline",
           "isRetryHistoryGateEntry",
           "formatRetryHistory",
           "appendGateEscalationIssueLog",
@@ -4317,6 +4514,7 @@
           "./test-artifacts.js",
           "./task-scope.js",
           "./draft-review-routes.js",
+          "./retry-recovery.js",
           "../definition.js"
         ],
         "exports": [
@@ -4369,25 +4567,26 @@
         ],
         "extends": "Error",
         "usedBy": [
+          "src/flow/lib/gate-recovery-display.js",
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
+        "summary": "Provides the main gate pipeline for draft, spec, task-spec, task-impl, and integration phases. It combines structural checks, AI guardrail evaluation, retry governance, and escalation logic into one command flow.",
+        "detail": "The module validates phase-level combinations, inspects spec and draft artifacts, and performs diff-based checks that include committed, uncommitted, and synthesized untracked-file diffs under resource limits. It uses strict JSON-schema prompts and parsers for both guardrail-article and requirement evaluations, including per-violation reporting and hard validation against unknown or missing guardrail IDs. Retry safety controls include max-attempt enforcement, no-progress rejection using git-state hashes, repeated-failure similarity escalation via Jaccard comparison, and pass-to-fail flip overrides for identical content. RunGateCommand dispatches phase-specific execution paths, enforces task-scope constraints, applies integration artifact trust checks, and records rich issue-log evidence for failures and retries.",
+        "chapter": "cli_commands",
+        "role": "gate command orchestrator and policy engine",
         "enrich": {
-          "processedAt": "2026-05-18T13:31:12.050Z",
-          "attempts": 3
+          "processedAt": "2026-05-19T04:50:35.464Z",
+          "attempts": 1
         },
-        "summary": "Implements the flow gate engine across draft, spec, task-impl, and integration phases with strict evaluation and retry controls.",
-        "detail": "The module validates phase-level constraints, collects git diffs (including bounded untracked content), and runs artifact integrity checks before inference. It builds guardrail and requirement prompts, enforces JSON-only response schemas, and parses evaluations with explicit key/value validation. Retry governance includes max-attempt resolution, no-progress detection from git/worktree fingerprints, repeated-fail similarity checks, and escalation logging. Phase-specific handlers return pass/fail envelopes with reasons, warnings, and issue-log side effects to keep gate outcomes auditable.",
-        "chapter": "internal_design",
-        "role": "multi-phase gate evaluator",
         "keywords": [
           "quality gate",
           "guardrail evaluation",
-          "JSON schema validation",
-          "retry budget",
-          "diff analysis",
-          "issue log escalation",
-          "phase orchestration"
+          "schema validation",
+          "retry escalation",
+          "no-progress detection",
+          "jaccard similarity",
+          "diff-based compliance"
         ]
       },
       {
@@ -4733,9 +4932,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "1553b74bcc11aee5055aeb3fa3ba9429",
-        "lines": 466,
-        "mtime": "2026-05-18T01:53:12.525Z",
+        "hash": "ff55c8b6bb067505355f35231e29b2d2",
+        "lines": 538,
+        "mtime": "2026-05-19T04:48:08.663Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -4743,11 +4942,13 @@
           "checkReviewRetryBelowMax",
           "updateReviewRetryCounter",
           "resetImplEvidenceAfterReviewProposals",
+          "appendIssueLogFromTestReviewToolingFailure",
           "runCmdWithRetry",
           "RunReviewCommand",
           "persistedPhaseKey",
           "isImplementationReviewPhase",
           "taskCursorRequiredReviewFailure",
+          "mutateReviewRecoveryState",
           "resolveDraftReviewPhaseKey",
           "reviewPhaseKeyForCtx",
           "isImplPass",
@@ -4772,6 +4973,8 @@
           "path",
           "fs",
           "./review-failure.js",
+          "./set-issue-log.js",
+          "./retry-recovery.js",
           "./test-artifacts.js",
           "./task-scope.js",
           "./draft-review-routes.js"
@@ -4782,6 +4985,7 @@
           "checkReviewRetryBelowMax",
           "updateReviewRetryCounter",
           "resetImplEvidenceAfterReviewProposals",
+          "appendIssueLogFromTestReviewToolingFailure",
           "runCmdWithRetry",
           "RunReviewCommand",
           "default",
@@ -4794,12 +4998,28 @@
         ],
         "extends": "FlowCommand",
         "usedBy": [
+          "src/flow/lib/get-next-action.js",
+          "src/flow/lib/get-status.js",
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
+        "summary": "Implements the review command wrapper that runs review subprocesses by phase and normalizes outputs into flow results. It enforces retry limits, failure stop-state behavior, and phase-specific next-step routing.",
+        "detail": "Before execution, it validates phase names, resolves review scope, and blocks invalid task-cursor states, then checks phase retry budgets derived from flow definitions. It executes `flow/commands/review.js` with timeout and controlled subprocess retries, classifies subprocess failures through ReviewFailure, and persists review-stop recovery state for provider or input-size failures. Phase parsers extract verdict and count fields from stderr to produce structured artifacts and next-step transitions, including draft-route-specific branching. On implementation review proposals, it removes downstream test artifacts and rewinds test/review/gate steps to pending so evidence is regenerated from updated code.",
+        "chapter": "cli_commands",
+        "role": "review command orchestrator",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-19T04:50:35.464Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "phase review",
+          "subprocess retry",
+          "review verdict parsing",
+          "retry counter",
+          "stop state persistence",
+          "task scope enforcement",
+          "flow step rewind"
+        ]
       },
       {
         "file": "src/flow/lib/run-scenario-validity.js",
@@ -4851,8 +5071,22 @@
         "usedBy": null,
         "id": "c99f2f87",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-19T04:50:35.464Z",
+          "attempts": 3
+        },
+        "summary": "Runs scenario-validity checks by executing spec-local test files and generating normalized result artifacts. It blocks progression unless every testable requirement is observed as expected failure.",
+        "detail": "The command discovers candidate test files under the active spec, performs a preflight changed-path policy check, and blocks when implementation-target files are modified outside the allowed scenario-validity scope. It runs each test file as an isolated Node process, captures stdout/stderr and process metadata, and records raw output line ranges for traceable evidence references. Requirement summaries are built by matching requirement IDs against test entry markers and classifying each as not_run, skipped, invalid_test, unexpected_pass, or expected_fail. It writes both raw and structured artifacts, validates artifact schema, sets next step only on pass, and emits deterministic fallback artifacts when execution errors occur.",
+        "chapter": "cli_commands",
+        "role": "scenario validity test gate command",
+        "keywords": [
+          "scenario validity",
+          "preflight path validation",
+          "requirement-to-test mapping",
+          "expected fail",
+          "artifact generation",
+          "raw output trace",
+          "flow blocking"
+        ]
       },
       {
         "file": "src/flow/lib/run-start-task.js",
@@ -4967,7 +5201,7 @@
         "usedBy": null,
         "id": "41745e8b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4999,7 +5233,7 @@
         "usedBy": null,
         "id": "c1fba537",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5267,7 +5501,9 @@
           "src/flow/lib/run-reopen-draft.js",
           "src/flow/lib/run-finalize-cleanup.js",
           "src/flow/lib/run-test-execute.js",
-          "src/flow/lib/run-final-regression.js"
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/retry-recovery.js",
+          "src/flow/lib/run-review.js"
         ],
         "id": "65ac9e4f",
         "summary": "Manages `issue-log.json` loading, validation, persistence, and manual entry insertion for flow diagnostics. It enforces minimum quality constraints on reason and optional text fields.",
@@ -5459,13 +5695,14 @@
       },
       {
         "file": "src/flow/lib/set-retry.js",
-        "hash": "770fc71b953d72dcc405ea84c9408f1a",
-        "lines": 122,
-        "mtime": "2026-05-18T00:05:36.189Z",
+        "hash": "3a53a6a395e423c9c53281257920390b",
+        "lines": 169,
+        "mtime": "2026-05-19T04:48:08.664Z",
         "className": "set-retry",
         "methods": [
           "normalizeReviewResetPhase",
-          "resolveReviewResetPhases"
+          "resolveReviewResetPhases",
+          "rollbackLoadOnlyRunIdMigration"
         ],
         "imports": [
           "./base-command.js",
@@ -5473,7 +5710,8 @@
           "./run-gate.js",
           "./run-review.js",
           "../definition.js",
-          "./review-failure.js"
+          "./review-failure.js",
+          "./retry-recovery.js"
         ],
         "exports": [
           "default"
@@ -5481,22 +5719,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "ee559b7a",
-        "summary": "Resets retry counters for gate/review phases with strict action-kind-phase validation. It coordinates retry state cleanup and phase-aware reset semantics.",
-        "detail": "The module defines allowed actions (`reset`) and kinds (`gate`, `review`) and maps each to valid phases and counter keys. It normalizes review reset behavior, including multi-phase expansion when needed, then computes current retry counts with kind-specific functions. `SetRetryCommand` validates arguments, clears review stop-state when relevant, and refuses unsupported combinations via envelope failures. On success it returns a detailed reset summary including affected phases, counter name, and confirmation flags.",
-        "chapter": "cli_commands",
-        "role": "Flow command for controlled retry counter resets in gate/review pipelines.",
         "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
           "attempts": 1
-        },
-        "keywords": [
-          "retry reset",
-          "gate phase",
-          "review phase",
-          "counter management",
-          "flow recovery",
-          "command validation"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/set-step.js",
@@ -5798,7 +6023,7 @@
         ],
         "id": "0b1b96b3",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5923,14 +6148,14 @@
         ],
         "id": "2980d983",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "6c481845bdd4565b1ee4d04781a167ea",
-        "lines": 990,
-        "mtime": "2026-05-18T04:51:26.571Z",
+        "hash": "0cb855ea2a3afcb46558af6b67abbca7",
+        "lines": 1002,
+        "mtime": "2026-05-19T04:48:08.664Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6370,7 +6595,7 @@
         ],
         "id": "dff6e5b4",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6653,9 +6878,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "a9f23dc537dd98ec9808989942b2c33a",
-        "lines": 395,
-        "mtime": "2026-05-16T08:19:57.848Z",
+        "hash": "4aade6667135c7485394af21069e73eb",
+        "lines": 396,
+        "mtime": "2026-05-19T04:48:08.664Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -6680,14 +6905,14 @@
         ],
         "id": "3d2ed4c0",
         "enrich": {
-          "attempts": 5
+          "attempts": 1
         }
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "8025c065447c7af6654f7143504f9e33",
-        "lines": 911,
-        "mtime": "2026-05-18T01:53:12.526Z",
+        "hash": "785f2391a89334e0a8a5e0dd78997540",
+        "lines": 969,
+        "mtime": "2026-05-19T04:48:08.665Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -6712,6 +6937,9 @@
           "createEmptyDraftRepairArtifact",
           "writeEmptyDraftReviewMigrationArtifacts",
           "appendFlowMigrationLog",
+          "readBoundedFlowStateText",
+          "canRollbackRunIdMigration",
+          "createRunIdMigration",
           "migrateFlowState",
           "validateTaskShape"
         ],
@@ -6738,7 +6966,7 @@
         ],
         "id": "5332364e",
         "enrich": {
-          "attempts": 3
+          "attempts": 1
         }
       },
       {
@@ -6833,8 +7061,23 @@
         ],
         "id": "61b28e9c",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-19T04:50:12.342Z",
+          "attempts": 3
+        },
+        "summary": "Provides a robust Git/GitHub CLI helper layer for repository state checks and workflow actions. It standardizes command execution and exposes higher-level operations used by flow logic.",
+        "detail": "The module wraps Git calls through a shared `runGit` path that relies on common process helpers for consistent error handling. It includes state readers such as worktree dirtiness, current branch, ahead count, and last commit retrieval. For change analysis, it parses porcelain output, normalizes path separators/quotes, deduplicates entries, and returns a stable sorted result. Rebase support is explicit: it detects dirty-state preconditions, reports conflict files, and exposes abort behavior. It also enforces strict numeric parsing for commit counts and includes optional GitHub issue commenting via `gh`.",
+        "chapter": "development",
+        "role": "Git and GitHub command orchestration with normalized repository-state introspection.",
+        "keywords": [
+          "git wrapper",
+          "repository status",
+          "worktree dirty check",
+          "porcelain parsing",
+          "rebase conflict handling",
+          "ahead/behind count",
+          "changed files detail",
+          "GitHub CLI integration"
+        ]
       },
       {
         "file": "src/lib/guardrail.js",
@@ -7184,8 +7427,21 @@
         "usedBy": null,
         "id": "2ee46a6f",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-05-19T04:50:12.342Z",
+          "attempts": 6
+        },
+        "summary": "Implements lightweight Makefile inspection focused on test-target discovery. It safely reads files with a size cap and extracts the `test` target block.",
+        "detail": "`readMakefile` handles existence checks, validates file size against a 1 MB limit, and can optionally ignore oversize files. `hasMakeTestTarget` uses a dedicated regex for quick presence checks without full parsing. `extractMakeTestTarget` scans lines, captures the `test:` section, and stops when another top-level target begins. The parser is intentionally simple and dependency-free, matching the project’s minimal runtime policy.",
+        "chapter": "stack_and_ops",
+        "role": "Makefile parsing utility for automated test command discovery.",
+        "keywords": [
+          "Makefile parsing",
+          "test target detection",
+          "build script analysis",
+          "file size guard",
+          "regex-based extraction",
+          "automation helper"
+        ]
       },
       {
         "file": "src/lib/multi-select.js",
@@ -7358,8 +7614,22 @@
         ],
         "id": "6196b26c",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-05-19T04:50:12.342Z",
+          "attempts": 6
+        },
+        "summary": "Defines shared process execution primitives for synchronous and asynchronous command runs. It provides a consistent result shape and reusable error utilities.",
+        "detail": "The module centralizes child-process option construction so callers use one contract for cwd, env, timeout, and buffers. `runCmd` executes commands synchronously and returns structured fields used across CLI internals. `runCmdAsync` wraps `execFile` in a Promise with the same normalization style for non-blocking flows. `formatError` composes readable diagnostics from exit/output/error metadata, and `assertOk` enforces fail-fast behavior with context. This creates a single execution boundary for external command interactions.",
+        "chapter": "stack_and_ops",
+        "role": "Core process runner abstraction and command error normalization.",
+        "keywords": [
+          "child_process wrapper",
+          "spawnSync",
+          "execFile",
+          "sync/async command execution",
+          "timeout handling",
+          "error formatting",
+          "assert helper"
+        ]
       },
       {
         "file": "src/lib/progress.js",
@@ -7700,8 +7970,21 @@
         "usedBy": null,
         "id": "10bbe237",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-05-19T04:50:12.342Z",
+          "attempts": 6
+        },
+        "summary": "Models candidate test-command sources and resolves the best one to execute. It encapsulates collection and deterministic source selection.",
+        "detail": "`TestCommandSource` represents each source as an explicit object rather than ad-hoc literals. `collectTestCommandSources` builds an ordered candidate set from available project signals. `selectTestCommandSource` applies prioritization, returns the top-ranked source, and throws when selection cannot be resolved safely. The pattern keeps test-command choice logic centralized and easier to extend.",
+        "chapter": "development",
+        "role": "Test command source modeling and priority-based selector.",
+        "keywords": [
+          "test command selection",
+          "source prioritization",
+          "command discovery",
+          "execution strategy",
+          "fallback resolution",
+          "build/test integration"
+        ]
       },
       {
         "file": "src/lib/types.js",
@@ -7716,8 +7999,20 @@
         "usedBy": null,
         "id": "69d5afb4",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-19T04:50:12.342Z",
+          "attempts": 2
+        },
+        "summary": "Serves as a shared type-contract module for the codebase. In the provided extract, it has little or no runtime behavior.",
+        "detail": "This file appears to act as a boundary for reusable type semantics rather than operational logic. Keeping such contracts centralized helps maintain consistent interfaces across modules. A minimal runtime footprint avoids side effects and keeps imports cheap. The pattern supports clearer internal design even in plain JavaScript projects.",
+        "chapter": "internal_design",
+        "role": "Shared type/contract anchor module for internal interfaces.",
+        "keywords": [
+          "shared types",
+          "interface contracts",
+          "domain modeling",
+          "JSDoc typing",
+          "internal API boundaries"
+        ]
       },
       {
         "file": "src/metrics.js",
@@ -10701,8 +10996,22 @@
         "usedBy": null,
         "id": "a8608997",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-19T04:50:12.342Z",
+          "attempts": 5
+        },
+        "summary": "Implements the top-level CLI bootstrap and subcommand dispatcher for `sdd-forge`. It routes command namespaces to dedicated scripts using dynamic imports.",
+        "detail": "The entrypoint reads raw argv, handles immediate help-style branches, and rewrites `process.argv` before delegating. It keeps dispatch tables for namespace scripts and independent commands, then resolves script paths from `PKG_DIR`. Command modules are loaded via `import(pathToFileURL(...).href)` to execute the selected handler at runtime. It initializes shared container state and applies uniform failure exits via `EXIT_ERROR`. This file is the central routing hub for multi-command CLI execution.",
+        "chapter": "project_structure",
+        "role": "Primary CLI dispatcher and runtime bootstrap coordinator.",
+        "keywords": [
+          "CLI dispatcher",
+          "command routing",
+          "dynamic import",
+          "argument forwarding",
+          "namespace command map",
+          "entrypoint bootstrap",
+          "exit code control"
+        ]
       },
       {
         "file": "src/setup.js",
@@ -10750,8 +11059,22 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-05-19T04:50:12.342Z",
+          "attempts": 6
+        },
+        "summary": "Provides the interactive/non-interactive `setup` workflow that initializes project configuration and required scaffolding. It prepares config, docs/agent files, and skill deployment state.",
+        "detail": "The command parses setup options, loads defaults from existing config, and validates merged settings before writing output. It creates required directories, maintains `.gitignore` and `.gitattributes`, and ensures `.sdd-forge/config.json` is emitted consistently. Wizard flows use readline and multi-select utilities to capture purpose, preset chains, and related project metadata. It also manages agent instruction file injection/update and repairs specific file-link edge cases. The module ends with a guarded `main` that prints errors and exits with project-defined error codes.",
+        "chapter": "configuration",
+        "role": "Project initialization command with config generation and repository scaffolding.",
+        "keywords": [
+          "setup wizard",
+          "config initialization",
+          "preset chain validation",
+          "AGENTS/CLAUDE file management",
+          "skills deployment",
+          "project scaffolding",
+          "interactive CLI setup"
+        ]
       },
       {
         "file": "src/spec.js",
@@ -10824,8 +11147,22 @@
         "usedBy": null,
         "id": "d63c4335",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-05-19T04:50:12.342Z",
+          "attempts": 6
+        },
+        "summary": "Implements `spec render`, converting `spec.json` into Markdown outputs for specs and optional task files. It enforces schema validity before any rendering.",
+        "detail": "The command validates CLI path options, resolves active flow spec directories, and checks required files/directories before processing. It loads a bundled JSON schema and runs structured validation, printing detailed errors and exiting on mismatch. Markdown rendering is split into dedicated formatters for overview sections, requirements, confirmations, and task documents. Output paths are normalized relative to root, then written as `spec.md` and optional `tasks/*.md`. The command reports generated files to stdout and uses consistent `EXIT_ERROR` paths for failure cases.",
+        "chapter": "cli_commands",
+        "role": "Spec-to-Markdown rendering command with schema-gated output generation.",
+        "keywords": [
+          "spec render command",
+          "schema validation",
+          "Markdown renderer",
+          "task document generation",
+          "flow spec directory",
+          "CLI output files",
+          "error-first command handling"
+        ]
       },
       {
         "file": "src/upgrade.js",
@@ -10873,10 +11210,10 @@
       }
     ],
     "summary": {
-      "total": 305,
-      "totalMethods": 1316
+      "total": 307,
+      "totalMethods": 1383
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-18T13:32:11.779Z"
+  "enrichedAt": "2026-05-19T04:50:35.464Z"
 }
