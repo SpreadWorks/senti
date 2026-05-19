@@ -1,6 +1,6 @@
    - Run `sdd-forge flow run review --phase test` after `scenario-validity` has passed.
    - Phase split: `plan/test` writes tests only, `plan/scenario-validity` performs pre-implementation runtime validity, this `plan/review-test` step performs static anti-pattern review, `impl/test-execute` performs post-implementation spec-local verification, and `impl/final-regression` runs the full project regression.
-   - The review generates a test design from spec requirements, compares against actual test code, and identifies gaps.
+   - The review writes a requirement-to-test coverage artifact and performs a one-shot static review of actual test code.
    - The `review-test` step is static anti-pattern review. Runtime pre-implementation validity belongs to `scenario-validity`.
    - Check for these anti-pattern classes:
      - assertions that do not go through production code
@@ -9,9 +9,11 @@
      - existence-only checks
      - catch-all PASS handling
      - split-removed separator literal assertions
-   - **If verdict=PASS** (no gaps): display "Review found no required fixes." Then run `sdd-forge flow set step review-test done`.
-   - **If verdict=FAIL** (gaps exist): display review summary and auto-fix test files. Then re-run `sdd-forge flow run review --phase test`.
-   - **Review loop:** repeat review → fix → re-review until verdict=PASS or the resolved numeric maxAttempts from next-action is reached. Each `sdd-forge flow run review --phase test` invocation = 1 attempt (CLI invocation level, not internal AI iteration).
-   - **CLI enforcement (spec 253):** the CLI now enforces this limit. When count >= max, `sdd-forge flow run review --phase test` returns `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` and `data === { phase, attempts, max }`. Do NOT attempt to bypass it.
-   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover, the user can run `sdd-forge flow set retry reset review test --yes` and then resume the loop.
-   - **On complete (verdict=PASS):** `sdd-forge flow set step review-test done`
+   - Verdicts:
+     - `PASS`: no blocking or advisory findings. The post hook marks `review-test` done.
+     - `ADVISORY`: non-blocking findings were recorded, but implementation may proceed. The post hook marks `review-test` done.
+     - `FAIL`: blocking findings exist. Fix the tests and run `sdd-forge flow run review --phase test` again only after the test design premise changes.
+     - `TOOLING_FAILURE`: subprocess/parser/coverage-artifact failure. Do not treat this as test quality failure; recover the tooling issue or record explicit evidence before proceeding.
+   - `review-test` does not auto-fix tests and does not run an internal PASS-seeking loop.
+   - Re-run `review-test` only when requirements, acceptance criteria, target API, spec-local tests, or the requirement-to-test coverage artifact changed.
+   - Quality gates after implementation (`test-execute`, `test-result-review`, `review`, `gate-impl`, `final-regression`) remain mandatory and are not weakened by the one-shot review.

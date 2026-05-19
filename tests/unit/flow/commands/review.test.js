@@ -24,6 +24,8 @@ import {
   collectTouchedFiles,
   applyTestFixes,
   formatTestReviewMd,
+  buildTestReviewPrompt,
+  parseTestReviewFindings,
   resolveMergeBase,
 } from "../../../../src/flow/commands/review.js";
 
@@ -168,16 +170,71 @@ describe("review-test spec-local file scope", () => {
     assert.equal(fs.existsSync(join(tmp, "tests/project.test.js")), false);
   });
 
-  it("formats deterministic header gaps without undefined placeholders", () => {
-    const md = formatTestReviewMd("design", ["gap history"], "FAIL", [{
-      type: "header-lie",
-      reqId: "R1",
-      file: "tests/example.test.js",
-      detail: "Header declares R1 but no matching test name exists",
-    }]);
+  it("formats blocking and advisory findings without undefined placeholders", () => {
+    const md = formatTestReviewMd({
+      verdict: "ADVISORY",
+      coverageArtifact: "specs/demo/test-coverage.json",
+      toolingFailure: null,
+      blockingFindings: [],
+      advisoryFindings: [{
+        title: "Boundary case",
+        target: "R1",
+        improvement: "Add a boundary assertion when implementation details are known.",
+        whyNonBlocking: "Existing tests cover the acceptance behavior.",
+      }],
+    });
 
-    assert.match(md, /header-lie R1/);
+    assert.match(md, /## Verdict: ADVISORY/);
+    assert.match(md, /Boundary case/);
     assert.doesNotMatch(md, /undefined/);
+  });
+
+  it("asks for one-shot JSON blocking findings separately from advisory findings", () => {
+    const coverageArtifact = {
+      toPromptSummary() {
+        return {
+          requirements: [{ id: "R1", status: "covered", files: ["tests/example.test.js"] }],
+          files: [{ file: "tests/example.test.js", headerIds: ["R1"], testNameIds: ["R1"] }],
+        };
+      },
+    };
+    const prompt = buildTestReviewPrompt(
+      "- R1 [must]: Do x",
+      coverageArtifact,
+      [{ source: "specs/demo/tests/example.test.js", content: "// spec: R1\ntest('R1: does x', () => {});" }],
+    );
+    const combined = `${prompt.systemPrompt || ""}\n${prompt.userPrompt || ""}`;
+
+    assert.ok(prompt.jsonSchema, "test review should provide a JSON schema to Agent");
+    assert.match(prompt.fmtFallback, /Return only a JSON object/);
+    assert.match(combined, /one-shot static test reviewer/);
+    assert.match(combined, /blockingFindings\[\]/);
+    assert.match(combined, /advisoryFindings\[\]/);
+    assert.match(combined, /Do not fail for advisory findings/);
+    assert.match(combined, /does not auto-fix tests/i);
+    assert.match(combined, /Requirement-to-Test Coverage Artifact/);
+  });
+
+  it("parses JSON test review findings and rejects markdown gap output", () => {
+    const parsed = parseTestReviewFindings(JSON.stringify({
+      blockingFindings: [{
+        title: "Missing coverage",
+        target: "R2",
+        issue: "R2 has no test.",
+        requiredChange: "Add a spec-local test for R2.",
+        whyBlocking: "Implementation would proceed without acceptance coverage.",
+      }],
+      advisoryFindings: [{
+        title: "Extra boundary",
+        target: "R1",
+        improvement: "Add one more boundary case.",
+        whyNonBlocking: "Current coverage is adequate for implementation.",
+      }],
+    }));
+
+    assert.equal(parsed.blocking.length, 1);
+    assert.equal(parsed.advisory.length, 1);
+    assert.throws(() => parseTestReviewFindings("### GAP-1\nMissing"), /test review output failed schema validation|Unexpected token|JSON/i);
   });
 });
 

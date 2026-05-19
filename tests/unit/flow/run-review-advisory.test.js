@@ -1,12 +1,16 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import {
   parseProposalReviewOutput,
   parseSpecReviewOutput,
+  parseTestReviewOutput,
   runCmdWithRetry,
   updateReviewRetryCounter,
 } from "../../../src/flow/lib/run-review.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
+import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 
 describe("draft coverage review advisory routing", () => {
   it("parses ADVISORY as a non-blocking draft review result routed to coverage triage", () => {
@@ -136,6 +140,90 @@ describe("spec review advisory verdict", () => {
       { stepId: "spec-review-triage", status: "done" },
       { stepId: "spec-repair", status: "done" },
     ]);
+  });
+});
+
+describe("review-test one-shot verdict routing", () => {
+  it("parses ADVISORY as non-blocking and routes to implement", () => {
+    const result = parseTestReviewOutput(
+      { ok: true },
+      "Test review ADVISORY. 2 non-blocking finding(s) recorded; implementation may proceed.",
+      "  [test-review] Results saved to specs/demo/test-review.md\n  [test-review] verdict=ADVISORY blocking=0 advisory=2",
+    );
+
+    assert.equal(result.result, "ok");
+    assert.equal(result.next, "implement");
+    assert.deepEqual(result.changed, ["specs/demo/test-review.md"]);
+    assert.deepEqual(result.artifacts, {
+      phase: "test",
+      verdict: "ADVISORY",
+      blockingCount: 0,
+      advisoryCount: 2,
+    });
+  });
+
+  it("parses TOOLING_FAILURE without routing to implementation", () => {
+    const result = parseTestReviewOutput(
+      { ok: true },
+      "Test review TOOLING_FAILURE. Static review tooling failed; see test-review.json.",
+      "  [test-review] Results saved to specs/demo/test-review.md\n  [test-review] verdict=TOOLING_FAILURE blocking=0 advisory=0 toolingFailure=parser_error",
+    );
+
+    assert.equal(result.result, "tooling-failure");
+    assert.equal(result.next, null);
+    assert.deepEqual(result.artifacts, {
+      phase: "test",
+      verdict: "TOOLING_FAILURE",
+      blockingCount: 0,
+      advisoryCount: 0,
+      toolingFailure: "parser_error",
+    });
+  });
+
+  it("post-hook completes review-test for ADVISORY and does not consume retry for TOOLING_FAILURE", async () => {
+    const updates = [];
+    const metrics = [];
+    await FLOW_COMMANDS.run.review.post({
+      phase: "test",
+      flowState: {},
+      flowManager: {
+        appendMetric(payload, opts) { metrics.push({ payload, opts }); },
+        updateStepStatus(stepId, status) { updates.push({ stepId, status }); },
+      },
+    }, {
+      artifacts: { phase: "test", verdict: "ADVISORY", blockingCount: 0, advisoryCount: 1 },
+    });
+
+    assert.deepEqual(updates, [{ stepId: "review-test", status: "done" }]);
+    assert.deepEqual(metrics, [{
+      payload: { phase: "test", counter: "reviewRetry", delta: 0, reset: true },
+      opts: { taskId: null },
+    }]);
+
+    const tmp = createTmpDir();
+    try {
+      fs.mkdirSync(path.join(tmp, "specs/demo"), { recursive: true });
+      const toolingMetrics = [];
+      await FLOW_COMMANDS.run.review.post({
+        phase: "test",
+        root: tmp,
+        flowState: { spec: "specs/demo/spec.json" },
+        flowManager: {
+          appendMetric(payload, opts) { toolingMetrics.push({ payload, opts }); },
+          updateStepStatus() { throw new Error("TOOLING_FAILURE must not complete review-test"); },
+        },
+      }, {
+        changed: ["specs/demo/test-review.json"],
+        artifacts: { phase: "test", verdict: "TOOLING_FAILURE", blockingCount: 0, advisoryCount: 0, toolingFailure: "parser_error" },
+      });
+      assert.deepEqual(toolingMetrics, []);
+      const issueLog = JSON.parse(fs.readFileSync(path.join(tmp, "specs/demo/issue-log.json"), "utf8"));
+      assert.equal(issueLog.entries.length, 1);
+      assert.equal(issueLog.entries[0].step, "review-test");
+      assert.equal(issueLog.entries[0].failureKind, "tooling_failure");
+    } finally {
+      removeTmpDir(tmp);
+    }
   });
 });
 

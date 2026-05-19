@@ -5,8 +5,9 @@
  * sdd-forge flow review — code quality review after implementation.
  * Phases: confirm → draft (propose) → approve → apply
  *
- * --phase test: test sufficiency review before impl.
- * Internal pipeline: generate test design → compare with test code → auto-fix loop.
+ * --phase test: one-shot static test review before impl.
+ * The test review writes requirement-to-test coverage evidence and structured
+ * findings; it does not auto-fix tests.
  */
 
 import fs from "fs";
@@ -895,6 +896,415 @@ function buildTestFixPrompt(testDesign, gaps, testFiles) {
     .build();
 }
 
+const TEST_REVIEW_JSON_FILE = "test-review.json";
+const TEST_COVERAGE_JSON_FILE = "test-coverage.json";
+const TEST_REVIEW_FINDING_KINDS = Object.freeze(["blocking", "advisory"]);
+const TEST_REVIEW_FIELD_MAX_CHARS = 1200;
+const TEST_REVIEW_TRUNCATION_SUFFIX = " [truncated]";
+
+const TEST_REVIEW_BLOCKING_ITEM_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["title", "target", "issue", "requiredChange", "whyBlocking"],
+  additionalProperties: false,
+  properties: {
+    title: { type: "string", minLength: 1 },
+    target: { type: "string", minLength: 1 },
+    issue: { type: "string", minLength: 1 },
+    requiredChange: { type: "string", minLength: 1 },
+    whyBlocking: { type: "string", minLength: 1 },
+  },
+});
+
+const TEST_REVIEW_ADVISORY_ITEM_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["title", "target", "improvement", "whyNonBlocking"],
+  additionalProperties: false,
+  properties: {
+    title: { type: "string", minLength: 1 },
+    target: { type: "string", minLength: 1 },
+    improvement: { type: "string", minLength: 1 },
+    whyNonBlocking: { type: "string", minLength: 1 },
+  },
+});
+
+const TEST_REVIEW_RESPONSE_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["blockingFindings", "advisoryFindings"],
+  additionalProperties: false,
+  properties: {
+    blockingFindings: {
+      type: "array",
+      items: TEST_REVIEW_BLOCKING_ITEM_SCHEMA,
+    },
+    advisoryFindings: {
+      type: "array",
+      items: TEST_REVIEW_ADVISORY_ITEM_SCHEMA,
+    },
+  },
+});
+
+const TEST_REVIEW_FMT_FALLBACK = [
+  "OUTPUT FORMAT - strictly required:",
+  "Return only a JSON object. No markdown, no preamble, no commentary.",
+  "Schema:",
+  JSON.stringify(TEST_REVIEW_RESPONSE_SCHEMA, null, 2),
+  "Use empty arrays when there are no findings in a category.",
+].join("\n");
+
+function normalizeTestReviewText(value, fallback) {
+  const text = typeof value === "string" && value.trim() !== "" ? value.trim() : fallback;
+  return text.length > TEST_REVIEW_FIELD_MAX_CHARS
+    ? `${text.slice(0, TEST_REVIEW_FIELD_MAX_CHARS - TEST_REVIEW_TRUNCATION_SUFFIX.length)}${TEST_REVIEW_TRUNCATION_SUFFIX}`
+    : text;
+}
+
+class TestReviewFinding {
+  constructor(kind, item) {
+    if (!TEST_REVIEW_FINDING_KINDS.includes(kind)) {
+      throw new Error(`invalid test review finding kind: ${kind}`);
+    }
+    this.kind = kind;
+    this.title = normalizeTestReviewText(item.title, "Untitled test review finding");
+    this.target = normalizeTestReviewText(item.target, "GLOBAL");
+    if (kind === "blocking") {
+      this.issue = normalizeTestReviewText(item.issue, "Blocking test issue.");
+      this.requiredChange = normalizeTestReviewText(item.requiredChange, "Fix the blocking test issue.");
+      this.whyBlocking = normalizeTestReviewText(item.whyBlocking, "Implementation cannot proceed with this test issue unresolved.");
+    } else {
+      this.improvement = normalizeTestReviewText(item.improvement, "Advisory test improvement.");
+      this.whyNonBlocking = normalizeTestReviewText(item.whyNonBlocking, "Implementation can proceed without this improvement.");
+    }
+  }
+
+  toJSON() {
+    const base = {
+      kind: this.kind,
+      title: this.title,
+      target: this.target,
+    };
+    if (this.kind === "blocking") {
+      return {
+        ...base,
+        issue: this.issue,
+        requiredChange: this.requiredChange,
+        whyBlocking: this.whyBlocking,
+      };
+    }
+    return {
+      ...base,
+      improvement: this.improvement,
+      whyNonBlocking: this.whyNonBlocking,
+    };
+  }
+}
+
+class RequirementCoverageEntry {
+  constructor(requirement, files) {
+    this.id = requirement.id;
+    this.desc = requirement.desc;
+    this.testable = requirement.testable !== false;
+    this.files = Object.freeze([...files].sort());
+    this.status = this.testable
+      ? (this.files.length > 0 ? "covered" : "uncovered")
+      : "not_testable";
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      desc: this.desc,
+      testable: this.testable,
+      status: this.status,
+      files: this.files,
+    };
+  }
+}
+
+class TestFileCoverageEntry {
+  constructor(specDir, file, info) {
+    this.file = path.relative(specDir, file).split(path.sep).join("/");
+    this.headerIds = Object.freeze([...(info.headerIds || [])]);
+    this.testNameIds = Object.freeze([...(info.testNameIds || [])]);
+    this.headerStatus = info.scan?.kind || "unknown";
+  }
+
+  toJSON() {
+    return {
+      file: this.file,
+      headerStatus: this.headerStatus,
+      headerIds: this.headerIds,
+      testNameIds: this.testNameIds,
+    };
+  }
+}
+
+class TestCoverageArtifact {
+  constructor({ spec, specDir, headerResult, fileHeaders, generatedAt = new Date().toISOString() }) {
+    this.version = 1;
+    this.phase = "review-test";
+    this.generatedAt = generatedAt;
+    this.validation = Object.freeze({
+      ok: headerResult.ok === true,
+      messages: headerResult.messages || [],
+    });
+    const reqToFiles = new Map();
+    for (const [file, info] of fileHeaders) {
+      for (const id of info.headerIds || []) {
+        if (!reqToFiles.has(id)) reqToFiles.set(id, []);
+        reqToFiles.get(id).push(path.relative(specDir, file).split(path.sep).join("/"));
+      }
+    }
+    this.requirements = Object.freeze(
+      (Array.isArray(spec?.requirements) ? spec.requirements : [])
+        .map((req) => new RequirementCoverageEntry(req, reqToFiles.get(req.id) || [])),
+    );
+    this.files = Object.freeze(
+      [...fileHeaders.entries()].map(([file, info]) => new TestFileCoverageEntry(specDir, file, info)),
+    );
+  }
+
+  toPromptSummary() {
+    return {
+      version: this.version,
+      phase: this.phase,
+      validation: this.validation,
+      requirements: this.requirements.map((entry) => entry.toJSON()),
+      files: this.files.map((entry) => entry.toJSON()),
+    };
+  }
+
+  toJSON() {
+    return this.toPromptSummary();
+  }
+}
+
+class TestCoverageFailureArtifact {
+  constructor(message) {
+    this.message = normalizeTestReviewText(message, "coverage artifact generation failed");
+  }
+
+  toPromptSummary() {
+    return {
+      version: 1,
+      phase: "review-test",
+      validation: {
+        ok: false,
+        messages: [this.message],
+      },
+      requirements: [],
+      files: [],
+    };
+  }
+
+  toJSON() {
+    return this.toPromptSummary();
+  }
+}
+
+class TestReviewToolingFailure {
+  constructor({ kind, message, recovery }) {
+    this.kind = normalizeTestReviewText(kind, "tooling_error");
+    this.message = normalizeTestReviewText(message, "review-test tooling failed");
+    this.recovery = normalizeTestReviewText(recovery, "Recover the tooling failure or record an evidence-based override.");
+  }
+
+  toJSON() {
+    return {
+      kind: this.kind,
+      message: this.message,
+      recovery: this.recovery,
+    };
+  }
+}
+
+class TestReviewArtifact {
+  constructor({ verdict, coverageArtifact, blocking = [], advisory = [], toolingFailure = null, generatedAt = new Date().toISOString() }) {
+    this.version = 1;
+    this.phase = "test";
+    this.generatedAt = generatedAt;
+    this.verdict = verdict;
+    this.coverageArtifact = coverageArtifact;
+    this.blockingFindings = blocking.map((item) => item instanceof TestReviewFinding ? item : new TestReviewFinding("blocking", item));
+    this.advisoryFindings = advisory.map((item) => item instanceof TestReviewFinding ? item : new TestReviewFinding("advisory", item));
+    this.toolingFailure = toolingFailure;
+    this.counts = Object.freeze({
+      blocking: this.blockingFindings.length,
+      advisory: this.advisoryFindings.length,
+      total: this.blockingFindings.length + this.advisoryFindings.length,
+    });
+  }
+
+  toJSON() {
+    return {
+      version: this.version,
+      phase: this.phase,
+      generatedAt: this.generatedAt,
+      verdict: this.verdict,
+      counts: this.counts,
+      coverageArtifact: this.coverageArtifact,
+      blockingFindings: this.blockingFindings.map((item) => item.toJSON()),
+      advisoryFindings: this.advisoryFindings.map((item) => item.toJSON()),
+      ...(this.toolingFailure && { toolingFailure: this.toolingFailure.toJSON() }),
+    };
+  }
+}
+
+function buildTestReviewPrompt(requirements, coverageArtifact, testFiles) {
+  return new PromptBuilder()
+    .setRole("You are a one-shot static test reviewer. Classify only test design and static anti-pattern issues before implementation.")
+    .setRules([
+      "This review runs once and does not auto-fix tests.",
+      "PASS means blockingFindings[] and advisoryFindings[] are both empty.",
+      "ADVISORY means blockingFindings[] is empty and advisoryFindings[] has useful non-blocking improvements.",
+      "FAIL means blockingFindings[] has at least one issue that blocks implementation.",
+      "Use blockingFindings[] only for concrete blockers:",
+      "- an acceptance requirement has no corresponding spec-local test coverage",
+      "- a critical risk has no regression test",
+      "- a test is not executable or clearly contradicts the target API",
+      "- a test encodes an incorrect implementation premise",
+      "- the requirement coverage artifact contradicts the actual test files",
+      "- the test has a static anti-pattern that would pass without exercising production behavior",
+      "Use advisoryFindings[] for non-blocking improvements:",
+      "- naming or TC numbering improvements",
+      "- helpful extra boundary cases",
+      "- duplicate coverage from another useful viewpoint",
+      "- wording drift in test design notes that does not affect executable tests",
+      "Do not fail for advisory findings.",
+      "Do not ask for a review/fix/re-review loop.",
+      "Do not rewrite tests. Report the smallest requiredChange for blocking findings.",
+      "Runtime pass/fail belongs to scenario-validity, test-execute, test-result-review, gate-impl, and final-regression.",
+      "",
+      "Return JSON only. The response object must contain:",
+      "- blockingFindings[] with title, target, issue, requiredChange, whyBlocking",
+      "- advisoryFindings[] with title, target, improvement, whyNonBlocking",
+      "- Use empty arrays when there are no findings in a category.",
+    ].join("\n"))
+    .setJsonSchema(TEST_REVIEW_RESPONSE_SCHEMA)
+    .setFmtFallback(TEST_REVIEW_FMT_FALLBACK)
+    .addUserPrompt("## Requirements", requirements)
+    .addUserPrompt("## Requirement-to-Test Coverage Artifact", JSON.stringify(coverageArtifact.toPromptSummary(), null, 2))
+    .addUserPrompt("## Spec-local Test Code", formatTestFilesForPrompt(testFiles))
+    .build();
+}
+
+function parseTestReviewJsonOutput(raw) {
+  const candidate = extractJsonObjectCandidate(raw);
+  let parsed;
+  try {
+    parsed = JSON.parse(candidate);
+  } catch {
+    parsed = JSON.parse(repairJson(candidate));
+  }
+  const errors = validateSchema(parsed, TEST_REVIEW_RESPONSE_SCHEMA);
+  if (errors.length > 0) {
+    throw new Error(`test review output failed schema validation: ${errors.join("; ")}`);
+  }
+  return parsed;
+}
+
+function parseTestReviewFindings(raw) {
+  const parsed = parseTestReviewJsonOutput(raw);
+  return {
+    blocking: parsed.blockingFindings.map((item) => new TestReviewFinding("blocking", item)),
+    advisory: parsed.advisoryFindings.map((item) => new TestReviewFinding("advisory", item)),
+  };
+}
+
+function buildHeaderBlockingFindings(headerResult) {
+  const findings = [];
+  for (const file of headerResult.missingHeaders || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Missing spec header",
+      target: file,
+      issue: "A spec-local test file lacks the required `// spec: R1 R2 ...` header.",
+      requiredChange: "Add a valid spec header before the first non-comment code line.",
+      whyBlocking: "Requirement coverage cannot be audited without a header-to-test mapping.",
+    }));
+  }
+  for (const req of headerResult.uncoveredRequirements || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Uncovered requirement",
+      target: req.id,
+      issue: `${req.id} is testable but no spec-local test header declares it.`,
+      requiredChange: `Add or update a spec-local test with a header covering ${req.id}.`,
+      whyBlocking: "Implementation would proceed without required acceptance coverage.",
+    }));
+  }
+  for (const entry of headerResult.unknownIds || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Unknown requirement id in test header",
+      target: `${entry.file}:${entry.id}`,
+      issue: `The test header declares ${entry.id}, which is not in spec.json requirements.`,
+      requiredChange: "Replace the header id with a valid requirement id or update the spec before reviewing tests.",
+      whyBlocking: "The requirement coverage artifact contradicts the executable test files.",
+    }));
+  }
+  for (const entry of headerResult.malformedHeaders || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Malformed spec header",
+      target: `${entry.file}:${entry.line}`,
+      issue: entry.reason || "The spec header does not match the required strict form.",
+      requiredChange: "Use the exact `// spec: R1 R2 ...` header form.",
+      whyBlocking: "Malformed coverage markers make requirement-to-test evidence unreliable.",
+    }));
+  }
+  for (const entry of headerResult.duplicateIds || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Duplicate requirement id in spec header",
+      target: `${entry.file}:${entry.id}`,
+      issue: `The spec header repeats ${entry.id}.`,
+      requiredChange: "Keep each requirement id only once in the file header.",
+      whyBlocking: "Duplicate coverage markers make the coverage artifact ambiguous.",
+    }));
+  }
+  for (const entry of headerResult.duplicateHeaders || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Multiple spec headers in one test file",
+      target: `${entry.file}:${entry.lineNumber}`,
+      issue: "The test file contains more than one spec header.",
+      requiredChange: "Merge requirement ids into the first header and remove duplicate headers.",
+      whyBlocking: "Multiple header sources make the coverage artifact ambiguous.",
+    }));
+  }
+  for (const entry of headerResult.notTestableInHeader || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Non-testable requirement declared as covered",
+      target: `${entry.file}:${entry.id}`,
+      issue: `${entry.id} is marked testable=false but appears in a test header.`,
+      requiredChange: "Remove the requirement id from the test header or make the requirement testable in spec.json.",
+      whyBlocking: "The coverage artifact contradicts the spec's testability contract.",
+    }));
+  }
+  for (const entry of headerResult.mismatchedMarker || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Wrong spec header marker",
+      target: `${entry.file}:${entry.lineNumber}`,
+      issue: `JS-like test files must use // spec headers, but this file uses ${entry.found}.`,
+      requiredChange: "Use `// spec: R1 R2 ...` for JS-like test files.",
+      whyBlocking: "The header parser cannot trust mismatched marker syntax.",
+    }));
+  }
+  for (const entry of headerResult.headerNoTest || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Header id has no matching test name",
+      target: `${entry.file}:${entry.id}`,
+      issue: `The header declares ${entry.id}, but the file has no '${entry.id}: ...' test name.`,
+      requiredChange: `Add a '${entry.id}: ...' test name or remove ${entry.id} from the header.`,
+      whyBlocking: "The coverage artifact claims requirement coverage that the test body does not expose.",
+    }));
+  }
+  for (const entry of headerResult.testNoHeader || []) {
+    findings.push(new TestReviewFinding("blocking", {
+      title: "Test name lacks matching header id",
+      target: `${entry.file}:${entry.id}`,
+      issue: `The file has a '${entry.id}: ...' test name but the header does not declare ${entry.id}.`,
+      requiredChange: `Add ${entry.id} to the file header or rename the test.`,
+      whyBlocking: "The coverage artifact omits a requirement referenced by executable tests.",
+    }));
+  }
+  return findings;
+}
+
 function measurePromptChars(prompt) {
   if (prompt && typeof prompt === "object" && "userPrompt" in prompt) {
     return String(prompt.systemPrompt || "").length
@@ -983,53 +1393,89 @@ function applyTestFixes(text, root, specDir) {
 /**
  * Format test-review.md content.
  */
-function formatTestReviewMd(testDesign, gapHistory, finalVerdict, remainingGaps) {
+function formatTestReviewMd(reviewArtifact) {
   const lines = ["# Test Review Results", ""];
-  lines.push("## Test Design");
-  lines.push("See [tests/spec.md](tests/spec.md) for the full test design.");
-  lines.push("");
-  lines.push("## Gap Analysis");
-  for (let i = 0; i < gapHistory.length; i++) {
-    if (gapHistory.length > 1) lines.push(`### Iteration ${i + 1}`);
-    lines.push(gapHistory[i]);
+  lines.push(`## Verdict: ${reviewArtifact.verdict}`, "");
+  lines.push(`Coverage artifact: \`${reviewArtifact.coverageArtifact}\``, "");
+
+  if (reviewArtifact.toolingFailure) {
+    const failure = reviewArtifact.toolingFailure;
+    lines.push("## Tooling Failure", "");
+    lines.push(`- kind: ${failure.kind}`);
+    lines.push(`- message: ${failure.message}`);
+    lines.push(`- recovery: ${failure.recovery}`);
     lines.push("");
   }
-  lines.push(`## Verdict: ${finalVerdict}`);
-  if (finalVerdict === "FAIL" && remainingGaps.length > 0) {
-    lines.push("");
-    lines.push("### Remaining Gaps");
-    for (const g of remainingGaps) {
-      const formatted = formatRemainingGap(g);
-      lines.push(`- ${formatted.title}`);
-      lines.push(`  ${formatted.body}`);
+
+  lines.push("## Blocking Findings", "");
+  if (reviewArtifact.blockingFindings.length === 0) {
+    lines.push("No blocking findings.");
+  } else {
+    for (let i = 0; i < reviewArtifact.blockingFindings.length; i++) {
+      const finding = reviewArtifact.blockingFindings[i];
+      lines.push(`### ${i + 1}. ${finding.title}`);
+      lines.push(`**Target:** ${finding.target}`);
+      lines.push(`**Issue:** ${finding.issue}`);
+      lines.push(`**Required change:** ${finding.requiredChange}`);
+      lines.push(`**Why blocking:** ${finding.whyBlocking}`);
+      lines.push("");
+    }
+  }
+
+  lines.push("", "## Advisory Findings", "");
+  if (reviewArtifact.advisoryFindings.length === 0) {
+    lines.push("No advisory findings.");
+  } else {
+    for (let i = 0; i < reviewArtifact.advisoryFindings.length; i++) {
+      const finding = reviewArtifact.advisoryFindings[i];
+      lines.push(`### ${i + 1}. ${finding.title}`);
+      lines.push(`**Target:** ${finding.target}`);
+      lines.push(`**Improvement:** ${finding.improvement}`);
+      lines.push(`**Why non-blocking:** ${finding.whyNonBlocking}`);
+      lines.push("");
     }
   }
   return lines.join("\n");
 }
 
-function formatRemainingGap(gap) {
-  if (gap?.title || gap?.body) {
-    return {
-      title: gap.title || "Untitled gap",
-      body: gap.body || "",
-    };
-  }
-  if (gap?.type === "missing-header") {
-    return {
-      title: `missing-header ${gap.reqId}`,
-      body: `${gap.desc || ""}${gap.suggestion ? ` ${gap.suggestion}` : ""}`.trim(),
-    };
-  }
-  if (gap?.type === "header-lie") {
-    return {
-      title: `header-lie ${gap.reqId}${gap.file ? ` (${gap.file})` : ""}`,
-      body: gap.detail || "",
-    };
-  }
+function writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact }) {
+  const reviewDir = path.resolve(root, specDir);
+  fs.mkdirSync(reviewDir, { recursive: true });
+  const coveragePath = path.join(reviewDir, TEST_COVERAGE_JSON_FILE);
+  const reviewJsonPath = path.join(reviewDir, TEST_REVIEW_JSON_FILE);
+  const reviewMdPath = path.join(reviewDir, "test-review.md");
+  writeJsonArtifact(coveragePath, coverageArtifact);
+  writeJsonArtifact(reviewJsonPath, reviewArtifact);
+  fs.writeFileSync(reviewMdPath, formatTestReviewMd(reviewArtifact));
   return {
-    title: String(gap?.type || "gap"),
-    body: String(gap?.detail || gap?.desc || ""),
+    coveragePath: path.relative(root, coveragePath).split(path.sep).join("/"),
+    reviewJsonPath: path.relative(root, reviewJsonPath).split(path.sep).join("/"),
+    reviewMdPath: path.relative(root, reviewMdPath).split(path.sep).join("/"),
   };
+}
+
+function writeTestCoverageArtifact({ root, specDir, coverageArtifact }) {
+  const reviewDir = path.resolve(root, specDir);
+  fs.mkdirSync(reviewDir, { recursive: true });
+  const coveragePath = path.join(reviewDir, TEST_COVERAGE_JSON_FILE);
+  writeJsonArtifact(coveragePath, coverageArtifact);
+  return path.relative(root, coveragePath).split(path.sep).join("/");
+}
+
+function buildToolingFailureReview({ kind, err, coverageRelPath }) {
+  const message = err?.message || String(err);
+  const toolingFailure = new TestReviewToolingFailure({
+    kind,
+    message,
+    recovery: "Fix the review-test tooling failure, then rerun review-test. If the tests are already adequate, record an explicit evidence-based override before proceeding.",
+  });
+  return new TestReviewArtifact({
+    verdict: "TOOLING_FAILURE",
+    coverageArtifact: coverageRelPath || TEST_COVERAGE_JSON_FILE,
+    blocking: [],
+    advisory: [],
+    toolingFailure,
+  });
 }
 
 /**
@@ -1048,117 +1494,97 @@ async function runTestReview(root, flow, config, dryRun) {
     process.exit(EXIT_ERROR);
   }
 
-  // spec 251: header coverage and header lie detection are deterministic FAIL
-  // conditions for test-review. The result of validateTestHeaders is converted
-  // into structured gaps that participate in the verdict alongside AI gaps.
-  let deterministicHeaderGaps = [];
+  let coverageArtifact;
+  let headerBlockingFindings = [];
+  let artifactPaths;
   try {
-    const { validateTestHeaders } = await import("../lib/test-headers.js");
+    const { validateTestHeaders, collectFileHeaders, formatValidationMessages } = await import("../lib/test-headers.js");
+    const absoluteSpecDir = path.resolve(root, specDir);
     const headerResult = validateTestHeaders({
-      specDir: path.resolve(root, specDir),
+      specDir: absoluteSpecDir,
       spec,
     });
-    const reqDescById = new Map(
-      (Array.isArray(spec?.requirements) ? spec.requirements : []).map((r) => [r.id, r.desc]),
-    );
-    for (const id of headerResult.uncoveredRequirements || []) {
-      deterministicHeaderGaps.push({
-        type: "missing-header",
-        reqId: id,
-        desc: reqDescById.get(id) || "",
-        suggestion: `Add '// spec: ${id}' header (and an 'R-N: ...' test) to a file under specs/<spec>/tests/`,
-      });
-    }
-    for (const entry of headerResult.headerNoTest || []) {
-      deterministicHeaderGaps.push({
-        type: "header-lie",
-        reqId: entry.id,
-        file: entry.file,
-        detail: `Header declares ${entry.id} but the file has no matching '${entry.id}: ...' test name`,
-      });
-    }
-    for (const entry of headerResult.testNoHeader || []) {
-      deterministicHeaderGaps.push({
-        type: "header-lie",
-        reqId: entry.id,
-        file: entry.file,
-        detail: `Test name references ${entry.id} but the file header does not declare it`,
-      });
-    }
-    if (deterministicHeaderGaps.length > 0) {
-      console.error(`  [test-review] header validation: ${deterministicHeaderGaps.length} deterministic gap(s):`);
-      for (const g of deterministicHeaderGaps) {
-        console.error(`    - ${g.type} ${g.reqId}${g.file ? ` (${g.file})` : ""}`);
-      }
+    headerResult.messages = formatValidationMessages(headerResult);
+    coverageArtifact = new TestCoverageArtifact({
+      spec,
+      specDir: absoluteSpecDir,
+      headerResult,
+      fileHeaders: collectFileHeaders(absoluteSpecDir),
+    });
+    artifactPaths = {
+      coveragePath: writeTestCoverageArtifact({ root, specDir, coverageArtifact }),
+    };
+    headerBlockingFindings = buildHeaderBlockingFindings(headerResult);
+    if (headerBlockingFindings.length > 0) {
+      console.error(`  [test-review] header validation: ${headerBlockingFindings.length} blocking finding(s)`);
     }
   } catch (err) {
-    process.stderr.write(`  [test-review] header validation skipped: ${err.message}\n`);
+    coverageArtifact = new TestCoverageFailureArtifact(err.message);
+    const coverageRelPath = `${specDir}/${TEST_COVERAGE_JSON_FILE}`.split(path.sep).join("/");
+    const reviewArtifact = buildToolingFailureReview({ kind: "coverage_error", err, coverageRelPath });
+    artifactPaths = writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact });
+    console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
+    console.error(`  [test-review] JSON saved to ${artifactPaths.reviewJsonPath}`);
+    console.error(`  [test-review] Coverage saved to ${artifactPaths.coveragePath}`);
+    console.error("  [test-review] verdict=TOOLING_FAILURE blocking=0 advisory=0 toolingFailure=coverage_error");
+    console.log("Test review TOOLING_FAILURE. Coverage artifact generation failed; see test-review.json.");
+    return;
   }
 
-  const agent = ensureAgent("flow.test.review");
+  const testFiles = collectTestFiles(root, specDir);
+  let aiFindings;
+  try {
+    const agent = ensureAgent("flow.test.review");
+    console.error("  [test-review] Running one-shot static review...");
+    if (dryRun) console.error("  [test-review] dry-run has no auto-fix phase; detection still runs once.");
+    const reviewPrompt = buildTestReviewPrompt(requirements, coverageArtifact, testFiles);
+    assertTestReviewPromptWithinLimit(reviewPrompt, "test review");
+    const raw = await callReviewAgent(
+      agent, reviewPrompt, "flow.test.review",
+      "You are a one-shot static test reviewer. Return JSON with blockingFindings and advisoryFindings.",
+    );
+    aiFindings = parseTestReviewFindings(raw);
+  } catch (err) {
+    const kind = /JSON|schema|parse|Unexpected token/i.test(err?.message || "") ? "parser_error" : "agent_error";
+    const reviewArtifact = buildToolingFailureReview({
+      kind,
+      err,
+      coverageRelPath: artifactPaths.coveragePath,
+    });
+    artifactPaths = writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact });
+    console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
+    console.error(`  [test-review] JSON saved to ${artifactPaths.reviewJsonPath}`);
+    console.error(`  [test-review] Coverage saved to ${artifactPaths.coveragePath}`);
+    console.error(`  [test-review] verdict=TOOLING_FAILURE blocking=0 advisory=0 toolingFailure=${kind}`);
+    console.log("Test review TOOLING_FAILURE. Static review tooling failed; see test-review.json.");
+    return;
+  }
 
-  // Step 1: Generate test design
-  console.error("  [test-review] Generating test design...");
-  const testDesignPrompt = buildTestDesignPrompt(requirements);
-  const testDesign = await callReviewAgent(
-    agent, testDesignPrompt, "flow.test.review",
-    "You are a test design expert. Output a structured test design.",
-  );
-  // Save test design as tests/spec.md
-  const testsDir = path.resolve(root, specDir, "tests");
-  if (!fs.existsSync(testsDir)) fs.mkdirSync(testsDir, { recursive: true });
-  const testSpecPath = path.join(testsDir, "spec.md");
-  fs.writeFileSync(testSpecPath, `# Test Design\n\n${testDesign}\n`);
-  console.error(`  [test-review] Test design saved to ${path.relative(root, testSpecPath)}`);
-
-  // Step 2-3: Compare and retry loop (using common runReviewLoop)
-  let testFiles = collectTestFiles(root, specDir);
-
-  const maxAttempts = getReviewMaxAttempts("test", flow);
-  const { history: gapHistory, finalIssues: finalGaps, verdict } = await runReviewLoop({
-    maxRetries: maxAttempts,
-    label: "test-review",
-    dryRun,
-    async detect() {
-      const detectPrompt = buildGapAnalysisPrompt(testDesign, testFiles);
-      assertTestReviewPromptWithinLimit(detectPrompt, "gap analysis");
-      const raw = await callReviewAgent(
-        agent, detectPrompt, "flow.test.review",
-        "You are a test quality reviewer. Identify gaps between test design and test code.",
-      );
-      return { issues: parseGaps(raw), raw };
-    },
-    async fix(raw) {
-      const fixPrompt = buildTestFixPrompt(testDesign, raw, testFiles);
-      assertTestReviewPromptWithinLimit(fixPrompt, "test fix");
-      const fixResult = await callReviewAgent(
-        agent, fixPrompt, "flow.test.review",
-        "You are a test engineer. Fix test gaps by writing complete updated test files.",
-      );
-      const written = applyTestFixes(fixResult, root, specDir);
-      if (written.length > 0) {
-        console.error(`  [test-review] Fixed ${written.length} file(s): ${written.join(", ")}`);
-      } else {
-        console.error("  [test-review] No files were updated by fix attempt.");
-      }
-      testFiles = collectTestFiles(root, specDir);
-    },
+  const blockingFindings = [...headerBlockingFindings, ...aiFindings.blocking];
+  const advisoryFindings = aiFindings.advisory;
+  const verdict = blockingFindings.length > 0
+    ? "FAIL"
+    : advisoryFindings.length > 0
+      ? "ADVISORY"
+      : "PASS";
+  const reviewArtifact = new TestReviewArtifact({
+    verdict,
+    coverageArtifact: artifactPaths.coveragePath,
+    blocking: blockingFindings,
+    advisory: advisoryFindings,
   });
-  // spec 251: merge deterministic header gaps into the final verdict. AI gap
-  // analysis covers semantic alignment; validateTestHeaders covers
-  // missing-header / header-lie deterministically. Either category FAILs.
-  const mergedGaps = [...finalGaps, ...deterministicHeaderGaps];
-  const finalVerdict = mergedGaps.length === 0 ? "PASS" : "FAIL";
-  const testReviewPath = path.join(path.resolve(root, specDir), "test-review.md");
-  fs.writeFileSync(testReviewPath, formatTestReviewMd(testDesign, gapHistory, finalVerdict, mergedGaps));
-  console.error(`  [test-review] Results saved to ${path.relative(root, testReviewPath)}`);
+  artifactPaths = writeTestReviewArtifacts({ root, specDir, reviewArtifact, coverageArtifact });
+  console.error(`  [test-review] Results saved to ${artifactPaths.reviewMdPath}`);
+  console.error(`  [test-review] JSON saved to ${artifactPaths.reviewJsonPath}`);
+  console.error(`  [test-review] Coverage saved to ${artifactPaths.coveragePath}`);
+  console.error(`  [test-review] verdict=${verdict} blocking=${blockingFindings.length} advisory=${advisoryFindings.length}`);
 
-  if (finalVerdict === "PASS") {
-    console.error(`  [test-review] verdict=PASS gaps=0`);
-    console.log("Test review PASS. All test cases are adequately covered.");
+  if (verdict === "PASS") {
+    console.log("Test review PASS. No blocking or advisory findings.");
+  } else if (verdict === "ADVISORY") {
+    console.log(`Test review ADVISORY. ${advisoryFindings.length} non-blocking finding(s) recorded; implementation may proceed.`);
   } else {
-    console.error(`  [test-review] verdict=FAIL gaps=${mergedGaps.length} (ai=${finalGaps.length} header=${deterministicHeaderGaps.length})`);
-    console.log(`Test review FAIL. ${mergedGaps.length} gap(s) remaining after ${maxAttempts} attempts.`);
+    console.log(`Test review FAIL. ${blockingFindings.length} blocking finding(s) recorded; fix tests before implementation.`);
   }
 }
 
@@ -2296,6 +2722,7 @@ export {
   collectTouchedFiles, filterProposalsByScope, extractProposalFile,
   getReviewMaxAttempts, REVIEW_PHASES, extractRequirements, collectTestFiles, parseGaps,
   applyTestFixes, formatTestReviewMd, runReviewLoop,
+  buildTestReviewPrompt, parseTestReviewFindings,
   extractGoalAndScope, buildSpecSummaryMarkdown, buildSpecReviewPrompt, formatSpecReviewMd, formatSpecReviewJson, parseSpecReviewFindings,
   isValidSpecOutput, stripPreamble, buildGapAnalysisPrompt, buildTestFixPrompt,
   buildDraftReviewPrompt,

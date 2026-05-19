@@ -571,6 +571,16 @@ export const FLOW_COMMANDS = {
           return;
         }
 
+        if (ctx.phase === "test") {
+          const verdict = result?.artifacts?.verdict;
+          if (verdict === "PASS" || verdict === "ADVISORY") {
+            tryUpdateStepStatus(ctx, "review-test", "done");
+          } else if (verdict === "TOOLING_FAILURE") {
+            tryAppendIssueLog(() => reviewMod.appendIssueLogFromTestReviewToolingFailure(ctx, result));
+          }
+          return;
+        }
+
         const planPhases = ["draft", "spec", "test"];
         if (planPhases.includes(ctx.phase)) return;
         if (!ctx.dryRun && reviewMod.resetImplEvidenceAfterReviewProposals(ctx, result)) return;

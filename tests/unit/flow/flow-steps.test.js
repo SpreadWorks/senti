@@ -68,6 +68,13 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
   });
 
+  it("keeps test review one-shot in manual and auto modes", () => {
+    const node = resolveNodeFor(FLOW_DEFINITION, "review-test");
+
+    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
+  });
+
   it("has gate before approval", () => {
     const gateIdx = FLOW_STEPS.indexOf("gate");
     const approvalIdx = FLOW_STEPS.indexOf("approval");

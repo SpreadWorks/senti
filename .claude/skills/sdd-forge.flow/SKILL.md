@@ -338,7 +338,7 @@ C.2. **Execute instructions**
 
         - Draft review phases write only detection JSON artifacts. PASS completes the review leaf and registry hook writes empty triage/repair bookkeeping artifacts before advancing to the normal next step. ADVISORY / FAIL enter the route's triage step. Triage records disposition, repair records mutation audit, and gate-draft performs mechanical readiness validation of artifact shape, links, item correspondence, unresolved user decisions, and draft approval.
         - `review-spec` records detection output via post hook. PASS / ADVISORY complete review, while FAIL completes review and advances to `spec-review-triage`.
-        - `review-test` still follows its prompt instructions.
+        - `review-test` records one-shot static test review artifacts. PASS and ADVISORY complete `review-test`; FAIL leaves it open for a test-design fix; TOOLING_FAILURE leaves it open and records issue-log evidence instead of consuming review retry as a test-quality failure.
         - Impl/task review writes detection output only; its post hook advances according to the existing impl/task review route.
       - **`flow run scenario-validity` / `flow run test-execute` / `flow run test-result-review` / `flow run retro` / `flow run final-regression`**: post hooks validate current artifacts and advance their own steps. Do not manually mark them done to bypass prerequisite failures or final-regression failures.
       - Otherwise, manually record completion: `sdd-forge flow set step <current-step> done`.

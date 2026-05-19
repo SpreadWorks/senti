@@ -18,6 +18,7 @@ import {
   clearReviewStopState,
   writeReviewStopState,
 } from "./review-failure.js";
+import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import {
   RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS,
 } from "./test-artifacts.js";
@@ -32,7 +33,7 @@ import { draftReviewRouteForRetryPhase } from "./draft-review-routes.js";
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;
 const IMPL_REVIEW_PHASE = "impl";
 const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
-const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "FAIL"]);
+const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "FAIL", "TOOLING_FAILURE"]);
 const REVIEW_VERDICTS = new Set(REVIEW_VERDICT_VALUES);
 const REVIEW_VERDICT_PATTERN = new RegExp(`verdict=(${REVIEW_VERDICT_VALUES.join("|")})`);
 
@@ -168,6 +169,7 @@ export function updateReviewRetryCounter(ctx, result) {
   if (persistedPhase === "impl") {
     isPass = isImplPass(result);
   } else {
+    if (result?.artifacts?.verdict === "TOOLING_FAILURE") return;
     isPass = result?.artifacts?.verdict === "PASS"
       || result?.artifacts?.verdict === "ADVISORY";
   }
@@ -210,13 +212,17 @@ export function resetImplEvidenceAfterReviewProposals(ctx, result) {
 }
 
 const PHASE_REVIEW_PARSERS = {
-  test:  { countPattern: /gaps=(\d+)/,   countKey: "gapCount",   countWord: "gap(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
+  test:  { countPattern: /blocking=(\d+)/,   countKey: "blockingCount",   countWord: "blocking finding(s)",   label: "Test review",  next: "implement",  commandId: "flow.test.review" },
   spec:  { countPattern: /proposalCount=(\d+)/, countKey: "proposalCount", countWord: "proposal(s)", label: "Spec review",  next: "gate", failNext: "spec-review-triage", commandId: "flow.spec.review.propose" },
   draft: { countPattern: /(questions|findings|issues)=(\d+)/, countKey: "issueCount", countWord: "issue(s)", label: "Draft review", next: "gate-draft", commandId: "flow.draft.review" },
 };
 
 function resolvePhaseReviewNextStep({ phase, verdict, retryPhase, next, failNext }) {
-  if (phase !== "draft") return verdict === "FAIL" ? failNext : next;
+  if (phase !== "draft") {
+    if (verdict === "PASS" || verdict === "ADVISORY") return next;
+    if (verdict === "FAIL") return failNext;
+    return null;
+  }
   return resolveDraftReviewNextStep({ verdict, retryPhase });
 }
 
@@ -251,6 +257,17 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
   if (reviewPathMatch) changed.push(reviewPathMatch[1]);
 
   if (!res.ok) {
+    if (verdict === "TOOLING_FAILURE") {
+      const artifacts = { phase, verdict, [countKey]: count ?? 0 };
+      if (retryPhase) artifacts.retryPhase = retryPhase;
+      return {
+        result: "tooling-failure",
+        changed,
+        artifacts,
+        next: null,
+        output: stdout,
+      };
+    }
     const detail = count === 0
       ? `${label} subprocess error (0 ${countWord} reported but process exited with error)`
       : count !== null
@@ -266,7 +283,7 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
   if (retryPhase) artifacts.retryPhase = retryPhase;
 
   return {
-    result: "ok",
+    result: verdict === "TOOLING_FAILURE" ? "tooling-failure" : "ok",
     changed,
     artifacts,
     next: resolvedNext,
@@ -275,7 +292,12 @@ function parsePhaseReviewOutput(res, stdout, stderr, { phase, countPattern, coun
 }
 
 function parseTestReviewOutput(res, stdout, stderr) {
-  return parsePhaseReviewOutput(res, stdout, stderr, { phase: "test", ...PHASE_REVIEW_PARSERS.test });
+  const parsed = parsePhaseReviewOutput(res, stdout, stderr, { phase: "test", ...PHASE_REVIEW_PARSERS.test });
+  const advisoryMatch = stderr.match(/advisory=(\d+)/);
+  if (advisoryMatch) parsed.artifacts.advisoryCount = parseInt(advisoryMatch[1], 10);
+  const toolingFailureMatch = stderr.match(/toolingFailure=([a-z_]+)/);
+  if (toolingFailureMatch) parsed.artifacts.toolingFailure = toolingFailureMatch[1];
+  return parsed;
 }
 
 function parseSpecReviewOutput(res, stdout, stderr) {
@@ -287,6 +309,24 @@ function parseProposalReviewOutput(res, stdout, stderr) {
 }
 
 export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, parseProposalReviewOutput };
+
+export function appendIssueLogFromTestReviewToolingFailure(ctx, result) {
+  if (ctx?.phase !== "test") return;
+  if (result?.artifacts?.verdict !== "TOOLING_FAILURE") return;
+  const issueLog = loadIssueLog(ctx.root, ctx.flowState?.spec);
+  const artifactPath = result?.changed?.find((p) => /test-review\.(json|md)$/.test(p));
+  issueLog.entries.push({
+    step: "review-test",
+    phase: "test",
+    failureKind: "tooling_failure",
+    reason: `review-test tooling failure: ${result.artifacts.toolingFailure || "see test-review artifacts"}`,
+    trigger: "review-test post hook (auto)",
+    resolution: "Recover the tooling failure or record an explicit evidence-based override before proceeding.",
+    ...(artifactPath && { artifact: artifactPath }),
+    timestamp: new Date().toISOString(),
+  });
+  saveIssueLog(ctx.root, ctx.flowState?.spec, issueLog);
+}
 
 const DEFAULT_RETRY_COUNT = 2;
 const DEFAULT_RETRY_DELAY_MS = 3000;

@@ -139,7 +139,7 @@ const PLAN_REVIEW_MAX_ATTEMPTS_BY_ID = Object.freeze({
   "review-draft-questions": Object.freeze({ auto: 1, manual: 1 }),
   "review-draft-coverage": Object.freeze({ auto: 1, manual: 1 }),
   "review-spec": Object.freeze({ auto: 1, manual: 1 }),
-  "review-test": Object.freeze({ auto: 3, manual: 3 }),
+  "review-test": Object.freeze({ auto: 1, manual: 1 }),
 });
 
 function createPlanReviewNode({ id, label, contextKinds }) {
