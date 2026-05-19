@@ -1,0 +1,73 @@
+{
+  "spec": "specs/260-post-retry-recovery/spec.json",
+  "date": "2026-05-19T02:15:24.693Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`flow set retry reset <gate|review> <phase> --reason <text> --yes` must validate action, kind, phase, reason length, and --yes at the command entry point before mutating metrics or artifacts.",
+      "status": "done",
+      "note": "R1: TC-4 TC-5 TC-6 TC-7 TC-8 TC-9 TC-10: command input validates before side effects"
+    },
+    {
+      "desc": "Recoverable targets must be limited to gate task-impl/integration and review draft-questions/draft-coverage/spec/test/impl; gate draft/spec exhaustion must be displayed with recoveryPossible:false and must remain invalid for set-retry.",
+      "status": "done",
+      "note": "R2: recoverable target matrix is strict and displayable"
+    },
+    {
+      "desc": "Review verdict FAIL and review stop handling must persist a phase-specific recovery baseline fingerprint before or when reviewRetry/reviewStop reaches exhaustion.",
+      "status": "done",
+      "note": "R3: TC-13 TC-14: review FAIL and review stop persist canonical phase baselines before exhaustion"
+    },
+    {
+      "desc": "When a recoverable target has exhausted its resolved maxAttempts, retry reset must compute recovery eligibility from the target's phase-specific evidence source mapping and the last same canonical kind/phase baseline.",
+      "status": "done",
+      "note": "R4: R5: TC-15 TC-16: eligibility uses mapped evidence and latest matching baseline"
+    },
+    {
+      "desc": "When exhausted and no mapped evidence source changed since the last same canonical kind/phase baseline, retry reset must return Envelope.fail without appending reset metrics, recovery artifacts, or retry allowance metrics.",
+      "status": "done",
+      "note": "R5: TC-17: unchanged exhausted reset is rejected by CLI without byte changes"
+    },
+    {
+      "desc": "When exhausted recovery is eligible, retry reset must append `specs/<spec>/retry-recovery.json` entry and an issue-log entry containing reason, kind, phase, canonicalPhase, changedEvidence, permittedReevaluationCount, attemptsBefore, maxAttempts, counterAfter, recoveryCommand, and createdAt.",
+      "status": "done",
+      "note": "R6: separate recovery grants append audit entries in chronological order"
+    },
+    {
+      "desc": "When exhausted recovery is granted, the current retry count for the target canonical kind/phase must become maxAttempts - 1 so exactly one subsequent FAIL re-exhausts the phase; a subsequent PASS must still reset the counter to zero through existing PASS behavior.",
+      "status": "done",
+      "note": "R7: TC-20: counterAfter is maxAttempts minus one for boundary values"
+    },
+    {
+      "desc": "`flow get next-action` and `flow get status` must show retry exhausted state with kind, phase, canonicalPhase, attempts, max, recoveryPossible, recoveryReason, changedEvidence summary, and recoveryCommand when the active step is stopped by gate or review retry exhaustion.",
+      "status": "done",
+      "note": "R8: TC-23 TC-24: next-action and status show exhausted recovery details"
+    },
+    {
+      "desc": "When the same failure continues after the one permitted re-evaluation, existing retry exhausted or repeated-failure stop behavior must remain in effect and must not automatically grant another recovery.",
+      "status": "done",
+      "note": "R9: requirement verification does not expose an automatic second recovery command"
+    },
+    {
+      "desc": "CLI help, flow prompt guidance, and generated skill template text should describe the audited recovery command, required --reason, one re-evaluation limit, and unchanged-state rejection.",
+      "status": "done",
+      "note": "R10: TC-26 TC-27 TC-28: CLI help, prompts, and generated skill template document audited recovery"
+    },
+    {
+      "desc": "Spec-local tests must cover exhausted eligible recovery, exhausted unchanged rejection, one-attempt allowance, audit artifact/issue-log creation, and next-action/status recovery display.",
+      "status": "done",
+      "note": "R11: TC-29: spec-local lifecycle covers eligible recovery, unchanged rejection, display, repeated failure, and pass reset"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 11,
+    "done": 11,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -240,7 +240,8 @@ sdd-forge flow set note "<text>"
 sdd-forge flow set issue <number>
 sdd-forge flow set metric <phase> <counter>
 sdd-forge flow set issue-log --step <id> --reason "<text>" [--trigger "<text>"] [--resolution "<text>"] [--guardrail-candidate "<text>"]
-sdd-forge flow set retry reset <gate|review> <phase> --yes
+sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes
+# Retry recovery reason is required, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
 sdd-forge flow prepare --title "..." [--base branch] [--worktree] [--no-branch] [--issue N] [--request "..."] [--run-id <id>]
 sdd-forge flow run gate [--phase <draft|spec|task-spec|task-impl|integration>] [--agent-work-dir <path>] [--log-file <path>]
 sdd-forge flow run review [--phase <draft|spec|test|impl>] [--agent-work-dir <path>] [--log-file <path>]

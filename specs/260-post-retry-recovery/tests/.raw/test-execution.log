@@ -1,0 +1,158 @@
+[sdd-forge] spec-local tests start
+command: node --test specs/260-post-retry-recovery/tests/retry-recovery-contract.test.js
+TAP version 13
+# Subtest: retry recovery contract
+    # Subtest: R1: TC-4 TC-5 TC-6 TC-7 TC-8 TC-9 TC-10: command input validates before side effects
+    ok 1 - R1: TC-4 TC-5 TC-6 TC-7 TC-8 TC-9 TC-10: command input validates before side effects
+      ---
+      duration_ms: 668.766962
+      type: 'test'
+      ...
+    # Subtest: R1: R2: R6: R7: TC-1 TC-2 TC-3: valid CLI recovery grants each recoverable target independently
+    ok 2 - R1: R2: R6: R7: TC-1 TC-2 TC-3: valid CLI recovery grants each recoverable target independently
+      ---
+      duration_ms: 870.501001
+      type: 'test'
+      ...
+    # Subtest: R1: TC-9: reason length boundary accepts the configured maximum and rejects maximum plus one
+    ok 3 - R1: TC-9: reason length boundary accepts the configured maximum and rejects maximum plus one
+      ---
+      duration_ms: 0.998445
+      type: 'test'
+      ...
+    # Subtest: R2: recoverable target matrix is strict and displayable
+    ok 4 - R2: recoverable target matrix is strict and displayable
+      ---
+      duration_ms: 2.132371
+      type: 'test'
+      ...
+    # Subtest: R2: R8: TC-11 TC-12: exhausted gate draft and spec display no recovery command and reject reset
+    ok 5 - R2: R8: TC-11 TC-12: exhausted gate draft and spec display no recovery command and reject reset
+      ---
+      duration_ms: 664.3175
+      type: 'test'
+      ...
+    # Subtest: R3: TC-13 TC-14: review FAIL and review stop persist canonical phase baselines before exhaustion
+    ok 6 - R3: TC-13 TC-14: review FAIL and review stop persist canonical phase baselines before exhaustion
+      ---
+      duration_ms: 1.446328
+      type: 'test'
+      ...
+    # Subtest: R4: R5: TC-15 TC-16: eligibility uses mapped evidence and latest matching baseline
+    ok 7 - R4: R5: TC-15 TC-16: eligibility uses mapped evidence and latest matching baseline
+      ---
+      duration_ms: 1.566808
+      type: 'test'
+      ...
+    # Subtest: R5: TC-17: unchanged exhausted reset is rejected by CLI without byte changes
+    ok 8 - R5: TC-17: unchanged exhausted reset is rejected by CLI without byte changes
+      ---
+      duration_ms: 113.899346
+      type: 'test'
+      ...
+    # Subtest: R5: R6: R7: TC-18 TC-19 TC-20: granted recovery appends audit artifacts after eligibility succeeds
+    ok 9 - R5: R6: R7: TC-18 TC-19 TC-20: granted recovery appends audit artifacts after eligibility succeeds
+      ---
+      duration_ms: 6.797675
+      type: 'test'
+      ...
+    # Subtest: R7: TC-20: counterAfter is maxAttempts minus one for boundary values
+    ok 10 - R7: TC-20: counterAfter is maxAttempts minus one for boundary values
+      ---
+      duration_ms: 1.054125
+      type: 'test'
+      ...
+    # Subtest: R6: separate recovery grants append audit entries in chronological order
+    ok 11 - R6: separate recovery grants append audit entries in chronological order
+      ---
+      duration_ms: 6.251913
+      type: 'test'
+      ...
+    # Subtest: R6: requirement verification exposes the full recovery audit entry schema
+    ok 12 - R6: requirement verification exposes the full recovery audit entry schema
+      ---
+      duration_ms: 0.688923
+      type: 'test'
+      ...
+    # Subtest: R7: R9: TC-21 TC-22 TC-25: one reevaluation re-exhausts, pass resets, and second recovery needs new evidence
+    ok 13 - R7: R9: TC-21 TC-22 TC-25: one reevaluation re-exhausts, pass resets, and second recovery needs new evidence
+      ---
+      duration_ms: 0.729284
+      type: 'test'
+      ...
+    # Subtest: R7: R9: TC-21 TC-22 TC-25: subsequent fail re-exhausts, pass resets, and unchanged second reset is rejected
+    ok 14 - R7: R9: TC-21 TC-22 TC-25: subsequent fail re-exhausts, pass resets, and unchanged second reset is rejected
+      ---
+      duration_ms: 0.663164
+      type: 'test'
+      ...
+    # Subtest: R9: requirement verification does not expose an automatic second recovery command
+    ok 15 - R9: requirement verification does not expose an automatic second recovery command
+      ---
+      duration_ms: 0.371122
+      type: 'test'
+      ...
+    # Subtest: R8: TC-23 TC-24: next-action and status show exhausted recovery details
+    ok 16 - R8: TC-23 TC-24: next-action and status show exhausted recovery details
+      ---
+      duration_ms: 336.346212
+      type: 'test'
+      ...
+    # Subtest: R8: TC-23 TC-24: next-action and status display gate, review, and unrecoverable exhaustion
+    ok 17 - R8: TC-23 TC-24: next-action and status display gate, review, and unrecoverable exhaustion
+      ---
+      duration_ms: 710.642658
+      type: 'test'
+      ...
+    # Subtest: R8: TC-23 TC-24: recovery display distinguishes changed and unchanged evidence
+    ok 18 - R8: TC-23 TC-24: recovery display distinguishes changed and unchanged evidence
+      ---
+      duration_ms: 0.742444
+      type: 'test'
+      ...
+    # Subtest: R4: R6: R7: TC-18 TC-19 TC-20: resolved maxAttempts and audit command/timestamps stay consistent
+    ok 19 - R4: R6: R7: TC-18 TC-19 TC-20: resolved maxAttempts and audit command/timestamps stay consistent
+      ---
+      duration_ms: 3.353137
+      type: 'test'
+      ...
+    # Subtest: R10: TC-26 TC-27 TC-28: CLI help, prompts, and generated skill template document audited recovery
+    ok 20 - R10: TC-26 TC-27 TC-28: CLI help, prompts, and generated skill template document audited recovery
+      ---
+      duration_ms: 114.075228
+      type: 'test'
+      ...
+    # Subtest: R11: TC-29: spec-local lifecycle covers eligible recovery, unchanged rejection, display, repeated failure, and pass reset
+    ok 21 - R11: TC-29: spec-local lifecycle covers eligible recovery, unchanged rejection, display, repeated failure, and pass reset
+      ---
+      duration_ms: 3.7821
+      type: 'test'
+      ...
+    1..21
+ok 1 - retry recovery contract
+  ---
+  duration_ms: 3511.775598
+  type: 'suite'
+  ...
+1..1
+# tests 21
+# suites 1
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3650.379951
+exitCode: 0
+[sdd-forge] requirement R1 result pass
+[sdd-forge] requirement R2 result pass
+[sdd-forge] requirement R3 result pass
+[sdd-forge] requirement R4 result pass
+[sdd-forge] requirement R5 result pass
+[sdd-forge] requirement R6 result pass
+[sdd-forge] requirement R7 result pass
+[sdd-forge] requirement R8 result pass
+[sdd-forge] requirement R9 result pass
+[sdd-forge] requirement R10 result pass
+[sdd-forge] requirement R11 result pass
+[sdd-forge] spec-local tests end

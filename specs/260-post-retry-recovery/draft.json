@@ -1,0 +1,173 @@
+{
+  "devType": "feature",
+  "goal": "retry 枠切れ後でも、修正差分または evidence の変化がある場合に、明示的な recovery 操作で 1 回だけ再評価へ戻せるようにする。retry exhausted と修正後再評価を flow 上で区別し、操作理由と対象を監査ログに残す。",
+  "analysis": {
+    "problem": "gate / review の FAIL を修正した後でも retry 枠が尽きていると再評価できず、同じ失敗の反復停止と修正済み状態の再評価要求が同じ停止状態として扱われる。",
+    "proposedApproach": "retry exhausted の停止状態に対して、差分または evidence の変化を条件にした明示 recovery path を追加する。操作時には reason、対象 kind / phase、変化の根拠、許可された再評価回数を artifact / issue-log に残し、next-action / status で recovery 可能性を表示する。",
+    "validation": "maxAttempts を増やさず、同一失敗の反復停止は維持しながら、修正が入った状態だけを再評価に戻せるため、Issue の root problem である recovery UX の欠落を直接扱う。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #331 は enhancement として公開済みで、retry exhausted 後の再評価 recovery を扱う。",
+      "既存の `flow set retry reset <gate|review> <phase> --yes` は retry counter を reset するが、reason や evidence 変化の監査情報は入力として扱わない。",
+      "gate の retry exhausted は `ESCALATE_RETRY_EXHAUSTED` として停止し、同一状態の再実行は `NO_PROGRESS_SINCE_LAST_FAIL` で拒否される。",
+      "review の retry exhausted は `REVIEW_MAX_ATTEMPTS_EXCEEDED` として停止し、next-action / status は review stop view を表示できる。",
+      "project rule により、Issue は 1 つの spec concern として扱い、AI 側で勝手に分割しない。",
+      "alpha 版方針により、旧形式維持のための後方互換コードは追加しない。",
+      "recovery 対象は flow-scope の gate / review retry exhausted に限定し、finalize / final-regression は今回の対象外とする。",
+      "recovery 可能条件は、前回 FAIL 後に実装差分または evidence artifact が変わったこととする。",
+      "明示 recovery は対象 kind / phase ごとの retry exhausted 1 回につき 1 回だけ許可する。",
+      "`next-action` と `status` には停止理由、対象 kind / phase、recovery 可能性、recovery command を表示する。",
+      "recovery artifact は reason、kind、phase、changed evidence、permitted re-evaluation count、timestamp を必須項目として保持する。",
+      "Requirement priorities: must = retry exhausted 後の明示 recovery、audit trail、recovery 表示、同一失敗時の停止維持。should = CLI help / prompt / skill guidance の更新。nice-to-have = 追加の表示整形のみ。"
+    ],
+    "decisionPoints": [
+      "recovery 操作の対象 kind / phase をどこまで許可するか。",
+      "recovery 可能と判定する change evidence を何にするか。",
+      "recovery 操作を既存 reset command の拡張にするか、新しい明示 command にするか。",
+      "許可する再評価回数を phase ごとに 1 回に固定するか、操作ごとに記録できるようにするか。",
+      "next-action / status で recovery 可能性、recovery command、停止理由をどの粒度で表示するか。",
+      "issue-log と artifact に保存する監査項目をどこまで必須にするか。",
+      "同じ失敗が続く場合に従来通り停止する判定をどう保持するか。",
+      "既存の retry reset UX との関係と migration policy をどう扱うか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。",
+      "src/ 配下にはこのプロジェクト固有の値を入れない。",
+      "値の構造的制約は専用クラスで表現し、意味のある artifact / recovery entry を単なる object literal に寄せない。",
+      "既存パターンが 2 箇所以上で繰り返される場合は共通 helper に抽出する。",
+      "既存 command の意味を削除または変更する場合は migration plan を spec に含める。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "artifact ファイル名、JSON schema、永続化 class の具体設計。",
+      "既存 retry counter / reviewStop / gate escalation との統合方法。",
+      "flow command parser の引数詳細。",
+      "unit / e2e test file の配置。",
+      "help text と template 反映の具体差分。",
+      "既存 reset command 利用者向け migration plan: help / prompt / error message で新しい監査入力と recovery 条件を示し、旧形式が拒否された場合は新形式の具体 command へ誘導する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: retry exhausted 後の明示 recovery path",
+      "must: recovery 操作の audit trail",
+      "must: next-action / status の recovery 表示",
+      "must: gate / review retry exhausted と no-progress 停止の扱い",
+      "should: 関連 CLI help / flow prompt / skill template の recovery guidance"
+    ],
+    "out": [
+      "maxAttempts の単純な増加",
+      "無制限の自動再評価",
+      "review / gate の判定内容そのものの改善",
+      "Done 済み dc7f への追記",
+      "cdb2 の review convergence 本体の実装"
+    ]
+  },
+  "impactOnExisting": [
+    "`flow set retry reset` の利用者体験",
+    "`flow get next-action` の retry exhausted 表示",
+    "`flow get status` の停止状態表示",
+    "gate / review retry counter metrics",
+    "issue-log と spec-local artifact",
+    "flow prompt / skill template の recovery guidance"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "この spec の主目的は、retry exhausted 後に maxAttempts を増やすことではなく、修正差分または evidence 変化がある場合だけ明示 recovery 操作で再評価へ戻すこと、でよいですか。",
+      "answer": "はい。主目的は retry 枠の増加ではなく、修正済み状態を明示 recovery 操作で 1 回だけ再評価に戻すことです。",
+      "evidence": "Issue #331 Proposed Improvement: implementation diff または evidence が変わった場合に明示 reopen / reset / override できる recovery path を用意する。Completion Criteria: maxAttempts を増やさず再評価へ進める。",
+      "why": "Issue は retry 判定の品質改善ではなく、修正済み状態を再評価へ戻す recovery UX の欠落を問題にしているため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "recovery 対象は flow-scope の gate / review retry exhausted に限定し、finalize や final-regression の recovery は今回の対象外でよいですか。",
+      "answer": "はい。対象は flow-scope の gate / review retry exhausted に限定し、finalize と final-regression の recovery は対象外です。",
+      "evidence": "Issue #331 は gate-impl などの gate / review 再評価停止を扱う。既存コードでは gate retry は `run-gate.js`、review retry は `run-review.js` / `review-failure.js` が扱い、finalize / final-regression には別の recovery path がある。",
+      "why": "scope を retry exhausted 後の再評価 recovery に限定し、無関係な finalize recovery を混ぜないため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "recovery 可能とみなす条件は、前回 FAIL 後に worktree diff、HEAD、または test / review evidence artifact のいずれかが変わった場合、という判定でよいですか。",
+      "answer": "はい。前回 FAIL 後に実装差分、HEAD、または evidence artifact が変わった場合を recovery 可能条件にします。",
+      "evidence": "Issue #331 Proposed Improvement: implementation diff または evidence が変わった場合に recovery path を用意する。`run-gate.js` には HEAD と worktree hash による no-progress 判定が既にある。",
+      "why": "同じ失敗を繰り返している状態と、修正済みなので再評価したい状態を区別するため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "`next-action` と `status` には、停止理由、対象 kind / phase、recovery 可能かどうか、実行すべき recovery command を表示する方針でよいですか。",
+      "answer": "はい。停止理由、対象 kind / phase、recovery 可能性、recovery command を表示します。",
+      "evidence": "Issue #331 Proposed Improvement: `retry exhausted but recovery possible due to fix diff` を next-action / status に表示する。既存 `get-next-action.js` と `get-status.js` は review stop view を出力できる。",
+      "why": "ユーザーが停止理由と次の recovery 操作を区別できなければ、retry exhausted 後の UX 問題が残るため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "CLI は既存の `flow set retry reset <gate|review> <phase> --yes` を監査付き recovery 操作へ拡張する方針でよいですか。",
+      "answer": "はい。既存の retry reset command を監査付き recovery 操作へ拡張します。",
+      "evidence": "`set-retry.js` は gate / review の retry counter reset を既に一元化している。新規 command を別に作るより、既存の recovery 入口へ reason / evidence / allowance を追加する方が既存構造に合う。",
+      "why": "同じ retry reset concern を分散させず、既存の深い module に監査要件を隠す方が変更面を抑えられるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q6",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "既存 reset command の意味が変わる場合、alpha 版ポリシーに従って旧挙動の互換維持はせず、help / prompt / spec / error message で新しい監査入力と recovery 条件へ誘導する migration plan にしますか。",
+      "answer": "はい。旧挙動維持のための互換 layer は追加しません。migration plan は、help / prompt / spec / error message に新しい監査入力、recovery 条件、旧形式が拒否された場合の新形式 command を明記することです。",
+      "evidence": "AGENTS.md alpha 版ポリシー: 後方互換コードは書かない。Draft guardrail: CLI interface 変更は migration plan を spec に含める。",
+      "why": "旧形式を残すと監査なし reset が残るため Issue の audit trail 要件を満たせない。一方で migration plan を明示すれば、既存利用者は新しい recovery 条件へ移行できるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q7",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "1 回だけ再評価できる、という制約の単位は、対象 kind / phase ごとの retry exhausted 1 回につき recovery 1 回、でよいですか。",
+      "answer": "はい。対象 kind / phase ごとの retry exhausted 1 回につき recovery 1 回を許可単位にします。",
+      "evidence": "Issue #331 Proposed Improvement: 原則 1 回だけ再評価できるようにする。既存 retry state は gate / review と phase で分けて管理されている。",
+      "why": "phase ごとの停止状態に結びつけることで、無制限再評価を避けながら必要な再評価だけを許可できるため。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q8",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "recovery artifact は、reason、kind、phase、changed evidence、permitted re-evaluation count、timestamp を必須項目として、issue-log からも参照できる契約にしますか。",
+      "answer": "はい。recovery artifact は reason、kind、phase、changed evidence、permitted re-evaluation count、timestamp を必須項目とし、issue-log から参照可能にします。",
+      "evidence": "Issue #331 Proposed Improvement: recovery 操作では reason、対象 phase、変更された evidence、許可された再評価回数を記録する。Completion Criteria: recovery 操作が issue-log / artifact に記録される。",
+      "why": "なぜ retry reset / override が許可されたのかを後から追える audit trail が、この Issue の主要な完了条件だから。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q9",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "テストは unit で retry exhausted / recovery 可否 / audit 記録を確認し、e2e で `next-action` または `status` の表示と reset 後の再評価導線を確認する範囲でよいですか。",
+      "answer": "はい。unit で retry exhausted / recovery 可否 / audit 記録を確認し、e2e で `next-action` または `status` の表示と reset 後の再評価導線を確認します。",
+      "evidence": "Issue #331 Completion Criteria は状態区別、issue-log / artifact 記録、maxAttempts を増やさない再評価、同一失敗時の停止を要求している。",
+      "why": "状態判定と artifact 契約は unit で検証し、ユーザーに見える recovery 導線は e2e で検証する必要があるため。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-18T14:39:42Z",
+    "notes": "autoApprove: all draft QA entries are answered and draft coverage review passed."
+  }
+}

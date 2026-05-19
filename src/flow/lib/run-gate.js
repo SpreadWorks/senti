@@ -60,6 +60,7 @@ import {
   DRAFT_REVIEW_ROUTES,
   DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT,
 } from "./draft-review-routes.js";
+import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
 
 export { resolveGateStepId };
 
@@ -1459,6 +1460,9 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
 import { resolveNodeFor, FLOW_DEFINITION, TASK_DEFINITION } from "../definition.js";
 
 const RETRY_TRACKED_PHASES = Object.freeze(["draft", "spec", "task-impl", "integration"]);
+const GATE_RECOVERY_PHASES = new Set(["task-impl", "integration"]);
+const GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "gate-retry-exhausted";
+const GATE_RECOVERY_TRIGGER_RESULT_FAIL = "gate-result-fail";
 
 export function resolveRetryMax(retryContext = {}, phase) {
   const stepId = resolveGateStepId(phase);
@@ -1493,6 +1497,30 @@ export function countGateRetry(entries, phase) {
 
 function readGateRetryCount(state, phase) {
   return countGateRetry(state?.metrics, phase);
+}
+
+function hasGateRecoveryBaseline(state, phase) {
+  if (!Array.isArray(state?.reviewRecoveryBaselines)) return false;
+  return state.reviewRecoveryBaselines.some((entry) => (
+    entry?.kind === "gate"
+    && entry?.canonicalPhase === phase
+  ));
+}
+
+function persistGateRecoveryBaseline(ctx, phase, trigger, options = {}) {
+  if (!GATE_RECOVERY_PHASES.has(phase)) return;
+  if (!ctx?.root || typeof ctx?.flowManager?.mutate !== "function") return;
+  ctx.flowManager.mutate((state) => {
+    if (!state?.spec) return;
+    if (options.seedOnly === true && hasGateRecoveryBaseline(state, phase)) return;
+    persistCurrentRecoveryBaseline({
+      root: ctx.root,
+      flowState: state,
+      kind: "gate",
+      phase,
+      trigger,
+    });
+  });
 }
 
 // Set of step ids that represent gate evaluations. step === "gate" is used by
@@ -1550,6 +1578,7 @@ export function checkRetryBelowMax(ctx, phase) {
   if (count < max) return null;
 
   const history = formatRetryHistory(ctx.root, ctx.flowState?.spec, max, phase);
+  persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RETRY_EXHAUSTED, { seedOnly: true });
   const messages = [
     `gate retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${phase}".`,
     `Counter breakdown: AI-FAIL=${count}`,
@@ -1599,6 +1628,9 @@ export function updateGateRetryCounter(ctx, result) {
     ? { phase, counter: "gateRetry", delta: 0, reset: true }
     : { phase, counter: "gateRetry", delta: 1 };
   mgr.appendMetric(payload);
+  if (result?.result === "fail") {
+    persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RESULT_FAIL);
+  }
 }
 
 

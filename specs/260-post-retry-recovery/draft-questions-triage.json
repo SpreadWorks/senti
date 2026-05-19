@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "1 repair target triaged; q5 should be reduced to a single self-contained question.",
+  "items": [
+    {
+      "title": "1. q5 includes non-question text",
+      "target": "q5",
+      "decision": "apply",
+      "rationale": "The second sentence adds explanatory instruction text after the actual question, which violates the pending-question shape checked by review-draft-questions.",
+      "evidence": "draft-review-questions.json repairTargets[0] identifies q5 and recommends removing the second sentence."
+    }
+  ]
+}

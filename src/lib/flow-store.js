@@ -29,6 +29,7 @@ import { DRAFT_REVIEW_ROUTES } from "../flow/lib/draft-review-routes.js";
 
 const MAX_FLOW_STEPS_FOR_MIGRATION = 200;
 const MAX_FLOW_ARTIFACTS_FOR_MIGRATION = 500;
+const MAX_FLOW_STATE_READ_BYTES = 5 * 1024 * 1024;
 const DRAFT_REVIEW_ARTIFACT_REWRITES = new Map(
   DRAFT_REVIEW_ROUTES.flatMap((route) => [
     [`draft-review-${route.key}.md`, route.reviewArtifact],
@@ -360,6 +361,38 @@ function appendFlowMigrationLog(root, state, step, reason, resolution) {
   fs.writeFileSync(logPath, JSON.stringify(issueLog, null, 2) + "\n");
 }
 
+function readBoundedFlowStateText(filePath) {
+  const size = fs.statSync(filePath).size;
+  if (size > MAX_FLOW_STATE_READ_BYTES) {
+    throw new Error(
+      `flow-store: refusing to read ${size} byte flow state ` +
+      `(max ${MAX_FLOW_STATE_READ_BYTES})`,
+    );
+  }
+  return fs.readFileSync(filePath, "utf8");
+}
+
+function canRollbackRunIdMigration(migration) {
+  try {
+    if (!migration?.path || !fs.existsSync(migration.path)) return false;
+    if (typeof migration.contentBeforeRunId !== "string") return false;
+    const state = JSON.parse(readBoundedFlowStateText(migration.path));
+    return state.runId === migration.runId;
+  } catch {
+    return false;
+  }
+}
+
+function createRunIdMigration({ path: filePath, runId, contentBeforeRunId }) {
+  if (contentBeforeRunId.length > MAX_FLOW_STATE_READ_BYTES) {
+    throw new Error(
+      `flow-store: refusing to retain ${contentBeforeRunId.length} byte flow state ` +
+      `(max ${MAX_FLOW_STATE_READ_BYTES})`,
+    );
+  }
+  return { path: filePath, runId, contentBeforeRunId };
+}
+
 function migrateFlowState(state, sourcePath, { persist, root }) {
   const reviewChanged = migrateDraftReviewSteps(state);
   const refineChanged = migrateDraftRefineStep(state);
@@ -482,6 +515,14 @@ export class FlowStore {
     this._mainRoot = mainRoot;
     this._inWorktree = inWorktree;
     this._activeFlowsProvider = activeFlowsProvider;
+    this._lastRunIdMigration = null;
+  }
+
+  _clearStaleRunIdMigration(resolvedPath, runId) {
+    const migration = this._lastRunIdMigration;
+    if (migration?.path !== resolvedPath || migration?.runId !== runId) {
+      this._lastRunIdMigration = null;
+    }
   }
 
   pathFor(specId) {
@@ -527,16 +568,33 @@ export class FlowStore {
     migrateFlowState(state, resolvedPath, { persist: true, root: this._root });
     assertFlowStateSchema(state, resolvedPath);
 
-    if (state && !state.runId) {
+    if (!state.runId) {
+      const contentBeforeRunId = readBoundedFlowStateText(resolvedPath);
       state.runId = crypto.randomUUID();
       try {
         fs.writeFileSync(resolvedPath, JSON.stringify(state, null, 2) + "\n", "utf8");
+        this._lastRunIdMigration = createRunIdMigration({
+          path: resolvedPath,
+          runId: state.runId,
+          contentBeforeRunId,
+        });
       } catch (err) {
+        this._lastRunIdMigration = null;
         console.error(`[flow-state] WARN: failed to persist migrated runId: ${err.message}`);
       }
+    } else {
+      this._clearStaleRunIdMigration(resolvedPath, state.runId);
     }
 
     return state;
+  }
+
+  rollbackLastRunIdMigration() {
+    const migration = this._lastRunIdMigration;
+    this._lastRunIdMigration = null;
+    if (!canRollbackRunIdMigration(migration)) return false;
+    fs.writeFileSync(migration.path, migration.contentBeforeRunId, "utf8");
+    return true;
   }
 
   /**

@@ -40,7 +40,7 @@ function cleanReason(value, fallback) {
 }
 
 function retryResetCommand(phase) {
-  return `sdd-forge flow set retry reset review ${phase} --yes`;
+  return `sdd-forge flow set retry reset review ${phase} --reason <text> --yes`;
 }
 
 function retryReviewCommand(phase) {

@@ -9,9 +9,12 @@ import { derivePhase } from "../../lib/flow-helpers.js";
 import { normalizeAgentMetricDimension } from "../../lib/agent-metrics.js";
 import { BROAD_MODE_HISTORY_MAX_ENTRIES } from "../../lib/constants.js";
 import { loadSpecRequirements } from "../../lib/spec-json.js";
-import { FLOW_DEFINITION, flattenSteps, resolveNodeFor } from "../definition.js";
+import { FLOW_DEFINITION, flattenSteps, findLatestInProgressLeaf, resolveNodeFor } from "../definition.js";
 import { FlowCommand } from "./base-command.js";
 import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
+import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
+import { countReviewRetry } from "./run-review.js";
+import { buildStateRetryRecoveryView, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 import { buildBoundedBroadModeHistory } from "./task-scope.js";
 
 /** Token sub-fields that the Logger / flow-store emit per agent entry. */
@@ -130,17 +133,65 @@ export function buildReportTotals(summaryTotal) {
   return { activity, tokens };
 }
 
-function buildStatusReviewStop(state, leafSteps) {
-  const active = leafSteps.find((step) => step.status === "in_progress");
+function resolveActiveStepMaxAttempts(state, active) {
+  if (!active?.id) return null;
+  const maxAttempts = resolveNodeFor(FLOW_DEFINITION, active.id)?.resolveMaxAttempts(state);
+  return Number.isSafeInteger(maxAttempts) && maxAttempts >= 1 ? maxAttempts : null;
+}
+
+function buildStatusReviewViews(state, active, root) {
   const reviewPhase = reviewPhaseForStepId(active?.id);
   if (!reviewPhase) return null;
-  const maxAttempts = resolveNodeFor(FLOW_DEFINITION, active.id)?.resolveMaxAttempts(state);
-  if (!Number.isSafeInteger(maxAttempts)) return null;
-  return buildReviewStopView(state, {
+  const resolvedMaxAttempts = resolveActiveStepMaxAttempts(state, active);
+  if (resolvedMaxAttempts == null) return null;
+  const attempts = countReviewRetry(state.metrics, reviewPhase);
+  const recoveryMaxAttempts = resolveRecoveryMaxAttempts({
+    flowState: state,
+    kind: "review",
+    phase: reviewPhase,
+    attempts,
+    resolvedMax: resolvedMaxAttempts,
+  });
+  const reviewStop = buildReviewStopView(state, {
     surface: "status",
     phase: reviewPhase,
-    maxAttempts,
+    maxAttempts: recoveryMaxAttempts,
   });
+  const retryRecovery = buildStatusRetryRecoveryView(root, state, {
+    kind: "review",
+    phase: reviewPhase,
+    attempts,
+    max: recoveryMaxAttempts,
+  });
+  return { reviewStop, retryRecovery };
+}
+
+function buildStatusRetryRecoveryView(root, flowState, input) {
+  return buildStateRetryRecoveryView({
+    root,
+    flowState,
+    ...input,
+  });
+}
+
+function buildStatusGateViews(state, active, root) {
+  if (!active || !active.id.startsWith("gate")) return null;
+  const resolvedMaxAttempts = resolveActiveStepMaxAttempts(state, active);
+  if (resolvedMaxAttempts == null) return null;
+  const gateRecoveryDisplay = resolveGateRecoveryDisplayPhase({
+    flowState: state,
+    stepId: active.id,
+    maxAttempts: resolvedMaxAttempts,
+  });
+  if (!gateRecoveryDisplay) return null;
+  const retryRecovery = buildStatusRetryRecoveryView(root, state, {
+    kind: "gate",
+    phase: gateRecoveryDisplay.phase,
+    attempts: gateRecoveryDisplay.attempts,
+    max: gateRecoveryDisplay.max,
+  });
+  const gateStop = retryRecovery?.attempts >= retryRecovery?.max ? retryRecovery : null;
+  return { gateStop, retryRecovery };
 }
 
 function buildStatusOutput(state, root) {
@@ -149,12 +200,16 @@ function buildStatusOutput(state, root) {
   // children (test-execute, test-result-review, retro, finalize-*) are
   // reflected accurately in stepsProgress.
   const leafSteps = state.steps ? flattenSteps(state.steps) : [];
+  const active = findLatestInProgressLeaf(leafSteps);
   const doneSteps = leafSteps.filter((s) => s.status === "done" || s.status === "skipped").length;
   const totalSteps = leafSteps.length;
   const requirements = loadSpecRequirements(root, state.spec);
   const doneReqs = requirements.filter((r) => r.status === "done").length;
   const totalReqs = requirements.length;
-  const reviewStop = buildStatusReviewStop(state, leafSteps);
+  const reviewViews = buildStatusReviewViews(state, active, root);
+  const reviewStop = reviewViews?.reviewStop || null;
+  const gateViews = buildStatusGateViews(state, active, root);
+  const retryRecovery = reviewViews?.retryRecovery || gateViews?.retryRecovery || null;
 
   // autoApprove is always false in preparing state
   const autoApprove = state.lifecycle === "preparing" ? false : (state.autoApprove || false);
@@ -178,6 +233,8 @@ function buildStatusOutput(state, root) {
     metrics: state.metrics || [],
     metricsSummary: buildMetricsSummary(state.metrics || []),
     ...(reviewStop && { reviewStop }),
+    ...(gateViews?.gateStop && { gateStop: gateViews.gateStop }),
+    ...(retryRecovery && { retryRecovery }),
     mergeStrategy: state.mergeStrategy || null,
     autoApprove,
     broadModeHistory: broadMode.entries,

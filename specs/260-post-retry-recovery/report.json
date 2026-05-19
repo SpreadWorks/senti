@@ -1,0 +1,366 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".agents/skills/sdd-forge.flow/SKILL.md             |    3 +-\n .claude/skills/sdd-forge.flow/SKILL.md             |    3 +-\n .sdd-forge/output/analysis.json                    |    2 +-\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   17 +\n .../draft-questions-triage.json                    |   15 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   19 +\n specs/260-post-retry-recovery/draft.json           |  173 ++\n specs/260-post-retry-recovery/file-map.json        |   65 +\n specs/260-post-retry-recovery/flow.json            | 3239 ++++++++++++++++++++\n specs/260-post-retry-recovery/issue-log.json       |  245 ++\n specs/260-post-retry-recovery/issue.md             |   66 +\n specs/260-post-retry-recovery/review.md            |  211 ++\n specs/260-post-retry-recovery/spec-repair.json     |   65 +\n .../spec-review-triage.json                        |   36 +\n specs/260-post-retry-recovery/spec-review.json     |   67 +\n specs/260-post-retry-recovery/spec-review.md       |   42 +\n specs/260-post-retry-recovery/spec.json            |  349 +++\n specs/260-post-retry-recovery/spec.md              |  158 +\n specs/260-post-retry-recovery/tasks/T-1.md         |   20 +\n specs/260-post-retry-recovery/tasks/T-2.md         |   20 +\n specs/260-post-retry-recovery/tasks/T-3.md         |   20 +\n specs/260-post-retry-recovery/tasks/T-4.md         |   20 +\n .../tests/retry-recovery-contract.test.js          | 1096 +++++++\n src/flow/definition.js                             |   50 +-\n src/flow/lib/gate-recovery-display.js              |   50 +\n src/flow/lib/get-next-action.js                    |   71 +-\n src/flow/lib/get-status.js                         |   73 +-\n src/flow/lib/retry-recovery.js                     |  773 +++++\n src/flow/lib/review-failure.js                     |    2 +-\n src/flow/lib/run-gate.js                           |   32 +\n src/flow/lib/run-review.js                         |   40 +-\n src/flow/lib/set-retry.js                          |  173 +-\n src/flow/prompts/impl/review.md                    |    3 +-\n src/flow/prompts/plan/review-spec.md               |    2 +-\n src/flow/prompts/plan/review-test.md               |    3 +-\n src/flow/prompts/task/review.md                    |    4 +-\n src/flow/registry.js                               |   16 +-\n src/lib/flow-manager.js                            |    1 +\n src/lib/flow-store.js                              |   60 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |    3 +-\n 43 files changed, 7228 insertions(+), 106 deletions(-)",
+      "commits": [
+        "feat: feature/260-post-retry-recovery"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 21,
+      "entries": [
+        {
+          "step": "draft",
+          "reason": "set request failed because the user command prefix contained a dollar sign and was double-quoted",
+          "resolution": "reran flow set request with single quotes and preserved the linked issue summary"
+        },
+        {
+          "step": "draft",
+          "reason": "metric recording used the flow status phase value plan, but the metric command accepts draft/spec/gate style phases",
+          "resolution": "recorded the srcRead metric with phase draft, matching the current draft step"
+        },
+        {
+          "step": "draft",
+          "reason": "initial draft edit used a relative path resolved outside the active worktree by the patch tool",
+          "resolution": "applied the same draft.json patch with an absolute path under the active worktree"
+        },
+        {
+          "step": "gate-draft",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "draft gate failed because approval.approved remained false after coverage review passed with no repair items",
+          "resolution": "set draft approval to true with an autoApprove note after confirming every QA entry was answered and coverage review passed"
+        },
+        {
+          "step": "gate-draft",
+          "reason": "Single Responsibility — The draft stays within the user-defined Issue scope: retry-exhausted recovery after changed diff or evidence, including audit trail and status/next-action visibility.; Unambiguous Requirements — The draft states verifiable conditions such as affected kind/phase, one recovery per retry-exhausted target, required audit fields, and specific status/next-action outputs.; Complete Context — The requirements provide enough concrete context for reviewers to judge satisfaction, including recovery eligibility, scope boundaries, audit fields, and test expectations.; No Hardcoded Secrets — The content is a specification draft and does not include source code, API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — requirements number more than three items, but no must/should/nice-to-have priority is assigned to each requirement — The draft contains more than three requirement-like items across scope, QA, and known facts, but does not assign each requirement one of the required priorities: must, should, or nice-to-have. (at Content); Impact on Existing Features — The draft includes an impactOnExisting list naming affected existing features and interfaces.; Present Recommendations with Reasoning — Each QA question is answered with a recommended answer first and includes evidence plus a concise why rationale grounded in issue details, project rules, or existing code patterns.; Explore Before Asking — The QA entries cite Issue #331, AGENTS.md, and existing code files/functions before settling answers, indicating codebase and project-context exploration was used before asking.; Proactively Raise Related Implications — The draft raises related implications such as alpha compatibility policy, audit trail requirements, status/next-action visibility, retry counter metrics, and command UX impact.; Confirm Brainstorm vs. Decision Before Critiquing — The content does not critique a brainstorming idea or evaluate an undecided proposal as final, so the guardrail is inapplicable by nature of this draft.; Capture Digressions in draft.md — No digressive discussion is present in the provided content, so there is no key digression that must be captured in draft.md.; Backward-Compatible CLI Interface — 既存 reset command の意味が変わる場合、alpha 版ポリシーに従って旧挙動の互換維持はせず、help / prompt / spec に新しい必須入力や recovery 条件を明記する扱いでよいですか。 — The draft acknowledges that the existing reset command meaning may change, but the spec content shown does not include a migration plan as required for removing or changing the meaning of existing commands or options. (at qa[5].question); Backward-Compatible CLI Interface — はい。alpha 版ポリシーに従い、旧挙動維持のための互換 layer は追加せず、help / prompt / spec に新しい recovery 条件を明記します。 — This states no backward-compatible layer will be added and that documentation will mention new conditions, but it does not provide a migration plan for users of the existing command. (at qa[5].answer)",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "draft gate failed guardrails for missing requirement priorities and missing CLI migration plan",
+          "resolution": "added must/should/nice-to-have priority guidance and documented a migration plan for changed retry reset command behavior"
+        },
+        {
+          "step": "spec-repair",
+          "reason": "spec review found blocking gaps in recoverable gate scope, review failure baselines, evidence source mapping, and recovery artifact target",
+          "resolution": "updated spec.json to define supported phases, review baselines, phase-specific evidence mapping, retry-recovery.json schema, and related tests"
+        },
+        {
+          "step": "scenario-validity",
+          "reason": "scenario-validity classified all spec-local tests as invalid_test because they dynamically imported a missing future module",
+          "resolution": "rewrote the tests to use source-text assertions against existing files and optional future module content, producing assertion failures instead of module resolution errors"
+        },
+        {
+          "step": "review-test",
+          "reason": "test review subprocess failed while trying to auto-fix static source-regex tests after reporting behavioral coverage gaps",
+          "resolution": "rewrote spec-local tests as behavioral contract tests that assert module existence before importing and exercise recovery classes, mapping, views, and CLI help"
+        },
+        {
+          "step": "review-test",
+          "reason": "test review auto-fix subprocess failed again after reporting 17 coverage gaps",
+          "resolution": "manual repair will expand the behavioral contract tests to cover validation, eligibility, side effects, counters, display surfaces, and guidance"
+        },
+        {
+          "step": "review-test",
+          "reason": "test review auto-fix subprocess failed again after reporting 13 remaining gaps",
+          "resolution": "manual repair narrowed coverage gaps and will add remaining explicit cases from the regenerated test design"
+        },
+        {
+          "step": "review-test",
+          "reason": "review-test retry loop stopped after repeated auto-fix subprocess errors without a PASS or REVIEW_MAX_ATTEMPTS_EXCEEDED envelope",
+          "resolution": "stop and return control because the review command error retry budget is exhausted"
+        },
+        {
+          "step": "review",
+          "reason": "review retry reset used after applying code review proposals because earlier control-plane review attempts did not persist recovery baselines",
+          "resolution": "Reset the control-plane review retry counter and rerun review with the worktree CLI implementation."
+        },
+        {
+          "step": "review",
+          "reason": "remaining implementation review proposals were triaged as non-blocking style guidance or placeholder wording conflicts after tests passed",
+          "resolution": "No further product changes applied; proceed to deterministic test and gate validation."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — SetRetryCommand constructs RetryRecoveryInput before metric/artifact mutation; it validates reset action, gate/review kind, allowed phase, trimmed reason length, and mandatory --yes, returning Envelope.fail on invalid input.; R2 — Recoverable target logic limits gate to task-impl/integration and canonical review to draft-questions/draft-coverage/spec/test/impl; gate draft/spec resolve as recoveryPossible:false with unsupported-plan-gate-phase, and set-retry input validation rejects gate draft/spec by allowing only gate recoverable phases.; R3 — Review FAIL paths persist a canonical phase recovery baseline when the next FAIL reaches maxAttempts, and review stop handling persists the baseline in the same mutation before writing reviewStop state.; R4 — set-retry checks exhausted attempts against resolved maxAttempts and calls buildRecoveryEligibilityForState, which uses resolveRecoveryEvidenceSource and latestMatchingBaseline by canonical kind/phase.; R5 — Exhausted reset checks eligibility before mutation; unchanged evidence returns Envelope.fail and exits before appending reset metrics, recovery artifact, or retry allowance metrics.; R6 — Eligible exhausted reset appends retry-recovery.json and issue-log entries with all required audit fields.; R7 — Recovery grant appends reset plus canonical-phase delta=maxAttempts-1 metrics, and existing gate/review PASS paths still append reset metrics to clear counters.; R8 — Diff adds retryRecovery views to next-action and status for exhausted review/gate stops, exposing kind, phase, canonicalPhase, attempts, max, recoveryPossible, recoveryReason, changedEvidence, and recoveryCommand fields.; R9 — Recovery grant sets counter to maxAttempts-1; subsequent FAIL increments back to exhaustion, and no automatic recovery grant path is introduced.; R10 — CLI help and flow prompts were updated, and the source skill template mentions reason/audit/one re-evaluation/unchanged rejection, but the generated .agents/.claude skill files in the diff do not include the retry recovery guidance update.; R11 — Spec-local test file added under specs/260-post-retry-recovery/tests covers eligible recovery, unchanged rejection, one-attempt allowance, audit artifact/issue-log creation, and next-action/status display.",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: generated flow skill files were synchronized with retry recovery guidance",
+          "resolution": "Ran node src/sdd-forge.js upgrade so .agents and .claude skill files contain --reason, audit, one re-evaluation, and unchanged-evidence guidance."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — Diff updates CLI help, review prompts, and generated skill templates to show --reason --yes audited recovery, one re-evaluation, and unchanged evidence rejection.; R11 — previously passed (skipped on retry); Spec Test Coverage — The diff adds spec-local coverage under specs/260-post-retry-recovery/tests/retry-recovery-contract.test.js, and the file starts with a // spec: R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 header.; Avoid Overengineering — missing confirmed design direction before implementation — The diff is a non-trivial multi-file implementation touching CLI behavior, flow state, recovery artifacts, status output, prompts, templates, and tests. The guardrail requires presenting the design direction to the user and proceeding only after confirmation, but no confirmation artifact is present in the provided content. (at Git Diff); Avoid Overengineering — function definitionOrderMap(definition) — This added helper is a single-caller indirection used only by orderMapForDefinition and only wraps collectLeafIds into a Map. The guardrail prohibits introducing indirection layers that have a single caller. (at src/flow/definition.js); Avoid Overengineering — function assertInProgressScanBound(state) — This added helper is only called from scanLatestInProgressLeaf and only wraps one bounds check. The guardrail prohibits single-caller indirection layers. (at src/flow/definition.js); Avoid Overengineering — function resolveStatusRetryRecovery({ reviewRetryRecovery, gateRetryRecovery }) — This added helper has a single caller and only returns the first non-null recovery view. That is an indirection layer with one caller. (at src/flow/lib/get-status.js); Avoid Overengineering — function canMutateRecoveryState(ctx) — This added helper is only called by mutateReviewRecoveryState and only wraps a Boolean capability check. The guardrail prohibits single-caller indirection layers. (at src/flow/lib/run-review.js); Avoid Overengineering — function inputWithPhase(input, phase) — This added helper is only called once in SetRetryCommand.execute and only rebuilds RetryRecoveryInput with one changed field. It introduces a single-caller indirection layer. (at src/flow/lib/set-retry.js); Avoid Overengineering — function formatRecoveryRejectionCode(reason) — This added helper is only called by failRecoveryRejection and only performs a string replacement. The guardrail prohibits single-caller indirection layers. (at src/flow/lib/set-retry.js); Avoid Overengineering — function failRecoveryRejection({ kind, phase, attemptsBefore, maxAttempts, eligibility }) — This added helper is only called once from SetRetryCommand.execute and wraps a single Envelope.fail construction. It is a single-caller indirection layer. (at src/flow/lib/set-retry.js); Avoid Overengineering — function gatePhasesForStep(stepId) — This added helper is only called by resolveGateRecoveryDisplayPhase and only forwards through resolveNodeFor plus a type check. The guardrail prohibits single-caller indirection layers. (at src/flow/lib/gate-recovery-display.js); Avoid Overengineering — function isSameSyntheticHash(hash) — This added helper is only called once and only hides the literal comparison hash === \"same\". It is a single-caller indirection layer. (at src/flow/lib/retry-recovery.js); Avoid Overengineering — function isHexSha256(value) — This added helper is only called once by resolveRecoveryMaxAttempts and only wraps a regular-expression test. The guardrail prohibits single-caller indirection layers. (at src/flow/lib/retry-recovery.js)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: removed single-caller helper indirections and documented confirmed design direction",
+          "resolution": "Inlined no-overengineering helper wrappers and added spec clarification with the approved data flow, layer boundaries, and confirmation timestamp."
+        },
+        {
+          "step": "final-regression",
+          "reason": "final-regression failed: pre_existing",
+          "resolution": null
+        },
+        {
+          "step": "final-regression",
+          "reason": "user confirmed final project regression failure is pre-existing",
+          "resolution": "recorded the existing failure and continued the current #331 flow without changing product code for unrelated regression"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 6,
+      "question": 0,
+      "issueLog": 16
+    },
+    "tokenMetrics": {
+      "input": 2221941,
+      "output": 272844,
+      "cacheRead": 7906304,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 152,
+      "durationMs": 6062686,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 17643
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 21512
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 48970
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 259764
+        },
+        {
+          "phase": "gate",
+          "durationMs": 26125
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 1282512
+        },
+        {
+          "phase": "review",
+          "durationMs": 3986334
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 419826
+        }
+      ]
+    },
+    "tests": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/260-post-retry-recovery/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/260-post-retry-recovery/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/definition.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/gate-recovery-display.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/get-next-action.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/get-status.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/retry-recovery.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/review-failure.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-gate.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-review.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/set-retry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-store.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/260-post-retry-recovery/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/gate-recovery-display.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/retry-recovery.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-failure.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-retry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/260-post-retry-recovery/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/definition.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/gate-recovery-display.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-next-action.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/get-status.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/flow/lib/retry-recovery.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/review-failure.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-gate.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-review.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/set-retry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "pre_existing",
+        "rawOutputPath": "specs/260-post-retry-recovery/tests/.raw/final-regression.log",
+        "retryable": false,
+        "nextAction": "user-confirmation"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/260-post-retry-recovery\n    43 files changed, 7228 insertions(+), 106 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 6\n    Q&A ......................... 0\n    issue-log ................... 16\n    agent calls ................. 152\n    input tokens ................ 2,221,941\n    output tokens ............... 272,844\n    cache-read tokens ........... 7,906,304\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 6062.7s\n      review-draft-questions .... 17.6s\n      review-draft-coverage ..... 21.5s\n      gate-draft ................ 49.0s\n      review-spec ............... 259.8s\n      gate ...................... 26.1s\n      review-test ............... 1282.5s\n      review .................... 3986.3s\n      gate-impl ................. 419.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 11  passed 11  failed 0 verdict=pass\n    raw_output: specs/260-post-retry-recovery/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=pre_existing\n\n  Issue Log (21)\n  ────────────────────────────────────────────────\n    [draft] set request failed because the user command prefix contained a dollar sign and was double-quoted\n    [draft] metric recording used the flow status phase value plan, but the metric command accepts draft/spec/gate style phases\n    [draft] initial draft edit used a relative path resolved outside the active worktree by the patch tool\n    [gate-draft] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    [gate-draft] draft gate failed because approval.approved remained false after coverage review passed with no repair items\n    [gate-draft] Single Responsibility — The draft stays within the user-defined Issue scope: retry-exhausted recovery after changed diff or evidence, including audit trail and status/next-action visibility.; Unambiguous Requirements — The draft states verifiable conditions such as affected kind/phase, one recovery per retry-exhausted target, required audit fields, and specific status/next-action outputs.; Complete Context — The requirements provide enough concrete context for reviewers to judge satisfaction, including recovery eligibility, scope boundaries, audit fields, and test expectations.; No Hardcoded Secrets — The content is a specification draft and does not include source code, API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — requirements number more than three items, but no must/should/nice-to-have priority is assigned to each requirement — The draft contains more than three requirement-like items across scope, QA, and known facts, but does not assign each requirement one of the required priorities: must, should, or nice-to-have. (at Content); Impact on Existing Features — The draft includes an impactOnExisting list naming affected existing features and interfaces.; Present Recommendations with Reasoning — Each QA question is answered with a recommended answer first and includes evidence plus a concise why rationale grounded in issue details, project rules, or existing code patterns.; Explore Before Asking — The QA entries cite Issue #331, AGENTS.md, and existing code files/functions before settling answers, indicating codebase and project-context exploration was used before asking.; Proactively Raise Related Implications — The draft raises related implications such as alpha compatibility policy, audit trail requirements, status/next-action visibility, retry counter metrics, and command UX impact.; Confirm Brainstorm vs. Decision Before Critiquing — The content does not critique a brainstorming idea or evaluate an undecided proposal as final, so the guardrail is inapplicable by nature of this draft.; Capture Digressions in draft.md — No digressive discussion is present in the provided content, so there is no key digression that must be captured in draft.md.; Backward-Compatible CLI Interface — 既存 reset command の意味が変わる場合、alpha 版ポリシーに従って旧挙動の互換維持はせず、help / prompt / spec に新しい必須入力や recovery 条件を明記する扱いでよいですか。 — The draft acknowledges that the existing reset command meaning may change, but the spec content shown does not include a migration plan as required for removing or changing the meaning of existing commands or options. (at qa[5].question); Backward-Compatible CLI Interface — はい。alpha 版ポリシーに従い、旧挙動維持のための互換 layer は追加せず、help / prompt / spec に新しい recovery 条件を明記します。 — This states no backward-compatible layer will be added and that documentation will mention new conditions, but it does not provide a migration plan for users of the existing command. (at qa[5].answer)\n    [gate-draft] draft gate failed guardrails for missing requirement priorities and missing CLI migration plan\n    [spec-repair] spec review found blocking gaps in recoverable gate scope, review failure baselines, evidence source mapping, and recovery artifact target\n    [scenario-validity] scenario-validity classified all spec-local tests as invalid_test because they dynamically imported a missing future module\n    [review-test] test review subprocess failed while trying to auto-fix static source-regex tests after reporting behavioral coverage gaps\n    [review-test] test review auto-fix subprocess failed again after reporting 17 coverage gaps\n    [review-test] test review auto-fix subprocess failed again after reporting 13 remaining gaps\n    [review-test] review-test retry loop stopped after repeated auto-fix subprocess errors without a PASS or REVIEW_MAX_ATTEMPTS_EXCEEDED envelope\n    [review] review retry reset used after applying code review proposals because earlier control-plane review attempts did not persist recovery baselines\n    [review] remaining implementation review proposals were triaged as non-blocking style guidance or placeholder wording conflicts after tests passed\n    [gate] R1 — SetRetryCommand constructs RetryRecoveryInput before metric/artifact mutation; it validates reset action, gate/review kind, allowed phase, trimmed reason length, and mandatory --yes, returning Envelope.fail on invalid input.; R2 — Recoverable target logic limits gate to task-impl/integration and canonical review to draft-questions/draft-coverage/spec/test/impl; gate draft/spec resolve as recoveryPossible:false with unsupported-plan-gate-phase, and set-retry input validation rejects gate draft/spec by allowing only gate recoverable phases.; R3 — Review FAIL paths persist a canonical phase recovery baseline when the next FAIL reaches maxAttempts, and review stop handling persists the baseline in the same mutation before writing reviewStop state.; R4 — set-retry checks exhausted attempts against resolved maxAttempts and calls buildRecoveryEligibilityForState, which uses resolveRecoveryEvidenceSource and latestMatchingBaseline by canonical kind/phase.; R5 — Exhausted reset checks eligibility before mutation; unchanged evidence returns Envelope.fail and exits before appending reset metrics, recovery artifact, or retry allowance metrics.; R6 — Eligible exhausted reset appends retry-recovery.json and issue-log entries with all required audit fields.; R7 — Recovery grant appends reset plus canonical-phase delta=maxAttempts-1 metrics, and existing gate/review PASS paths still append reset metrics to clear counters.; R8 — Diff adds retryRecovery views to next-action and status for exhausted review/gate stops, exposing kind, phase, canonicalPhase, attempts, max, recoveryPossible, recoveryReason, changedEvidence, and recoveryCommand fields.; R9 — Recovery grant sets counter to maxAttempts-1; subsequent FAIL increments back to exhaustion, and no automatic recovery grant path is introduced.; R10 — CLI help and flow prompts were updated, and the source skill template mentions reason/audit/one re-evaluation/unchanged rejection, but the generated .agents/.claude skill files in the diff do not include the retry recovery guidance update.; R11 — Spec-local test file added under specs/260-post-retry-recovery/tests covers eligible recovery, unchanged rejection, one-attempt allowance, audit artifact/issue-log creation, and next-action/status display.\n    [gate-impl] fix: generated flow skill files were synchronized with retry recovery guidance\n    [gate] R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); R10 — Diff updates CLI help, review prompts, and generated skill templates to show --reason --yes audited recovery, one re-evaluation, and unchanged evidence rejection.; R11 — previously passed (skipped on retry); Spec Test Coverage — The diff adds spec-local coverage under specs/260-post-retry-recovery/tests/retry-recovery-contract.test.js, and the file starts with a // spec: R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 header.; Avoid Overengineering — missing confirmed design direction before implementation — The diff is a non-trivial multi-file implementation touching CLI behavior, flow state, recovery artifacts, status output, prompts, templates, and tests. The guardrail requires presenting the design direction to the user and proceeding only after confirmation, but no confirmation artifact is present in the provided content. (at Git Diff); Avoid Overengineering — function definitionOrderMap(definition) — This added helper is a single-caller indirection used only by orderMapForDefinition and only wraps collectLeafIds into a Map. The guardrail prohibits introducing indirection layers that have a single caller. (at src/flow/definition.js); Avoid Overengineering — function assertInProgressScanBound(state) — This added helper is only called from scanLatestInProgressLeaf and only wraps one bounds check. The guardrail prohibits single-caller indirection layers. (at src/flow/definition.js); Avoid Overengineering — function resolveStatusRetryRecovery({ reviewRetryRecovery, gateRetryRecovery }) — This added helper has a single caller and only returns the first non-null recovery view. That is an indirection layer with one caller. (at src/flow/lib/get-status.js); Avoid Overengineering — function canMutateRecoveryState(ctx) — This added helper is only called by mutateReviewRecoveryState and only wraps a Boolean capability check. The guardrail prohibits single-caller indirection layers. (at src/flow/lib/run-review.js); Avoid Overengineering — function inputWithPhase(input, phase) — This added helper is only called once in SetRetryCommand.execute and only rebuilds RetryRecoveryInput with one changed field. It introduces a single-caller indirection layer. (at src/flow/lib/set-retry.js); Avoid Overengineering — function formatRecoveryRejectionCode(reason) — This added helper is only called by failRecoveryRejection and only performs a string replacement. The guardrail prohibits single-caller indirection layers. (at src/flow/lib/set-retry.js); Avoid Overengineering — function failRecoveryRejection({ kind, phase, attemptsBefore, maxAttempts, eligibility }) — This added helper is only called once from SetRetryCommand.execute and wraps a single Envelope.fail construction. It is a single-caller indirection layer. (at src/flow/lib/set-retry.js); Avoid Overengineering — function gatePhasesForStep(stepId) — This added helper is only called by resolveGateRecoveryDisplayPhase and only forwards through resolveNodeFor plus a type check. The guardrail prohibits single-caller indirection layers. (at src/flow/lib/gate-recovery-display.js); Avoid Overengineering — function isSameSyntheticHash(hash) — This added helper is only called once and only hides the literal comparison hash === \"same\". It is a single-caller indirection layer. (at src/flow/lib/retry-recovery.js); Avoid Overengineering — function isHexSha256(value) — This added helper is only called once by resolveRecoveryMaxAttempts and only wraps a regular-expression test. The guardrail prohibits single-caller indirection layers. (at src/flow/lib/retry-recovery.js)\n    [gate-impl] fix: removed single-caller helper indirections and documented confirmed design direction\n    [final-regression] final-regression failed: pre_existing\n    [final-regression] user confirmed final project regression failure is pre-existing"
+}

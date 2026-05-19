@@ -19,6 +19,7 @@ import {
   writeReviewStopState,
 } from "./review-failure.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
+import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
 import {
   RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS,
 } from "./test-artifacts.js";
@@ -36,6 +37,9 @@ const DEFAULT_DRAFT_REVIEW_ROUTE_RETRY_PHASE = "draft-questions";
 const REVIEW_VERDICT_VALUES = Object.freeze(["PASS", "ADVISORY", "FAIL", "TOOLING_FAILURE"]);
 const REVIEW_VERDICTS = new Set(REVIEW_VERDICT_VALUES);
 const REVIEW_VERDICT_PATTERN = new RegExp(`verdict=(${REVIEW_VERDICT_VALUES.join("|")})`);
+const REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "review-retry-exhausted";
+const REVIEW_RECOVERY_TRIGGER_STOP = "review-stop";
+const REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL = "review-verdict-fail";
 
 // ---------------------------------------------------------------------------
 // Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
@@ -67,6 +71,24 @@ function taskCursorRequiredReviewFailure(decision, state) {
     taskScopeViolationMessages(decision, "review"),
     { currentTaskId: state?.currentTaskId ?? null },
   );
+}
+
+function mutateReviewRecoveryState(ctx, phase, trigger, afterPersist) {
+  if (!ctx?.root || typeof ctx?.flowManager?.mutate !== "function") return false;
+  let persisted = false;
+  ctx.flowManager.mutate((state) => {
+    if (!state?.spec) return;
+    persistCurrentRecoveryBaseline({
+      root: ctx.root,
+      flowState: state,
+      kind: "review",
+      phase,
+      trigger,
+    });
+    persisted = true;
+    if (afterPersist) afterPersist(state);
+  });
+  return persisted;
 }
 
 function resolveDraftReviewPhaseKey(flowState = {}) {
@@ -137,11 +159,12 @@ export function checkReviewRetryBelowMax(ctx, phase) {
   }
   const count = countReviewRetry(flowState.metrics, persistedPhase);
   if (count < max) return null;
+  mutateReviewRecoveryState(ctx, persistedPhase, REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED);
   const failure = ReviewFailure.maxAttemptsExceeded({ phase: persistedPhase, attempts: count, max });
   return Envelope.fail("run", "review", "REVIEW_MAX_ATTEMPTS_EXCEEDED",
     [
       `review retry limit exhausted: ${count}/${max} FAIL attempts recorded for phase "${persistedPhase}".`,
-      "Stop the automatic retry loop and return control to the user. Use `sdd-forge flow set retry reset review <phase> --yes` to recover.",
+      "Stop the automatic retry loop and return control to the user. Use `sdd-forge flow set retry reset review <phase> --reason <text> --yes` to recover after changed evidence.",
     ],
     failure.toEnvelopeData());
 }
@@ -173,9 +196,14 @@ export function updateReviewRetryCounter(ctx, result) {
     isPass = result?.artifacts?.verdict === "PASS"
       || result?.artifacts?.verdict === "ADVISORY";
   }
+  const attemptsBefore = countReviewRetry(flowState.metrics, persistedPhase);
+  const maxAttempts = resolveReviewRetryMax({ flowState }, persistedPhase);
   const payload = isPass
     ? { phase: persistedPhase, counter: "reviewRetry", delta: 0, reset: true }
     : { phase: persistedPhase, counter: "reviewRetry", delta: 1 };
+  if (!isPass && attemptsBefore + 1 >= maxAttempts) {
+    mutateReviewRecoveryState(ctx, persistedPhase, REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL);
+  }
   mgr.appendMetric(payload, { taskId: null }); // R19: explicit flow-scope
   if (isPass && typeof mgr.mutate === "function") {
     mgr.mutate((state) => clearReviewStopState(state, persistedPhase));
@@ -440,9 +468,13 @@ export class RunReviewCommand extends FlowCommand {
     if (!res.ok) {
       const failure = ReviewFailure.fromSubprocessResult({ phase: persistedPhase, result: res });
       if (failure.shouldPersistStopState()) {
-        if (ctx.flowManager) {
-          ctx.flowManager.mutate((state) => writeReviewStopState(state, failure));
-        }
+        const persisted = mutateReviewRecoveryState(
+          ctx,
+          persistedPhase,
+          REVIEW_RECOVERY_TRIGGER_STOP,
+          (state) => writeReviewStopState(state, failure),
+        );
+        if (!persisted) writeReviewStopState(ctx.flowState, failure);
         return Envelope.fail("run", "review", failure.toEnvelopeCode(),
           [`review stopped: ${failure.reason}`],
           failure.toEnvelopeData());

@@ -25,6 +25,9 @@ import {
 import { promoteNextPending } from "../../lib/flow-helpers.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
 import { buildReviewStopView, reviewPhaseForStepId } from "./review-failure.js";
+import { resolveGateRecoveryDisplayPhase } from "./gate-recovery-display.js";
+import { countReviewRetry } from "./run-review.js";
+import { buildStateRetryRecoveryView, resolveRecoveryMaxAttempts } from "./retry-recovery.js";
 import {
   evaluateTaskScope,
   taskScopeViolationMessages,
@@ -93,6 +96,27 @@ function buildContextDescriptor(kinds, target, state) {
 function isFlowImplementationStep(target) {
   return target?.scope === "flow"
     && ["implement", "review", "gate-impl"].includes(target.stepId);
+}
+
+function attachRetryRecovery(result, stopKey, stopView, retryRecovery) {
+  const view = retryRecovery ? { ...(stopView || {}), ...retryRecovery } : stopView;
+  if (view && stopKey) result[stopKey] = view;
+  if (retryRecovery) result.retryRecovery = retryRecovery;
+  if (!view) return;
+  for (const key of ["stopReason", "classification", "phase", "retryBudgetConsumed", "recoveryCommand", "reason", "recoveryHint"]) {
+    if (view[key] !== undefined) result[key] = view[key];
+  }
+}
+
+function buildRetryRecoveryForState(ctx, state, { kind, phase, attempts, max }) {
+  return buildStateRetryRecoveryView({
+    root: ctx.root,
+    flowState: state,
+    kind,
+    phase,
+    attempts,
+    max,
+  });
 }
 
 function promoteNextTaskAndFirstStep(state) {
@@ -219,22 +243,45 @@ export default class GetNextActionCommand extends FlowCommand {
     }
     const reviewPhase = reviewPhaseForStepId(target.stepId);
     if (reviewPhase) {
+      const reviewAttempts = countReviewRetry(state.metrics, reviewPhase);
+      const reviewMaxAttempts = resolveRecoveryMaxAttempts({
+        flowState: state,
+        kind: "review",
+        phase: reviewPhase,
+        attempts: reviewAttempts,
+        resolvedMax: derived.maxAttempts,
+      });
       const reviewStop = buildReviewStopView(state, {
         surface: "next-action",
         phase: reviewPhase,
-        maxAttempts: derived.maxAttempts,
+        maxAttempts: reviewMaxAttempts,
       });
-      if (reviewStop) {
-        result.reviewStop = reviewStop;
-        Object.assign(result, {
-          stopReason: reviewStop.stopReason,
-          classification: reviewStop.classification,
-          phase: reviewStop.phase,
-          retryBudgetConsumed: reviewStop.retryBudgetConsumed,
-          recoveryCommand: reviewStop.recoveryCommand,
-          ...(reviewStop.reason && { reason: reviewStop.reason }),
-          ...(reviewStop.recoveryHint && { recoveryHint: reviewStop.recoveryHint }),
-        });
+      const retryRecovery = buildRetryRecoveryForState(ctx, state, {
+        kind: "review",
+        phase: reviewPhase,
+        attempts: reviewAttempts,
+        max: reviewMaxAttempts,
+      });
+      if (reviewStop || retryRecovery) {
+        attachRetryRecovery(result, "reviewStop", reviewStop, retryRecovery);
+      }
+    }
+    const gateRecoveryDisplay = target.stepId.startsWith("gate")
+      ? resolveGateRecoveryDisplayPhase({
+          flowState: state,
+          stepId: target.stepId,
+          maxAttempts: derived.maxAttempts,
+        })
+      : null;
+    if (gateRecoveryDisplay) {
+      const retryRecovery = buildRetryRecoveryForState(ctx, state, {
+        kind: "gate",
+        phase: gateRecoveryDisplay.phase,
+        attempts: gateRecoveryDisplay.attempts,
+        max: gateRecoveryDisplay.max,
+      });
+      if (retryRecovery) {
+        attachRetryRecovery(result, "gateStop", null, retryRecovery);
       }
     }
     return result;

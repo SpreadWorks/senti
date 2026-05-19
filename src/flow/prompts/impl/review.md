@@ -28,6 +28,7 @@
    - **If no proposals** (NO_PROPOSALS):
      - Display: "レビューの結果、修正の必要はありませんでした。"
    - **Retry limit:** Each `sdd-forge flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this flow-scope limit (spec 253). When count >= max, `sdd-forge flow run review` returns `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` and `data` containing `{ phase, attempts, max, recoveryCommand }`.
-   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. To recover, the general form is `sdd-forge flow set retry reset review <phase> --yes`; for this impl review phase, run `sdd-forge flow set retry reset review impl --yes` and then resume the review.
+   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. To recover after changed evidence, use `sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes`; for this impl review phase, run `sdd-forge flow set retry reset review impl --reason <text> --yes` and then run one re-review attempt.
+   - Recovery reason is required, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
    - **Provider/input-size recovery:** provider quota, rate limit, API error, and input size failures do not consume `reviewRetry`. Use the structured recovery command from `next-action` or `status` instead of parsing raw stderr.
    - **issue-log policy:** Do not add issue-log entries solely for ordinary provider or input size failures. Record issue-log only when a workaround is applied, a specification decision changes, or manual recovery remains unresolved.

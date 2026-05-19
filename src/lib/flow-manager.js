@@ -54,6 +54,7 @@ export class FlowManager {
   mutate(mutator) { return this._store.mutate(mutator); }
   pathFor(specId) { return this._store.pathFor(specId); }
   pathForCurrent() { return this._store.pathForCurrent(); }
+  rollbackLastRunIdMigration() { return this._store.rollbackLastRunIdMigration(); }
   /** Alias preserved for parity with the legacy `flowStatePath` public export. */
   flowStatePath() { return this._store.pathForCurrent(); }
   resolveWorktreePaths(state) { return this._store.resolveWorktreePaths(state); }

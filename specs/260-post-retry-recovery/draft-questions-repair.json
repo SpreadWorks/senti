@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 1 draft question repair; q5 is now a single question.",
+  "items": [
+    {
+      "title": "1. q5 includes non-question text",
+      "target": "q5",
+      "rationale": "Removed the explanatory second sentence and kept the existing CLI-shape decision as a single self-contained question.",
+      "evidence": "draft.json qa[4].question now ends after asking whether to extend the existing retry reset command.",
+      "changedFieldPaths": [
+        "qa[4].question"
+      ]
+    }
+  ]
+}

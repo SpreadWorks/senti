@@ -30,6 +30,8 @@ import { draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 const FINALIZE_SUCCESS_STATUSES = new Set(["done", "completed", "skipped"]);
 const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir", "--log-file"];
 const DRAFT_REVIEW_RECORDED_VERDICTS = new Set(["PASS", "ADVISORY", "FAIL"]);
+const RETRY_HELP_GATE_PHASES = Object.freeze(["task-impl", "integration"]);
+const RETRY_HELP_REVIEW_PHASES = Object.freeze(["draft", "draft-questions", "draft-coverage", "spec", "test", "impl"]);
 export const DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY = Object.freeze({
   review: "detection",
   triage: "disposition",
@@ -429,15 +431,15 @@ export const FLOW_COMMANDS = {
     retry: {
       helpKey: "flow.set.retry",
       command: () => import("./lib/set-retry.js"),
-      args: { positional: ["action", "kind", "phase"], flags: ["--yes"] },
+      args: { positional: ["action", "kind", "phase"], flags: ["--yes"], options: ["--reason"] },
       help: [
-        "Usage: sdd-forge flow set retry reset <gate|review> <phase> --yes",
+        "Usage: sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes",
         "",
-        "Reset a retry counter (gateRetry or reviewRetry) for <phase>.",
-        "  gate   phases: task-impl | integration",
-        "  review phases: draft | spec | test | impl",
-        "Appends a reset metric entry so the counter returns 0 on the next",
-        "evaluation. --yes is required to avoid accidental resets.",
+        "Reset an exhausted retry counter as an audited recovery for <phase>.",
+        `  gate   phases: ${RETRY_HELP_GATE_PHASES.join(" | ")}`,
+        `  review phases: ${RETRY_HELP_REVIEW_PHASES.join(" | ")}`,
+        "Audited exhausted recovery requires changed evidence and grants one re-evaluation.",
+        "Unchanged evidence is rejected. --reason and --yes are required.",
       ].join("\n"),
     },
     auto: {

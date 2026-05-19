@@ -552,13 +552,59 @@ export function findActiveNode(steps, tasks, currentTaskId) {
   if (currentTaskId != null && Array.isArray(tasks)) {
     const task = tasks.find((t) => t.id === currentTaskId);
     if (task && Array.isArray(task.steps)) {
-      const step = findInProgressLeaf(task.steps);
+      const step = findLatestInProgressLeaf(task.steps, TASK_DEFINITION);
       if (step) return { scope: "task", taskId: currentTaskId, stepId: step.id };
     }
   }
-  const step = findInProgressLeaf(steps);
+  const step = findLatestInProgressLeaf(steps, FLOW_DEFINITION);
   if (step) return { scope: "flow", taskId: null, stepId: step.id };
   return null;
+}
+
+const MAX_IN_PROGRESS_STEP_SCAN = 500;
+const DEFINITION_ORDER_CACHE = new WeakMap();
+
+function scanLatestInProgressLeaf(steps, order, state, depth = 1) {
+  assertDepth(depth);
+  if (!Array.isArray(steps)) return state;
+  for (const s of steps) {
+    state.scanned += 1;
+    if (state.scanned > MAX_IN_PROGRESS_STEP_SCAN) {
+      throw new Error(`too many flow steps while resolving active step (max ${MAX_IN_PROGRESS_STEP_SCAN})`);
+    }
+    if (s.children) {
+      scanLatestInProgressLeaf(s.children, order, state, depth + 1);
+      continue;
+    }
+    if (s.status === "in_progress") {
+      if (!order.has(s.id)) continue;
+      const index = order.get(s.id);
+      if (!state.step || index >= state.index) {
+        state.step = s;
+        state.index = index;
+      }
+    }
+  }
+  return state;
+}
+
+function orderMapForDefinition(definition) {
+  let order = DEFINITION_ORDER_CACHE.get(definition);
+  if (!order) {
+    order = new Map(collectLeafIds(definition).map((id, idx) => [id, idx]));
+    DEFINITION_ORDER_CACHE.set(definition, order);
+  }
+  return order;
+}
+
+export function findLatestInProgressLeaf(steps, definition = FLOW_DEFINITION) {
+  const order = orderMapForDefinition(definition);
+  const selected = scanLatestInProgressLeaf(
+    steps,
+    order,
+    { step: null, index: -1, scanned: 0 },
+  );
+  return selected.step;
 }
 
 export function findInProgressLeaf(steps, depth = 0) {

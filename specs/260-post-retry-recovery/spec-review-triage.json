@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "4 blocking spec review findings triaged as apply; each requires a concrete spec repair before gate.",
+  "items": [
+    {
+      "title": "Gate recovery scope conflicts with tracked gate phases",
+      "target": "Scope / Constraints / R6",
+      "decision": "apply",
+      "rationale": "The spec must distinguish recoverable gate task-impl/integration phases from tracked but unsupported draft/spec gate phases.",
+      "evidence": "spec-review.json blockingFindings[0] notes run-gate tracks draft, spec, task-impl, and integration while set-retry only accepts gate task-impl and integration."
+    },
+    {
+      "title": "Review recovery has no persisted failure baseline",
+      "target": "R2 / Overview Data Flow",
+      "decision": "apply",
+      "rationale": "Review recovery cannot compare changed evidence unless review FAIL/stop handling persists a baseline fingerprint.",
+      "evidence": "spec-review.json blockingFindings[1] states reviewRetry metrics alone do not store the prior failure fingerprint."
+    },
+    {
+      "title": "Evidence source mapping is undefined",
+      "target": "R2 / R3 / R6 / R9",
+      "decision": "apply",
+      "rationale": "Eligibility and display must use the same bounded source mapping so tests and implementation agree on changed evidence.",
+      "evidence": "spec-review.json blockingFindings[2] lists multiple possible phase-specific sources and requires a minimal mapping."
+    },
+    {
+      "title": "Recovery artifact target is unspecified",
+      "target": "R4 / R9",
+      "decision": "apply",
+      "rationale": "The audit requirement needs a named spec-local file and entry schema for implementation and tests.",
+      "evidence": "spec-review.json blockingFindings[3] says no artifact path or container shape is specified."
+    }
+  ]
+}

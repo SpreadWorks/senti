@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "phase": "review-draft-questions",
+  "sourceDraft": "draft.json",
+  "generatedAt": "2026-05-18T14:36:17.354Z",
+  "verdict": "ADVISORY",
+  "summary": "0 blocking, 0 advisory, 1 repair target finding(s) recorded.",
+  "blockingFindings": [],
+  "advisoryFindings": [],
+  "repairTargets": [
+    {
+      "title": "1. q5 includes non-question text",
+      "target": "q5",
+      "rationale": "Remove the second sentence, leaving only: `CLI は既存の \\`flow set retry reset <gate|review> <phase> --yes\\` を監査付き recovery 操作へ拡張する方針でよいですか。`",
+      "evidence": "A shown pending question appears to include an instruction instead of only the question text.",
+      "classification": "repair_target"
+    }
+  ]
+}

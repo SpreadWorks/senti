@@ -11,5 +11,7 @@ Use this guidance for the per-task code review step. Mirrors the flow-level revi
   4. Apply the proposals you judged to be valid.
   5. **Do NOT re-run tests here.** Spec-local execution belongs to the spec-level `test-execute` step and full project regression belongs to `final-regression` (TASK_DEFINITION does not run tests).
 - **If no proposals** (NO_PROPOSALS): Display "レビューの結果、修正の必要はありませんでした。"
-- **Retry limit:** Each `sdd-forge flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this limit (spec 253) for flow-scope reviews; task-scope reviews are not currently CLI-enforced, but the AI must still respect the task-scope soft limit from next-action maxAttempts. The current TASK_DEFINITION default is 1. If `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` is returned, STOP and return control to the user. Recovery: `sdd-forge flow set retry reset review <phase> --yes`.
+- **Retry limit:** Each `sdd-forge flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this limit (spec 253) for flow-scope reviews; task-scope reviews are not currently CLI-enforced, but the AI must still respect the task-scope soft limit from next-action maxAttempts. The current TASK_DEFINITION default is 1.
+- **Exceeded behavior:** If `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` is returned, STOP and return control to the user.
+- **Recovery:** Use `review` for review recovery and `gate` for gate recovery: `sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes`. The reason is required and audited, one re-evaluation is granted, and unchanged evidence is rejected.
 - On complete, the next-action CLI advances to `gate-impl`.

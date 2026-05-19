@@ -16,4 +16,6 @@
      - `TOOLING_FAILURE`: subprocess/parser/coverage-artifact failure. Do not treat this as test quality failure; recover the tooling issue or record explicit evidence before proceeding.
    - `review-test` does not auto-fix tests and does not run an internal PASS-seeking loop.
    - Re-run `review-test` only when requirements, acceptance criteria, target API, spec-local tests, or the requirement-to-test coverage artifact changed.
+   - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. Do not set step done. To recover after changed evidence, the user can run `sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes` (for this phase: `sdd-forge flow set retry reset review test --reason <text> --yes`) and then run exactly one re-review attempt.
+   - Recovery reason is required, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
    - Quality gates after implementation (`test-execute`, `test-result-review`, `review`, `gate-impl`, `final-regression`) remain mandatory and are not weakened by the one-shot review.

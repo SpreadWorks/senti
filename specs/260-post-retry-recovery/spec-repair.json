@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied 4 spec review repairs covering recoverable gate scope, review baselines, evidence mapping, and recovery artifact schema.",
+  "items": [
+    {
+      "title": "Gate recovery scope conflicts with tracked gate phases",
+      "target": "Scope / Constraints / R6",
+      "decision": "applied",
+      "rationale": "Limited audited gate recovery to task-impl/integration and specified recoveryPossible:false for tracked gate draft/spec exhaustion.",
+      "evidence": "spec.json scope.in, constraints, requirements R2, acceptance_criteria, and clarifications now define supported and unsupported gate phases.",
+      "changedFields": [
+        "scope.in",
+        "constraints",
+        "requirements[1]",
+        "acceptance_criteria",
+        "clarifications"
+      ]
+    },
+    {
+      "title": "Review recovery has no persisted failure baseline",
+      "target": "R2 / Overview Data Flow",
+      "decision": "applied",
+      "rationale": "Added a requirement that review FAIL/stop handling persists phase-specific recovery baseline fingerprints.",
+      "evidence": "spec.json requirements[2], overview.data_flow, overview.decisions, and implementationTargets now name the review baseline contract.",
+      "changedFields": [
+        "requirements[2]",
+        "overview.data_flow",
+        "overview.decisions",
+        "implementationTargets"
+      ]
+    },
+    {
+      "title": "Evidence source mapping is undefined",
+      "target": "R2 / R3 / R6 / R9",
+      "decision": "applied",
+      "rationale": "Added a bounded kind/phase evidence source mapping and changedEvidence summary fields shared by reset, next-action, status, and tests.",
+      "evidence": "spec.json constraints and requirements R4/R5/R8 now define the mapping, unchanged rejection, and display fields.",
+      "changedFields": [
+        "constraints",
+        "requirements[3]",
+        "requirements[4]",
+        "requirements[7]",
+        "acceptance_criteria",
+        "tasks"
+      ]
+    },
+    {
+      "title": "Recovery artifact target is unspecified",
+      "target": "R4 / R9",
+      "decision": "applied",
+      "rationale": "Named retry-recovery.json and specified its versioned append-only entry shape.",
+      "evidence": "spec.json constraints, requirements[5], acceptance_criteria, clarifications, keywords, and tasks now define the artifact path and fields.",
+      "changedFields": [
+        "constraints",
+        "requirements[5]",
+        "acceptance_criteria",
+        "clarifications",
+        "keywords",
+        "tasks"
+      ]
+    }
+  ]
+}
