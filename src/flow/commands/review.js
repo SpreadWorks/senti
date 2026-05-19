@@ -12,10 +12,11 @@
 
 import fs from "fs";
 import path from "path";
-import { parseArgs } from "../../lib/cli.js";
+import { parseArgs, PKG_DIR } from "../../lib/cli.js";
 import { getSpecName } from "../../lib/flow-helpers.js";
 import { loadSpecJson, resolveSpecDir } from "../../lib/spec-json.js";
 import { repairJson } from "../../lib/json-parse.js";
+import { resolveIncludes } from "../../lib/include.js";
 
 async function loadReqMap(root, flow, kind) {
   try {
@@ -77,6 +78,8 @@ const REVIEW_PHASE_NODE_MAP = {
   spec: "review-spec",
   test: "review-test",
 };
+const DRAFT_QA_RULES_PARTIAL_PATH = path.join(PKG_DIR, "flow", "prompts", "partials", "draft-qa-rules.md");
+let cachedDraftQaRulesPartial = null;
 
 function getReviewMaxAttempts(phase, attemptContext) {
   const nodeId = REVIEW_PHASE_NODE_MAP[phase];
@@ -2110,14 +2113,21 @@ function formatDraftQuestionReviewEntry(q, i) {
   ].join("\n");
 }
 
+function formatDraftQaMarkdownFieldLine(label, value, fallback) {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  const text = trimmed !== "" ? value : fallback;
+  return `**${label}:** ${text}`;
+}
+
 function formatDraftCoverageReviewEntry(q, i) {
   return [
     `### ${q.id || `Q${i + 1}`} [${q.status || "unknown"} / ${q.category || "unknown"}]`,
     `**Question:** ${q.question}`,
-    `**Answer:** ${q.answer || "(empty)"}`,
-    `**Evidence:** ${q.evidence || "(none)"}`,
-    `**Why:** ${q.why || "(none)"}`,
-    `**Dropped reason:** ${q.droppedReason || "(none)"}`,
+    formatDraftQaMarkdownFieldLine("Answer", q.answer, "(empty)"),
+    formatDraftQaMarkdownFieldLine("Evidence", q.evidence, "(none)"),
+    formatDraftQaMarkdownFieldLine("Why", q.why, "(none)"),
+    formatDraftQaMarkdownFieldLine("Considered", q.considered, "(none)"),
+    formatDraftQaMarkdownFieldLine("Dropped reason", q.droppedReason, "(none)"),
   ].join("\n");
 }
 
@@ -2229,6 +2239,16 @@ function buildDraftQuestionReviewPrompt(draftJson, requestText) {
   ].join("\n");
 }
 
+function loadDraftQaRulesPartial() {
+  if (cachedDraftQaRulesPartial !== null) return cachedDraftQaRulesPartial;
+  cachedDraftQaRulesPartial = resolveIncludes(fs.readFileSync(DRAFT_QA_RULES_PARTIAL_PATH, "utf8"), {
+    baseDir: path.dirname(DRAFT_QA_RULES_PARTIAL_PATH),
+    pkgDir: PKG_DIR,
+    sourceFile: DRAFT_QA_RULES_PARTIAL_PATH,
+  });
+  return cachedDraftQaRulesPartial;
+}
+
 function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
   const effectiveStage = stage || { key: "coverage" };
   if (effectiveStage.key === "questions") {
@@ -2245,12 +2265,12 @@ function buildDraftReviewPrompt(draftJson, requestText, contextEntries, stage) {
 
   return [
     "You are a draft coverage gate reviewer. Perform a one-shot final check of answered and dropped draft QA before spec writing.",
-    "Focus on:",
-    "- Only blocking user decisions without which the spec cannot be written",
-    "- Report at most 3 highest-impact blocking gaps",
+    "",
+    loadDraftQaRulesPartial(),
+    "",
+    "Review limits:",
+    "- Report at most 3 highest-impact blocking gaps.",
     "- Treat existing answers as authoritative. Do not grade answer clarity, support, wording quality, or propose edits to existing QA.",
-    "- Detection must not propose iterative follow-up questions, append QA entries, or mutate draft.json; the separate one-pass repair handles repairable findings",
-    "- Do not report issues that can be resolved during spec writing by existing project rules, code patterns, or conservative implementation choices",
     "",
     "Output a numbered list of blocking gaps in this format:",
     "### 1. <title>",

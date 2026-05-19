@@ -24,6 +24,8 @@ import {
 } from "../../../src/lib/flow-helpers.js";
 import { flattenSteps, findStepById } from "../../../src/flow/definition.js";
 import { validateSchema } from "../../../src/lib/schema-validate.js";
+import { PKG_DIR } from "../../../src/lib/cli.js";
+import { resolveIncludes } from "../../../src/lib/include.js";
 
 const CLI = join(process.cwd(), "src/sdd-forge.js");
 
@@ -417,9 +419,15 @@ describe("flow get next-action", () => {
       const stepName = parts.pop();
       const filePath = pathMod.join(process.cwd(), "src", "flow", "prompts", ...parts, `${stepName}.md`);
       const onDisk = fs.readFileSync(filePath, "utf8");
+      const resolvedOnDisk = resolveIncludes(onDisk, {
+        baseDir: pathMod.dirname(filePath),
+        pkgDir: PKG_DIR,
+        sourceFile: filePath,
+      });
       // Per spec 252: persistent rules may be prepended to instructions.content. The on-disk prompt
-      // remains as the suffix. When zero rules match the active phase+state, content is byte-equal.
-      assert.ok(ins.content.endsWith(onDisk), "CLI prompt content must end with the on-disk file content");
+      // remains as the suffix after include expansion. When zero rules match the active phase+state,
+      // content is byte-equal to the include-resolved prompt.
+      assert.ok(ins.content.endsWith(resolvedOnDisk), "CLI prompt content must end with the include-resolved on-disk file content");
     });
   });
 });

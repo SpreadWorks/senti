@@ -7,6 +7,21 @@ import { checkDraftJson } from "../../../src/flow/lib/run-gate.js";
 
 const DEV_TYPE_ENUM = ["feature", "bugfix", "refactor", "docs", "chore", "test", "other"];
 
+function buildQaEntry(overrides = {}) {
+  return {
+    id: "q1",
+    status: "answered",
+    category: "goal-confirmation",
+    question: "Is this correct?",
+    answer: "Yes, this is correct.",
+    evidence: "verified by code inspection",
+    why: "design decision rationale",
+    considered: "",
+    droppedReason: "",
+    ...overrides,
+  };
+}
+
 function buildValidDraft(overrides = {}) {
   const base = {
     devType: "feature",
@@ -28,18 +43,7 @@ function buildValidDraft(overrides = {}) {
       out: ["item B"],
     },
     impactOnExisting: ["existing feature X affected"],
-    qa: [
-      {
-        id: "q1",
-        status: "answered",
-        category: "goal-confirmation",
-        question: "Is this correct?",
-        answer: "Yes, this is correct.",
-        evidence: "verified by code inspection",
-        why: "design decision rationale",
-        droppedReason: "",
-      },
-    ],
+    qa: [buildQaEntry()],
     openQuestions: [],
     approval: {
       approved: true,
@@ -152,16 +156,12 @@ describe("checkDraftJson — qa status validation", () => {
   it("flags empty evidence on answered Q&A", () => {
     assertHasIssue(
       buildValidDraft({
-        qa: [{
-          id: "q1",
-          status: "answered",
-          category: "goal-confirmation",
+        qa: [buildQaEntry({
           question: "Design choice?",
           answer: "Option A",
           evidence: "",
           why: "because of X",
-          droppedReason: "",
-        }],
+        })],
       }),
       (i) => /evidence/i.test(i),
       "empty evidence on answered Q&A",
@@ -170,16 +170,13 @@ describe("checkDraftJson — qa status validation", () => {
 
   it("flags pending Q&A as blocking spec generation", () => {
     assertHasIssue(buildValidDraft({
-      qa: [{
-        id: "q1",
+      qa: [buildQaEntry({
         status: "pending",
-        category: "goal-confirmation",
         question: "Proceed?",
         answer: "",
         evidence: "",
         why: "",
-        droppedReason: "",
-      }],
+      })],
     }),
     (i) => /blocks spec generation/i.test(i),
     "pending Q&A blocks spec generation");
@@ -197,8 +194,7 @@ describe("checkDraftJson — qa status validation", () => {
 
   it("allows dropped Q&A with droppedReason only", () => {
     const issues = checkDraftJson(buildValidDraft({
-      qa: [{
-        id: "q1",
+      qa: [buildQaEntry({
         status: "dropped",
         category: "risk-migration-policy",
         question: "Should this be considered?",
@@ -206,7 +202,7 @@ describe("checkDraftJson — qa status validation", () => {
         evidence: "",
         why: "",
         droppedReason: "Out of scope after user confirmation",
-      }],
+      })],
     }));
     assert.deepEqual(issues, []);
   });

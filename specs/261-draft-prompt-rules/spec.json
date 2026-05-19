@@ -1,0 +1,298 @@
+{
+  "goal": "Unify draft QA authoring and draft coverage review around a shared declarative rules partial, while aligning the runtime draft QA contract so `considered` can be stored and reviewed consistently.",
+  "scope": {
+    "in": [
+      "[must] Add `src/flow/prompts/partials/draft-qa-rules.md` as the shared declaration for draft QA schema, boundary, checklist, premise validation, decision evidence, and coverage rules.",
+      "[must] Resolve `<!-- include(\"path\") -->` directives in flow step instructions returned by `getStepInstructions`, preserving the existing include resolver bounds of maximum depth 8 and maximum include count 32.",
+      "[must] Replace duplicated QA rule sections in `src/flow/prompts/plan/draft.md` with an include of the shared partial while preserving draft-authoring controls.",
+      "[must] Align the runtime `draft.json.qa[]` contract with the shared schema by adding a `considered` string field to prepared drafts and draft lifecycle validation.",
+      "[must] Make draft coverage review load the same shared rules and include `considered` in QA entry formatting.",
+      "[must] Preserve existing draft review output markers and parser-visible field names.",
+      "[must] Add regression tests for include resolution, shared prompt content, `considered` formatting, and the runtime draft lifecycle contract."
+    ],
+    "out": [
+      "Unifying spec, test, review-spec, review-test, or impl review prompts.",
+      "Promoting the shared prompt rules into guardrail.json.",
+      "Adding a generic `loadPartial(name)` helper.",
+      "Changing GitHub workflow or board publish behavior.",
+      "Adding external dependencies."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing project helpers.",
+    "Do not add backward-compatibility branches for old draft QA formats; this is an alpha-period contract update.",
+    "Keep `src/` generic and avoid project-specific issue numbers or environment-specific values.",
+    "Question sanity review remains a finite structural check and must not receive coverage rules that would make it generate missing-question findings.",
+    "The shared partial must not include spec-254 migration-history phrasing such as \"moved from gate evaluation\"; it must state the current rule contract.",
+    "Review prompt output format markers consumed by existing parsers must remain stable.",
+    "`bounded-resource-usage` acknowledged: this spec reuses the existing include resolver's maximum depth 8 and maximum include count 32; it does not add a new byte-size cap because prompt includes are package-controlled files and a global byte cap would affect existing include consumers outside Issue #332.",
+    "This spec does not add or change user-facing CLI arguments. Existing `flow run review --phase draft` argument validation and entry-point behavior remain unchanged.",
+    "Exit code contract for `flow run review --phase draft`: success remains exit code 0 after the review artifact is written; invalid phase, missing draft.json, invalid draft JSON, and agent/subprocess failures continue to return non-zero through the existing command error path."
+  ],
+  "design_principles": [
+    "Make the shared partial the single source of truth for draft QA authoring and final draft coverage review rules.",
+    "Keep prompt-level schema and runtime artifact validation aligned so reviewers do not inspect fields the gate rejects.",
+    "Reuse the existing include resolver instead of introducing a parallel directive parser; keep its explicit maximum include depth 8 and maximum include count 32 resource bounds.",
+    "Preserve stage separation: question sanity review checks finite structural defects; coverage review checks unresolved blocking user decisions."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/flow/prompts/partials/draft-qa-rules.md` will contain the shared declarative draft QA rules used by authoring and coverage review."
+      },
+      {
+        "text": "`src/flow/lib/get-step-instructions.js` will resolve include directives before returning next-action instruction content, using maximum include depth 8 and maximum include count 32."
+      },
+      {
+        "text": "`src/flow/prompts/plan/draft.md` will keep control-flow instructions and include the shared rules instead of duplicating schema/checklist text."
+      },
+      {
+        "text": "`src/flow/lib/draft-lifecycle.js` and prepare-spec draft skeleton creation will accept and initialize `qa[].considered`."
+      },
+      {
+        "text": "`src/flow/commands/review.js` will load the shared rules for coverage review and render `**Considered:**` in draft QA entries."
+      },
+      {
+        "text": "Unit tests will cover loader behavior, prompt sharing, review formatting, and lifecycle validation."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "next-action loads `plan.draft` through `getStepInstructions`; include resolution expands `/flow/prompts/partials/draft-qa-rules.md` with maximum include depth 8 and maximum include count 32 before the instruction envelope is returned."
+      },
+      {
+        "text": "Draft authoring writes `draft.json.qa[]` entries with the same field set declared in the shared partial, including `considered`."
+      },
+      {
+        "text": "Draft coverage review reads `draft.json`, loads the shared partial, formats QA entries with `considered`, and emits the existing review artifact shape."
+      },
+      {
+        "text": "Gate-draft validates the runtime draft lifecycle contract, so prompt rules and accepted artifact shape stay synchronized."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] `getStepInstructions` currently returns raw prompt markdown and does not resolve includes.",
+        "evidence": "`src/flow/lib/get-step-instructions.js` reads the resolved prompt file with `readFileSync(filePath, \"utf8\")` and returns it directly."
+      },
+      {
+        "text": "[VERIFY] Existing include resolution already supports the path form required by this spec.",
+        "evidence": "`src/lib/include.js` resolves `<!-- include(\"path\") -->`; paths beginning with `/` are resolved relative to `pkgDir`; MAX_INCLUDE_DEPTH is 8 and MAX_INCLUDE_COUNT is 32; missing/circular includes throw."
+      },
+      {
+        "text": "[VERIFY] Current draft prompt duplicates the requirements checklist and embeds schema/boundary text inline.",
+        "evidence": "`src/flow/prompts/plan/draft.md` contains Draft scope boundary, draft.json schema, premise validation, research/self-verification, and requirements checklist blocks in both autoApprove and non-autoApprove branches."
+      },
+      {
+        "text": "[CORRECTION] `considered` must be added to the runtime lifecycle contract, not only to prompt text.",
+        "evidence": "`src/flow/lib/draft-lifecycle.js` currently whitelists QA fields without `considered`; Issue #332 requires the shared schema and review formatter to include `considered`."
+      },
+      {
+        "text": "[VERIFY] Coverage review and question sanity review are separate stages and should remain separated.",
+        "evidence": "`buildDraftReviewPrompt` delegates `stage.key === \"questions\"` to `buildDraftQuestionReviewPrompt`, which explicitly forbids missing-question generation and NEW QA entries."
+      },
+      {
+        "text": "[VERIFY] Existing review parser-visible output markers must be preserved.",
+        "evidence": "`buildDraftReviewPrompt` and draft review artifact parsing expect structured markdown sections such as `### 1. <title>`, `**QA:**`, classification or blocking decision fields, and `NO_PROPOSALS`."
+      }
+    ]
+  },
+  "background": "Draft QA rules are currently spread across the draft authoring prompt and draft review prompt, with the requirements checklist duplicated inside `draft.md` itself. This causes authoring and reviewer criteria to drift. Source verification also showed that the requested `considered` field is not part of the current runtime draft lifecycle contract, so prompt-only changes would leave the shared schema inconsistent with gate validation.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Create `src/flow/prompts/partials/draft-qa-rules.md` with declarative draft QA rules covering the QA entry schema, `considered`, field-level boundary, the 8-item requirements checklist, premise validation, decision evidence, and coverage requirements.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "`getStepInstructions(instructionsKey)` shall resolve include directives using the existing `resolveIncludes` helper with the prompt file directory as `baseDir` and package `src/` directory as `pkgDir`, preserving `resolveIncludes` bounds of maximum recursion depth 8 and maximum include count 32.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "`src/flow/prompts/plan/draft.md` shall include the shared rules partial and remove duplicated inline QA schema, boundary, premise validation, research/self-verification rule text, and requirements checklist definitions while retaining draft-authoring control instructions.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "The runtime draft lifecycle contract shall include `qa[].considered` as a string field initialized in new draft skeletons, accepted by validation, and required to be empty for pending, approved, and dropped entries.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "Draft coverage review shall load the shared rules partial in reviewer context and format each reviewed QA entry with a `**Considered:**` line, using `(none)` when the field is empty.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Draft question sanity review shall remain limited to finite structural defects and shall not use the shared coverage rules to propose missing questions or category coverage findings.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "Existing draft review output markers and parser-visible field names shall remain unchanged except for the additive `**Considered:**` QA entry line.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Automated tests shall verify include resolution, missing include failure, shared partial content in authoring and coverage review prompts, `considered` review formatting, and draft lifecycle acceptance of `considered`.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "`getStepInstructions(\"plan.draft\")` returns expanded content containing a marker from `draft-qa-rules.md`, not a raw include directive, while relying on the resolver bounds of depth 8 and include count 32.",
+    "A prompt include pointing at a missing file throws an error message that includes the include path.",
+    "`draft.md` contains one include of `/flow/prompts/partials/draft-qa-rules.md` and no duplicate 8-item requirements checklist blocks.",
+    "`buildDraftReviewPrompt(..., { key: \"coverage\" })` contains the shared partial marker and still emits the existing coverage review output format.",
+    "`buildDraftReviewPrompt` coverage QA formatting includes `**Considered:** <value>` and `**Considered:** (none)` for empty values.",
+    "New draft skeletons include `considered: \"\"` in QA entry examples or generated QA entries, and draft lifecycle validation allows answered entries with `considered` populated.",
+    "Question sanity review tests continue to prove the question stage does not generate missing coverage findings.",
+    "All new and updated tests pass under the project unit test runner."
+  ],
+  "clarifications": [
+    {
+      "q": "Should `considered` be prompt-only or part of the runtime draft lifecycle contract?",
+      "a": "It must be part of the runtime contract; otherwise the shared prompt schema and gate validation diverge."
+    },
+    {
+      "q": "Should question sanity review consume the shared coverage rules?",
+      "a": "No. It remains a finite structural check; shared coverage rules apply to authoring and final coverage review."
+    },
+    {
+      "q": "Should the partial include spec-254 migration-history phrasing?",
+      "a": "No. It should state current requirements-level and code-reference boundary rules without migration-history context."
+    },
+    {
+      "q": "Does this spec add or change any user-facing `flow run review` arguments?",
+      "a": "No. `validate-user-input-at-entry-point` is satisfied by keeping the existing arguments and validation unchanged: `--phase` remains the user-facing phase selector validated against supported phases, and `--task-spec`, `--dry-run`, and `--skip-confirm` retain their current handling."
+    },
+    {
+      "q": "What is the exit code contract for the modified review command path?",
+      "a": "`exit-code-contract`: `flow run review --phase draft` continues to exit 0 when the review artifact is written successfully. Invalid phase, missing draft.json, invalid draft JSON, and agent/subprocess failures continue to exit non-zero through the existing command error path."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Only add `considered` to review prompt formatting.",
+      "reason": "Rejected because the runtime lifecycle validator would still reject or omit the field, leaving the shared schema inconsistent with gate validation."
+    },
+    {
+      "option": "Apply the full shared rules partial to question sanity review.",
+      "reason": "Rejected because that stage explicitly forbids missing-question generation and NEW QA entries; coverage rules belong to authoring and coverage review."
+    },
+    {
+      "option": "Add a generic partial loader helper.",
+      "reason": "Rejected for this spec because the only new direct read site is draft coverage review; `getStepInstructions` can call `resolveIncludes` directly."
+    },
+    {
+      "option": "Keep duplicated checklist text in draft.md for autoApprove and non-autoApprove branches.",
+      "reason": "Rejected because the duplication is one of the drift sources this issue is intended to remove."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "draft-qa-rules",
+    "getStepInstructions",
+    "resolveIncludes",
+    "draft lifecycle",
+    "considered",
+    "buildDraftReviewPrompt",
+    "draft coverage review",
+    "draft.md",
+    "include directive",
+    "draft.json"
+  ],
+  "implementationTargets": [
+    "src/flow/prompts/partials/draft-qa-rules.md",
+    "src/flow/prompts/plan/draft.md",
+    "src/flow/lib/get-step-instructions.js",
+    "src/flow/lib/draft-lifecycle.js",
+    "src/flow/lib/run-prepare-spec.js",
+    "src/flow/commands/review.js",
+    "tests/unit/flow/get-step-instructions.test.js",
+    "tests/unit/flow/commands/review.test.js",
+    "tests/unit/flow/check-draft-json.test.js",
+    "specs/261-draft-prompt-rules/tests/"
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-19T05:16:36.192Z",
+    "notes": "autoApprove: spec gate passed and approval choice [1] selected automatically."
+  },
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add shared draft rules",
+      "goal": "Create the shared draft QA rules partial and wire flow step instruction loading so prompt includes resolve within maximum depth 8 and maximum include count 32 before next-action returns instructions.",
+      "acceptance": [
+        "`draft-qa-rules.md` contains the shared QA schema, boundary, checklist, premise, decision, and coverage rules.",
+        "`getStepInstructions` expands include directives using `resolveIncludes` with maximum depth 8 and maximum include count 32.",
+        "Missing include paths fail loudly with the include path in the error."
+      ],
+      "implementation_notes": "Use `resolveIncludes` from `src/lib/include.js`. Pass the containing prompt directory as `baseDir` and `PKG_DIR` as `pkgDir`. Preserve existing bounds: maximum depth 8 and maximum include count 32. Do not add a new directive parser.",
+      "test_strategy": "Unit tests for successful include expansion and missing include failure.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Align draft lifecycle",
+      "goal": "Update the runtime draft QA contract so `considered` is initialized, validated, and available to review formatting.",
+      "acceptance": [
+        "New draft skeletons include `considered: \"\"` for QA entries or examples.",
+        "Draft lifecycle validation recognizes `considered` as an allowed QA field.",
+        "Pending, approved, and dropped entries require `considered` to be empty; answered entries may contain a non-empty value."
+      ],
+      "implementation_notes": "Update the field whitelist and status-specific validation in `draft-lifecycle.js`; update prepare-spec skeleton/schema prompt examples where QA fields are listed.",
+      "test_strategy": "Unit tests in draft lifecycle/check-draft coverage for accepted answered entries and rejected non-empty `considered` on pending/dropped entries.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Wire shared prompts",
+      "goal": "Replace draft authoring rule duplication and make draft coverage review consume the same rules while preserving stage-specific review behavior.",
+      "acceptance": [
+        "`draft.md` includes the shared partial once and no longer duplicates the checklist in two branches.",
+        "Coverage review prompt includes the shared partial in reviewer context.",
+        "Question sanity review remains finite and does not use coverage rules.",
+        "QA entry formatting includes `**Considered:**` without changing existing review output markers."
+      ],
+      "implementation_notes": "Keep authoring-specific controls such as autoApprove behavior and Choice Format in `draft.md`. In `review.js`, keep the stage branch for question sanity review intact and update the coverage stage path.",
+      "test_strategy": "Structural prompt tests for `plan.draft` and coverage review prompt; review formatting tests for populated and empty `considered` values.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Add regression coverage",
+      "goal": "Add spec-local and project unit tests that lock the include, shared prompt, lifecycle, and review formatting contracts.",
+      "acceptance": [
+        "Spec-local tests cover the new behavior with `// spec: R<N>` headers.",
+        "Existing unit tests are updated or extended where they directly exercise changed contracts.",
+        "The targeted unit test command passes."
+      ],
+      "implementation_notes": "Prefer focused unit tests over agent tests because this change is deterministic prompt loading and formatting logic.",
+      "test_strategy": "Run the relevant unit scope and the spec-local test runner in the test-execute step.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ]
+}

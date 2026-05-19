@@ -1,0 +1,255 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/261-draft-prompt-rules/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "test_name": "R1: shared draft QA rules partial declares the common contract",
+        "command": "node --test specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "test_name": "R2: getStepInstructions expands includes and reports missing include paths",
+        "command": "node --test specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "test_name": "R3: draft prompt includes shared rules once, removes duplicate rules, and keeps authoring controls",
+        "command": "node --test specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "test_name": "R4: draft lifecycle accepts considered for answered entries and rejects unresolved considered",
+        "command": "node --test specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "test_name": "R5: draft coverage review prompt loads shared rules and prints considered",
+        "command": "node --test specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "test_name": "R6: question sanity review stays finite while coverage review gets shared rules",
+        "command": "node --test specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "test_name": "R7: draft coverage review keeps existing markers and adds considered only as a QA field",
+        "command": "node --test specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "test_name": "R8: regression coverage exercises include, lifecycle, prompt sharing, and review formatting contracts",
+        "command": "node --test specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/261-draft-prompt-rules/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/commands/review.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/draft-lifecycle.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/get-step-instructions.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/run-prepare-spec.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/prompts/partials/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/check-draft-json.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/check-draft-text.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/commands/review.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/get-step-instructions.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/specs/commands/gate-draft.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/261-draft-prompt-rules/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/draft-lifecycle.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-step-instructions.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-prepare-spec.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/flow/prompts/partials/"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/check-draft-json.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/check-draft-text.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/commands/review.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/get-step-instructions.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/specs/commands/gate-draft.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/261-draft-prompt-rules/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/review.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/draft-lifecycle.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/get-step-instructions.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/run-prepare-spec.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/flow/prompts/partials/"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/check-draft-json.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/check-draft-text.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/commands/review.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/get-step-instructions.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/specs/commands/gate-draft.test.js"
+      }
+    ]
+  }
+}

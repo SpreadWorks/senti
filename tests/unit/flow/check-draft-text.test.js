@@ -33,6 +33,7 @@ function buildValidDraft(overrides = {}) {
       answer: "Yes, proceed with this behavior.",
       evidence: "confirmed by test fixture",
       why: "keeps the valid draft fixture representative",
+      considered: "",
       droppedReason: "",
     }],
     openQuestions: [],

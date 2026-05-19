@@ -30,6 +30,7 @@ function buildValidDraft(overrides = {}) {
       answer: "回答は十分に具体的です",
       evidence: "確認済み",
       why: "理由",
+      considered: "",
       droppedReason: "",
     }],
     openQuestions: [],

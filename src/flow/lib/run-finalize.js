@@ -58,6 +58,10 @@ export function commitOrSkip(args, opts) {
   assertOk(res, "commit failed");
 }
 
+export function collectExistingPathspecs(root, relativePathspecs) {
+  return relativePathspecs.filter((relPath) => fs.existsSync(path.join(root, relPath)));
+}
+
 export function resolveGitCommonDir(root) {
   const res = runGit(["-C", root, "rev-parse", "--git-common-dir"]);
   assertOk(res, "finalize preflight failed: unable to resolve git common dir");
@@ -205,7 +209,11 @@ export async function executeCommitPost(ctx) {
 
   // commit only durable impl-phase test/report artifacts
   const specDir = path.posix.join("specs", specIdFromPath(state.spec));
-  runGit(["add", "--", ...DURABLE_TEST_ARTIFACT_RELATIVE_PATHS.map((p) => path.posix.join(specDir, p))], { cwd: root });
+  const durablePathspecs = DURABLE_TEST_ARTIFACT_RELATIVE_PATHS.map((p) => path.posix.join(specDir, p));
+  const existingDurablePathspecs = collectExistingPathspecs(root, durablePathspecs);
+  if (existingDurablePathspecs.length > 0) {
+    runGit(["add", "--", ...existingDurablePathspecs], { cwd: root });
+  }
   try {
     commitOrSkip(["-m", "chore: add retro and report"], { cwd: root });
   } catch (e) {

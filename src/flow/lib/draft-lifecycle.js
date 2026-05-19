@@ -49,16 +49,17 @@ const DRAFT_TOP_LEVEL_FIELDS = Object.freeze([
   "approval",
 ]);
 
+const DRAFT_QA_ANSWER_REQUIRED_FIELDS = Object.freeze(["answer", "evidence", "why"]);
+const DRAFT_QA_RESPONSE_FIELDS = Object.freeze([...DRAFT_QA_ANSWER_REQUIRED_FIELDS, "considered"]);
 const DRAFT_QA_FIELDS = Object.freeze([
   "id",
   "status",
   "category",
   "question",
-  "answer",
-  "evidence",
-  "why",
+  ...DRAFT_QA_RESPONSE_FIELDS,
   "droppedReason",
 ]);
+const DRAFT_QA_PENDING_APPROVED_EMPTY_FIELDS = Object.freeze([...DRAFT_QA_RESPONSE_FIELDS, "droppedReason"]);
 
 const DRAFT_DECISION_MAP_FIELDS = Object.freeze([
   "knownFacts",
@@ -89,6 +90,14 @@ function isEmptyString(value) {
   return typeof value === "string" && value.trim() === "";
 }
 
+function pushEmptyFieldIssues(issues, index, status, raw, fields) {
+  for (const field of fields) {
+    if (!isEmptyString(raw[field])) {
+      issues.push(`qa[${index}]: ${field} must be empty when status is ${status}`);
+    }
+  }
+}
+
 function unknownFields(obj, allowed) {
   return Object.keys(obj).filter((key) => !allowed.includes(key));
 }
@@ -112,6 +121,7 @@ export class DraftQaEntry {
     this.answer = raw.answer;
     this.evidence = raw.evidence;
     this.why = raw.why;
+    this.considered = raw.considered;
     this.droppedReason = raw.droppedReason;
   }
 
@@ -129,18 +139,17 @@ export class DraftQaEntry {
     if (!isNonEmptyString(this.question)) {
       issues.push(`qa[${this.index}]: missing or empty question`);
     }
+    if (typeof this.raw.considered !== "string") {
+      issues.push(`qa[${this.index}]: considered must be a string`);
+    }
 
     if (this.status === "pending" || this.status === "approved") {
       issues.push(`qa[${this.index}]: status ${this.status} blocks spec generation`);
-      for (const field of ["answer", "evidence", "why", "droppedReason"]) {
-        if (!isEmptyString(this.raw[field])) {
-          issues.push(`qa[${this.index}]: ${field} must be empty when status is ${this.status}`);
-        }
-      }
+      pushEmptyFieldIssues(issues, this.index, this.status, this.raw, DRAFT_QA_PENDING_APPROVED_EMPTY_FIELDS);
     }
 
     if (this.status === "answered") {
-      for (const field of ["answer", "evidence", "why"]) {
+      for (const field of DRAFT_QA_ANSWER_REQUIRED_FIELDS) {
         if (!isNonEmptyString(this.raw[field])) {
           issues.push(`qa[${this.index}]: ${field} is required when status is answered`);
         }
@@ -157,11 +166,7 @@ export class DraftQaEntry {
       if (!isNonEmptyString(this.droppedReason)) {
         issues.push(`qa[${this.index}]: droppedReason is required when status is dropped`);
       }
-      for (const field of ["answer", "evidence", "why"]) {
-        if (!isEmptyString(this.raw[field])) {
-          issues.push(`qa[${this.index}]: ${field} must be empty when status is dropped`);
-        }
-      }
+      pushEmptyFieldIssues(issues, this.index, this.status, this.raw, DRAFT_QA_RESPONSE_FIELDS);
     }
 
     for (const [field, value] of [
@@ -169,6 +174,7 @@ export class DraftQaEntry {
       ["answer", this.answer],
       ["evidence", this.evidence],
       ["why", this.why],
+      ["considered", this.considered],
       ["droppedReason", this.droppedReason],
     ]) {
       const text = normalizeText(value);

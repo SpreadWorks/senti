@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { collectExistingPathspecs } from "../../../src/flow/lib/run-finalize.js";
+import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 
 function readRunFinalizeSource() {
   const file = path.join(process.cwd(), "src/flow/lib/run-finalize.js");
@@ -40,10 +42,23 @@ describe("run-finalize retro/report commit scope (regression for issue #197)", (
   it("executeCommitPost stages paths scoped to the current spec directory", () => {
     const source = readRunFinalizeSource();
     const body = extractExecuteCommitPost(source);
-    assert.match(
-      body,
-      /runGit\(\s*\[\s*"add"\s*,[^\]]*(specDir|state\.spec|spec\s*Dir|specPath)/,
-      "executeCommitPost must stage paths derived from the current spec directory (not the whole tree)",
-    );
+    assert.match(body, /path\.posix\.join\(specDir,\s*p\)/);
+    assert.match(body, /collectExistingPathspecs\(root,\s*durablePathspecs\)/);
+  });
+
+  it("collectExistingPathspecs filters missing artifact files before staging", () => {
+    const tmp = createTmpDir();
+    try {
+      writeFile(tmp, "specs/001/report.json", "{}\n");
+      assert.deepEqual(
+        collectExistingPathspecs(tmp, [
+          "specs/001/report.json",
+          "specs/001/scenario-validity-result.json",
+        ]),
+        ["specs/001/report.json"],
+      );
+    } finally {
+      removeTmpDir(tmp);
+    }
   });
 });

@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "phase": "review-test",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Create `src/flow/prompts/partials/draft-qa-rules.md` with declarative draft QA rules covering the QA entry schema, `considered`, field-level boundary, the 8-item requirements checklist, premise validation, decision evidence, and coverage requirements.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-prompt-rules.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "`getStepInstructions(instructionsKey)` shall resolve include directives using the existing `resolveIncludes` helper with the prompt file directory as `baseDir` and package `src/` directory as `pkgDir`, preserving `resolveIncludes` bounds of maximum recursion depth 8 and maximum include count 32.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-prompt-rules.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "`src/flow/prompts/plan/draft.md` shall include the shared rules partial and remove duplicated inline QA schema, boundary, premise validation, research/self-verification rule text, and requirements checklist definitions while retaining draft-authoring control instructions.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-prompt-rules.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "The runtime draft lifecycle contract shall include `qa[].considered` as a string field initialized in new draft skeletons, accepted by validation, and required to be empty for pending, approved, and dropped entries.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-prompt-rules.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Draft coverage review shall load the shared rules partial in reviewer context and format each reviewed QA entry with a `**Considered:**` line, using `(none)` when the field is empty.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-prompt-rules.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Draft question sanity review shall remain limited to finite structural defects and shall not use the shared coverage rules to propose missing questions or category coverage findings.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-prompt-rules.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Existing draft review output markers and parser-visible field names shall remain unchanged except for the additive `**Considered:**` QA entry line.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-prompt-rules.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "Automated tests shall verify include resolution, missing include failure, shared partial content in authoring and coverage review prompts, `considered` review formatting, and draft lifecycle acceptance of `considered`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/draft-prompt-rules.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/draft-prompt-rules.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8"
+      ]
+    }
+  ]
+}

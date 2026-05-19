@@ -73,7 +73,7 @@ function detectBaseBranch(root) {
   }
 }
 
-function buildDraftTemplate() {
+export function buildDraftTemplate() {
   return JSON.stringify({
     devType: "",
     goal: "",
@@ -94,7 +94,20 @@ function buildDraftTemplate() {
       out: [],
     },
     impactOnExisting: [],
-    qa: [],
+    // Keep the scaffold explicit about every QA field the draft prompt expects.
+    qa: [
+      {
+        id: "q1",
+        status: "pending",
+        category: "goal-confirmation",
+        question: "",
+        answer: "",
+        evidence: "",
+        why: "",
+        considered: "",
+        droppedReason: "",
+      },
+    ],
     openQuestions: [],
     approval: {
       approved: false,

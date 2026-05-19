@@ -29,6 +29,14 @@ import {
   resolveMergeBase,
 } from "../../../../src/flow/commands/review.js";
 
+function assertAllMatch(text, patterns) {
+  for (const pattern of patterns) assert.match(text, pattern);
+}
+
+function assertAllDoesNotMatch(text, patterns) {
+  for (const pattern of patterns) assert.doesNotMatch(text, pattern);
+}
+
 function resolveAgent(cfg, commandId) {
   const registry = new ProviderRegistry(cfg.agent?.providers || {});
   const agent = new Agent({
@@ -553,6 +561,7 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
         answer: "Do not leak this answer",
         evidence: "Do not leak this evidence",
         why: "Do not leak this rationale",
+        considered: "Do not leak this considered field",
         droppedReason: "Do not leak this dropped reason",
       },
       {
@@ -563,6 +572,7 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
         answer: "Keep this for coverage review",
         evidence: "coverage evidence",
         why: "coverage rationale",
+        considered: "coverage alternative",
         droppedReason: "",
       },
       {
@@ -573,6 +583,7 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
         answer: "",
         evidence: "",
         why: "",
+        considered: "",
         droppedReason: "",
       },
     ],
@@ -580,16 +591,23 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
 
   it("omits answer fields from review-draft-questions input", () => {
     const prompt = buildDraftReviewPrompt(draftJson, "request", [], { key: "questions" });
+    const leakedAnswerFieldPatterns = [
+      /Do not leak this answer/,
+      /Do not leak this evidence/,
+      /Do not leak this rationale/,
+      /Do not leak this considered field/,
+    ];
+    const coverageOnlyPatterns = [
+      /Which acceptance criteria apply\?/,
+      /Category coverage across/,
+      /Missing first-pass questions/,
+      /NEW for missing/,
+    ];
 
     assert.match(prompt, /Which CLI behavior is in scope\?/);
     assert.doesNotMatch(prompt, /\*\*Answer:\*\*/);
-    assert.doesNotMatch(prompt, /Do not leak this answer/);
-    assert.doesNotMatch(prompt, /Do not leak this evidence/);
-    assert.doesNotMatch(prompt, /Do not leak this rationale/);
-    assert.doesNotMatch(prompt, /Which acceptance criteria apply\?/);
-    assert.doesNotMatch(prompt, /Category coverage across/);
-    assert.doesNotMatch(prompt, /Missing first-pass questions/);
-    assert.doesNotMatch(prompt, /NEW for missing/);
+    assertAllDoesNotMatch(prompt, leakedAnswerFieldPatterns);
+    assertAllDoesNotMatch(prompt, coverageOnlyPatterns);
     assert.match(prompt, /one-shot finite structural check/);
     assert.match(prompt, /This is not a question generation task/);
     assert.match(prompt, /Do not identify missing first-pass questions/);
@@ -600,15 +618,22 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
 
   it("limits review-draft-coverage input to answered and dropped QA", () => {
     const prompt = buildDraftReviewPrompt(draftJson, "request", [], { key: "coverage" });
+    const renderedQaFieldPatterns = [
+      /\*\*Answer:\*\* Keep this for coverage review/,
+      /\*\*Evidence:\*\* coverage evidence/,
+      /\*\*Why:\*\* coverage rationale/,
+      /\*\*Considered:\*\* coverage alternative/,
+    ];
+    const omittedQuestionStagePatterns = [
+      /Which CLI behavior is in scope\?/,
+      /Should this approved question be hidden from coverage\?/,
+      /Ambiguous user answers must be converted/,
+      /unsupported answers/,
+      /Propose only NEW follow-up questions/,
+    ];
 
-    assert.match(prompt, /\*\*Answer:\*\* Keep this for coverage review/);
-    assert.match(prompt, /\*\*Evidence:\*\* coverage evidence/);
-    assert.match(prompt, /\*\*Why:\*\* coverage rationale/);
-    assert.doesNotMatch(prompt, /Which CLI behavior is in scope\?/);
-    assert.doesNotMatch(prompt, /Should this approved question be hidden from coverage\?/);
-    assert.doesNotMatch(prompt, /Ambiguous user answers must be converted/);
-    assert.doesNotMatch(prompt, /unsupported answers/);
-    assert.doesNotMatch(prompt, /Propose only NEW follow-up questions/);
+    assertAllMatch(prompt, renderedQaFieldPatterns);
+    assertAllDoesNotMatch(prompt, omittedQuestionStagePatterns);
     assert.match(prompt, /one-shot final check/);
     assert.match(prompt, /at most 3 highest-impact blocking gaps/);
     assert.match(prompt, /append QA entries/);
@@ -619,6 +644,16 @@ describe("buildDraftReviewPrompt stage-specific QA projection", () => {
     assert.match(prompt, /## Decision Map/);
     assert.match(prompt, /Decide whether draft coverage is blocking/);
     assert.match(prompt, /Confirm the user-visible behavior/);
+
+  });
+
+  it("renders empty considered as (none) in coverage review", () => {
+    const prompt = buildDraftReviewPrompt({
+      ...draftJson,
+      qa: [{ ...draftJson.qa[1], considered: "" }],
+    }, "request", [], { key: "coverage" });
+
+    assert.match(prompt, /\*\*Considered:\*\* \(none\)/);
   });
 });
 

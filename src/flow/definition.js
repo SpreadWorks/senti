@@ -577,7 +577,10 @@ function scanLatestInProgressLeaf(steps, order, state, depth = 1) {
       continue;
     }
     if (s.status === "in_progress") {
-      if (!order.has(s.id)) continue;
+      if (!order.has(s.id)) {
+        if (!state.unknownStep) state.unknownStep = s;
+        continue;
+      }
       const index = order.get(s.id);
       if (!state.step || index >= state.index) {
         state.step = s;
@@ -602,9 +605,9 @@ export function findLatestInProgressLeaf(steps, definition = FLOW_DEFINITION) {
   const selected = scanLatestInProgressLeaf(
     steps,
     order,
-    { step: null, index: -1, scanned: 0 },
+    { step: null, unknownStep: null, index: -1, scanned: 0 },
   );
-  return selected.step;
+  return selected.unknownStep || selected.step;
 }
 
 export function findInProgressLeaf(steps, depth = 0) {

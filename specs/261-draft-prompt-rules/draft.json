@@ -1,0 +1,130 @@
+{
+  "devType": "feature",
+  "goal": "draft QA の宣言的ルールを単一 partial に集約し、draft 作成 prompt と draft review prompt が同じルールを参照するようにする。review 入力には QA entry の considered 情報も含め、既存 review 出力形式は維持する。",
+  "analysis": {
+    "problem": "draft QA の schema、requirements checklist、field-level boundary、premise validation が draft 作成 prompt と review prompt に分散し、さらに draft.md 内でも checklist が autoApprove / 非 autoApprove 分岐で重複している。そのため authoring と reviewer の判定軸がずれ、schema 上の情報を review が見落とすリスクがある。",
+    "proposedApproach": "QA ルールを `src/flow/prompts/partials/draft-qa-rules.md` に宣言形で集約し、`getStepInstructions` で flow prompt の include を解決する。`draft.md` は authoring 固有の制御だけを残して partial を参照し、`buildDraftReviewPrompt` は同じ partial を reviewer 文脈で読み込む。review 用 QA entry 整形では considered 情報も出力し、既存の review 出力マーカーは変えない。",
+    "validation": "Issue #332 の完了条件は、共有 partial、include 解決、draft.md の重複除去、review prompt での同一 partial 利用、considered 出力、既存出力形式維持、単体テスト追加に分解できる。この approach は重複文言を片側だけ修正するのではなく、authoring と review の入力源を一致させるため、根本問題である二重管理と齟齬を解消できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #332 は `src/flow/prompts/partials/draft-qa-rules.md` を新設し、QA schema、checklist、boundary、principles を宣言形で記述することを完了条件にしている。",
+      "`src/flow/prompts/plan/draft.md` には Draft scope boundary、draft.json schema、Premise validation、Research/self-verification、Requirements checklist が直接書かれている。",
+      "`src/flow/prompts/plan/draft.md` では Requirements category checklist が autoApprove branch と非 autoApprove branch の両方に重複している。",
+      "`src/flow/lib/get-step-instructions.js` は現在、prompt markdown を `readFileSync` でそのまま返しており、include directive を解決していない。",
+      "`src/lib/include.js` は `<!-- include(\"path\") -->` directive を解決し、`/path` を `pkgDir` 起点として扱い、未存在 include や circular include では例外を投げる。",
+      "`src/flow/commands/review.js` の `buildDraftReviewPrompt` は stage によって question sanity review と coverage review に分岐する。",
+      "`src/flow/commands/review.js` の coverage review prompt は現在 `Focus on:` 文言を直接持ち、shared draft QA rules を参照していない。",
+      "`src/flow/lib/draft-lifecycle.js` の現在の QA field whitelist は `id`、`status`、`category`、`question`、`answer`、`evidence`、`why`、`droppedReason` で、`considered` は含まれていない。",
+      "Issue #332 は review prompt の QA entry formatting に `considered` を含めることを完了条件にしている。",
+      "既存 review 出力形式は `### N. <title>`、`**QA:**`、`**Issue:**` / coverage review の blocking fields、`NO_PROPOSALS` marker などを downstream parser が読む。",
+      "`considered` は prompt だけでなく runtime draft lifecycle contract にも含める。そうしないと shared partial の schema と gate validator が矛盾し、review prompt が実在しない field を表示することになる。",
+      "shared QA rules は coverage review に適用し、question sanity review は有限な構造欠陥検出に限定する。question sanity review に coverage rule を入れると、現在の route contract で禁止されている missing-question generation と衝突する。",
+      "Draft scope boundary partial は spec 254 の履歴文脈を含めず、requirements level と code reference 許容範囲を文脈非依存の rule として記述する。",
+      "unit test は include 解決、shared prompt content、review prompt の considered 出力に加え、runtime draft lifecycle が considered を受け入れる contract も検証する。",
+      "project rule により外部依存追加は禁止され、Node.js 組み込みモジュールと既存 helper を使う必要がある。",
+      "docs/source timestamp 比較では `src/` が `docs/` より新しいため、docs は参考に留め、ソースコードを正とする。"
+    ],
+    "decisionPoints": [
+      "shared partial を draft authoring と draft review のどの範囲で canonical source とするか。",
+      "partial に書く QA schema と実際の draft lifecycle contract を一致させるため、`considered` を runtime schema に含めるか。",
+      "flow prompt include 解決の対象を `getStepInstructions` が返すすべての step instructions にするか、draft prompt に限定するか。",
+      "draft review の question sanity review と coverage review の両方に shared QA rules を見せるか、coverage review に限定するか。",
+      "Draft scope boundary の spec 254 由来の文脈語句を partial に入れるか、文脈に依存しない rule として表現するか。",
+      "既存 review 出力 format と parser contract をどのフィールドまで不変として扱うか。",
+      "テストで include 解決、shared prompt content、considered 出力、runtime QA contract のどこまでを検証するか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。既存の `resolveIncludes` と Node.js 組み込みモジュールを使う。",
+      "alpha 版ポリシーにより、旧フォーマット維持のための後方互換コードは追加しない。",
+      "同種の include 解決を複数箇所へ直接実装せず、既存 helper を流用する。",
+      "`src/` 配下にこのプロジェクト固有の issue 番号や環境依存値を書かない。",
+      "具体的な guardrail 化や他 phase prompt の共通化は Issue #332 のスコープ外にする。",
+      "単一使用の generic partial loader helper は Issue #332 のスコープ外とし、必要性が複数箇所で確認されるまで追加しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "partial の最終文言と heading 構造。",
+      "`getStepInstructions` に渡す include resolution options の具体的な import と error message 期待値。",
+      "`draft.md` で残す authoring 固有制御と partial に移す rule 文言の切り分け。",
+      "`buildDraftReviewPrompt` の stage-specific wrapper 文言と shared rules の挿入位置。",
+      "`considered` field を runtime schema に含める場合の skeleton、validator、review formatting、tests の具体的変更。",
+      "既存 unit test の更新範囲と新規 test file の配置。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[must] draft QA rules partial の新設。",
+      "[must] `getStepInstructions` による flow prompt include 解決。",
+      "[must] `draft.md` の QA rule 重複削除と partial include 化。",
+      "[must] `buildDraftReviewPrompt` で shared rules を reviewer 文脈に組み込む変更。",
+      "[must] draft review の QA entry formatting に considered 情報を含める変更。",
+      "[must] 既存 review output marker と parser contract の維持。",
+      "[must] include 解決、shared prompt content、considered 出力を確認する unit test。"
+    ],
+    "out": [
+      "spec.md、test.md、review-spec.md、review-test.md など他 phase prompt の共通化。",
+      "impl review prompt との共通化。",
+      "guardrail.json への partial rule 反映。",
+      "汎用 `loadPartial(name)` helper の追加。",
+      "外部依存の追加。",
+      "GitHub workflow や board publish 処理の変更。"
+    ]
+  },
+  "impactOnExisting": [
+    "`sdd-forge flow get next-action` が返す draft step instructions の内容。",
+    "draft authoring prompt の QA rule 表現と autoApprove / 非 autoApprove 分岐の構造。",
+    "draft review prompt の判定軸と QA entry projection。",
+    "draft QA lifecycle contract に considered を含める場合の `draft.json` skeleton と validator。",
+    "review prompt builder を直接検証する unit tests。",
+    "include directive の未存在 file / circular include error が flow prompt loading で表面化する挙動。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "`considered` は draft QA の prompt 表示だけでなく、実際の draft lifecycle contract にも含める対象ですか。draft lifecycle contract は、`draft.json.qa[]` が保存できる field と gate が検証する field の組み合わせです。",
+      "answer": "はい。`considered` は prompt 表示だけでなく、draft lifecycle contract にも含める。`draft.json.qa[]` の許可 field、prepare skeleton、validator、review prompt の QA entry projection を同じ schema に揃える。",
+      "evidence": "Issue #332 は partial の QA entry schema に `considered` を含め、review prompt formatting にも `considered` を含めることを完了条件にしている。一方、`src/flow/lib/draft-lifecycle.js` の現在の `DRAFT_QA_FIELDS` は `considered` を許可していない。",
+      "why": "根拠は existing code pattern。`draft-lifecycle.js` が QA field whitelist を持つため、partial schema と runtime validator が一致していないと authoring と review の単一情報源化が成立しない。review prompt が表示する field は `draft.json` に保存・検証できる field である必要がある。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "shared QA rules は draft coverage review だけでなく、draft question sanity review にも適用しますか。draft question sanity review は、初期質問リストが空・重複・実装詳細質問などの有限な欠陥を持たないかを確認する review です。",
+      "answer": "shared QA rules は draft coverage review に適用する。draft question sanity review は、空・重複・自己完結性・実装詳細質問・回答混入だけを見る有限な構造チェックとして残す。",
+      "evidence": "`src/flow/commands/review.js` の `buildDraftReviewPrompt` は `stage.key === \"questions\"` の場合 `buildDraftQuestionReviewPrompt` に分岐する。同 prompt は \"Do not identify missing first-pass questions\" と \"Do not propose NEW QA entries\" を明示している。",
+      "why": "根拠は existing code pattern。question sanity review route は有限な構造欠陥だけを扱う設計なので、Requirements checklist や coverage rule を入れると missing coverage 指摘や NEW QA 提案を誘発し、route の契約と矛盾する。authoring と最終 coverage review の単一情報源化で Issue の重複管理問題は解消できる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "Draft scope boundary の文言は、spec 254 由来の「gate evaluation から移動した」という履歴文脈を partial に残しますか。それとも履歴文脈を外し、requirements level と code reference 許容範囲だけを宣言する形にしますか。",
+      "answer": "履歴文脈は partial に残さない。partial は requirements level の境界と、`evidence`、`why`、`considered`、`answer` で code reference を許容する rule だけを宣言する。",
+      "evidence": "`src/flow/prompts/plan/draft.md` の現行文言は \"Draft scope boundary (creation-time guidance)\" として rule 本体を記述しており、\"moved from gate evaluation\" という履歴文脈は含めていない。Issue #332 もその履歴文脈を partial に持ち込むリスクを判断点としている。",
+      "why": "根拠は existing code pattern。現行 `draft.md` は creation-time guidance として文脈非依存の rule 本体を持つため、partial も過去 spec の移行履歴ではなく現在守るべき契約を記述する方が安定する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "今回の unit test は include 解決、shared prompt content、review prompt の `considered` 出力に加えて、draft lifecycle contract が `considered` を受け入れることも検証しますか。",
+      "answer": "はい。include 解決、shared prompt content、review prompt の `considered` 出力に加え、draft lifecycle contract が `considered` を受け入れ、answered entry で `considered` を非空にできることも unit test で検証する。",
+      "evidence": "Issue #332 は `considered` を QA schema の field として扱い、review prompt formatting に含めることを完了条件にしている。`src/flow/lib/draft-lifecycle.js` は QA field whitelist と status 別 validation を持つため、contract 変更は unit test で直接検証できる。",
+      "why": "根拠は existing code pattern と guardrail principles。既存 validator は unit test で contract を固定しており、Complete Context guardrail は reviewer が満足条件を判定できる要求を求める。prompt の構造テストだけでは、gate validator が `considered` を拒否する regression を検出できないため、runtime contract までテストする。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-19",
+    "notes": "autoApprove: draft question review and coverage review passed; no unresolved user decision remains."
+  }
+}

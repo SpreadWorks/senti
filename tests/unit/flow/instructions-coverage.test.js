@@ -8,8 +8,10 @@
  * Asserts:
  * - Every instructionsKey in the definition maps to an existing file at
  *   src/flow/prompts/<phase>/<step>.md.
- * - Every *.md file under src/flow/prompts/ is referenced by at least one
- *   instructionsKey (no orphan files).
+ * - Every entry prompt file under src/flow/prompts/ is referenced by at least
+ *   one instructionsKey (no orphan files).
+ * - Every prompt partial under src/flow/prompts/partials/ is included by at
+ *   least one entry prompt.
  */
 
 import { describe, it } from "node:test";
@@ -21,6 +23,7 @@ import { FLOW_DEFINITION, TASK_DEFINITION } from "../../../src/flow/definition.j
 
 const PKG_DIR = path.resolve(fileURLToPath(import.meta.url), "../../../../src");
 const PROMPTS_DIR = path.join(PKG_DIR, "flow", "prompts");
+const INCLUDE_DIRECTIVE_RE = /<!--\s*include\("([^"]+)"\)\s*-->/g;
 
 /**
  * Collect instructionsKey values from leaf nodes that require AI prompts.
@@ -51,12 +54,38 @@ function collectPromptFiles(dir) {
       if (entry.isDirectory()) walk(full, [...relParts, entry.name]);
       else if (entry.isFile() && entry.name.endsWith(".md")) {
         const stepName = entry.name.replace(/\.md$/, "");
-        files.push({ key: `${relParts.join(".")}.${stepName}`, path: full });
+        files.push({
+          key: `${relParts.join(".")}.${stepName}`,
+          path: full,
+          partial: relParts[0] === "partials",
+        });
       }
     }
   }
   walk(dir, []);
   return files;
+}
+
+function resolveIncludePath(includePath, sourceFile) {
+  if (includePath.startsWith("/")) {
+    return path.join(PKG_DIR, includePath.slice(1));
+  }
+  return path.join(path.dirname(sourceFile), includePath);
+}
+
+function collectIncludedPromptFiles(files) {
+  const included = new Set();
+  for (const file of files) {
+    if (file.partial) continue;
+    const content = fs.readFileSync(file.path, "utf8");
+    for (const match of content.matchAll(INCLUDE_DIRECTIVE_RE)) {
+      const includedPath = resolveIncludePath(match[1], file.path);
+      if (includedPath.startsWith(PROMPTS_DIR + path.sep)) {
+        included.add(path.resolve(includedPath));
+      }
+    }
+  }
+  return included;
 }
 
 function keyToFilePath(key) {
@@ -85,22 +114,32 @@ describe("instructions-coverage (definition ↔ prompt files)", () => {
       `missing prompt files for keys:\n${missing.map((m) => `  ${m.key} -> ${m.expectedPath}`).join("\n")}`);
   });
 
-  it("every prompt file under src/flow/prompts/ is referenced by some instructionsKey", () => {
+  it("every entry prompt file under src/flow/prompts/ is referenced by some instructionsKey", () => {
     const flowKeys = collectInstructionKeys(FLOW_DEFINITION);
     const taskKeys = collectInstructionKeys(TASK_DEFINITION);
     const registeredKeys = new Set([...flowKeys, ...taskKeys]);
-    const files = collectPromptFiles(PROMPTS_DIR);
+    const files = collectPromptFiles(PROMPTS_DIR).filter((f) => !f.partial);
 
     const orphans = files.filter((f) => !registeredKeys.has(f.key));
     assert.deepEqual(orphans.map((o) => path.relative(PKG_DIR, o.path)), [],
       "orphan prompt files exist (file present but no instructionsKey references it)");
   });
 
+  it("every prompt partial is included by at least one entry prompt", () => {
+    const files = collectPromptFiles(PROMPTS_DIR);
+    const partials = files.filter((f) => f.partial);
+    const included = collectIncludedPromptFiles(files);
+
+    const orphans = partials.filter((f) => !included.has(path.resolve(f.path)));
+    assert.deepEqual(orphans.map((o) => path.relative(PKG_DIR, o.path)), [],
+      "orphan prompt partials exist (partial present but no prompt includes it)");
+  });
+
   it("every instructionsKey maps to an existing prompt file", () => {
     const flowKeys = collectInstructionKeys(FLOW_DEFINITION);
     const taskKeys = collectInstructionKeys(TASK_DEFINITION);
     const keys = [...flowKeys, ...taskKeys];
-    const files = collectPromptFiles(PROMPTS_DIR);
+    const files = collectPromptFiles(PROMPTS_DIR).filter((f) => !f.partial);
     const fileKeys = new Set(files.map((f) => f.key));
 
     const missing = keys.filter((k) => !fileKeys.has(k));

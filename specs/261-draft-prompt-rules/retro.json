@@ -1,0 +1,58 @@
+{
+  "spec": "specs/261-draft-prompt-rules/spec.json",
+  "date": "2026-05-19T07:34:54.726Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Create `src/flow/prompts/partials/draft-qa-rules.md` with declarative draft QA rules covering the QA entry schema, `considered`, field-level boundary, the 8-item requirements checklist, premise validation, decision evidence, and coverage requirements.",
+      "status": "done",
+      "note": "R1: shared draft QA rules partial declares the common contract"
+    },
+    {
+      "desc": "`getStepInstructions(instructionsKey)` shall resolve include directives using the existing `resolveIncludes` helper with the prompt file directory as `baseDir` and package `src/` directory as `pkgDir`, preserving `resolveIncludes` bounds of maximum recursion depth 8 and maximum include count 32.",
+      "status": "done",
+      "note": "R2: getStepInstructions expands includes and reports missing include paths"
+    },
+    {
+      "desc": "`src/flow/prompts/plan/draft.md` shall include the shared rules partial and remove duplicated inline QA schema, boundary, premise validation, research/self-verification rule text, and requirements checklist definitions while retaining draft-authoring control instructions.",
+      "status": "done",
+      "note": "R3: draft prompt includes shared rules once, removes duplicate rules, and keeps authoring controls"
+    },
+    {
+      "desc": "The runtime draft lifecycle contract shall include `qa[].considered` as a string field initialized in new draft skeletons, accepted by validation, and required to be empty for pending, approved, and dropped entries.",
+      "status": "done",
+      "note": "R4: draft lifecycle accepts considered for answered entries and rejects unresolved considered"
+    },
+    {
+      "desc": "Draft coverage review shall load the shared rules partial in reviewer context and format each reviewed QA entry with a `**Considered:**` line, using `(none)` when the field is empty.",
+      "status": "done",
+      "note": "R5: draft coverage review prompt loads shared rules and prints considered"
+    },
+    {
+      "desc": "Draft question sanity review shall remain limited to finite structural defects and shall not use the shared coverage rules to propose missing questions or category coverage findings.",
+      "status": "done",
+      "note": "R6: question sanity review stays finite while coverage review gets shared rules"
+    },
+    {
+      "desc": "Existing draft review output markers and parser-visible field names shall remain unchanged except for the additive `**Considered:**` QA entry line.",
+      "status": "done",
+      "note": "R7: draft coverage review keeps existing markers and adds considered only as a QA field"
+    },
+    {
+      "desc": "Automated tests shall verify include resolution, missing include failure, shared partial content in authoring and coverage review prompts, `considered` review formatting, and draft lifecycle acceptance of `considered`.",
+      "status": "done",
+      "note": "R8: regression coverage exercises include, lifecycle, prompt sharing, and review formatting contracts"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -18,6 +18,7 @@ import { getStepInstructions } from "../../../src/flow/lib/get-step-instructions
 
 const PKG_DIR = path.resolve(fileURLToPath(import.meta.url), "../../../../src");
 const PROMPTS_DIR = path.join(PKG_DIR, "flow", "prompts");
+const INCLUDE_DIRECTIVE_PATTERN = /<!--\s*include\("[^"]+"\)\s*-->/;
 
 describe("getStepInstructions (loader contract)", () => {
   describe("happy path", () => {
@@ -36,11 +37,13 @@ describe("getStepInstructions (loader contract)", () => {
       assert.ok(taskContent.length > 0, "task-scope key resolves");
     });
 
-    it("returns the actual file content (not just a placeholder)", () => {
-      const content = getStepInstructions("plan.draft");
+    it("returns expanded prompt content (not just a placeholder)", () => {
+      const expandedPrompt = getStepInstructions("plan.draft");
       const filePath = path.join(PROMPTS_DIR, "plan", "draft.md");
-      const raw = fs.readFileSync(filePath, "utf8");
-      assert.equal(content, raw, "loader returns exact file content");
+      const rawPrompt = fs.readFileSync(filePath, "utf8");
+      assert.match(rawPrompt, INCLUDE_DIRECTIVE_PATTERN);
+      assert.match(expandedPrompt, /## Draft QA Rules/);
+      assert.doesNotMatch(expandedPrompt, INCLUDE_DIRECTIVE_PATTERN);
     });
 
     it("spec-review-triage records apply/drop decisions and evidence for every blocking finding", () => {

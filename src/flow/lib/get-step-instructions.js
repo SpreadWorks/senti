@@ -18,6 +18,8 @@
 import { readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { PKG_DIR } from "../../lib/cli.js";
+import { resolveIncludes } from "../../lib/include.js";
 
 const DEFAULT_PROMPTS_DIR = fileURLToPath(new URL("../prompts/", import.meta.url));
 
@@ -48,12 +50,25 @@ export function getStepInstructions(instructionsKey) {
   }
 
   const filePath = resolveKeyPath(instructionsKey);
+  let rawContent;
   try {
-    return readFileSync(filePath, "utf8");
+    rawContent = readFileSync(filePath, "utf8");
   } catch (err) {
     if (err.code === "ENOENT") {
       throw new Error(`INSTRUCTIONS_NOT_FOUND: no prompt file for key '${instructionsKey}' (expected at ${filePath})`);
     }
     throw err;
+  }
+  try {
+    return resolveIncludes(rawContent, {
+      baseDir: path.dirname(filePath),
+      pkgDir: PKG_DIR,
+      sourceFile: filePath,
+    });
+  } catch (err) {
+    throw new Error(
+      `INSTRUCTIONS_INCLUDE_RESOLVE_FAILED: failed to resolve includes for key '${instructionsKey}' (source ${filePath}): ${err.message}`,
+      { cause: err },
+    );
   }
 }

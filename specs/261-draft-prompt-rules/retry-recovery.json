@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests were updated after review-test blocking findings to cover include bounds, include context, checklist count, and decision evidence",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "d11086709f9c1606a848ad89d2f0b21b90f6831f434f81a216ad840eff380d8a",
+        "currentHash": "f090265946df16efe44eb5873bafac0e339ddcbddd841e41a34b24ee9e422ada",
+        "changedPaths": [
+          "specs/261-draft-prompt-rules/tests/.raw/scenario-validity.log",
+          "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests were updated after review-test blocking findings to cover include bounds, include context, checklist count, and decision evidence\" --yes",
+      "createdAt": "2026-05-19T05:27:41.320Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests were updated after the second review-test findings to cover draft skeleton considered initialization and raw draft prompt duplicate-rule removal plus retained authoring controls",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "f090265946df16efe44eb5873bafac0e339ddcbddd841e41a34b24ee9e422ada",
+        "currentHash": "fccb60ff7c1cc142438fcae76acbfb312be4439cf8b1a34f924af840c1fe2cc4",
+        "changedPaths": [
+          "specs/261-draft-prompt-rules/tests/.raw/scenario-validity.log",
+          "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests were updated after the second review-test findings to cover draft skeleton considered initialization and raw draft prompt duplicate-rule removal plus retained authoring controls\" --yes",
+      "createdAt": "2026-05-19T06:11:16.975Z"
+    }
+  ]
+}

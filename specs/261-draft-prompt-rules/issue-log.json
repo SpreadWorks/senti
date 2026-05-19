@@ -1,0 +1,304 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-19T05:00:40.311Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed because draft approval flag remained false after coverage review passed",
+      "trigger": "sdd-forge flow run gate --phase draft reported approval.approved must be true",
+      "resolution": "set draft approval.approved true with autoApprove note after PASS reviews and no unresolved user decisions",
+      "guardrailCandidate": "when coverage review passes in auto mode, ensure draft approval is recorded before gate-draft",
+      "taskId": null,
+      "timestamp": "2026-05-19T05:00:55.944Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays within the user-defined Issue #332 scope: consolidating draft QA rules, sharing them between authoring and review prompts, adding considered handling, and preserving review output contracts.; Unambiguous Requirements — The stated requirements use concrete files, functions, fields, and observable behaviors rather than vague adjectives such as appropriate, fast, or easy.; Complete Context — The requirements are specific enough to compare against implementation artifacts, with concrete targets such as partial creation, include resolution, considered field handling, output marker preservation, and unit tests.; No Hardcoded Secrets — The content is a draft specification artifact and contains no source code secrets, API keys, passwords, or tokens.; Prioritize Requirements — draft QA rules partial の新設。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[0]); Prioritize Requirements — `getStepInstructions` による flow prompt include 解決。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[1]); Prioritize Requirements — `draft.md` の QA rule 重複削除と partial include 化。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[2]); Prioritize Requirements — `buildDraftReviewPrompt` で shared rules を reviewer 文脈に組み込む変更。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[3]); Prioritize Requirements — draft review の QA entry formatting に considered 情報を含める変更。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[4]); Prioritize Requirements — 既存 review output marker と parser contract の維持。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[5]); Prioritize Requirements — include 解決、shared prompt content、considered 出力を確認する unit test。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[6]); Impact on Existing Features — The draft includes an impactOnExisting section listing affected existing features and behaviors.; Present Recommendations with Reasoning — Issue #332 の Known Decision Points は、\"moved from gate evaluation\" が spec 254 文脈固有であり、partial に持ち込むと文脈消失リスクがあると記載している。 — The question has a recommended answer, but its stated basis is Issue #332 rather than project docs, guardrail principles, or existing code patterns as required. (at $.qa[2].evidence); Explore Before Asking — The draft records explored facts from source files and has no unresolved requiresUserJudgment or openQuestions entries.; Proactively Raise Related Implications — The draft proactively raises related implications such as aligning considered with the runtime lifecycle contract, limiting shared QA rules to coverage review, and preserving parser-visible review markers.; Confirm Brainstorm vs. Decision Before Critiquing — The content does not critique a brainstorming idea as a final decision; it records approved draft decisions.; Capture Digressions in draft.md — No discussion transcript or runtime evidence was provided to determine whether any digression occurred and needed capture in draft.md.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing CLI commands or options, so no migration plan is required.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-19T05:02:48.265Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "draft QA rules partial の新設。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[0]); `getStepInstructions` による flow prompt include 解決。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[1]); `draft.md` の QA rule 重複削除と partial include 化。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[2]); `buildDraftReviewPrompt` で shared rules を reviewer 文脈に組み込む変更。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[3]); draft review の QA entry formatting に considered 情報を含める変更。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[4]); 既存 review output marker と parser contract の維持。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[5]); include 解決、shared prompt content、considered 出力を確認する unit test。 — The draft lists more than three requirement items but this requirement has no must, should, or nice-to-have priority. (at $.scopeVerification.in[6])"
+        },
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "Issue #332 の Known Decision Points は、\"moved from gate evaluation\" が spec 254 文脈固有であり、partial に持ち込むと文脈消失リスクがあると記載している。 — The question has a recommended answer, but its stated basis is Issue #332 rather than project docs, guardrail principles, or existing code patterns as required. (at $.qa[2].evidence)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate guardrail review failed on missing requirement priorities and issue-only rationale evidence",
+      "trigger": "gate-draft reported prioritize-requirements failures for scopeVerification.in and draft-recommend-with-reasoning failure for q3 evidence",
+      "resolution": "added [must] priority markers to scope items and grounded q3 evidence in existing draft.md prompt wording",
+      "guardrailCandidate": "draft scope lists with more than three items need explicit priority markers before gate-draft",
+      "taskId": null,
+      "timestamp": "2026-05-19T05:03:12.026Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft is scoped to one concern: centralizing draft QA rules and reusing them in draft authoring and review prompts.; Unambiguous Requirements — The in-scope requirements are concrete and use verifiable targets such as specific files, prompt behavior, output marker preservation, and unit tests.; Complete Context — The requirements include enough concrete context, affected artifacts, and constraints for reviewers to judge implementation satisfaction consistently.; No Hardcoded Secrets — The content does not include source code containing API keys, passwords, tokens, or other secrets.; Prioritize Requirements — The draft has more than three in-scope requirements and each in-scope requirement is explicitly marked with [must].; Impact on Existing Features — The draft includes an impactOnExisting section listing affected existing features and behaviors.; Present Recommendations with Reasoning — `considered` は draft QA の prompt 表示だけでなく、実際の draft lifecycle contract にも含める対象ですか。draft lifecycle contract は、`draft.json.qa[]` が保存できる field と gate が検証する field の組み合わせです。 — The question includes a recommended answer and reasoning, but it does not state the basis as project docs/, guardrail principles, or existing code patterns as required. (at qa[0]); Present Recommendations with Reasoning — shared QA rules は draft coverage review だけでなく、draft question sanity review にも適用しますか。draft question sanity review は、初期質問リストが空・重複・実装詳細質問などの有限な欠陥を持たないかを確認する review です。 — The question includes a recommended answer and reasoning, but it does not state the basis as project docs/, guardrail principles, or existing code patterns as required. (at qa[1]); Present Recommendations with Reasoning — Draft scope boundary の文言は、spec 254 由来の「gate evaluation から移動した」という履歴文脈を partial に残しますか。それとも履歴文脈を外し、requirements level と code reference 許容範囲だけを宣言する形にしますか。 — The question includes a recommended answer and reasoning, but it does not state the basis as project docs/, guardrail principles, or existing code patterns as required. (at qa[2]); Present Recommendations with Reasoning — 今回の unit test は include 解決、shared prompt content、review prompt の `considered` 出力に加えて、draft lifecycle contract が `considered` を受け入れることも検証しますか。 — The question includes a recommended answer and reasoning, but it does not state the basis as project docs/, guardrail principles, or existing code patterns as required. (at qa[3]); Explore Before Asking — The draft records codebase facts and file-specific evidence before resolving questions.; Proactively Raise Related Implications — The draft raises related implications such as runtime schema alignment, review route boundaries, output parser contracts, and lifecycle tests.; Confirm Brainstorm vs. Decision Before Critiquing — The content does not critique a user brainstorming idea as a final decision.; Capture Digressions in draft.md — No discussion digression is present in the provided content.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing CLI commands or options.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-19T05:03:46.411Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "draft-recommend-with-reasoning",
+          "reason": "`considered` は draft QA の prompt 表示だけでなく、実際の draft lifecycle contract にも含める対象ですか。draft lifecycle contract は、`draft.json.qa[]` が保存できる field と gate が検証する field の組み合わせです。 — The question includes a recommended answer and reasoning, but it does not state the basis as project docs/, guardrail principles, or existing code patterns as required. (at qa[0]); shared QA rules は draft coverage review だけでなく、draft question sanity review にも適用しますか。draft question sanity review は、初期質問リストが空・重複・実装詳細質問などの有限な欠陥を持たないかを確認する review です。 — The question includes a recommended answer and reasoning, but it does not state the basis as project docs/, guardrail principles, or existing code patterns as required. (at qa[1]); Draft scope boundary の文言は、spec 254 由来の「gate evaluation から移動した」という履歴文脈を partial に残しますか。それとも履歴文脈を外し、requirements level と code reference 許容範囲だけを宣言する形にしますか。 — The question includes a recommended answer and reasoning, but it does not state the basis as project docs/, guardrail principles, or existing code patterns as required. (at qa[2]); 今回の unit test は include 解決、shared prompt content、review prompt の `considered` 出力に加えて、draft lifecycle contract が `considered` を受け入れることも検証しますか。 — The question includes a recommended answer and reasoning, but it does not state the basis as project docs/, guardrail principles, or existing code patterns as required. (at qa[3])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate still failed because answered QA entries did not explicitly label recommendation basis",
+      "trigger": "draft-recommend-with-reasoning guardrail flagged all answered QA entries",
+      "resolution": "added explicit existing code pattern and guardrail basis statements to QA rationale fields",
+      "guardrailCandidate": "answered draft QA rationale should explicitly name whether the basis is docs, guardrail, or existing code pattern",
+      "taskId": null,
+      "timestamp": "2026-05-19T05:04:11.133Z"
+    },
+    {
+      "step": "spec",
+      "reason": "manual spec render check used an unsupported positional spec.json argument",
+      "trigger": "sdd-forge spec render specs/261-draft-prompt-rules/spec.json returned Unknown option",
+      "resolution": "validated spec.json with JSON parsing and continued with the flow-owned spec gate path",
+      "guardrailCandidate": "avoid ad-hoc spec render invocations unless command syntax has been checked",
+      "taskId": null,
+      "timestamp": "2026-05-19T05:06:39.442Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses one user-defined concern: sharing draft QA rules and aligning the runtime/review contract around that shared draft QA behavior.; Task Single Responsibility — Each task has a single shared concern, and multi-file work within a task is tied to the same prompt, lifecycle, review, or regression-coverage objective.; Unambiguous Requirements — The requirements state concrete files, fields, prompt behavior, markers, validation behavior, and test targets rather than relying on vague adjectives.; Complete Context — The requirements provide enough concrete context, affected artifacts, and acceptance criteria for independent reviewers to judge implementation satisfaction.; REQ Diff-Verifiability — The requirements are stated in terms of file additions/changes, prompt output, validation behavior, and tests that can be checked from a unified diff and test summary.; No Hardcoded Secrets — The provided content contains no API keys, passwords, tokens, or other secrets.; No Silent Error Swallowing — The provided content contains no empty catch blocks or instructions to silently discard errors; it requires missing includes to fail loudly.; Prioritize Requirements — There are more than three requirements, and every requirement includes a priority value of \"must\".; Impact on Existing Features — The spec lists impacts on existing behavior, including getStepInstructions include expansion, draft lifecycle validation, draft coverage review formatting, question sanity review, and preservation of parser-visible review markers.; Bounded Resource Usage — [must] Resolve `<!-- include(\"path\") -->` directives in flow step instructions returned by `getStepInstructions`. — This introduces include expansion without an explicit maximum depth, include count, or total size. Include resolution is recursive or bulk file loading, so the guardrail requires explicit upper bounds. (at $.scope.in[1]); Bounded Resource Usage — Reuse the existing include resolver instead of introducing a parallel directive parser. — This selects include resolution as the design approach but does not state any upper bound for nesting, number of includes, or loaded content size. Circular detection alone is not an explicit resource bound. (at $.design_principles[2]); Bounded Resource Usage — `src/flow/lib/get-step-instructions.js` will resolve include directives before returning next-action instruction content. — This requires include directive processing without bounding recursion depth, include count, or expanded content size. The guardrail prohibits unbounded recursive processing or bulk loading. (at $.overview.modules[1].text); Bounded Resource Usage — next-action loads `plan.draft` through `getStepInstructions`; include resolution expands `/flow/prompts/partials/draft-qa-rules.md` before the instruction envelope is returned. — This data flow includes prompt expansion but gives no explicit bound on include nesting, expansion count, or total loaded size. The guardrail requires such bounds for recursive or bulk processing. (at $.overview.data_flow[0].text); Bounded Resource Usage — `getStepInstructions(instructionsKey)` shall resolve include directives using the existing `resolveIncludes` helper with the prompt file directory as `baseDir` and package `src/` directory as `pkgDir`. — This requirement mandates include resolution but does not define an upper bound for recursion depth, include count, or content size. That leaves the processing unbounded under the guardrail. (at $.requirements[1].desc); Bounded Resource Usage — `getStepInstructions(\"plan.draft\")` returns expanded content containing a marker from `draft-qa-rules.md`, not a raw include directive. — This acceptance criterion verifies expansion but does not require any explicit resource bound for include expansion. The guardrail requires bounded recursive or bulk processing. (at $.acceptance_criteria[0]); Bounded Resource Usage — Create the shared draft QA rules partial and wire flow step instruction loading so prompt includes resolve before next-action returns instructions. — This task goal requires resolving prompt includes without specifying depth, count, or size limits. Include resolution is recursive or bulk loading and must be explicitly bounded. (at $.tasks[0].goal); Bounded Resource Usage — `getStepInstructions` expands include directives using `resolveIncludes`. — This task acceptance criterion requires include expansion but omits an explicit upper bound. The guardrail prohibits designs that allow unbounded processing. (at $.tasks[0].acceptance[1]); Bounded Resource Usage — Use `resolveIncludes` from `src/lib/include.js`. Pass the containing prompt directory as `baseDir` and `PKG_DIR` as `pkgDir`. Do not add a new directive parser. — The implementation note directs use of include resolution without a stated maximum depth, include count, or size limit. Reusing an existing resolver does not satisfy the guardrail unless explicit bounds are specified. (at $.tasks[0].implementation_notes); Spec Includes Test Strategy — The spec includes task-level test_strategy entries and acceptance criteria describing what to test and how.; Record Unresolved Points as Open Questions — The spec has an Open Questions section and does not present unresolved points as fabricated answers.; Include 'Why This Approach' Rationale — The spec includes rationale through background, design principles, and alternatives_considered entries explaining why the approach was chosen.; Spec Test Coverage — This guardrail requires implementation diff and spec-local test file evidence with headers, but only the spec content was provided.; Backward-Compatible CLI Interface — The spec does not remove or change the meaning of existing CLI commands or options, so no migration plan is required by this guardrail.; Exit Code Contract — `src/flow/commands/review.js` — The spec targets a CLI command module for modification but does not state success and failure conditions or required non-zero exit behavior for the command. (at $.implementationTargets[5]); Validate User Input at Entry Point — `src/flow/commands/review.js` — The spec targets a CLI command module for modification but does not list user-facing arguments, validation requirements, or mark arguments as internal automation. (at $.implementationTargets[5])",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-19T05:14:32.084Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "bounded-resource-usage",
+          "reason": "[must] Resolve `<!-- include(\"path\") -->` directives in flow step instructions returned by `getStepInstructions`. — This introduces include expansion without an explicit maximum depth, include count, or total size. Include resolution is recursive or bulk file loading, so the guardrail requires explicit upper bounds. (at $.scope.in[1]); Reuse the existing include resolver instead of introducing a parallel directive parser. — This selects include resolution as the design approach but does not state any upper bound for nesting, number of includes, or loaded content size. Circular detection alone is not an explicit resource bound. (at $.design_principles[2]); `src/flow/lib/get-step-instructions.js` will resolve include directives before returning next-action instruction content. — This requires include directive processing without bounding recursion depth, include count, or expanded content size. The guardrail prohibits unbounded recursive processing or bulk loading. (at $.overview.modules[1].text); next-action loads `plan.draft` through `getStepInstructions`; include resolution expands `/flow/prompts/partials/draft-qa-rules.md` before the instruction envelope is returned. — This data flow includes prompt expansion but gives no explicit bound on include nesting, expansion count, or total loaded size. The guardrail requires such bounds for recursive or bulk processing. (at $.overview.data_flow[0].text); `getStepInstructions(instructionsKey)` shall resolve include directives using the existing `resolveIncludes` helper with the prompt file directory as `baseDir` and package `src/` directory as `pkgDir`. — This requirement mandates include resolution but does not define an upper bound for recursion depth, include count, or content size. That leaves the processing unbounded under the guardrail. (at $.requirements[1].desc); `getStepInstructions(\"plan.draft\")` returns expanded content containing a marker from `draft-qa-rules.md`, not a raw include directive. — This acceptance criterion verifies expansion but does not require any explicit resource bound for include expansion. The guardrail requires bounded recursive or bulk processing. (at $.acceptance_criteria[0]); Create the shared draft QA rules partial and wire flow step instruction loading so prompt includes resolve before next-action returns instructions. — This task goal requires resolving prompt includes without specifying depth, count, or size limits. Include resolution is recursive or bulk loading and must be explicitly bounded. (at $.tasks[0].goal); `getStepInstructions` expands include directives using `resolveIncludes`. — This task acceptance criterion requires include expansion but omits an explicit upper bound. The guardrail prohibits designs that allow unbounded processing. (at $.tasks[0].acceptance[1]); Use `resolveIncludes` from `src/lib/include.js`. Pass the containing prompt directory as `baseDir` and `PKG_DIR` as `pkgDir`. Do not add a new directive parser. — The implementation note directs use of include resolution without a stated maximum depth, include count, or size limit. Reusing an existing resolver does not satisfy the guardrail unless explicit bounds are specified. (at $.tasks[0].implementation_notes)"
+        },
+        {
+          "guardrail_id": "exit-code-contract",
+          "reason": "`src/flow/commands/review.js` — The spec targets a CLI command module for modification but does not state success and failure conditions or required non-zero exit behavior for the command. (at $.implementationTargets[5])"
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "`src/flow/commands/review.js` — The spec targets a CLI command module for modification but does not list user-facing arguments, validation requirements, or mark arguments as internal automation. (at $.implementationTargets[5])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate failed because include expansion bounds and review command CLI contracts were not explicit",
+      "trigger": "bounded-resource-usage, exit-code-contract, and validate-user-input-at-entry-point guardrails failed",
+      "resolution": "documented include depth/count bounds, bounded-resource acknowledgement, unchanged review CLI arguments, and existing exit code behavior",
+      "guardrailCandidate": "specs that touch command modules or recursive helpers must state resource bounds, argument validation, and exit code contracts",
+      "taskId": null,
+      "timestamp": "2026-05-19T05:15:45.571Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "static test review found incomplete R1/R2 coverage for checklist, decision evidence, include bounds, and include resolution context",
+      "trigger": "sdd-forge flow run review --phase test returned FAIL with three blocking findings",
+      "resolution": "extended spec-local tests to cover checklist count, decision evidence rule, include depth/count bounds, and baseDir/pkgDir include resolution",
+      "guardrailCandidate": "spec-local tests for include changes must cover resolver context and configured resource bounds",
+      "taskId": null,
+      "timestamp": "2026-05-19T05:20:45.590Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests were updated after review-test blocking findings to cover include bounds, include context, checklist count, and decision evidence",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "d11086709f9c1606a848ad89d2f0b21b90f6831f434f81a216ad840eff380d8a",
+        "currentHash": "f090265946df16efe44eb5873bafac0e339ddcbddd841e41a34b24ee9e422ada",
+        "changedPaths": [
+          "specs/261-draft-prompt-rules/tests/.raw/scenario-validity.log",
+          "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests were updated after review-test blocking findings to cover include bounds, include context, checklist count, and decision evidence\" --yes",
+      "createdAt": "2026-05-19T05:27:41.320Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests were updated after the second review-test findings to cover draft skeleton considered initialization and raw draft prompt duplicate-rule removal plus retained authoring controls",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "f090265946df16efe44eb5873bafac0e339ddcbddd841e41a34b24ee9e422ada",
+        "currentHash": "fccb60ff7c1cc142438fcae76acbfb312be4439cf8b1a34f924af840c1fe2cc4",
+        "changedPaths": [
+          "specs/261-draft-prompt-rules/tests/.raw/scenario-validity.log",
+          "specs/261-draft-prompt-rules/tests/draft-prompt-rules.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests were updated after the second review-test findings to cover draft skeleton considered initialization and raw draft prompt duplicate-rule removal plus retained authoring controls\" --yes",
+      "createdAt": "2026-05-19T06:11:16.975Z"
+    },
+    {
+      "step": "review",
+      "reason": "impl review retry limit reached with unchanged evidence after applying accepted proposals",
+      "trigger": "user approved proceeding to next phase",
+      "resolution": "marked review done and continued to gate-impl without another review retry",
+      "taskId": null,
+      "timestamp": "2026-05-19T07:30:46.521Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — The new partial exists and declares QA schema including considered, field boundaries, 8-item checklist, premise validation, decision evidence, and coverage rules.; R2 — getStepInstructions reads raw prompt content and passes it to resolveIncludes with baseDir set to path.dirname(filePath) and pkgDir set to PKG_DIR, relying on existing resolver limits.; R3 — draft.md now includes the shared draft QA rules partial once, removes the duplicated inline schema/boundary/premise/research/checklist text, and retains authoring controls for autoApprove/manual draft flow.; R4 — Diff adds considered to QA allowed/validated fields, requires string type, permits populated considered only for answered entries, enforces empty considered for pending/approved/dropped, and initializes considered:\"\" in the draft template skeleton.; R5 — Coverage review now loads the shared draft QA rules partial into the prompt and formats reviewed QA entries with a **Considered:** line, falling back to (none) for empty values.; R6 — Question stage still returns buildDraftQuestionReviewPrompt before loading shared rules; shared draft QA rules are only added to coverage review, and tests assert question review lacks coverage checklist.; R7 — Coverage review output markers and existing QA field labels remain unchanged, with only the additive **Considered:** QA entry line added.; R8 — Added regression tests cover include expansion and missing include errors, shared partial content in authoring and coverage review prompts, considered formatting including empty values, and draft lifecycle acceptance of considered.; Spec Test Coverage — The diff adds spec-local coverage under specs/261-draft-prompt-rules/tests/ and the new test file has a // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function buildDraftTemplateObject() — The diff introduces buildDraftTemplateObject as a new helper that is only called by buildDraftTemplate, creating a single-caller indirection layer. (at src/flow/lib/run-prepare-spec.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-19T07:32:57.127Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function buildDraftTemplateObject() — The diff introduces buildDraftTemplateObject as a new helper that is only called by buildDraftTemplate, creating a single-caller indirection layer. (at src/flow/lib/run-prepare-spec.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: removed single-caller buildDraftTemplateObject helper",
+      "resolution": "inlined the draft template object into buildDraftTemplate, directly addressing the no-overengineering gate failure",
+      "taskId": null,
+      "timestamp": "2026-05-19T07:33:12.521Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "pre_existing",
+      "reason": "final-regression failed: pre_existing",
+      "command": "npm test --",
+      "rawOutputPath": "specs/261-draft-prompt-rules/tests/.raw/final-regression.log",
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "timestamp": "2026-05-19T07:37:03.715Z"
+    },
+    {
+      "step": "final-regression",
+      "reason": "user decision: record pre-existing final-regression failure",
+      "trigger": "user selected [1] after failureKind=pre_existing",
+      "resolution": "stopped flow at final-regression without entering repair loop or finalize",
+      "taskId": null,
+      "timestamp": "2026-05-19T08:33:24.281Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "pre_existing",
+      "reason": "final-regression failed: pre_existing",
+      "command": "npm test --",
+      "rawOutputPath": "specs/261-draft-prompt-rules/tests/.raw/final-regression.log",
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "timestamp": "2026-05-19T08:43:40.973Z"
+    },
+    {
+      "step": "final-regression",
+      "reason": "rerun after user requested proceed still failed as pre_existing",
+      "trigger": "user requested proceed after recording pre-existing final-regression failure",
+      "resolution": "stopped before finalize because final-regression did not PASS and manual completion is disallowed",
+      "taskId": null,
+      "timestamp": "2026-05-19T08:43:54.605Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "pre_existing",
+      "reason": "final-regression failed: pre_existing",
+      "command": "npm test --",
+      "rawOutputPath": "specs/261-draft-prompt-rules/tests/.raw/final-regression.log",
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "timestamp": "2026-05-19T14:48:52.929Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-19T16:37:29.409Z"
+    }
+  ]
+}
