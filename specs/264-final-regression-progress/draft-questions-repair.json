@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 3 draft question repairs by removing explanatory second sentences from q1, q2, and q3.",
+  "items": [
+    {
+      "title": "1. q1 includes explanatory text",
+      "target": "q1",
+      "rationale": "q1 を yes/no の質問文だけに短縮し、説明文を除去した。",
+      "evidence": "draft.json qa[0].question now contains only the startup display requirement question.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes explanatory text",
+      "target": "q2",
+      "rationale": "q2 を acceptance criteria の質問文だけに短縮し、説明文を除去した。",
+      "evidence": "draft.json qa[1].question now contains only the heartbeat elapsed-time acceptance question.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes explanatory text",
+      "target": "q3",
+      "rationale": "q3 を失敗時導線の質問文だけに短縮し、説明文を除去した。",
+      "evidence": "draft.json qa[2].question now contains only the failure artifact link requirement question.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    }
+  ]
+}

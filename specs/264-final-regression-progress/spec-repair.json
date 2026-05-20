@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied 2 spec review repairs: constrained human progress to stderr and broadened failure artifact guidance to all artifact-producing final-regression failures.",
+  "items": [
+    {
+      "title": "Progress stream can corrupt envelope stdout",
+      "target": "R1/R2/R3/R4 and Design Principles",
+      "decision": "applied",
+      "rationale": "The spec now requires stderr for command, raw log path, heartbeat, and artifact-link output, and states stdout remains the JSON envelope.",
+      "evidence": "spec.json requirements R1-R4, constraints[3], design_principles[1], acceptance_criteria[0], and clarifications[3] now constrain progress output away from stdout.",
+      "changedFields": [
+        "goal",
+        "scope.in",
+        "constraints[3]",
+        "design_principles[1]",
+        "overview.modules[3]",
+        "overview.data_flow[0]",
+        "overview.decisions[5]",
+        "background",
+        "requirements[0].desc",
+        "requirements[1].desc",
+        "requirements[2].desc",
+        "requirements[3].desc",
+        "acceptance_criteria[0]",
+        "acceptance_criteria[1]",
+        "clarifications[3]",
+        "implementationTargets",
+        "tasks[1]"
+      ]
+    },
+    {
+      "title": "Failure artifact output omits existing root-mismatch path",
+      "target": "R4",
+      "decision": "applied",
+      "rationale": "R4 and related acceptance now cover every final-regression failure path after artifact paths are created, including worktree root mismatch.",
+      "evidence": "spec.json requirements[3].desc and acceptance_criteria[2] now include worktree root mismatch and all artifact-producing final-regression failures.",
+      "changedFields": [
+        "scope.in[3]",
+        "overview.decisions[6]",
+        "requirements[3].desc",
+        "acceptance_criteria[2]",
+        "tasks[1].acceptance[2]"
+      ]
+    }
+  ]
+}

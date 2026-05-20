@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-05-20T10:45:04.498Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/264-final-regression-progress/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Default heartbeat interval not pinned",
+      "target": "specs/264-final-regression-progress/tests/final-regression-progress.test.js R3",
+      "improvement": "Add a focused assertion or design note covering that the production default heartbeat interval remains 30000 ms while keeping the executable test fast through the existing override.",
+      "whyNonBlocking": "The current test exercises heartbeat emission while the child is running and avoids a slow 30-second test, so requirement behavior is materially covered; the exact default interval is the only unpinned detail."
+    }
+  ]
+}

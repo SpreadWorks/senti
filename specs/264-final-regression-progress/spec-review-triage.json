@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "2 blocking findings apply: constrain progress output to non-stdout/stderr and broaden R4 to all artifact-producing final-regression failures.",
+  "items": [
+    {
+      "title": "Progress stream can corrupt envelope stdout",
+      "target": "R1/R2/R3/R4 and Design Principles",
+      "decision": "apply",
+      "rationale": "flow command stdout is reserved for the JSON envelope, so human progress output must be constrained to stderr or the existing non-stdout human stream.",
+      "evidence": "spec.json requirements R1-R4 currently allow stdout or stderr; review cites src/flow/lib/base-command.js outputMode=envelope and src/lib/dispatcher.js stdout envelope behavior."
+    },
+    {
+      "title": "Failure artifact output omits existing root-mismatch path",
+      "target": "R4",
+      "decision": "apply",
+      "rationale": "run-final-regression can produce final-regression-result.json and raw log without command discovery or child process when worktree root mismatches, so artifact guidance must cover every artifact-producing failure path.",
+      "evidence": "src/flow/lib/run-final-regression.js root mismatch branch uses FinalRegressionProcessResultFactory.rootMismatch, writes the same resultPath and attemptPath, then returns FINAL_REGRESSION_FAILED."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "3 repair targets apply: q1, q2, and q3 include explanatory text inside the question sentence and should be shortened.",
+  "items": [
+    {
+      "title": "1. q1 includes explanatory text",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "q1 の質問本体は有効だが、raw log path の説明文が同じ question フィールドに含まれているため、質問文を短くする修正が必要。",
+      "evidence": "draft.json qa[0].question contains a second explanatory sentence after the yes/no question."
+    },
+    {
+      "title": "2. q2 includes explanatory text",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "q2 の質問本体は有効だが、elapsed time の説明文が同じ question フィールドに含まれているため、質問文を短くする修正が必要。",
+      "evidence": "draft.json qa[1].question contains a second explanatory sentence after the acceptance-criteria question."
+    },
+    {
+      "title": "3. q3 includes explanatory text",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "q3 の質問本体は有効だが、result artifact の説明文が同じ question フィールドに含まれているため、質問文を短くする修正が必要。",
+      "evidence": "draft.json qa[2].question contains a second explanatory sentence after the failure-link question."
+    }
+  ]
+}

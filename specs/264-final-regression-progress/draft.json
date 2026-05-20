@@ -1,0 +1,109 @@
+{
+  "devType": "feature",
+  "goal": "final-regression 実行中に、実行コマンド、raw log path、経過状況、失敗時の確認先が利用者に見えるようにする。",
+  "analysis": {
+    "problem": "final-regression はフロー終盤でフル回帰テストを実行するため、30 秒以上出力がない状態になりうるが、現在は実行中の進捗や raw log path が利用者に見えず、停止しているのか継続中なのか判断しづらい。",
+    "proposedApproach": "final-regression 開始時に実行コマンドと raw log path を表示し、コマンドが終了するまで 30 秒ごとに elapsed time を出し、失敗時は結果 artifact と raw log の確認先を明示する。",
+    "validation": "Issue #337 の完了条件は、実行中の進捗と確認先が利用者に分かること。既存の run-final-regression 実装は raw log artifact を生成するが、実行前に path を表示せず、プロセス実行中の進捗表示もないため、30 秒ごとの elapsed time と開始時 path 表示は根本問題に対応している。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #337 は final-regression の実行中表示と raw log path 表示に限定された enhancement である。",
+      "Issue #337 の Goals は、開始時の command と raw log path 表示、実行中の heartbeat または elapsed time、失敗時の artifact 導線を求めている。",
+      "Issue #337 は final-regression のみに言及しており、test-execute や他の flow run コマンドへの拡張は要求していない。",
+      "src/flow/lib/run-final-regression.js は final-regression-attempt-NNN.log と final-regression-result.json を spec 配下に生成する。",
+      "src/flow/lib/test-regression.js の runProcessDetailed は execFile 結果を完了後にまとめて返しており、現在の実行中表示には使われていない。",
+      "src/lib/process.js の runCmdAsync は完了後に stdout/stderr を返す設計であり、逐次出力を利用者へ転送する契約ではない。",
+      ".sdd-forge/config.json の lang は ja であり、draft の質問は日本語で書く。"
+    ],
+    "decisionPoints": [
+      "開始時に表示する情報は実行コマンドと raw log path を必須とする。",
+      "heartbeat の最小要件は、コマンド終了まで 30 秒ごとに elapsed time が表示されることとする。",
+      "失敗時に表示する artifact 導線は result artifact と raw log の両方とする。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は禁止。Node.js 組み込みモジュールだけで実装する。",
+      "src/ 配下にプロジェクト固有情報を埋め込まない。",
+      "意味のある値や表示単位は、必要に応じて専用クラスで invariant と振る舞いを持たせる。",
+      "final-regression の post hook がステップ遷移を管理するため、artifact 形式と既存遷移は壊さない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "実行中出力を既存 process helper に追加するか、final-regression 専用 runner として閉じ込めるか。",
+      "TTY と非 TTY の出力フォーマットをどこまで統一するか。",
+      "raw log への逐次書き込みと envelope artifact の整合性をどう検証するか。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "MUST: final-regression 実行開始時にコマンドを表示する。",
+      "MUST: final-regression 実行開始時に raw log path を表示する。",
+      "MUST: final-regression コマンドが終了するまで 30 秒ごとに elapsed time を表示する。",
+      "MUST: final-regression 失敗時に final-regression-result.json と raw log path の確認先を表示する。",
+      "MUST: spec-local tests で開始時表示、30 秒 heartbeat、失敗時 artifact 導線を検証する。"
+    ],
+    "out": [
+      "通常の test-execute の進捗表示変更",
+      "回帰テストコマンドの探索ルール変更",
+      "GitHub Issue や Projects board の表示変更",
+      "外部ログサービスや新規依存の追加"
+    ]
+  },
+  "impactOnExisting": [
+    "final-regression の標準出力またはログ表示が増える。",
+    "final-regression の既存 artifact 生成とステップ遷移は維持する。",
+    "30 秒以上出力がない実行でも、利用者は elapsed time により継続中であることを確認できる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "final-regression 開始時の表示は、実行コマンドと raw log path の両方を必須にする認識でよいですか。",
+      "answer": "はい。開始時の表示は、実行コマンドと raw log path の両方を必須とする。",
+      "evidence": "Issue #337 Goals: \"Display the command and raw log path at execution start\"。src/flow/lib/run-final-regression.js は rawOutputPath を artifact として記録している。",
+      "why": "Issue が両方の表示を明示しており、片方だけでは実行内容と確認先の両方を追跡できないため。",
+      "considered": "raw log path のみ表示する案は、実行されたコマンドが分からず調査性が不足するため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "heartbeat は、コマンド終了まで 30 秒ごとに elapsed time を表示できれば完了条件を満たす扱いでよいですか。",
+      "answer": "はい。コマンド終了まで 30 秒ごとに elapsed time が表示されれば、heartbeat 要件を満たす扱いにする。",
+      "evidence": "Issue #337 Goals: \"Emit a heartbeat or elapsed time during long-running executions\"。src/lib/progress.js は elapsed time を扱う進捗表示ユーティリティとして docs context に記録されている。",
+      "why": "Issue は heartbeat と elapsed time を代替可能な選択肢として書いている。30 秒ごとの elapsed time 表示なら、無反応に見える時間を上限 30 秒にできる。",
+      "considered": "実 stdout の逐次転送だけに依存する案は、テストコマンドが無出力の場合に沈黙が続くため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "失敗時の導線は、final-regression-result.json と raw log path の両方を表示する要件でよいですか。",
+      "answer": "はい。失敗時は final-regression-result.json と raw log path の両方を確認先として表示する。",
+      "evidence": "Issue #337 Goals: \"Provide a clear link to open artifacts on failure\"。src/flow/lib/run-final-regression.js は result_path と raw_output_path を envelope artifacts に含めている。",
+      "why": "result artifact は判定結果と nextAction を示し、raw log は実行出力を示す。失敗調査には両方が必要。",
+      "considered": "raw log だけを表示する案は failureKind や nextAction が分からず、result artifact だけを表示する案は実出力の確認に戻れないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "今回の範囲は final-regression のみとし、test-execute や他の flow run コマンドの進捗表示は変更しない扱いでよいですか。",
+      "answer": "はい。今回の範囲は final-regression のみとし、test-execute や他の flow run コマンドの進捗表示は変更しない。",
+      "evidence": "Issue #337 の title と Background は final-regression のみに言及している。Draft guardrail single-responsibility は、Issue 境界内の 1 concern に限定することを求めている。",
+      "why": "対象を final-regression に限定すると、フロー終盤で 30 秒以上出力がない状態に集中でき、他コマンドの表示契約変更を避けられる。",
+      "considered": "全 flow run コマンド共通の進捗表示へ広げる案は、Issue #337 の範囲外で影響範囲が大きいため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-20T07:47:24.000Z",
+    "notes": "Auto-approved after draft refine and coverage review PASS; no unresolved user decision remains."
+  }
+}

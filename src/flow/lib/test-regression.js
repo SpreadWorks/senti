@@ -1,13 +1,22 @@
 import fs from "fs";
 import path from "path";
-import { runCmdAsync } from "../../lib/process.js";
+import { execFile } from "child_process";
 import { listChangedFilesDetailed } from "../../lib/git-helpers.js";
 import { extractMakeTestTarget, readMakefile } from "../../lib/makefile.js";
 import { collectTestCommandSources, selectTestCommandSource } from "../../lib/test-command-sources.js";
 import { projectFilePathsFromAnalysis } from "../../docs/lib/analysis-entry.js";
 
 export const DEFAULT_TEST_TIMEOUT_SECONDS = 600;
+export const DEFAULT_PROCESS_HEARTBEAT_MS = 30_000;
+export const MIN_PROCESS_HEARTBEAT_MS = 1000;
 export const TEST_EXECUTE_REGRESSION_POLICIES = Object.freeze(["targeted", "full", "skip"]);
+
+export function formatElapsedMs(ms) {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return minutes > 0 ? `${minutes}m${String(rest).padStart(2, "0")}s` : `${seconds}s`;
+}
 
 export class ParsedCommand {
   constructor({ env = {}, argv, source, metadata = {} }) {
@@ -376,36 +385,64 @@ export function processOutputLines(result) {
 }
 
 export async function runProcessDetailed(command, opts = {}) {
-  try {
-    const result = await runCmdAsync(command.argv[0], command.argv.slice(1), {
-      cwd: opts.cwd,
-      timeout: opts.timeoutMs,
-      env: { ...process.env, ...command.env },
-      maxBuffer: opts.maxBuffer ?? 20 * 1024 * 1024,
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    let heartbeat = null;
+    const detailedResult = (err = null, stdout = "", stderr = "") => {
+      const stdoutText = String(stdout || "");
+      const stderrText = String(stderr || err?.message || "");
+      const errorCode = err && typeof err.code === "string" ? err.code : null;
+      const spawnError = errorCode && errorCode !== "ETIMEDOUT"
+        ? `${errorCode}: ${stderrText || command.argv[0]}`
+        : null;
+      return {
+        started: !spawnError,
+        exitCode: err ? (typeof err.code === "number" ? err.code : 1) : 0,
+        signal: err?.signal ?? null,
+        timedOut: Boolean(err?.killed),
+        spawnError,
+        stdout: stdoutText,
+        stderr: stderrText,
+      };
+    };
+    const finish = (result) => {
+      if (heartbeat) clearInterval(heartbeat);
+      resolve(result);
+    };
+    let child;
+    try {
+      child = execFile(
+        command.argv[0],
+        command.argv.slice(1),
+        {
+          cwd: opts.cwd,
+          encoding: opts.encoding || "utf8",
+          timeout: opts.timeoutMs,
+          env: { ...process.env, ...command.env },
+          maxBuffer: opts.maxBuffer ?? 20 * 1024 * 1024,
+        },
+        (err, stdout, stderr) => {
+          finish(detailedResult(err, stdout, stderr));
+        },
+      );
+    } catch (err) {
+      finish(detailedResult(err));
+      return;
+    }
+    child.once("spawn", () => {
+      if (!opts.onHeartbeat) return;
+      const intervalMs = Number.isSafeInteger(opts.heartbeatIntervalMs) && opts.heartbeatIntervalMs > 0
+        ? Math.max(opts.heartbeatIntervalMs, MIN_PROCESS_HEARTBEAT_MS)
+        : DEFAULT_PROCESS_HEARTBEAT_MS;
+      heartbeat = setInterval(() => {
+        try {
+          opts.onHeartbeat({ elapsedMs: Date.now() - startedAt });
+        } catch {
+          // Progress reporting must not change the child process outcome.
+        }
+      }, intervalMs);
     });
-    const spawnError = result.errorCode && result.errorCode !== "ETIMEDOUT"
-      ? `${result.errorCode}: ${result.stderr || command.argv[0]}`
-      : null;
-    return {
-      started: !spawnError,
-      exitCode: result.status,
-      signal: result.signal,
-      timedOut: Boolean(result.killed),
-      spawnError,
-      stdout: result.stdout,
-      stderr: result.stderr,
-    };
-  } catch (err) {
-    return {
-      started: false,
-      exitCode: 1,
-      signal: null,
-      timedOut: false,
-      spawnError: err.message,
-      stdout: "",
-      stderr: err.message,
-    };
-  }
+  });
 }
 
 export function resolveTestTimeoutSeconds(config = {}) {

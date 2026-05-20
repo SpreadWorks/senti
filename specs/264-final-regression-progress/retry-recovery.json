@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests strengthened after retry baseline matched repaired evidence",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "b837c6bed01eeb8e5c14549ae729d605b94b1151ac374a753027f442144c4d1f",
+        "currentHash": "0495bf878d3152dac5670c43917c8d436a1063ba64ff18d41ffac3f0d9f4a531",
+        "changedPaths": [
+          "specs/264-final-regression-progress/tests/.raw/scenario-validity.log",
+          "specs/264-final-regression-progress/tests/final-regression-progress.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests strengthened after retry baseline matched repaired evidence\" --yes",
+      "createdAt": "2026-05-20T10:42:50.044Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "R3 heartbeat test changed to prove output while child is running",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "0495bf878d3152dac5670c43917c8d436a1063ba64ff18d41ffac3f0d9f4a531",
+        "currentHash": "85faa56e816e98d3d32c97040ece700df75429fc3c94ff181d4b384f22067255",
+        "changedPaths": [
+          "specs/264-final-regression-progress/tests/.raw/scenario-validity.log",
+          "specs/264-final-regression-progress/tests/final-regression-progress.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"R3 heartbeat test changed to prove output while child is running\" --yes",
+      "createdAt": "2026-05-20T10:43:49.316Z"
+    },
+    {
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "R3 heartbeat test now verifies child start before counting elapsed output",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "85faa56e816e98d3d32c97040ece700df75429fc3c94ff181d4b384f22067255",
+        "currentHash": "7fa4e03be1499417766a17c6f622f8b67a55e9b1faac41ba10682bf6fbd7ca92",
+        "changedPaths": [
+          "specs/264-final-regression-progress/tests/.raw/scenario-validity.log",
+          "specs/264-final-regression-progress/tests/final-regression-progress.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"R3 heartbeat test now verifies child start before counting elapsed output\" --yes",
+      "createdAt": "2026-05-20T10:44:44.488Z"
+    },
+    {
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Applied changed evidence from implementation review: unified process execution path, removed mutable command text state, standardized raw output path naming, and guarded heartbeat callback failures.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "edaae614efe2d26e65cc91c9eb43f4d772d6b78b3e366fb8608e1e7ba90d3cd3",
+        "currentHash": "3db871c363e0ff2f0c03bbb35b714883ae8ca8776fced56abfb2b90d74057ae0",
+        "changedPaths": [
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/test-regression.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"Applied changed evidence from implementation review: unified process execution path, removed mutable command text state, standardized raw output path naming, and guarded heartbeat callback failures.\" --yes",
+      "createdAt": "2026-05-20T10:57:16.485Z"
+    },
+    {
+      "id": "recovery-005",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Applied changed evidence from the latest implementation review: reused a single commandText state, removed unused process result fields, renamed the process result adapter, and moved heartbeat interval validation into the heartbeat-only branch.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "3db871c363e0ff2f0c03bbb35b714883ae8ca8776fced56abfb2b90d74057ae0",
+        "currentHash": "ded9e124ca4b97528c5d9185e22421b83da04a5166bdcc18cf922b8002ed18ad",
+        "changedPaths": [
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/test-regression.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"Applied changed evidence from the latest implementation review: reused a single commandText state, removed unused process result fields, renamed the process result adapter, and moved heartbeat interval validation into the heartbeat-only branch.\" --yes",
+      "createdAt": "2026-05-20T10:58:45.433Z"
+    },
+    {
+      "id": "recovery-006",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Applied all remaining implementation review proposals: extracted elapsed formatting, renamed progress writer, delegated heartbeat interval defaulting to runProcessDetailed, and returned normalized process results directly.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "ded9e124ca4b97528c5d9185e22421b83da04a5166bdcc18cf922b8002ed18ad",
+        "currentHash": "aae067e413a4f4482db37da19672f642e781cb51df4239eaf30a1e68f8aa7a1f",
+        "changedPaths": [
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/test-regression.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"Applied all remaining implementation review proposals: extracted elapsed formatting, renamed progress writer, delegated heartbeat interval defaulting to runProcessDetailed, and returned normalized process results directly.\" --yes",
+      "createdAt": "2026-05-20T11:00:43.723Z"
+    },
+    {
+      "id": "recovery-007",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Applied bounded heartbeat frequency and execFile-specific process result normalization from implementation review; kept FINAL_REGRESSION_HEARTBEAT_MS exported because spec-local tests consume it as the final-regression contract.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "aae067e413a4f4482db37da19672f642e781cb51df4239eaf30a1e68f8aa7a1f",
+        "currentHash": "9d50e72194d83c2237e7b0a43be3ef5f2d98e8aa5b42ebd0fe9dac886ca45637",
+        "changedPaths": [
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/test-regression.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"Applied bounded heartbeat frequency and execFile-specific process result normalization from implementation review; kept FINAL_REGRESSION_HEARTBEAT_MS exported because spec-local tests consume it as the final-regression contract.\" --yes",
+      "createdAt": "2026-05-20T11:02:16.941Z"
+    },
+    {
+      "id": "recovery-008",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Applied review follow-up: normalized synchronous execFile launch failures, renamed the execFile result adapter, and made FINAL_REGRESSION_HEARTBEAT_MS a local fallback as well as a tested contract.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "9d50e72194d83c2237e7b0a43be3ef5f2d98e8aa5b42ebd0fe9dac886ca45637",
+        "currentHash": "38d3376ff8064df9b788426e980507730e8fe279ddbdc39d67e601dbbe0c9df3",
+        "changedPaths": [
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/test-regression.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"Applied review follow-up: normalized synchronous execFile launch failures, renamed the execFile result adapter, and made FINAL_REGRESSION_HEARTBEAT_MS a local fallback as well as a tested contract.\" --yes",
+      "createdAt": "2026-05-20T11:03:25.160Z"
+    }
+  ]
+}

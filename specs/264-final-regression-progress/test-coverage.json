@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "review-test",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "When final-regression starts a discovered regression command, stderr shows the command string before the child process starts while stdout remains reserved for the final JSON envelope.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-progress.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "When final-regression starts, stderr shows the repo-relative raw log path before the child process starts while stdout remains reserved for the final JSON envelope.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-progress.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "While the final-regression child process is running, elapsed time output is emitted to stderr every 30 seconds until the process exits or reports a spawn error.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-progress.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "When final-regression fails after artifact paths have been created, including process attempts, discovery errors, and worktree root mismatch, stderr includes both final-regression-result.json and the raw log path.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-progress.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "The existing final-regression result artifact schema, raw log artifact path, failureKind classification, nextAction, retryable flag, and success/failure envelope semantics remain unchanged.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/final-regression-progress.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/final-regression-progress.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    }
+  ]
+}

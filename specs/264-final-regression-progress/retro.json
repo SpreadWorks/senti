@@ -1,0 +1,43 @@
+{
+  "spec": "specs/264-final-regression-progress/spec.json",
+  "date": "2026-05-20T11:58:33.382Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "When final-regression starts a discovered regression command, stderr shows the command string before the child process starts while stdout remains reserved for the final JSON envelope.",
+      "status": "done",
+      "note": "R1: writes the discovered command to stderr before the child process starts"
+    },
+    {
+      "desc": "When final-regression starts, stderr shows the repo-relative raw log path before the child process starts while stdout remains reserved for the final JSON envelope.",
+      "status": "done",
+      "note": "R2: writes the raw log path to stderr before the child process starts"
+    },
+    {
+      "desc": "While the final-regression child process is running, elapsed time output is emitted to stderr every 30 seconds until the process exits or reports a spawn error.",
+      "status": "done",
+      "note": "R3: emits elapsed-time heartbeat messages to stderr while the process is running"
+    },
+    {
+      "desc": "When final-regression fails after artifact paths have been created, including process attempts, discovery errors, and worktree root mismatch, stderr includes both final-regression-result.json and the raw log path.",
+      "status": "done",
+      "note": "R4: prints result and raw artifact paths for process failures"
+    },
+    {
+      "desc": "The existing final-regression result artifact schema, raw log artifact path, failureKind classification, nextAction, retryable flag, and success/failure envelope semantics remain unchanged.",
+      "status": "done",
+      "note": "R5: preserves final-regression artifact and envelope fields"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

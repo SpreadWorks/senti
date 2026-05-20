@@ -19,7 +19,9 @@ import {
 } from "./test-artifacts.js";
 import {
   classifyRegression,
+  DEFAULT_PROCESS_HEARTBEAT_MS,
   discoverRegressionCommand,
+  formatElapsedMs,
   listRegressionChangedFiles,
   processOutputLines,
   processPassed,
@@ -62,6 +64,7 @@ const FAILURE_EVIDENCE_JOINER_CHARS = FAILURE_EVIDENCE_INPUT_COUNT - 1;
 const MAX_FAILURE_EVIDENCE_SOURCE_CHARS = Math.floor(
   (MAX_FAILURE_EVIDENCE_CHARS - FAILURE_EVIDENCE_JOINER_CHARS) / FAILURE_EVIDENCE_INPUT_COUNT,
 );
+export const FINAL_REGRESSION_HEARTBEAT_MS = DEFAULT_PROCESS_HEARTBEAT_MS;
 
 class TextFailureClassifier {
   constructor(pattern, kind) {
@@ -225,6 +228,10 @@ function repoRelative(root, absolutePath) {
   return path.relative(root, absolutePath).split(path.sep).join("/");
 }
 
+function writeFinalRegressionProgressLine(message) {
+  process.stderr.write(`[sdd-forge] final-regression ${message}\n`);
+}
+
 function appendRaw(lines, sectionLines) {
   const start = lines.length + 1;
   lines.push(...sectionLines);
@@ -381,6 +388,8 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     const specDir = resolveSpecDir(path.resolve(root, state.spec));
     const attemptPath = nextFinalRegressionAttempt(specDir);
     const resultPath = path.join(specDir, FINAL_REGRESSION_RESULT_FILE);
+    const resultPathRelative = repoRelative(root, resultPath);
+    const rawOutputPathRelative = repoRelative(root, attemptPath);
 
     const rawLines = [];
     const previousFailures = previousFinalRegressionFailures(root, state);
@@ -392,6 +401,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     const rootOk = !expectedRootPath || resolveRealPath(rootPath) === resolveRealPath(expectedRootPath);
     let changedFiles = [];
     let rootCommand;
+    let commandText = null;
     let result;
     let resultStatus;
     let failureKind;
@@ -401,9 +411,16 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       changedFiles = listRegressionChangedFiles({ root, state });
       try {
         rootCommand = discoverRegressionCommand(root, config);
+        commandText = rootCommand.toString();
+        writeFinalRegressionProgressLine(`command: ${commandText}`);
+        writeFinalRegressionProgressLine(`raw log: ${rawOutputPathRelative}`);
         result = await runProcessDetailed(rootCommand, {
           cwd: root,
           timeoutMs: resolveTestTimeoutSeconds(config) * 1000,
+          heartbeatIntervalMs: ctx.finalRegressionProgress?.heartbeatMs ?? FINAL_REGRESSION_HEARTBEAT_MS,
+          onHeartbeat({ elapsedMs }) {
+            writeFinalRegressionProgressLine(`elapsed: ${formatElapsedMs(elapsedMs)}`);
+          },
         });
       } catch (err) {
         discoveryError = err;
@@ -421,7 +438,6 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       failureKind = FAILURE_KINDS.INFRA;
     }
 
-    const commandText = rootCommand ? rootCommand.toString() : null;
     const decision = resultStatus === "pass"
       ? FinalRegressionDecision.pass()
       : FinalRegressionDecision.fail(failureKind, previousFailures.length);
@@ -437,13 +453,11 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     ]);
     fs.writeFileSync(attemptPath, rawLines.join("\n") + "\n");
 
-    const resultPathRelative = repoRelative(root, resultPath);
-    const rawOutputPath = repoRelative(root, attemptPath);
     const artifact = new FinalRegressionArtifact({
       result: resultStatus,
       command: commandText,
       commandSource: rootCommand?.source || null,
-      rawOutputPath,
+      rawOutputPath: rawOutputPathRelative,
       rawOutputLines: range,
       process: new FinalRegressionProcess(result),
       changedFiles,
@@ -459,13 +473,15 @@ export default class RunFinalRegressionCommand extends FlowCommand {
         result: "pass",
         changed: [
           resultPathRelative,
-          rawOutputPath,
+          rawOutputPathRelative,
         ],
         artifacts: envelopeArtifacts,
         next: "finalize-commit",
       };
     }
 
+    writeFinalRegressionProgressLine(`result artifact: ${resultPathRelative}`);
+    writeFinalRegressionProgressLine(`wrote raw log: ${rawOutputPathRelative}`);
     recordFinalRegressionFailure(root, state, json);
     return Envelope.fail(
       "run",
