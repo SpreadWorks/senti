@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-20T05:40:34.922Z",
+  "analyzedAt": "2026-05-20T05:52:37.638Z",
   "package": {
     "entries": [
       {
@@ -258,7 +258,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -281,7 +281,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -301,7 +301,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -322,7 +322,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -342,7 +342,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -364,7 +364,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -1423,7 +1423,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -1925,7 +1925,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -1957,7 +1957,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4458,21 +4458,29 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "6c6ae379ba7024e8b55292d8bd0f9704",
-        "lines": 225,
-        "mtime": "2026-05-19T16:44:37.373Z",
+        "hash": "294eb97fe62f1b99050c310c2bbfb8a8",
+        "lines": 344,
+        "mtime": "2026-05-20T05:52:18.467Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
           "writeLastFinalizedPointer",
           "commitOrSkip",
           "collectExistingPathspecs",
+          "readFinalizeMergeMetadataPreflight",
+          "getFinalizeMergeTargetExternalDirtyPaths",
+          "hasFinalizeMergeTargetExternalDirty",
+          "commitFinalizeMergeMetadataIfSafe",
           "resolveGitCommonDir",
           "assertGitWriteAccess",
           "runFinalizePreflight",
           "runPreflightChecks",
           "runMigrationHook",
           "executeCommitPost",
+          "getFinalizeMergeAllowedMetadataPaths",
+          "walkPorcelainStatusPaths",
+          "readFinalizeMergeStatusOutput",
+          "buildFinalizeMergeMetadataPreflight",
           "buildFinalizePreflightError"
         ],
         "imports": [
@@ -4491,6 +4499,10 @@
           "writeLastFinalizedPointer",
           "commitOrSkip",
           "collectExistingPathspecs",
+          "readFinalizeMergeMetadataPreflight",
+          "getFinalizeMergeTargetExternalDirtyPaths",
+          "hasFinalizeMergeTargetExternalDirty",
+          "commitFinalizeMergeMetadataIfSafe",
           "resolveGitCommonDir",
           "assertGitWriteAccess",
           "runFinalizePreflight",
@@ -4505,23 +4517,9 @@
           "src/flow/lib/run-finalize-sync.js"
         ],
         "id": "c711309b",
-        "summary": "Provides shared finalize utilities used by finalize subcommands. It centralizes error logging, preflight checks, commit behavior, and post-commit artifact/report handling.",
-        "detail": "`finalizeOnError` appends structured failure entries to the issue log with timestamps and optional triggers. Preflight logic resolves the git common directory and verifies write access by creating and removing a lock file, returning a guided error when permissions fail. `runPreflightChecks` enforces branch/commit cleanliness rules with explicit skip and failure reasons for spec-only, dirty, or no-commit cases. The module can run a spec-local migration hook before finalize continues. `executeCommitPost` aggregates validated test artifacts, generates and saves reports, optionally comments on linked issues via `gh`, and commits durable report/test artifacts when present.",
-        "chapter": "cli_commands",
-        "role": "Finalize lifecycle utilities",
         "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
           "attempts": 1
-        },
-        "keywords": [
-          "finalize preflight",
-          "issue logging",
-          "git write access",
-          "commit skip logic",
-          "post-commit hook",
-          "report generation",
-          "durable artifacts"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -6352,9 +6350,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "0cb855ea2a3afcb46558af6b67abbca7",
-        "lines": 1002,
-        "mtime": "2026-05-19T04:48:08.664Z",
+        "hash": "21ab879508a5aae99ce544f6ff7d0505",
+        "lines": 1014,
+        "mtime": "2026-05-20T05:52:18.467Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6385,22 +6383,8 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
-          "attempts": 2
-        },
-        "summary": "Acts as the declarative registry for all `flow` subcommands, including help text, argument schemas, and lifecycle hooks. It also encodes finalize/test step orchestration rules.",
-        "detail": "Each registry entry lazily imports its command module and can define `pre`, `post`, and `onError` hooks for side effects and step-state transitions. Shared helpers normalize finalize success statuses, protect expected missing-flow conditions, and isolate operational errors for dispatcher reporting. Finalize hooks switch flow-state authority from worktree to main repo after merge, record merge outcomes, and reset skipped downstream leaves during retry paths. Test hooks validate generated artifacts before marking `test-execute`, `test-result-review`, and `final-regression` as done. The file also formalizes draft-review responsibility boundaries and asserts the expected boundary summary for guardrail consistency.",
-        "chapter": "cli_commands",
-        "role": "Flow command registry and hook orchestrator",
-        "keywords": [
-          "command registry",
-          "lifecycle hooks",
-          "flow dispatcher",
-          "finalize orchestration",
-          "step status updates",
-          "artifact gate hooks",
-          "help metadata"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/help.js",
@@ -7573,7 +7557,7 @@
         ],
         "id": "d35107ed",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8163,7 +8147,7 @@
         ],
         "id": "a3560f5e",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -8204,7 +8188,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11379,7 +11363,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -11496,15 +11480,15 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       }
     ],
     "summary": {
       "total": 309,
-      "totalMethods": 1406
+      "totalMethods": 1414
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-20T05:41:36.681Z"
+  "enrichedAt": "2026-05-20T05:53:49.396Z"
 }
