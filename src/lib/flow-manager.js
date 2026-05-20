@@ -15,6 +15,7 @@ import path from "path";
 import { runGit } from "./git-helpers.js";
 import { sddDir } from "./config.js";
 import { FlowStore } from "./flow-store.js";
+import { withSpecIdArgDefault, withSpecIdDefault } from "./flow-options.js";
 import { ActiveFlowRegistry } from "./active-flow-registry.js";
 import { PreparingFlowStore } from "./preparing-flow-store.js";
 import { STATE_FILE, SCAN_FLOWS_LIMIT, PREPARING_SCAN_LIMIT, specIdFromPath } from "./flow-helpers.js";
@@ -31,11 +32,13 @@ export class FlowManager {
    * @param {string}  opts.root        - work root (worktree path when in one)
    * @param {string}  opts.mainRoot    - main repo root
    * @param {boolean} opts.inWorktree
+   * @param {string|null} [opts.specId]
    */
-  constructor({ root, mainRoot, inWorktree }) {
+  constructor({ root, mainRoot, inWorktree, specId = null }) {
     this._root = root;
     this._mainRoot = mainRoot;
     this._inWorktree = inWorktree;
+    this._boundSpecId = specId;
     this._activeFlows = new ActiveFlowRegistry({ mainRoot });
     this._preparing = new PreparingFlowStore({ mainRoot });
     this._store = new FlowStore({
@@ -48,11 +51,15 @@ export class FlowManager {
 
   // ── flow.json (FlowStore) ───────────────────────────────────────────────────
 
-  load(specId) { return this._store.load(specId); }
-  loadReadOnly(specId) { return this._store.loadReadOnly(specId); }
+  load(specId) {
+    return this._store.load(withSpecIdArgDefault(specId, this._boundSpecId));
+  }
+  loadReadOnly(specId) {
+    return this._store.loadReadOnly(withSpecIdArgDefault(specId, this._boundSpecId));
+  }
   save(state) { return this._store.save(state); }
-  mutate(mutator) { return this._store.mutate(mutator); }
-  pathFor(specId) { return this._store.pathFor(specId); }
+  mutate(mutator, opts) { return this._store.mutate(mutator, withSpecIdDefault(opts, this._boundSpecId)); }
+  pathFor(specId) { return this._store.pathFor(withSpecIdArgDefault(specId, this._boundSpecId)); }
   pathForCurrent() { return this._store.pathForCurrent(); }
   rollbackLastRunIdMigration() { return this._store.rollbackLastRunIdMigration(); }
   /** Alias preserved for parity with the legacy `flowStatePath` public export. */
@@ -63,21 +70,32 @@ export class FlowManager {
   /**
    * Construct a FlowManager scoped to a different root (e.g. a freshly-created
    * worktree). The new instance owns its own paths — callers should not pass
-   * paths to its methods.
+   * paths to its methods. A specId option binds a default target for methods
+   * that load, mutate, or locate flow.json; per-call opts.specId still wins.
+   * @param {string} root
+   * @param {{specId?: string|null}} [opts]
    */
-  forRoot(root) {
-    return new FlowManager({ root, mainRoot: this._mainRoot, inWorktree: root !== this._mainRoot });
+  forRoot(root, opts = {}) {
+    return new FlowManager({
+      root,
+      mainRoot: this._mainRoot,
+      inWorktree: root !== this._mainRoot,
+      specId: opts.specId,
+    });
   }
 
   updateStepStatus(stepId, status, opts) { return this._store.updateStepStatus(stepId, status, opts); }
   setMergeOutcome(outcome, opts) { return this._store.setMergeOutcome(outcome, opts); }
-  setRequest(text) { return this._store.setRequest(text); }
-  setIssue(issue) { return this._store.setIssue(issue); }
-  addNote(text, opts) { return this._store.addNote(text, opts); }
-  incrementMetric(phase, counter, opts) { return this._store.incrementMetric(phase, counter, opts); }
-  appendMetric(payload, opts) { return this._store.appendMetric(payload, opts); }
+  setRequest(text, opts) { return this._store.setRequest(text, withSpecIdDefault(opts, this._boundSpecId)); }
+  setIssue(issue, opts) { return this._store.setIssue(issue, withSpecIdDefault(opts, this._boundSpecId)); }
+  addNote(text, opts) { return this._store.addNote(text, withSpecIdDefault(opts, this._boundSpecId)); }
+  incrementMetric(phase, counter, opts) {
+    return this._store.incrementMetric(phase, counter, withSpecIdDefault(opts, this._boundSpecId));
+  }
+  appendMetric(payload, opts) { return this._store.appendMetric(payload, withSpecIdDefault(opts, this._boundSpecId)); }
+  /** @param {import("./flow-options.js").AgentMetricOptions} [options] */
   accumulateAgentMetrics(phase, options) {
-    return this._store.accumulateAgentMetrics(phase, options);
+    return this._store.accumulateAgentMetrics(phase, withSpecIdDefault(options, this._boundSpecId));
   }
 
   // ── task primitives (cac6/T2) ───────────────────────────────────────────────

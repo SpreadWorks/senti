@@ -14,8 +14,9 @@
  * ctx.runId   — preparing-flow target (required in preparing mode)
  */
 
-import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
+import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { resolveCommandRouteOptions } from "../../lib/flow-options.js";
 import { resolvePreparingRunId } from "./resolve-preparing-run-id.js";
 
 export default class SetNoteCommand extends FlowCommand {
@@ -54,7 +55,7 @@ export default class SetNoteCommand extends FlowCommand {
       return { note: text, runId: resolved.runId };
     }
 
-    ctx.flowManager.addNote(text, resolveExplicitTaskOption(ctx));
+    ctx.flowManager.addNote(text, resolveCommandRouteOptions(ctx));
     return { note: text };
   }
 }

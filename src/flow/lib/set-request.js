@@ -8,6 +8,7 @@
 
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { resolveCommandRouteOptions } from "../../lib/flow-options.js";
 
 export default class SetRequestCommand extends FlowCommand {
   execute(ctx) {
@@ -17,7 +18,7 @@ export default class SetRequestCommand extends FlowCommand {
       return Envelope.fail("set", "request", "INVALID_USAGE", 'usage: flow set request "<text>"');
     }
 
-    ctx.flowManager.setRequest(text);
+    ctx.flowManager.setRequest(text, resolveCommandRouteOptions(ctx));
 
     return { request: text };
   }

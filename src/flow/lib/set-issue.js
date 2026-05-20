@@ -10,6 +10,7 @@
 import path from "path";
 import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { resolveCommandRouteOptions } from "../../lib/flow-options.js";
 import { fetchNormalizedIssueBody, writeIssueMd } from "./issue-body-cache.js";
 
 export default class SetIssueCommand extends FlowCommand {
@@ -40,7 +41,7 @@ export default class SetIssueCommand extends FlowCommand {
       );
     }
 
-    ctx.flowManager.setIssue(num);
+    ctx.flowManager.setIssue(num, resolveCommandRouteOptions(ctx));
 
     const specRel = ctx.flowState?.spec;
     if (specRel) {

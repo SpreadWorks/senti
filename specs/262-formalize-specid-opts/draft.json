@@ -1,0 +1,90 @@
+{
+  "devType": "feature",
+  "goal": "FlowStore.mutate(mutator, { specId }) と関連する flow-state setter を、main-repo authority 操作で利用できる正式 API として揃える。呼び出し側は active-flow registry に依存せず、既知の spec の flow.json を更新できる。",
+  "analysis": {
+    "problem": "Issue #335 は部分実装済みの修正を正式化する作業である。FlowStore.mutate は finalize post hook 向けに opts.specId を受け取るが、FlowManager.mutate と複数の setter 経路は opts を公開または伝播していない。そのため main repo の active-flow registry に未登録の spec を更新する main-repo authority 操作で API が一貫していない。",
+    "proposedApproach": "FlowStore と FlowManager における specId option の契約を定義し、request、issue、note、metric 系の mutation helper に必要な specId 伝播を揃える。さらに active-flow registry 登録なしで既知の specId を更新できることを単体テストで保証する。",
+    "validation": "直接 specId を指定した FlowStore / FlowManager 経由の更新が成功すること、specId がない ambient metric no-op が維持されること、既存の active-flow 解決と taskId scope が壊れないことを検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #335 は FlowStore.mutate(mutator, opts) が opts.specId を見て load する実装済み範囲として挙げており、src/lib/flow-store.js でも mutate が opts?.specId を使用している。",
+      "Issue #335 は FlowManager.mutate(mutator) が opts を受け取らない未完了範囲として挙げており、src/lib/flow-manager.js でも mutate は opts なしで _store.mutate へ委譲している。",
+      "Issue #335 は setRequest、setIssue、addNote、appendMetric、incrementMetric の specId 伝播不足を挙げており、src/lib/flow-store.js でも setter が opts を省略または _appendFlowEntry 内で落としている。",
+      "src/flow/lib/set-step.js は ctx.specId を updateStepStatus へ渡しており、step 更新は main-repo authority 操作の既存 precedent である。",
+      "src/flow/registry.js は finalize-merge 以降の post hook で main repo 側 FlowManager に切り替え、{ specId: ctx.specId } を渡している。これが今回支えるべき authority boundary である。",
+      "ユーザーは q1 で forRoot(root, { specId }) のような作成時固定を今回の実装範囲に含めることを選択した。",
+      "ユーザーは q2 で flow set request、flow set issue、flow set note、flow set metric も今回の specId 伝播対象に含めることを選択した。"
+    ],
+    "decisionPoints": [
+      "forRoot(root, { specId }) のような作成時固定を今回の範囲に含めるか。",
+      "flow set step 以外の CLI setter も今回の specId 伝播対象に含めるか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。実装は Node.js 組み込みモジュールのみで行う。",
+      "alpha 期間のため、旧形式や非推奨経路向けの後方互換 shim は追加しない。",
+      "意味のある構造制約は既存の class と module boundary に沿って表現し、ad hoc な discriminated union もどきは避ける。",
+      "src/templates や src/presets を変更した場合のみ sdd-forge upgrade が必要。この issue では最終設計上必要な場合に限定する。",
+      "docs と source が矛盾する場合は source を正とする。flow 開始時点では docs より src の更新時刻が新しかった。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "テストファイルの配置と fixture 形状は、tests/unit/flow*.test.js と tests/unit/lib/flow-*.test.js の既存パターンに合わせる。",
+      "docs 更新は、最終 API 契約に必要な generated docs または source-adjacent documentation に限定する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: FlowStore.mutate と FlowManager.mutate の specId option 伝播を正式化する。",
+      "must: FlowManager.forRoot(root, { specId }) のような作成時固定を実装し、per-call opts.specId を優先する契約を定義する。",
+      "must: 既知の specId を指定して更新されるべき request、issue、note、metric、agent metric helper の FlowStore / FlowManager API を揃える。",
+      "must: flow set request、flow set issue、flow set note、flow set metric の CLI setter も、解決済み specId を mutation API へ伝播する。",
+      "must: note と metric の既存 taskId scope を維持する。",
+      "must: active flow がなく、明示的な specId もない ambient metric no-op を維持する。",
+      "should: active-flow registry 登録なしの main-repo authority 更新を単体テストで覆う。"
+    ],
+    "out": [
+      "finalize merge strategy や cleanup workflow の意味を変えること。",
+      "active-flow registry discovery の全面書き換え。",
+      "外部依存追加や TypeScript 移行。",
+      "npm publish、dist-tag、release metadata の変更。",
+      "Issue #335 を複数 spec に分割すること。"
+    ]
+  },
+  "impactOnExisting": [
+    "既存 finalize post hook は動作を維持しつつ、現在使っている specId option が正式 API 契約になる。",
+    "specId なしの既存 active-flow based call は、従来どおり current flow を解決する。",
+    "note と metric の taskId override は、specId と併用しても維持される。",
+    "flow state mutation、set-request、set-issue、set-metric、task note、finalize authority 周辺の既存テストに新規 coverage または小さな調整が必要になる可能性がある。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "今回の範囲に `forRoot(root, { specId })` のような作成時固定を含めますか。作成時固定とは、各メソッド呼び出しで `{ specId }` を渡す代わりに、FlowManager 作成時点で対象 spec を固定する方式です。",
+      "answer": "含める。`forRoot(root, { specId })` のような作成時固定を今回実装し、method opts.specId が作成時固定より優先される契約にする。",
+      "evidence": "Issue #335 の当初提案に `forRoot(...)` 自身に specId を bind するオプション検討が含まれる。src/lib/flow-manager.js の forRoot(root) は現状 opts を受け取らず、src/lib/flow-store.js の mutate は per-call opts.specId のみを見ている。ユーザーは draft-refine q1 で実装範囲に含めることを選択した。",
+      "why": "後回しにすると忘れる懸念があり、Issue #335 の main-repo authority API 正式化と同じ concern に収まる。優先順位を method opts.specId > bound specId > active-flow registry とすれば、暗黙更新のリスクを制御できる。",
+      "considered": "per-call `{ specId }` のみを正式化する案は変更範囲が小さいが、ユーザーが作成時固定も今回扱うことを選んだため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "`flow set request`、`flow set issue`、`flow set note`、`flow set metric` も今回の specId 伝播対象に含めますか。specId 伝播とは、CLI が解決した対象 spec を FlowManager / FlowStore へ渡し、active-flow registry に依存せず flow.json を更新できるようにすることです。",
+      "answer": "含める。`flow set request`、`flow set issue`、`flow set note`、`flow set metric` も、CLI が解決した specId を FlowManager / FlowStore の mutation API へ伝播する対象にする。",
+      "evidence": "Issue #335 の未完了範囲は setRequest、setIssue、addNote、appendMetric、incrementMetric の specId 非対応を含む。src/flow/lib/set-step.js は ctx.specId を updateStepStatus へ渡す precedent を持つ一方、src/flow/lib/set-request.js、set-issue.js、set-note.js、set-metric.js は現状その伝播を持たない。ユーザーは draft-refine q2 で CLI setter も含めることを選択した。",
+      "why": "API だけを正式化して CLI 境界を残すと、main-repo authority 操作の再発防止として不完全になる。step setter と同じ解決済み specId 伝播に揃えることで、request、issue、note、metric の更新経路も active-flow registry 非依存にできる。",
+      "considered": "FlowManager / FlowStore API のみに限定する案は変更量が少ないが、CLI setter の未対応が残るため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-20T01:36:30.000Z",
+    "notes": "全ての draft QA は answered で、未解決の user decision はない。"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "spec": "specs/262-formalize-specid-opts/spec.json",
+  "date": "2026-05-20T03:27:58.314Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "FlowStore mutation helpers must accept opts.specId for setRequest, setIssue, addNote, appendMetric, incrementMetric, and agent metric accumulation, and must update specs/<specId>/flow.json when opts.specId is provided.",
+      "status": "done",
+      "note": "R1: FlowStore-backed setters update a named spec without active-flow registry"
+    },
+    {
+      "desc": "FlowManager.mutate and all FlowManager setter/metric facade methods must accept an optional opts object and forward the effective specId to FlowStore.",
+      "status": "done",
+      "note": "R2: FlowManager.mutate forwards per-call specId"
+    },
+    {
+      "desc": "FlowManager.forRoot(root, { specId }) must return a manager whose load(), mutate(), setRequest(), setIssue(), addNote(), appendMetric(), incrementMetric(), and accumulateAgentMetrics() use the bound specId when no per-call opts.specId is supplied.",
+      "status": "done",
+      "note": "R3: forRoot(root, { specId }) supplies a bound default specId"
+    },
+    {
+      "desc": "When both a bound specId and per-call opts.specId exist, per-call opts.specId must select the target flow.json for that call.",
+      "status": "done",
+      "note": "R4: per-call specId overrides a bound specId"
+    },
+    {
+      "desc": "SpecId selection must not change taskId behavior: when opts has a taskId property, null writes a flow-scope entry, a known task id writes that task id, and an unknown task id throws; when opts.taskId is absent, the entry uses state.currentTaskId or null.",
+      "status": "done",
+      "note": "R5: specId selection preserves explicit and inferred taskId behavior"
+    },
+    {
+      "desc": "appendMetric and incrementMetric without explicit specId, bound specId, or active-flow current path must continue to no-op instead of throwing or creating a flow state.",
+      "status": "done",
+      "note": "R6: ambient metrics without active flow or specId remain a no-op"
+    },
+    {
+      "desc": "flow set request, flow set issue, flow set note, and flow set metric must pass ctx.specId to their FlowManager mutation calls when ctx.specId is present, while preserving all existing user-facing arguments and validation.",
+      "status": "done",
+      "note": "R7: setter commands pass ctx.specId while preserving validation"
+    },
+    {
+      "desc": "Spec-local tests must demonstrate active-flow registry independent updates for per-call specId, bound specId, CLI setter propagation, taskId preservation, and ambient metric no-op preservation.",
+      "status": "done",
+      "note": "R8: spec-local contract tests cover registry-independent specId updates"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

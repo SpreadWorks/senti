@@ -13,6 +13,9 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { normalizeAgentMetricDimension } from "./agent-metrics.js";
+import {
+  hasExplicitOption,
+} from "./flow-options.js";
 import { runGit } from "./git-helpers.js";
 import { sddDir } from "./config.js";
 import {
@@ -450,7 +453,7 @@ function migrateFlowState(state, sourcePath, { persist, root }) {
  * @returns {string|null} resolved taskId (null = flow scope)
  */
 export function resolveTaskIdForEntry(state, opts) {
-  const explicit = opts && Object.prototype.hasOwnProperty.call(opts, "taskId");
+  const explicit = hasExplicitOption(opts, "taskId");
   if (explicit) {
     const { taskId } = opts;
     if (taskId == null) return null;
@@ -488,7 +491,7 @@ export function promoteFirstPending(steps) {
 }
 
 export function resolveMutationScope(state, opts = {}) {
-  const explicit = Object.prototype.hasOwnProperty.call(opts, "taskId");
+  const explicit = hasExplicitOption(opts, "taskId");
   const taskId = explicit ? opts.taskId : (state.currentTaskId ?? null);
   if (taskId == null) return state;
   const task = (state.tasks || []).find((t) => t.id === taskId);
@@ -747,8 +750,8 @@ export class FlowStore {
     }, opts);
   }
 
-  setRequest(text) { this.mutate((state) => { state.request = text; }); }
-  setIssue(issue) { this.mutate((state) => { state.issue = issue; }); }
+  setRequest(text, opts) { this.mutate((state) => { state.request = text; }, opts); }
+  setIssue(issue, opts) { this.mutate((state) => { state.issue = issue; }, opts); }
 
   /**
    * Append an entry to a flat top-level array on `state[arrayKey]` with
@@ -756,14 +759,16 @@ export class FlowStore {
    *
    * @param {string} arrayKey — e.g. "notes" or "metrics"
    * @param {object} payload — entry body (taskId/ts are overwritten by store)
-   * @param {{taskId?: string|null}} [opts] — explicit taskId override
+   * @param {import("./flow-options.js").FlowRouteOptions} [opts]
+   *   taskId selects the entry scope; specId is forwarded to mutate() to pick
+   *   the target flow.json.
    */
   _appendFlowEntry(arrayKey, payload, opts) {
     this.mutate((state) => {
       const taskId = resolveTaskIdForEntry(state, opts);
       if (!Array.isArray(state[arrayKey])) state[arrayKey] = [];
       state[arrayKey].push({ ...payload, taskId, ts: new Date().toISOString() });
-    });
+    }, opts);
   }
 
   addNote(text, opts) {
@@ -772,15 +777,16 @@ export class FlowStore {
 
   /**
    * Append a metric entry. Ambient calls (no explicit taskId and no active
-   * flow) are skipped silently; otherwise invariants match `_appendFlowEntry`.
+   * flow) are skipped silently. An explicit taskId or specId selects a route
+   * before that short-circuit; otherwise invariants match `_appendFlowEntry`.
    *
    * @param {object|null} payload — entry body without taskId/ts (null → skip)
-   * @param {{taskId?: string|null}} [opts]
+   * @param {import("./flow-options.js").FlowRouteOptions} [opts]
    */
   appendMetric(payload, opts) {
     if (!payload) return;
-    const hasExplicit = opts && Object.prototype.hasOwnProperty.call(opts, "taskId");
-    if (!hasExplicit && !this.pathForCurrent()) return;
+    const hasSpecRoute = hasExplicitOption(opts, "specId") && opts.specId != null;
+    if (!hasSpecRoute && !this.pathForCurrent()) return;
     this._appendFlowEntry("metrics", payload, opts);
   }
 
@@ -789,8 +795,16 @@ export class FlowStore {
     this.appendMetric({ phase, counter, delta: 1 }, opts);
   }
 
-  accumulateAgentMetrics(phase, { usage, responseChars, model, durationMs, provider, profileKey, taskId } = {}) {
+  /** @param {import("./flow-options.js").AgentMetricOptions} [options] */
+  accumulateAgentMetrics(phase, options = {}) {
     if (!phase) return;
+    const { usage, responseChars, model, durationMs, provider, profileKey } = options;
+    let routeOptions;
+    if (hasExplicitOption(options, "taskId") || hasExplicitOption(options, "specId")) {
+      routeOptions = {};
+      if (hasExplicitOption(options, "taskId")) routeOptions.taskId = options.taskId;
+      if (hasExplicitOption(options, "specId")) routeOptions.specId = options.specId;
+    }
     const payload = {
       phase,
       kind: "agent",
@@ -810,7 +824,7 @@ export class FlowStore {
         ...(usage.cost_usd != null && { cost: usage.cost_usd }),
       }),
     };
-    this.appendMetric(payload, taskId !== undefined ? { taskId } : undefined);
+    this.appendMetric(payload, routeOptions);
   }
 
   // ── task primitives (cac6/T2) ───────────────────────────────────────────────

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-05-20T01:43:06.847Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "nonBlocking": 3,
+    "total": 3
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Clarify accumulateAgentMetrics opts shape",
+      "target": "R1, R3",
+      "body": "**Target:** R1, R3\n**Improvement:** Note explicitly whether accumulateAgentMetrics receives specId via its existing options bag or a new opts parameter, since src/lib/flow-store.js currently has a domain-specific signature that differs from the simple setRequest/setIssue setters.\n**Why non-blocking:** The requirement still names the method and selection rule; implementation can pick the consistent signature from existing patterns without ambiguity that blocks coding or testing.",
+      "improvement": "Note explicitly whether accumulateAgentMetrics receives specId via its existing options bag or a new opts parameter, since src/lib/flow-store.js currently has a domain-specific signature that differs from the simple setRequest/setIssue setters.",
+      "whyNonBlocking": "The requirement still names the method and selection rule; implementation can pick the consistent signature from existing patterns without ambiguity that blocks coding or testing."
+    },
+    {
+      "kind": "improvement",
+      "title": "State FlowManager constructor compatibility",
+      "target": "R3",
+      "body": "**Target:** R3\n**Improvement:** Mention whether forRoot(root) (no options) continues to behave exactly as today and whether the bound specId is stored on the FlowManager instance versus on its underlying FlowStore, to remove any reader doubt about scope of the binding.\n**Why non-blocking:** R3 and Constraints already specify fallback behavior and precedence; this is a clarity improvement, not an implementation gap.",
+      "improvement": "Mention whether forRoot(root) (no options) continues to behave exactly as today and whether the bound specId is stored on the FlowManager instance versus on its underlying FlowStore, to remove any reader doubt about scope of the binding.",
+      "whyNonBlocking": "R3 and Constraints already specify fallback behavior and precedence; this is a clarity improvement, not an implementation gap."
+    },
+    {
+      "kind": "improvement",
+      "title": "Acceptance for CLI invalid-input exit codes",
+      "target": "Acceptance Criteria / T-2",
+      "body": "**Target:** Acceptance Criteria / T-2\n**Improvement:** Add an explicit acceptance bullet that flow set request/issue/note/metric with invalid input still exits non-zero when ctx.specId is present, matching the Exit code contract constraint.\n**Why non-blocking:** The Constraints section already defines the exit code contract and T-2 acceptance covers it; an extra acceptance bullet would only sharpen test design.",
+      "improvement": "Add an explicit acceptance bullet that flow set request/issue/note/metric with invalid input still exits non-zero when ctx.specId is present, matching the Exit code contract constraint.",
+      "whyNonBlocking": "The Constraints section already defines the exit code contract and T-2 acceptance covers it; an extra acceptance bullet would only sharpen test design."
+    }
+  ]
+}

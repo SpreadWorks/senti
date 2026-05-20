@@ -8,9 +8,10 @@
  * ctx.taskId  — optional explicit taskId (overrides active-task inference)
  */
 
-import { FlowCommand, resolveExplicitTaskOption } from "./base-command.js";
+import { FlowCommand } from "./base-command.js";
 import { VALID_PHASES, VALID_METRIC_COUNTERS } from "../../lib/constants.js";
 import { Envelope } from "../../lib/flow-envelope.js";
+import { resolveCommandRouteOptions } from "../../lib/flow-options.js";
 
 export default class SetMetricCommand extends FlowCommand {
   execute(ctx) {
@@ -43,7 +44,7 @@ export default class SetMetricCommand extends FlowCommand {
       );
     }
 
-    ctx.flowManager.incrementMetric(phase, counter, resolveExplicitTaskOption(ctx));
+    ctx.flowManager.incrementMetric(phase, counter, resolveCommandRouteOptions(ctx));
 
     return { phase, counter };
   }

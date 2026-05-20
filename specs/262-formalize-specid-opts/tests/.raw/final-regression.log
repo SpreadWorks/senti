@@ -1,0 +1,5194 @@
+[sdd-forge] final regression start command=npm test --
+command: npm test --
+commandSource: package.json:scripts.test
+> sdd-forge@0.1.0-alpha.775 test
+> node tests/run.js
+TAP version 13
+# Subtest: analyzeAssets
+    # Subtest: returns empty arrays when webroot dirs do not exist
+    ok 1 - returns empty arrays when webroot dirs do not exist
+      ---
+      duration_ms: 2.736734
+      type: 'test'
+      ...
+    # Subtest: lists JS files with size and detects libraries
+    ok 2 - lists JS files with size and detects libraries
+      ---
+      duration_ms: 14.454753
+      type: 'test'
+      ...
+    # Subtest: detects multiple JS library patterns
+    ok 3 - detects multiple JS library patterns
+      ---
+      duration_ms: 1.714969
+      type: 'test'
+      ...
+    # Subtest: lists CSS files and classifies library vs custom
+    ok 4 - lists CSS files and classifies library vs custom
+      ---
+      duration_ms: 1.97401
+      type: 'test'
+      ...
+    # Subtest: sorts files alphabetically
+    ok 5 - sorts files alphabetically
+      ---
+      duration_ms: 2.292812
+      type: 'test'
+      ...
+    # Subtest: ignores non-js/css files
+    ok 6 - ignores non-js/css files
+      ---
+      duration_ms: 1.784849
+      type: 'test'
+      ...
+    1..6
+ok 1 - analyzeAssets
+  ---
+  duration_ms: 26.993378
+  type: 'suite'
+  ...
+# Subtest: analyzeConstants
+    # Subtest: returns empty when file does not exist
+    ok 1 - returns empty when file does not exist
+      ---
+      duration_ms: 0.771844
+      type: 'test'
+      ...
+    # Subtest: parses scalar constants
+    ok 2 - parses scalar constants
+      ---
+      duration_ms: 1.470568
+      type: 'test'
+      ...
+    # Subtest: parses array select options
+    ok 3 - parses array select options
+      ---
+      duration_ms: 1.804689
+      type: 'test'
+      ...
+    # Subtest: parses mixed scalars and arrays
+    ok 4 - parses mixed scalars and arrays
+      ---
+      duration_ms: 1.162926
+      type: 'test'
+      ...
+    1..4
+ok 2 - analyzeConstants
+  ---
+  duration_ms: 6.882836
+  type: 'suite'
+  ...
+# Subtest: analyzeBootstrap
+    # Subtest: returns empty object when file does not exist
+    ok 1 - returns empty object when file does not exist
+      ---
+      duration_ms: 0.714564
+      type: 'test'
+      ...
+    # Subtest: parses site title from Configure::write
+    ok 2 - parses site title from Configure::write
+      ---
+      duration_ms: 1.149846
+      type: 'test'
+      ...
+    # Subtest: parses plugins, log channels, and environments
+    ok 3 - parses plugins, log channels, and environments
+      ---
+      duration_ms: 1.617088
+      type: 'test'
+      ...
+    # Subtest: parses App::build class paths
+    ok 4 - parses App::build class paths
+      ---
+      duration_ms: 1.654208
+      type: 'test'
+      ...
+    # Subtest: parses Configure::write entries
+    ok 5 - parses Configure::write entries
+      ---
+      duration_ms: 0.815604
+      type: 'test'
+      ...
+    # Subtest: ignores commented-out plugins and lines
+    ok 6 - ignores commented-out plugins and lines
+      ---
+      duration_ms: 0.959805
+      type: 'test'
+      ...
+    1..6
+ok 3 - analyzeBootstrap
+  ---
+  duration_ms: 7.609719
+  type: 'suite'
+  ...
+# Subtest: analyzeModels
+    # Subtest: returns empty when Model dir does not exist
+    ok 1 - returns empty when Model dir does not exist
+      ---
+      duration_ms: 2.876215
+      type: 'test'
+      ...
+    # Subtest: parses a basic model with class and table inference
+    ok 2 - parses a basic model with class and table inference
+      ---
+      duration_ms: 4.766824
+      type: 'test'
+      ...
+    # Subtest: detects useTable, useDbConfig, primaryKey, displayField
+    ok 3 - detects useTable, useDbConfig, primaryKey, displayField
+      ---
+      duration_ms: 3.159296
+      type: 'test'
+      ...
+    # Subtest: skips AppModel.php
+    ok 4 - skips AppModel.php
+      ---
+      duration_ms: 2.429252
+      type: 'test'
+      ...
+    # Subtest: detects Fe-prefixed models
+    ok 5 - detects Fe-prefixed models
+      ---
+      duration_ms: 1.864369
+      type: 'test'
+      ...
+    # Subtest: scans Logic subdirectory and marks isLogic
+    ok 6 - scans Logic subdirectory and marks isLogic
+      ---
+      duration_ms: 1.499927
+      type: 'test'
+      ...
+    # Subtest: groups models by dbConfig in summary
+    ok 7 - groups models by dbConfig in summary
+      ---
+      duration_ms: 18.255133
+      type: 'test'
+      ...
+    # Subtest: detects actsAs behaviors
+    ok 8 - detects actsAs behaviors
+      ---
+      duration_ms: 1.531528
+      type: 'test'
+      ...
+    1..8
+ok 4 - analyzeModels
+  ---
+  duration_ms: 38.134875
+  type: 'suite'
+  ...
+# Subtest: analyzeLogicClasses
+    # Subtest: returns empty array when Logic dir does not exist
+    ok 1 - returns empty array when Logic dir does not exist
+      ---
+      duration_ms: 1.218567
+      type: 'test'
+      ...
+    # Subtest: parses logic classes with methods
+    ok 2 - parses logic classes with methods
+      ---
+      duration_ms: 1.275847
+      type: 'test'
+      ...
+    # Subtest: sorts results by className
+    ok 3 - sorts results by className
+      ---
+      duration_ms: 1.149646
+      type: 'test'
+      ...
+    1..3
+ok 5 - analyzeLogicClasses
+  ---
+  duration_ms: 3.9071
+  type: 'suite'
+  ...
+# Subtest: analyzeTitlesGraphMapping
+    # Subtest: returns empty array when file does not exist
+    ok 1 - returns empty array when file does not exist
+      ---
+      duration_ms: 0.755404
+      type: 'test'
+      ...
+    # Subtest: parses actions and detects logic references and output types
+    ok 2 - parses actions and detects logic references and output types
+      ---
+      duration_ms: 1.622728
+      type: 'test'
+      ...
+    # Subtest: skips __construct and beforeFilter
+    ok 3 - skips __construct and beforeFilter
+      ---
+      duration_ms: 0.717564
+      type: 'test'
+      ...
+    1..3
+ok 6 - analyzeTitlesGraphMapping
+  ---
+  duration_ms: 3.313017
+  type: 'suite'
+  ...
+# Subtest: analyzeComposerDeps
+    # Subtest: returns empty deps when composer.json does not exist
+    ok 1 - returns empty deps when composer.json does not exist
+      ---
+      duration_ms: 0.726204
+      type: 'test'
+      ...
+    # Subtest: parses require and require-dev from parent dir
+    ok 2 - parses require and require-dev from parent dir
+      ---
+      duration_ms: 0.800324
+      type: 'test'
+      ...
+    1..2
+ok 7 - analyzeComposerDeps
+  ---
+  duration_ms: 1.668328
+  type: 'suite'
+  ...
+# Subtest: analyzeAppController
+    # Subtest: returns empty object when file does not exist
+    ok 1 - returns empty object when file does not exist
+      ---
+      duration_ms: 0.722723
+      type: 'test'
+      ...
+    # Subtest: parses components, helpers, auth config, and methods
+    ok 2 - parses components, helpers, auth config, and methods
+      ---
+      duration_ms: 1.85929
+      type: 'test'
+      ...
+    1..2
+ok 8 - analyzeAppController
+  ---
+  duration_ms: 2.725134
+  type: 'suite'
+  ...
+# Subtest: analyzeAppModel
+    # Subtest: returns empty object when file does not exist
+    ok 1 - returns empty object when file does not exist
+      ---
+      duration_ms: 0.636363
+      type: 'test'
+      ...
+    # Subtest: parses behaviors, callbacks, audit fields, and methods
+    ok 2 - parses behaviors, callbacks, audit fields, and methods
+      ---
+      duration_ms: 1.132206
+      type: 'test'
+      ...
+    # Subtest: skips __construct in method list
+    ok 3 - skips __construct in method list
+      ---
+      duration_ms: 0.913125
+      type: 'test'
+      ...
+    1..3
+ok 9 - analyzeAppModel
+  ---
+  duration_ms: 2.868055
+  type: 'suite'
+  ...
+# Subtest: analyzePermissionComponent
+    # Subtest: returns null when file does not exist
+    ok 1 - returns null when file does not exist
+      ---
+      duration_ms: 1.676809
+      type: 'test'
+      ...
+    # Subtest: parses methods excluding dunder methods
+    ok 2 - parses methods excluding dunder methods
+      ---
+      duration_ms: 4.367422
+      type: 'test'
+      ...
+    1..2
+ok 10 - analyzePermissionComponent
+  ---
+  duration_ms: 7.300317
+  type: 'suite'
+  ...
+# Subtest: analyzeAcl
+    # Subtest: returns null when file does not exist
+    ok 1 - returns null when file does not exist
+      ---
+      duration_ms: 0.766284
+      type: 'test'
+      ...
+    # Subtest: parses aliases, roles, allow, and deny rules
+    ok 2 - parses aliases, roles, allow, and deny rules
+      ---
+      duration_ms: 2.476773
+      type: 'test'
+      ...
+    # Subtest: handles empty sections
+    ok 3 - handles empty sections
+      ---
+      duration_ms: 1.696248
+      type: 'test'
+      ...
+    1..3
+ok 11 - analyzeAcl
+  ---
+  duration_ms: 5.910111
+  type: 'suite'
+  ...
+# Subtest: analyzeHelpers
+    # Subtest: returns empty array when Helper dir does not exist
+    ok 1 - returns empty array when Helper dir does not exist
+      ---
+      duration_ms: 2.422572
+      type: 'test'
+      ...
+    # Subtest: parses helper class with methods and dependencies
+    ok 2 - parses helper class with methods and dependencies
+      ---
+      duration_ms: 2.220372
+      type: 'test'
+      ...
+    1..2
+ok 12 - analyzeHelpers
+  ---
+  duration_ms: 5.685469
+  type: 'suite'
+  ...
+# Subtest: analyzeLibraries
+    # Subtest: returns empty array when Lib dir does not exist
+    ok 1 - returns empty array when Lib dir does not exist
+      ---
+      duration_ms: 0.679763
+      type: 'test'
+      ...
+    # Subtest: parses library with static and regular methods, detects CakeEmail
+    ok 2 - parses library with static and regular methods, detects CakeEmail
+      ---
+      duration_ms: 1.92773
+      type: 'test'
+      ...
+    # Subtest: detects library without CakeEmail
+    ok 3 - detects library without CakeEmail
+      ---
+      duration_ms: 1.568048
+      type: 'test'
+      ...
+    1..3
+ok 13 - analyzeLibraries
+  ---
+  duration_ms: 4.770544
+  type: 'suite'
+  ...
+# Subtest: analyzeBehaviors
+    # Subtest: returns empty array when Behavior dir does not exist
+    ok 1 - returns empty array when Behavior dir does not exist
+      ---
+      duration_ms: 0.740804
+      type: 'test'
+      ...
+    # Subtest: parses behavior class, excludes __construct and setup
+    ok 2 - parses behavior class, excludes __construct and setup
+      ---
+      duration_ms: 2.965215
+      type: 'test'
+      ...
+    1..2
+ok 14 - analyzeBehaviors
+  ---
+  duration_ms: 4.125421
+  type: 'suite'
+  ...
+# Subtest: analyzeSqlFiles
+    # Subtest: returns empty array when Sql dir does not exist
+    ok 1 - returns empty array when Sql dir does not exist
+      ---
+      duration_ms: 0.661803
+      type: 'test'
+      ...
+    # Subtest: parses SQL files detecting params and tables
+    ok 2 - parses SQL files detecting params and tables
+      ---
+      duration_ms: 1.897289
+      type: 'test'
+      ...
+    # Subtest: sorts files alphabetically
+    ok 3 - sorts files alphabetically
+      ---
+      duration_ms: 13.178987
+      type: 'test'
+      ...
+    1..3
+ok 15 - analyzeSqlFiles
+  ---
+  duration_ms: 16.085922
+  type: 'suite'
+  ...
+# Subtest: analyzeLayouts
+    # Subtest: returns empty array when Layouts dir does not exist
+    ok 1 - returns empty array when Layouts dir does not exist
+      ---
+      duration_ms: 0.665724
+      type: 'test'
+      ...
+    # Subtest: finds .ctp files recursively
+    ok 2 - finds .ctp files recursively
+      ---
+      duration_ms: 1.531768
+      type: 'test'
+      ...
+    # Subtest: ignores non-ctp files
+    ok 3 - ignores non-ctp files
+      ---
+      duration_ms: 0.979925
+      type: 'test'
+      ...
+    1..3
+ok 16 - analyzeLayouts
+  ---
+  duration_ms: 3.364097
+  type: 'suite'
+  ...
+# Subtest: analyzeElements
+    # Subtest: returns empty array when Elements dir does not exist
+    ok 1 - returns empty array when Elements dir does not exist
+      ---
+      duration_ms: 0.544282
+      type: 'test'
+      ...
+    # Subtest: lists .ctp files sorted
+    ok 2 - lists .ctp files sorted
+      ---
+      duration_ms: 1.207406
+      type: 'test'
+      ...
+    1..2
+ok 17 - analyzeElements
+  ---
+  duration_ms: 1.88933
+  type: 'suite'
+  ...
+# Subtest: analyzeCommandDetails
+    # Subtest: returns empty array when Command dir does not exist
+    ok 1 - returns empty array when Command dir does not exist
+      ---
+      duration_ms: 0.690324
+      type: 'test'
+      ...
+    # Subtest: parses shell with flow detection
+    ok 2 - parses shell with flow detection
+      ---
+      duration_ms: 1.070806
+      type: 'test'
+      ...
+    # Subtest: skips AppShell class
+    ok 3 - skips AppShell class
+      ---
+      duration_ms: 1.166886
+      type: 'test'
+      ...
+    # Subtest: detects CakeEmail usage
+    ok 4 - detects CakeEmail usage
+      ---
+      duration_ms: 0.978165
+      type: 'test'
+      ...
+    # Subtest: only matches files ending with Shell.php
+    ok 5 - only matches files ending with Shell.php
+      ---
+      duration_ms: 1.158006
+      type: 'test'
+      ...
+    1..5
+ok 18 - analyzeCommandDetails
+  ---
+  duration_ms: 5.400468
+  type: 'suite'
+  ...
+# Subtest: analyzeTestStructure
+    # Subtest: returns null when Test dir does not exist
+    ok 1 - returns null when Test dir does not exist
+      ---
+      duration_ms: 0.563563
+      type: 'test'
+      ...
+    # Subtest: counts controller tests, model tests, and fixtures
+    ok 2 - counts controller tests, model tests, and fixtures
+      ---
+      duration_ms: 1.630129
+      type: 'test'
+      ...
+    # Subtest: returns zeroes when Test dir exists but is empty
+    ok 3 - returns zeroes when Test dir exists but is empty
+      ---
+      duration_ms: 0.606883
+      type: 'test'
+      ...
+    # Subtest: only counts files matching naming conventions
+    ok 4 - only counts files matching naming conventions
+      ---
+      duration_ms: 1.130446
+      type: 'test'
+      ...
+    1..4
+ok 19 - analyzeTestStructure
+  ---
+  duration_ms: 4.220981
+  type: 'suite'
+  ...
+# Subtest: analyzeEmailNotifications
+    # Subtest: returns empty config and usages when no files exist
+    ok 1 - returns empty config and usages when no files exist
+      ---
+      duration_ms: 0.732604
+      type: 'test'
+      ...
+    # Subtest: parses email config from email.php
+    ok 2 - parses email config from email.php
+      ---
+      duration_ms: 0.857484
+      type: 'test'
+      ...
+    # Subtest: detects CakeEmail usages in Console/Command and Lib
+    ok 3 - detects CakeEmail usages in Console/Command and Lib
+      ---
+      duration_ms: 1.772289
+      type: 'test'
+      ...
+    # Subtest: skips files without CakeEmail
+    ok 4 - skips files without CakeEmail
+      ---
+      duration_ms: 0.996565
+      type: 'test'
+      ...
+    # Subtest: replaces Configure::read in subject strings
+    ok 5 - replaces Configure::read in subject strings
+      ---
+      duration_ms: 0.826324
+      type: 'test'
+      ...
+    1..5
+ok 20 - analyzeEmailNotifications
+  ---
+  duration_ms: 5.607788
+  type: 'suite'
+  ...
+# Subtest: CakephpCommandsSource.match()
+    # Subtest: matches *Shell.php in Console/Command/
+    ok 1 - matches *Shell.php in Console/Command/
+      ---
+      duration_ms: 0.960645
+      type: 'test'
+      ...
+    # Subtest: matches nested Shell files
+    ok 2 - matches nested Shell files
+      ---
+      duration_ms: 2.997655
+      type: 'test'
+      ...
+    # Subtest: excludes AppShell.php
+    ok 3 - excludes AppShell.php
+      ---
+      duration_ms: 0.16332
+      type: 'test'
+      ...
+    # Subtest: excludes files not in Console/Command/
+    ok 4 - excludes files not in Console/Command/
+      ---
+      duration_ms: 0.313281
+      type: 'test'
+      ...
+    # Subtest: excludes non-Shell PHP files in Console/Command/
+    ok 5 - excludes non-Shell PHP files in Console/Command/
+      ---
+      duration_ms: 0.700043
+      type: 'test'
+      ...
+    1..5
+ok 21 - CakephpCommandsSource.match()
+  ---
+  duration_ms: 6.908835
+  type: 'suite'
+  ...
+# Subtest: Drizzle analyzeSchema — pgTable
+    # Subtest: parses basic pgTable with columns
+    ok 1 - parses basic pgTable with columns
+      ---
+      duration_ms: 6.521553
+      type: 'test'
+      ...
+    # Subtest: parses multiple tables in one file
+    ok 2 - parses multiple tables in one file
+      ---
+      duration_ms: 2.023891
+      type: 'test'
+      ...
+    1..2
+ok 22 - Drizzle analyzeSchema — pgTable
+  ---
+  duration_ms: 10.140332
+  type: 'suite'
+  ...
+# Subtest: Drizzle analyzeSchema — relations
+    # Subtest: parses relation definitions
+    ok 1 - parses relation definitions
+      ---
+      duration_ms: 1.740208
+      type: 'test'
+      ...
+    1..1
+ok 23 - Drizzle analyzeSchema — relations
+  ---
+  duration_ms: 1.93241
+  type: 'suite'
+  ...
+# Subtest: Drizzle analyzeSchema — sqliteTable
+    # Subtest: parses sqliteTable variant
+    ok 1 - parses sqliteTable variant
+      ---
+      duration_ms: 1.812049
+      type: 'test'
+      ...
+    1..1
+ok 24 - Drizzle analyzeSchema — sqliteTable
+  ---
+  duration_ms: 2.368332
+  type: 'suite'
+  ...
+# Subtest: Drizzle analyzeSchema — mysqlTable
+    # Subtest: parses mysqlTable variant
+    ok 1 - parses mysqlTable variant
+      ---
+      duration_ms: 3.217737
+      type: 'test'
+      ...
+    1..1
+ok 25 - Drizzle analyzeSchema — mysqlTable
+  ---
+  duration_ms: 3.787499
+  type: 'suite'
+  ...
+# Subtest: Drizzle analyzeSchema — empty/missing
+    # Subtest: returns empty when no schema files exist
+    ok 1 - returns empty when no schema files exist
+      ---
+      duration_ms: 1.831249
+      type: 'test'
+      ...
+    # Subtest: returns empty for schema file with no table definitions
+    ok 2 - returns empty for schema file with no table definitions
+      ---
+      duration_ms: 0.969645
+      type: 'test'
+      ...
+    1..2
+ok 26 - Drizzle analyzeSchema — empty/missing
+  ---
+  duration_ms: 3.010295
+  type: 'suite'
+  ...
+# Subtest: Drizzle analyzeSchema — schema directory
+    # Subtest: collects files from schema/ subdirectory
+    ok 1 - collects files from schema/ subdirectory
+      ---
+      duration_ms: 15.982121
+      type: 'test'
+      ...
+    # Subtest: picks up drizzle.config.ts at project root
+    ok 2 - picks up drizzle.config.ts at project root
+      ---
+      duration_ms: 2.295572
+      type: 'test'
+      ...
+    1..2
+ok 27 - Drizzle analyzeSchema — schema directory
+  ---
+  duration_ms: 18.452814
+  type: 'suite'
+  ...
+# Subtest: GraphQL analyzeSchema — basic type parsing
+    # Subtest: parses a simple type with fields
+    ok 1 - parses a simple type with fields
+      ---
+      duration_ms: 4.950105
+      type: 'test'
+      ...
+    # Subtest: parses multiple types
+    ok 2 - parses multiple types
+      ---
+      duration_ms: 3.106536
+      type: 'test'
+      ...
+    1..2
+ok 28 - GraphQL analyzeSchema — basic type parsing
+  ---
+  duration_ms: 9.347327
+  type: 'suite'
+  ...
+# Subtest: GraphQL analyzeSchema — Query and Mutation parsing
+    # Subtest: parses Query fields with args and return types
+    ok 1 - parses Query fields with args and return types
+      ---
+      duration_ms: 2.351492
+      type: 'test'
+      ...
+    # Subtest: parses Mutation fields with args and return types
+    ok 2 - parses Mutation fields with args and return types
+      ---
+      duration_ms: 1.792649
+      type: 'test'
+      ...
+    # Subtest: handles query without args
+    ok 3 - handles query without args
+      ---
+      duration_ms: 1.770009
+      type: 'test'
+      ...
+    1..3
+ok 29 - GraphQL analyzeSchema — Query and Mutation parsing
+  ---
+  duration_ms: 6.335473
+  type: 'suite'
+  ...
+# Subtest: GraphQL analyzeSchema — implements interface
+    # Subtest: parses type implementing a single interface
+    ok 1 - parses type implementing a single interface
+      ---
+      duration_ms: 1.220526
+      type: 'test'
+      ...
+    # Subtest: parses type implementing multiple interfaces
+    ok 2 - parses type implementing multiple interfaces
+      ---
+      duration_ms: 1.015605
+      type: 'test'
+      ...
+    # Subtest: does not add implements for types without interface
+    ok 3 - does not add implements for types without interface
+      ---
+      duration_ms: 0.956925
+      type: 'test'
+      ...
+    1..3
+ok 30 - GraphQL analyzeSchema — implements interface
+  ---
+  duration_ms: 3.704779
+  type: 'suite'
+  ...
+# Subtest: GraphQL analyzeSchema — multiple files
+    # Subtest: aggregates types, queries, mutations from multiple files
+    ok 1 - aggregates types, queries, mutations from multiple files
+      ---
+      duration_ms: 16.739166
+      type: 'test'
+      ...
+    # Subtest: reads .gql extension
+    ok 2 - reads .gql extension
+      ---
+      duration_ms: 1.95693
+      type: 'test'
+      ...
+    # Subtest: scans files in subdirectories
+    ok 3 - scans files in subdirectories
+      ---
+      duration_ms: 1.333607
+      type: 'test'
+      ...
+    1..3
+ok 31 - GraphQL analyzeSchema — multiple files
+  ---
+  duration_ms: 20.250744
+  type: 'suite'
+  ...
+# Subtest: GraphQL analyzeSchema — empty/missing schema files
+    # Subtest: returns empty result when no schema files exist
+    ok 1 - returns empty result when no schema files exist
+      ---
+      duration_ms: 0.596683
+      type: 'test'
+      ...
+    # Subtest: handles empty schema file
+    ok 2 - handles empty schema file
+      ---
+      duration_ms: 0.957805
+      type: 'test'
+      ...
+    # Subtest: handles schema file with only comments
+    ok 3 - handles schema file with only comments
+      ---
+      duration_ms: 0.745564
+      type: 'test'
+      ...
+    1..3
+ok 32 - GraphQL analyzeSchema — empty/missing schema files
+  ---
+  duration_ms: 2.476012
+  type: 'suite'
+  ...
+# Subtest: GraphQL parseSchemaContent — unit tests
+    # Subtest: parses a complete schema
+    ok 1 - parses a complete schema
+      ---
+      duration_ms: 0.208001
+      type: 'test'
+      ...
+    1..1
+ok 33 - GraphQL parseSchemaContent — unit tests
+  ---
+  duration_ms: 0.298081
+  type: 'suite'
+  ...
+# Subtest: Hono analyzeMiddleware
+    # Subtest: detects middleware with path: app.use('/api', cors())
+    ok 1 - detects middleware with path: app.use('/api', cors())
+      ---
+      duration_ms: 5.574708
+      type: 'test'
+      ...
+    # Subtest: detects middleware without path: app.use(logger())
+    ok 2 - detects middleware without path: app.use(logger())
+      ---
+      duration_ms: 1.596288
+      type: 'test'
+      ...
+    # Subtest: detects multiple middleware in one file
+    ok 3 - detects multiple middleware in one file
+      ---
+      duration_ms: 2.462613
+      type: 'test'
+      ...
+    # Subtest: returns empty when no middleware found
+    ok 4 - returns empty when no middleware found
+      ---
+      duration_ms: 1.374847
+      type: 'test'
+      ...
+    # Subtest: returns empty when no source files exist
+    ok 5 - returns empty when no source files exist
+      ---
+      duration_ms: 1.337686
+      type: 'test'
+      ...
+    # Subtest: detects custom middleware via createMiddleware
+    ok 6 - detects custom middleware via createMiddleware
+      ---
+      duration_ms: 1.583808
+      type: 'test'
+      ...
+    # Subtest: deduplicates identical middleware registrations
+    ok 7 - deduplicates identical middleware registrations
+      ---
+      duration_ms: 13.364628
+      type: 'test'
+      ...
+    # Subtest: scans .js and .mjs files
+    ok 8 - scans .js and .mjs files
+      ---
+      duration_ms: 1.725329
+      type: 'test'
+      ...
+    # Subtest: excludes node_modules and dist
+    ok 9 - excludes node_modules and dist
+      ---
+      duration_ms: 2.00985
+      type: 'test'
+      ...
+    1..9
+ok 34 - Hono analyzeMiddleware
+  ---
+  duration_ms: 32.992648
+  type: 'suite'
+  ...
+# Subtest: Laravel analyze-controllers
+    # Subtest: parses controller class
+    ok 1 - parses controller class
+      ---
+      duration_ms: 5.654189
+      type: 'test'
+      ...
+    # Subtest: returns empty when no controllers dir
+    ok 2 - returns empty when no controllers dir
+      ---
+      duration_ms: 0.658963
+      type: 'test'
+      ...
+    # Subtest: scans nested directories
+    ok 3 - scans nested directories
+      ---
+      duration_ms: 1.95801
+      type: 'test'
+      ...
+    1..3
+ok 35 - Laravel analyze-controllers
+  ---
+  duration_ms: 9.503089
+  type: 'suite'
+  ...
+# Subtest: Laravel analyze-models
+    # Subtest: parses Eloquent model
+    ok 1 - parses Eloquent model
+      ---
+      duration_ms: 4.835144
+      type: 'test'
+      ...
+    # Subtest: infers table name from class name
+    ok 2 - infers table name from class name
+      ---
+      duration_ms: 3.177976
+      type: 'test'
+      ...
+    # Subtest: returns empty when no models dir
+    ok 3 - returns empty when no models dir
+      ---
+      duration_ms: 0.528083
+      type: 'test'
+      ...
+    1..3
+ok 36 - Laravel analyze-models
+  ---
+  duration_ms: 9.005486
+  type: 'suite'
+  ...
+# Subtest: Laravel analyze-routes
+    # Subtest: parses web.php and api.php routes
+    ok 1 - parses web.php and api.php routes
+      ---
+      duration_ms: 2.116851
+      type: 'test'
+      ...
+    # Subtest: returns empty when no route files
+    ok 2 - returns empty when no route files
+      ---
+      duration_ms: 0.399803
+      type: 'test'
+      ...
+    1..2
+ok 37 - Laravel analyze-routes
+  ---
+  duration_ms: 3.91922
+  type: 'suite'
+  ...
+# Subtest: Laravel analyze-migrations
+    # Subtest: parses create table migration
+    ok 1 - parses create table migration
+      ---
+      duration_ms: 2.786574
+      type: 'test'
+      ...
+    # Subtest: parses foreign keys
+    ok 2 - parses foreign keys
+      ---
+      duration_ms: 1.352007
+      type: 'test'
+      ...
+    # Subtest: returns empty when no migrations dir
+    ok 3 - returns empty when no migrations dir
+      ---
+      duration_ms: 0.401562
+      type: 'test'
+      ...
+    1..3
+ok 38 - Laravel analyze-migrations
+  ---
+  duration_ms: 4.735145
+  type: 'suite'
+  ...
+# Subtest: Laravel analyze-config
+    # Subtest: parses composer.json
+    ok 1 - parses composer.json
+      ---
+      duration_ms: 1.212006
+      type: 'test'
+      ...
+    # Subtest: parses .env.example
+    ok 2 - parses .env.example
+      ---
+      duration_ms: 0.815525
+      type: 'test'
+      ...
+    # Subtest: parses service providers
+    ok 3 - parses service providers
+      ---
+      duration_ms: 1.060445
+      type: 'test'
+      ...
+    # Subtest: returns defaults when files missing
+    ok 4 - returns defaults when files missing
+      ---
+      duration_ms: 0.620724
+      type: 'test'
+      ...
+    1..4
+ok 39 - Laravel analyze-config
+  ---
+  duration_ms: 3.92226
+  type: 'suite'
+  ...
+# Subtest: LaravelCommandsSource.match()
+    # Subtest: matches PHP files in app/Console/Commands/
+    ok 1 - matches PHP files in app/Console/Commands/
+      ---
+      duration_ms: 1.859729
+      type: 'test'
+      ...
+    # Subtest: matches Artisan commands without Command suffix
+    ok 2 - matches Artisan commands without Command suffix
+      ---
+      duration_ms: 0.337962
+      type: 'test'
+      ...
+    # Subtest: excludes Kernel.php
+    ok 3 - excludes Kernel.php
+      ---
+      duration_ms: 0.162641
+      type: 'test'
+      ...
+    # Subtest: excludes files outside Console/Commands/
+    ok 4 - excludes files outside Console/Commands/
+      ---
+      duration_ms: 0.375282
+      type: 'test'
+      ...
+    # Subtest: excludes non-PHP files
+    ok 5 - excludes non-PHP files
+      ---
+      duration_ms: 0.162721
+      type: 'test'
+      ...
+    1..5
+ok 40 - LaravelCommandsSource.match()
+  ---
+  duration_ms: 4.462983
+  type: 'suite'
+  ...
+# Subtest: Route::resource URI parameters (R1)
+    # Subtest: adds {thread} parameter to show/edit/update/destroy URIs
+    ok 1 - adds {thread} parameter to show/edit/update/destroy URIs
+      ---
+      duration_ms: 3.622459
+      type: 'test'
+      ...
+    # Subtest: adds {thread} parameter to apiResource URIs
+    ok 2 - adds {thread} parameter to apiResource URIs
+      ---
+      duration_ms: 1.617528
+      type: 'test'
+      ...
+    1..2
+ok 41 - Route::resource URI parameters (R1)
+  ---
+  duration_ms: 6.607113
+  type: 'suite'
+  ...
+# Subtest: Route::resource only/except (R2)
+    # Subtest: only() limits actions to specified list
+    ok 1 - only() limits actions to specified list
+      ---
+      duration_ms: 2.130691
+      type: 'test'
+      ...
+    # Subtest: except() excludes specified actions
+    ok 2 - except() excludes specified actions
+      ---
+      duration_ms: 1.831809
+      type: 'test'
+      ...
+    1..2
+ok 42 - Route::resource only/except (R2)
+  ---
+  duration_ms: 4.274102
+  type: 'suite'
+  ...
+# Subtest: Nested resource routes (R3)
+    # Subtest: expands threads.posts to nested URI
+    ok 1 - expands threads.posts to nested URI
+      ---
+      duration_ms: 1.850089
+      type: 'test'
+      ...
+    1..1
+ok 43 - Nested resource routes (R3)
+  ---
+  duration_ms: 2.15057
+  type: 'suite'
+  ...
+# Subtest: Laravel 11 middleware via bootstrap/app.php (R4)
+    # Subtest: parses withMiddleware append/alias/group
+    ok 1 - parses withMiddleware append/alias/group
+      ---
+      duration_ms: 1.97753
+      type: 'test'
+      ...
+    1..1
+ok 44 - Laravel 11 middleware via bootstrap/app.php (R4)
+  ---
+  duration_ms: 2.360972
+  type: 'suite'
+  ...
+# Subtest: Laravel 10 Kernel.php middleware (R5)
+    # Subtest: parses $middlewareGroups and $middlewareAliases
+    ok 1 - parses $middlewareGroups and $middlewareAliases
+      ---
+      duration_ms: 1.484328
+      type: 'test'
+      ...
+    # Subtest: returns empty when neither file exists
+    ok 2 - returns empty when neither file exists
+      ---
+      duration_ms: 0.430122
+      type: 'test'
+      ...
+    1..2
+ok 45 - Laravel 10 Kernel.php middleware (R5)
+  ---
+  duration_ms: 2.162251
+  type: 'suite'
+  ...
+# Subtest: Symfony business_logic.md template override (R6)
+    # Subtest: symfony ja template overrides model-relations block with entities.relations
+    ok 1 - symfony ja template overrides model-relations block with entities.relations
+      ---
+      duration_ms: 0.601164
+      type: 'test'
+      ...
+    # Subtest: symfony en template overrides model-relations block with entities.relations
+    ok 2 - symfony en template overrides model-relations block with entities.relations
+      ---
+      duration_ms: 0.272441
+      type: 'test'
+      ...
+    1..2
+ok 46 - Symfony business_logic.md template override (R6)
+  ---
+  duration_ms: 1.023885
+  type: 'suite'
+  ...
+# Subtest: Next.js analyzeComponents
+    # Subtest: classifies server component (default)
+    ok 1 - classifies server component (default)
+      ---
+      duration_ms: 4.775225
+      type: 'test'
+      ...
+    # Subtest: classifies client component with 'use client'
+    ok 2 - classifies client component with 'use client'
+      ---
+      duration_ms: 1.777649
+      type: 'test'
+      ...
+    # Subtest: classifies client component with double-quoted 'use client'
+    ok 3 - classifies client component with double-quoted 'use client'
+      ---
+      duration_ms: 2.519613
+      type: 'test'
+      ...
+    # Subtest: classifies shared component in /shared/ directory
+    ok 4 - classifies shared component in /shared/ directory
+      ---
+      duration_ms: 1.769489
+      type: 'test'
+      ...
+    # Subtest: classifies shared component in /common/ directory
+    ok 5 - classifies shared component in /common/ directory
+      ---
+      duration_ms: 2.148771
+      type: 'test'
+      ...
+    # Subtest: returns empty for project with no components
+    ok 6 - returns empty for project with no components
+      ---
+      duration_ms: 1.610728
+      type: 'test'
+      ...
+    # Subtest: scans multiple directories
+    ok 7 - scans multiple directories
+      ---
+      duration_ms: 13.981272
+      type: 'test'
+      ...
+    1..7
+ok 47 - Next.js analyzeComponents
+  ---
+  duration_ms: 29.965633
+  type: 'suite'
+  ...
+# Subtest: Next.js analyzeRoutes — App Router
+    # Subtest: detects app router pages
+    ok 1 - detects app router pages
+      ---
+      duration_ms: 3.236137
+      type: 'test'
+      ...
+    # Subtest: detects route handlers with HTTP methods
+    ok 2 - detects route handlers with HTTP methods
+      ---
+      duration_ms: 3.450458
+      type: 'test'
+      ...
+    # Subtest: detects dynamic routes
+    ok 3 - detects dynamic routes
+      ---
+      duration_ms: 1.672009
+      type: 'test'
+      ...
+    # Subtest: handles src/app directory
+    ok 4 - handles src/app directory
+      ---
+      duration_ms: 1.859249
+      type: 'test'
+      ...
+    1..4
+ok 48 - Next.js analyzeRoutes — App Router
+  ---
+  duration_ms: 10.827055
+  type: 'suite'
+  ...
+# Subtest: Next.js analyzeRoutes — Pages Router
+    # Subtest: detects pages router with data fetching
+    ok 1 - detects pages router with data fetching
+      ---
+      duration_ms: 1.97313
+      type: 'test'
+      ...
+    # Subtest: skips _app and _document
+    ok 2 - skips _app and _document
+      ---
+      duration_ms: 1.051806
+      type: 'test'
+      ...
+    # Subtest: detects dynamic pages in pages router
+    ok 3 - detects dynamic pages in pages router
+      ---
+      duration_ms: 1.090645
+      type: 'test'
+      ...
+    1..3
+ok 49 - Next.js analyzeRoutes — Pages Router
+  ---
+  duration_ms: 4.313222
+  type: 'suite'
+  ...
+# Subtest: Next.js analyzeRoutes — empty project
+    # Subtest: returns empty for project with no routes
+    ok 1 - returns empty for project with no routes
+      ---
+      duration_ms: 0.502203
+      type: 'test'
+      ...
+    1..1
+ok 50 - Next.js analyzeRoutes — empty project
+  ---
+  duration_ms: 0.632563
+  type: 'suite'
+  ...
+# Subtest: Symfony analyze-controllers
+    # Subtest: parses controller class with Route attributes
+    ok 1 - parses controller class with Route attributes
+      ---
+      duration_ms: 6.098071
+      type: 'test'
+      ...
+    # Subtest: returns empty when no controllers dir
+    ok 2 - returns empty when no controllers dir
+      ---
+      duration_ms: 0.713684
+      type: 'test'
+      ...
+    # Subtest: scans nested directories
+    ok 3 - scans nested directories
+      ---
+      duration_ms: 2.204851
+      type: 'test'
+      ...
+    # Subtest: handles Route attributes with curly-brace path params without hanging
+    ok 4 - handles Route attributes with curly-brace path params without hanging
+      ---
+      duration_ms: 1.749809
+      type: 'test'
+      ...
+    # Subtest: handles multiple path params in a single Route attribute
+    ok 5 - handles multiple path params in a single Route attribute
+      ---
+      duration_ms: 2.04029
+      type: 'test'
+      ...
+    1..5
+ok 51 - Symfony analyze-controllers
+  ---
+  duration_ms: 13.968232
+  type: 'suite'
+  ...
+# Subtest: Symfony analyze-entities
+    # Subtest: parses Doctrine entity
+    ok 1 - parses Doctrine entity
+      ---
+      duration_ms: 3.052695
+      type: 'test'
+      ...
+    # Subtest: infers table name from class name
+    ok 2 - infers table name from class name
+      ---
+      duration_ms: 1.578129
+      type: 'test'
+      ...
+    # Subtest: returns empty when no entity dir
+    ok 3 - returns empty when no entity dir
+      ---
+      duration_ms: 1.679088
+      type: 'test'
+      ...
+    1..3
+ok 52 - Symfony analyze-entities
+  ---
+  duration_ms: 7.027516
+  type: 'suite'
+  ...
+# Subtest: Symfony analyze-routes
+    # Subtest: parses YAML route definitions
+    ok 1 - parses YAML route definitions
+      ---
+      duration_ms: 2.247411
+      type: 'test'
+      ...
+    # Subtest: parses attribute routes from controllers
+    ok 2 - parses attribute routes from controllers
+      ---
+      duration_ms: 1.607568
+      type: 'test'
+      ...
+    # Subtest: parses attribute routes with curly-brace path params without hanging
+    ok 3 - parses attribute routes with curly-brace path params without hanging
+      ---
+      duration_ms: 1.366327
+      type: 'test'
+      ...
+    # Subtest: returns empty when no route files
+    ok 4 - returns empty when no route files
+      ---
+      duration_ms: 0.385282
+      type: 'test'
+      ...
+    1..4
+ok 53 - Symfony analyze-routes
+  ---
+  duration_ms: 5.89495
+  type: 'suite'
+  ...
+# Subtest: Symfony analyze-migrations
+    # Subtest: parses Doctrine migration SQL
+    ok 1 - parses Doctrine migration SQL
+      ---
+      duration_ms: 2.131011
+      type: 'test'
+      ...
+    # Subtest: parses ALTER TABLE with foreign keys
+    ok 2 - parses ALTER TABLE with foreign keys
+      ---
+      duration_ms: 1.286767
+      type: 'test'
+      ...
+    # Subtest: returns empty when no migrations dir
+    ok 3 - returns empty when no migrations dir
+      ---
+      duration_ms: 0.347282
+      type: 'test'
+      ...
+    1..3
+ok 54 - Symfony analyze-migrations
+  ---
+  duration_ms: 3.98986
+  type: 'suite'
+  ...
+# Subtest: Symfony analyze-config
+    # Subtest: parses composer.json
+    ok 1 - parses composer.json
+      ---
+      duration_ms: 1.125606
+      type: 'test'
+      ...
+    # Subtest: parses .env file
+    ok 2 - parses .env file
+      ---
+      duration_ms: 0.808884
+      type: 'test'
+      ...
+    # Subtest: parses config/packages/ yaml files
+    ok 3 - parses config/packages/ yaml files
+      ---
+      duration_ms: 1.022806
+      type: 'test'
+      ...
+    # Subtest: parses config/services.yaml
+    ok 4 - parses config/services.yaml
+      ---
+      duration_ms: 0.730523
+      type: 'test'
+      ...
+    # Subtest: parses config/bundles.php
+    ok 5 - parses config/bundles.php
+      ---
+      duration_ms: 0.952445
+      type: 'test'
+      ...
+    # Subtest: parses src/Kernel.php
+    ok 6 - parses src/Kernel.php
+      ---
+      duration_ms: 0.781884
+      type: 'test'
+      ...
+    # Subtest: returns defaults when files missing
+    ok 7 - returns defaults when files missing
+      ---
+      duration_ms: 0.496003
+      type: 'test'
+      ...
+    1..7
+ok 55 - Symfony analyze-config
+  ---
+  duration_ms: 6.315872
+  type: 'suite'
+  ...
+# Subtest: SymfonyCommandsSource.match()
+    # Subtest: matches PHP files in src/Command/
+    ok 1 - matches PHP files in src/Command/
+      ---
+      duration_ms: 1.060326
+      type: 'test'
+      ...
+    # Subtest: matches commands without Command suffix
+    ok 2 - matches commands without Command suffix
+      ---
+      duration_ms: 0.310922
+      type: 'test'
+      ...
+    # Subtest: excludes files outside src/Command/
+    ok 3 - excludes files outside src/Command/
+      ---
+      duration_ms: 0.369482
+      type: 'test'
+      ...
+    # Subtest: excludes non-PHP files
+    ok 4 - excludes non-PHP files
+      ---
+      duration_ms: 0.203601
+      type: 'test'
+      ...
+    1..4
+ok 56 - SymfonyCommandsSource.match()
+  ---
+  duration_ms: 3.94594
+  type: 'suite'
+  ...
+# Subtest: collectAttributeBlock (via controllers.js)
+    # Subtest: extracts single Route attribute before method
+    ok 1 - extracts single Route attribute before method
+      ---
+      duration_ms: 4.849825
+      type: 'test'
+      ...
+    # Subtest: extracts multiple attributes before method
+    ok 2 - extracts multiple attributes before method
+      ---
+      duration_ms: 1.743848
+      type: 'test'
+      ...
+    # Subtest: handles curly braces in route path
+    ok 3 - handles curly braces in route path
+      ---
+      duration_ms: 1.785409
+      type: 'test'
+      ...
+    # Subtest: handles method without attributes
+    ok 4 - handles method without attributes
+      ---
+      duration_ms: 1.701689
+      type: 'test'
+      ...
+    # Subtest: completes in <100ms with pathological input (20+ attributes, no function)
+    ok 5 - completes in <100ms with pathological input (20+ attributes, no function)
+      ---
+      duration_ms: 2.230332
+      type: 'test'
+      ...
+    1..5
+ok 57 - collectAttributeBlock (via controllers.js)
+  ---
+  duration_ms: 13.58891
+  type: 'suite'
+  ...
+# Subtest: extractAttributeRoutes backtracking fix
+    # Subtest: completes in <100ms with pathological input in route scanner
+    ok 1 - completes in <100ms with pathological input in route scanner
+      ---
+      duration_ms: 1.624088
+      type: 'test'
+      ...
+    # Subtest: extracts routes with curly braces correctly
+    ok 2 - extracts routes with curly braces correctly
+      ---
+      duration_ms: 1.155646
+      type: 'test'
+      ...
+    1..2
+ok 58 - extractAttributeRoutes backtracking fix
+  ---
+  duration_ms: 3.79518
+  type: 'suite'
+  ...
+# Subtest: Workers analyzeBindings — wrangler.toml with KV, R2, D1 bindings
+    # Subtest: parses KV namespaces
+    ok 1 - parses KV namespaces
+      ---
+      duration_ms: 3.84942
+      type: 'test'
+      ...
+    # Subtest: parses R2 buckets
+    ok 2 - parses R2 buckets
+      ---
+      duration_ms: 1.164646
+      type: 'test'
+      ...
+    # Subtest: parses D1 databases
+    ok 3 - parses D1 databases
+      ---
+      duration_ms: 1.204046
+      type: 'test'
+      ...
+    # Subtest: parses service bindings
+    ok 4 - parses service bindings
+      ---
+      duration_ms: 1.140806
+      type: 'test'
+      ...
+    # Subtest: parses Durable Object bindings
+    ok 5 - parses Durable Object bindings
+      ---
+      duration_ms: 4.372142
+      type: 'test'
+      ...
+    # Subtest: parses mixed binding types
+    ok 6 - parses mixed binding types
+      ---
+      duration_ms: 1.248686
+      type: 'test'
+      ...
+    1..6
+ok 59 - Workers analyzeBindings — wrangler.toml with KV, R2, D1 bindings
+  ---
+  duration_ms: 14.555595
+  type: 'suite'
+  ...
+# Subtest: Workers analyzeBindings — env vars
+    # Subtest: parses string env vars from [vars] section
+    ok 1 - parses string env vars from [vars] section
+      ---
+      duration_ms: 0.908084
+      type: 'test'
+      ...
+    # Subtest: returns empty env when no vars section
+    ok 2 - returns empty env when no vars section
+      ---
+      duration_ms: 1.503528
+      type: 'test'
+      ...
+    1..2
+ok 60 - Workers analyzeBindings — env vars
+  ---
+  duration_ms: 3.089136
+  type: 'suite'
+  ...
+# Subtest: Workers analyzeBindings — entry points and cron triggers
+    # Subtest: parses main entry point
+    ok 1 - parses main entry point
+      ---
+      duration_ms: 1.674448
+      type: 'test'
+      ...
+    # Subtest: parses route patterns
+    ok 2 - parses route patterns
+      ---
+      duration_ms: 0.964645
+      type: 'test'
+      ...
+    # Subtest: parses single route string
+    ok 3 - parses single route string
+      ---
+      duration_ms: 0.738564
+      type: 'test'
+      ...
+    # Subtest: parses cron triggers
+    ok 4 - parses cron triggers
+      ---
+      duration_ms: 0.741124
+      type: 'test'
+      ...
+    # Subtest: parses combined entry points, routes, and crons
+    ok 5 - parses combined entry points, routes, and crons
+      ---
+      duration_ms: 1.049805
+      type: 'test'
+      ...
+    1..5
+ok 61 - Workers analyzeBindings — entry points and cron triggers
+  ---
+  duration_ms: 5.485348
+  type: 'suite'
+  ...
+# Subtest: Workers analyzeBindings — constraints
+    # Subtest: parses compatibility_date
+    ok 1 - parses compatibility_date
+      ---
+      duration_ms: 0.919445
+      type: 'test'
+      ...
+    # Subtest: parses compatibility_flags
+    ok 2 - parses compatibility_flags
+      ---
+      duration_ms: 0.783084
+      type: 'test'
+      ...
+    # Subtest: parses node_compat
+    ok 3 - parses node_compat
+      ---
+      duration_ms: 0.673324
+      type: 'test'
+      ...
+    1..3
+ok 62 - Workers analyzeBindings — constraints
+  ---
+  duration_ms: 2.563013
+  type: 'suite'
+  ...
+# Subtest: Workers analyzeBindings — wrangler.json format
+    # Subtest: parses JSON config with bindings and vars
+    ok 1 - parses JSON config with bindings and vars
+      ---
+      duration_ms: 0.929245
+      type: 'test'
+      ...
+    # Subtest: parses wrangler.jsonc with comments
+    ok 2 - parses wrangler.jsonc with comments
+      ---
+      duration_ms: 0.698564
+      type: 'test'
+      ...
+    # Subtest: prefers wrangler.toml over wrangler.json when both exist
+    ok 3 - prefers wrangler.toml over wrangler.json when both exist
+      ---
+      duration_ms: 1.601928
+      type: 'test'
+      ...
+    1..3
+ok 63 - Workers analyzeBindings — wrangler.json format
+  ---
+  duration_ms: 3.431578
+  type: 'suite'
+  ...
+# Subtest: Workers analyzeBindings — empty/missing config
+    # Subtest: returns empty result when no wrangler file exists
+    ok 1 - returns empty result when no wrangler file exists
+      ---
+      duration_ms: 1.141846
+      type: 'test'
+      ...
+    # Subtest: returns empty arrays when wrangler.toml has no bindings
+    ok 2 - returns empty arrays when wrangler.toml has no bindings
+      ---
+      duration_ms: 0.866925
+      type: 'test'
+      ...
+    1..2
+ok 64 - Workers analyzeBindings — empty/missing config
+  ---
+  duration_ms: 2.149731
+  type: 'suite'
+  ...
+# Subtest: T-1: entry enforcement (guardrail + prompts + spec gate tasks check)
+    # Subtest: guardrail.json includes task-single-responsibility with phase=[spec, task-spec]
+    ok 1 - guardrail.json includes task-single-responsibility with phase=[spec, task-spec]
+      ---
+      duration_ms: 1.87137
+      type: 'test'
+      ...
+    # Subtest: plan/spec.md prompt contains Task Decomposition Rules markers
+    ok 2 - plan/spec.md prompt contains Task Decomposition Rules markers
+      ---
+      duration_ms: 0.338322
+      type: 'test'
+      ...
+    # Subtest: plan/draft.md prompt contains concern-based decomposition notice
+    ok 3 - plan/draft.md prompt contains concern-based decomposition notice
+      ---
+      duration_ms: 0.459123
+      type: 'test'
+      ...
+    # Subtest: spec gate structural check rejects spec.json with empty tasks[]
+    ok 4 - spec gate structural check rejects spec.json with empty tasks[]
+      ---
+      duration_ms: 1.101286
+      type: 'test'
+      ...
+    # Subtest: spec gate structural check rejects spec.json with undefined tasks
+    ok 5 - spec gate structural check rejects spec.json with undefined tasks
+      ---
+      duration_ms: 0.376522
+      type: 'test'
+      ...
+    # Subtest: spec gate accepts spec.json with non-empty tasks[]
+    ok 6 - spec gate accepts spec.json with non-empty tasks[]
+      ---
+      duration_ms: 0.576243
+      type: 'test'
+      ...
+    # Subtest: existing spec.json (tasks undefined) is still valid under JSON schema
+    ok 7 - existing spec.json (tasks undefined) is still valid under JSON schema
+      ---
+      duration_ms: 1.075845
+      type: 'test'
+      ...
+    1..7
+ok 65 - T-1: entry enforcement (guardrail + prompts + spec gate tasks check)
+  ---
+  duration_ms: 7.519438
+  type: 'suite'
+  ...
+# Subtest: T-2: spec.json tasks[*] schema restructuring
+    # Subtest: schema requires id, title, goal, origin, added_round, status
+    ok 1 - schema requires id, title, goal, origin, added_round, status
+      ---
+      duration_ms: 3.8969
+      type: 'test'
+      ...
+    # Subtest: schema does not include description in properties or required
+    ok 2 - schema does not include description in properties or required
+      ---
+      duration_ms: 0.421122
+      type: 'test'
+      ...
+    # Subtest: schema accepts acceptance as optional array of strings (max 500 each)
+    ok 3 - schema accepts acceptance as optional array of strings (max 500 each)
+      ---
+      duration_ms: 1.084646
+      type: 'test'
+      ...
+    # Subtest: schema accepts implementation_notes as optional string (max 5000)
+    ok 4 - schema accepts implementation_notes as optional string (max 5000)
+      ---
+      duration_ms: 0.381842
+      type: 'test'
+      ...
+    # Subtest: schema accepts test_strategy as optional string (max 2000)
+    ok 5 - schema accepts test_strategy as optional string (max 2000)
+      ---
+      duration_ms: 0.367202
+      type: 'test'
+      ...
+    # Subtest: schema accepts parent as optional string or null
+    ok 6 - schema accepts parent as optional string or null
+      ---
+      duration_ms: 0.470403
+      type: 'test'
+      ...
+    # Subtest: schema rejects unknown fields (additionalProperties=false)
+    ok 7 - schema rejects unknown fields (additionalProperties=false)
+      ---
+      duration_ms: 0.420562
+      type: 'test'
+      ...
+    # Subtest: schema validates existing 326 spec.json (tasks undefined) as valid
+    ok 8 - schema validates existing 326 spec.json (tasks undefined) as valid
+      ---
+      duration_ms: 0.890724
+      type: 'test'
+      ...
+    1..8
+ok 66 - T-2: spec.json tasks[*] schema restructuring
+  ---
+  duration_ms: 10.121812
+  type: 'suite'
+  ...
+# rendered: specs/001-test/spec.md
+# Subtest: T-3: spec render generates tasks/<id>.md
+    # Subtest: generates tasks/<id>.md for each task in spec.json
+    ok 1 - generates tasks/<id>.md for each task in spec.json
+      ---
+      duration_ms: 1.492848
+      type: 'test'
+      ...
+    # Subtest: markdown contains Goal / Acceptance / Implementation Notes / Test Strategy sections
+    ok 2 - markdown contains Goal / Acceptance / Implementation Notes / Test Strategy sections
+      ---
+      duration_ms: 0.432642
+      type: 'test'
+      ...
+    # Subtest: markdown is deterministic (idempotent across re-renders)
+    ok 3 - markdown is deterministic (idempotent across re-renders)
+      ---
+      duration_ms: 0.242561
+      type: 'test'
+      ...
+    # Subtest: markdown contains manual-edit-forbidden marker
+    ok 4 - markdown contains manual-edit-forbidden marker
+      ---
+      duration_ms: 0.374802
+      type: 'test'
+      ...
+    # Subtest: spec.md Tasks section shows summary (title + goal) per task
+    ok 5 - spec.md Tasks section shows summary (title + goal) per task
+      ---
+      duration_ms: 0.779404
+      type: 'test'
+      ...
+# rendered: specs/001-test/tasks/T-1.md
+# rendered: specs/002-fresh/spec.md
+    # Subtest: filesystem integration (runSpecRender)
+        # Subtest: render is additive-only (orphan md files are not deleted)
+        ok 1 - render is additive-only (orphan md files are not deleted)
+          ---
+          duration_ms: 17.49569
+          type: 'test'
+          ...
+# rendered: specs/002-fresh/tasks/T-A.md
+        # Subtest: render creates tasks/ directory if not exists
+        ok 2 - render creates tasks/ directory if not exists
+          ---
+          duration_ms: 3.80918
+          type: 'test'
+          ...
+        1..2
+    ok 6 - filesystem integration (runSpecRender)
+      ---
+      duration_ms: 25.080009
+      type: 'suite'
+      ...
+    1..6
+ok 67 - T-3: spec render generates tasks/<id>.md
+  ---
+  duration_ms: 30.077834
+  type: 'suite'
+  ...
+# Subtest: T-4: forest wiring (sync parent transcription + traversal + propagation)
+    # Subtest: sync-spec-tasks transcribes spec.json task.parent to flow.json task.parent
+    ok 1 - sync-spec-tasks transcribes spec.json task.parent to flow.json task.parent
+      ---
+      duration_ms: 10.247252
+      type: 'test'
+      ...
+    # Subtest: flat (parent=null) tasks are preserved as-is
+    ok 2 - flat (parent=null) tasks are preserved as-is
+      ---
+      duration_ms: 4.096421
+      type: 'test'
+      ...
+    # Subtest: forest traversal is DFS pre-order
+    ok 3 - forest traversal is DFS pre-order
+      ---
+      duration_ms: 0.475403
+      type: 'test'
+      ...
+    # Subtest: forest traversal respects spec.json.tasks[] array order for siblings
+    ok 4 - forest traversal respects spec.json.tasks[] array order for siblings
+      ---
+      duration_ms: 0.941125
+      type: 'test'
+      ...
+    # Subtest: forest traversal prioritizes leaf (no children or all children done)
+    ok 5 - forest traversal prioritizes leaf (no children or all children done)
+      ---
+      duration_ms: 1.054326
+      type: 'test'
+      ...
+    # Subtest: forest traversal returns same result for same input (deterministic)
+    ok 6 - forest traversal returns same result for same input (deterministic)
+      ---
+      duration_ms: 0.564563
+      type: 'test'
+      ...
+    # Subtest: forest traversal handles 3+ level depth
+    ok 7 - forest traversal handles 3+ level depth
+      ---
+      duration_ms: 0.527803
+      type: 'test'
+      ...
+    # Subtest: forest traversal handles flat (parent=null only) compatibility
+    ok 8 - forest traversal handles flat (parent=null only) compatibility
+      ---
+      duration_ms: 0.324521
+      type: 'test'
+      ...
+    # Subtest: completeTask propagates to parent when all children are done
+    ok 9 - completeTask propagates to parent when all children are done
+      ---
+      duration_ms: 4.366062
+      type: 'test'
+      ...
+    # Subtest: completeTask propagation is recursive up to root
+    ok 10 - completeTask propagation is recursive up to root
+      ---
+      duration_ms: 3.423537
+      type: 'test'
+      ...
+    # Subtest: completeTask does NOT auto-promote (responsibility separation)
+    ok 11 - completeTask does NOT auto-promote (responsibility separation)
+      ---
+      duration_ms: 5.154906
+      type: 'test'
+      ...
+    # Subtest: completeTask handles flat tasks (parent=null) without propagation
+    ok 12 - completeTask handles flat tasks (parent=null) without propagation
+      ---
+      duration_ms: 3.032216
+      type: 'test'
+      ...
+    # Subtest: forest depth 10 boundary is enforced (depth 11+ fails spec gate)
+    ok 13 - forest depth 10 boundary is enforced (depth 11+ fails spec gate)
+      ---
+      duration_ms: 1.802169
+      type: 'test'
+      ...
+    1..13
+ok 68 - T-4: forest wiring (sync parent transcription + traversal + propagation)
+  ---
+  duration_ms: 38.003395
+  type: 'suite'
+  ...
+# Subtest: T-5: auto-promote function and callers
+    # Subtest: promoteNextPending is no-op when currentTaskId is non-null
+    ok 1 - promoteNextPending is no-op when currentTaskId is non-null
+      ---
+      duration_ms: 1.779089
+      type: 'test'
+      ...
+    # Subtest: promoteNextPending selects first pending (forest leaf priority)
+    ok 2 - promoteNextPending selects first pending (forest leaf priority)
+      ---
+      duration_ms: 0.479563
+      type: 'test'
+      ...
+    # Subtest: promoteNextPending is no-op when tasks[] is empty (flat compatibility)
+    ok 3 - promoteNextPending is no-op when tasks[] is empty (flat compatibility)
+      ---
+      duration_ms: 0.283922
+      type: 'test'
+      ...
+    # Subtest: promoteNextPending is no-op when all tasks are done
+    ok 4 - promoteNextPending is no-op when all tasks are done
+      ---
+      duration_ms: 0.926045
+      type: 'test'
+      ...
+    # Subtest: sync-spec-tasks calls promoteNextPending at the end
+    ok 5 - sync-spec-tasks calls promoteNextPending at the end
+      ---
+      duration_ms: 12.704908
+      type: 'test'
+      ...
+    # Subtest: gate-impl PASS post-hook calls completeTask then promoteNextPending
+    ok 6 - gate-impl PASS post-hook calls completeTask then promoteNextPending
+      ---
+      duration_ms: 7.239438
+      type: 'test'
+      ...
+    # Subtest: auto-promote is called from exactly 3 production sites (grep verification)
+    ok 7 - auto-promote is called from exactly 3 production sites (grep verification)
+      ---
+      duration_ms: 13.699352
+      type: 'test'
+      ...
+    # Subtest: completeTask does NOT call promoteNextPending (separation of concerns)
+    ok 8 - completeTask does NOT call promoteNextPending (separation of concerns)
+      ---
+      duration_ms: 3.320218
+      type: 'test'
+      ...
+    # Subtest: get-next-action returns flow-scope finalize when all tasks done
+    ok 9 - get-next-action returns flow-scope finalize when all tasks done
+      ---
+      duration_ms: 130.991495
+      type: 'test'
+      ...
+    # Subtest: get-next-action keeps task-scope while pending tasks exist
+    ok 10 - get-next-action keeps task-scope while pending tasks exist
+      ---
+      duration_ms: 123.798297
+      type: 'test'
+      ...
+    1..10
+ok 69 - T-5: auto-promote function and callers
+  ---
+  duration_ms: 297.319217
+  type: 'suite'
+  ...
+# Subtest: T-6: task-scope step redesign and manual control CLI
+    # Subtest: TASK_STEPS_PLAN is [impl, review, gate-impl]
+    ok 1 - TASK_STEPS_PLAN is [impl, review, gate-impl]
+      ---
+      duration_ms: 1.988491
+      type: 'test'
+      ...
+    # Subtest: buildInitialTaskSteps returns 3 steps matching TASK_STEPS_PLAN
+    ok 2 - buildInitialTaskSteps returns 3 steps matching TASK_STEPS_PLAN
+      ---
+      duration_ms: 0.296882
+      type: 'test'
+      ...
+    # Subtest: TASK_DEFINITION has no approval/gate/update-overview entries
+    ok 3 - TASK_DEFINITION has no approval/gate/update-overview entries
+      ---
+      duration_ms: 0.269642
+      type: 'test'
+      ...
+    # Subtest: TASK_DEFINITION has gate-impl entry
+    ok 4 - TASK_DEFINITION has gate-impl entry
+      ---
+      duration_ms: 0.432682
+      type: 'test'
+      ...
+    # Subtest: src/flow/prompts/task/approval.md does not exist
+    ok 5 - src/flow/prompts/task/approval.md does not exist
+      ---
+      duration_ms: 0.249281
+      type: 'test'
+      ...
+    # Subtest: src/flow/prompts/task/gate.md does not exist
+    ok 6 - src/flow/prompts/task/gate.md does not exist
+      ---
+      duration_ms: 0.219962
+      type: 'test'
+      ...
+    # Subtest: src/flow/prompts/task/update-overview.md does not exist
+    ok 7 - src/flow/prompts/task/update-overview.md does not exist
+      ---
+      duration_ms: 0.202521
+      type: 'test'
+      ...
+    # Subtest: src/flow/prompts/task/impl.md contains overview update directive
+    ok 8 - src/flow/prompts/task/impl.md contains overview update directive
+      ---
+      duration_ms: 0.532683
+      type: 'test'
+      ...
+    # Subtest: start-task CLI
+        # Subtest: start-task CLI sets currentTaskId to the specified task
+        ok 1 - start-task CLI sets currentTaskId to the specified task
+          ---
+          duration_ms: 11.34334
+          type: 'test'
+          ...
+        # Subtest: start-task CLI transitions task status to in_progress
+        ok 2 - start-task CLI transitions task status to in_progress
+          ---
+          duration_ms: 2.581094
+          type: 'test'
+          ...
+        # Subtest: start-task CLI delegates validation to flow-store primitive (throws on unknown id)
+        ok 3 - start-task CLI delegates validation to flow-store primitive (throws on unknown id)
+          ---
+          duration_ms: 1.503568
+          type: 'test'
+          ...
+        # Subtest: start-task CLI returns proper envelope shape
+        ok 4 - start-task CLI returns proper envelope shape
+          ---
+          duration_ms: 2.064531
+          type: 'test'
+          ...
+        1..4
+    ok 9 - start-task CLI
+      ---
+      duration_ms: 18.256097
+      type: 'suite'
+      ...
+    # Subtest: complete-task CLI
+        # Subtest: complete-task CLI (no args) completes currentTaskId task
+        ok 1 - complete-task CLI (no args) completes currentTaskId task
+          ---
+          duration_ms: 5.826991
+          type: 'test'
+          ...
+        # Subtest: complete-task CLI (with --task-id) completes specified task
+        ok 2 - complete-task CLI (with --task-id) completes specified task
+          ---
+          duration_ms: 2.714134
+          type: 'test'
+          ...
+        # Subtest: complete-task CLI invokes completeTask then promoteNextPending (in this order)
+        ok 3 - complete-task CLI invokes completeTask then promoteNextPending (in this order)
+          ---
+          duration_ms: 4.308822
+          type: 'test'
+          ...
+        # Subtest: complete-task CLI propagates to parent when all children done
+        ok 4 - complete-task CLI propagates to parent when all children done
+          ---
+          duration_ms: 3.193257
+          type: 'test'
+          ...
+        # Subtest: complete-task CLI is a thin wrapper (no validation duplication)
+        ok 5 - complete-task CLI is a thin wrapper (no validation duplication)
+          ---
+          duration_ms: 3.178697
+          type: 'test'
+          ...
+        1..5
+    ok 10 - complete-task CLI
+      ---
+      duration_ms: 19.586064
+      type: 'suite'
+      ...
+    # Subtest: impl step invokes applyOverviewAdditions via spec 207 helper
+    ok 11 - impl step invokes applyOverviewAdditions via spec 207 helper
+      ---
+      duration_ms: 0.245202
+      type: 'test'
+      ...
+    # Subtest: impl overview update is performed in impl step (not as separate update-overview step)
+    ok 12 - impl overview update is performed in impl step (not as separate update-overview step)
+      ---
+      duration_ms: 0.268521
+      type: 'test'
+      ...
+    1..12
+ok 70 - T-6: task-scope step redesign and manual control CLI
+  ---
+  duration_ms: 44.682677
+  type: 'suite'
+  ...
+# Subtest: REQ-A2: FlowStore.load validates tasks field
+    # Subtest: accepts empty tasks array
+    ok 1 - accepts empty tasks array
+      ---
+      duration_ms: 5.916231
+      type: 'test'
+      ...
+    # Subtest: accepts non-empty tasks array
+    ok 2 - accepts non-empty tasks array
+      ---
+      duration_ms: 3.049256
+      type: 'test'
+      ...
+    1..2
+ok 71 - REQ-A2: FlowStore.load validates tasks field
+  ---
+  duration_ms: 10.543536
+  type: 'suite'
+  ...
+# Subtest: REQ-A3: get-next-action assumes non-empty tasks
+    # Subtest: findCurrentTask does not guard against non-array tasks
+    ok 1 - findCurrentTask does not guard against non-array tasks
+      ---
+      duration_ms: 67.278277
+      type: 'test'
+      ...
+    # Subtest: allTasksDone returns true when all tasks are done
+    ok 2 - allTasksDone returns true when all tasks are done
+      ---
+      duration_ms: 3.464898
+      type: 'test'
+      ...
+    1..2
+ok 72 - REQ-A3: get-next-action assumes non-empty tasks
+  ---
+  duration_ms: 72.195943
+  type: 'suite'
+  ...
+# Subtest: detectUnfilledDirectives
+    # Subtest: detects unfilled {{text}} blocks with file name and line number
+    ok 1 - detects unfilled {{text}} blocks with file name and line number
+      ---
+      duration_ms: 1.663889
+      type: 'test'
+      ...
+    # Subtest: does not flag filled {{text}} blocks
+    ok 2 - does not flag filled {{text}} blocks
+      ---
+      duration_ms: 0.623603
+      type: 'test'
+      ...
+    # Subtest: reports multiple unfilled blocks across files
+    ok 3 - reports multiple unfilled blocks across files
+      ---
+      duration_ms: 0.500442
+      type: 'test'
+      ...
+    # Subtest: ignores directives inside code blocks
+    ok 4 - ignores directives inside code blocks
+      ---
+      duration_ms: 0.400363
+      type: 'test'
+      ...
+    # Subtest: cleanup
+    ok 5 - cleanup
+      ---
+      duration_ms: 1.214806
+      type: 'test'
+      ...
+    1..5
+ok 73 - detectUnfilledDirectives
+  ---
+  duration_ms: 5.67307
+  type: 'suite'
+  ...
+# Subtest: detectExposedDirectives
+    # Subtest: detects exposed {{data:}} directives with file name and line number
+    ok 1 - detects exposed {{data:}} directives with file name and line number
+      ---
+      duration_ms: 1.046925
+      type: 'test'
+      ...
+    # Subtest: does not flag directives inside HTML comments
+    ok 2 - does not flag directives inside HTML comments
+      ---
+      duration_ms: 0.689843
+      type: 'test'
+      ...
+    # Subtest: does not flag directives inside inline code
+    ok 3 - does not flag directives inside inline code
+      ---
+      duration_ms: 1.090405
+      type: 'test'
+      ...
+    # Subtest: cleanup
+    ok 4 - cleanup
+      ---
+      duration_ms: 1.063126
+      type: 'test'
+      ...
+    1..4
+ok 74 - detectExposedDirectives
+  ---
+  duration_ms: 4.844385
+  type: 'suite'
+  ...
+# Subtest: persistReport
+    # Subtest: writes report to .sdd-forge/output/acceptance-report-{preset}.json
+    ok 1 - writes report to .sdd-forge/output/acceptance-report-{preset}.json
+      ---
+      duration_ms: 3.931501
+      type: 'test'
+      ...
+    # Subtest: creates .sdd-forge/output/ directory if it does not exist
+    ok 2 - creates .sdd-forge/output/ directory if it does not exist
+      ---
+      duration_ms: 0.433522
+      type: 'test'
+      ...
+    # Subtest: overwrites existing report file on re-run
+    ok 3 - overwrites existing report file on re-run
+      ---
+      duration_ms: 1.039525
+      type: 'test'
+      ...
+    # Subtest: uses preset name from report as filename suffix
+    ok 4 - uses preset name from report as filename suffix
+      ---
+      duration_ms: 0.744164
+      type: 'test'
+      ...
+    # Subtest: cleanup
+    ok 5 - cleanup
+      ---
+      duration_ms: 1.166166
+      type: 'test'
+      ...
+    1..5
+ok 75 - persistReport
+  ---
+  duration_ms: 8.716846
+  type: 'suite'
+  ...
+# Subtest: filterByDocsExclude
+    # Subtest: returns all entries when no exclude patterns
+    ok 1 - returns all entries when no exclude patterns
+      ---
+      duration_ms: 1.216406
+      type: 'test'
+      ...
+    # Subtest: returns all entries when exclude is empty array
+    ok 2 - returns all entries when exclude is empty array
+      ---
+      duration_ms: 0.174401
+      type: 'test'
+      ...
+    # Subtest: excludes entries matching a single pattern
+    ok 3 - excludes entries matching a single pattern
+      ---
+      duration_ms: 0.569163
+      type: 'test'
+      ...
+    # Subtest: excludes entries matching multiple patterns
+    ok 4 - excludes entries matching multiple patterns
+      ---
+      duration_ms: 0.491402
+      type: 'test'
+      ...
+    # Subtest: does not exclude non-matching entries
+    ok 5 - does not exclude non-matching entries
+      ---
+      duration_ms: 0.307121
+      type: 'test'
+      ...
+    # Subtest: handles entries without file field gracefully
+    ok 6 - handles entries without file field gracefully
+      ---
+      duration_ms: 0.246041
+      type: 'test'
+      ...
+    1..6
+ok 76 - filterByDocsExclude
+  ---
+  duration_ms: 4.444224
+  type: 'suite'
+  ...
+# Subtest: collectEntries
+    # Subtest: collects entries across categories with index and category
+    ok 1 - collects entries across categories with index and category
+      ---
+      duration_ms: 1.499928
+      type: 'test'
+      ...
+    # Subtest: marks entries with enrich metadata as enriched
+    ok 2 - marks entries with enrich metadata as enriched
+      ---
+      duration_ms: 1.282047
+      type: 'test'
+      ...
+    # Subtest: does not mark entries with summary alone as enriched
+    ok 3 - does not mark entries with summary alone as enriched
+      ---
+      duration_ms: 0.242321
+      type: 'test'
+      ...
+    # Subtest: defaults lines to 0 when not present
+    ok 4 - defaults lines to 0 when not present
+      ---
+      duration_ms: 0.358442
+      type: 'test'
+      ...
+    # Subtest: skips meta keys
+    ok 5 - skips meta keys
+      ---
+      duration_ms: 0.388562
+      type: 'test'
+      ...
+    # Subtest: handles multiple categories
+    ok 6 - handles multiple categories
+      ---
+      duration_ms: 0.190081
+      type: 'test'
+      ...
+    1..6
+ok 77 - collectEntries
+  ---
+  duration_ms: 5.151387
+  type: 'suite'
+  ...
+# Subtest: splitIntoBatches (token-based)
+    # Subtest: splits by token count
+    ok 1 - splits by token count
+      ---
+      duration_ms: 0.717243
+      type: 'test'
+      ...
+    # Subtest: puts a single large file in its own batch
+    ok 2 - puts a single large file in its own batch
+      ---
+      duration_ms: 0.641323
+      type: 'test'
+      ...
+    # Subtest: handles entries without essential field
+    ok 3 - handles entries without essential field
+      ---
+      duration_ms: 0.790525
+      type: 'test'
+      ...
+    # Subtest: uses default limit when maxTokens is 0
+    ok 4 - uses default limit when maxTokens is 0
+      ---
+      duration_ms: 0.524083
+      type: 'test'
+      ...
+    # Subtest: handles empty entries
+    ok 5 - handles empty entries
+      ---
+      duration_ms: 0.239801
+      type: 'test'
+      ...
+    1..5
+ok 78 - splitIntoBatches (token-based)
+  ---
+  duration_ms: 3.662819
+  type: 'suite'
+  ...
+# Subtest: buildEnrichPrompt
+    # Subtest: includes file list and chapter list
+    ok 1 - includes file list and chapter list
+      ---
+      duration_ms: 0.873604
+      type: 'test'
+      ...
+    # Subtest: includes category and index in file header
+    ok 2 - includes category and index in file header
+      ---
+      duration_ms: 0.214762
+      type: 'test'
+      ...
+    # Subtest: embeds essential source in prompt
+    ok 3 - embeds essential source in prompt
+      ---
+      duration_ms: 0.193121
+      type: 'test'
+      ...
+    1..3
+ok 79 - buildEnrichPrompt
+  ---
+  duration_ms: 1.459368
+  type: 'suite'
+  ...
+# Subtest: parseEnrichResponse
+    # Subtest: parses clean JSON
+    ok 1 - parses clean JSON
+      ---
+      duration_ms: 1.589888
+      type: 'test'
+      ...
+    # Subtest: strips markdown fences
+    ok 2 - strips markdown fences
+      ---
+      duration_ms: 0.315722
+      type: 'test'
+      ...
+    # Subtest: extracts JSON from surrounding text
+    ok 3 - extracts JSON from surrounding text
+      ---
+      duration_ms: 0.230841
+      type: 'test'
+      ...
+    # Subtest: returns null for unparseable input
+    ok 4 - returns null for unparseable input
+      ---
+      duration_ms: 0.179281
+      type: 'test'
+      ...
+    # Subtest: returns null for empty input
+    ok 5 - returns null for empty input
+      ---
+      duration_ms: 0.171121
+      type: 'test'
+      ...
+    1..5
+ok 80 - parseEnrichResponse
+  ---
+  duration_ms: 2.782455
+  type: 'suite'
+  ...
+# Subtest: mergeEnrichment
+    # Subtest: merges enrichment data into analysis entries
+    ok 1 - merges enrichment data into analysis entries
+      ---
+      duration_ms: 0.747884
+      type: 'test'
+      ...
+    # Subtest: skips invalid indices
+    ok 2 - skips invalid indices
+      ---
+      duration_ms: 0.179481
+      type: 'test'
+      ...
+    # Subtest: skips unknown categories
+    ok 3 - skips unknown categories
+      ---
+      duration_ms: 0.163721
+      type: 'test'
+      ...
+    # Subtest: preserves existing fields when enrichment field is empty
+    ok 4 - preserves existing fields when enrichment field is empty
+      ---
+      duration_ms: 0.509643
+      type: 'test'
+      ...
+    # Subtest: marks entries as processed even when summary is missing and emits a warning
+    ok 5 - marks entries as processed even when summary is missing and emits a warning
+      ---
+      duration_ms: 0.380602
+      type: 'test'
+      ...
+    # Subtest: does not mark entries as processed when they are missing from the AI response
+    ok 6 - does not mark entries as processed when they are missing from the AI response
+      ---
+      duration_ms: 0.316922
+      type: 'test'
+      ...
+    1..6
+ok 81 - mergeEnrichment
+  ---
+  duration_ms: 2.762655
+  type: 'suite'
+  ...
+# Subtest: estimateRelevantFiles
+    # Subtest: returns matching files when spec mentions chapter keywords
+    ok 1 - returns matching files when spec mentions chapter keywords
+      ---
+      duration_ms: 1.754209
+      type: 'test'
+      ...
+    # Subtest: returns empty array when no keywords match
+    ok 2 - returns empty array when no keywords match
+      ---
+      duration_ms: 0.268121
+      type: 'test'
+      ...
+    # Subtest: returns empty array for empty spec text
+    ok 3 - returns empty array for empty spec text
+      ---
+      duration_ms: 1.110126
+      type: 'test'
+      ...
+    # Subtest: is case-insensitive
+    ok 4 - is case-insensitive
+      ---
+      duration_ms: 0.424003
+      type: 'test'
+      ...
+    # Subtest: returns all files if all match (no filtering benefit)
+    ok 5 - returns all files if all match (no filtering benefit)
+      ---
+      duration_ms: 0.214601
+      type: 'test'
+      ...
+    1..5
+ok 82 - estimateRelevantFiles
+  ---
+  duration_ms: 5.372509
+  type: 'suite'
+  ...
+# Error: --max-runs must be > 0
+#     at parseCliOptions (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs/commands/forge.js:97:13)
+#     at runForge (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs/commands/forge.js:199:15)
+#     at DocsForgeCommand.execute (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs/commands/forge.js:450:12)
+#     at DocsForgeCommand.run (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/lib/command.js:53:17)
+#     at async dispatch (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/lib/dispatcher.js:345:14)
+#     at async file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs.js:35:1
+# Error: --mode must be one of: local, assist, agent
+#     at parseCliOptions (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs/commands/forge.js:101:13)
+#     at runForge (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs/commands/forge.js:199:15)
+#     at DocsForgeCommand.execute (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs/commands/forge.js:450:12)
+#     at DocsForgeCommand.run (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/lib/command.js:53:17)
+#     at async dispatch (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/lib/dispatcher.js:345:14)
+#     at async file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs.js:35:1
+# Error: prompt が必要です。--prompt または --prompt-file を指定してください。
+#     at runForge (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs/commands/forge.js:250:11)
+#     at DocsForgeCommand.execute (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs/commands/forge.js:450:12)
+#     at DocsForgeCommand.run (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/lib/command.js:53:17)
+#     at async dispatch (file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/lib/dispatcher.js:345:14)
+#     at async file:///home/nakano/workspace/sdd-forge/.sdd-forge/worktree/feature-262-formalize-specid-opts/src/docs.js:35:1
+# Subtest: buildForgeSystemPrompt
+    # Subtest: includes user prompt and rules
+    ok 1 - includes user prompt and rules
+      ---
+      duration_ms: 1.489608
+      type: 'test'
+      ...
+    # Subtest: includes spec when provided
+    ok 2 - includes spec when provided
+      ---
+      duration_ms: 0.566043
+      type: 'test'
+      ...
+    # Subtest: includes analysis summary when provided
+    ok 3 - includes analysis summary when provided
+      ---
+      duration_ms: 0.554603
+      type: 'test'
+      ...
+    # Subtest: loads rules from prompts.json for given lang
+    ok 4 - loads rules from prompts.json for given lang
+      ---
+      duration_ms: 0.614003
+      type: 'test'
+      ...
+    1..4
+ok 83 - buildForgeSystemPrompt
+  ---
+  duration_ms: 4.340063
+  type: 'suite'
+  ...
+# Subtest: buildForgeFilePrompt
+    # Subtest: includes target file and round info
+    ok 1 - includes target file and round info
+      ---
+      duration_ms: 0.626644
+      type: 'test'
+      ...
+    # Subtest: includes review feedback when provided
+    ok 2 - includes review feedback when provided
+      ---
+      duration_ms: 0.315922
+      type: 'test'
+      ...
+    1..2
+ok 84 - buildForgeFilePrompt
+  ---
+  duration_ms: 1.136726
+  type: 'suite'
+  ...
+# Subtest: forge CLI validation
+    # Subtest: rejects invalid --max-runs
+    ok 1 - rejects invalid --max-runs
+      ---
+      duration_ms: 134.685155
+      type: 'test'
+      ...
+    # Subtest: rejects invalid --mode
+    ok 2 - rejects invalid --mode
+      ---
+      duration_ms: 148.87467
+      type: 'test'
+      ...
+    # Subtest: exits with error when no prompt given
+    ok 3 - exits with error when no prompt given
+      ---
+      duration_ms: 149.286672
+      type: 'test'
+      ...
+    # Subtest: shows help with --help
+    ok 4 - shows help with --help
+      ---
+      duration_ms: 109.906903
+      type: 'test'
+      ...
+    # Subtest: --dry-run skips writes, review, and agent calls
+    ok 5 - --dry-run skips writes, review, and agent calls
+      ---
+      duration_ms: 112.739798
+      type: 'test'
+      ...
+    # Subtest: runs review in local mode and handles pass
+    ok 6 - runs review in local mode and handles pass
+      ---
+      duration_ms: 208.160624
+      type: 'test'
+      ...
+    # Subtest: uses per-file mode when systemPromptFlag is set
+    ok 7 - uses per-file mode when systemPromptFlag is set
+      ---
+      duration_ms: 219.486044
+      type: 'test'
+      ...
+    # Subtest: uses legacy mode when systemPromptFlag is not set
+    ok 8 - uses legacy mode when systemPromptFlag is not set
+      ---
+      duration_ms: 221.205693
+      type: 'test'
+      ...
+    1..8
+ok 85 - forge CLI validation
+  ---
+  duration_ms: 1305.471883
+  type: 'suite'
+  ...
+# [init] AI filter removed: stack_and_ops.md, db_tables.md, commands.md
+# Subtest: aiFilterChapters
+    # Subtest: filters chapters based on valid AI JSON response
+    ok 1 - filters chapters based on valid AI JSON response
+      ---
+      duration_ms: 37.497959
+      type: 'test'
+      ...
+# [init] [init] WARN: AI response is not valid JSON, skipping AI filter.
+# [init] [init]   response: not valid json at all
+    # Subtest: returns all chapters when AI returns invalid JSON
+    ok 2 - returns all chapters when AI returns invalid JSON
+      ---
+      duration_ms: 31.819008
+      type: 'test'
+      ...
+# [init] [init] WARN: AI selected 0 chapters, ignoring AI filter.
+    # Subtest: returns all chapters when AI returns empty array
+    ok 3 - returns all chapters when AI returns empty array
+      ---
+      duration_ms: 38.859446
+      type: 'test'
+      ...
+# [init] [init] WARN: AI chapter selection failed: exit=1
+    # Subtest: returns all chapters when AI call throws
+    ok 4 - returns all chapters when AI call throws
+      ---
+      duration_ms: 9081.971388
+      type: 'test'
+      ...
+# [init] [init] WARN: AI response is not an array, skipping AI filter.
+    # Subtest: returns all chapters when AI returns non-array JSON
+    ok 5 - returns all chapters when AI returns non-array JSON
+      ---
+      duration_ms: 34.463583
+      type: 'test'
+      ...
+# [init] AI filter removed: stack_and_ops.md, db_tables.md, commands.md
+    # Subtest: strips markdown fences from AI response
+    ok 6 - strips markdown fences from AI response
+      ---
+      duration_ms: 33.412577
+      type: 'test'
+      ...
+    1..6
+ok 86 - aiFilterChapters
+  ---
+  duration_ms: 9260.424454
+  type: 'suite'
+  ...
+# [text] Batch README.md: 2 directive(s) → 1 call
+# [text] Batch DONE README.md: 2/2 filled
+# Subtest: README.md text directive processing
+    # Subtest: batch JSON mode fills directives without affecting {{data}} content
+    ok 1 - batch JSON mode fills directives without affecting {{data}} content
+      ---
+      duration_ms: 44.172434
+      type: 'test'
+      ...
+    # Subtest: countFilledInBatch correctly identifies unfilled directives
+    ok 2 - countFilledInBatch correctly identifies unfilled directives
+      ---
+      duration_ms: 0.513043
+      type: 'test'
+      ...
+    # Subtest: {{data}} content is not affected by per-directive processTemplate
+    ok 3 - {{data}} content is not affected by per-directive processTemplate
+      ---
+      duration_ms: 0.597323
+      type: 'test'
+      ...
+    1..3
+ok 87 - README.md text directive processing
+  ---
+  duration_ms: 46.883208
+  type: 'suite'
+  ...
+# Subtest: scan dataSourceHash
+    # Subtest: records dataSourceHash in analysis.json after scan
+    ok 1 - records dataSourceHash in analysis.json after scan
+      ---
+      duration_ms: 1.82769
+      type: 'test'
+      ...
+    # Subtest: detects dataSourceHash mismatch when file content changes
+    ok 2 - detects dataSourceHash mismatch when file content changes
+      ---
+      duration_ms: 0.576243
+      type: 'test'
+      ...
+    # Subtest: keeps same hash when file content is unchanged
+    ok 3 - keeps same hash when file content is unchanged
+      ---
+      duration_ms: 0.289001
+      type: 'test'
+      ...
+    # Subtest: clears entry hashes for categories with mismatched dataSourceHash
+    ok 4 - clears entry hashes for categories with mismatched dataSourceHash
+      ---
+      duration_ms: 2.635573
+      type: 'test'
+      ...
+    # Subtest: preserves entry hashes when dataSourceHash matches
+    ok 5 - preserves entry hashes when dataSourceHash matches
+      ---
+      duration_ms: 1.718529
+      type: 'test'
+      ...
+    # Subtest: handles missing dataSourceHash in existing analysis (first run after feature)
+    ok 6 - handles missing dataSourceHash in existing analysis (first run after feature)
+      ---
+      duration_ms: 2.816535
+      type: 'test'
+      ...
+    1..6
+ok 88 - scan dataSourceHash
+  ---
+  duration_ms: 12.018464
+  type: 'suite'
+  ...
+# [text] Batch test.md: 2 directive(s) → 1 call
+# [text] Batch DONE test.md: 2/2 filled
+# [text] Batch test.md: 2 directive(s) → 1 call
+# Subtest: processTemplateFileBatch
+    # Subtest: fills {{text}} directives using echo agent
+    ok 1 - fills {{text}} directives using echo agent
+      ---
+      duration_ms: 45.710963
+      type: 'test'
+      ...
+# [text] Batch DONE test.md: 2/2 filled
+# [text] DRY-RUN batch test.md: 1 directive(s) → 1 call (925 chars)
+    # Subtest: replaces existing content between {{text}} tags without duplicating opening tag
+    ok 2 - replaces existing content between {{text}} tags without duplicating opening tag
+      ---
+      duration_ms: 39.433129
+      type: 'test'
+      ...
+    # Subtest: returns null text on empty agent response in dry-run
+    ok 3 - returns null text on empty agent response in dry-run
+      ---
+      duration_ms: 1.643969
+      type: 'test'
+      ...
+    1..3
+ok 89 - processTemplateFileBatch
+  ---
+  duration_ms: 88.639109
+  type: 'suite'
+  ...
+# Subtest: stripFillContent
+    # Subtest: removes content between {{text}} and {{/text}} tags
+    ok 1 - removes content between {{text}} and {{/text}} tags
+      ---
+      duration_ms: 1.418368
+      type: 'test'
+      ...
+    # Subtest: preserves text without {{text}} directives
+    ok 2 - preserves text without {{text}} directives
+      ---
+      duration_ms: 0.208161
+      type: 'test'
+      ...
+    # Subtest: handles multiple {{text}} directives
+    ok 3 - handles multiple {{text}} directives
+      ---
+      duration_ms: 0.406122
+      type: 'test'
+      ...
+    # Subtest: handles {{text}} with parameters
+    ok 4 - handles {{text}} with parameters
+      ---
+      duration_ms: 0.195601
+      type: 'test'
+      ...
+    # Subtest: preserves empty block (no content between tags)
+    ok 5 - preserves empty block (no content between tags)
+      ---
+      duration_ms: 0.155601
+      type: 'test'
+      ...
+    1..5
+ok 90 - stripFillContent
+  ---
+  duration_ms: 4.343383
+  type: 'suite'
+  ...
+# Subtest: countFilledInBatch
+    # Subtest: returns 0 when no directives are filled
+    ok 1 - returns 0 when no directives are filled
+      ---
+      duration_ms: 0.556042
+      type: 'test'
+      ...
+    # Subtest: counts filled directives
+    ok 2 - counts filled directives
+      ---
+      duration_ms: 0.499162
+      type: 'test'
+      ...
+    # Subtest: counts multiple filled directives
+    ok 3 - counts multiple filled directives
+      ---
+      duration_ms: 0.735524
+      type: 'test'
+      ...
+    # Subtest: does not count empty block
+    ok 4 - does not count empty block
+      ---
+      duration_ms: 0.580523
+      type: 'test'
+      ...
+    # Subtest: does not count block with only blank lines
+    ok 5 - does not count block with only blank lines
+      ---
+      duration_ms: 0.524043
+      type: 'test'
+      ...
+    1..5
+ok 91 - countFilledInBatch
+  ---
+  duration_ms: 3.420618
+  type: 'suite'
+  ...
+# Subtest: allTextDirectivesFilled
+    # Subtest: returns true when no text directives exist
+    ok 1 - returns true when no text directives exist
+      ---
+      duration_ms: 0.803964
+      type: 'test'
+      ...
+    # Subtest: returns true when all directives are filled
+    ok 2 - returns true when all directives are filled
+      ---
+      duration_ms: 1.284766
+      type: 'test'
+      ...
+    # Subtest: returns false when any directive is empty
+    ok 3 - returns false when any directive is empty
+      ---
+      duration_ms: 0.218001
+      type: 'test'
+      ...
+    # Subtest: returns false when all directives are empty
+    ok 4 - returns false when all directives are empty
+      ---
+      duration_ms: 0.183321
+      type: 'test'
+      ...
+    # Subtest: treats blank-only lines as empty
+    ok 5 - treats blank-only lines as empty
+      ---
+      duration_ms: 0.214721
+      type: 'test'
+      ...
+    # Subtest: handles directives with params
+    ok 6 - handles directives with params
+      ---
+      duration_ms: 0.201242
+      type: 'test'
+      ...
+    # Subtest: throws when end tag is missing (unclosed directive)
+    ok 7 - throws when end tag is missing (unclosed directive)
+      ---
+      duration_ms: 0.470642
+      type: 'test'
+      ...
+    1..7
+ok 92 - allTextDirectivesFilled
+  ---
+  duration_ms: 3.73142
+  type: 'suite'
+  ...
+# Subtest: validateBatchResult
+    # Subtest: accepts result with similar line count
+    ok 1 - accepts result with similar line count
+      ---
+      duration_ms: 0.454202
+      type: 'test'
+      ...
+    # Subtest: rejects result with severe shrinkage
+    ok 2 - rejects result with severe shrinkage
+      ---
+      duration_ms: 0.235801
+      type: 'test'
+      ...
+    # Subtest: skips shrinkage check for short files
+    ok 3 - skips shrinkage check for short files
+      ---
+      duration_ms: 0.168441
+      type: 'test'
+      ...
+    # Subtest: rejects when 0 directives filled
+    ok 4 - rejects when 0 directives filled
+      ---
+      duration_ms: 0.220722
+      type: 'test'
+      ...
+    # Subtest: accepts when all directives filled
+    ok 5 - accepts when all directives filled
+      ---
+      duration_ms: 0.326522
+      type: 'test'
+      ...
+    # Subtest: accepts when no directives exist
+    ok 6 - accepts when no directives exist
+      ---
+      duration_ms: 0.185761
+      type: 'test'
+      ...
+    1..6
+ok 93 - validateBatchResult
+  ---
+  duration_ms: 1.91749
+  type: 'suite'
+  ...
+# Subtest: translate parallel
+    # Subtest: buildTranslationTasks
+        # Subtest: flattens lang × files into a single task list
+        ok 1 - flattens lang × files into a single task list
+          ---
+          duration_ms: 3.625779
+          type: 'test'
+          ...
+        # Subtest: filters out up-to-date files when force is false
+        ok 2 - filters out up-to-date files when force is false
+          ---
+          duration_ms: 1.84801
+          type: 'test'
+          ...
+        # Subtest: includes all files when force is true
+        ok 3 - includes all files when force is true
+          ---
+          duration_ms: 1.223487
+          type: 'test'
+          ...
+        # Subtest: returns empty array when no files need translation
+        ok 4 - returns empty array when no files need translation
+          ---
+          duration_ms: 2.895935
+          type: 'test'
+          ...
+        1..4
+    ok 1 - buildTranslationTasks
+      ---
+      duration_ms: 10.859697
+      type: 'suite'
+      ...
+    1..1
+ok 94 - translate parallel
+  ---
+  duration_ms: 11.776142
+  type: 'suite'
+  ...
+# Subtest: docs.langSwitcher
+    # Subtest: returns null when single language is configured
+    ok 1 - returns null when single language is configured
+      ---
+      duration_ms: 109.059178
+      type: 'test'
+      ...
+    # Subtest: returns lang switcher with bold current lang and linked other lang (relative)
+    ok 2 - returns lang switcher with bold current lang and linked other lang (relative)
+      ---
+      duration_ms: 5.912351
+      type: 'test'
+      ...
+    # Subtest: computes correct relative path from non-default lang to default
+    ok 3 - computes correct relative path from non-default lang to default
+      ---
+      duration_ms: 5.66375
+      type: 'test'
+      ...
+    # Subtest: computes correct relative path for README at root
+    ok 4 - computes correct relative path for README at root
+      ---
+      duration_ms: 8.419764
+      type: 'test'
+      ...
+    # Subtest: computes correct relative path for non-default lang README
+    ok 5 - computes correct relative path for non-default lang README
+      ---
+      duration_ms: 7.109038
+      type: 'test'
+      ...
+    # Subtest: generates absolute URLs when mode is 'absolute'
+    ok 6 - generates absolute URLs when mode is 'absolute'
+      ---
+      duration_ms: 4.348503
+      type: 'test'
+      ...
+    # Subtest: generates absolute URLs for docs chapter files
+    ok 7 - generates absolute URLs for docs chapter files
+      ---
+      duration_ms: 5.275068
+      type: 'test'
+      ...
+    1..7
+ok 95 - docs.langSwitcher
+  ---
+  duration_ms: 147.805944
+  type: 'suite'
+  ...
+# Subtest: MonorepoSource
+    # Subtest: apps()
+        # Subtest: returns badge text from config monorepo.apps definition
+        ok 1 - returns badge text from config monorepo.apps definition
+          ---
+          duration_ms: 102.0433
+          type: 'test'
+          ...
+        # Subtest: returns badge text from enriched analysis app field when no config
+        ok 2 - returns badge text from enriched analysis app field when no config
+          ---
+          duration_ms: 1.396327
+          type: 'test'
+          ...
+        # Subtest: returns unique app names (no duplicates)
+        ok 3 - returns unique app names (no duplicates)
+          ---
+          duration_ms: 1.423968
+          type: 'test'
+          ...
+        # Subtest: returns null when no monorepo config and no app fields in analysis
+        ok 4 - returns null when no monorepo config and no app fields in analysis
+          ---
+          duration_ms: 1.159606
+          type: 'test'
+          ...
+        # Subtest: returns null when no entries match the chapter
+        ok 5 - returns null when no entries match the chapter
+          ---
+          duration_ms: 1.698009
+          type: 'test'
+          ...
+        1..5
+    ok 1 - apps()
+      ---
+      duration_ms: 109.070778
+      type: 'suite'
+      ...
+    1..1
+ok 96 - MonorepoSource
+  ---
+  duration_ms: 111.000189
+  type: 'suite'
+  ...
+# Subtest: enrich failure dump path
+    # Subtest: resolveWorkDir ignores SDD_FORGE_WORK_DIR and uses config.agent.workDir
+    ok 1 - resolveWorkDir ignores SDD_FORGE_WORK_DIR and uses config.agent.workDir
+      ---
+      duration_ms: 1.053445
+      type: 'test'
+      ...
+    # Subtest: resolveWorkDir accepts an explicit agentWorkDir override
+    ok 2 - resolveWorkDir accepts an explicit agentWorkDir override
+      ---
+      duration_ms: 0.232441
+      type: 'test'
+      ...
+    # Subtest: resolveWorkDir returns agent.workDir from config
+    ok 3 - resolveWorkDir returns agent.workDir from config
+      ---
+      duration_ms: 0.374162
+      type: 'test'
+      ...
+    # Subtest: resolveWorkDir defaults to .tmp when agent.workDir not set
+    ok 4 - resolveWorkDir defaults to .tmp when agent.workDir not set
+      ---
+      duration_ms: 0.189561
+      type: 'test'
+      ...
+    # Subtest: enrich.js source uses resolveWorkDir for dump path, not sddOutputDir
+    ok 5 - enrich.js source uses resolveWorkDir for dump path, not sddOutputDir
+      ---
+      duration_ms: 0.719804
+      type: 'test'
+      ...
+    1..5
+ok 97 - enrich failure dump path
+  ---
+  duration_ms: 4.197942
+  type: 'suite'
+  ...
+# Subtest: md language handler (spec 225 R4, R5, R6)
+    # Subtest: R5 — lang-factory dispatch
+        # Subtest: getLangHandler('any.md') returns the md handler
+        ok 1 - getLangHandler('any.md') returns the md handler
+          ---
+          duration_ms: 0.962325
+          type: 'test'
+          ...
+        # Subtest: md handler exports preserveBlankLines === true
+        ok 2 - md handler exports preserveBlankLines === true
+          ---
+          duration_ms: 0.413402
+          type: 'test'
+          ...
+        1..2
+    ok 1 - R5 — lang-factory dispatch
+      ---
+      duration_ms: 2.320052
+      type: 'suite'
+      ...
+    # Subtest: R4 — minify transformations
+        # Subtest: removes HTML comment (single line)
+        ok 1 - removes HTML comment (single line)
+          ---
+          duration_ms: 0.963925
+          type: 'test'
+          ...
+        # Subtest: removes HTML comment (multi-line)
+        ok 2 - removes HTML comment (multi-line)
+          ---
+          duration_ms: 0.351882
+          type: 'test'
+          ...
+        # Subtest: reduces image reference to alt text
+        ok 3 - reduces image reference to alt text
+          ---
+          duration_ms: 0.403082
+          type: 'test'
+          ...
+        # Subtest: reduces image reference with empty alt to empty string
+        ok 4 - reduces image reference with empty alt to empty string
+          ---
+          duration_ms: 0.542763
+          type: 'test'
+          ...
+        # Subtest: removes horizontal rule '---' on its own line
+        ok 5 - removes horizontal rule '---' on its own line
+          ---
+          duration_ms: 0.236881
+          type: 'test'
+          ...
+        # Subtest: removes horizontal rule '***' on its own line
+        ok 6 - removes horizontal rule '***' on its own line
+          ---
+          duration_ms: 0.747204
+          type: 'test'
+          ...
+        # Subtest: removes horizontal rule '___' on its own line
+        ok 7 - removes horizontal rule '___' on its own line
+          ---
+          duration_ms: 0.564483
+          type: 'test'
+          ...
+        # Subtest: collapses 3+ consecutive newlines to exactly one blank line
+        ok 8 - collapses 3+ consecutive newlines to exactly one blank line
+          ---
+          duration_ms: 0.527003
+          type: 'test'
+          ...
+        # Subtest: preserves single blank line between paragraphs
+        ok 9 - preserves single blank line between paragraphs
+          ---
+          duration_ms: 0.164601
+          type: 'test'
+          ...
+        # Subtest: removes trailing whitespace on lines
+        ok 10 - removes trailing whitespace on lines
+          ---
+          duration_ms: 0.152201
+          type: 'test'
+          ...
+        # Subtest: preserves <details>...</details> block verbatim
+        ok 11 - preserves <details>...</details> block verbatim
+          ---
+          duration_ms: 0.124961
+          type: 'test'
+          ...
+        # Subtest: preserves multi-line <details> block content
+        ok 12 - preserves multi-line <details> block content
+          ---
+          duration_ms: 0.119561
+          type: 'test'
+          ...
+        # Subtest: applies transformations together on a realistic fragment
+        ok 13 - applies transformations together on a realistic fragment
+          ---
+          duration_ms: 0.171201
+          type: 'test'
+          ...
+        1..13
+    ok 2 - R4 — minify transformations
+      ---
+      duration_ms: 7.247158
+      type: 'suite'
+      ...
+    # Subtest: R4 — truncate helper
+        # Subtest: returns original text when length <= maxChars
+        ok 1 - returns original text when length <= maxChars
+          ---
+          duration_ms: 0.262122
+          type: 'test'
+          ...
+        # Subtest: truncates at default 20,000 chars with suffix
+        ok 2 - truncates at default 20,000 chars with suffix
+          ---
+          duration_ms: 0.145001
+          type: 'test'
+          ...
+        # Subtest: respects explicit maxChars argument
+        ok 3 - respects explicit maxChars argument
+          ---
+          duration_ms: 0.11244
+          type: 'test'
+          ...
+        # Subtest: does not touch exact-boundary input
+        ok 4 - does not touch exact-boundary input
+          ---
+          duration_ms: 0.16552
+          type: 'test'
+          ...
+        1..4
+    ok 3 - R4 — truncate helper
+      ---
+      duration_ms: 0.909685
+      type: 'suite'
+      ...
+    # Subtest: R6 — generic pipeline respects preserveBlankLines
+        # Subtest: minify('…', 'x.md') preserves paragraph blank lines
+        ok 1 - minify('…', 'x.md') preserves paragraph blank lines
+          ---
+          duration_ms: 0.472323
+          type: 'test'
+          ...
+        # Subtest: minify('…', 'x.md') removes HTML comment via md handler
+        ok 2 - minify('…', 'x.md') removes HTML comment via md handler
+          ---
+          duration_ms: 0.170801
+          type: 'test'
+          ...
+        # Subtest: minify('code','x.js') still strips all blank lines for handlers without preserveBlankLines
+        ok 3 - minify('code','x.js') still strips all blank lines for handlers without preserveBlankLines
+          ---
+          duration_ms: 0.635844
+          type: 'test'
+          ...
+        1..3
+    ok 4 - R6 — generic pipeline respects preserveBlankLines
+      ---
+      duration_ms: 1.655569
+      type: 'suite'
+      ...
+    1..4
+ok 98 - md language handler (spec 225 R4, R5, R6)
+  ---
+  duration_ms: 13.536352
+  type: 'suite'
+  ...
+# Subtest: AnalysisEntry
+    # Subtest: initializes common fields to null
+    ok 1 - initializes common fields to null
+      ---
+      duration_ms: 0.972686
+      type: 'test'
+      ...
+    # Subtest: restore() returns instance of the called subclass
+    ok 2 - restore() returns instance of the called subclass
+      ---
+      duration_ms: 1.562489
+      type: 'test'
+      ...
+    # Subtest: restore() works on base class
+    ok 3 - restore() works on base class
+      ---
+      duration_ms: 0.384922
+      type: 'test'
+      ...
+    # Subtest: restore() copies all properties including unknown ones
+    ok 4 - restore() copies all properties including unknown ones
+      ---
+      duration_ms: 0.428243
+      type: 'test'
+      ...
+    1..4
+ok 99 - AnalysisEntry
+  ---
+  duration_ms: 7.777801
+  type: 'suite'
+  ...
+# Subtest: isEmptyEntry
+    # Subtest: returns true when all non-common fields are null
+    ok 1 - returns true when all non-common fields are null
+      ---
+      duration_ms: 0.937285
+      type: 'test'
+      ...
+    # Subtest: returns false when at least one non-common field is set
+    ok 2 - returns false when at least one non-common field is set
+      ---
+      duration_ms: 0.255361
+      type: 'test'
+      ...
+    # Subtest: returns false for non-null array field
+    ok 3 - returns false for non-null array field
+      ---
+      duration_ms: 0.540243
+      type: 'test'
+      ...
+    # Subtest: treats 0 and empty string as non-null (not empty)
+    ok 4 - treats 0 and empty string as non-null (not empty)
+      ---
+      duration_ms: 0.901685
+      type: 'test'
+      ...
+    1..4
+ok 100 - isEmptyEntry
+  ---
+  duration_ms: 3.84902
+  type: 'suite'
+  ...
+# Subtest: buildSummary
+    # Subtest: returns total count for entries
+    ok 1 - returns total count for entries
+      ---
+      duration_ms: 0.696084
+      type: 'test'
+      ...
+    # Subtest: aggregates array fields with count
+    ok 2 - aggregates array fields with count
+      ---
+      duration_ms: 0.528323
+      type: 'test'
+      ...
+    # Subtest: aggregates numeric fields with sum
+    ok 3 - aggregates numeric fields with sum
+      ---
+      duration_ms: 0.280601
+      type: 'test'
+      ...
+    # Subtest: handles null fields gracefully in count aggregation
+    ok 4 - handles null fields gracefully in count aggregation
+      ---
+      duration_ms: 0.357162
+      type: 'test'
+      ...
+    # Subtest: handles null fields gracefully in sum aggregation
+    ok 5 - handles null fields gracefully in sum aggregation
+      ---
+      duration_ms: 0.173641
+      type: 'test'
+      ...
+    # Subtest: returns only total when no static summary defined
+    ok 6 - returns only total when no static summary defined
+      ---
+      duration_ms: 0.166601
+      type: 'test'
+      ...
+    # Subtest: returns total 0 for empty entries array
+    ok 7 - returns total 0 for empty entries array
+      ---
+      duration_ms: 0.980485
+      type: 'test'
+      ...
+    1..7
+ok 101 - buildSummary
+  ---
+  duration_ms: 3.977301
+  type: 'suite'
+  ...
+# Subtest: filterByDocsExclude
+    # Subtest: returns entries unchanged when excludePatterns is undefined
+    ok 1 - returns entries unchanged when excludePatterns is undefined
+      ---
+      duration_ms: 2.972536
+      type: 'test'
+      ...
+    # Subtest: returns entries unchanged when excludePatterns is empty
+    ok 2 - returns entries unchanged when excludePatterns is empty
+      ---
+      duration_ms: 0.289802
+      type: 'test'
+      ...
+    # Subtest: excludes entries matching glob pattern
+    ok 3 - excludes entries matching glob pattern
+      ---
+      duration_ms: 0.662804
+      type: 'test'
+      ...
+    # Subtest: keeps entries without file field
+    ok 4 - keeps entries without file field
+      ---
+      duration_ms: 0.189521
+      type: 'test'
+      ...
+    # Subtest: handles multiple exclude patterns
+    ok 5 - handles multiple exclude patterns
+      ---
+      duration_ms: 0.949765
+      type: 'test'
+      ...
+    1..5
+ok 102 - filterByDocsExclude
+  ---
+  duration_ms: 6.714235
+  type: 'suite'
+  ...
+# Subtest: filterAnalysisByDocsExclude
+    # Subtest: filters entries in all categories
+    ok 1 - filters entries in all categories
+      ---
+      duration_ms: 0.594324
+      type: 'test'
+      ...
+    # Subtest: returns analysis unchanged when no exclude patterns
+    ok 2 - returns analysis unchanged when no exclude patterns
+      ---
+      duration_ms: 0.422762
+      type: 'test'
+      ...
+    # Subtest: does not mutate original analysis
+    ok 3 - does not mutate original analysis
+      ---
+      duration_ms: 0.692884
+      type: 'test'
+      ...
+    1..3
+ok 103 - filterAnalysisByDocsExclude
+  ---
+  duration_ms: 2.294332
+  type: 'suite'
+  ...
+# Subtest: mergeChapters
+    # Subtest: returns preset chapters when config has no chapters
+    ok 1 - returns preset chapters when config has no chapters
+      ---
+      duration_ms: 1.89965
+      type: 'test'
+      ...
+    # Subtest: returns preset chapters when config chapters is empty
+    ok 2 - returns preset chapters when config chapters is empty
+      ---
+      duration_ms: 0.195921
+      type: 'test'
+      ...
+    # Subtest: overrides desc from config
+    ok 3 - overrides desc from config
+      ---
+      duration_ms: 0.257601
+      type: 'test'
+      ...
+    # Subtest: excludes chapters with exclude: true
+    ok 4 - excludes chapters with exclude: true
+      ---
+      duration_ms: 0.290681
+      type: 'test'
+      ...
+    # Subtest: preserves preset order
+    ok 5 - preserves preset order
+      ---
+      duration_ms: 0.227642
+      type: 'test'
+      ...
+    # Subtest: appends config-only chapters at the end
+    ok 6 - appends config-only chapters at the end
+      ---
+      duration_ms: 0.280041
+      type: 'test'
+      ...
+    # Subtest: does not add excluded config-only chapters
+    ok 7 - does not add excluded config-only chapters
+      ---
+      duration_ms: 0.510403
+      type: 'test'
+      ...
+    # Subtest: preserves preset desc when config does not override
+    ok 8 - preserves preset desc when config does not override
+      ---
+      duration_ms: 0.562523
+      type: 'test'
+      ...
+    1..8
+ok 104 - mergeChapters
+  ---
+  duration_ms: 6.496915
+  type: 'suite'
+  ...
+# Subtest: extractDataCategories
+    # Subtest: extracts category from data directive
+    ok 1 - extracts category from data directive
+      ---
+      duration_ms: 1.80161
+      type: 'test'
+      ...
+    # Subtest: extracts multiple categories from one file
+    ok 2 - extracts multiple categories from one file
+      ---
+      duration_ms: 1.971491
+      type: 'test'
+      ...
+    # Subtest: returns empty set when no data directives
+    ok 3 - returns empty set when no data directives
+      ---
+      duration_ms: 0.371122
+      type: 'test'
+      ...
+    # Subtest: handles inline data directives
+    ok 4 - handles inline data directives
+      ---
+      duration_ms: 0.183361
+      type: 'test'
+      ...
+    1..4
+ok 105 - extractDataCategories
+  ---
+  duration_ms: 4.652464
+  type: 'suite'
+  ...
+# Subtest: buildCategoryToChapterMap
+    # Subtest: builds mapping from chapter files and their data categories
+    ok 1 - builds mapping from chapter files and their data categories
+      ---
+      duration_ms: 0.357842
+      type: 'test'
+      ...
+    # Subtest: uses first chapter when category appears in multiple chapters
+    ok 2 - uses first chapter when category appears in multiple chapters
+      ---
+      duration_ms: 0.201441
+      type: 'test'
+      ...
+    # Subtest: returns empty map when no categories
+    ok 3 - returns empty map when no categories
+      ---
+      duration_ms: 0.147841
+      type: 'test'
+      ...
+    # Subtest: strips .md from chapter names in values
+    ok 4 - strips .md from chapter names in values
+      ---
+      duration_ms: 0.262921
+      type: 'test'
+      ...
+    1..4
+ok 106 - buildCategoryToChapterMap
+  ---
+  duration_ms: 1.155246
+  type: 'suite'
+  ...
+# Subtest: loadAnalysisData
+    # Subtest: returns null when no analysis files exist
+    ok 1 - returns null when no analysis files exist
+      ---
+      duration_ms: 1.821289
+      type: 'test'
+      ...
+    # Subtest: returns analysis.json data
+    ok 2 - returns analysis.json data
+      ---
+      duration_ms: 1.154966
+      type: 'test'
+      ...
+    1..2
+ok 107 - loadAnalysisData
+  ---
+  duration_ms: 4.225382
+  type: 'suite'
+  ...
+# Subtest: loadFullAnalysis
+    # Subtest: returns analysis.json data
+    ok 1 - returns analysis.json data
+      ---
+      duration_ms: 1.245007
+      type: 'test'
+      ...
+    # Subtest: returns null when analysis.json missing
+    ok 2 - returns null when analysis.json missing
+      ---
+      duration_ms: 0.832605
+      type: 'test'
+      ...
+    1..2
+ok 108 - loadFullAnalysis
+  ---
+  duration_ms: 2.311652
+  type: 'suite'
+  ...
+# Subtest: getChapterFiles
+    # Subtest: returns empty array for non-existent directory
+    ok 1 - returns empty array for non-existent directory
+      ---
+      duration_ms: 1.011805
+      type: 'test'
+      ...
+    # Subtest: returns sorted chapter files
+    ok 2 - returns sorted chapter files
+      ---
+      duration_ms: 1.391168
+      type: 'test'
+      ...
+    1..2
+ok 109 - getChapterFiles
+  ---
+  duration_ms: 3.154097
+  type: 'suite'
+  ...
+# Subtest: loadDataSources (fail-fast on broken DataSource modules)
+    # Subtest: loads all DataSources when every module is valid
+    ok 1 - loads all DataSources when every module is valid
+      ---
+      duration_ms: 37.526479
+      type: 'test'
+      ...
+    # Subtest: propagates errors when a DataSource module fails to import (fail-fast)
+    ok 2 - propagates errors when a DataSource module fails to import (fail-fast)
+      ---
+      duration_ms: 7.702681
+      type: 'test'
+      ...
+    # Subtest: returns an empty map when the directory does not exist
+    ok 3 - returns an empty map when the directory does not exist
+      ---
+      duration_ms: 2.740575
+      type: 'test'
+      ...
+    1..3
+ok 110 - loadDataSources (fail-fast on broken DataSource modules)
+  ---
+  duration_ms: 51.816834
+  type: 'suite'
+  ...
+# Subtest: DataSource base class
+    # Subtest: desc() returns fallback when not initialized
+    ok 1 - desc() returns fallback when not initialized
+      ---
+      duration_ms: 1.429807
+      type: 'test'
+      ...
+    # Subtest: desc() uses injected _desc after init()
+    ok 2 - desc() uses injected _desc after init()
+      ---
+      duration_ms: 0.417043
+      type: 'test'
+      ...
+    # Subtest: desc() returns fallback character from descFactory when no override exists
+    ok 3 - desc() returns fallback character from descFactory when no override exists
+      ---
+      duration_ms: 0.215201
+      type: 'test'
+      ...
+    # Subtest: mergeDesc() returns items unchanged when no overrides for section
+    ok 4 - mergeDesc() returns items unchanged when no overrides for section
+      ---
+      duration_ms: 0.544603
+      type: 'test'
+      ...
+    # Subtest: mergeDesc() applies override to matching items
+    ok 5 - mergeDesc() applies override to matching items
+      ---
+      duration_ms: 0.260041
+      type: 'test'
+      ...
+    # Subtest: mergeDesc() does not mutate original items
+    ok 6 - mergeDesc() does not mutate original items
+      ---
+      duration_ms: 0.256722
+      type: 'test'
+      ...
+    # Subtest: mergeDesc() uses custom keyField
+    ok 7 - mergeDesc() uses custom keyField
+      ---
+      duration_ms: 0.274242
+      type: 'test'
+      ...
+    # Subtest: mergeDesc() works without _loadOverrides
+    ok 8 - mergeDesc() works without _loadOverrides
+      ---
+      duration_ms: 0.439962
+      type: 'test'
+      ...
+    # Subtest: overrides() returns empty object when not initialized
+    ok 9 - overrides() returns empty object when not initialized
+      ---
+      duration_ms: 0.876725
+      type: 'test'
+      ...
+    # Subtest: overrides() returns loaded overrides
+    ok 10 - overrides() returns loaded overrides
+      ---
+      duration_ms: 0.867404
+      type: 'test'
+      ...
+    # Subtest: toRows() maps items with mapper function
+    ok 11 - toRows() maps items with mapper function
+      ---
+      duration_ms: 0.322162
+      type: 'test'
+      ...
+    # Subtest: toRows() returns empty array for empty items
+    ok 12 - toRows() returns empty array for empty items
+      ---
+      duration_ms: 0.150401
+      type: 'test'
+      ...
+    # Subtest: toMarkdownTable() returns a Table instance with correct markdown output
+    ok 13 - toMarkdownTable() returns a Table instance with correct markdown output
+      ---
+      duration_ms: 0.459922
+      type: 'test'
+      ...
+    # Subtest: toMarkdownTable() escapes pipe characters in values
+    ok 14 - toMarkdownTable() escapes pipe characters in values
+      ---
+      duration_ms: 0.168081
+      type: 'test'
+      ...
+    # Subtest: toMarkdownTable() replaces null/undefined with dash
+    ok 15 - toMarkdownTable() replaces null/undefined with dash
+      ---
+      duration_ms: 0.159961
+      type: 'test'
+      ...
+    # Subtest: toMarkdownTable() handles empty rows
+    ok 16 - toMarkdownTable() handles empty rows
+      ---
+      duration_ms: 0.14652
+      type: 'test'
+      ...
+    # Subtest: toMarkdownTable() delegates to Table construction
+    ok 17 - toMarkdownTable() delegates to Table construction
+      ---
+      duration_ms: 0.385083
+      type: 'test'
+      ...
+    1..17
+ok 111 - DataSource base class
+  ---
+  duration_ms: 9.898532
+  type: 'suite'
+  ...
+# Subtest: parseDirectives — data params
+    # Subtest: parses ignoreError: true parameter on block data directive
+    ok 1 - parses ignoreError: true parameter on block data directive
+      ---
+      duration_ms: 3.159977
+      type: 'test'
+      ...
+    # Subtest: parses data directive without params (backward compatible)
+    ok 2 - parses data directive without params (backward compatible)
+      ---
+      duration_ms: 0.422122
+      type: 'test'
+      ...
+    # Subtest: parses multiple params on data directive
+    ok 3 - parses multiple params on data directive
+      ---
+      duration_ms: 0.469283
+      type: 'test'
+      ...
+    # Subtest: parses ignoreError: true on inline data directive
+    ok 4 - parses ignoreError: true on inline data directive
+      ---
+      duration_ms: 0.277802
+      type: 'test'
+      ...
+    # Subtest: parses header and footer parameters
+    ok 5 - parses header and footer parameters
+      ---
+      duration_ms: 0.527323
+      type: 'test'
+      ...
+    # Subtest: parses \\n in quoted string as newline
+    ok 6 - parses \\n in quoted string as newline
+      ---
+      duration_ms: 0.312162
+      type: 'test'
+      ...
+    1..6
+ok 112 - parseDirectives — data params
+  ---
+  duration_ms: 6.574835
+  type: 'suite'
+  ...
+# Subtest: resolveDataDirectives — ignoreError
+    # Subtest: keeps directive lines and clears content when null + ignoreError=true
+    ok 1 - keeps directive lines and clears content when null + ignoreError=true
+      ---
+      duration_ms: 0.937125
+      type: 'test'
+      ...
+    # Subtest: does not call onUnresolved when null + ignoreError=true
+    ok 2 - does not call onUnresolved when null + ignoreError=true
+      ---
+      duration_ms: 0.797364
+      type: 'test'
+      ...
+    # Subtest: resolves normally when DataSource returns content and ignoreError=true
+    ok 3 - resolves normally when DataSource returns content and ignoreError=true
+      ---
+      duration_ms: 0.931244
+      type: 'test'
+      ...
+    # Subtest: does not resolve when DataSource returns null without ignoreError
+    ok 4 - does not resolve when DataSource returns null without ignoreError
+      ---
+      duration_ms: 0.664363
+      type: 'test'
+      ...
+    1..4
+ok 113 - resolveDataDirectives — ignoreError
+  ---
+  duration_ms: 3.899101
+  type: 'suite'
+  ...
+# Subtest: resolveDataDirectives — header/footer
+    # Subtest: outputs header + data + footer when data exists
+    ok 1 - outputs header + data + footer when data exists
+      ---
+      duration_ms: 1.496008
+      type: 'test'
+      ...
+    # Subtest: clears content when data is null + ignoreError + header/footer
+    ok 2 - clears content when data is null + ignoreError + header/footer
+      ---
+      duration_ms: 0.271561
+      type: 'test'
+      ...
+    # Subtest: outputs header only when footer is not specified
+    ok 3 - outputs header only when footer is not specified
+      ---
+      duration_ms: 0.699683
+      type: 'test'
+      ...
+    # Subtest: outputs footer only when header is not specified
+    ok 4 - outputs footer only when header is not specified
+      ---
+      duration_ms: 0.258442
+      type: 'test'
+      ...
+    # Subtest: handles \\n in header as newline in output
+    ok 5 - handles \\n in header as newline in output
+      ---
+      duration_ms: 0.211601
+      type: 'test'
+      ...
+    # Subtest: calls onUnresolved when null + header/footer without ignoreError
+    ok 6 - calls onUnresolved when null + header/footer without ignoreError
+      ---
+      duration_ms: 0.228922
+      type: 'test'
+      ...
+    1..6
+ok 114 - resolveDataDirectives — header/footer
+  ---
+  duration_ms: 3.465619
+  type: 'suite'
+  ...
+# Subtest: parseDirectives
+    # Subtest: returns empty array for empty text
+    ok 1 - returns empty array for empty text
+      ---
+      duration_ms: 2.474773
+      type: 'test'
+      ...
+    # Subtest: returns empty array for text without directives
+    ok 2 - returns empty array for text without directives
+      ---
+      duration_ms: 0.387283
+      type: 'test'
+      ...
+    # Subtest: parses block {{data}} directive with closing tag
+    ok 3 - parses block {{data}} directive with closing tag
+      ---
+      duration_ms: 1.804289
+      type: 'test'
+      ...
+    # Subtest: throws for block {{data}} without closing tag
+    ok 4 - throws for block {{data}} without closing tag
+      ---
+      duration_ms: 0.789364
+      type: 'test'
+      ...
+    # Subtest: parses inline {{data}} directive
+    ok 5 - parses inline {{data}} directive
+      ---
+      duration_ms: 0.531203
+      type: 'test'
+      ...
+    # Subtest: parses multiple inline {{data}} on one line
+    ok 6 - parses multiple inline {{data}} on one line
+      ---
+      duration_ms: 0.320842
+      type: 'test'
+      ...
+    # Subtest: parses dotted source names (e.g. config.constants)
+    ok 7 - parses dotted source names (e.g. config.constants)
+      ---
+      duration_ms: 0.455043
+      type: 'test'
+      ...
+    # Subtest: parses {{text}} directive without params (with end tag)
+    ok 8 - parses {{text}} directive without params (with end tag)
+      ---
+      duration_ms: 0.785484
+      type: 'test'
+      ...
+    # Subtest: throws for {{text}} directive without end tag
+    ok 9 - throws for {{text}} directive without end tag
+      ---
+      duration_ms: 0.716324
+      type: 'test'
+      ...
+    # Subtest: parses {{text}} directive with content between tags
+    ok 10 - parses {{text}} directive with content between tags
+      ---
+      duration_ms: 1.085646
+      type: 'test'
+      ...
+    # Subtest: parses {{text}} directive with params
+    ok 11 - parses {{text}} directive with params
+      ---
+      duration_ms: 2.078251
+      type: 'test'
+      ...
+    # Subtest: parses mixed data and text directives
+    ok 12 - parses mixed data and text directives
+      ---
+      duration_ms: 0.278242
+      type: 'test'
+      ...
+    # Subtest: handles empty labels
+    ok 13 - handles empty labels
+      ---
+      duration_ms: 0.239241
+      type: 'test'
+      ...
+    1..13
+ok 115 - parseDirectives
+  ---
+  duration_ms: 13.960594
+  type: 'suite'
+  ...
+# Subtest: replaceBlockDirective
+    # Subtest: replaces content between open and close tags
+    ok 1 - replaces content between open and close tags
+      ---
+      duration_ms: 0.245121
+      type: 'test'
+      ...
+    # Subtest: handles single line between open and close
+    ok 2 - handles single line between open and close
+      ---
+      duration_ms: 0.1478
+      type: 'test'
+      ...
+    1..2
+ok 116 - replaceBlockDirective
+  ---
+  duration_ms: 0.570963
+  type: 'suite'
+  ...
+# Subtest: resolveDataDirectives
+    # Subtest: returns unchanged text when no directives
+    ok 1 - returns unchanged text when no directives
+      ---
+      duration_ms: 0.341442
+      type: 'test'
+      ...
+    # Subtest: resolves block data directive
+    ok 2 - resolves block data directive
+      ---
+      duration_ms: 0.393362
+      type: 'test'
+      ...
+    # Subtest: resolves inline data directive
+    ok 3 - resolves inline data directive
+      ---
+      duration_ms: 0.308842
+      type: 'test'
+      ...
+    # Subtest: skips when resolveFn returns null
+    ok 4 - skips when resolveFn returns null
+      ---
+      duration_ms: 0.215481
+      type: 'test'
+      ...
+    # Subtest: calls onSkip for non-data directives
+    ok 5 - calls onSkip for non-data directives
+      ---
+      duration_ms: 0.425163
+      type: 'test'
+      ...
+    # Subtest: calls onResolve for each resolved directive
+    ok 6 - calls onResolve for each resolved directive
+      ---
+      duration_ms: 0.259601
+      type: 'test'
+      ...
+    # Subtest: calls .toMarkdown() when resolver returns a Renderable
+    ok 7 - calls .toMarkdown() when resolver returns a Renderable
+      ---
+      duration_ms: 0.468523
+      type: 'test'
+      ...
+    # Subtest: calls .toMarkdown() for Paragraph Renderable
+    ok 8 - calls .toMarkdown() for Paragraph Renderable
+      ---
+      duration_ms: 0.355122
+      type: 'test'
+      ...
+    # Subtest: treats non-Renderable non-null resolver return value as unresolved
+    ok 9 - treats non-Renderable non-null resolver return value as unresolved
+      ---
+      duration_ms: 0.211081
+      type: 'test'
+      ...
+    1..9
+ok 117 - resolveDataDirectives
+  ---
+  duration_ms: 3.368698
+  type: 'suite'
+  ...
+# Subtest: parseBlocks
+    # Subtest: returns empty blocks for text without directives
+    ok 1 - returns empty blocks for text without directives
+      ---
+      duration_ms: 0.772924
+      type: 'test'
+      ...
+    # Subtest: detects {%extends%}
+    ok 2 - detects {%extends%}
+      ---
+      duration_ms: 0.1652
+      type: 'test'
+      ...
+    # Subtest: parses single block
+    ok 3 - parses single block
+      ---
+      duration_ms: 0.420682
+      type: 'test'
+      ...
+    # Subtest: parses multiple blocks
+    ok 4 - parses multiple blocks
+      ---
+      duration_ms: 0.193921
+      type: 'test'
+      ...
+    # Subtest: block with multiple content lines
+    ok 5 - block with multiple content lines
+      ---
+      duration_ms: 0.135161
+      type: 'test'
+      ...
+    # Subtest: {%extends%} with block overrides
+    ok 6 - {%extends%} with block overrides
+      ---
+      duration_ms: 0.132241
+      type: 'test'
+      ...
+    1..6
+ok 118 - parseBlocks
+  ---
+  duration_ms: 2.103011
+  type: 'suite'
+  ...
+# Subtest: summaryToText
+    # Subtest: returns empty string for null summary
+    ok 1 - returns empty string for null summary
+      ---
+      duration_ms: 1.405848
+      type: 'test'
+      ...
+    # Subtest: returns empty string for undefined
+    ok 2 - returns empty string for undefined
+      ---
+      duration_ms: 0.276801
+      type: 'test'
+      ...
+    # Subtest: includes controller summary (fallback mode)
+    ok 3 - includes controller summary (fallback mode)
+      ---
+      duration_ms: 0.502323
+      type: 'test'
+      ...
+    # Subtest: includes models summary (fallback mode)
+    ok 4 - includes models summary (fallback mode)
+      ---
+      duration_ms: 0.317042
+      type: 'test'
+      ...
+    # Subtest: includes commands summary (fallback mode)
+    ok 5 - includes commands summary (fallback mode)
+      ---
+      duration_ms: 0.238282
+      type: 'test'
+      ...
+    # Subtest: includes routes summary (fallback mode)
+    ok 6 - includes routes summary (fallback mode)
+      ---
+      duration_ms: 0.179081
+      type: 'test'
+      ...
+    # Subtest: includes modules summary (fallback mode)
+    ok 7 - includes modules summary (fallback mode)
+      ---
+      duration_ms: 0.232801
+      type: 'test'
+      ...
+    # Subtest: handles empty analysis object
+    ok 8 - handles empty analysis object
+      ---
+      duration_ms: 0.435202
+      type: 'test'
+      ...
+    # Subtest: uses enriched summaries when enrichedAt is present
+    ok 9 - uses enriched summaries when enrichedAt is present
+      ---
+      duration_ms: 0.843524
+      type: 'test'
+      ...
+    # Subtest: skips entries without summary in enriched mode
+    ok 10 - skips entries without summary in enriched mode
+      ---
+      duration_ms: 1.094086
+      type: 'test'
+      ...
+    # Subtest: handles multiple categories in enriched mode
+    ok 11 - handles multiple categories in enriched mode
+      ---
+      duration_ms: 0.228401
+      type: 'test'
+      ...
+    # Subtest: skips meta keys in enriched mode
+    ok 12 - skips meta keys in enriched mode
+      ---
+      duration_ms: 0.430203
+      type: 'test'
+      ...
+    # Subtest: uses name or className as fallback identifier in enriched mode
+    ok 13 - uses name or className as fallback identifier in enriched mode
+      ---
+      duration_ms: 0.222801
+      type: 'test'
+      ...
+    # Subtest: skips categories where entries array is not present
+    ok 14 - skips categories where entries array is not present
+      ---
+      duration_ms: 0.167601
+      type: 'test'
+      ...
+    # Subtest: skips categories where all items lack summary
+    ok 15 - skips categories where all items lack summary
+      ---
+      duration_ms: 0.141161
+      type: 'test'
+      ...
+    1..15
+ok 119 - summaryToText
+  ---
+  duration_ms: 9.126049
+  type: 'suite'
+  ...
+# Subtest: buildForgeSystemPrompt
+    # Subtest: loads role and rules from prompts.json (ja)
+    ok 1 - loads role and rules from prompts.json (ja)
+      ---
+      duration_ms: 0.962845
+      type: 'test'
+      ...
+    # Subtest: works with en locale
+    ok 2 - works with en locale
+      ---
+      duration_ms: 3.83946
+      type: 'test'
+      ...
+    # Subtest: includes user prompt
+    ok 3 - includes user prompt
+      ---
+      duration_ms: 0.408162
+      type: 'test'
+      ...
+    # Subtest: includes spec when specPath is provided
+    ok 4 - includes spec when specPath is provided
+      ---
+      duration_ms: 0.312362
+      type: 'test'
+      ...
+    # Subtest: omits spec block when specPath is empty
+    ok 5 - omits spec block when specPath is empty
+      ---
+      duration_ms: 0.492522
+      type: 'test'
+      ...
+    # Subtest: includes analysis summary when provided
+    ok 6 - includes analysis summary when provided
+      ---
+      duration_ms: 0.320521
+      type: 'test'
+      ...
+    # Subtest: omits analysis block when summary is empty
+    ok 7 - omits analysis block when summary is empty
+      ---
+      duration_ms: 0.283721
+      type: 'test'
+      ...
+    # Subtest: shows (empty) when specPath set but specText missing
+    ok 8 - shows (empty) when specPath set but specText missing
+      ---
+      duration_ms: 0.321522
+      type: 'test'
+      ...
+    1..8
+ok 120 - buildForgeSystemPrompt
+  ---
+  duration_ms: 7.325279
+  type: 'suite'
+  ...
+# Subtest: buildForgeFilePrompt
+    # Subtest: uses locale-specific no-feedback text
+    ok 1 - uses locale-specific no-feedback text
+      ---
+      duration_ms: 0.465642
+      type: 'test'
+      ...
+    # Subtest: includes target file path
+    ok 2 - includes target file path
+      ---
+      duration_ms: 0.305722
+      type: 'test'
+      ...
+    # Subtest: includes round/maxRuns info
+    ok 3 - includes round/maxRuns info
+      ---
+      duration_ms: 0.289042
+      type: 'test'
+      ...
+    # Subtest: includes review feedback when provided
+    ok 4 - includes review feedback when provided
+      ---
+      duration_ms: 0.283521
+      type: 'test'
+      ...
+    1..4
+ok 121 - buildForgeFilePrompt
+  ---
+  duration_ms: 1.560329
+  type: 'suite'
+  ...
+# Subtest: buildForgePrompt
+    # Subtest: includes all target files
+    ok 1 - includes all target files
+      ---
+      duration_ms: 1.212527
+      type: 'test'
+      ...
+    # Subtest: includes role, rules, round, user prompt and review feedback
+    ok 2 - includes role, rules, round, user prompt and review feedback
+      ---
+      duration_ms: 0.327721
+      type: 'test'
+      ...
+    # Subtest: includes spec and analysis when provided
+    ok 3 - includes spec and analysis when provided
+      ---
+      duration_ms: 0.322961
+      type: 'test'
+      ...
+    # Subtest: handles empty target files array
+    ok 4 - handles empty target files array
+      ---
+      duration_ms: 0.342362
+      type: 'test'
+      ...
+    1..4
+ok 122 - buildForgePrompt
+  ---
+  duration_ms: 2.433933
+  type: 'suite'
+  ...
+# Subtest: parseBlocks {%extends "name"%}
+    # Subtest: parses {%extends "layout"%} with target name
+    ok 1 - parses {%extends "layout"%} with target name
+      ---
+      duration_ms: 4.705025
+      type: 'test'
+      ...
+    # Subtest: parses plain {%extends%} without target
+    ok 2 - parses plain {%extends%} without target
+      ---
+      duration_ms: 0.403362
+      type: 'test'
+      ...
+    # Subtest: {%extends%} with hyphenated name
+    ok 3 - {%extends%} with hyphenated name
+      ---
+      duration_ms: 0.218041
+      type: 'test'
+      ...
+    1..3
+ok 123 - parseBlocks {%extends "name"%}
+  ---
+  duration_ms: 6.793316
+  type: 'suite'
+  ...
+# Subtest: mergeResolved with layout
+    # Subtest: merges chapter content into layout {%block "content"%}
+    ok 1 - merges chapter content into layout {%block "content"%}
+      ---
+      duration_ms: 0.867205
+      type: 'test'
+      ...
+    1..1
+ok 124 - mergeResolved with layout
+  ---
+  duration_ms: 1.013885
+  type: 'suite'
+  ...
+# Subtest: docs.nav link generation
+    # Subtest: returns null for single chapter
+    ok 1 - returns null for single chapter
+      ---
+      duration_ms: 81.626352
+      type: 'test'
+      ...
+    # Subtest: returns next link only for first chapter
+    ok 2 - returns next link only for first chapter
+      ---
+      duration_ms: 4.664345
+      type: 'test'
+      ...
+    # Subtest: returns prev link only for last chapter
+    ok 3 - returns prev link only for last chapter
+      ---
+      duration_ms: 2.028851
+      type: 'test'
+      ...
+    # Subtest: returns both links for middle chapter
+    ok 4 - returns both links for middle chapter
+      ---
+      duration_ms: 1.696809
+      type: 'test'
+      ...
+    1..4
+ok 125 - docs.nav link generation
+  ---
+  duration_ms: 90.821001
+  type: 'suite'
+  ...
+# Subtest: generic minify
+    # Subtest: removes blank lines
+    ok 1 - removes blank lines
+      ---
+      duration_ms: 1.223087
+      type: 'test'
+      ...
+    # Subtest: removes trailing whitespace
+    ok 2 - removes trailing whitespace
+      ---
+      duration_ms: 0.261721
+      type: 'test'
+      ...
+    # Subtest: applies only generic minify for unknown extensions
+    ok 3 - applies only generic minify for unknown extensions
+      ---
+      duration_ms: 0.190401
+      type: 'test'
+      ...
+    1..3
+ok 126 - generic minify
+  ---
+  duration_ms: 3.469018
+  type: 'suite'
+  ...
+# Subtest: JS/TS minify
+    # Subtest: removes line comments
+    ok 1 - removes line comments
+      ---
+      duration_ms: 1.220247
+      type: 'test'
+      ...
+    # Subtest: removes full-line comments
+    ok 2 - removes full-line comments
+      ---
+      duration_ms: 0.362402
+      type: 'test'
+      ...
+    # Subtest: removes block comments
+    ok 3 - removes block comments
+      ---
+      duration_ms: 0.219122
+      type: 'test'
+      ...
+    # Subtest: does not remove // inside URLs
+    ok 4 - does not remove // inside URLs
+      ---
+      duration_ms: 0.529323
+      type: 'test'
+      ...
+    # Subtest: normalizes indentation from 4 spaces to 2 spaces
+    ok 5 - normalizes indentation from 4 spaces to 2 spaces
+      ---
+      duration_ms: 0.669284
+      type: 'test'
+      ...
+    # Subtest: works with .mjs, .cjs, .jsx, .tsx extensions
+    ok 6 - works with .mjs, .cjs, .jsx, .tsx extensions
+      ---
+      duration_ms: 0.826564
+      type: 'test'
+      ...
+    1..6
+ok 127 - JS/TS minify
+  ---
+  duration_ms: 5.164147
+  type: 'suite'
+  ...
+# Subtest: PHP minify
+    # Subtest: removes // comments
+    ok 1 - removes // comments
+      ---
+      duration_ms: 0.824924
+      type: 'test'
+      ...
+    # Subtest: removes block comments
+    ok 2 - removes block comments
+      ---
+      duration_ms: 0.209161
+      type: 'test'
+      ...
+    # Subtest: removes \# comments
+    ok 3 - removes \# comments
+      ---
+      duration_ms: 0.191761
+      type: 'test'
+      ...
+    # Subtest: preserves shebang lines
+    ok 4 - preserves shebang lines
+      ---
+      duration_ms: 0.180041
+      type: 'test'
+      ...
+    # Subtest: does not remove // inside URLs
+    ok 5 - does not remove // inside URLs
+      ---
+      duration_ms: 0.157161
+      type: 'test'
+      ...
+    1..5
+ok 128 - PHP minify
+  ---
+  duration_ms: 1.820449
+  type: 'suite'
+  ...
+# Subtest: Python minify
+    # Subtest: removes \# comments
+    ok 1 - removes \# comments
+      ---
+      duration_ms: 0.267321
+      type: 'test'
+      ...
+    # Subtest: preserves shebang lines
+    ok 2 - preserves shebang lines
+      ---
+      duration_ms: 0.202841
+      type: 'test'
+      ...
+    # Subtest: does NOT normalize indentation
+    ok 3 - does NOT normalize indentation
+      ---
+      duration_ms: 0.16008
+      type: 'test'
+      ...
+    1..3
+ok 129 - Python minify
+  ---
+  duration_ms: 0.783244
+  type: 'suite'
+  ...
+# Subtest: YAML minify
+    # Subtest: removes \# comments
+    ok 1 - removes \# comments
+      ---
+      duration_ms: 0.282922
+      type: 'test'
+      ...
+    # Subtest: works with .yml extension
+    ok 2 - works with .yml extension
+      ---
+      duration_ms: 0.186761
+      type: 'test'
+      ...
+    # Subtest: preserves shebang lines
+    ok 3 - preserves shebang lines
+      ---
+      duration_ms: 0.139721
+      type: 'test'
+      ...
+    # Subtest: does NOT normalize indentation
+    ok 4 - does NOT normalize indentation
+      ---
+      duration_ms: 1.729449
+      type: 'test'
+      ...
+    1..4
+ok 130 - YAML minify
+  ---
+  duration_ms: 2.768415
+  type: 'suite'
+  ...
+# Subtest: minify edge cases
+    # Subtest: handles empty string
+    ok 1 - handles empty string
+      ---
+      duration_ms: 0.210841
+      type: 'test'
+      ...
+    # Subtest: handles code with only comments
+    ok 2 - handles code with only comments
+      ---
+      duration_ms: 0.144281
+      type: 'test'
+      ...
+    # Subtest: handles inline block comments
+    ok 3 - handles inline block comments
+      ---
+      duration_ms: 0.137601
+      type: 'test'
+      ...
+    1..3
+ok 131 - minify edge cases
+  ---
+  duration_ms: 0.642523
+  type: 'suite'
+  ...
+# Subtest: prefix comment preservation (JS)
+    # Subtest: keeps full-line // WHY: comments
+    ok 1 - keeps full-line // WHY: comments
+      ---
+      duration_ms: 0.339521
+      type: 'test'
+      ...
+    # Subtest: keeps full-line // HACK: comments
+    ok 2 - keeps full-line // HACK: comments
+      ---
+      duration_ms: 0.14792
+      type: 'test'
+      ...
+    # Subtest: keeps full-line // SECURITY: comments
+    ok 3 - keeps full-line // SECURITY: comments
+      ---
+      duration_ms: 0.12284
+      type: 'test'
+      ...
+    # Subtest: keeps indented prefix comments
+    ok 4 - keeps indented prefix comments
+      ---
+      duration_ms: 0.163121
+      type: 'test'
+      ...
+    # Subtest: removes lowercase why: comments
+    ok 5 - removes lowercase why: comments
+      ---
+      duration_ms: 0.138441
+      type: 'test'
+      ...
+    # Subtest: removes mixed-case Why: comments
+    ok 6 - removes mixed-case Why: comments
+      ---
+      duration_ms: 0.220601
+      type: 'test'
+      ...
+    # Subtest: removes unknown prefix comments
+    ok 7 - removes unknown prefix comments
+      ---
+      duration_ms: 0.214401
+      type: 'test'
+      ...
+    # Subtest: removes end-of-line WHY: comments (prefix not preserved in trailing position)
+    ok 8 - removes end-of-line WHY: comments (prefix not preserved in trailing position)
+      ---
+      duration_ms: 0.129801
+      type: 'test'
+      ...
+    # Subtest: keeps prefix comments alongside regular code
+    ok 9 - keeps prefix comments alongside regular code
+      ---
+      duration_ms: 0.14908
+      type: 'test'
+      ...
+    1..9
+ok 132 - prefix comment preservation (JS)
+  ---
+  duration_ms: 1.950971
+  type: 'suite'
+  ...
+# Subtest: prefix comment preservation (PHP)
+    # Subtest: keeps full-line // WHY: comments
+    ok 1 - keeps full-line // WHY: comments
+      ---
+      duration_ms: 0.260921
+      type: 'test'
+      ...
+    # Subtest: keeps full-line \# HACK: comments
+    ok 2 - keeps full-line \# HACK: comments
+      ---
+      duration_ms: 1.081565
+      type: 'test'
+      ...
+    # Subtest: keeps full-line \# SECURITY: comments
+    ok 3 - keeps full-line \# SECURITY: comments
+      ---
+      duration_ms: 0.297001
+      type: 'test'
+      ...
+    # Subtest: removes lowercase \# why: comments
+    ok 4 - removes lowercase \# why: comments
+      ---
+      duration_ms: 0.180441
+      type: 'test'
+      ...
+    # Subtest: still preserves shebang
+    ok 5 - still preserves shebang
+      ---
+      duration_ms: 0.147921
+      type: 'test'
+      ...
+    1..5
+ok 133 - prefix comment preservation (PHP)
+  ---
+  duration_ms: 2.230692
+  type: 'suite'
+  ...
+# Subtest: prefix comment preservation (Python)
+    # Subtest: keeps full-line \# WHY: comments
+    ok 1 - keeps full-line \# WHY: comments
+      ---
+      duration_ms: 0.223241
+      type: 'test'
+      ...
+    # Subtest: keeps full-line \# HACK: comments
+    ok 2 - keeps full-line \# HACK: comments
+      ---
+      duration_ms: 0.130001
+      type: 'test'
+      ...
+    # Subtest: keeps full-line \# SECURITY: comments
+    ok 3 - keeps full-line \# SECURITY: comments
+      ---
+      duration_ms: 0.119481
+      type: 'test'
+      ...
+    # Subtest: removes lowercase \# why: comments
+    ok 4 - removes lowercase \# why: comments
+      ---
+      duration_ms: 0.124881
+      type: 'test'
+      ...
+    # Subtest: removes end-of-line WHY: comments
+    ok 5 - removes end-of-line WHY: comments
+      ---
+      duration_ms: 0.155321
+      type: 'test'
+      ...
+    1..5
+ok 134 - prefix comment preservation (Python)
+  ---
+  duration_ms: 0.967765
+  type: 'suite'
+  ...
+# Subtest: prefix comment preservation (YAML)
+    # Subtest: keeps full-line \# WHY: comments
+    ok 1 - keeps full-line \# WHY: comments
+      ---
+      duration_ms: 0.221721
+      type: 'test'
+      ...
+    # Subtest: keeps full-line \# HACK: comments
+    ok 2 - keeps full-line \# HACK: comments
+      ---
+      duration_ms: 0.126281
+      type: 'test'
+      ...
+    # Subtest: keeps full-line \# SECURITY: comments
+    ok 3 - keeps full-line \# SECURITY: comments
+      ---
+      duration_ms: 0.140161
+      type: 'test'
+      ...
+    # Subtest: removes lowercase \# why: comments
+    ok 4 - removes lowercase \# why: comments
+      ---
+      duration_ms: 0.227521
+      type: 'test'
+      ...
+    1..4
+ok 135 - prefix comment preservation (YAML)
+  ---
+  duration_ms: 0.914165
+  type: 'suite'
+  ...
+# Subtest: minify mode:essential
+    # Subtest: keeps import statements
+    ok 1 - keeps import statements
+      ---
+      duration_ms: 1.082686
+      type: 'test'
+      ...
+    # Subtest: keeps export function declarations
+    ok 2 - keeps export function declarations
+      ---
+      duration_ms: 0.333162
+      type: 'test'
+      ...
+    # Subtest: keeps return statements
+    ok 3 - keeps return statements
+      ---
+      duration_ms: 0.185481
+      type: 'test'
+      ...
+    # Subtest: keeps throw statements
+    ok 4 - keeps throw statements
+      ---
+      duration_ms: 0.201601
+      type: 'test'
+      ...
+    # Subtest: keeps major API calls (fs, path, JSON, process)
+    ok 5 - keeps major API calls (fs, path, JSON, process)
+      ---
+      duration_ms: 0.220961
+      type: 'test'
+      ...
+    # Subtest: removes plain variable assignments and control flow
+    ok 6 - removes plain variable assignments and control flow
+      ---
+      duration_ms: 0.172441
+      type: 'test'
+      ...
+    # Subtest: keeps export const for constants
+    ok 7 - keeps export const for constants
+      ---
+      duration_ms: 0.143921
+      type: 'test'
+      ...
+    # Subtest: default mode (no opts) is unchanged
+    ok 8 - default mode (no opts) is unchanged
+      ---
+      duration_ms: 0.160041
+      type: 'test'
+      ...
+    # Subtest: keeps async function and class declarations
+    ok 9 - keeps async function and class declarations
+      ---
+      duration_ms: 0.189561
+      type: 'test'
+      ...
+    1..9
+ok 136 - minify mode:essential
+  ---
+  duration_ms: 3.932821
+  type: 'suite'
+  ...
+# Subtest: minify mode:essential (PHP)
+    # Subtest: keeps require/include statements
+    ok 1 - keeps require/include statements
+      ---
+      duration_ms: 0.890005
+      type: 'test'
+      ...
+    # Subtest: keeps use and namespace statements
+    ok 2 - keeps use and namespace statements
+      ---
+      duration_ms: 0.197801
+      type: 'test'
+      ...
+    # Subtest: keeps public/protected/private function declarations
+    ok 3 - keeps public/protected/private function declarations
+      ---
+      duration_ms: 0.274321
+      type: 'test'
+      ...
+    # Subtest: keeps class declarations
+    ok 4 - keeps class declarations
+      ---
+      duration_ms: 0.168321
+      type: 'test'
+      ...
+    # Subtest: keeps throw and new statements
+    ok 5 - keeps throw and new statements
+      ---
+      duration_ms: 0.154041
+      type: 'test'
+      ...
+    1..5
+ok 137 - minify mode:essential (PHP)
+  ---
+  duration_ms: 1.97177
+  type: 'suite'
+  ...
+# Subtest: minify mode:essential (Python)
+    # Subtest: keeps import and from...import statements
+    ok 1 - keeps import and from...import statements
+      ---
+      duration_ms: 0.504323
+      type: 'test'
+      ...
+    # Subtest: keeps def and class declarations
+    ok 2 - keeps def and class declarations
+      ---
+      duration_ms: 0.354202
+      type: 'test'
+      ...
+    # Subtest: keeps raise and yield statements
+    ok 3 - keeps raise and yield statements
+      ---
+      duration_ms: 0.193841
+      type: 'test'
+      ...
+    1..3
+ok 138 - minify mode:essential (Python)
+  ---
+  duration_ms: 1.219767
+  type: 'suite'
+  ...
+# Subtest: minify mode:essential (fallback)
+    # Subtest: falls back to regular minify for YAML
+    ok 1 - falls back to regular minify for YAML
+      ---
+      duration_ms: 2.653854
+      type: 'test'
+      ...
+    # Subtest: falls back to regular minify for unknown extensions
+    ok 2 - falls back to regular minify for unknown extensions
+      ---
+      duration_ms: 0.254802
+      type: 'test'
+      ...
+    1..2
+ok 139 - minify mode:essential (fallback)
+  ---
+  duration_ms: 3.091296
+  type: 'suite'
+  ...
+# Subtest: Renderable exports
+    # Subtest: exports 9 classes (base + 8 concrete)
+    ok 1 - exports 9 classes (base + 8 concrete)
+      ---
+      duration_ms: 1.034726
+      type: 'test'
+      ...
+    # Subtest: each concrete class extends Renderable
+    ok 2 - each concrete class extends Renderable
+      ---
+      duration_ms: 0.855045
+      type: 'test'
+      ...
+    # Subtest: base Renderable.toMarkdown() throws when not overridden
+    ok 3 - base Renderable.toMarkdown() throws when not overridden
+      ---
+      duration_ms: 0.582603
+      type: 'test'
+      ...
+    1..3
+ok 140 - Renderable exports
+  ---
+  duration_ms: 5.66531
+  type: 'suite'
+  ...
+# Subtest: Table
+    # Subtest: renders header + separator + body
+    ok 1 - renders header + separator + body
+      ---
+      duration_ms: 0.912645
+      type: 'test'
+      ...
+    # Subtest: allows empty rows (labels only)
+    ok 2 - allows empty rows (labels only)
+      ---
+      duration_ms: 0.434443
+      type: 'test'
+      ...
+    # Subtest: escapes pipe characters in cells and labels
+    ok 3 - escapes pipe characters in cells and labels
+      ---
+      duration_ms: 0.389082
+      type: 'test'
+      ...
+    # Subtest: renders null/undefined cells as em-dash
+    ok 4 - renders null/undefined cells as em-dash
+      ---
+      duration_ms: 0.583643
+      type: 'test'
+      ...
+    # Subtest: throws when labels is empty
+    ok 5 - throws when labels is empty
+      ---
+      duration_ms: 0.727764
+      type: 'test'
+      ...
+    # Subtest: throws when row column count does not match labels
+    ok 6 - throws when row column count does not match labels
+      ---
+      duration_ms: 0.709164
+      type: 'test'
+      ...
+    1..6
+ok 141 - Table
+  ---
+  duration_ms: 4.735025
+  type: 'suite'
+  ...
+# Subtest: BulletList
+    # Subtest: renders string items with '- ' prefix
+    ok 1 - renders string items with '- ' prefix
+      ---
+      duration_ms: 0.971485
+      type: 'test'
+      ...
+    # Subtest: renders empty list as empty string
+    ok 2 - renders empty list as empty string
+      ---
+      duration_ms: 0.146681
+      type: 'test'
+      ...
+    # Subtest: indents nested Renderable items by 2 spaces
+    ok 3 - indents nested Renderable items by 2 spaces
+      ---
+      duration_ms: 1.786609
+      type: 'test'
+      ...
+    1..3
+ok 142 - BulletList
+  ---
+  duration_ms: 3.117177
+  type: 'suite'
+  ...
+# Subtest: OrderedList
+    # Subtest: renders items with '1. ', '2. ' prefixes
+    ok 1 - renders items with '1. ', '2. ' prefixes
+      ---
+      duration_ms: 0.291802
+      type: 'test'
+      ...
+    # Subtest: indents nested Renderable items
+    ok 2 - indents nested Renderable items
+      ---
+      duration_ms: 0.151281
+      type: 'test'
+      ...
+    1..2
+ok 143 - OrderedList
+  ---
+  duration_ms: 0.599323
+  type: 'suite'
+  ...
+# Subtest: Paragraph
+    # Subtest: renders text as-is
+    ok 1 - renders text as-is
+      ---
+      duration_ms: 0.139041
+      type: 'test'
+      ...
+    # Subtest: preserves multi-line text
+    ok 2 - preserves multi-line text
+      ---
+      duration_ms: 0.121241
+      type: 'test'
+      ...
+    1..2
+ok 144 - Paragraph
+  ---
+  duration_ms: 0.378842
+  type: 'suite'
+  ...
+# Subtest: CodeBlock
+    # Subtest: fences code with language tag
+    ok 1 - fences code with language tag
+      ---
+      duration_ms: 0.201841
+      type: 'test'
+      ...
+    # Subtest: fences code without language when lang omitted
+    ok 2 - fences code without language when lang omitted
+      ---
+      duration_ms: 0.107281
+      type: 'test'
+      ...
+    1..2
+ok 145 - CodeBlock
+  ---
+  duration_ms: 1.219207
+  type: 'suite'
+  ...
+# Subtest: Blockquote
+    # Subtest: prefixes each line with '> '
+    ok 1 - prefixes each line with '> '
+      ---
+      duration_ms: 0.198482
+      type: 'test'
+      ...
+    # Subtest: accepts Renderable as content
+    ok 2 - accepts Renderable as content
+      ---
+      duration_ms: 0.11064
+      type: 'test'
+      ...
+    1..2
+ok 146 - Blockquote
+  ---
+  duration_ms: 0.422402
+  type: 'suite'
+  ...
+# Subtest: Heading
+    # Subtest: renders h1 to h6
+    ok 1 - renders h1 to h6
+      ---
+      duration_ms: 0.163681
+      type: 'test'
+      ...
+    # Subtest: throws when level is below 1
+    ok 2 - throws when level is below 1
+      ---
+      duration_ms: 0.178441
+      type: 'test'
+      ...
+    # Subtest: throws when level is above 6
+    ok 3 - throws when level is above 6
+      ---
+      duration_ms: 1.84977
+      type: 'test'
+      ...
+    1..3
+ok 147 - Heading
+  ---
+  duration_ms: 2.338612
+  type: 'suite'
+  ...
+# Subtest: Fragment
+    # Subtest: joins string parts with blank-line separator
+    ok 1 - joins string parts with blank-line separator
+      ---
+      duration_ms: 0.343322
+      type: 'test'
+      ...
+    # Subtest: joins Renderable parts via toMarkdown()
+    ok 2 - joins Renderable parts via toMarkdown()
+      ---
+      duration_ms: 0.204841
+      type: 'test'
+      ...
+    # Subtest: renders empty fragment as empty string
+    ok 3 - renders empty fragment as empty string
+      ---
+      duration_ms: 0.114601
+      type: 'test'
+      ...
+    1..3
+ok 148 - Fragment
+  ---
+  duration_ms: 0.922045
+  type: 'suite'
+  ...
+# Subtest: createResolver
+    # Subtest: returns an object with resolve method
+    ok 1 - returns an object with resolve method
+      ---
+      duration_ms: 73.979552
+      type: 'test'
+      ...
+    # Subtest: resolves project.name from common data sources
+    ok 2 - resolves project.name from common data sources
+      ---
+      duration_ms: 8.637406
+      type: 'test'
+      ...
+    # Subtest: resolves project.version
+    ok 3 - resolves project.version
+      ---
+      duration_ms: 9.741812
+      type: 'test'
+      ...
+# [resolver] unknown preset: nonexistent
+    # Subtest: returns null for unknown preset
+    ok 4 - returns null for unknown preset
+      ---
+      duration_ms: 35.591189
+      type: 'test'
+      ...
+# [resolver] unknown: node-cli.nonexistent.method
+    # Subtest: returns null for unknown source.method
+    ok 5 - returns null for unknown source.method
+      ---
+      duration_ms: 21.813235
+      type: 'test'
+      ...
+# [resolver] unknown: node-cli.project.nonExistentMethod
+    # Subtest: returns null for known source but unknown method
+    ok 6 - returns null for known source but unknown method
+      ---
+      duration_ms: 13.733393
+      type: 'test'
+      ...
+    # Subtest: returns null when method throws an error
+    ok 7 - returns null when method throws an error
+      ---
+      duration_ms: 22.168798
+      type: 'test'
+      ...
+    # Subtest: loads overrides.json when present
+    ok 8 - loads overrides.json when present
+      
+unit: 2466
+integration: 276
+acceptance: 0
+exitCode: 0
+result: pass
+[sdd-forge] final regression end result=pass

@@ -1,0 +1,231 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/262-formalize-specid-opts/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "test_name": "R1: FlowStore-backed setters update a named spec without active-flow registry",
+        "command": "node --test specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "test_name": "R2: FlowManager.mutate forwards per-call specId",
+        "command": "node --test specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "test_name": "R3: forRoot(root, { specId }) supplies a bound default specId",
+        "command": "node --test specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "test_name": "R4: per-call specId overrides a bound specId",
+        "command": "node --test specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "test_name": "R5: specId selection preserves explicit and inferred taskId behavior",
+        "command": "node --test specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "test_name": "R6: ambient metrics without active flow or specId remain a no-op",
+        "command": "node --test specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "test_name": "R7: setter commands pass ctx.specId while preserving validation",
+        "command": "node --test specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "test_name": "R8: spec-local contract tests cover registry-independent specId updates",
+        "command": "node --test specs/262-formalize-specid-opts/tests/specid-flow-state-contract.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 77
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/262-formalize-specid-opts/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/base-command.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-issue.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-metric.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-note.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/lib/set-request.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/flow-manager.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/flow-options.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/flow-store.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/262-formalize-specid-opts/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/base-command.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-issue.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-metric.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-note.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-request.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/lib/flow-options.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-store.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/262-formalize-specid-opts/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/base-command.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-issue.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-metric.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-note.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/lib/set-request.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-manager.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/lib/flow-options.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/flow-store.js"
+      }
+    ]
+  }
+}
