@@ -21,8 +21,9 @@ import {
 import { container } from "../../lib/container.js";
 import { POINTER_REL_PATH as LAST_FINALIZED_SPEC_POINTER_REL_PATH } from "./run-report-show.js";
 import {
-  DURABLE_TEST_ARTIFACT_RELATIVE_PATHS,
   buildTestResultsFromArtifacts,
+  collectExistingArtifactPathspecs,
+  durableTestArtifactPathspecs,
 } from "./test-artifacts.js";
 
 export function finalizeOnError(stepName, trigger) {
@@ -56,10 +57,6 @@ export function commitOrSkip(args, opts) {
     return { status: "skipped", message: "nothing to commit" };
   }
   assertOk(res, "commit failed");
-}
-
-export function collectExistingPathspecs(root, relativePathspecs) {
-  return relativePathspecs.filter((relPath) => fs.existsSync(path.join(root, relPath)));
 }
 
 function getFinalizeMergeAllowedMetadataPaths(specId) {
@@ -327,11 +324,11 @@ export async function executeCommitPost(ctx) {
   }
 
   // commit only durable impl-phase test/report artifacts
-  const specDir = path.posix.join("specs", specIdFromPath(state.spec));
-  const durablePathspecs = DURABLE_TEST_ARTIFACT_RELATIVE_PATHS.map((p) => path.posix.join(specDir, p));
-  const existingDurablePathspecs = collectExistingPathspecs(root, durablePathspecs);
+  const durablePathspecPatterns = durableTestArtifactPathspecs(specIdFromPath(state.spec));
+  const existingDurablePathspecs = collectExistingArtifactPathspecs(root, durablePathspecPatterns);
   if (existingDurablePathspecs.length > 0) {
-    runGit(["add", "--", ...existingDurablePathspecs], { cwd: root });
+    const addRes = runGit(["add", "--", ...existingDurablePathspecs], { cwd: root });
+    assertOk(addRes, "failed to stage durable test/report artifacts");
   }
   try {
     commitOrSkip(["-m", "chore: add retro and report"], { cwd: root });

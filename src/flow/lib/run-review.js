@@ -12,7 +12,6 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { resolveNodeFor, FLOW_DEFINITION, flattenSteps, findStepById } from "../definition.js";
 import path from "path";
-import fs from "fs";
 import {
   ReviewFailure,
   clearReviewStopState,
@@ -20,9 +19,7 @@ import {
 } from "./review-failure.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import { persistCurrentRecoveryBaseline } from "./retry-recovery.js";
-import {
-  RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS,
-} from "./test-artifacts.js";
+import { removeRebuildableTestArtifacts } from "./test-artifacts.js";
 import {
   assertAuditedBroadMode,
   evaluateTaskScope,
@@ -40,6 +37,10 @@ const REVIEW_VERDICT_PATTERN = new RegExp(`verdict=(${REVIEW_VERDICT_VALUES.join
 const REVIEW_RECOVERY_TRIGGER_RETRY_EXHAUSTED = "review-retry-exhausted";
 const REVIEW_RECOVERY_TRIGGER_STOP = "review-stop";
 const REVIEW_RECOVERY_TRIGGER_VERDICT_FAIL = "review-verdict-fail";
+const MAX_IMPL_DOWNSTREAM_RESET_STEPS = 20;
+// Review proposals invalidate all implementation leaves from fresh test
+// execution through finalize cleanup; both endpoints are intentionally reset.
+const IMPL_REVIEW_DOWNSTREAM_STEP_IDS = inclusiveFlowLeafStepIdsBetween("impl", "test-execute", "finalize-cleanup");
 
 // ---------------------------------------------------------------------------
 // Review retry counter (spec 253: enforce review maxAttempts on the CLI side)
@@ -61,6 +62,21 @@ function persistedPhaseKey(ctxPhase) {
 
 function isImplementationReviewPhase(phase) {
   return phase == null || phase === IMPL_REVIEW_PHASE;
+}
+
+function inclusiveFlowLeafStepIdsBetween(parentId, startId, endId) {
+  const parent = FLOW_DEFINITION.find((node) => node.id === parentId);
+  if (!parent) throw new Error(`flow definition parent not found: ${parentId}`);
+  const ids = flattenSteps(parent.children).map((step) => step.id);
+  if (ids.length > MAX_IMPL_DOWNSTREAM_RESET_STEPS) {
+    throw new Error(`impl downstream reset leaf count exceeds max ${MAX_IMPL_DOWNSTREAM_RESET_STEPS}`);
+  }
+  const start = ids.indexOf(startId);
+  const end = ids.indexOf(endId);
+  if (start < 0 || end < start) {
+    throw new Error(`flow definition range not found: ${startId}..${endId}`);
+  }
+  return Object.freeze(ids.slice(start, end + 1));
 }
 
 function taskCursorRequiredReviewFailure(decision, state) {
@@ -212,23 +228,15 @@ export function updateReviewRetryCounter(ctx, result) {
 
 export { REVIEW_PHASE_KEYS };
 
-// Review-applied code changes can alter file contents without changing the
-// changed-file path list. When proposals are produced, this reset owner deletes
-// stale downstream artifacts and sends the flow back to test-execute.
-function removeReviewDownstreamArtifacts(root, state) {
-  const specDir = path.dirname(path.resolve(root, state.spec));
-  for (const rel of RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS) {
-    const target = path.join(specDir, rel);
-    if (fs.existsSync(target)) fs.rmSync(target, { force: true });
-  }
-}
-
 export function resetImplEvidenceAfterReviewProposals(ctx, result) {
   if (ctx?.phase) return false;
   if ((result?.artifacts?.proposalCount ?? 0) <= 0) return false;
-  removeReviewDownstreamArtifacts(ctx.root, ctx.flowState);
+  const specDir = path.dirname(path.resolve(ctx.root, ctx.flowState.spec));
+  // Review-applied code changes can make downstream evidence stale even when
+  // the changed-file path list itself is unchanged.
+  removeRebuildableTestArtifacts(specDir);
   ctx.flowManager.mutate((state) => {
-    for (const id of ["test-execute", "test-result-review", "review", "gate-impl", "retro"]) {
+    for (const id of IMPL_REVIEW_DOWNSTREAM_STEP_IDS) {
       const step = findStepById(state.steps, id);
       if (!step) continue;
       step.status = "pending";

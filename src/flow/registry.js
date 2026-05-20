@@ -966,7 +966,7 @@ export const FLOW_COMMANDS = {
         "Usage: sdd-forge flow run final-regression",
         "",
         "Run the full project-level regression command after retro and before finalize.",
-        "Persists specs/<spec>/final-regression-result.json and tests/.raw/final-regression.log.",
+        "Persists specs/<spec>/final-regression-result.json and specs/<spec>/tests/.raw/final-regression-attempt-<N>.log (zero-padded to at least three digits).",
       ].join("\n"),
       async post(ctx, result) {
         const path = await import("node:path");

@@ -30,11 +30,13 @@ import { FlowCommand } from "./base-command.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 import {
   RAW_OUTPUT_RELATIVE,
-  RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS,
-  TEMP_SUMMARY_RELATIVE,
   TEST_EXECUTE_RESULT_FILE,
+  removeTempRequirementSummary,
+  removeRebuildableTestArtifacts,
   readJsonStrict,
+  tempRequirementSummaryPath,
   validateSummaryEvidence,
+  writeTempRequirementSummary,
 } from "./test-artifacts.js";
 import {
   classifyRegression,
@@ -47,9 +49,7 @@ import {
   runProcessDetailed,
 } from "./test-regression.js";
 
-function removeIfExists(filePath) {
-  if (fs.existsSync(filePath)) fs.rmSync(filePath, { force: true });
-}
+const MAX_TEST_EXECUTE_REQUIREMENTS = 500;
 
 function recordPrerequisiteIssue(root, state, err) {
   const issueLog = loadIssueLog(root, state.spec);
@@ -117,24 +117,30 @@ async function runSpecLocalTests(root, specDir, timeoutMs) {
   return { command: argv.join(" "), result };
 }
 
-function buildSummary({ root, specDir, requirements, specLocal, range }) {
+function testableRequirementsForSummary(requirements) {
+  const testable = requirements.filter((r) => r.testable !== false);
+  if (testable.length > MAX_TEST_EXECUTE_REQUIREMENTS) {
+    throw new Error(`test-execute requirement count exceeds max ${MAX_TEST_EXECUTE_REQUIREMENTS}`);
+  }
+  return testable;
+}
+
+function buildSummary({ root, specDir, testableRequirements, specLocal, range }) {
   const pass = specLocalPassed(specLocal);
-  return requirements
-    .filter((r) => r.testable !== false)
-    .map((req) => {
-      const file = findSpecTestFileForReq(specDir, req.id);
-      return {
-        id: req.id,
-        result: pass ? "pass" : "fail",
-        ...(pass ? {} : { error: "spec-local requirement tests failed" }),
-        evidence: {
-          test_file: path.relative(root, file).split(path.sep).join("/"),
-          test_name: extractRequirementTestName(file, req.id),
-          command: specLocal.command,
-          raw_output_lines: range,
-        },
-      };
-    });
+  return testableRequirements.map((req) => {
+    const file = findSpecTestFileForReq(specDir, req.id);
+    return {
+      id: req.id,
+      result: pass ? "pass" : "fail",
+      ...(pass ? {} : { error: "spec-local requirement tests failed" }),
+      evidence: {
+        test_file: path.relative(root, file).split(path.sep).join("/"),
+        test_name: extractRequirementTestName(file, req.id),
+        command: specLocal.command,
+        raw_output_lines: range,
+      },
+    };
+  });
 }
 
 function specLocalPassed(specLocal) {
@@ -185,13 +191,15 @@ export default class RunTestExecuteCommand extends FlowCommand {
     const specDir = resolveSpecDir(path.resolve(root, state.spec));
     const rawOutputPath = path.join(specDir, RAW_OUTPUT_RELATIVE);
     fs.mkdirSync(path.dirname(rawOutputPath), { recursive: true });
+    let tempSummaryWritten = false;
 
     // Reset downstream test artifacts before rebuilding spec-local evidence.
-    for (const rel of RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS) removeIfExists(path.join(specDir, rel));
+    removeRebuildableTestArtifacts(specDir);
 
     try {
       const spec = readJsonStrict(path.join(specDir, "spec.json"));
       const requirements = Array.isArray(spec.requirements) ? spec.requirements : [];
+      const testableRequirements = testableRequirementsForSummary(requirements);
       const analysisPath = path.join(sddOutputDir(root), "analysis.json");
       if (!fs.existsSync(analysisPath)) {
         throw new Error(`analysis.json not found at ${analysisPath}: run docs scan before test-execute`);
@@ -208,15 +216,15 @@ export default class RunTestExecuteCommand extends FlowCommand {
         "[sdd-forge] spec-local tests start",
         `command: ${specLocal.command}`,
         ...processOutputLines(specLocal.result),
-        ...requirements
-          .filter((r) => r.testable !== false)
+        ...testableRequirements
           .map((req) => `[sdd-forge] requirement ${req.id} result ${specLocalPassed(specLocal) ? "pass" : "fail"}`),
         "[sdd-forge] spec-local tests end",
       ]);
-      const summary = buildSummary({ root, specDir, requirements, specLocal, range: specRange });
-      const tempSummaryPath = path.join(specDir, TEMP_SUMMARY_RELATIVE);
-      fs.writeFileSync(tempSummaryPath, JSON.stringify(summary, null, 2) + "\n");
-      validateSummaryEvidence(readJsonStrict(tempSummaryPath), {
+      const summary = buildSummary({ root, specDir, testableRequirements, specLocal, range: specRange });
+      writeTempRequirementSummary(specDir, summary);
+      tempSummaryWritten = true;
+      const persistedSummary = readJsonStrict(tempRequirementSummaryPath(specDir));
+      validateSummaryEvidence(persistedSummary, {
         root,
         rawText: rawLines.join("\n"),
         rawLines,
@@ -255,11 +263,12 @@ export default class RunTestExecuteCommand extends FlowCommand {
       const artifact = {
         version: "2",
         raw_output_path: path.relative(root, rawOutputPath).split(path.sep).join("/"),
-        summary,
+        summary: persistedSummary,
         regression,
       };
       fs.writeFileSync(resultPath, JSON.stringify(artifact, null, 2) + "\n");
-      removeIfExists(path.join(specDir, TEMP_SUMMARY_RELATIVE));
+      removeTempRequirementSummary(specDir);
+      tempSummaryWritten = false;
 
       return {
         result: "ok",
@@ -269,11 +278,11 @@ export default class RunTestExecuteCommand extends FlowCommand {
         ],
         artifacts: {
           result_path: path.relative(root, resultPath),
-        raw_output_path: path.relative(root, rawOutputPath),
-        completed: true,
-        artifact_version: "2",
-        regression: regression.result,
-      },
+          raw_output_path: path.relative(root, rawOutputPath),
+          completed: true,
+          artifact_version: "2",
+          regression: regression.result,
+        },
         next: "test-result-review",
       };
     } catch (err) {
@@ -282,6 +291,8 @@ export default class RunTestExecuteCommand extends FlowCommand {
         recordPrerequisiteIssue(root, state, err);
       }
       throw err;
+    } finally {
+      if (tempSummaryWritten) removeTempRequirementSummary(specDir);
     }
   }
 }

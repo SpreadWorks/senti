@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-05-20T01:50:03.738Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 4,
+    "total": 4
+  },
+  "coverageArtifact": "specs/262-final-regression-evidence/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R7 raw-log format encodes an unstated nextAction value",
+      "target": "specs/262-final-regression-evidence/tests/final-regression-evidence.test.js — R7 test",
+      "improvement": "The assertion `assert.match(raw, /^nextAction: user-confirmation$/m)` pins the flow-transition string for `unattributed_existing_failure` to `user-confirmation`, but no requirement (R1–R9) names that exact value. Consider asserting via the FAILURE_NEXT_ACTION mapping or by checking that `nextAction` is a non-empty string distinct from `stop`, leaving the canonical token to a single source of truth.",
+      "whyNonBlocking": "The test still validates the separate-entries contract demanded by R7; only the specific token is over-specified, which can be tightened later without changing executable behavior."
+    },
+    {
+      "kind": "advisory",
+      "title": "R8 raw-log retention regex is overly permissive",
+      "target": "specs/262-final-regression-evidence/tests/final-regression-evidence.test.js — R8 test",
+      "improvement": "`/final-regression-attempt-\\*\\.log|final-regression-attempt-/` collapses to a substring match on `final-regression-attempt-`, so any mention (even a code identifier) satisfies it. Tighten to require the durable path form, e.g. `tests/\\.raw/final-regression-attempt-\\*\\.log`, to actually exercise the R8 guidance.",
+      "whyNonBlocking": "It still rejects an implementation that drops the attempt-log naming entirely, so coverage of R8 is present though weak."
+    },
+    {
+      "kind": "advisory",
+      "title": "R5 only inspects the first issue-log entry",
+      "target": "specs/262-final-regression-evidence/tests/final-regression-evidence.test.js — R5 test",
+      "improvement": "R5 says \"each final-regression failure issue-log entry must set `rawOutputPath`\". The test only checks `issueLog.entries[0]`. After multiple failure invocations are added (R4 already runs twice), iterate over all final-regression failure entries and assert each has a matching `rawOutputPath`.",
+      "whyNonBlocking": "The single-entry case is still meaningful and the requirement is exercised; extending to N entries is a strengthening, not a correctness fix."
+    },
+    {
+      "kind": "advisory",
+      "title": "R6 implicitly assumes `flowState.worktreePath` is the resolved active root",
+      "target": "specs/262-final-regression-evidence/tests/final-regression-evidence.test.js — R6 test",
+      "improvement": "R6 says \"resolved active worktree root differs from the resolved `ctx.root`\" without prescribing the resolution source. The test fabricates the mismatch purely via `flowState.worktreePath`. If the production resolver also consults `git worktree list`, ensure the fixture reflects both inputs (e.g., a real detached worktree or a documented helper) so the test is robust to either resolution strategy.",
+      "whyNonBlocking": "The minimal premise still detects the headline failure of running project tests under a root mismatch; hardening the resolution surface is an improvement."
+    }
+  ]
+}

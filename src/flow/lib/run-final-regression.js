@@ -13,8 +13,8 @@ import { Envelope } from "../../lib/flow-envelope.js";
 import { sddOutputDir } from "../../lib/config.js";
 import { resolveSpecDir } from "../../lib/spec-json.js";
 import {
-  FINAL_REGRESSION_RAW_OUTPUT_RELATIVE,
   FINAL_REGRESSION_RESULT_FILE,
+  TESTS_RAW_DIR_RELATIVE,
   validateFinalRegressionResult,
 } from "./test-artifacts.js";
 import {
@@ -28,17 +28,33 @@ import {
 } from "./test-regression.js";
 import { loadIssueLog, saveIssueLog } from "./set-issue-log.js";
 
-const FAILURE_NEXT_ACTION = Object.freeze({
-  caused_by_current_change: "regression-repair",
-  pre_existing: "user-confirmation",
-  infra_failure: "stop",
-  timeout: "stop",
-  dependency_failure: "stop",
-  sandbox_restriction: "stop",
-  permission_error: "stop",
-  child_process_eprem: "stop",
-  invalid_project_test: "test-repair",
+const FAILURE_KINDS = Object.freeze({
+  CURRENT_CHANGE: "caused_by_current_change",
+  UNATTRIBUTED_EXISTING: "unattributed_existing_failure",
+  INFRA: "infra_failure",
+  TIMEOUT: "timeout",
+  DEPENDENCY: "dependency_failure",
+  SANDBOX: "sandbox_restriction",
+  PERMISSION: "permission_error",
+  CHILD_PROCESS_EPERM: "child_process_eperm",
+  INVALID_PROJECT_TEST: "invalid_project_test",
 });
+
+const FAILURE_NEXT_ACTION = Object.freeze({
+  [FAILURE_KINDS.CURRENT_CHANGE]: "regression-repair",
+  [FAILURE_KINDS.UNATTRIBUTED_EXISTING]: "user-confirmation",
+  [FAILURE_KINDS.INFRA]: "stop",
+  [FAILURE_KINDS.TIMEOUT]: "stop",
+  [FAILURE_KINDS.DEPENDENCY]: "stop",
+  [FAILURE_KINDS.SANDBOX]: "stop",
+  [FAILURE_KINDS.PERMISSION]: "stop",
+  [FAILURE_KINDS.CHILD_PROCESS_EPERM]: "stop",
+  [FAILURE_KINDS.INVALID_PROJECT_TEST]: "test-repair",
+});
+const FINAL_REGRESSION_ATTEMPT_FILE_RE = /^final-regression-attempt-(\d+)\.log$/;
+const MAX_FINAL_REGRESSION_ATTEMPTS = 10_000;
+const MAX_FINAL_REGRESSION_RAW_DIR_SCAN_ENTRIES = 10_000;
+const ATTEMPT_LIMIT_MESSAGE = `final-regression attempt limit exceeded (max=${MAX_FINAL_REGRESSION_ATTEMPTS})`;
 const MAX_FAILURE_EVIDENCE_CHARS = 256 * 1024;
 const MAX_CHANGED_FILES_TO_MATCH = 1000;
 const FAILURE_EVIDENCE_INPUT_COUNT = 4;
@@ -46,6 +62,26 @@ const FAILURE_EVIDENCE_JOINER_CHARS = FAILURE_EVIDENCE_INPUT_COUNT - 1;
 const MAX_FAILURE_EVIDENCE_SOURCE_CHARS = Math.floor(
   (MAX_FAILURE_EVIDENCE_CHARS - FAILURE_EVIDENCE_JOINER_CHARS) / FAILURE_EVIDENCE_INPUT_COUNT,
 );
+
+class TextFailureClassifier {
+  constructor(pattern, kind) {
+    this.pattern = pattern;
+    this.kind = kind;
+    Object.freeze(this);
+  }
+
+  matches(text) {
+    return this.pattern.test(text);
+  }
+}
+
+const TEXT_FAILURE_CLASSIFIERS = Object.freeze([
+  new TextFailureClassifier(/\beperm\b/, FAILURE_KINDS.CHILD_PROCESS_EPERM),
+  new TextFailureClassifier(/sandbox/, FAILURE_KINDS.SANDBOX),
+  new TextFailureClassifier(/\beacces\b|permission denied/, FAILURE_KINDS.PERMISSION),
+  new TextFailureClassifier(/\benoent\b|not found|command not found/, FAILURE_KINDS.DEPENDENCY),
+  new TextFailureClassifier(/without stdout\/stderr|spawnerror/, FAILURE_KINDS.INFRA),
+]);
 
 class FinalRegressionDecision {
   constructor({ failureKind, retryable, nextAction }) {
@@ -71,7 +107,8 @@ class FinalRegressionDecision {
   }
 
   static fail(failureKind, previousFailureCount) {
-    const repairable = failureKind === "caused_by_current_change" || failureKind === "invalid_project_test";
+    const repairable = failureKind === FAILURE_KINDS.CURRENT_CHANGE
+      || failureKind === FAILURE_KINDS.INVALID_PROJECT_TEST;
     const retryable = repairable && previousFailureCount === 0;
     return new FinalRegressionDecision({
       failureKind,
@@ -112,7 +149,6 @@ class FinalRegressionArtifact {
     process,
     changedFiles,
     decision,
-    previousFailureKind = null,
   }) {
     if (result !== "pass" && result !== "fail") throw new Error("final-regression result must be pass or fail");
     if (!(decision instanceof FinalRegressionDecision)) throw new Error("final-regression decision is required");
@@ -128,7 +164,6 @@ class FinalRegressionArtifact {
     this.changedFiles = Object.freeze([...(changedFiles || [])]);
     this.retryable = decision.retryable;
     this.nextAction = decision.nextAction;
-    this.previousFailureKind = previousFailureKind;
     Object.freeze(this);
   }
 
@@ -146,9 +181,48 @@ class FinalRegressionArtifact {
       changedFiles: this.changedFiles,
       retryable: this.retryable,
       nextAction: this.nextAction,
-      previousFailureKind: this.previousFailureKind,
     };
   }
+
+  toEnvelopeArtifacts(resultPath) {
+    return {
+      result_path: resultPath,
+      raw_output_path: this.rawOutputPath,
+      completed: this.completed,
+      result: this.result,
+      failureKind: this.failureKind,
+      retryable: this.retryable,
+      nextAction: this.nextAction,
+    };
+  }
+}
+
+class FinalRegressionProcessResultFactory {
+  static failure({ spawnError = null, stderr = "" } = {}) {
+    // spawnError is set only for actual command discovery or spawn failures.
+    return {
+      started: false,
+      exitCode: 1,
+      signal: null,
+      timedOut: false,
+      spawnError,
+      stdout: "",
+      stderr,
+    };
+  }
+
+  static commandDiscovery(err) {
+    const message = err.message || String(err);
+    return FinalRegressionProcessResultFactory.failure({ spawnError: message, stderr: message });
+  }
+
+  static rootMismatch(message) {
+    return FinalRegressionProcessResultFactory.failure({ stderr: message });
+  }
+}
+
+function repoRelative(root, absolutePath) {
+  return path.relative(root, absolutePath).split(path.sep).join("/");
 }
 
 function appendRaw(lines, sectionLines) {
@@ -157,16 +231,14 @@ function appendRaw(lines, sectionLines) {
   return { start_line: start, end_line: lines.length };
 }
 
-function commandDiscoveryProcess(err) {
-  return {
-    started: false,
-    exitCode: 1,
-    signal: null,
-    timedOut: false,
-    spawnError: err.message || String(err),
-    stdout: "",
-    stderr: err.message || String(err),
-  };
+function resolveRealPath(value) {
+  const resolved = path.resolve(value);
+  try {
+    return fs.realpathSync(resolved);
+  } catch (err) {
+    if (err?.code !== "ENOENT") throw err;
+    return resolved;
+  }
 }
 
 function readAnalysisIfExists(root) {
@@ -230,22 +302,54 @@ function changedFilesWithinMatchLimit(changedFiles) {
 function classifyFailure({ result, discoveryError = null, root, state, config, changedFiles }) {
   const text = failureEvidenceText(result, discoveryError);
   const normalizedText = normalizeFailureMatchText(text);
-  if (discoveryError) return "invalid_project_test";
-  if (result?.timedOut) return "timeout";
-  if (normalizedText.trim() === "" && result?.exitCode) return "infra_failure";
-  if (/^command failed:/.test(normalizedText.trim()) && result?.exitCode) return "infra_failure";
-  if (/\beperm\b/.test(normalizedText)) return "child_process_eprem";
-  if (/sandbox/.test(normalizedText)) return "sandbox_restriction";
-  if (/\beacces\b|permission denied/.test(normalizedText)) return "permission_error";
-  if (/\benoent\b|not found|command not found/.test(normalizedText)) return "dependency_failure";
-  if (/without stdout\/stderr|spawnerror/.test(normalizedText)) return "infra_failure";
-  if (result?.signal) return "infra_failure";
-  if (result?.exitCode === 127) return "dependency_failure";
+  if (discoveryError) return FAILURE_KINDS.INVALID_PROJECT_TEST;
+  if (result?.timedOut) return FAILURE_KINDS.TIMEOUT;
+  if (normalizedText.trim() === "" && result?.exitCode) return FAILURE_KINDS.INFRA;
+  if (/^command failed:/.test(normalizedText.trim()) && result?.exitCode) return FAILURE_KINDS.INFRA;
+  for (const classifier of TEXT_FAILURE_CLASSIFIERS) {
+    if (classifier.matches(normalizedText)) return classifier.kind;
+  }
+  if (result?.signal) return FAILURE_KINDS.INFRA;
+  if (result?.exitCode === 127) return FAILURE_KINDS.DEPENDENCY;
   const changedFilesForMatching = changedFilesWithinMatchLimit(changedFiles);
-  if (!changedFilesForMatching) return "infra_failure";
-  if (classifyChangeScope({ root, state, config, changedFiles }) === "pre-existing") return "pre_existing";
-  if (!failureReferencesChangedFile(normalizedText, changedFilesForMatching)) return "pre_existing";
-  return "caused_by_current_change";
+  if (!changedFilesForMatching) return FAILURE_KINDS.INFRA;
+  if (classifyChangeScope({ root, state, config, changedFiles }) === "pre-existing") {
+    return FAILURE_KINDS.UNATTRIBUTED_EXISTING;
+  }
+  if (!failureReferencesChangedFile(normalizedText, changedFilesForMatching)) {
+    return FAILURE_KINDS.UNATTRIBUTED_EXISTING;
+  }
+  return FAILURE_KINDS.CURRENT_CHANGE;
+}
+
+function nextFinalRegressionAttempt(specDir) {
+  const rawDir = path.join(specDir, TESTS_RAW_DIR_RELATIVE);
+  fs.mkdirSync(rawDir, { recursive: true });
+  const nextIndex = latestAttemptIndex(rawDir) + 1;
+  if (nextIndex > MAX_FINAL_REGRESSION_ATTEMPTS) {
+    throw new Error(`${ATTEMPT_LIMIT_MESSAGE}; next=${nextIndex}`);
+  }
+  const fileName = `final-regression-attempt-${String(nextIndex).padStart(3, "0")}.log`;
+  return path.join(rawDir, fileName);
+}
+
+function latestAttemptIndex(rawDir) {
+  let maxIndex = 0;
+  const dir = fs.opendirSync(rawDir);
+  let seen = 0;
+  try {
+    let entry;
+    while ((entry = dir.readSync())) {
+      if (++seen > MAX_FINAL_REGRESSION_RAW_DIR_SCAN_ENTRIES) {
+        throw new Error(`final-regression raw directory scan limit exceeded (max=${MAX_FINAL_REGRESSION_RAW_DIR_SCAN_ENTRIES})`);
+      }
+      const match = FINAL_REGRESSION_ATTEMPT_FILE_RE.exec(entry.name);
+      if (match) maxIndex = Math.max(maxIndex, Number.parseInt(match[1], 10));
+    }
+  } finally {
+    dir.closeSync();
+  }
+  return maxIndex;
 }
 
 function previousFinalRegressionFailures(root, state) {
@@ -275,35 +379,50 @@ export default class RunFinalRegressionCommand extends FlowCommand {
     const state = ctx.flowState;
     const config = ctx.config || {};
     const specDir = resolveSpecDir(path.resolve(root, state.spec));
-    const rawOutputPath = path.join(specDir, FINAL_REGRESSION_RAW_OUTPUT_RELATIVE);
+    const attemptPath = nextFinalRegressionAttempt(specDir);
     const resultPath = path.join(specDir, FINAL_REGRESSION_RESULT_FILE);
-    fs.mkdirSync(path.dirname(rawOutputPath), { recursive: true });
 
     const rawLines = [];
-    const changedFiles = listRegressionChangedFiles({ root, state });
     const previousFailures = previousFinalRegressionFailures(root, state);
-    const previousFailureKind = previousFailures.at(-1)?.failureKind || null;
+    const expectedRoot = state.worktree
+      ? state.worktreePath ?? ctx.flowManager.resolveWorktreePaths(state).worktreePath
+      : null;
+    const rootPath = path.resolve(root);
+    const expectedRootPath = expectedRoot ? path.resolve(expectedRoot) : null;
+    const rootOk = !expectedRootPath || resolveRealPath(rootPath) === resolveRealPath(expectedRootPath);
+    let changedFiles = [];
     let rootCommand;
     let result;
+    let resultStatus;
+    let failureKind;
     let discoveryError = null;
 
-    try {
-      rootCommand = discoverRegressionCommand(root, config);
-      result = await runProcessDetailed(rootCommand, {
-        cwd: root,
-        timeoutMs: resolveTestTimeoutSeconds(config) * 1000,
-      });
-    } catch (err) {
-      discoveryError = err;
-      result = commandDiscoveryProcess(err);
+    if (rootOk) {
+      changedFiles = listRegressionChangedFiles({ root, state });
+      try {
+        rootCommand = discoverRegressionCommand(root, config);
+        result = await runProcessDetailed(rootCommand, {
+          cwd: root,
+          timeoutMs: resolveTestTimeoutSeconds(config) * 1000,
+        });
+      } catch (err) {
+        discoveryError = err;
+        result = FinalRegressionProcessResultFactory.commandDiscovery(err);
+      }
+      resultStatus = !discoveryError && processPassed(result) ? "pass" : "fail";
+      failureKind = resultStatus === "pass"
+        ? null
+        : classifyFailure({ result, discoveryError, root, state, config, changedFiles });
+    } else {
+      result = FinalRegressionProcessResultFactory.rootMismatch(
+        `final-regression worktree root mismatch: expected ${expectedRootPath || "<unresolved>"}, got ${rootPath}`,
+      );
+      resultStatus = "fail";
+      failureKind = FAILURE_KINDS.INFRA;
     }
 
     const commandText = rootCommand ? rootCommand.toString() : null;
-    const resultText = !discoveryError && processPassed(result) ? "pass" : "fail";
-    const failureKind = resultText === "pass"
-      ? null
-      : classifyFailure({ result, discoveryError, root, state, config, changedFiles });
-    const decision = resultText === "pass"
+    const decision = resultStatus === "pass"
       ? FinalRegressionDecision.pass()
       : FinalRegressionDecision.fail(failureKind, previousFailures.length);
 
@@ -312,43 +431,37 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       `command: ${commandText || "<unresolved>"}`,
       ...(rootCommand ? [`commandSource: ${rootCommand.source}`] : []),
       ...processOutputLines(result),
-      `result: ${resultText}`,
-      ...(failureKind ? [`failureKind: ${failureKind}`, `nextAction: ${decision.nextAction}`] : []),
-      `[sdd-forge] final regression end result=${resultText}`,
+      `result: ${resultStatus}`,
+      ...(failureKind ? [`failureKind: ${failureKind}`, `retryable: ${decision.retryable}`, `nextAction: ${decision.nextAction}`] : []),
+      `[sdd-forge] final regression end result=${resultStatus}`,
     ]);
-    fs.writeFileSync(rawOutputPath, rawLines.join("\n") + "\n");
+    fs.writeFileSync(attemptPath, rawLines.join("\n") + "\n");
 
+    const resultPathRelative = repoRelative(root, resultPath);
+    const rawOutputPath = repoRelative(root, attemptPath);
     const artifact = new FinalRegressionArtifact({
-      result: resultText,
+      result: resultStatus,
       command: commandText,
       commandSource: rootCommand?.source || null,
-      rawOutputPath: path.relative(root, rawOutputPath).split(path.sep).join("/"),
+      rawOutputPath,
       rawOutputLines: range,
       process: new FinalRegressionProcess(result),
       changedFiles,
       decision,
-      previousFailureKind,
     });
     const json = artifact.toJSON();
     validateFinalRegressionResult(json);
     fs.writeFileSync(resultPath, JSON.stringify(json, null, 2) + "\n");
 
-    if (resultText === "pass") {
+    const envelopeArtifacts = artifact.toEnvelopeArtifacts(resultPathRelative);
+    if (resultStatus === "pass") {
       return {
         result: "pass",
         changed: [
-          path.relative(root, resultPath),
-          path.relative(root, rawOutputPath),
+          resultPathRelative,
+          rawOutputPath,
         ],
-        artifacts: {
-          result_path: path.relative(root, resultPath),
-          raw_output_path: path.relative(root, rawOutputPath),
-          completed: true,
-          result: "pass",
-          failureKind: null,
-          retryable: false,
-          nextAction: decision.nextAction,
-        },
+        artifacts: envelopeArtifacts,
         next: "finalize-commit",
       };
     }
@@ -359,15 +472,7 @@ export default class RunFinalRegressionCommand extends FlowCommand {
       "final-regression",
       "FINAL_REGRESSION_FAILED",
       `final-regression failed (${failureKind}); nextAction=${decision.nextAction}`,
-      {
-        result_path: path.relative(root, resultPath),
-        raw_output_path: path.relative(root, rawOutputPath),
-        completed: false,
-        result: "fail",
-        failureKind,
-        retryable: decision.retryable,
-        nextAction: decision.nextAction,
-      },
+      envelopeArtifacts,
     );
   }
 }

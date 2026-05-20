@@ -1,4 +1,3 @@
-import path from "path";
 import { specIdFromPath } from "../../lib/flow-helpers.js";
 import { runGit } from "../../lib/git-helpers.js";
 import { FlowCommand } from "./base-command.js";
@@ -8,23 +7,7 @@ import {
   commitOrSkip,
   runMigrationHook,
 } from "./run-finalize.js";
-import { DURABLE_TEST_ARTIFACT_RELATIVE_PATHS, TEMP_SUMMARY_RELATIVE } from "./test-artifacts.js";
-
-/**
- * spec 251: paths under specs/<spec>/ that hold test/retro/report artifacts
- * produced by impl-phase mainline steps, including tests/.raw/test-execution.log.
- * They are committed in a separate
- * "chore: add test artifacts" commit so the implementation commit stays
- * focused on production code + spec definition.
- */
-const TEMPORARY_TEST_ARTIFACT_RELATIVE_PATHS = [
-  TEMP_SUMMARY_RELATIVE,
-];
-
-function specArtifactPathspecs(specId) {
-  const base = path.posix.join("specs", specId);
-  return DURABLE_TEST_ARTIFACT_RELATIVE_PATHS.map((p) => path.posix.join(base, p));
-}
+import { implementationCommitExcludedTestArtifactPathspecs } from "./test-artifacts.js";
 
 export class RunFinalizeCommitCommand extends FlowCommand {
   async execute(ctx) {
@@ -67,10 +50,7 @@ export class RunFinalizeCommitCommand extends FlowCommand {
     // spec 251: stage everything EXCEPT test artifacts under the spec dir; the
     // executeCommitPost hook follows up with a separate commit for those.
     runGit(["add", "-A"], { cwd: root });
-    const excludePathspecs = [
-      ...specArtifactPathspecs(specId),
-      ...TEMPORARY_TEST_ARTIFACT_RELATIVE_PATHS.map((p) => path.posix.join("specs", specId, p)),
-    ];
+    const excludePathspecs = implementationCommitExcludedTestArtifactPathspecs(specId);
     const resetArgs = ["reset", "HEAD", "--", ...excludePathspecs];
     runGit(resetArgs, { cwd: root });
 

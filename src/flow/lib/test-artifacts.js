@@ -3,19 +3,22 @@ import path from "path";
 import crypto from "crypto";
 import { StringDecoder } from "string_decoder";
 import { sddOutputDir } from "../../lib/config.js";
+import { globToRegex } from "../../lib/glob.js";
 import { classifyRegression, listRegressionChangedFiles } from "./test-regression.js";
 
 export const TEST_EXECUTE_RESULT_FILE = "test-execute-result.json";
 export const TEST_RESULT_REVIEW_FILE = "test-result-review.json";
 export const TEST_RESULT_REVIEW_MD_FILE = "test-result-review.md";
 export const FINAL_REGRESSION_RESULT_FILE = "final-regression-result.json";
-export const RAW_OUTPUT_RELATIVE = "tests/.raw/test-execution.log";
-export const FINAL_REGRESSION_RAW_OUTPUT_RELATIVE = "tests/.raw/final-regression.log";
-export const TEMP_SUMMARY_RELATIVE = "tests/.raw/requirement-summary.json";
+export const TESTS_RAW_DIR_RELATIVE = "tests/.raw";
+export const RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/test-execution.log`;
+// Public durable path pattern: tests/.raw/final-regression-attempt-*.log
+export const FINAL_REGRESSION_RAW_OUTPUT_PATTERN = `${TESTS_RAW_DIR_RELATIVE}/final-regression-attempt-*.log`;
+export const TEMP_SUMMARY_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/requirement-summary.json`;
 export const FILE_MAP_RELATIVE = "file-map.json";
 export const PLACEHOLDER_PERMISSION_FILE = "placeholder-permission.json";
 export const SCENARIO_VALIDITY_RESULT_FILE = "scenario-validity-result.json";
-export const SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE = "tests/.raw/scenario-validity.log";
+export const SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE = `${TESTS_RAW_DIR_RELATIVE}/scenario-validity.log`;
 const ARTIFACT_PLACEHOLDER = "ARTIFACT_PLACEHOLDER";
 // Spec R3 intentionally limits sentinel scans to the first 200 entries even
 // when schema validation accepts larger bounded artifact arrays.
@@ -31,6 +34,9 @@ const MAX_SUMMARY_ITEMS = 500;
 const MAX_REVIEW_CHECKED_ITEMS = 500;
 const MAX_FILE_MAP_REQUIREMENTS = 500;
 const MAX_FILE_MAP_PATHS_PER_REQUIREMENT = 500;
+const MAX_ARTIFACT_PATTERN_COUNT = 500;
+const MAX_COLLECTED_ARTIFACTS = 10_000;
+const MAX_ARTIFACT_GLOB_ENTRIES = 10_000;
 const MAX_PLACEHOLDER_PERMISSION_PATHS = 50;
 // Spec R2 intentionally maps every gate-impl artifact trust failure to the
 // public ARTIFACT_PLACEHOLDER code, including malformed or missing inputs.
@@ -48,7 +54,7 @@ const INTEGRATION_TRUST_INPUTS = Object.freeze([
   FILE_MAP_RELATIVE,
   RAW_OUTPUT_RELATIVE,
 ]);
-const BASE_TEST_ARTIFACT_RELATIVE_PATHS = Object.freeze([
+const DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
   SCENARIO_VALIDITY_RESULT_FILE,
   TEST_EXECUTE_RESULT_FILE,
   TEST_RESULT_REVIEW_FILE,
@@ -58,13 +64,99 @@ const BASE_TEST_ARTIFACT_RELATIVE_PATHS = Object.freeze([
   "report.json",
   SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE,
   RAW_OUTPUT_RELATIVE,
-  FINAL_REGRESSION_RAW_OUTPUT_RELATIVE,
+  FINAL_REGRESSION_RAW_OUTPUT_PATTERN,
 ]);
-export const DURABLE_TEST_ARTIFACT_RELATIVE_PATHS = BASE_TEST_ARTIFACT_RELATIVE_PATHS;
-export const RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS = Object.freeze([
-  ...BASE_TEST_ARTIFACT_RELATIVE_PATHS,
+const TEMP_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
   TEMP_SUMMARY_RELATIVE,
 ]);
+const IMPLEMENTATION_COMMIT_EXCLUDED_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
+  ...DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS,
+  ...TEMP_TEST_ARTIFACT_RELATIVE_PATTERNS,
+]);
+const REBUILDABLE_TEST_ARTIFACT_RELATIVE_PATTERNS = Object.freeze([
+  ...DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS.filter((pattern) => pattern !== FINAL_REGRESSION_RAW_OUTPUT_PATTERN),
+  ...TEMP_TEST_ARTIFACT_RELATIVE_PATTERNS,
+]);
+
+function testArtifactPathspecs(specId, relativePatterns) {
+  const base = path.posix.join("specs", specId);
+  return relativePatterns.map((p) => path.posix.join(base, p));
+}
+
+export function durableTestArtifactPathspecs(specId) {
+  return testArtifactPathspecs(specId, DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS);
+}
+
+export function implementationCommitExcludedTestArtifactPathspecs(specId) {
+  return testArtifactPathspecs(specId, IMPLEMENTATION_COMMIT_EXCLUDED_TEST_ARTIFACT_RELATIVE_PATTERNS);
+}
+
+export function tempRequirementSummaryPath(specDir) {
+  return path.join(specDir, TEMP_SUMMARY_RELATIVE);
+}
+
+export function writeTempRequirementSummary(specDir, summary) {
+  fs.writeFileSync(tempRequirementSummaryPath(specDir), JSON.stringify(summary, null, 2) + "\n");
+}
+
+export function removeTempRequirementSummary(specDir) {
+  fs.rmSync(tempRequirementSummaryPath(specDir), { force: true });
+}
+
+function addCollectedArtifactPathspec(existing, pathspec) {
+  existing.add(pathspec);
+  if (existing.size > MAX_COLLECTED_ARTIFACTS) {
+    throw new Error(`collected artifact path count exceeds max ${MAX_COLLECTED_ARTIFACTS}`);
+  }
+}
+
+// Supports literal POSIX-relative pathspecs and basename globs such as dir/*.log.
+export function collectExistingArtifactPathspecs(root, pathspecPatterns) {
+  assertMaxItems("artifact patterns", pathspecPatterns, MAX_ARTIFACT_PATTERN_COUNT);
+  const existing = new Set();
+  const globPatternsByDir = new Map();
+  for (const pathspec of pathspecPatterns) {
+    if (!pathspec.includes("*")) {
+      const absolutePath = path.join(root, pathspec);
+      if (fs.existsSync(absolutePath) && fs.statSync(absolutePath).isFile()) {
+        addCollectedArtifactPathspec(existing, pathspec);
+      }
+      continue;
+    }
+    const dir = path.posix.dirname(pathspec);
+    if (dir.includes("*")) {
+      throw new Error(`artifact glob supports basename wildcards only: ${pathspec}`);
+    }
+    if (!globPatternsByDir.has(dir)) globPatternsByDir.set(dir, []);
+    globPatternsByDir.get(dir).push(globToRegex(path.posix.basename(pathspec)));
+  }
+  for (const [dir, matchers] of globPatternsByDir) {
+    const absoluteDir = path.join(root, dir);
+    if (!fs.existsSync(absoluteDir)) continue;
+    const handle = fs.opendirSync(absoluteDir);
+    let seen = 0;
+    try {
+      let entry;
+      while ((entry = handle.readSync())) {
+        if (++seen > MAX_ARTIFACT_GLOB_ENTRIES) {
+          throw new Error(`artifact glob directory exceeds max entry count ${MAX_ARTIFACT_GLOB_ENTRIES}: ${dir}`);
+        }
+        if (entry.isFile() && matchers.some((re) => re.test(entry.name))) {
+          addCollectedArtifactPathspec(existing, path.posix.join(dir, entry.name));
+        }
+      }
+    } finally {
+      handle.closeSync();
+    }
+  }
+  return [...existing].sort();
+}
+
+export function removeRebuildableTestArtifacts(specDir) {
+  for (const existing of collectExistingArtifactPathspecs(specDir, REBUILDABLE_TEST_ARTIFACT_RELATIVE_PATTERNS)) {
+    fs.rmSync(path.join(specDir, existing), { force: true });
+  }
+}
 export const SCENARIO_VALIDITY_CLASSIFICATIONS = Object.freeze(new Set([
   "expected_fail",
   "unexpected_pass",
@@ -422,13 +514,13 @@ function validateFinalRegressionFailureKind(result) {
   }
   const allowed = [
     "caused_by_current_change",
-    "pre_existing",
+    "unattributed_existing_failure",
     "infra_failure",
     "timeout",
     "dependency_failure",
     "sandbox_restriction",
     "permission_error",
-    "child_process_eprem",
+    "child_process_eperm",
     "invalid_project_test",
   ];
   if (!allowed.includes(result.failureKind)) {

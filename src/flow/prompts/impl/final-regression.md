@@ -1,10 +1,12 @@
    - Run `sdd-forge flow run final-regression`.
    - This step is the only default full project regression point. Do not run full project regression from `test-execute`, `review`, `gate-impl`, or `retro`.
    - On PASS, the registry post-hook marks `final-regression` done and the flow proceeds to `finalize-commit`.
-   - On FAIL, read `specs/<spec>/final-regression-result.json` and `specs/<spec>/tests/.raw/final-regression.log`.
-   - Use `failureKind` and `nextAction` from the artifact:
+   - On FAIL, read `specs/<spec>/final-regression-result.json`, the attempt log at `rawOutputPath`, and the fields `result`, `failureKind`, `retryable`, and `nextAction` as independent signals; do not infer one from another. Attempt logs use durable retained path pattern `tests/.raw/final-regression-attempt-*.log`; do not delete or overwrite prior attempt logs.
+   - Use `failureKind` to choose handling, and always honor `nextAction: "stop"` when present:
      - `caused_by_current_change` → repair the regression, run spec-local evidence as needed, then rerun `final-regression`.
      - `invalid_project_test` → repair the project test command or test contract, then rerun `final-regression`.
-     - `pre_existing` → stop and ask the user whether to record or split out the existing failure.
-     - `infra_failure`, `timeout`, `dependency_failure`, `sandbox_restriction`, `permission_error`, `child_process_eprem` → stop; do not enter the implementation repair loop.
-   - The command records final-regression failures in `issue-log.json`. If the second final-regression failure returns `nextAction: "stop"`, STOP and return control to the user.
+     - `unattributed_existing_failure` → stop and ask the user whether to record or split out the unattributed existing project-test failure.
+     - Any other `failureKind` → stop; do not enter the implementation repair loop.
+   - `retryable` tells whether the runner still permits an automated rerun. If `retryable: false`, do not rerun final-regression unless a later user decision or repair step changes the evidence.
+   - Treat `final-regression-result.json` as current-run only. Historical failures stay in `issue-log.json`.
+   - Final-regression is capped at 2 consecutive failed attempts; on the 2nd failure the runner returns `nextAction: "stop"`. When that arrives, STOP and return control to the user.

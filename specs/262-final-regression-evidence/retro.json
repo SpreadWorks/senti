@@ -1,0 +1,63 @@
+{
+  "spec": "specs/262-final-regression-evidence/spec.json",
+  "date": "2026-05-20T06:15:12.200Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Final-regression must use `unattributed_existing_failure` instead of `pre_existing` in `FAILURE_NEXT_ACTION`, classification output, envelopes, `final-regression-result.json`, issue-log entries, schema validation, prompts, report summaries, and tests.",
+      "status": "done",
+      "note": "R1: renames unattributed final-regression failures"
+    },
+    {
+      "desc": "Final-regression classification must return infra or environment failure kinds, not `unattributed_existing_failure`, for silent nonzero output, spawnError text, process signal, sandbox text, permission errors, dependency command-not-found cases, timeouts, child-process EPERM, and invalid project-test discovery.",
+      "status": "done",
+      "note": "R2: keeps environment failures out of unattributed classification and rejects the legacy kind"
+    },
+    {
+      "desc": "`final-regression-result.json` must represent only the current invocation and must not contain `previousFailureKind` or any other past-failure field on pass or fail.",
+      "status": "done",
+      "note": "R3: removes previous failure state from current-run artifacts"
+    },
+    {
+      "desc": "Each final-regression invocation must write raw output to `specs/<spec>/tests/.raw/final-regression-attempt-<N>.log`, where `<N>` is a monotonically increasing decimal number padded to at least three digits within that spec.",
+      "status": "done",
+      "note": "R4: retains a distinct raw log for every final-regression attempt"
+    },
+    {
+      "desc": "The latest `final-regression-result.json` and each final-regression failure issue-log entry must set `rawOutputPath` to the attempt log path for the same invocation.",
+      "status": "done",
+      "note": "R5: points result artifacts and issue-log entries at the matching attempt log"
+    },
+    {
+      "desc": "When flow state is worktree mode and the resolved active worktree root differs from the resolved `ctx.root`, final-regression must not run the project test command and must return a failure artifact/envelope with `result: \"fail\"`, `failureKind: \"infra_failure\"`, `retryable: false`, and `nextAction: \"stop\"`.",
+      "status": "done",
+      "note": "R6: stops worktree root mismatches before project tests start"
+    },
+    {
+      "desc": "Failure artifacts and raw logs must keep separate entries for `result`, `failureKind`, `retryable`, and `nextAction`, where those fields respectively mean project test pass/fail, failure attribution, retry allowance, and flow transition.",
+      "status": "done",
+      "note": "R7: records result, attribution, retryability, and flow action as separate output signals"
+    },
+    {
+      "desc": "Final-regression prompt/report/durable artifact guidance must mention `unattributed_existing_failure`, attempt log paths, absence of past failureKind in pass artifacts, and durable retention of `tests/.raw/final-regression-attempt-*.log`.",
+      "status": "done",
+      "note": "R8: updates guidance and durable artifact references for the new final-regression contract"
+    },
+    {
+      "desc": "Spec-local tests under `specs/262-final-regression-evidence/tests/` must cover R1 through R7 with `// spec: R<N>` headers, and shared unit tests must cover the production failureKind rename, previousFailureKind removal, attempt log allocation, and worktree root assertion.",
+      "status": "done",
+      "note": "R9: keeps shared unit coverage aligned with the production contracts"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 9,
+    "done": 9,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -2,7 +2,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { collectExistingPathspecs } from "../../../src/flow/lib/run-finalize.js";
+import {
+  collectExistingArtifactPathspecs,
+  durableTestArtifactPathspecs,
+  implementationCommitExcludedTestArtifactPathspecs,
+  removeRebuildableTestArtifacts,
+} from "../../../src/flow/lib/test-artifacts.js";
 import { createTmpDir, removeTmpDir, writeFile } from "../../helpers/tmp-dir.js";
 
 function readRunFinalizeSource() {
@@ -28,35 +33,79 @@ function extractExecuteCommitPost(source) {
   throw new Error("could not locate end of executeCommitPost body");
 }
 
+function readExecuteCommitPostBodySource() {
+  return extractExecuteCommitPost(readRunFinalizeSource());
+}
+
 describe("run-finalize retro/report commit scope (regression for issue #197)", () => {
   it("executeCommitPost does not stage all tracked changes with `git add -A`", () => {
-    const source = readRunFinalizeSource();
-    const body = extractExecuteCommitPost(source);
     assert.doesNotMatch(
-      body,
+      readExecuteCommitPostBodySource(),
       /runGit\(\s*\[\s*"add"\s*,\s*"-A"\s*\]/,
       "executeCommitPost must not use `git add -A`; it sweeps unrelated uncommitted changes into the retro/report commit",
     );
   });
 
   it("executeCommitPost stages paths scoped to the current spec directory", () => {
-    const source = readRunFinalizeSource();
-    const body = extractExecuteCommitPost(source);
-    assert.match(body, /path\.posix\.join\(specDir,\s*p\)/);
-    assert.match(body, /collectExistingPathspecs\(root,\s*durablePathspecs\)/);
+    const body = readExecuteCommitPostBodySource();
+    assert.match(body, /durableTestArtifactPathspecs\(/);
+    assert.match(body, /collectExistingArtifactPathspecs\(root,\s*durablePathspecPatterns\)/);
+  });
+});
+
+describe("test-artifacts", () => {
+  it("durableTestArtifactPathspecs scopes artifact pathspecs under the requested spec", () => {
+    const pathspecs = durableTestArtifactPathspecs("001");
+
+    assert.deepEqual(pathspecs, [
+      "specs/001/scenario-validity-result.json",
+      "specs/001/test-execute-result.json",
+      "specs/001/test-result-review.json",
+      "specs/001/test-result-review.md",
+      "specs/001/final-regression-result.json",
+      "specs/001/retro.json",
+      "specs/001/report.json",
+      "specs/001/tests/.raw/scenario-validity.log",
+      "specs/001/tests/.raw/test-execution.log",
+      "specs/001/tests/.raw/final-regression-attempt-*.log",
+    ]);
   });
 
-  it("collectExistingPathspecs filters missing artifact files before staging", () => {
+  it("implementationCommitExcludedTestArtifactPathspecs includes final regression logs and reset artifacts", () => {
+    const pathspecs = implementationCommitExcludedTestArtifactPathspecs("001");
+
+    assert.ok(pathspecs.includes("specs/001/tests/.raw/final-regression-attempt-*.log"));
+    assert.ok(pathspecs.includes("specs/001/tests/.raw/requirement-summary.json"));
+  });
+
+  it("collectExistingArtifactPathspecs filters missing artifact files before staging", () => {
     const tmp = createTmpDir();
     try {
       writeFile(tmp, "specs/001/report.json", "{}\n");
       assert.deepEqual(
-        collectExistingPathspecs(tmp, [
+        collectExistingArtifactPathspecs(tmp, [
           "specs/001/report.json",
           "specs/001/scenario-validity-result.json",
         ]),
         ["specs/001/report.json"],
       );
+    } finally {
+      removeTmpDir(tmp);
+    }
+  });
+
+  it("removeRebuildableTestArtifacts preserves final-regression attempt logs", () => {
+    const tmp = createTmpDir();
+    try {
+      writeFile(tmp, "final-regression-result.json", "{}\n");
+      writeFile(tmp, "tests/.raw/final-regression-attempt-001.log", "attempt 1\n");
+      writeFile(tmp, "tests/.raw/requirement-summary.json", "[]\n");
+
+      removeRebuildableTestArtifacts(tmp);
+
+      assert.equal(fs.existsSync(path.join(tmp, "final-regression-result.json")), false);
+      assert.equal(fs.existsSync(path.join(tmp, "tests/.raw/requirement-summary.json")), false);
+      assert.equal(fs.existsSync(path.join(tmp, "tests/.raw/final-regression-attempt-001.log")), true);
     } finally {
       removeTmpDir(tmp);
     }

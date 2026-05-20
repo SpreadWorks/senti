@@ -5,7 +5,7 @@
  * consistently across the pipeline.
  */
 
-import { globToRegex } from "./scanner.js";
+import { globToRegex } from "../../lib/glob.js";
 import { ANALYSIS_META_KEYS, iterateAnalysisCategories } from "./analysis-entry.js";
 
 /**
@@ -18,10 +18,17 @@ import { ANALYSIS_META_KEYS, iterateAnalysisCategories } from "./analysis-entry.
  */
 export function filterByDocsExclude(entries, excludePatterns) {
   if (!excludePatterns?.length) return entries;
-  const regexes = excludePatterns.map((p) => globToRegex(p));
+  return filterEntriesByExcludeMatchers(entries, compileExcludeMatchers(excludePatterns));
+}
+
+function compileExcludeMatchers(excludePatterns) {
+  return excludePatterns.map((p) => globToRegex(p));
+}
+
+function filterEntriesByExcludeMatchers(entries, matchers) {
   return entries.filter((e) => {
     if (!e.file) return true;
-    return !regexes.some((re) => re.test(e.file));
+    return !matchers.some((re) => re.test(e.file));
   });
 }
 
@@ -37,6 +44,7 @@ export function filterByDocsExclude(entries, excludePatterns) {
 export function filterAnalysisByDocsExclude(analysis, excludePatterns) {
   if (!excludePatterns?.length) return analysis;
 
+  const excludeMatchers = compileExcludeMatchers(excludePatterns);
   const filtered = {};
   for (const key of ANALYSIS_META_KEYS) {
     if (Object.prototype.hasOwnProperty.call(analysis, key)) filtered[key] = analysis[key];
@@ -44,7 +52,7 @@ export function filterAnalysisByDocsExclude(analysis, excludePatterns) {
   for (const [key, val] of iterateAnalysisCategories(analysis)) {
     filtered[key] = {
       ...val,
-      entries: filterByDocsExclude(val.entries, excludePatterns),
+      entries: filterEntriesByExcludeMatchers(val.entries, excludeMatchers),
     };
   }
   return filtered;

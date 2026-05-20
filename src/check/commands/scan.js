@@ -12,13 +12,16 @@ import fs from "fs";
 import path from "path";
 import { sourceRoot, parseArgs } from "../../lib/cli.js";
 import { sddOutputDir } from "../../lib/config.js";
-import { globToRegex } from "../../docs/lib/scanner.js";
+import { globToRegex } from "../../lib/glob.js";
 import { iterateAnalysisCategories } from "../../docs/lib/analysis-entry.js";
 import { pushSection, DIVIDER } from "../../lib/formatter.js";
 import { Command } from "../../lib/command.js";
 import { EXIT_ERROR } from "../../lib/constants.js";
 
 const DEFAULT_MAX_FILES = 10;
+const MAX_SCAN_DEPTH = 32;
+const MAX_SCAN_DIRECTORY_ENTRIES = 10_000;
+const MAX_SCAN_FILES = 100_000;
 
 function printHelp() {
   console.log([
@@ -63,28 +66,45 @@ function groupByExtension(files) {
 function walkIncludedFiles(baseDir, includeMatchers, excludeMatchers) {
   const results = [];
 
-  function walk(dir, relPrefix) {
+  function addResult(relPath) {
+    results.push(relPath);
+    if (results.length > MAX_SCAN_FILES) {
+      throw new Error(`scan matched file count exceeds max ${MAX_SCAN_FILES}`);
+    }
+  }
+
+  function walk(dir, relPrefix, depth) {
+    if (depth > MAX_SCAN_DEPTH) {
+      throw new Error(`scan directory depth exceeds max ${MAX_SCAN_DEPTH}: ${relPrefix || "."}`);
+    }
     let entries;
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true });
     } catch (_) {
       return;
     }
+    if (entries.length > MAX_SCAN_DIRECTORY_ENTRIES) {
+      throw new Error(`scan directory entry count exceeds max ${MAX_SCAN_DIRECTORY_ENTRIES}: ${relPrefix || "."}`);
+    }
     for (const entry of entries) {
       if (entry.isDirectory()) {
         if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "vendor" || entry.name === ".sdd-forge") continue;
         const nextRel = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
-        walk(path.join(dir, entry.name), nextRel);
+        walk(path.join(dir, entry.name), nextRel, depth + 1);
       } else if (entry.isFile()) {
         const relPath = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
         if (excludeMatchers.some((m) => m.test(relPath))) continue;
-        if (includeMatchers.some((m) => m.test(relPath))) results.push(relPath);
+        if (includeMatchers.some((m) => m.test(relPath))) addResult(relPath);
       }
     }
   }
 
-  walk(baseDir, "");
+  walk(baseDir, "", 0);
   return results.sort();
+}
+
+function coveragePercent(coverage) {
+  return coverage.total === 0 ? 0 : Math.round((coverage.analyzed / coverage.total) * 100);
 }
 
 /**
@@ -142,7 +162,7 @@ function computeCoverage(root, src, cfg) {
 function formatText(data, showAll) {
   const { dataSourceCoverage: ds } = data;
   const lines = [];
-  const dsPct = ds.total === 0 ? 0 : Math.round((ds.analyzed / ds.total) * 100);
+  const dsPct = coveragePercent(ds);
 
   lines.push(`  DataSource: ${ds.analyzed} / ${ds.total} files (${dsPct}%)`);
 
@@ -171,7 +191,7 @@ function formatText(data, showAll) {
  */
 function formatMarkdown(data, showAll) {
   const { dataSourceCoverage: ds } = data;
-  const dsPct = ds.total === 0 ? 0 : Math.round((ds.analyzed / ds.total) * 100);
+  const dsPct = coveragePercent(ds);
 
   const lines = [];
   lines.push("# Scan Coverage Report");
@@ -243,12 +263,11 @@ async function runCheckScan(rawArgs, container) {
 
   if (format === "json") {
     const { dataSourceCoverage: ds } = data;
-    const dsPct = ds.total === 0 ? 0 : Math.round((ds.analyzed / ds.total) * 100);
     const out = {
       dataSourceCoverage: {
         total: ds.total,
         analyzed: ds.analyzed,
-        percent: dsPct,
+        percent: coveragePercent(ds),
         uncovered: showAll ? ds.uncovered : ds.uncovered.slice(0, DEFAULT_MAX_FILES),
         uncoveredTotal: ds.uncovered.length,
         uncoveredByExtension: groupByExtension(ds.uncovered),

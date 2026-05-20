@@ -1,0 +1,142 @@
+{
+  "devType": "feature",
+  "goal": "final-regression の失敗分類、現在実行 artifact、attempt raw log、worktree root 実行保証を整理し、AI と利用者が project test の失敗原因と次アクションを誤読しないようにする。",
+  "analysis": {
+    "problem": "final-regression で project test が失敗したとき、現在変更に起因する失敗、今回変更起因とは判断できない既存失敗、infra / sandbox / spawn 系の失敗が同じ出力面で混ざって見える。さらに成功 artifact に過去 failure 情報が残ると、現在実行の結果として誤読される。",
+    "proposedApproach": "既存の final-regression 実行点を維持したまま、`pre_existing` の public failureKind をより明確な名前へ置き換え、`final-regression-result.json` を現在実行だけの結果に限定する。raw log は attempt ごとに保存し、worktree flow では active worktree root と実行 root の一致を project test 開始前に検証する。出力では `result`、`failureKind`、`retryable`、`nextAction` の各 field と raw log line を維持し、それぞれの意味を現在実行結果、原因帰属、再試行可否、flow 遷移として表す。",
+    "validation": "artifact schema、command output、issue-log、prompt guidance、unit tests が同じ failureKind と attempt log 契約を検証できれば、失敗原因の誤分類や過去 failure の現在結果化を防げる。worktree root 不一致を project test 前に infra failure として止められれば、main repo 側で誤って full regression を走らせる事故も防げる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "`src/flow/lib/run-final-regression.js` は full project regression を retro 後、finalize 前に実行し、`FinalRegressionArtifact` を `final-regression-result.json` に保存する。",
+      "`src/flow/lib/run-final-regression.js` の `FAILURE_NEXT_ACTION` は現在 `pre_existing` を `user-confirmation` に対応させている。",
+      "`classifyFailure()` は silent nonzero、spawnError、signal、sandbox、permission、dependency 系を `pre_existing` ではなく infra / environment 系 failureKind に分類する分岐を持つ。",
+      "`FinalRegressionArtifact` は現在 `previousFailureKind` を常に JSON に含めるため、pass artifact にも過去 failureKind が残り得る。",
+      "`FINAL_REGRESSION_RAW_OUTPUT_RELATIVE` は現在 `tests/.raw/final-regression.log` で、同じ path に最新 raw log を上書きする。",
+      "`tests/unit/flow/final-regression.test.js` は pass artifact、current-change failure、pre-existing failure、silent nonzero infra failure、2回目 failure stop を検証している。",
+      "`src/flow/prompts/impl/final-regression.md` は failureKind ごとの対応として `pre_existing` をユーザー確認に対応させている。",
+      "`src/flow/lib/test-artifacts.js` の `validateFinalRegressionResult()` は final-regression artifact の public schema と allowed failureKind を検証している。",
+      "Issue #334 は `pre_existing` の候補置換名として `unattributed_existing_failure` を提示し、意味を「project test failed, but cannot be attributed to changes in this run」と定義している。"
+    ],
+    "decisionPoints": [
+      "`pre_existing` の置換後 failureKind 名を `unattributed_existing_failure` に固定するか。",
+      "`final-regression-result.json` から過去 failure 履歴を除き、現在実行だけの result / failureKind / nextAction / rawOutputPath を持たせる範囲。",
+      "過去 failure 履歴を `issue-log.json` で参照可能にする場合の最低限の記録項目。",
+      "attempt ごとの raw log path 命名、最新 artifact から参照する path、durable artifact list への反映範囲。",
+      "worktree flow 中に active worktree root と `ctx.root` が一致しない場合の failureKind と process metadata の扱い。",
+      "人間と AI が誤読しにくい `failureKind` / `nextAction` / command output 文言。",
+      "既存 final-regression unit tests に追加する spec-local test と root unit test の境界。"
+    ],
+    "resolvedByProjectRules": [
+      "Issue #334 を 1 つの concern として扱い、AI 側で勝手に spec 分割しない。",
+      "外部依存は追加せず、Node.js 組み込みモジュールと既存 helper だけで実装する。",
+      "alpha 版ポリシーにより旧 `pre_existing` 互換 layer は残さず、schema / prompt / tests を新しい名前へ更新する。",
+      "意味のある値は既存の OOP パターンに合わせ、artifact / decision / process metadata の責務をクラスまたは既存 helper に寄せる。",
+      "final-regression の失敗時に full project test の exitCode を pass に偽装しない。",
+      "`src/templates/` や skill template を変更した場合は `sdd-forge upgrade` を実行して生成済み skill に反映する。",
+      "worktree flow 中の作業は active worktree 内で行い、main repo では stash / reset / checkout を実行しない。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "新しい failureKind 名の最終採用と、allowed failureKind / nextAction mapping の具体的な反映箇所。",
+      "attempt raw log の採番方法と、古い `final-regression.log` path を残すか削除するか。",
+      "worktree root assertion の検出条件と envelope / artifact に出す process metadata。",
+      "success artifact から除く過去 failure fields と、issue-log 側に残す履歴 fields。",
+      "prompt / report / command output の更新文言。",
+      "unit tests と spec-local tests の file-map と実行方法。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `pre_existing` 相当の final-regression failureKind を `unattributed_existing_failure` に置き換えること",
+      "must: silent nonzero / spawnError / signal / sandbox / permission / dependency 系 failure が `unattributed_existing_failure` に分類されないこと",
+      "must: `final-regression-result.json` は現在実行の result / failureKind / nextAction / rawOutputPath を表し、pass artifact に過去 failureKind を含めないこと",
+      "must: final-regression raw log を attempt ごとに保存し、最新 result artifact から該当 attempt log を参照できること",
+      "must: worktree flow 中に active worktree root と実行 root が一致しない場合、project test を開始せず infra failure として止めること",
+      "must: failure artifact と raw log は `result` に project test の pass/fail、`failureKind` に原因帰属、`retryable` に再試行可否、`nextAction` に flow 遷移をそれぞれ出力すること",
+      "must: failureKind 改名、previousFailureKind 分離、attempt log、worktree root assertion の unit test を追加すること",
+      "should: final-regression prompt は新しい failureKind 名と attempt log path を参照し、report 表示は pass artifact の過去 failureKind を出さず、durable artifact list は attempt log pattern を保持対象に含めること"
+    ],
+    "out": [
+      "final-regression 以外の test-execute / scenario-validity artifact schema の全面再設計",
+      "full project regression の実行タイミング変更",
+      "AI agent provider や外部 test runner の変更",
+      "GitHub Issue / Project workflow の仕様変更",
+      "過去 spec artifact の移行や旧 failureKind 互換読み取り layer",
+      "npm publish や release 作業"
+    ]
+  },
+  "impactOnExisting": [
+    "`sdd-forge flow run final-regression` の failure envelope と success artifact",
+    "`specs/<spec>/final-regression-result.json` の public fields",
+    "`specs/<spec>/tests/.raw/` に保存される final-regression raw log",
+    "`specs/<spec>/issue-log.json` の final-regression failure entries",
+    "`src/flow/lib/test-artifacts.js` の final-regression validation",
+    "`src/flow/prompts/impl/final-regression.md` と関連 skill template",
+    "`src/flow/commands/report.js` など final-regression result を表示する箇所",
+    "`tests/unit/flow/final-regression.test.js` と spec-local test evidence"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "`pre_existing` 相当の final-regression failureKind は、Issue #334 の候補どおり `unattributed_existing_failure` に置き換える前提でよいですか。",
+      "answer": "はい。`pre_existing` 相当の public failureKind は `unattributed_existing_failure` に置き換える前提にします。",
+      "evidence": "Issue #334 は候補名として `unattributed_existing_failure` を提示し、意味を \"project test failed, but cannot be attributed to changes in this run\" と定義している。`src/flow/lib/run-final-regression.js` と `src/flow/lib/test-artifacts.js` は現在 `pre_existing` を public failureKind として扱う。",
+      "why": "`pre_existing` は「以前から失敗していた」と読めるが、実際の意味は今回変更起因と証明できない失敗である。候補名は attribution の不確実性を表すため、AI が infra failure や current-change failure と混同しにくい。",
+      "considered": "旧名 `pre_existing` を残す案は alpha 版ポリシーに反し、誤読を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "`final-regression-result.json` は現在の final-regression 実行だけを表し、過去 failure 履歴は success artifact ではなく `issue-log.json` 側へ寄せる前提でよいですか。",
+      "answer": "はい。`final-regression-result.json` は現在実行だけを表し、過去 failure 履歴は `issue-log.json` 側で保持します。",
+      "evidence": "Issue #334 は `final-regression-result.json` を現在実行結果だけにし、success artifact から `previousFailureKind` を出さないよう要求している。現行 `FinalRegressionArtifact` は `previousFailureKind` を常に JSON に含め、spec 261 の pass artifact でも過去 failureKind が残っている。",
+      "why": "success artifact に過去 failureKind があると、今回の pass 結果に failure が含まれるように読める。現在実行 artifact と履歴 log の責務を分けると、flow の進行判断と監査履歴を別々に扱える。",
+      "considered": "artifact に `previousFailureKind` を残して表示側だけ隠す案は、machine reader が同じ誤読をするため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "final-regression の raw log は attempt ごとに `final-regression-attempt-001.log` のような別 file として保持し、最新 result artifact から該当 attempt log を参照する前提でよいですか。",
+      "answer": "はい。raw log は attempt ごとに保存し、最新 result artifact は該当 attempt log の relative path を参照します。",
+      "evidence": "Issue #334 は `final-regression-attempt-001.log`, `final-regression-attempt-002.log` の例を挙げ、複数回実行しても各 attempt の raw log が残ることを受け入れ条件にしている。現行定数 `FINAL_REGRESSION_RAW_OUTPUT_RELATIVE` は `tests/.raw/final-regression.log` で上書き保存する。",
+      "why": "同じ raw log path を上書きすると、2回目以降の failure や pass で最初の失敗証跡が失われる。attempt log を残せば issue-log と result artifact が同じ実行証跡を指せる。",
+      "considered": "最新 log のみ保持する案は調査証跡が消えるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "worktree flow 中に active worktree root と final-regression の実行 root が一致しない場合は、project test を開始せず infra failure として停止する前提でよいですか。",
+      "answer": "はい。worktree flow 中の root mismatch は project test 開始前に infra failure として停止します。",
+      "evidence": "Issue #334 は active worktree と `ctx.root` が一致しない場合、project test を走らせず infra failure として止めることを要求している。flow skill と project rule は active worktree 外での作業や main repo 側の destructive git 操作を禁止している。",
+      "why": "main repo root で full regression を誤実行すると、worktree flow の変更範囲と異なる状態を検証してしまう。test を開始する前に止めることで、誤った pass/fail evidence の作成を防げる。",
+      "considered": "warning だけ出して project test を続ける案は、誤った root の evidence を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q5",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "`failureKind` と `nextAction` の表示は、test result、failure attribution、retryability、flow action を別 field と raw log line で出す前提でよいですか。",
+      "answer": "はい。表示は `result`、`failureKind`、`retryable`、`nextAction` を別 field として出し、raw log にも同じ意味の line を出す前提にします。",
+      "evidence": "Issue #334 は「テスト自体は fail」「今回変更起因とは判断不能」「flow を止める/進める」の3つを分けて表現することを要求している。現行 `run-final-regression.js` は raw log に `result`, `failureKind`, `nextAction` を出すが、`pre_existing` 名と `user-confirmation` action が誤読されやすい。",
+      "why": "`result` は test 自体の pass/fail、`failureKind` は原因帰属、`retryable` は再試行可否、`nextAction` は flow 遷移を表す。field ごとに意味を固定すると、AI が infra failure を実装修正に回したり、unattributed failure を pass と誤認したりするリスクを下げられる。",
+      "considered": "failureKind 名だけを変えて出力文言を据え置く案は、nextAction の意味が読み取りづらいまま残るため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-20T01:26:53Z",
+    "notes": "Draft coverage review PASS; all QA entries are answered from Issue #334 and source evidence, with no unresolved user decision."
+  }
+}

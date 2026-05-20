@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-05-20T01:37:47.357Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "nonBlocking": 3,
+    "total": 3
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Clarify worktree root resolution source",
+      "target": "R6 / src/flow/lib/run-final-regression.js",
+      "body": "**Target:** R6 / src/flow/lib/run-final-regression.js\n**Improvement:** The spec says to compare the active worktree root with ctx.root, but it does not name which helper resolves the active worktree root (e.g., flow-context.js vs flow-manager.js). Naming the resolver would prevent ambiguous implementations.\n**Why non-blocking:** Implementation can still proceed by inspecting existing flow-context/flow-manager helpers; this is a clarity aid, not a correctness blocker.",
+      "improvement": "The spec says to compare the active worktree root with ctx.root, but it does not name which helper resolves the active worktree root (e.g., flow-context.js vs flow-manager.js). Naming the resolver would prevent ambiguous implementations.",
+      "whyNonBlocking": "Implementation can still proceed by inspecting existing flow-context/flow-manager helpers; this is a clarity aid, not a correctness blocker."
+    },
+    {
+      "kind": "improvement",
+      "title": "Specify attempt-number allocation rule on gaps",
+      "target": "R4 / Tasks T-3",
+      "body": "**Target:** R4 / Tasks T-3\n**Improvement:** The spec requires monotonically increasing zero-padded attempt numbers but does not state behavior when existing attempt files have gaps (e.g., 001, 003 present). Stating whether to use max+1 vs lowest-missing would remove ambiguity.\n**Why non-blocking:** Either policy is implementable and testable; the constraint already bounds discovery to scanning tests/.raw, so this is a refinement.",
+      "improvement": "The spec requires monotonically increasing zero-padded attempt numbers but does not state behavior when existing attempt files have gaps (e.g., 001, 003 present). Stating whether to use max+1 vs lowest-missing would remove ambiguity.",
+      "whyNonBlocking": "Either policy is implementable and testable; the constraint already bounds discovery to scanning tests/.raw, so this is a refinement."
+    },
+    {
+      "kind": "improvement",
+      "title": "State retention policy for legacy final-regression.log",
+      "target": "Clarifications / R4",
+      "body": "**Target:** Clarifications / R4\n**Improvement:** The clarification says the old single-log path is not kept as an active output but does not state whether an existing tests/.raw/final-regression.log left over from prior runs should be deleted, ignored, or left in place. Making this explicit avoids inconsistent cleanup.\n**Why non-blocking:** Implementation can default to leaving stale files untouched without breaking acceptance criteria; this is a tidiness clarification.",
+      "improvement": "The clarification says the old single-log path is not kept as an active output but does not state whether an existing tests/.raw/final-regression.log left over from prior runs should be deleted, ignored, or left in place. Making this explicit avoids inconsistent cleanup.",
+      "whyNonBlocking": "Implementation can default to leaving stale files untouched without breaking acceptance criteria; this is a tidiness clarification."
+    }
+  ]
+}

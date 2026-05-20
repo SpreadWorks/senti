@@ -9,6 +9,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { getLangHandler } from "./lang-factory.js";
+import { globToRegex } from "../../lib/glob.js";
 
 // ---------------------------------------------------------------------------
 // ファイル探索
@@ -202,39 +203,6 @@ export function parseFile(filePath, lang) {
 // ---------------------------------------------------------------------------
 // glob ベースファイル収集
 // ---------------------------------------------------------------------------
-
-/**
- * glob パターンを正規表現に変換する。
- * - `**` → 0個以上のパスセグメント
- * - `*` → `/` 以外の任意文字列
- */
-export function globToRegex(pattern) {
-  let regex = "";
-  let i = 0;
-  while (i < pattern.length) {
-    if (pattern[i] === "*" && pattern[i + 1] === "*") {
-      if (pattern[i + 2] === "/") {
-        // **/ — 0個以上のディレクトリ + /
-        regex += "(?:.+/)?";
-        i += 3;
-      } else {
-        // ** (末尾) — 任意のパス
-        regex += ".*";
-        i += 2;
-      }
-    } else if (pattern[i] === "*") {
-      regex += "[^/]*";
-      i++;
-    } else if (".+^${}()|[]\\".includes(pattern[i])) {
-      regex += "\\" + pattern[i];
-      i++;
-    } else {
-      regex += pattern[i];
-      i++;
-    }
-  }
-  return new RegExp("^" + regex + "$");
-}
 
 /**
  * sourceRoot 配下から include/exclude glob パターンに一致するファイルを収集する。

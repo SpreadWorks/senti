@@ -1,0 +1,380 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T01:26:45.714Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed because draft approval remained false after PASS coverage review with no unresolved user decision",
+      "trigger": "sdd-forge flow run gate --phase draft reported approval.approved must be true",
+      "resolution": "set draft approval.approved true with confirmedAt and notes based on PASS coverage review",
+      "guardrailCandidate": "after PASS draft coverage review, set approval before draft gate when no user decision remains",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:27:03.791Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses one coherent concern: improving final-regression failure classification, artifact integrity, attempt log management, and worktree root verification. All items in scopeVerification.in are directly related to preventing misreading of final-regression results. The AI did not propose splitting the user-defined Issue (#334).; Unambiguous Requirements — All requirements in scopeVerification.in use specific behavioral verbs and reference named artifacts, fields, and enumerated failure categories. No vague adjectives such as 'appropriate', 'fast', or 'easy' appear in the requirement statements. Each requirement names a verifiable condition (specific failureKind value, specific stop condition for root mismatch, specific path naming scheme, etc.).; Complete Context — should: final-regression prompt / report / durable artifact list が新しい artifact 契約を案内すること — '案内すること' (guide/inform) is a subjective term analogous to 'improve' without measurable criteria: it does not specify which fields, sections, or wording must change in the prompt, report, or durable artifact list. Two independent reviewers could disagree on whether any given update sufficiently 'guides' the new artifact contract. (at scopeVerification.in[7]); No Hardcoded Secrets — The draft is a specification document containing only file paths, field names, and behavioral requirements. No API keys, passwords, tokens, or other secrets are present.; Prioritize Requirements — The spec lists 8 requirements in scopeVerification.in (exceeding the three-item threshold) and each is explicitly assigned a priority of 'must' or 'should', which maps to the required must/should/nice-to-have scheme.; Impact on Existing Features — The spec includes an 'impactOnExisting' array that explicitly enumerates 8 affected areas: failure envelope, artifact schema (final-regression-result.json), raw log path structure, issue-log entries, test-artifacts.js validation, final-regression.md prompt template, report command display, and unit tests.; Present Recommendations with Reasoning — Each of the 5 QA entries includes a clear 'answer' (recommendation), an 'evidence' field citing specific source files and Issue #334, a 'why' field with explicit reasoning, and a 'considered' field documenting rejected alternatives. All three required bases (project docs, guardrail principles, existing code patterns) are represented across the entries.; Explore Before Asking — The 'knownFacts' section documents pre-exploration of specific source files (run-final-regression.js, test-artifacts.js, final-regression.test.js, final-regression.md) with their current behavior cited in detail. All 5 QA items are marked 'answered' with evidence from the codebase and Issue #334. The openQuestions array is empty.; Proactively Raise Related Implications — The spec proactively raises related implications: worktree root mismatch producing incorrect evidence (q4), issue-log as the correct repository for historical failure data to prevent misreading success artifacts (q2), per-attempt log naming to preserve investigation trails across retries (q3), and AI misclassification risk across failure kinds (q5 / analysis.validation).; Confirm Brainstorm vs. Decision Before Critiquing — All 5 QA entries carry 'status: answered', the approval section shows 'approved: true' with a confirmed timestamp and explicit coverage review note, and openQuestions is empty. No brainstorming items are present alongside decided items.; Capture Digressions in draft.md — The decisionMap.deferredToSpec section explicitly captures items deferred for spec resolution, and resolvedByProjectRules captures decisions settled by project constraints. No uncaptured digressions are apparent in the finalized draft.; Backward-Compatible CLI Interface — The changes affect JSON artifact field values (pre_existing → unattributed_existing_failure) and artifact schema shape, not CLI commands or options as specified by this guardrail. The sdd-forge CLI command 'flow run final-regression' is not being renamed, removed, or having its invocation meaning changed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T01:29:42.206Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "should: final-regression prompt / report / durable artifact list が新しい artifact 契約を案内すること — '案内すること' (guide/inform) is a subjective term analogous to 'improve' without measurable criteria: it does not specify which fields, sections, or wording must change in the prompt, report, or durable artifact list. Two independent reviewers could disagree on whether any given update sufficiently 'guides' the new artifact contract. (at scopeVerification.in[7])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed because scopeVerification used subjective wording for prompt report and durable artifact updates",
+      "trigger": "complete-context guardrail flagged scopeVerification.in[7] phrase about guiding the new artifact contract",
+      "resolution": "rewrote scopeVerification.in[7] to name the exact prompt report and durable artifact list behaviors to verify",
+      "guardrailCandidate": "draft scope entries should name observable updated fields or files instead of guidance wording",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:29:57.952Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — 全要件が final-regression の失敗分類・artifact 整理・attempt log・worktree root assertion という 1 つの concern に集中しており、無関係な変更は含まれていない。; Unambiguous Requirements — scopeVerification.in の各 must/should は具体的なファイル名・フィールド名・条件を明示しており、曖昧な形容詞を用いていない。; Complete Context — must: `failureKind` と `nextAction` の出力で、test 自体の fail、今回変更起因とは判断不能、flow を止めるか進めるかを区別できること — 「区別できること」という基準が抽象的で、JSON フィールドの分離・CLI 出力の分離・文言の変更のどれが満たされれば「区別できる」と判断するかが明記されていない。2 名の独立したレビュアーが同じ実装を評価したとき、判断が割れる可能性がある。 (at scopeVerification.in[5]); No Hardcoded Secrets — ドラフト全体を通じて API キー・パスワード・トークン等の機密情報は一切含まれていない。; Prioritize Requirements — scopeVerification.in は 8 項目あり、それぞれ must / should の優先度が明示されている。; Impact on Existing Features — impactOnExisting セクションに 8 つの既存ファイル・artifact・コマンドへの影響が具体的に列挙されている。; Present Recommendations with Reasoning — 各 QA エントリは answer・evidence・why・considered を持ち、推奨の根拠が Issue #334 とソースコード証跡から示されている。; Explore Before Asking — decisionMap.knownFacts と各 QA の evidence がソースファイル・Issue 内容の事前探索に基づいており、確認可能な事項はすべて調査済みとして回答されている。; Proactively Raise Related Implications — worktree root assertion や success artifact からの previousFailureKind 除去の影響、attempt log の証跡保持などの関連影響が proactively 記述されている。; Confirm Brainstorm vs. Decision Before Critiquing — all QA entries are marked answered with explicit approval; no brainstorming-vs-decision ambiguity is present in the evaluated content.; Capture Digressions in draft.md — openQuestions が空であり、議論の逸脱項目は decisionMap.deferredToSpec に整理されている。; Backward-Compatible CLI Interface — resolvedByProjectRules に alpha 版ポリシーによる旧 pre_existing 互換 layer 不要の根拠が記載されており、scopeVerification.out に旧 failureKind 互換読み取り layer の除外が明示されている。",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T01:31:40.812Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "must: `failureKind` と `nextAction` の出力で、test 自体の fail、今回変更起因とは判断不能、flow を止めるか進めるかを区別できること — 「区別できること」という基準が抽象的で、JSON フィールドの分離・CLI 出力の分離・文言の変更のどれが満たされれば「区別できる」と判断するかが明記されていない。2 名の独立したレビュアーが同じ実装を評価したとき、判断が割れる可能性がある。 (at scopeVerification.in[5])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed because output distinction requirement used abstract distinguishable wording",
+      "trigger": "complete-context guardrail flagged scopeVerification.in[5] around failureKind and nextAction output",
+      "resolution": "rewrote draft fields to require result failureKind retryable and nextAction as separate artifact fields and raw log lines",
+      "guardrailCandidate": "output requirements should name exact fields and observable lines rather than distinguishability",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:32:12.551Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — All changes (failureKind rename, artifact scoping, attempt-log preservation, worktree root assertion) address the single cohesive concern of making final-regression evidence unambiguous, as defined by the user's Issue boundary.; Task Single Responsibility — Each task addresses one distinct concern: T-1 renames the failureKind value, T-2 scopes the result artifact, T-3 preserves attempt logs, T-4 asserts worktree root, T-5 updates guidance outputs, T-6 adds spec evidence. None cross unrelated modules without a shared concern.; Unambiguous Requirements — All nine requirements use specific, verifiable conditions: exact field names, exact values (e.g., `unattributed_existing_failure`), exact path patterns (`tests/.raw/final-regression-attempt-<N>.log`), enumerated failure categories, and specific JSON field names. No vague adjectives appear.; Complete Context — Requirements specify exact field names, exact allowed values, specific path formats with padding rules, and an explicit enumeration of failure categories that must not map to `unattributed_existing_failure`. Two independent reviewers could independently determine pass/fail for each requirement.; REQ Diff-Verifiability — Each requirement can be verified by inspecting the diff for presence/absence of specific string values, field definitions, path allocation logic, and root-comparison code, combined with test execution confirming the correct outputs. No requirement depends on future behavior guarantees or out-of-diff process invariants.; No Hardcoded Secrets — The spec is a design document; it does not instruct embedding API keys, tokens, passwords, or any secrets into source code.; No Silent Error Swallowing — The constraints explicitly prohibit silent error swallowing: 'root mismatch, command discovery errors, process spawn errors, log write errors, and artifact validation errors must be surfaced through existing envelope or thrown-error paths.' R6 also mandates returning a failure artifact rather than silently stopping.; Prioritize Requirements — All nine requirements (R1–R9) carry an explicit priority: R1–R7 and R9 are `must`; R8 is `should`. No requirement lacks a priority assignment.; Impact on Existing Features — missing explicit impact-on-existing-features statement — The spec changes the final-regression artifact schema (failureKind rename, previousFailureKind removal, rawOutputPath path format), but no section explicitly lists how existing features that consume these artifacts—such as `flow run finalize`, issue-log readers, or durable artifact path references in other flow steps—are impacted. The guardrail requires either an explicit impact listing or an explicit statement that no other features are affected. (at spec.json); Bounded Resource Usage — The constraints explicitly bound attempt-log discovery to scanning only `tests/.raw` for file names without reading historical log contents. No recursive processing or bulk data loading is introduced. The spec adds no new retry loops; the `retryable` field is advisory metadata, not a new automated retry mechanism.; Spec Includes Test Strategy — Each task (T-1 through T-6) contains a `test_strategy` field describing what to test and how. R9 mandates spec-local tests under `specs/262-final-regression-evidence/tests/` with `// spec: R<N>` headers, and the implementationTargets list both test directories. T-6 also specifies test execution order (scenario-validity before implementation, then unit tests after).; Record Unresolved Points as Open Questions — `open_questions` is explicitly empty. The `overview.decisions` section marks unverified assumptions with `[VERIFY]` tags and cites evidence locations rather than asserting confirmed facts. No answers are fabricated.; Include 'Why This Approach' Rationale — The spec includes a `design_principles` section, an `alternatives_considered` section with explicit rejection reasons for each rejected option, and an `overview.decisions` section linking each design choice to evidence and considered alternatives.; Spec Test Coverage — R9 explicitly requires new spec-local tests under `specs/262-final-regression-evidence/tests/` with `// spec: R<N>` headers covering R1–R7, and `specs/262-final-regression-evidence/tests/` appears in `implementationTargets`. T-6 further describes the test execution strategy for both spec-local and shared unit coverage.; Backward-Compatible CLI Interface — No existing CLI command names or user-facing options are removed or have their meaning changed. The spec's clarifications confirm `sdd-forge flow run final-regression` keeps the same invocation shape. The artifact value change (`pre_existing` → `unattributed_existing_failure`) is an output schema change, not a command or option change.; Exit Code Contract — The constraints explicitly state the full exit-code contract: 'keeps exit 0 only for project regression pass and keeps non-zero failure envelopes for project regression fail, infra failure, timeout, dependency failure, sandbox restriction, permission error, child-process EPERM, invalid project test, and root mismatch.' Every defined failure condition is mapped to non-zero.; Validate User Input at Entry Point — The clarifications explicitly state no new user-facing CLI arguments are added. The constraints state 'this spec adds no user-facing CLI arguments' and that any new internal inputs 'must be constructed from validated flow state, config, and repo paths,' satisfying the requirement that user-facing arguments be listed and validated at the entry point.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T01:40:54.553Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "missing explicit impact-on-existing-features statement — The spec changes the final-regression artifact schema (failureKind rename, previousFailureKind removal, rawOutputPath path format), but no section explicitly lists how existing features that consume these artifacts—such as `flow run finalize`, issue-log readers, or durable artifact path references in other flow steps—are impacted. The guardrail requires either an explicit impact listing or an explicit statement that no other features are affected. (at spec.json)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "req-diff-verifiability",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract",
+        "validate-user-input-at-entry-point"
+      ]
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate failed because existing feature impact was not listed in an explicit spec section",
+      "trigger": "impact-on-existing-features guardrail flagged final-regression artifact schema and consumer impacts",
+      "resolution": "added impactOnExisting entries for final-regression envelope artifact issue-log report durable artifact guidance and tests",
+      "guardrailCandidate": "specs that change artifact schema should include an explicit impactOnExisting section",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:41:28.587Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: impactOnExisting: unknown field",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T01:41:33.132Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate failed schema validation because impactOnExisting is not an allowed spec.json field",
+      "trigger": "rerunning sdd-forge flow run gate after adding top-level impactOnExisting returned unknown field",
+      "resolution": "moved impact entries into allowed overview.decisions with IMPACT prefixes and removed the schema-invalid field",
+      "guardrailCandidate": "record impact details inside schema-supported spec fields such as overview.decisions",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:42:04.463Z"
+    },
+    {
+      "step": "review",
+      "reason": "impl review failed because file-map.json was missing for the implementation review artifact trust check",
+      "trigger": "sdd-forge flow run review returned file-map.json is required for impl review but was not found or is empty",
+      "resolution": "created specs/262-final-regression-evidence/file-map.json mapping R1-R9 to changed final-regression source, schema, prompt, registry, shared unit test, and spec-local test files",
+      "guardrailCandidate": "create or update file-map.json before entering impl review whenever implementation changes production files",
+      "taskId": null,
+      "timestamp": "2026-05-20T02:01:52.101Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "changed implementation evidence after applying third-review proposals for final-regression artifact cleanup",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "535465b90fc96c9777ffa0ed65ad722414e897ae5b7d2c3966c1bcb0147324b0",
+        "currentHash": "b0ef0cb9bcc99b6ed8f3b44b14f4d9b882f95364a31fdc19c8983d8777f3d3e5",
+        "changedPaths": [
+          "src/docs/lib/scanner.js",
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-finalize-commit.js",
+          "src/flow/lib/run-finalize.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/run-test-execute.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/flow/prompts/impl/final-regression.md",
+          "src/flow/registry.js",
+          "src/flow/schemas/next-action/final-regression.schema.json",
+          "src/lib/glob.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"changed implementation evidence after applying third-review proposals for final-regression artifact cleanup\" --yes",
+      "createdAt": "2026-05-20T02:38:43.878Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "changed implementation evidence after applying recovery review proposals for final-regression helpers and artifact pathspec cleanup",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "b0ef0cb9bcc99b6ed8f3b44b14f4d9b882f95364a31fdc19c8983d8777f3d3e5",
+        "currentHash": "085b7b33245637ab42eadef39d81da2b24c0de8c18336c2c26b41737edf4a0be",
+        "changedPaths": [
+          "src/check/commands/scan.js",
+          "src/docs/lib/analysis-filter.js",
+          "src/docs/lib/scanner.js",
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-finalize-commit.js",
+          "src/flow/lib/run-finalize.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/run-test-execute.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/flow/prompts/impl/final-regression.md",
+          "src/flow/registry.js",
+          "src/flow/schemas/next-action/final-regression.schema.json",
+          "src/lib/glob.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"changed implementation evidence after applying recovery review proposals for final-regression helpers and artifact pathspec cleanup\" --yes",
+      "createdAt": "2026-05-20T02:52:17.148Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "changed implementation evidence after applying second recovery review proposals for artifact patterns and test cleanup",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "085b7b33245637ab42eadef39d81da2b24c0de8c18336c2c26b41737edf4a0be",
+        "currentHash": "852d00d392391b76f33a24abef6313aa6e537cfe1ccf8e3b676449a1df157e73",
+        "changedPaths": [
+          "src/check/commands/scan.js",
+          "src/docs/lib/analysis-filter.js",
+          "src/docs/lib/scanner.js",
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-finalize-commit.js",
+          "src/flow/lib/run-finalize.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/run-test-execute.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/flow/prompts/impl/final-regression.md",
+          "src/flow/registry.js",
+          "src/flow/schemas/next-action/final-regression.schema.json",
+          "src/lib/glob.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"changed implementation evidence after applying second recovery review proposals for artifact patterns and test cleanup\" --yes",
+      "createdAt": "2026-05-20T03:25:59.542Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "changed-evidence-after-artifact-reset-contract-fix",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "852d00d392391b76f33a24abef6313aa6e537cfe1ccf8e3b676449a1df157e73",
+        "currentHash": "f0dda5dc6349cb8cc2d848809e0ca202c8d1d848aeba748a425912c86dac9e63",
+        "changedPaths": [
+          "src/check/commands/scan.js",
+          "src/docs/lib/analysis-filter.js",
+          "src/docs/lib/scanner.js",
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-finalize-commit.js",
+          "src/flow/lib/run-finalize.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/lib/run-test-execute.js",
+          "src/flow/lib/test-artifacts.js",
+          "src/flow/prompts/impl/final-regression.md",
+          "src/flow/registry.js",
+          "src/flow/schemas/next-action/final-regression.schema.json",
+          "src/lib/glob.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"changed-evidence-after-artifact-reset-contract-fix\" --yes",
+      "createdAt": "2026-05-20T05:03:30.885Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — The diff replaces 'pre_existing' with 'unattributed_existing_failure' throughout: FAILURE_KINDS constant, FAILURE_NEXT_ACTION map, classifyFailure() function, validateFinalRegressionFailureKind() in test-artifacts.js, final-regression.schema.json enum values, the prompt in final-regression.md, and all test assertions in both unit and spec-local tests.; R2 — All environment/infra failure cases are classified before reaching unattributed_existing_failure: silent nonzero exits → INFRA, timedOut → TIMEOUT, signal → INFRA, discoveryError → INVALID_PROJECT_TEST, exitCode 127 → DEPENDENCY, and TextFailureClassifiers handle eperm→CHILD_PROCESS_EPERM, sandbox→SANDBOX, eacces/permission denied→PERMISSION, enoent/not found/command not found→DEPENDENCY, spawnerror→INFRA. The unattributed_existing_failure branch is only reached after all environment checks pass. Schema validation rejects pre_existing. Tests cover silent nonzero (infra_failure) and EPERM (child_process_eperm) explicitly with spec R2 headers.; R3 — FinalRegressionArtifact constructor no longer accepts previousFailureKind parameter (removed from destructuring and class body). toJSON() no longer emits previousFailureKind. validateFinalRegressionResult schema is tested to reject the field. Unit test 'stops on the second final-regression failure and omits previous failure state' asserts !Object.hasOwn(artifact, 'previousFailureKind'). Spec test R3 also verifies the field is absent on both pass and fail artifacts.; R4 — The diff introduces FinalRegressionAttempt with fileName = `final-regression-attempt-${String(index).padStart(3,'0')}.log` placed under `path.join(specDir, TESTS_RAW_DIR_RELATIVE, fileName)` (i.e. specs/<spec>/tests/.raw/). nextFinalRegressionAttempt() calls latestAttemptIndex() to find the current maximum via FINAL_REGRESSION_ATTEMPT_FILE_RE scan, then increments by 1, giving monotonically increasing zero-padded (≥3 digits) indices. fs.writeFileSync writes the attempt log at that path. Tests in both spec-local (R4 test: two successive runs produce attempt-001 and attempt-002) and unit tests confirm distinct logs per invocation.; R5 — Production code at run-final-regression.js line 407 sets rawOutputPath: artifact.rawOutputPath in the issue-log entry before saveIssueLog; artifact.rawOutputPath is set from attempt.toRelative(root) (same path as the attempt log written to final-regression-result.json). Spec-local test R5 asserts both artifact.rawOutputPath and issueLog.entries[0].rawOutputPath point to the same attempt log.; R6 — FinalRegressionRootCheck.fromContext(ctx) detects worktree mode and compares resolved paths via sameRealPath. When rootCheck.ok is false, the else branch skips discoverRegressionCommand and runProcessDetailed entirely, sets resultStatus='fail' and failureKind=FAILURE_KINDS.INFRA ('infra_failure'). FinalRegressionDecision.fail('infra_failure', ...) yields retryable=false (not repairable kind) and nextAction='stop' (from FAILURE_NEXT_ACTION[FAILURE_KINDS.INFRA]). Both the unit test and spec-local R6 test assert these four fields and confirm the project test command never ran.; R7 — The diff explicitly adds `retryable: ${decision.retryable}` to the raw log lines (alongside the already-present `result`, `failureKind`, and `nextAction`), ensures `FinalRegressionArtifact.toJSON()` and `toEnvelopeArtifacts()` each return all four fields as distinct top-level properties, removes the conflating `previousFailureKind` field, and the spec-local R7 test asserts all four fields are present and correctly typed in both the artifact JSON and the raw log file.; R8 — The diff satisfies all four R8 sub-requirements: (1) `src/flow/prompts/impl/final-regression.md` explicitly names `unattributed_existing_failure` as a failureKind and removes any reference to `pre_existing`; (2) it references attempt logs via `rawOutputPath` and the pattern `tests/.raw/final-regression-attempt-*.log`; (3) it instructs agents to treat `final-regression-result.json` as current-run only and store historical failures in `issue-log.json`, covering the 'no past failureKind in pass artifacts' requirement; (4) it says 'do not delete or overwrite prior attempt logs', and `test-artifacts.js` places `FINAL_REGRESSION_RAW_OUTPUT_PATTERN` inside `DURABLE_TEST_ARTIFACT_RELATIVE_PATTERNS`, confirming durable retention. The spec-local R8 test in `final-regression-evidence.test.js` also statically validates these properties.; R9 — spec-local test file `specs/262-final-regression-evidence/tests/final-regression-evidence.test.js` is created with a file-level `// spec: R1 R2 R3 R4 R5 R6 R7 R8 R9` header and individual tests named R1 through R9 covering all required R1–R7 scenarios. Shared unit tests in `tests/unit/flow/final-regression.test.js` cover the failureKind rename (`unattributed_existing_failure`), `previousFailureKind` removal (`assert.ok(!Object.hasOwn(artifact, 'previousFailureKind'))`), attempt-log allocation (`attemptLogPath(1)`, `attemptLogPath(2)`, 'keeps per-attempt final-regression logs' test), and worktree root assertion ('stops before project tests when worktreePath does not match ctx.root'). The R9 meta-test in the spec-local suite also statically validates these four coverage points in the unit test file.; Spec Test Coverage — The diff introduces specs/262-final-regression-evidence/tests/final-regression-evidence.test.js with the header '// spec: R1 R2 R3 R4 R5 R6 R7 R8 R9', providing at least one named test case for each of R1 through R9 under the required specs/<specid>/tests/ path.; Avoid Overengineering — export function removeReviewResetArtifacts(specDir) {\n  removeRebuildableTestArtifacts(specDir);\n} — This exported function is a body-identical wrapper over removeRebuildableTestArtifacts and has exactly one call site (run-review.js line that replaces the old inline removal loop). It introduces an indirection layer with a single caller, which is prohibited by this guardrail. (at src/flow/lib/test-artifacts.js); Avoid Overengineering — export function removeTestExecuteResetArtifacts(specDir) {\n  removeRebuildableTestArtifacts(specDir);\n} — This exported function is a body-identical wrapper over removeRebuildableTestArtifacts and has exactly one call site (run-test-execute.js). It introduces an indirection layer with a single caller, prohibited by this guardrail. (at src/flow/lib/test-artifacts.js); Avoid Overengineering — function specRootPosix(specId) {\n  return path.posix.join(\"specs\", specId);\n} — This private helper wraps a single path.posix.join expression and is called only from testArtifactPathspecs in the same file. It introduces an indirection layer with a single caller, prohibited by this guardrail. (at src/flow/lib/test-artifacts.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T06:07:04.832Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "export function removeReviewResetArtifacts(specDir) {\n  removeRebuildableTestArtifacts(specDir);\n} — This exported function is a body-identical wrapper over removeRebuildableTestArtifacts and has exactly one call site (run-review.js line that replaces the old inline removal loop). It introduces an indirection layer with a single caller, which is prohibited by this guardrail. (at src/flow/lib/test-artifacts.js); export function removeTestExecuteResetArtifacts(specDir) {\n  removeRebuildableTestArtifacts(specDir);\n} — This exported function is a body-identical wrapper over removeRebuildableTestArtifacts and has exactly one call site (run-test-execute.js). It introduces an indirection layer with a single caller, prohibited by this guardrail. (at src/flow/lib/test-artifacts.js); function specRootPosix(specId) {\n  return path.posix.join(\"specs\", specId);\n} — This private helper wraps a single path.posix.join expression and is called only from testArtifactPathspecs in the same file. It introduces an indirection layer with a single caller, prohibited by this guardrail. (at src/flow/lib/test-artifacts.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: remove thin rebuildable artifact wrappers",
+      "resolution": "Replaced one-call wrapper exports with direct removeRebuildableTestArtifacts usage and inlined the single-use specs path helper.",
+      "taskId": null,
+      "timestamp": "2026-05-20T06:07:50.856Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — previously passed (skipped on retry); R9 — previously passed (skipped on retry); Spec Test Coverage — The diff adds specs/262-final-regression-evidence/tests/final-regression-evidence.test.js with header '// spec: R1 R2 R3 R4 R5 R6 R7 R8 R9', covering all spec-required requirements R1–R9 with distinct it() blocks. Shared unit tests in tests/unit/flow/final-regression.test.js and tests/unit/flow/run-finalize-retro-commit-scope.test.js are updated to reflect production contract changes, which is explicitly permitted. No previously passing spec-local coverage requirement is left unaddressed by the diff.; Avoid Overengineering — class FinalRegressionAttempt — The class is instantiated once in nextFinalRegressionAttempt and its properties absolutePath and toRelative are each consumed once in execute. There is no reuse site; the path-construction logic (padStart + path.join) could be inlined in fewer lines than the class definition itself, making this a single-caller indirection layer. (at src/flow/lib/run-final-regression.js:+class FinalRegressionAttempt); Avoid Overengineering — class FinalRegressionRootCheck — FinalRegressionRootCheck.fromContext is called once in execute, and its ok getter and failureMessage() are each called exactly once in that same method. All three entry points have a single caller, so the class is a single-caller indirection layer over ~8 lines that could be written inline. (at src/flow/lib/run-final-regression.js:+class FinalRegressionRootCheck); Avoid Overengineering — function sameRealPath — sameRealPath is called exactly once, inside FinalRegressionRootCheck.ok. It is a one-line comparison wrapper with no second caller; extracting it as a named function adds an indirection layer without enabling reuse. (at src/flow/lib/run-final-regression.js:+function sameRealPath); Avoid Overengineering — function removeArtifactPathspecs — removeArtifactPathspecs has exactly one caller: removeRebuildableTestArtifacts. The three-line body (iterate collectExistingArtifactPathspecs, rmSync each entry) could be inlined in its sole consumer without any loss of clarity, making this a single-caller indirection layer. (at src/flow/lib/test-artifacts.js:+function removeArtifactPathspecs)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T06:11:22.794Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "class FinalRegressionAttempt — The class is instantiated once in nextFinalRegressionAttempt and its properties absolutePath and toRelative are each consumed once in execute. There is no reuse site; the path-construction logic (padStart + path.join) could be inlined in fewer lines than the class definition itself, making this a single-caller indirection layer. (at src/flow/lib/run-final-regression.js:+class FinalRegressionAttempt); class FinalRegressionRootCheck — FinalRegressionRootCheck.fromContext is called once in execute, and its ok getter and failureMessage() are each called exactly once in that same method. All three entry points have a single caller, so the class is a single-caller indirection layer over ~8 lines that could be written inline. (at src/flow/lib/run-final-regression.js:+class FinalRegressionRootCheck); function sameRealPath — sameRealPath is called exactly once, inside FinalRegressionRootCheck.ok. It is a one-line comparison wrapper with no second caller; extracting it as a named function adds an indirection layer without enabling reuse. (at src/flow/lib/run-final-regression.js:+function sameRealPath); function removeArtifactPathspecs — removeArtifactPathspecs has exactly one caller: removeRebuildableTestArtifacts. The three-line body (iterate collectExistingArtifactPathspecs, rmSync each entry) could be inlined in its sole consumer without any loss of clarity, making this a single-caller indirection layer. (at src/flow/lib/test-artifacts.js:+function removeArtifactPathspecs)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: inline single-use final-regression and artifact helpers",
+      "resolution": "Removed FinalRegressionAttempt, FinalRegressionRootCheck, sameRealPath, and removeArtifactPathspecs single-caller indirections flagged by gate.",
+      "taskId": null,
+      "timestamp": "2026-05-20T06:12:19.859Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase failed: working tree has uncommitted changes. Commit or discard changes in the worktree before retrying finalize.",
+      "timestamp": "2026-05-20T06:21:59.829Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-05-20T06:23:22.872Z"
+    }
+  ]
+}

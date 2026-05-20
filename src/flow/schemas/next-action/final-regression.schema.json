@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "required": ["completed", "result_path", "raw_output_path", "result", "retryable", "nextAction"],
+  "required": ["completed", "result_path", "raw_output_path", "result", "failureKind", "retryable", "nextAction"],
   "properties": {
     "completed": { "type": "boolean" },
     "result_path": { "type": "string" },
@@ -10,18 +10,74 @@
       "type": ["string", "null"],
       "enum": [
         "caused_by_current_change",
-        "pre_existing",
+        "unattributed_existing_failure",
         "infra_failure",
         "timeout",
         "dependency_failure",
         "sandbox_restriction",
         "permission_error",
-        "child_process_eprem",
+        "child_process_eperm",
         "invalid_project_test",
         null
       ]
     },
     "retryable": { "type": "boolean" },
-    "nextAction": { "type": "string" }
-  }
+    "nextAction": {
+      "type": "string",
+      "enum": [
+        "finalize-commit",
+        "regression-repair",
+        "user-confirmation",
+        "test-repair",
+        "stop"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "result": { "const": "pass" } },
+        "required": ["result"]
+      },
+      "then": {
+        "properties": {
+          "failureKind": { "const": null },
+          "retryable": { "const": false },
+          "nextAction": { "const": "finalize-commit" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "result": { "const": "fail" } },
+        "required": ["result"]
+      },
+      "then": {
+        "properties": {
+          "failureKind": {
+            "type": "string",
+            "enum": [
+              "caused_by_current_change",
+              "unattributed_existing_failure",
+              "infra_failure",
+              "timeout",
+              "dependency_failure",
+              "sandbox_restriction",
+              "permission_error",
+              "child_process_eperm",
+              "invalid_project_test"
+            ]
+          },
+          "nextAction": {
+            "enum": [
+              "regression-repair",
+              "user-confirmation",
+              "test-repair",
+              "stop"
+            ]
+          }
+        }
+      }
+    }
+  ]
 }

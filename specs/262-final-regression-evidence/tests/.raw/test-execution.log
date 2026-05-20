@@ -1,0 +1,90 @@
+[sdd-forge] spec-local tests start
+command: node --test specs/262-final-regression-evidence/tests/final-regression-evidence.test.js
+TAP version 13
+# Subtest: spec 262 final-regression evidence
+    # Subtest: R1: renames unattributed final-regression failures
+    ok 1 - R1: renames unattributed final-regression failures
+      ---
+      duration_ms: 82.479582
+      type: 'test'
+      ...
+    # Subtest: R2: keeps environment failures out of unattributed classification and rejects the legacy kind
+    ok 2 - R2: keeps environment failures out of unattributed classification and rejects the legacy kind
+      ---
+      duration_ms: 75.262585
+      type: 'test'
+      ...
+    # Subtest: R2: classifies child-process EPERM output with the correctly spelled failure kind
+    ok 3 - R2: classifies child-process EPERM output with the correctly spelled failure kind
+      ---
+      duration_ms: 88.071531
+      type: 'test'
+      ...
+    # Subtest: R3: removes previous failure state from current-run artifacts
+    ok 4 - R3: removes previous failure state from current-run artifacts
+      ---
+      duration_ms: 129.806784
+      type: 'test'
+      ...
+    # Subtest: R4: retains a distinct raw log for every final-regression attempt
+    ok 5 - R4: retains a distinct raw log for every final-regression attempt
+      ---
+      duration_ms: 108.625756
+      type: 'test'
+      ...
+    # Subtest: R5: points result artifacts and issue-log entries at the matching attempt log
+    ok 6 - R5: points result artifacts and issue-log entries at the matching attempt log
+      ---
+      duration_ms: 69.289914
+      type: 'test'
+      ...
+    # Subtest: R6: stops worktree root mismatches before project tests start
+    ok 7 - R6: stops worktree root mismatches before project tests start
+      ---
+      duration_ms: 38.545917
+      type: 'test'
+      ...
+    # Subtest: R7: records result, attribution, retryability, and flow action as separate output signals
+    ok 8 - R7: records result, attribution, retryability, and flow action as separate output signals
+      ---
+      duration_ms: 77.615318
+      type: 'test'
+      ...
+    # Subtest: R8: updates guidance and durable artifact references for the new final-regression contract
+    ok 9 - R8: updates guidance and durable artifact references for the new final-regression contract
+      ---
+      duration_ms: 1.657689
+      type: 'test'
+      ...
+    # Subtest: R9: keeps shared unit coverage aligned with the production contracts
+    ok 10 - R9: keeps shared unit coverage aligned with the production contracts
+      ---
+      duration_ms: 0.913524
+      type: 'test'
+      ...
+    1..10
+ok 1 - spec 262 final-regression evidence
+  ---
+  duration_ms: 674.645412
+  type: 'suite'
+  ...
+1..1
+# tests 10
+# suites 1
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 792.954418
+exitCode: 0
+[sdd-forge] requirement R1 result pass
+[sdd-forge] requirement R2 result pass
+[sdd-forge] requirement R3 result pass
+[sdd-forge] requirement R4 result pass
+[sdd-forge] requirement R5 result pass
+[sdd-forge] requirement R6 result pass
+[sdd-forge] requirement R7 result pass
+[sdd-forge] requirement R8 result pass
+[sdd-forge] requirement R9 result pass
+[sdd-forge] spec-local tests end
