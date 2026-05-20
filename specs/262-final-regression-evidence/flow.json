@@ -185,18 +185,21 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-05-20T06:21:41.582Z"
+              "status": "done",
+              "startedAt": "2026-05-20T06:21:41.582Z",
+              "finishedAt": "2026-05-20T06:47:16.504Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending",
-              "finishedAt": "2026-05-20T06:23:22.882Z"
+              "status": "done",
+              "finishedAt": "2026-05-20T06:48:52.707Z",
+              "startedAt": "2026-05-20T06:47:16.504Z"
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending",
-              "finishedAt": "2026-05-20T06:23:22.891Z"
+              "status": "done",
+              "finishedAt": "2026-05-20T06:49:13.011Z",
+              "startedAt": "2026-05-20T06:48:52.707Z"
             }
           ]
         }
@@ -3303,6 +3306,40 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-05-20T06:15:01.113Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 8895,
+      "durationMs": 37627,
+      "tokens": {
+        "input": 7263,
+        "output": 1829,
+        "cacheRead": 15744,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-20T06:48:20.395Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 15202,
+      "durationMs": 69606,
+      "tokens": {
+        "input": 21181,
+        "output": 3563,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-20T06:48:52.371Z"
     }
   ],
   "reviewRecoveryBaselines": [
@@ -3747,6 +3784,8 @@
   },
   "reviewStop": null,
   "state": {
-    "finalizedAt": "2026-05-20T06:21:41.446Z"
+    "finalizedAt": "2026-05-20T06:21:41.446Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "39d978b3eeef4370afd235b6bc597518e6df5a38"
   }
 }
