@@ -15,19 +15,28 @@ const MAX_INCLUDE_DEPTH = 8;
 const MAX_INCLUDE_COUNT = 32;
 
 /**
+ * @returns {string|null} absolute path when prefix matches, otherwise null
+ */
+function resolveAliasedIncludePath(includePath, prefix, rootDir, optionName) {
+  if (!includePath.startsWith(prefix)) return null;
+  if (!rootDir) throw new Error(`Cannot resolve "${includePath}": ${optionName} not provided`);
+  return path.join(rootDir, includePath.slice(prefix.length));
+}
+
+/**
  * Resolve a single include path to an absolute file path.
  *
  * Resolution rules:
  * - `name`              → baseDir (same folder)
  * - `/path/to/name`     → pkgDir (src/) root
- * - `@templates/path`   → templatesDir
+ * - `@skills/path`      → skillsDir
  * - `@presets/<p>/path` → presetsDir/<p>/path
  *
  * @param {string} includePath - path from the include directive
  * @param {Object} opts
  * @param {string} opts.baseDir - directory of the file containing the include
  * @param {string} [opts.pkgDir] - PKG_DIR (src/) for absolute paths
- * @param {string} [opts.templatesDir] - templates root for @templates/
+ * @param {string} [opts.skillsDir] - skills root for @skills/
  * @param {string} [opts.presetsDir] - presets root for @presets/
  * @returns {string} absolute file path
  */
@@ -39,22 +48,15 @@ function resolveIncludePath(includePath, opts) {
     throw new Error(`Forbidden path: "${includePath}" contains "./"`);
   }
 
-  if (includePath.startsWith("@templates/")) {
-    const rel = includePath.slice("@templates/".length);
-    if (!opts.templatesDir) throw new Error(`Cannot resolve "${includePath}": templatesDir not provided`);
-    return path.join(opts.templatesDir, rel);
-  }
+  const skillsPath = resolveAliasedIncludePath(includePath, "@skills/", opts.skillsDir, "skillsDir");
+  if (skillsPath !== null) return skillsPath;
 
-  if (includePath.startsWith("@presets/")) {
-    const rel = includePath.slice("@presets/".length);
-    if (!opts.presetsDir) throw new Error(`Cannot resolve "${includePath}": presetsDir not provided`);
-    return path.join(opts.presetsDir, rel);
-  }
+  const presetsPath = resolveAliasedIncludePath(includePath, "@presets/", opts.presetsDir, "presetsDir");
+  if (presetsPath !== null) return presetsPath;
 
   if (includePath.startsWith("/")) {
     const rel = includePath.slice(1);
-    const pkgDir = opts.pkgDir || opts.baseDir;
-    return path.join(pkgDir, rel);
+    return path.join(opts.pkgDir || opts.baseDir, rel);
   }
 
   return path.join(opts.baseDir, includePath);
@@ -67,9 +69,8 @@ function resolveIncludePath(includePath, opts) {
  * @param {Object} opts
  * @param {string} opts.baseDir - directory of the source file
  * @param {string} [opts.pkgDir] - PKG_DIR for / paths
- * @param {string} [opts.templatesDir] - templates root for @templates/
+ * @param {string} [opts.skillsDir] - skills root for @skills/
  * @param {string} [opts.presetsDir] - presets root for @presets/
- * @param {string} [opts.lang] - language for fallback resolution
  * @param {string} [opts.sourceFile] - source file name (for error messages)
  * @param {Set<string>} [opts._seen] - internal: tracks visited files for circular detection
  * @returns {string} content with all includes resolved

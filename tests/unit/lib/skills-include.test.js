@@ -16,12 +16,20 @@ describe("deploySkills include resolution", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
-  it("deployed SKILL.md contains no include directives", () => {
+  function setupConfiguredTmpProject() {
     tmp = createTmpDir();
     fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
-    fs.writeFileSync(path.join(tmp, ".sdd-forge", "config.json"), JSON.stringify({ lang: "en", type: "base", docs: { languages: ["en"], defaultLanguage: "en" } }));
+    fs.writeFileSync(
+      path.join(tmp, ".sdd-forge", "config.json"),
+      JSON.stringify({ lang: "en", type: "base", docs: { languages: ["en"], defaultLanguage: "en" } }),
+    );
+    return tmp;
+  }
 
-    const results = deploySkills(tmp, "en");
+  it("deployed SKILL.md contains no include directives", () => {
+    const projectDir = setupConfiguredTmpProject();
+
+    const results = deploySkills(projectDir);
     assert.ok(results.length > 0, "should deploy at least one skill");
 
     for (const { name } of results) {
@@ -36,13 +44,11 @@ describe("deploySkills include resolution", () => {
   });
 
   it("deployed content includes partials content", () => {
-    tmp = createTmpDir();
-    fs.mkdirSync(path.join(tmp, ".sdd-forge"), { recursive: true });
-    fs.writeFileSync(path.join(tmp, ".sdd-forge", "config.json"), JSON.stringify({ lang: "en", type: "base", docs: { languages: ["en"], defaultLanguage: "en" } }));
+    const projectDir = setupConfiguredTmpProject();
 
-    deploySkills(tmp, "en");
+    deploySkills(projectDir);
 
-    const flowPath = path.join(tmp, ".agents", "skills", "sdd-forge.flow", "SKILL.md");
+    const flowPath = path.join(projectDir, ".agents", "skills", "sdd-forge.flow", "SKILL.md");
     if (fs.existsSync(flowPath)) {
       const content = fs.readFileSync(flowPath, "utf8");
       // Choice Format partial content should be expanded

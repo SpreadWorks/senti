@@ -1,0 +1,58 @@
+{
+  "spec": "specs/262-rename-skill-data-dirs/spec.json",
+  "date": "2026-05-20T05:19:29.728Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "All files under `src/templates/skills/` and `src/templates/skills/rules.json` must move to `src/skills/` with the same skill directory names and file contents except for required path/include directive updates.",
+      "status": "done",
+      "note": "R1: bundled skill sources live under src/skills"
+    },
+    {
+      "desc": "All files under `src/templates/partials/` must move to `src/skills/partials/`, and bundled skill source files must reference them through `@skills/partials/*.md`; no `@templates/` include directive may remain under `src/skills/`.",
+      "status": "done",
+      "note": "R2: skill partial includes use @skills"
+    },
+    {
+      "desc": "All files under `src/docs/data/` must move to `src/data/`, and production/test imports or path constants that target common DataSource modules must resolve the new directory.",
+      "status": "done",
+      "note": "R3: common DataSources live under src/data"
+    },
+    {
+      "desc": "All files under `experimental/workflow/templates/skills/` must move to `experimental/workflow/skills/`, and experimental workflow deployment must use that new path when workflow experimental mode is enabled.",
+      "status": "done",
+      "note": "R4: experimental workflow skills use the new source path"
+    },
+    {
+      "desc": "`src/lib/skills.js`, `src/lib/include.js`, `src/upgrade.js`, `src/docs/lib/resolver-factory.js`, and all DataSource import references must use `src/skills/`, `src/skills/partials/`, `src/data/`, `experimental/workflow/skills/`, `@skills/`, and `MAIN_SKILLS_DIR`; no production code path may require `src/templates/skills`, `src/templates/partials`, `src/docs/data`, `experimental/workflow/templates/skills`, `@templates/`, or `MAIN_SKILLS_TEMPLATES_DIR`.",
+      "status": "done",
+      "note": "R5: production path consumers use the new names"
+    },
+    {
+      "desc": "Existing unit and e2e tests that mention the moved paths must be updated to the new paths and names, and spec-local tests under `specs/262-rename-skill-data-dirs/tests/` must cover the path contracts for skills, partial includes, DataSource loading, experimental workflow skills, and upgrade output.",
+      "status": "done",
+      "note": "R6: spec-local and shared tests cover the new contracts"
+    },
+    {
+      "desc": "`AGENTS.md` and `src/presets/base/templates/*/AGENTS.sdd.md` must replace literal `src/templates/` guidance with `src/skills/` while preserving `src/presets/`; `src/CLAUDE.md` must change only literal `src/templates/` references if present and must preserve preset-internal `templates/` explanations.",
+      "status": "done",
+      "note": "R7: guidance points at src/skills while preserving src/presets"
+    },
+    {
+      "desc": "`sdd-forge upgrade` must exit 0 after the rename, generate `.agents/skills/sdd-forge.flow/SKILL.md` and `.claude/skills/sdd-forge.flow/SKILL.md`, and the generated SKILL.md files must contain no raw `@templates/` include directive.",
+      "status": "done",
+      "note": "R8: upgrade exits 0 and generated skill artifacts use the new source"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

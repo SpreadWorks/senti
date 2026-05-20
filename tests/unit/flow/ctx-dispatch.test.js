@@ -119,16 +119,51 @@ describe("prepare-spec config requirement", () => {
   });
 });
 
-describe("skill template migration", () => {
-  it("skill templates should not reference flow run prepare-spec", () => {
-    const templatesDir = path.join(ROOT, "src/templates/skills");
-    if (!fs.existsSync(templatesDir)) return;
-    const files = fs.readdirSync(templatesDir).filter((f) => f.endsWith(".md"));
-    for (const file of files) {
-      const content = fs.readFileSync(path.join(templatesDir, file), "utf8");
+// Current skill sources are shallow: src/skills/<skill>/SKILL.md plus partials.
+const MAX_SKILL_MARKDOWN_SCAN_DEPTH = 4;
+const MAX_SKILL_SCAN_ENTRIES = 128;
+const MAX_SKILL_MARKDOWN_FILES = 64;
+const MAX_SKILL_MARKDOWN_FILE_BYTES = 128 * 1024;
+
+function collectSkillMarkdownFiles(dir, depth = 0, state = { markdownFileCount: 0, entries: 0, rootDir: dir }) {
+  if (depth > MAX_SKILL_MARKDOWN_SCAN_DEPTH) {
+    throw new Error(`collectSkillMarkdownFiles exceeded depth ${MAX_SKILL_MARKDOWN_SCAN_DEPTH}: ${dir}`);
+  }
+  const skillMarkdownFiles = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    state.entries += 1;
+    if (state.entries > MAX_SKILL_SCAN_ENTRIES) {
+      throw new Error(`collectSkillMarkdownFiles exceeded ${MAX_SKILL_SCAN_ENTRIES} entries`);
+    }
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      skillMarkdownFiles.push(...collectSkillMarkdownFiles(fullPath, depth + 1, state));
+    } else if (entry.name.endsWith(".md")) {
+      state.markdownFileCount += 1;
+      if (state.markdownFileCount > MAX_SKILL_MARKDOWN_FILES) {
+        throw new Error(`collectSkillMarkdownFiles exceeded ${MAX_SKILL_MARKDOWN_FILES} files`);
+      }
+      const size = fs.statSync(fullPath).size;
+      if (size > MAX_SKILL_MARKDOWN_FILE_BYTES) {
+        throw new Error(`${path.relative(state.rootDir, fullPath)} exceeds ${MAX_SKILL_MARKDOWN_FILE_BYTES} bytes`);
+      }
+      skillMarkdownFiles.push(fullPath);
+    }
+  }
+  return skillMarkdownFiles;
+}
+
+describe("src/skills removed flow action references", () => {
+  it("skill markdown files should not reference flow run prepare-spec", () => {
+    const skillsDir = path.join(ROOT, "src/skills");
+    assert.ok(fs.existsSync(skillsDir), `expected skills directory at ${skillsDir}`);
+    const skillMarkdownFiles = collectSkillMarkdownFiles(skillsDir);
+    assert.ok(skillMarkdownFiles.length > 0, "expected skill markdown files to scan");
+    for (const file of skillMarkdownFiles) {
+      const content = fs.readFileSync(file, "utf8");
       assert.ok(
         !content.includes("flow run prepare-spec"),
-        `${file} must not reference 'flow run prepare-spec'`,
+        `${path.relative(skillsDir, file)} must not reference 'flow run prepare-spec'`,
       );
     }
   });

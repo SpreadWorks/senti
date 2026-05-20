@@ -15,6 +15,15 @@ describe("resolveIncludes", () => {
   let tmp;
   afterEach(() => tmp && removeTmpDir(tmp));
 
+  function setupSkillsPartialFixture() {
+    tmp = createTmpDir();
+    const skillsDir = path.join(tmp, "skills");
+    const partialsDir = path.join(skillsDir, "partials");
+    fs.mkdirSync(partialsDir, { recursive: true });
+    fs.writeFileSync(path.join(partialsDir, "shared.md"), "Shared content");
+    return { baseDir: tmp, skillsDir };
+  }
+
   it("replaces include directive with file content", () => {
     tmp = createTmpDir();
     fs.writeFileSync(path.join(tmp, "partial.md"), "Hello from partial");
@@ -24,16 +33,27 @@ describe("resolveIncludes", () => {
     assert.equal(result, "# Title\nHello from partial\n# End");
   });
 
-  it("resolves @templates/ path", () => {
-    tmp = createTmpDir();
-    const templatesDir = path.join(tmp, "templates");
-    const partialsDir = path.join(templatesDir, "partials");
-    fs.mkdirSync(partialsDir, { recursive: true });
-    fs.writeFileSync(path.join(partialsDir, "shared.md"), "Shared content");
+  it("resolves @skills/ path", () => {
+    const { baseDir, skillsDir } = setupSkillsPartialFixture();
 
-    const content = '<!-- include("@templates/partials/shared.md") -->';
-    const result = resolveIncludes(content, { baseDir: tmp, templatesDir });
+    const content = '<!-- include("@skills/partials/shared.md") -->';
+    const result = resolveIncludes(content, { baseDir, skillsDir });
     assert.equal(result, "Shared content");
+  });
+
+  it("throws when legacy skill partial namespace is used", () => {
+    const { baseDir, skillsDir } = setupSkillsPartialFixture();
+    const templatesDir = path.join(baseDir, "templates");
+    fs.mkdirSync(path.join(templatesDir, "partials"), { recursive: true });
+    fs.writeFileSync(path.join(templatesDir, "partials", "shared.md"), "Legacy content");
+    // Split to avoid matching legacy-path grep audits outside this negative test.
+    const legacyTemplatesNamespace = ["@", "templates"].join("");
+    const oldNamespace = `${legacyTemplatesNamespace}/partials/shared.md`;
+    const content = `<!-- include("${oldNamespace}") -->`;
+    assert.throws(
+      () => resolveIncludes(content, { baseDir, skillsDir, templatesDir }),
+      (err) => err.message.includes(oldNamespace),
+    );
   });
 
   it("resolves @presets/<preset>/ path", () => {

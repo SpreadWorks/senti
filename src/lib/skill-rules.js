@@ -27,7 +27,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /** Canonical packaged location of rules.json. */
-export const RULES_JSON_PATH = path.resolve(__dirname, "..", "templates", "skills", "rules.json");
+export const RULES_JSON_PATH = path.resolve(__dirname, "..", "skills", "rules.json");
 
 /** Canonical scope-aware leaf id strings (24 entries). */
 export const VALID_SKILL_RULE_PHASES = Object.freeze([

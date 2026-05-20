@@ -80,8 +80,8 @@ describe("getStepInstructions (loader contract)", () => {
       assert.match(content, /Codebase-context design gaps belong to `review-spec` \/ `spec-review-triage` \/ `spec-repair`/);
     });
 
-    it("flow skill template documents runtime log options instead of env prefixes", () => {
-      const content = fs.readFileSync(path.join(PKG_DIR, "templates", "skills", "sdd-forge.flow", "SKILL.md"), "utf8");
+    it("flow skill source documents runtime log options instead of env prefixes", () => {
+      const content = fs.readFileSync(path.join(PKG_DIR, "skills", "sdd-forge.flow", "SKILL.md"), "utf8");
       assert.match(content, /--agent-work-dir/);
       assert.match(content, /--log-file/);
       assert.doesNotMatch(content, /SDD_FORGE_WORK_DIR/);

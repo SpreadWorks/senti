@@ -2,10 +2,10 @@
 /**
  * sdd-forge/upgrade.js
  *
- * Upgrade template-derived files (skills, AGENTS.md SDD section) to match
+ * Upgrade skill-derived files (skills, AGENTS.md SDD section) to match
  * the currently installed sdd-forge version.
  *
- * Safe to run repeatedly — only overwrites template-managed content.
+ * Safe to run repeatedly — only overwrites skill-managed content.
  * Does NOT touch config.json or context.json.
  *
  * Usage:
@@ -13,13 +13,18 @@
  */
 
 import fs from "fs";
-import path from "path";
-import { repoRoot, parseArgs, PKG_DIR } from "./lib/cli.js";
+import { repoRoot, parseArgs } from "./lib/cli.js";
 import { EXIT_ERROR } from "./lib/constants.js";
 import { loadConfig, sddConfigPath } from "./lib/config.js";
 import { translate } from "./lib/i18n.js";
 import { validatePresetChain } from "./lib/presets.js";
-import { deploySkills, deployProjectSkills, cleanupObsoleteSkills, MAIN_SKILLS_TEMPLATES_DIR } from "./lib/skills.js";
+import {
+  deploySkills,
+  deployProjectSkills,
+  cleanupObsoleteSkills,
+  MAIN_SKILLS_DIR,
+  EXPERIMENTAL_WORKFLOW_SKILLS_DIR,
+} from "./lib/skills.js";
 
 
 // ---------------------------------------------------------------------------
@@ -61,7 +66,7 @@ async function main() {
   const t = translate();
   const dryRun = cli.dryRun;
 
-  // Fail-fast: chapters ↔ templates static integrity check (spec 218).
+  // Fail-fast: chapters ↔ preset chain static integrity check (spec 218).
   if (config.type) {
     try {
       validatePresetChain(config.type, root, {
@@ -88,33 +93,37 @@ async function main() {
     }
   }
 
-  // 1. Skills upgrade
-  const validTemplatesDirs = [MAIN_SKILLS_TEMPLATES_DIR];
-  let skillResults;
-  try {
-    skillResults = deploySkills(root, config.lang, { dryRun });
-  } catch (e) {
-    console.error(`upgrade failed: ${e.message}`);
-    process.exit(EXIT_ERROR);
-  }
-  logSkillResults(skillResults);
-
-  // 1b. Experimental skills (opt-in via config flags)
+  // Skills upgrade
+  const activeSkillSources = [
+    { dir: MAIN_SKILLS_DIR, deploy: () => deploySkills(root, { dryRun }) },
+  ];
   if (config.experimental?.workflow?.enable === true) {
-    const expDir = path.join(PKG_DIR, "..", "experimental", "workflow", "templates", "skills");
-    validTemplatesDirs.push(expDir);
-    const expResults = deployProjectSkills(root, expDir, config.lang, { dryRun });
-    logSkillResults(expResults);
-    skillResults.push(...expResults);
+    activeSkillSources.push({
+      dir: EXPERIMENTAL_WORKFLOW_SKILLS_DIR,
+      deploy: () => deployProjectSkills(root, EXPERIMENTAL_WORKFLOW_SKILLS_DIR, { dryRun }),
+    });
   }
 
-  // 1c. Remove obsolete sdd-forge.* skills no longer in any template directory
-  const removedSkills = cleanupObsoleteSkills(root, validTemplatesDirs, { dryRun });
+  const skillResults = [];
+  for (const source of activeSkillSources) {
+    let results;
+    try {
+      results = source.deploy();
+    } catch (e) {
+      console.error(`upgrade failed: ${e.message}`);
+      process.exit(EXIT_ERROR);
+    }
+    logSkillResults(results);
+    skillResults.push(...results);
+  }
+
+  // Remove obsolete sdd-forge.* skills no longer in any skill source directory
+  const removedSkills = cleanupObsoleteSkills(root, activeSkillSources.map((source) => source.dir), { dryRun });
   for (const { name } of removedSkills) {
     console.log(t("ui:upgrade.skillRemoved", { name }));
   }
 
-  // 2. Migrate chapters format (string[] → object[])
+  // Migrate chapters format (string[] → object[])
   const configPath = sddConfigPath(root);
   try {
     const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));

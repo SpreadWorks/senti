@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-05-20T01:46:35.888Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 3,
+    "total": 3
+  },
+  "coverageArtifact": "specs/262-rename-skill-data-dirs/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R4 path assertion is overly prescriptive about path.join style",
+      "target": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js (R4 test, regex /experimental[\"'],\\s*[\"']workflow[\"'],\\s*[\"']skills[\"']/)",
+      "improvement": "Loosen the regex to also accept equivalent path expressions such as a single literal `\"experimental/workflow/skills\"` or `path.join(..., \"experimental\", \"workflow\", \"skills\")` with arbitrary leading segments, so the test enforces the path semantics rather than a specific quoting/segmentation style.",
+      "whyNonBlocking": "The current regex matches the conventional path.join style used elsewhere in this codebase, so a compliant implementation will satisfy it; this is purely a robustness improvement."
+    },
+    {
+      "kind": "advisory",
+      "title": "R8 verifies upgrade output artifacts but does not exercise `sdd-forge upgrade` exit code",
+      "target": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js (R8 test)",
+      "improvement": "Consider invoking `sdd-forge upgrade` from the test (or relying on a separate e2e test) so that R8's `exit 0 after the rename` clause is actively verified rather than inferred from pre-existing generated artifacts; at minimum, document that the spec depends on upgrade being run as part of implementation.",
+      "whyNonBlocking": "R6 frames the spec-local coverage around `upgrade output` (artifact content), and the combination of R2 (no `@templates/` in skill sources) and R8 (artifacts contain expanded `Core Principle` content with no `@templates/`) transitively detects an unrun or failed upgrade; the runtime exit code check belongs to test-execute/final-regression phases."
+    },
+    {
+      "kind": "advisory",
+      "title": "R6 file-count threshold is fragile if tests/unit/templates/ is itself renamed",
+      "target": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js (R6 test, `existingTestFiles.length >= 8`)",
+      "improvement": "Either widen the candidate list to include likely renamed locations (e.g. tests/unit/skills/*) or lower the threshold, so the assertion does not flip to failure purely because shared regression tests were relocated alongside the src rename.",
+      "whyNonBlocking": "Today's candidate list has 11 entries and only the three under tests/unit/templates/ are likely to move, leaving exactly 8 — still meeting the threshold; this is a future-proofing concern."
+    }
+  ]
+}

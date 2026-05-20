@@ -8,7 +8,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { getChapterFiles } from "../lib/command-context.js";
+import { getChapterFiles } from "../docs/lib/command-context.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -152,7 +152,7 @@ export default function register(container) {
    * Load language display names from locale file.
    */
   _loadLanguageNames(lang) {
-    const localeDir = path.resolve(__dirname, "..", "..", "locale");
+    const localeDir = path.resolve(__dirname, "..", "locale");
     const filePath = path.join(localeDir, lang, "ui.json");
     try {
       const data = JSON.parse(fs.readFileSync(filePath, "utf8"));

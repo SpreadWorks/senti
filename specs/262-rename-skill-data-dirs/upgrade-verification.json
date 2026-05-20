@@ -1,0 +1,37 @@
+{
+  "command": "sdd-forge upgrade",
+  "ranAt": "2026-05-20T05:16:21Z",
+  "exitCode": 0,
+  "stdout": [
+    "[upgrade] スキル変更なし: sdd-forge.flow/SKILL.md",
+    "[upgrade] スキル変更なし: sdd-forge.flow-auto/SKILL.md",
+    "[upgrade] スキル変更なし: sdd-forge.flow-resume/SKILL.md",
+    "[upgrade] スキル変更なし: sdd-forge.flow-status/SKILL.md",
+    "[upgrade] スキル変更なし: sdd-forge.flow-sync/SKILL.md",
+    "[upgrade] スキル変更なし: sdd-forge.exp.workflow/SKILL.md",
+    "[upgrade] すべてのファイルは最新です。"
+  ],
+  "generatedSkillChecks": [
+    {
+      "path": ".agents/skills/sdd-forge.flow/SKILL.md",
+      "exists": true,
+      "size": 41302,
+      "containsRawTemplatesDirective": false,
+      "containsRequiresApproval": true
+    },
+    {
+      "path": ".claude/skills/sdd-forge.flow/SKILL.md",
+      "exists": true,
+      "size": 41302,
+      "containsRawTemplatesDirective": false,
+      "containsRequiresApproval": true
+    }
+  ],
+  "postCheckCommands": [
+    {
+      "command": "rg -n \"@templates/\" .agents/skills/sdd-forge.flow/SKILL.md .claude/skills/sdd-forge.flow/SKILL.md",
+      "exitCode": 1,
+      "meaning": "ripgrep returns 1 when no matches are found"
+    }
+  ]
+}

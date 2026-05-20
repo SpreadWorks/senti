@@ -8,6 +8,7 @@
 
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { sddDir } from "../../lib/config.js";
 import { loadDataSources as loadDataSourcesBase } from "./data-source-loader.js";
 import { resolveMultiChains, resolveChainSafe } from "../../lib/presets.js";
@@ -55,8 +56,8 @@ function descFactory(root) {
 // ---------------------------------------------------------------------------
 
 const COMMON_DATA_DIR = path.resolve(
-  path.dirname(new URL(import.meta.url).pathname),
-  "../data",
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../data",
 );
 
 /**

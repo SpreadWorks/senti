@@ -1,5 +1,5 @@
 /**
- * src/docs/data/text.js
+ * src/data/text.js
  *
  * TextDataSource — AI テキスト生成を DataSource メカニズムに統合する。
  *

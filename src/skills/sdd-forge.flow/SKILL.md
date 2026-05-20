@@ -9,17 +9,17 @@ This skill drives a full Spec-Driven Development flow from a feature / fix reque
 
 ## Core Principle
 
-<!-- include("@templates/partials/core-principle.md") -->
+<!-- include("@skills/partials/core-principle.md") -->
 
 ## Flow Progress Tracking
 
-<!-- include("@templates/partials/flow-tracking.md") -->
+<!-- include("@skills/partials/flow-tracking.md") -->
 
 All flow step IDs are defined in the CLI schema. The dispatcher obtains the current step and instructions from `sdd-forge flow get next-action` — the skill itself does not encode per-step sequencing.
 
 ## Context Recording (Compaction Resilience)
 
-<!-- include("@templates/partials/context-recording.md") -->
+<!-- include("@skills/partials/context-recording.md") -->
 - After flow.json is created (prelude step), record the request: `sdd-forge flow set request "<user's original request>"`
 
 ## Metric Recording (Read Tool)
@@ -34,9 +34,9 @@ Note: `sdd-forge flow get context` automatically records these metrics via hooks
 
 ## Choice Format
 
-<!-- include("@templates/partials/choice-format.md") -->
+<!-- include("@skills/partials/choice-format.md") -->
 
-<!-- include("@templates/partials/ai-question-style.md") -->
+<!-- include("@skills/partials/ai-question-style.md") -->
 
 ## Required Sequence
 
@@ -105,7 +105,7 @@ Note:
 - Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those impl-phase artifacts and do not re-run tests. `final-regression` runs the full project command once after retro and before finalize.
 - Hard stops: Prepare/docs-scan and `analysis.json` read/validation failures stop the flow. A started targeted project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion. `final-regression` failures are classified in `final-regression-result.json`; environment, sandbox, permission, timeout, dependency, and repeated failures stop instead of returning to the normal implementation repair loop.
 
-<!-- include("@templates/partials/placeholder-artifact-permission.md") -->
+<!-- include("@skills/partials/placeholder-artifact-permission.md") -->
 
 ### C. Dispatcher loop
 
@@ -176,7 +176,7 @@ These apply to every step executed by the dispatcher. They are enforced here bec
 
 ### Worktree boundary
 
-<!-- include("@templates/partials/worktree-mode.md") -->
+<!-- include("@skills/partials/worktree-mode.md") -->
 - Before merge, consider running `git rebase <baseBranch>` in the worktree to incorporate upstream changes and avoid post-merge test failures.
 - The finalize phase is decomposed into 4 independent leaf steps driven by the dispatcher: `finalize-commit` → `finalize-merge` → `finalize-sync` → `finalize-cleanup`. Each step has its own CLI command (`sdd-forge flow run finalize-commit`, etc.) and prompt. Each command's post hook normalizes its own step status to `done` on success — do not advance these steps manually.
 - **MUST: Do NOT run `sdd-forge flow run finalize-cleanup` in background.** Run it in the foreground and wait for it to complete before proceeding.
@@ -217,7 +217,7 @@ When implementation reveals that the spec needs additional tasks:
 
 ## Issue Log Recording
 
-<!-- include("@templates/partials/issue-log-recording.md") -->
+<!-- include("@skills/partials/issue-log-recording.md") -->
 
 ## Commands (reference)
 

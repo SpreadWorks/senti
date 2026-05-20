@@ -1,0 +1,84 @@
+{
+  "devType": "refactor",
+  "goal": "src/ と experimental/workflow の skill/DataSource 関連ディレクトリを実体に合う名前へリネームし、既存の upgrade・include・docs・test 参照を新しい配置へ追従させる。",
+  "analysis": {
+    "problem": "現在の `src/templates/` には継承可能な preset template ではなく skill 本体と skill 用 partial が残っている。また `src/docs/data/` の DataSource は docs build だけでなく skill build からも参照される横断機構になっているため、名前が実体とずれている。",
+    "proposedApproach": "Issue #333 の指定どおり、skill source asset は `src/skills/` と `experimental/workflow/skills/` へ、共通 DataSource は `src/data/` へ移す。参照する定数、include directive、upgrade の copy 元、docs/AGENTS 説明、テスト fixture を同時に更新する。",
+    "validation": "`rg --files src/templates src/docs/data experimental/workflow/templates` で対象ファイルが skill、partial、DataSource に限定されることを確認した。`rg` では `src/lib/skills.js`、`src/lib/include.js`、`src/upgrade.js`、unit/e2e tests、AGENTS template に参照が集中しており、純粋リネームとして扱える。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #333 は `src/templates/skills/` -> `src/skills/`、`src/templates/partials/` -> `src/skills/partials/`、`src/docs/data/` -> `src/data/`、`experimental/workflow/templates/skills/` -> `experimental/workflow/skills/` を指定している。",
+      "`src/lib/skills.js` は `MAIN_SKILLS_TEMPLATES_DIR = path.join(PKG_DIR, \"templates\", \"skills\")` として bundled skills を配布している。",
+      "`src/lib/include.js` は `@templates/` を `templatesDir` に解決し、`src/templates/skills/sdd-forge.flow/SKILL.md` は `@templates/partials/*.md` を include している。新しい include namespace は `@skills/` とし、旧 `@templates/` alias は保持しない。",
+      "`src/upgrade.js` は main skill directory と experimental workflow skill directory を upgrade 対象として扱う。",
+      "`src/docs/lib/resolver-factory.js` は common DataSource directory を `src/docs/data` 相当に解決している。",
+      "`docs/project_structure.md` は現状 `src/docs/data/` を model/lib として記載しており、変更後は docs 生成で同期が必要になる。",
+      "Production code の代表更新対象は `src/lib/skills.js`、`src/lib/include.js`、`src/upgrade.js`、`src/docs/lib/resolver-factory.js`、DataSource import 参照である。",
+      "Test 更新対象は `tests/unit/templates/*.test.js`、`tests/unit/flow/*skill*.test.js`、`tests/unit/flow/ctx-dispatch.test.js`、`tests/unit/lib/include.test.js`、`tests/unit/presets/preset-scan-integrity.test.js`、`tests/unit/docs/lib/layout-and-nav.test.js`、`tests/e2e/051-skill-namespace.test.js` である。"
+    ],
+    "decisionPoints": [
+      "skill source asset の canonical path を `src/skills/` にする。",
+      "skill partial の canonical path を `src/skills/partials/` にするか、独立した `src/partials/` にするか。",
+      "DataSource framework の common directory を `src/data/` にする。",
+      "include directive の namespace は `@skills/` に変更し、既存 skill source 内の `@templates/partials/*.md` を `@skills/partials/*.md` に置換する。",
+      "experimental workflow の opt-in skill source path を `experimental/workflow/skills/` にする。",
+      "`MAIN_SKILLS_TEMPLATES_DIR` は `MAIN_SKILLS_DIR` へ改名し、skill source directory を指す定数名として使う。",
+      "`sdd-forge upgrade` は終了コード 0 で完了し、`.agents/skills/sdd-forge.flow/SKILL.md` と `.claude/skills/sdd-forge.flow/SKILL.md` が生成済みで、生成後の SKILL.md 内に `@templates/` include directive が残らないことを確認する。",
+      "検証 command は `node tests/run.js --scope unit`、`node tests/run.js --scope e2e`、`npm test`、`sdd-forge upgrade` とし、各 command の終了コード 0 を成功条件にする。"
+    ],
+    "resolvedByProjectRules": [
+      "alpha 版ポリシーにより、旧 `src/templates` / `src/docs/data` の互換パスや deprecated alias は保持しない。",
+      "外部依存追加は禁止のため、移動と参照更新は Node.js 組み込みモジュールと既存 test runner だけで検証する。",
+      "`src/templates/` や skill template 相当を変更した場合は `sdd-forge upgrade` を実行して配布先 skill を更新する。",
+      "Issue は 1 concern として扱い、リネーム対象の分割 spec は提案しない。",
+      "Issue #333 の提案に従い、skill partial は `src/skills/partials/` に置く。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": []
+  },
+  "scopeVerification": {
+    "in": [
+      "must: `src/templates/skills/` 配下の bundled skill source と `rules.json` を `src/skills/` へ移動する。",
+      "must: `src/templates/partials/` 配下の shared skill partial を `src/skills/partials/` へ移動する。",
+      "must: `src/docs/data/` 配下の common DataSource 実装を `src/data/` へ移動する。",
+      "must: `experimental/workflow/templates/skills/` 配下の experimental skill source を `experimental/workflow/skills/` へ移動する。",
+      "must: `src/lib/skills.js`、`src/lib/include.js`、`src/upgrade.js`、`src/docs/lib/resolver-factory.js`、DataSource import 参照を新 path と `@skills/` namespace に更新する。",
+      "should: `tests/unit/templates/*.test.js`、`tests/unit/flow/*skill*.test.js`、`tests/unit/flow/ctx-dispatch.test.js`、`tests/unit/lib/include.test.js`、`tests/unit/presets/preset-scan-integrity.test.js`、`tests/unit/docs/lib/layout-and-nav.test.js`、`tests/e2e/051-skill-namespace.test.js` を新 path に追従させる。",
+      "should: `AGENTS.md` と `src/presets/base/templates/*/AGENTS.sdd.md` の literal `src/templates/` 記述を `src/skills/` に変更し、同じ文内の `src/presets/` 記述は変更しない。`src/CLAUDE.md` は `src/templates/` literal があれば同じ基準で変更し、preset 内部構造を説明する `templates/` 記述は変更しない。",
+      "should: `sdd-forge upgrade` を実行し、`.agents/skills/sdd-forge.flow/SKILL.md` と `.claude/skills/sdd-forge.flow/SKILL.md` が生成され、生成後の SKILL.md 内に `@templates/` include directive が残らないことを確認する。"
+    ],
+    "out": [
+      "DataSource / skill build 機構の振る舞い変更。",
+      "skill 本文や partial 本文の責務変更。",
+      "preset template 継承機構の再設計。",
+      "npm publish / dist-tag 操作。"
+    ]
+  },
+  "impactOnExisting": [
+    "`sdd-forge upgrade` の bundled skill copy 元と obsolete cleanup 対象が変わる。",
+    "`resolveIncludes` の skill partial 解決先が変わるため、skill build 時の include path が影響を受ける。",
+    "docs resolver が common DataSource を読み込む path が変わる。",
+    "unit/e2e tests の fixture path と test name が新しい directory naming に追従する。",
+    "project-local generated skills は upgrade 実行後に同内容で再生成される。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "`src/templates/partials/` の移動先は Issue の提案どおり `src/skills/partials/` とし、skill source asset 配下の shared content として扱いますか。代替案は `src/partials/` で、skill 以外にも再利用し得る top-level shared content として扱う形です。",
+      "answer": "`src/skills/partials/` として扱う。",
+      "evidence": "Issue #333 の Specific Changes table は `src/templates/partials/` -> `src/skills/partials/` を明記している。`rg --files src/templates/partials` では対象が `sdd-forge.flow` 系 skill から include される shared markdown partial に限定されている。",
+      "why": "shared content は現状 skill source から参照されており、`src/skills/` 配下に集約すると `src/templates/` wrapper を撤去しつつ、skill source asset の近くに保てる。",
+      "considered": "`src/partials/` は将来 skill 以外の shared content に拡張しやすいが、今回の対象は skill partial に限定されるため、Issue の提案から広げない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-20T01:28:34Z",
+    "notes": "autoApprove: coverage review passed with no unresolved user decisions; q1 answered from Issue #333 proposal."
+  }
+}

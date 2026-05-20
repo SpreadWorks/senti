@@ -1,7 +1,39 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { container, initContainer } from "../../../../src/lib/container.js";
+import registerDocsSource from "../../../../src/data/docs.js";
 import { parseBlocks } from "../../../../src/docs/lib/directive-parser.js";
 import { mergeResolved } from "../../../../src/docs/lib/template-merger.js";
+
+const NAV_FIXTURE_CHAPTERS = ["overview.md", "design.md", "dev.md"];
+
+function setupDocsSource(t, chapters) {
+  initContainer();
+  const DocsSource = registerDocsSource(container);
+  const ds = new DocsSource();
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "nav-test-"));
+  const docsDir = path.join(tmpDir, "docs");
+  fs.mkdirSync(docsDir, { recursive: true });
+  for (const chapter of chapters) {
+    const title = path.basename(chapter, ".md");
+    const chapterPath = path.join(docsDir, chapter);
+    fs.mkdirSync(path.dirname(chapterPath), { recursive: true });
+    fs.writeFileSync(chapterPath, `# ${title}\n`);
+  }
+  t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+  ds.init({
+    desc: () => "—",
+    loadOverrides: () => ({}),
+    root: tmpDir,
+    docsDir,
+    type: "base",
+    configChapters: [...chapters],
+  });
+  return ds;
+}
 
 // ---------------------------------------------------------------------------
 // parseBlocks — {%extends "name"%} syntax
@@ -86,128 +118,44 @@ describe("mergeResolved with layout", () => {
 // ---------------------------------------------------------------------------
 
 describe("docs.nav link generation", () => {
-  // These tests will call DocsSource.nav() directly after implementation.
-  // For now, define the expected behavior as failing tests.
-
-  it("returns null for single chapter", async () => {
-    const { container, initContainer } = await import("../../../../src/lib/container.js"); initContainer(); const DocsSource = (await import("../../../../src/docs/data/docs.js")).default(container);
-    const ds = new DocsSource();
-    // Minimal init with a temp dir containing one chapter
-    const fs = await import("fs");
-    const path = await import("path");
-    const os = await import("os");
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "nav-test-"));
-    const docsDir = path.join(tmpDir, "docs");
-    fs.mkdirSync(docsDir, { recursive: true });
-    fs.writeFileSync(path.join(docsDir, "overview.md"), "# Overview\n");
-
-    ds.init({
-      desc: () => "—",
-      loadOverrides: () => ({}),
-      root: tmpDir,
-      docsDir,
-      type: "base",
-      configChapters: ["overview.md"],
-    });
+  it("returns null for single chapter", (t) => {
+    const ds = setupDocsSource(t, ["overview.md"]);
 
     const result = ds.nav({}, ["docs/overview.md"]);
     assert.equal(result, null, "single chapter should return null");
-
-    // Cleanup
-    fs.rmSync(tmpDir, { recursive: true });
   });
 
-  it("returns next link only for first chapter", async () => {
-    const { container, initContainer } = await import("../../../../src/lib/container.js"); initContainer(); const DocsSource = (await import("../../../../src/docs/data/docs.js")).default(container);
-    const ds = new DocsSource();
-    const fs = await import("fs");
-    const path = await import("path");
-    const os = await import("os");
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "nav-test-"));
-    const docsDir = path.join(tmpDir, "docs");
-    fs.mkdirSync(docsDir, { recursive: true });
-    fs.writeFileSync(path.join(docsDir, "overview.md"), "# Overview\n");
-    fs.writeFileSync(path.join(docsDir, "design.md"), "# Design\n");
-    fs.writeFileSync(path.join(docsDir, "dev.md"), "# Development\n");
-
-    ds.init({
-      desc: () => "—",
-      loadOverrides: () => ({}),
-      root: tmpDir,
-      docsDir,
-      type: "base",
-      configChapters: ["overview.md", "design.md", "dev.md"],
-    });
+  it("returns next link only for first chapter", (t) => {
+    const ds = setupDocsSource(t, NAV_FIXTURE_CHAPTERS);
 
     const result = ds.nav({}, ["docs/overview.md"]);
-    assert.ok(result !== null, "should return nav for first chapter");
-    assert.ok(!result.toMarkdown().includes("←"), "first chapter should not have prev link");
-    assert.ok(result.toMarkdown().includes("→"), "first chapter should have next link");
-    assert.ok(result.toMarkdown().includes("design.md"), "should link to second chapter");
-
-    fs.rmSync(tmpDir, { recursive: true });
+    assert.ok(result !== null, "should return nav for docs/overview.md");
+    const markdown = result.toMarkdown();
+    assert.ok(!markdown.includes("←"), "first chapter should not have prev link");
+    assert.ok(markdown.includes("→"), "first chapter should have next link");
+    assert.ok(markdown.includes("design.md"), "should link to second chapter");
   });
 
-  it("returns prev link only for last chapter", async () => {
-    const { container, initContainer } = await import("../../../../src/lib/container.js"); initContainer(); const DocsSource = (await import("../../../../src/docs/data/docs.js")).default(container);
-    const ds = new DocsSource();
-    const fs = await import("fs");
-    const path = await import("path");
-    const os = await import("os");
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "nav-test-"));
-    const docsDir = path.join(tmpDir, "docs");
-    fs.mkdirSync(docsDir, { recursive: true });
-    fs.writeFileSync(path.join(docsDir, "overview.md"), "# Overview\n");
-    fs.writeFileSync(path.join(docsDir, "design.md"), "# Design\n");
-    fs.writeFileSync(path.join(docsDir, "dev.md"), "# Development\n");
-
-    ds.init({
-      desc: () => "—",
-      loadOverrides: () => ({}),
-      root: tmpDir,
-      docsDir,
-      type: "base",
-      configChapters: ["overview.md", "design.md", "dev.md"],
-    });
+  it("returns prev link only for last chapter", (t) => {
+    const ds = setupDocsSource(t, NAV_FIXTURE_CHAPTERS);
 
     const result = ds.nav({}, ["docs/dev.md"]);
-    assert.ok(result !== null, "should return nav for last chapter");
-    assert.ok(result.toMarkdown().includes("←"), "last chapter should have prev link");
-    assert.ok(!result.toMarkdown().includes("→"), "last chapter should not have next link");
-    assert.ok(result.toMarkdown().includes("design.md"), "should link to second chapter");
-
-    fs.rmSync(tmpDir, { recursive: true });
+    assert.ok(result !== null, "should return nav for docs/dev.md");
+    const markdown = result.toMarkdown();
+    assert.ok(markdown.includes("←"), "last chapter should have prev link");
+    assert.ok(!markdown.includes("→"), "last chapter should not have next link");
+    assert.ok(markdown.includes("design.md"), "should link to second chapter");
   });
 
-  it("returns both links for middle chapter", async () => {
-    const { container, initContainer } = await import("../../../../src/lib/container.js"); initContainer(); const DocsSource = (await import("../../../../src/docs/data/docs.js")).default(container);
-    const ds = new DocsSource();
-    const fs = await import("fs");
-    const path = await import("path");
-    const os = await import("os");
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "nav-test-"));
-    const docsDir = path.join(tmpDir, "docs");
-    fs.mkdirSync(docsDir, { recursive: true });
-    fs.writeFileSync(path.join(docsDir, "overview.md"), "# Overview\n");
-    fs.writeFileSync(path.join(docsDir, "design.md"), "# Design\n");
-    fs.writeFileSync(path.join(docsDir, "dev.md"), "# Development\n");
-
-    ds.init({
-      desc: () => "—",
-      loadOverrides: () => ({}),
-      root: tmpDir,
-      docsDir,
-      type: "base",
-      configChapters: ["overview.md", "design.md", "dev.md"],
-    });
+  it("returns both links for middle chapter", (t) => {
+    const ds = setupDocsSource(t, NAV_FIXTURE_CHAPTERS);
 
     const result = ds.nav({}, ["docs/design.md"]);
-    assert.ok(result !== null, "should return nav for middle chapter");
-    assert.ok(result.toMarkdown().includes("←"), "middle chapter should have prev link");
-    assert.ok(result.toMarkdown().includes("→"), "middle chapter should have next link");
-    assert.ok(result.toMarkdown().includes("overview.md"), "should link to first chapter");
-    assert.ok(result.toMarkdown().includes("dev.md"), "should link to third chapter");
-
-    fs.rmSync(tmpDir, { recursive: true });
+    assert.ok(result !== null, "should return nav for docs/design.md");
+    const markdown = result.toMarkdown();
+    assert.ok(markdown.includes("←"), "middle chapter should have prev link");
+    assert.ok(markdown.includes("→"), "middle chapter should have next link");
+    assert.ok(markdown.includes("overview.md"), "should link to first chapter");
+    assert.ok(markdown.includes("dev.md"), "should link to third chapter");
   });
 });

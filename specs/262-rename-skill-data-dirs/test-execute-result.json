@@ -1,0 +1,495 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/262-rename-skill-data-dirs/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "test_name": "R1: bundled skill sources live under src/skills",
+        "command": "node --test specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "test_name": "R2: skill partial includes use @skills",
+        "command": "node --test specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "test_name": "R3: common DataSources live under src/data",
+        "command": "node --test specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R4",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "test_name": "R4: experimental workflow skills use the new source path",
+        "command": "node --test specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R5",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "test_name": "R5: production path consumers use the new names",
+        "command": "node --test specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R6",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "test_name": "R6: spec-local and shared tests cover the new contracts",
+        "command": "node --test specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R7",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "test_name": "R7: guidance points at src/skills while preserving src/presets",
+        "command": "node --test specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    },
+    {
+      "id": "R8",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "test_name": "R8: upgrade exits 0 and generated skill artifacts use the new source",
+        "command": "node --test specs/262-rename-skill-data-dirs/tests/path-contracts.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 70
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": ".sdd-forge/config.json",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "experimental/workflow/skills/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "specs/262-rename-skill-data-dirs/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/data/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/docs/data/agents.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/docs/data/docs.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/docs/data/lang.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/docs/data/project.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/docs/data/skills.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/docs/data/text.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/docs/lib/resolver-factory.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/include.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/skill-rules.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/lib/skills.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/setup.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/skills/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/upgrade.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/e2e/051-skill-namespace.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/docs/lib/layout-and-nav.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/ctx-dispatch.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/get-step-instructions.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/prompt-i18n.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/skill-no-external-deps.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/flow/skill-report-show-wiring.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/lib/include.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/lib/skills-include.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/presets/preset-scan-integrity.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/skills/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/templates/ai-question-style.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/templates/finalize-self-contained.test.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/unit/templates/worktree-mode.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "modified",
+        "path": ".sdd-forge/config.json"
+      },
+      {
+        "status": "untracked",
+        "path": "experimental/workflow/skills/"
+      },
+      {
+        "status": "untracked",
+        "path": "specs/262-rename-skill-data-dirs/"
+      },
+      {
+        "status": "untracked",
+        "path": "src/data/"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/agents.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/docs.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/lang.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/project.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/skills.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/text.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/docs/lib/resolver-factory.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/include.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/skill-rules.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/skills.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/setup.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/skills/"
+      },
+      {
+        "status": "modified",
+        "path": "src/upgrade.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/051-skill-namespace.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/docs/lib/layout-and-nav.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/ctx-dispatch.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/get-step-instructions.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/prompt-i18n.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/skill-no-external-deps.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/skill-report-show-wiring.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/include.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/skills-include.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/presets/preset-scan-integrity.test.js"
+      },
+      {
+        "status": "untracked",
+        "path": "tests/unit/skills/"
+      },
+      {
+        "status": "deleted",
+        "path": "tests/unit/templates/ai-question-style.test.js"
+      },
+      {
+        "status": "deleted",
+        "path": "tests/unit/templates/finalize-self-contained.test.js"
+      },
+      {
+        "status": "deleted",
+        "path": "tests/unit/templates/worktree-mode.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "modified",
+        "path": ".sdd-forge/config.json"
+      },
+      {
+        "status": "untracked",
+        "path": "experimental/workflow/skills/"
+      },
+      {
+        "status": "untracked",
+        "path": "specs/262-rename-skill-data-dirs/"
+      },
+      {
+        "status": "untracked",
+        "path": "src/data/"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/agents.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/docs.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/lang.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/project.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/skills.js"
+      },
+      {
+        "status": "deleted",
+        "path": "src/docs/data/text.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/docs/lib/resolver-factory.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/include.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/skill-rules.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/lib/skills.js"
+      },
+      {
+        "status": "modified",
+        "path": "src/setup.js"
+      },
+      {
+        "status": "untracked",
+        "path": "src/skills/"
+      },
+      {
+        "status": "modified",
+        "path": "src/upgrade.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/051-skill-namespace.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/docs/lib/layout-and-nav.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/ctx-dispatch.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/get-step-instructions.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/prompt-i18n.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/skill-no-external-deps.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/flow/skill-report-show-wiring.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/include.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/lib/skills-include.test.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/unit/presets/preset-scan-integrity.test.js"
+      },
+      {
+        "status": "untracked",
+        "path": "tests/unit/skills/"
+      },
+      {
+        "status": "deleted",
+        "path": "tests/unit/templates/ai-question-style.test.js"
+      },
+      {
+        "status": "deleted",
+        "path": "tests/unit/templates/finalize-self-contained.test.js"
+      },
+      {
+        "status": "deleted",
+        "path": "tests/unit/templates/worktree-mode.test.js"
+      }
+    ]
+  }
+}

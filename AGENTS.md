@@ -10,7 +10,7 @@
 
 ### 開発ワークフロー
 
-- `src/templates/` や `src/presets/` のテンプレートを変更した場合は `sdd-forge upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
+- `src/skills/` のスキルソースや `src/presets/` のテンプレートを変更した場合は `sdd-forge upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
 - `sdd-forge upgrade` はスキル（`.claude/skills/`, `.agents/skills/`）やテンプレートの差分を検出し、変更があったファイルのみ更新する。
 
 ### コーディング
@@ -95,7 +95,7 @@
 
 ### 開発ワークフロー
 
-- `src/templates/` や `src/presets/` 等のテンプレートを変更した場合は `sdd-forge upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
+- `src/skills/` のスキルソースや `src/presets/` のテンプレートを変更した場合は `sdd-forge upgrade` を実行して、プロジェクトのスキル・設定に反映すること。
 
 ### docs/ 編集ルール
 

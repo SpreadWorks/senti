@@ -1,0 +1,597 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": "AGENTS.md                                          |    4 +-\n CLAUDE.md                                          |    4 +-\n .../skills/sdd-forge.exp.workflow/SKILL.md         |    0\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/262-rename-skill-data-dirs/draft.json        |   84 +\n specs/262-rename-skill-data-dirs/file-map.json     |   93 +\n specs/262-rename-skill-data-dirs/flow.json         | 8145 ++++++++++++++++++++\n specs/262-rename-skill-data-dirs/issue-log.json    |  515 ++\n specs/262-rename-skill-data-dirs/issue.md          |  148 +\n .../262-rename-skill-data-dirs/retry-recovery.json |  217 +\n specs/262-rename-skill-data-dirs/review.md         |  178 +\n specs/262-rename-skill-data-dirs/spec-review.json  |   38 +\n specs/262-rename-skill-data-dirs/spec-review.md    |   24 +\n specs/262-rename-skill-data-dirs/spec.json         |  330 +\n specs/262-rename-skill-data-dirs/spec.md           |  152 +\n specs/262-rename-skill-data-dirs/tasks/T-1.md      |   20 +\n specs/262-rename-skill-data-dirs/tasks/T-2.md      |   20 +\n specs/262-rename-skill-data-dirs/tasks/T-3.md      |   20 +\n specs/262-rename-skill-data-dirs/tasks/T-4.md      |   20 +\n specs/262-rename-skill-data-dirs/tasks/T-5.md      |   20 +\n .../262-rename-skill-data-dirs/test-coverage.json  |  108 +\n specs/262-rename-skill-data-dirs/test-review.json  |   36 +\n specs/262-rename-skill-data-dirs/test-review.md    |   26 +\n .../tests/path-contracts.test.js                   |  167 +\n .../upgrade-verification.json                      |   37 +\n src/{docs => }/data/agents.js                      |    4 +-\n src/{docs => }/data/docs.js                        |    4 +-\n src/{docs => }/data/lang.js                        |    0\n src/{docs => }/data/project.js                     |    0\n src/{docs => }/data/skills.js                      |    2 +-\n src/{docs => }/data/text.js                        |    2 +-\n src/docs/lib/resolver-factory.js                   |    5 +-\n src/lib/include.js                                 |   33 +-\n src/lib/skill-rules.js                             |    2 +-\n src/lib/skills.js                                  |  159 +-\n src/presets/base/templates/en/AGENTS.sdd.md        |    2 +-\n src/presets/base/templates/ja/AGENTS.sdd.md        |    2 +-\n src/setup.js                                       |   13 +-\n .../partials/ai-question-style.md                  |    0\n .../partials/choice-format.md                      |    0\n .../partials/context-recording.md                  |    0\n .../partials/core-principle.md                     |    0\n .../partials/flow-tracking.md                      |    0\n .../partials/issue-log-recording.md                |    0\n .../partials/placeholder-artifact-permission.md    |    0\n .../partials/worktree-mode.md                      |    0\n src/{templates => }/skills/rules.json              |    0\n .../skills/sdd-forge.flow-auto/SKILL.md            |    0\n .../skills/sdd-forge.flow-resume/SKILL.md          |    0\n .../skills/sdd-forge.flow-status/SKILL.md          |    0\n .../skills/sdd-forge.flow-sync/SKILL.md            |    0\n src/{templates => }/skills/sdd-forge.flow/SKILL.md |   16 +-\n src/upgrade.js                                     |   59 +-\n tests/e2e/051-skill-namespace.test.js              |  130 +-\n tests/unit/docs/lib/layout-and-nav.test.js         |  164 +-\n tests/unit/flow/ctx-dispatch.test.js               |   51 +-\n tests/unit/flow/get-step-instructions.test.js      |    4 +-\n tests/unit/flow/prompt-i18n.test.js                |   52 +-\n tests/unit/flow/skill-no-external-deps.test.js     |   44 +-\n tests/unit/flow/skill-report-show-wiring.test.js   |    2 +-\n tests/unit/lib/include.test.js                     |   36 +-\n tests/unit/lib/skills-include.test.js              |   22 +-\n tests/unit/presets/preset-scan-integrity.test.js   |    4 +-\n .../finalize-self-contained.test.js                |    8 +-\n .../partials}/ai-question-style.test.js            |    4 +-\n .../partials}/worktree-mode.test.js                |    4 +-\n 71 files changed, 10853 insertions(+), 435 deletions(-)",
+      "commits": [
+        "Rename skill and data source directories"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 24,
+      "entries": [
+        {
+          "step": "draft",
+          "reason": "set request failed because the literal skill invocation started with a dollar sign and was expanded by the shell",
+          "resolution": "reran set request with single quoted literal input and continued from the same worktree flow"
+        },
+        {
+          "step": "gate-draft",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "draft gate failed because approval.approved remained false after coverage review passed",
+          "resolution": "set draft approval to true with timestamp and autoApprove rationale, then reran draft gate"
+        },
+        {
+          "step": "gate-draft",
+          "reason": "Single Responsibility — The spec addresses exactly one concern: renaming skill/DataSource directories (src/templates/ → src/skills/, src/docs/data/ → src/data/, experimental/workflow/templates/skills/ → experimental/workflow/skills/) and updating all references to those paths. No unrelated changes are bundled, and the spec explicitly states it treats Issue #333 as a single concern.; Unambiguous Requirements — Requirements in scopeVerification.in use concrete, non-adjectival terms ('移動', '更新', '反映') paired with specific directory paths. No vague adjectives such as 'appropriate', 'fast', or 'easy' appear in the requirement statements.; Complete Context — 新しい定数名、include namespace 名、関数コメントの具体的な命名 — The in-scope requirement 'production code の更新' (scopeVerification.in[4]) does not specify target constant names or the new include namespace; two independent reviewers cannot agree on whether a particular naming choice satisfies the requirement. (at deferredToSpec[0]); Complete Context — どのテストを rename し、どの regression command を要求するか — The in-scope requirement 'tests の更新' (scopeVerification.in[4]) does not identify which test files are renamed or which regression commands must pass; two reviewers would disagree on whether a partial test rename satisfies it. (at deferredToSpec[1]); Complete Context — docs/AGENTS と preset template の文言をどこまで `skills` 表現へ置換するか — The in-scope requirement 'AGENTS/CLAUDE/preset docs 文言の更新' (scopeVerification.in[4]) explicitly defers the extent of wording replacement without measurable criteria, leaving two reviewers unable to judge whether any given level of update satisfies the requirement. (at deferredToSpec[2]); No Hardcoded Secrets — The spec describes only directory path renames and reference updates; no API keys, passwords, tokens, or other secrets are present.; Prioritize Requirements — `src/templates/skills/` 配下の bundled skill source と `rules.json` の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[0]); Prioritize Requirements — `src/templates/partials/` 配下の shared skill partial の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[1]); Prioritize Requirements — `src/docs/data/` 配下の common DataSource 実装の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[2]); Prioritize Requirements — `experimental/workflow/templates/skills/` 配下の experimental skill source の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[3]); Prioritize Requirements — 上記 path を参照する production code、tests、AGENTS/CLAUDE/preset docs 文言の更新。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[4]); Prioritize Requirements — `sdd-forge upgrade` 実行による `.agents/skills/` と `.claude/skills/` への反映。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[5]); Impact on Existing Features — The spec includes an explicit 'impactOnExisting' section with five entries covering sdd-forge upgrade copy-source changes, skill build include path resolution, docs resolver path, test fixture paths, and project-local generated skill regeneration via upgrade.; Present Recommendations with Reasoning — The single question (q1) presents a clear recommendation ('src/skills/partials/ として扱う'), backed by Issue #333 as documentary evidence and a 'why' field with reasoning, plus a 'considered' field documenting the alternative evaluated.; Explore Before Asking — Codebase exploration is demonstrated via rg commands in analysis.validation and specific file/constant citations in knownFacts (e.g. MAIN_SKILLS_TEMPLATES_DIR, resolver-factory.js). openQuestions is empty and all decisionPoints are resolved before approval.; Proactively Raise Related Implications — Obvious related implications are proactively raised: upgrade bundled-skill copy-source change, skill-build include path impact, docs resolver path change, test fixture path changes, and project-local skill regeneration are all surfaced in impactOnExisting and decisionPoints.; Confirm Brainstorm vs. Decision Before Critiquing — The spec presents a finalized, approved plan (approval.approved=true, confirmedAt set); no user ideas are critiqued and no brainstorm-vs-decide ambiguity exists.; Capture Digressions in draft.md — No digressions appear in the spec content; all sections remain on-topic for the directory rename concern.; Backward-Compatible CLI Interface — No CLI commands or options are removed or change meaning; the changes are purely internal directory restructuring. Commands such as 'sdd-forge upgrade', 'sdd-forge docs build', and their flags remain unchanged.",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "draft gate failed because requirements lacked priorities and deferred naming, test, and docs wording decisions were too vague",
+          "resolution": "added must priorities, concrete include namespace, constant name, target test files, verification commands, and docs wording scope"
+        },
+        {
+          "step": "gate-draft",
+          "reason": "Single Responsibility — The spec addresses exactly one concern: renaming skill/DataSource directories and updating all references to match. No unrelated changes are bundled.; Unambiguous Requirements — upgrade 後に生成される `.agents/skills/` と `.claude/skills/` の内容が変わらないことを確認する。 — 「内容が変わらない」は検証可能な条件ではなく、バイト一致なのか、機能的同等性なのか、どのファイルが対象かが不明であり、2人の独立したレビュアーが同じ判定基準を持てない。 (at decisionMap.decisionPoints[6]); Unambiguous Requirements — must: `AGENTS.md`、`src/CLAUDE.md`、`src/presets/base/templates/*/AGENTS.sdd.md` のうち skill source asset を指す文言を `src/skills/` へ更新し、preset template を指す文言は `src/presets/` のまま保つ。 — 「skill source asset を指す文言」と「preset template を指す文言」の区別基準が記述されておらず、どの文字列・パターンが対象かを特定できない。2人の独立したレビュアーが同じ範囲に合意できない。 (at scopeVerification.in[7]); Complete Context — upgrade 後に生成される `.agents/skills/` と `.claude/skills/` の内容が変わらないことを確認する。 — 「内容が変わらない」は測定基準を持たない主観的条件であり、何をもって「変わらない」と判断するかが実装者によって異なりうる。 (at decisionMap.decisionPoints[6]); Complete Context — 検証 command は `node tests/run.js --scope unit`、`node tests/run.js --scope e2e`、`npm test`、`sdd-forge upgrade` とする。 — 検証の成功基準（終了コード、特定のログ出力、テスト通過数など）が記述されておらず、どのような結果をもってリネームが正しく完了したと判断するかが不明。 (at decisionMap.decisionPoints[7]); No Hardcoded Secrets — The spec contains no API keys, passwords, tokens, or other secrets.; Prioritize Requirements — must: `src/templates/skills/` 配下の bundled skill source と `rules.json` を `src/skills/` へ移動する。 — scopeVerification.in には8項目の must 要件が列挙されているが、must/should/nice-to-have の優先度区分が全て「must」に設定されており、3項目超の要件リストに対して優先度の差異が付けられていない。 (at scopeVerification.in[0]); Prioritize Requirements — must: `src/templates/partials/` 配下の shared skill partial を `src/skills/partials/` へ移動する。 — 同上。全要件が同一優先度「must」で列挙されており、3項目超の要件リストに対して優先度の差分が存在しない。 (at scopeVerification.in[1]); Prioritize Requirements — must: `src/docs/data/` 配下の common DataSource 実装を `src/data/` へ移動する。 — 同上。全要件が同一優先度「must」で列挙されており、3項目超の要件リストに対して優先度の差分が存在しない。 (at scopeVerification.in[2]); Impact on Existing Features — The spec explicitly lists five impacts on existing features in the impactOnExisting array, covering upgrade copy sources, include resolution, docs resolver paths, test fixtures, and generated skills regeneration.; Present Recommendations with Reasoning — Previously passed; no new recommendation-without-reasoning content introduced in this draft.; Explore Before Asking — Previously passed; the spec documents codebase exploration via rg commands before reaching conclusions, and requiresUserJudgment is empty.; Proactively Raise Related Implications — Previously passed; implications such as include namespace change, docs sync requirement, and test fixture updates are proactively noted.; Confirm Brainstorm vs. Decision Before Critiquing — Previously passed; no new unconfirmed brainstorm-vs-decision ambiguity introduced.; Capture Digressions in draft.md — Previously passed; no digressions requiring capture are present in this content.; Backward-Compatible CLI Interface — Previously passed; the spec is a pure internal directory rename with no CLI command or option changes, and the alpha-version policy explicitly dropping deprecated paths is acknowledged in resolvedByProjectRules.",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "third draft gate failed because upgrade verification, documentation wording scope, and priority tiers were still ambiguous",
+          "resolution": "specified generated SKILL.md checks, exit-code success criteria, literal documentation replacement rules, and should priorities for tests docs and upgrade"
+        },
+        {
+          "step": "implement",
+          "reason": "git mv failed because the worktree git index lock path was read-only in the sandbox",
+          "resolution": "used filesystem mv for directory moves and will rely on git add/status rename detection later"
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "Applied review proposals that changed implementation evidence after the previous review attempt.",
+          "resolution": null
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "Applied additional review fixes and moved renamed tests under tests/unit/skills before re-evaluation.",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: removed deleted legacy paths from file-map.json",
+          "resolution": "gate artifact validation requires file-map entries to point to current existing paths; deletion coverage is asserted by spec-local path-contract tests instead."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — Diff moves rules.json and all shown bundled skill directories from src/templates/skills/ to src/skills/ with same names; content is preserved except required @templates to @skills include updates.; R2 — src/templates/partials files are deleted and recreated under src/skills/partials; src/skills/sdd-forge.flow/SKILL.md uses @skills/partials/*.md includes and no @templates/ include remains under src/skills in the diff.; R3 — src/docs/data files are deleted and recreated under src/data with relative imports adjusted; resolver-factory and test path constants now point to src/data.; R4 — Experimental workflow skill source was moved from experimental/workflow/templates/skills/ to experimental/workflow/skills/, and upgrade now deploys EXPERIMENTAL_WORKFLOW_SKILLS_DIR when config.experimental.workflow.enable is true.; R5 — Diff updates the named production files to use MAIN_SKILLS_DIR, src/skills, @skills, src/data, and experimental/workflow/skills, and removes visible production references to old templates/data paths and MAIN_SKILLS_TEMPLATES_DIR.; R6 — Diff updates existing unit/e2e tests from moved template/data paths to src/skills and src/data, renames template tests under tests/unit/skills, and adds spec-local path-contract tests covering skills, partial includes, DataSource loading, experimental workflow skills, and upgrade output.; R7 — Diff updates AGENTS.md and base preset AGENTS.sdd.md files from literal src/templates/ guidance to src/skills/ while preserving src/presets/; CLAUDE guidance is updated analogously and no preset-internal templates/ explanation is changed.; R8 — Requires execution evidence for `sdd-forge upgrade` exit status and generated SKILL.md outputs; the diff provides no command result or generated .agents/.claude files.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/ with a non-empty // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function deployedSkillFile(workRoot, base, name) { — This introduces a thin path-construction helper with a single call site. The guardrail prohibits indirection layers that have a single caller. (at src/lib/skills.js); Avoid Overengineering — function isSddForgeSkillName(name) { — This introduces a one-line predicate helper used only once. The guardrail prohibits indirection layers that have a single caller. (at src/lib/skills.js); Avoid Overengineering — function projectSkillSource(dir) { — This introduces a wrapper around skillSource/deployProjectSkills that is called only once. The guardrail prohibits indirection layers that have a single caller. (at src/upgrade.js)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: removed single-use helper functions flagged by no-overengineering",
+          "resolution": "inlined deployed skill file path construction, sdd-forge skill-name predicate, and experimental skill-source wrapper while preserving existing behavior."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — No execution evidence for `sdd-forge upgrade`; exit code and generated .agents/.claude SKILL.md outputs require running the command.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/ and the file has a // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function isCurrentSkillFile(filePath, content) — This introduces a helper indirection with only one call site in the diff, which violates the rule against indirection layers that have a single caller. (at src/lib/skills.js); Avoid Overengineering — function deploySkillSourceOrExit(deploy) — This introduces a wrapper function used from a single call site, which violates the rule against indirection layers that have a single caller. (at src/upgrade.js); Avoid Overengineering — function skillSource(dir, deploy) — This introduces a trivial object-construction helper used only within one local setup path, creating a single-caller indirection layer. (at src/upgrade.js)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: inlined remaining single-call helper functions",
+          "resolution": "removed helper indirection for current skill-file detection and upgrade deploy source wrapping while preserving behavior and syntax checks pass."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — Requires execution evidence for `sdd-forge upgrade` exit code and generated `.agents`/`.claude` SKILL.md contents; diff provides no such evidence.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/path-contracts.test.js with a valid // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function listFiles(relDir) — This introduces a helper indirection with a single non-recursive caller in the added spec-local test file, violating the guardrail's requirement not to introduce single-caller indirection layers. (at specs/262-rename-skill-data-dirs/tests/path-contracts.test.js)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: removed single-caller listFiles helper from spec-local path contract test",
+          "resolution": "inlined skill file collection inside the only test that needs it; syntax check and spec-local path-contract test pass."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — Requires executing sdd-forge upgrade and inspecting generated .agents/.claude SKILL.md; no execution evidence is provided in the diff.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/path-contracts.test.js with a // spec: R1 R2 R3 R4 R5 R6 R7 R8 header, satisfying the required location and header coverage.; Avoid Overengineering — function createDocsFixture(chapters) — This introduces a helper that is only called by setupDocsSource, creating a single-caller indirection layer in the added test code. (at tests/unit/docs/lib/layout-and-nav.test.js); Avoid Overengineering — function navMarkdown(ds, currentPath) — This helper only wraps ds.nav plus two assertions and is used as an indirection layer for the test body instead of keeping the simple assertion shape local. (at tests/unit/docs/lib/layout-and-nav.test.js); Avoid Overengineering — function setupSkills(workRoot, t) — After the diff, setupSkills is a single-caller wrapper around deploySkills plus one log line, retaining an indirection layer with only one caller. (at src/setup.js)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: inline thin helpers flagged by no-overengineering",
+          "resolution": "Removed createDocsFixture, navMarkdown, and setupSkills single-caller wrappers; behavior now lives at the call sites and the targeted docs nav test passes."
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — Diff updates upgrade paths and source includes, but provides no evidence that `sdd-forge upgrade` was run successfully or that generated `.agents`/`.claude` SKILL.md files were created and checked for raw `@templates/` directives.",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: add upgrade execution evidence for R8",
+          "resolution": "Ran sdd-forge upgrade with exit code 0, added upgrade-verification.json with generated .agents/.claude SKILL.md checks, wired the R8 spec-local test to that evidence, and refreshed test-execute/test-result-review artifacts with pass results."
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "R8 evidence changed: sdd-forge upgrade exit 0 is recorded in upgrade-verification.json and refreshed test artifacts now cover the generated SKILL.md checks.",
+          "resolution": null
+        },
+        {
+          "step": "final-regression",
+          "reason": "final-regression failed: pre_existing",
+          "resolution": null
+        },
+        {
+          "step": "final-regression",
+          "reason": "fix: docs.langSwitcher regression after moving common DataSource to src/data",
+          "resolution": "Adjusted src/data/docs.js locale lookup from ../.. / locale to ../locale so languageNames load from src/locale again; tests/unit/docs/data/docs-lang-switcher.test.js now passes."
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 2,
+      "srcRead": 4,
+      "question": 0,
+      "issueLog": 12
+    },
+    "tokenMetrics": {
+      "input": 2325101,
+      "output": 252972,
+      "cacheRead": 7162970,
+      "cacheCreation": 991236,
+      "cost": 11.204318599999999,
+      "callCount": 374,
+      "durationMs": 6290528,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 4851
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 5408
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 393760
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 15149
+        },
+        {
+          "phase": "gate",
+          "durationMs": 135489
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 101319
+        },
+        {
+          "phase": "review",
+          "durationMs": 5261446
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 373106
+        }
+      ]
+    },
+    "tests": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/262-rename-skill-data-dirs/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": ".sdd-forge/config.json",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "experimental/workflow/skills/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "specs/262-rename-skill-data-dirs/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/data/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/docs/data/agents.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/docs/data/docs.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/docs/data/lang.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/docs/data/project.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/docs/data/skills.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/docs/data/text.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/docs/lib/resolver-factory.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/include.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/skill-rules.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/skills.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/setup.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/skills/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/upgrade.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/e2e/051-skill-namespace.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/docs/lib/layout-and-nav.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/ctx-dispatch.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/get-step-instructions.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/prompt-i18n.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/skill-no-external-deps.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/skill-report-show-wiring.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/lib/include.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/lib/skills-include.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/presets/preset-scan-integrity.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/skills/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/templates/ai-question-style.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/templates/finalize-self-contained.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/templates/worktree-mode.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": ".sdd-forge/config.json"
+          },
+          {
+            "status": "untracked",
+            "path": "experimental/workflow/skills/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/262-rename-skill-data-dirs/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/data/"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/agents.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/docs.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/lang.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/project.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/skills.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/text.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/lib/resolver-factory.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/include.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skill-rules.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skills.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/setup.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/skills/"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/051-skill-namespace.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/layout-and-nav.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/ctx-dispatch.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-step-instructions.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/prompt-i18n.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/skill-no-external-deps.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/skill-report-show-wiring.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/include.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/skills-include.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/presets/preset-scan-integrity.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/skills/"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/templates/ai-question-style.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/templates/finalize-self-contained.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/templates/worktree-mode.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": ".sdd-forge/config.json"
+          },
+          {
+            "status": "untracked",
+            "path": "experimental/workflow/skills/"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/262-rename-skill-data-dirs/"
+          },
+          {
+            "status": "untracked",
+            "path": "src/data/"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/agents.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/docs.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/lang.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/project.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/skills.js"
+          },
+          {
+            "status": "deleted",
+            "path": "src/docs/data/text.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/docs/lib/resolver-factory.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/include.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skill-rules.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/skills.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/setup.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/skills/"
+          },
+          {
+            "status": "modified",
+            "path": "src/upgrade.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/e2e/051-skill-namespace.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/docs/lib/layout-and-nav.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/ctx-dispatch.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-step-instructions.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/prompt-i18n.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/skill-no-external-deps.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/skill-report-show-wiring.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/include.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/skills-include.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/presets/preset-scan-integrity.test.js"
+          },
+          {
+            "status": "untracked",
+            "path": "tests/unit/skills/"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/templates/ai-question-style.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/templates/finalize-self-contained.test.js"
+          },
+          {
+            "status": "deleted",
+            "path": "tests/unit/templates/worktree-mode.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/262-rename-skill-data-dirs/tests/.raw/final-regression.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    Rename skill and data source directories\n    71 files changed, 10853 insertions(+), 435 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 2\n    src read .................... 4\n    Q&A ......................... 0\n    issue-log ................... 12\n    agent calls ................. 374\n    input tokens ................ 2,325,101\n    output tokens ............... 252,972\n    cache-read tokens ........... 7,162,970\n    cache-create tokens ......... 991,236\n    cost ........................ $11.2043\n    duration (total) ............ 6290.5s\n      review-draft-questions .... 4.9s\n      review-draft-coverage ..... 5.4s\n      gate-draft ................ 393.8s\n      review-spec ............... 15.1s\n      gate ...................... 135.5s\n      review-test ............... 101.3s\n      review .................... 5261.4s\n      gate-impl ................. 373.1s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 8  passed 8  failed 0 verdict=pass\n    raw_output: specs/262-rename-skill-data-dirs/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log (24)\n  ────────────────────────────────────────────────\n    [draft] set request failed because the literal skill invocation started with a dollar sign and was expanded by the shell\n    [gate-draft] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    [gate-draft] draft gate failed because approval.approved remained false after coverage review passed\n    [gate-draft] Single Responsibility — The spec addresses exactly one concern: renaming skill/DataSource directories (src/templates/ → src/skills/, src/docs/data/ → src/data/, experimental/workflow/templates/skills/ → experimental/workflow/skills/) and updating all references to those paths. No unrelated changes are bundled, and the spec explicitly states it treats Issue #333 as a single concern.; Unambiguous Requirements — Requirements in scopeVerification.in use concrete, non-adjectival terms ('移動', '更新', '反映') paired with specific directory paths. No vague adjectives such as 'appropriate', 'fast', or 'easy' appear in the requirement statements.; Complete Context — 新しい定数名、include namespace 名、関数コメントの具体的な命名 — The in-scope requirement 'production code の更新' (scopeVerification.in[4]) does not specify target constant names or the new include namespace; two independent reviewers cannot agree on whether a particular naming choice satisfies the requirement. (at deferredToSpec[0]); Complete Context — どのテストを rename し、どの regression command を要求するか — The in-scope requirement 'tests の更新' (scopeVerification.in[4]) does not identify which test files are renamed or which regression commands must pass; two reviewers would disagree on whether a partial test rename satisfies it. (at deferredToSpec[1]); Complete Context — docs/AGENTS と preset template の文言をどこまで `skills` 表現へ置換するか — The in-scope requirement 'AGENTS/CLAUDE/preset docs 文言の更新' (scopeVerification.in[4]) explicitly defers the extent of wording replacement without measurable criteria, leaving two reviewers unable to judge whether any given level of update satisfies the requirement. (at deferredToSpec[2]); No Hardcoded Secrets — The spec describes only directory path renames and reference updates; no API keys, passwords, tokens, or other secrets are present.; Prioritize Requirements — `src/templates/skills/` 配下の bundled skill source と `rules.json` の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[0]); Prioritize Requirements — `src/templates/partials/` 配下の shared skill partial の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[1]); Prioritize Requirements — `src/docs/data/` 配下の common DataSource 実装の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[2]); Prioritize Requirements — `experimental/workflow/templates/skills/` 配下の experimental skill source の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[3]); Prioritize Requirements — 上記 path を参照する production code、tests、AGENTS/CLAUDE/preset docs 文言の更新。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[4]); Prioritize Requirements — `sdd-forge upgrade` 実行による `.agents/skills/` と `.claude/skills/` への反映。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[5]); Impact on Existing Features — The spec includes an explicit 'impactOnExisting' section with five entries covering sdd-forge upgrade copy-source changes, skill build include path resolution, docs resolver path, test fixture paths, and project-local generated skill regeneration via upgrade.; Present Recommendations with Reasoning — The single question (q1) presents a clear recommendation ('src/skills/partials/ として扱う'), backed by Issue #333 as documentary evidence and a 'why' field with reasoning, plus a 'considered' field documenting the alternative evaluated.; Explore Before Asking — Codebase exploration is demonstrated via rg commands in analysis.validation and specific file/constant citations in knownFacts (e.g. MAIN_SKILLS_TEMPLATES_DIR, resolver-factory.js). openQuestions is empty and all decisionPoints are resolved before approval.; Proactively Raise Related Implications — Obvious related implications are proactively raised: upgrade bundled-skill copy-source change, skill-build include path impact, docs resolver path change, test fixture path changes, and project-local skill regeneration are all surfaced in impactOnExisting and decisionPoints.; Confirm Brainstorm vs. Decision Before Critiquing — The spec presents a finalized, approved plan (approval.approved=true, confirmedAt set); no user ideas are critiqued and no brainstorm-vs-decide ambiguity exists.; Capture Digressions in draft.md — No digressions appear in the spec content; all sections remain on-topic for the directory rename concern.; Backward-Compatible CLI Interface — No CLI commands or options are removed or change meaning; the changes are purely internal directory restructuring. Commands such as 'sdd-forge upgrade', 'sdd-forge docs build', and their flags remain unchanged.\n    [gate-draft] draft gate failed because requirements lacked priorities and deferred naming, test, and docs wording decisions were too vague\n    [gate-draft] Single Responsibility — The spec addresses exactly one concern: renaming skill/DataSource directories and updating all references to match. No unrelated changes are bundled.; Unambiguous Requirements — upgrade 後に生成される `.agents/skills/` と `.claude/skills/` の内容が変わらないことを確認する。 — 「内容が変わらない」は検証可能な条件ではなく、バイト一致なのか、機能的同等性なのか、どのファイルが対象かが不明であり、2人の独立したレビュアーが同じ判定基準を持てない。 (at decisionMap.decisionPoints[6]); Unambiguous Requirements — must: `AGENTS.md`、`src/CLAUDE.md`、`src/presets/base/templates/*/AGENTS.sdd.md` のうち skill source asset を指す文言を `src/skills/` へ更新し、preset template を指す文言は `src/presets/` のまま保つ。 — 「skill source asset を指す文言」と「preset template を指す文言」の区別基準が記述されておらず、どの文字列・パターンが対象かを特定できない。2人の独立したレビュアーが同じ範囲に合意できない。 (at scopeVerification.in[7]); Complete Context — upgrade 後に生成される `.agents/skills/` と `.claude/skills/` の内容が変わらないことを確認する。 — 「内容が変わらない」は測定基準を持たない主観的条件であり、何をもって「変わらない」と判断するかが実装者によって異なりうる。 (at decisionMap.decisionPoints[6]); Complete Context — 検証 command は `node tests/run.js --scope unit`、`node tests/run.js --scope e2e`、`npm test`、`sdd-forge upgrade` とする。 — 検証の成功基準（終了コード、特定のログ出力、テスト通過数など）が記述されておらず、どのような結果をもってリネームが正しく完了したと判断するかが不明。 (at decisionMap.decisionPoints[7]); No Hardcoded Secrets — The spec contains no API keys, passwords, tokens, or other secrets.; Prioritize Requirements — must: `src/templates/skills/` 配下の bundled skill source と `rules.json` を `src/skills/` へ移動する。 — scopeVerification.in には8項目の must 要件が列挙されているが、must/should/nice-to-have の優先度区分が全て「must」に設定されており、3項目超の要件リストに対して優先度の差異が付けられていない。 (at scopeVerification.in[0]); Prioritize Requirements — must: `src/templates/partials/` 配下の shared skill partial を `src/skills/partials/` へ移動する。 — 同上。全要件が同一優先度「must」で列挙されており、3項目超の要件リストに対して優先度の差分が存在しない。 (at scopeVerification.in[1]); Prioritize Requirements — must: `src/docs/data/` 配下の common DataSource 実装を `src/data/` へ移動する。 — 同上。全要件が同一優先度「must」で列挙されており、3項目超の要件リストに対して優先度の差分が存在しない。 (at scopeVerification.in[2]); Impact on Existing Features — The spec explicitly lists five impacts on existing features in the impactOnExisting array, covering upgrade copy sources, include resolution, docs resolver paths, test fixtures, and generated skills regeneration.; Present Recommendations with Reasoning — Previously passed; no new recommendation-without-reasoning content introduced in this draft.; Explore Before Asking — Previously passed; the spec documents codebase exploration via rg commands before reaching conclusions, and requiresUserJudgment is empty.; Proactively Raise Related Implications — Previously passed; implications such as include namespace change, docs sync requirement, and test fixture updates are proactively noted.; Confirm Brainstorm vs. Decision Before Critiquing — Previously passed; no new unconfirmed brainstorm-vs-decision ambiguity introduced.; Capture Digressions in draft.md — Previously passed; no digressions requiring capture are present in this content.; Backward-Compatible CLI Interface — Previously passed; the spec is a pure internal directory rename with no CLI command or option changes, and the alpha-version policy explicitly dropping deprecated paths is acknowledged in resolvedByProjectRules.\n    [gate-draft] third draft gate failed because upgrade verification, documentation wording scope, and priority tiers were still ambiguous\n    [implement] git mv failed because the worktree git index lock path was read-only in the sandbox\n    [retry-recovery] Applied review proposals that changed implementation evidence after the previous review attempt.\n    [retry-recovery] Applied additional review fixes and moved renamed tests under tests/unit/skills before re-evaluation.\n    [gate-impl] fix: removed deleted legacy paths from file-map.json\n    [gate] R1 — Diff moves rules.json and all shown bundled skill directories from src/templates/skills/ to src/skills/ with same names; content is preserved except required @templates to @skills include updates.; R2 — src/templates/partials files are deleted and recreated under src/skills/partials; src/skills/sdd-forge.flow/SKILL.md uses @skills/partials/*.md includes and no @templates/ include remains under src/skills in the diff.; R3 — src/docs/data files are deleted and recreated under src/data with relative imports adjusted; resolver-factory and test path constants now point to src/data.; R4 — Experimental workflow skill source was moved from experimental/workflow/templates/skills/ to experimental/workflow/skills/, and upgrade now deploys EXPERIMENTAL_WORKFLOW_SKILLS_DIR when config.experimental.workflow.enable is true.; R5 — Diff updates the named production files to use MAIN_SKILLS_DIR, src/skills, @skills, src/data, and experimental/workflow/skills, and removes visible production references to old templates/data paths and MAIN_SKILLS_TEMPLATES_DIR.; R6 — Diff updates existing unit/e2e tests from moved template/data paths to src/skills and src/data, renames template tests under tests/unit/skills, and adds spec-local path-contract tests covering skills, partial includes, DataSource loading, experimental workflow skills, and upgrade output.; R7 — Diff updates AGENTS.md and base preset AGENTS.sdd.md files from literal src/templates/ guidance to src/skills/ while preserving src/presets/; CLAUDE guidance is updated analogously and no preset-internal templates/ explanation is changed.; R8 — Requires execution evidence for `sdd-forge upgrade` exit status and generated SKILL.md outputs; the diff provides no command result or generated .agents/.claude files.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/ with a non-empty // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function deployedSkillFile(workRoot, base, name) { — This introduces a thin path-construction helper with a single call site. The guardrail prohibits indirection layers that have a single caller. (at src/lib/skills.js); Avoid Overengineering — function isSddForgeSkillName(name) { — This introduces a one-line predicate helper used only once. The guardrail prohibits indirection layers that have a single caller. (at src/lib/skills.js); Avoid Overengineering — function projectSkillSource(dir) { — This introduces a wrapper around skillSource/deployProjectSkills that is called only once. The guardrail prohibits indirection layers that have a single caller. (at src/upgrade.js)\n    [gate-impl] fix: removed single-use helper functions flagged by no-overengineering\n    [gate] R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — No execution evidence for `sdd-forge upgrade`; exit code and generated .agents/.claude SKILL.md outputs require running the command.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/ and the file has a // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function isCurrentSkillFile(filePath, content) — This introduces a helper indirection with only one call site in the diff, which violates the rule against indirection layers that have a single caller. (at src/lib/skills.js); Avoid Overengineering — function deploySkillSourceOrExit(deploy) — This introduces a wrapper function used from a single call site, which violates the rule against indirection layers that have a single caller. (at src/upgrade.js); Avoid Overengineering — function skillSource(dir, deploy) — This introduces a trivial object-construction helper used only within one local setup path, creating a single-caller indirection layer. (at src/upgrade.js)\n    [gate-impl] fix: inlined remaining single-call helper functions\n    [gate] R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — Requires execution evidence for `sdd-forge upgrade` exit code and generated `.agents`/`.claude` SKILL.md contents; diff provides no such evidence.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/path-contracts.test.js with a valid // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function listFiles(relDir) — This introduces a helper indirection with a single non-recursive caller in the added spec-local test file, violating the guardrail's requirement not to introduce single-caller indirection layers. (at specs/262-rename-skill-data-dirs/tests/path-contracts.test.js)\n    [gate-impl] fix: removed single-caller listFiles helper from spec-local path contract test\n    [gate] R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — Requires executing sdd-forge upgrade and inspecting generated .agents/.claude SKILL.md; no execution evidence is provided in the diff.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/path-contracts.test.js with a // spec: R1 R2 R3 R4 R5 R6 R7 R8 header, satisfying the required location and header coverage.; Avoid Overengineering — function createDocsFixture(chapters) — This introduces a helper that is only called by setupDocsSource, creating a single-caller indirection layer in the added test code. (at tests/unit/docs/lib/layout-and-nav.test.js); Avoid Overengineering — function navMarkdown(ds, currentPath) — This helper only wraps ds.nav plus two assertions and is used as an indirection layer for the test body instead of keeping the simple assertion shape local. (at tests/unit/docs/lib/layout-and-nav.test.js); Avoid Overengineering — function setupSkills(workRoot, t) — After the diff, setupSkills is a single-caller wrapper around deploySkills plus one log line, retaining an indirection layer with only one caller. (at src/setup.js)\n    [gate-impl] fix: inline thin helpers flagged by no-overengineering\n    [gate] R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — Diff updates upgrade paths and source includes, but provides no evidence that `sdd-forge upgrade` was run successfully or that generated `.agents`/`.claude` SKILL.md files were created and checked for raw `@templates/` directives.\n    [gate-impl] fix: add upgrade execution evidence for R8\n    [retry-recovery] R8 evidence changed: sdd-forge upgrade exit 0 is recorded in upgrade-verification.json and refreshed test artifacts now cover the generated SKILL.md checks.\n    [final-regression] final-regression failed: pre_existing\n    [final-regression] fix: docs.langSwitcher regression after moving common DataSource to src/data"
+}

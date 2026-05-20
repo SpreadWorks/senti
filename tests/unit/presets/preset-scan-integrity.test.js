@@ -50,8 +50,8 @@ async function loadChainScanSources(presetKey) {
   return dataSources;
 }
 
-/** Common DataSource directory (src/docs/data/) */
-const COMMON_DATA_DIR = path.resolve(__dirname, "../../../src/docs/data");
+/** Common DataSource directory (src/data/) */
+const COMMON_DATA_DIR = path.resolve(__dirname, "../../../src/data");
 
 /** Load all DataSources (not just scan) for an entire chain, including common */
 async function loadChainAllSources(presetKey) {

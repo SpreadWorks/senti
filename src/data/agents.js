@@ -6,8 +6,8 @@
 
 import fs from "fs";
 import path from "path";
-import { PRESETS_DIR } from "../../lib/presets.js";
-import { formatUTCTimestamp } from "../../lib/cli.js";
+import { PRESETS_DIR } from "../lib/presets.js";
+import { formatUTCTimestamp } from "../lib/cli.js";
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");

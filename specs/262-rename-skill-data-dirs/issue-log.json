@@ -1,0 +1,515 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "set request failed because the literal skill invocation started with a dollar sign and was expanded by the shell",
+      "trigger": "running sdd-forge flow set request with unescaped $sdd-forge.flow text after prepare",
+      "resolution": "reran set request with single quoted literal input and continued from the same worktree flow",
+      "guardrailCandidate": "quote literal user invocations containing dollar signs before passing them to shell commands",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:25:01.667Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T01:28:27.156Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed because approval.approved remained false after coverage review passed",
+      "trigger": "sdd-forge flow run gate --phase draft reported draft approval is required",
+      "resolution": "set draft approval to true with timestamp and autoApprove rationale, then reran draft gate",
+      "guardrailCandidate": "after draft coverage review passes with no unresolved decisions, ensure draft approval marker is set before gate-draft",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:28:44.661Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses exactly one concern: renaming skill/DataSource directories (src/templates/ → src/skills/, src/docs/data/ → src/data/, experimental/workflow/templates/skills/ → experimental/workflow/skills/) and updating all references to those paths. No unrelated changes are bundled, and the spec explicitly states it treats Issue #333 as a single concern.; Unambiguous Requirements — Requirements in scopeVerification.in use concrete, non-adjectival terms ('移動', '更新', '反映') paired with specific directory paths. No vague adjectives such as 'appropriate', 'fast', or 'easy' appear in the requirement statements.; Complete Context — 新しい定数名、include namespace 名、関数コメントの具体的な命名 — The in-scope requirement 'production code の更新' (scopeVerification.in[4]) does not specify target constant names or the new include namespace; two independent reviewers cannot agree on whether a particular naming choice satisfies the requirement. (at deferredToSpec[0]); Complete Context — どのテストを rename し、どの regression command を要求するか — The in-scope requirement 'tests の更新' (scopeVerification.in[4]) does not identify which test files are renamed or which regression commands must pass; two reviewers would disagree on whether a partial test rename satisfies it. (at deferredToSpec[1]); Complete Context — docs/AGENTS と preset template の文言をどこまで `skills` 表現へ置換するか — The in-scope requirement 'AGENTS/CLAUDE/preset docs 文言の更新' (scopeVerification.in[4]) explicitly defers the extent of wording replacement without measurable criteria, leaving two reviewers unable to judge whether any given level of update satisfies the requirement. (at deferredToSpec[2]); No Hardcoded Secrets — The spec describes only directory path renames and reference updates; no API keys, passwords, tokens, or other secrets are present.; Prioritize Requirements — `src/templates/skills/` 配下の bundled skill source と `rules.json` の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[0]); Prioritize Requirements — `src/templates/partials/` 配下の shared skill partial の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[1]); Prioritize Requirements — `src/docs/data/` 配下の common DataSource 実装の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[2]); Prioritize Requirements — `experimental/workflow/templates/skills/` 配下の experimental skill source の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[3]); Prioritize Requirements — 上記 path を参照する production code、tests、AGENTS/CLAUDE/preset docs 文言の更新。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[4]); Prioritize Requirements — `sdd-forge upgrade` 実行による `.agents/skills/` と `.claude/skills/` への反映。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[5]); Impact on Existing Features — The spec includes an explicit 'impactOnExisting' section with five entries covering sdd-forge upgrade copy-source changes, skill build include path resolution, docs resolver path, test fixture paths, and project-local generated skill regeneration via upgrade.; Present Recommendations with Reasoning — The single question (q1) presents a clear recommendation ('src/skills/partials/ として扱う'), backed by Issue #333 as documentary evidence and a 'why' field with reasoning, plus a 'considered' field documenting the alternative evaluated.; Explore Before Asking — Codebase exploration is demonstrated via rg commands in analysis.validation and specific file/constant citations in knownFacts (e.g. MAIN_SKILLS_TEMPLATES_DIR, resolver-factory.js). openQuestions is empty and all decisionPoints are resolved before approval.; Proactively Raise Related Implications — Obvious related implications are proactively raised: upgrade bundled-skill copy-source change, skill-build include path impact, docs resolver path change, test fixture path changes, and project-local skill regeneration are all surfaced in impactOnExisting and decisionPoints.; Confirm Brainstorm vs. Decision Before Critiquing — The spec presents a finalized, approved plan (approval.approved=true, confirmedAt set); no user ideas are critiqued and no brainstorm-vs-decide ambiguity exists.; Capture Digressions in draft.md — No digressions appear in the spec content; all sections remain on-topic for the directory rename concern.; Backward-Compatible CLI Interface — No CLI commands or options are removed or change meaning; the changes are purely internal directory restructuring. Commands such as 'sdd-forge upgrade', 'sdd-forge docs build', and their flags remain unchanged.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T01:32:11.529Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "complete-context",
+          "reason": "新しい定数名、include namespace 名、関数コメントの具体的な命名 — The in-scope requirement 'production code の更新' (scopeVerification.in[4]) does not specify target constant names or the new include namespace; two independent reviewers cannot agree on whether a particular naming choice satisfies the requirement. (at deferredToSpec[0]); どのテストを rename し、どの regression command を要求するか — The in-scope requirement 'tests の更新' (scopeVerification.in[4]) does not identify which test files are renamed or which regression commands must pass; two reviewers would disagree on whether a partial test rename satisfies it. (at deferredToSpec[1]); docs/AGENTS と preset template の文言をどこまで `skills` 表現へ置換するか — The in-scope requirement 'AGENTS/CLAUDE/preset docs 文言の更新' (scopeVerification.in[4]) explicitly defers the extent of wording replacement without measurable criteria, leaving two reviewers unable to judge whether any given level of update satisfies the requirement. (at deferredToSpec[2])"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "`src/templates/skills/` 配下の bundled skill source と `rules.json` の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[0]); `src/templates/partials/` 配下の shared skill partial の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[1]); `src/docs/data/` 配下の common DataSource 実装の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[2]); `experimental/workflow/templates/skills/` 配下の experimental skill source の移動。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[3]); 上記 path を参照する production code、tests、AGENTS/CLAUDE/preset docs 文言の更新。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[4]); `sdd-forge upgrade` 実行による `.agents/skills/` と `.claude/skills/` への反映。 — The spec lists more than three in-scope requirements but assigns no must/should/nice-to-have priority to this item. (at scopeVerification.in[5])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "draft gate failed because requirements lacked priorities and deferred naming, test, and docs wording decisions were too vague",
+      "trigger": "second sdd-forge flow run gate --phase draft returned complete-context and prioritize-requirements failures",
+      "resolution": "added must priorities, concrete include namespace, constant name, target test files, verification commands, and docs wording scope",
+      "guardrailCandidate": "draft scope items must include priorities and measurable naming/test/docs criteria before gate-draft",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:33:05.645Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The spec addresses exactly one concern: renaming skill/DataSource directories and updating all references to match. No unrelated changes are bundled.; Unambiguous Requirements — upgrade 後に生成される `.agents/skills/` と `.claude/skills/` の内容が変わらないことを確認する。 — 「内容が変わらない」は検証可能な条件ではなく、バイト一致なのか、機能的同等性なのか、どのファイルが対象かが不明であり、2人の独立したレビュアーが同じ判定基準を持てない。 (at decisionMap.decisionPoints[6]); Unambiguous Requirements — must: `AGENTS.md`、`src/CLAUDE.md`、`src/presets/base/templates/*/AGENTS.sdd.md` のうち skill source asset を指す文言を `src/skills/` へ更新し、preset template を指す文言は `src/presets/` のまま保つ。 — 「skill source asset を指す文言」と「preset template を指す文言」の区別基準が記述されておらず、どの文字列・パターンが対象かを特定できない。2人の独立したレビュアーが同じ範囲に合意できない。 (at scopeVerification.in[7]); Complete Context — upgrade 後に生成される `.agents/skills/` と `.claude/skills/` の内容が変わらないことを確認する。 — 「内容が変わらない」は測定基準を持たない主観的条件であり、何をもって「変わらない」と判断するかが実装者によって異なりうる。 (at decisionMap.decisionPoints[6]); Complete Context — 検証 command は `node tests/run.js --scope unit`、`node tests/run.js --scope e2e`、`npm test`、`sdd-forge upgrade` とする。 — 検証の成功基準（終了コード、特定のログ出力、テスト通過数など）が記述されておらず、どのような結果をもってリネームが正しく完了したと判断するかが不明。 (at decisionMap.decisionPoints[7]); No Hardcoded Secrets — The spec contains no API keys, passwords, tokens, or other secrets.; Prioritize Requirements — must: `src/templates/skills/` 配下の bundled skill source と `rules.json` を `src/skills/` へ移動する。 — scopeVerification.in には8項目の must 要件が列挙されているが、must/should/nice-to-have の優先度区分が全て「must」に設定されており、3項目超の要件リストに対して優先度の差異が付けられていない。 (at scopeVerification.in[0]); Prioritize Requirements — must: `src/templates/partials/` 配下の shared skill partial を `src/skills/partials/` へ移動する。 — 同上。全要件が同一優先度「must」で列挙されており、3項目超の要件リストに対して優先度の差分が存在しない。 (at scopeVerification.in[1]); Prioritize Requirements — must: `src/docs/data/` 配下の common DataSource 実装を `src/data/` へ移動する。 — 同上。全要件が同一優先度「must」で列挙されており、3項目超の要件リストに対して優先度の差分が存在しない。 (at scopeVerification.in[2]); Impact on Existing Features — The spec explicitly lists five impacts on existing features in the impactOnExisting array, covering upgrade copy sources, include resolution, docs resolver paths, test fixtures, and generated skills regeneration.; Present Recommendations with Reasoning — Previously passed; no new recommendation-without-reasoning content introduced in this draft.; Explore Before Asking — Previously passed; the spec documents codebase exploration via rg commands before reaching conclusions, and requiresUserJudgment is empty.; Proactively Raise Related Implications — Previously passed; implications such as include namespace change, docs sync requirement, and test fixture updates are proactively noted.; Confirm Brainstorm vs. Decision Before Critiquing — Previously passed; no new unconfirmed brainstorm-vs-decision ambiguity introduced.; Capture Digressions in draft.md — Previously passed; no digressions requiring capture are present in this content.; Backward-Compatible CLI Interface — Previously passed; the spec is a pure internal directory rename with no CLI command or option changes, and the alpha-version policy explicitly dropping deprecated paths is acknowledged in resolvedByProjectRules.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T01:33:42.457Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "upgrade 後に生成される `.agents/skills/` と `.claude/skills/` の内容が変わらないことを確認する。 — 「内容が変わらない」は検証可能な条件ではなく、バイト一致なのか、機能的同等性なのか、どのファイルが対象かが不明であり、2人の独立したレビュアーが同じ判定基準を持てない。 (at decisionMap.decisionPoints[6]); must: `AGENTS.md`、`src/CLAUDE.md`、`src/presets/base/templates/*/AGENTS.sdd.md` のうち skill source asset を指す文言を `src/skills/` へ更新し、preset template を指す文言は `src/presets/` のまま保つ。 — 「skill source asset を指す文言」と「preset template を指す文言」の区別基準が記述されておらず、どの文字列・パターンが対象かを特定できない。2人の独立したレビュアーが同じ範囲に合意できない。 (at scopeVerification.in[7])"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "upgrade 後に生成される `.agents/skills/` と `.claude/skills/` の内容が変わらないことを確認する。 — 「内容が変わらない」は測定基準を持たない主観的条件であり、何をもって「変わらない」と判断するかが実装者によって異なりうる。 (at decisionMap.decisionPoints[6]); 検証 command は `node tests/run.js --scope unit`、`node tests/run.js --scope e2e`、`npm test`、`sdd-forge upgrade` とする。 — 検証の成功基準（終了コード、特定のログ出力、テスト通過数など）が記述されておらず、どのような結果をもってリネームが正しく完了したと判断するかが不明。 (at decisionMap.decisionPoints[7])"
+        },
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "must: `src/templates/skills/` 配下の bundled skill source と `rules.json` を `src/skills/` へ移動する。 — scopeVerification.in には8項目の must 要件が列挙されているが、must/should/nice-to-have の優先度区分が全て「must」に設定されており、3項目超の要件リストに対して優先度の差異が付けられていない。 (at scopeVerification.in[0]); must: `src/templates/partials/` 配下の shared skill partial を `src/skills/partials/` へ移動する。 — 同上。全要件が同一優先度「must」で列挙されており、3項目超の要件リストに対して優先度の差分が存在しない。 (at scopeVerification.in[1]); must: `src/docs/data/` 配下の common DataSource 実装を `src/data/` へ移動する。 — 同上。全要件が同一優先度「must」で列挙されており、3項目超の要件リストに対して優先度の差分が存在しない。 (at scopeVerification.in[2])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate-draft",
+      "reason": "third draft gate failed because upgrade verification, documentation wording scope, and priority tiers were still ambiguous",
+      "trigger": "sdd-forge flow run gate --phase draft returned unambiguous-requirements, complete-context, and prioritize-requirements failures",
+      "resolution": "specified generated SKILL.md checks, exit-code success criteria, literal documentation replacement rules, and should priorities for tests docs and upgrade",
+      "guardrailCandidate": "avoid subjective phrases like content unchanged and avoid all-must priority lists when a draft contains more than three requirements",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:34:24.967Z"
+    },
+    {
+      "step": "implement",
+      "reason": "git mv failed because the worktree git index lock path was read-only in the sandbox",
+      "trigger": "attempting git mv src/templates/skills src/skills during directory rename implementation",
+      "resolution": "used filesystem mv for directory moves and will rely on git add/status rename detection later",
+      "guardrailCandidate": "when git index operations fail in a sandboxed worktree, use filesystem moves for content changes and stage after implementation",
+      "taskId": null,
+      "timestamp": "2026-05-20T01:47:27.360Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Applied review proposals that changed implementation evidence after the previous review attempt.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "d13f33793c0c6a7665486cf2dc9407a1e16c6307e62329f7ed1eebb2607d397b",
+        "currentHash": "1dc105f1269939050b1038d35f312d177a288ae0d62ec3d27cd608825222e436",
+        "changedPaths": [
+          "src/data/agents.js",
+          "src/data/docs.js",
+          "src/data/lang.js",
+          "src/data/project.js",
+          "src/data/skills.js",
+          "src/data/text.js",
+          "src/docs/data/agents.js",
+          "src/docs/data/docs.js",
+          "src/docs/data/lang.js",
+          "src/docs/data/project.js",
+          "src/docs/data/skills.js",
+          "src/docs/data/text.js",
+          "src/docs/lib/resolver-factory.js",
+          "src/lib/include.js",
+          "src/lib/skill-rules.js",
+          "src/lib/skills.js",
+          "src/presets/base/templates/en/AGENTS.sdd.md",
+          "src/presets/base/templates/ja/AGENTS.sdd.md",
+          "src/setup.js",
+          "src/skills/partials/ai-question-style.md",
+          "src/skills/partials/choice-format.md",
+          "src/skills/partials/context-recording.md",
+          "src/skills/partials/core-principle.md",
+          "src/skills/partials/flow-tracking.md",
+          "src/skills/partials/issue-log-recording.md",
+          "src/skills/partials/placeholder-artifact-permission.md",
+          "src/skills/partials/worktree-mode.md",
+          "src/skills/rules.json",
+          "src/skills/sdd-forge.flow-auto/SKILL.md",
+          "src/skills/sdd-forge.flow-resume/SKILL.md",
+          "src/skills/sdd-forge.flow-status/SKILL.md",
+          "src/skills/sdd-forge.flow-sync/SKILL.md",
+          "src/skills/sdd-forge.flow/SKILL.md",
+          "src/templates/partials/ai-question-style.md",
+          "src/templates/partials/choice-format.md",
+          "src/templates/partials/context-recording.md",
+          "src/templates/partials/core-principle.md",
+          "src/templates/partials/flow-tracking.md",
+          "src/templates/partials/issue-log-recording.md",
+          "src/templates/partials/placeholder-artifact-permission.md",
+          "src/templates/partials/worktree-mode.md",
+          "src/templates/skills/rules.json",
+          "src/templates/skills/sdd-forge.flow-auto/SKILL.md",
+          "src/templates/skills/sdd-forge.flow-resume/SKILL.md",
+          "src/templates/skills/sdd-forge.flow-status/SKILL.md",
+          "src/templates/skills/sdd-forge.flow-sync/SKILL.md",
+          "src/templates/skills/sdd-forge.flow/SKILL.md",
+          "src/upgrade.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"Applied review proposals that changed implementation evidence after the previous review attempt.\" --yes",
+      "createdAt": "2026-05-20T02:45:14.912Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Applied additional review fixes and moved renamed tests under tests/unit/skills before re-evaluation.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "1dc105f1269939050b1038d35f312d177a288ae0d62ec3d27cd608825222e436",
+        "currentHash": "60851cf1e0bddb780e991563a90d1fd4d1b344764cc5d768db4ec2ff8b857c7e",
+        "changedPaths": [
+          "src/data/agents.js",
+          "src/data/docs.js",
+          "src/data/lang.js",
+          "src/data/project.js",
+          "src/data/skills.js",
+          "src/data/text.js",
+          "src/docs/data/agents.js",
+          "src/docs/data/docs.js",
+          "src/docs/data/lang.js",
+          "src/docs/data/project.js",
+          "src/docs/data/skills.js",
+          "src/docs/data/text.js",
+          "src/docs/lib/resolver-factory.js",
+          "src/lib/include.js",
+          "src/lib/skill-rules.js",
+          "src/lib/skills.js",
+          "src/presets/base/templates/en/AGENTS.sdd.md",
+          "src/presets/base/templates/ja/AGENTS.sdd.md",
+          "src/setup.js",
+          "src/skills/partials/ai-question-style.md",
+          "src/skills/partials/choice-format.md",
+          "src/skills/partials/context-recording.md",
+          "src/skills/partials/core-principle.md",
+          "src/skills/partials/flow-tracking.md",
+          "src/skills/partials/issue-log-recording.md",
+          "src/skills/partials/placeholder-artifact-permission.md",
+          "src/skills/partials/worktree-mode.md",
+          "src/skills/rules.json",
+          "src/skills/sdd-forge.flow-auto/SKILL.md",
+          "src/skills/sdd-forge.flow-resume/SKILL.md",
+          "src/skills/sdd-forge.flow-status/SKILL.md",
+          "src/skills/sdd-forge.flow-sync/SKILL.md",
+          "src/skills/sdd-forge.flow/SKILL.md",
+          "src/templates/partials/ai-question-style.md",
+          "src/templates/partials/choice-format.md",
+          "src/templates/partials/context-recording.md",
+          "src/templates/partials/core-principle.md",
+          "src/templates/partials/flow-tracking.md",
+          "src/templates/partials/issue-log-recording.md",
+          "src/templates/partials/placeholder-artifact-permission.md",
+          "src/templates/partials/worktree-mode.md",
+          "src/templates/skills/rules.json",
+          "src/templates/skills/sdd-forge.flow-auto/SKILL.md",
+          "src/templates/skills/sdd-forge.flow-resume/SKILL.md",
+          "src/templates/skills/sdd-forge.flow-status/SKILL.md",
+          "src/templates/skills/sdd-forge.flow-sync/SKILL.md",
+          "src/templates/skills/sdd-forge.flow/SKILL.md",
+          "src/upgrade.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"Applied additional review fixes and moved renamed tests under tests/unit/skills before re-evaluation.\" --yes",
+      "createdAt": "2026-05-20T02:56:38.120Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: removed deleted legacy paths from file-map.json",
+      "resolution": "gate artifact validation requires file-map entries to point to current existing paths; deletion coverage is asserted by spec-local path-contract tests instead.",
+      "taskId": null,
+      "timestamp": "2026-05-20T05:04:15.777Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — Diff moves rules.json and all shown bundled skill directories from src/templates/skills/ to src/skills/ with same names; content is preserved except required @templates to @skills include updates.; R2 — src/templates/partials files are deleted and recreated under src/skills/partials; src/skills/sdd-forge.flow/SKILL.md uses @skills/partials/*.md includes and no @templates/ include remains under src/skills in the diff.; R3 — src/docs/data files are deleted and recreated under src/data with relative imports adjusted; resolver-factory and test path constants now point to src/data.; R4 — Experimental workflow skill source was moved from experimental/workflow/templates/skills/ to experimental/workflow/skills/, and upgrade now deploys EXPERIMENTAL_WORKFLOW_SKILLS_DIR when config.experimental.workflow.enable is true.; R5 — Diff updates the named production files to use MAIN_SKILLS_DIR, src/skills, @skills, src/data, and experimental/workflow/skills, and removes visible production references to old templates/data paths and MAIN_SKILLS_TEMPLATES_DIR.; R6 — Diff updates existing unit/e2e tests from moved template/data paths to src/skills and src/data, renames template tests under tests/unit/skills, and adds spec-local path-contract tests covering skills, partial includes, DataSource loading, experimental workflow skills, and upgrade output.; R7 — Diff updates AGENTS.md and base preset AGENTS.sdd.md files from literal src/templates/ guidance to src/skills/ while preserving src/presets/; CLAUDE guidance is updated analogously and no preset-internal templates/ explanation is changed.; R8 — Requires execution evidence for `sdd-forge upgrade` exit status and generated SKILL.md outputs; the diff provides no command result or generated .agents/.claude files.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/ with a non-empty // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function deployedSkillFile(workRoot, base, name) { — This introduces a thin path-construction helper with a single call site. The guardrail prohibits indirection layers that have a single caller. (at src/lib/skills.js); Avoid Overengineering — function isSddForgeSkillName(name) { — This introduces a one-line predicate helper used only once. The guardrail prohibits indirection layers that have a single caller. (at src/lib/skills.js); Avoid Overengineering — function projectSkillSource(dir) { — This introduces a wrapper around skillSource/deployProjectSkills that is called only once. The guardrail prohibits indirection layers that have a single caller. (at src/upgrade.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T05:08:22.376Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function deployedSkillFile(workRoot, base, name) { — This introduces a thin path-construction helper with a single call site. The guardrail prohibits indirection layers that have a single caller. (at src/lib/skills.js); function isSddForgeSkillName(name) { — This introduces a one-line predicate helper used only once. The guardrail prohibits indirection layers that have a single caller. (at src/lib/skills.js); function projectSkillSource(dir) { — This introduces a wrapper around skillSource/deployProjectSkills that is called only once. The guardrail prohibits indirection layers that have a single caller. (at src/upgrade.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: removed single-use helper functions flagged by no-overengineering",
+      "resolution": "inlined deployed skill file path construction, sdd-forge skill-name predicate, and experimental skill-source wrapper while preserving existing behavior.",
+      "taskId": null,
+      "timestamp": "2026-05-20T05:08:53.145Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — No execution evidence for `sdd-forge upgrade`; exit code and generated .agents/.claude SKILL.md outputs require running the command.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/ and the file has a // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function isCurrentSkillFile(filePath, content) — This introduces a helper indirection with only one call site in the diff, which violates the rule against indirection layers that have a single caller. (at src/lib/skills.js); Avoid Overengineering — function deploySkillSourceOrExit(deploy) — This introduces a wrapper function used from a single call site, which violates the rule against indirection layers that have a single caller. (at src/upgrade.js); Avoid Overengineering — function skillSource(dir, deploy) — This introduces a trivial object-construction helper used only within one local setup path, creating a single-caller indirection layer. (at src/upgrade.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T05:09:29.203Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function isCurrentSkillFile(filePath, content) — This introduces a helper indirection with only one call site in the diff, which violates the rule against indirection layers that have a single caller. (at src/lib/skills.js); function deploySkillSourceOrExit(deploy) — This introduces a wrapper function used from a single call site, which violates the rule against indirection layers that have a single caller. (at src/upgrade.js); function skillSource(dir, deploy) — This introduces a trivial object-construction helper used only within one local setup path, creating a single-caller indirection layer. (at src/upgrade.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: inlined remaining single-call helper functions",
+      "resolution": "removed helper indirection for current skill-file detection and upgrade deploy source wrapping while preserving behavior and syntax checks pass.",
+      "taskId": null,
+      "timestamp": "2026-05-20T05:10:09.655Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — Requires execution evidence for `sdd-forge upgrade` exit code and generated `.agents`/`.claude` SKILL.md contents; diff provides no such evidence.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/path-contracts.test.js with a valid // spec: R1 R2 R3 R4 R5 R6 R7 R8 header.; Avoid Overengineering — function listFiles(relDir) — This introduces a helper indirection with a single non-recursive caller in the added spec-local test file, violating the guardrail's requirement not to introduce single-caller indirection layers. (at specs/262-rename-skill-data-dirs/tests/path-contracts.test.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T05:10:41.476Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function listFiles(relDir) — This introduces a helper indirection with a single non-recursive caller in the added spec-local test file, violating the guardrail's requirement not to introduce single-caller indirection layers. (at specs/262-rename-skill-data-dirs/tests/path-contracts.test.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: removed single-caller listFiles helper from spec-local path contract test",
+      "resolution": "inlined skill file collection inside the only test that needs it; syntax check and spec-local path-contract test pass.",
+      "taskId": null,
+      "timestamp": "2026-05-20T05:11:10.195Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — Requires executing sdd-forge upgrade and inspecting generated .agents/.claude SKILL.md; no execution evidence is provided in the diff.; Spec Test Coverage — The diff adds spec-local coverage under specs/262-rename-skill-data-dirs/tests/path-contracts.test.js with a // spec: R1 R2 R3 R4 R5 R6 R7 R8 header, satisfying the required location and header coverage.; Avoid Overengineering — function createDocsFixture(chapters) — This introduces a helper that is only called by setupDocsSource, creating a single-caller indirection layer in the added test code. (at tests/unit/docs/lib/layout-and-nav.test.js); Avoid Overengineering — function navMarkdown(ds, currentPath) — This helper only wraps ds.nav plus two assertions and is used as an indirection layer for the test body instead of keeping the simple assertion shape local. (at tests/unit/docs/lib/layout-and-nav.test.js); Avoid Overengineering — function setupSkills(workRoot, t) — After the diff, setupSkills is a single-caller wrapper around deploySkills plus one log line, retaining an indirection layer with only one caller. (at src/setup.js)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T05:11:47.836Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "function createDocsFixture(chapters) — This introduces a helper that is only called by setupDocsSource, creating a single-caller indirection layer in the added test code. (at tests/unit/docs/lib/layout-and-nav.test.js); function navMarkdown(ds, currentPath) — This helper only wraps ds.nav plus two assertions and is used as an indirection layer for the test body instead of keeping the simple assertion shape local. (at tests/unit/docs/lib/layout-and-nav.test.js); function setupSkills(workRoot, t) — After the diff, setupSkills is a single-caller wrapper around deploySkills plus one log line, retaining an indirection layer with only one caller. (at src/setup.js)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: inline thin helpers flagged by no-overengineering",
+      "resolution": "Removed createDocsFixture, navMarkdown, and setupSkills single-caller wrappers; behavior now lives at the call sites and the targeted docs nav test passes.",
+      "taskId": null,
+      "timestamp": "2026-05-20T05:14:35.613Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); R4 — previously passed (skipped on retry); R5 — previously passed (skipped on retry); R6 — previously passed (skipped on retry); R7 — previously passed (skipped on retry); R8 — Diff updates upgrade paths and source includes, but provides no evidence that `sdd-forge upgrade` was run successfully or that generated `.agents`/`.claude` SKILL.md files were created and checked for raw `@templates/` directives.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T05:14:56.219Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "R8",
+          "reason": "Diff updates upgrade paths and source includes, but provides no evidence that `sdd-forge upgrade` was run successfully or that generated `.agents`/`.claude` SKILL.md files were created and checked for raw `@templates/` directives."
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: add upgrade execution evidence for R8",
+      "resolution": "Ran sdd-forge upgrade with exit code 0, added upgrade-verification.json with generated .agents/.claude SKILL.md checks, wired the R8 spec-local test to that evidence, and refreshed test-execute/test-result-review artifacts with pass results.",
+      "taskId": null,
+      "timestamp": "2026-05-20T05:18:30.190Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "reason": "R8 evidence changed: sdd-forge upgrade exit 0 is recorded in upgrade-verification.json and refreshed test artifacts now cover the generated SKILL.md checks.",
+      "changedEvidence": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "baselineHash": "f8bf6be7b1bb1a7c3c996e4aa0b0b202974276bc3e0a4712c40f19de67264054",
+        "currentHash": "2fbf042edced1b5a2618c8f320b07939345353929b33b5a28a8bbd354b0cc93c",
+        "changedPaths": [
+          "specs/262-rename-skill-data-dirs/test-execute-result.json",
+          "specs/262-rename-skill-data-dirs/test-result-review.json",
+          "src/data/agents.js",
+          "src/data/docs.js",
+          "src/data/lang.js",
+          "src/data/project.js",
+          "src/data/skills.js",
+          "src/data/text.js",
+          "src/docs/data/agents.js",
+          "src/docs/data/docs.js",
+          "src/docs/data/lang.js",
+          "src/docs/data/project.js",
+          "src/docs/data/skills.js",
+          "src/docs/data/text.js",
+          "src/docs/lib/resolver-factory.js",
+          "src/lib/include.js",
+          "src/lib/skill-rules.js",
+          "src/lib/skills.js",
+          "src/presets/base/templates/en/AGENTS.sdd.md",
+          "src/presets/base/templates/ja/AGENTS.sdd.md",
+          "src/setup.js",
+          "src/skills/partials/ai-question-style.md",
+          "src/skills/partials/choice-format.md",
+          "src/skills/partials/context-recording.md",
+          "src/skills/partials/core-principle.md",
+          "src/skills/partials/flow-tracking.md",
+          "src/skills/partials/issue-log-recording.md",
+          "src/skills/partials/placeholder-artifact-permission.md",
+          "src/skills/partials/worktree-mode.md",
+          "src/skills/rules.json",
+          "src/skills/sdd-forge.flow-auto/SKILL.md",
+          "src/skills/sdd-forge.flow-resume/SKILL.md",
+          "src/skills/sdd-forge.flow-status/SKILL.md",
+          "src/skills/sdd-forge.flow-sync/SKILL.md",
+          "src/skills/sdd-forge.flow/SKILL.md",
+          "src/templates/partials/ai-question-style.md",
+          "src/templates/partials/choice-format.md",
+          "src/templates/partials/context-recording.md",
+          "src/templates/partials/core-principle.md",
+          "src/templates/partials/flow-tracking.md",
+          "src/templates/partials/issue-log-recording.md",
+          "src/templates/partials/placeholder-artifact-permission.md",
+          "src/templates/partials/worktree-mode.md",
+          "src/templates/skills/rules.json",
+          "src/templates/skills/sdd-forge.flow-auto/SKILL.md",
+          "src/templates/skills/sdd-forge.flow-resume/SKILL.md",
+          "src/templates/skills/sdd-forge.flow-status/SKILL.md",
+          "src/templates/skills/sdd-forge.flow-sync/SKILL.md",
+          "src/templates/skills/sdd-forge.flow/SKILL.md",
+          "src/upgrade.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset gate integration --reason \"R8 evidence changed: sdd-forge upgrade exit 0 is recorded in upgrade-verification.json and refreshed test artifacts now cover the generated SKILL.md checks.\" --yes",
+      "createdAt": "2026-05-20T05:18:34.941Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "pre_existing",
+      "reason": "final-regression failed: pre_existing",
+      "command": "npm test --",
+      "rawOutputPath": "specs/262-rename-skill-data-dirs/tests/.raw/final-regression.log",
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "timestamp": "2026-05-20T05:21:44.189Z"
+    },
+    {
+      "step": "final-regression",
+      "reason": "fix: docs.langSwitcher regression after moving common DataSource to src/data",
+      "resolution": "Adjusted src/data/docs.js locale lookup from ../.. / locale to ../locale so languageNames load from src/locale again; tests/unit/docs/data/docs-lang-switcher.test.js now passes.",
+      "taskId": null,
+      "timestamp": "2026-05-20T05:23:57.400Z"
+    }
+  ]
+}

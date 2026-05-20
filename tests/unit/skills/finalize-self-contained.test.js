@@ -1,6 +1,6 @@
 /**
  * Spec 251 R10: assert that finalize self-contained patterns are gone from the
- * skill template + worktree-mode partial. The cleanup envelope now carries
+ * skill source + worktree-mode partial. The cleanup envelope now carries
  * `data.report.text`, so the AI no longer needs `cd <mainRepoPath>` or
  * per-leaf `flow set step finalize-*` instructions. `flow report show` is
  * allowed only as an explicit re-display fallback after cleanup succeeds.
@@ -14,11 +14,11 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_PATH = path.resolve(
   __dirname,
-  "../../../src/templates/skills/sdd-forge.flow/SKILL.md",
+  "../../../src/skills/sdd-forge.flow/SKILL.md",
 );
 const WORKTREE_MODE_PATH = path.resolve(
   __dirname,
-  "../../../src/templates/partials/worktree-mode.md",
+  "../../../src/skills/partials/worktree-mode.md",
 );
 
 const TARGETS = [
@@ -31,7 +31,7 @@ const FORBIDDEN = [
   { name: "flow set step finalize-*", pattern: /flow set step\s+finalize-/ },
 ];
 
-describe("templates — finalize self-contained patterns (spec 251 R10)", () => {
+describe("skills — finalize self-contained patterns (spec 251 R10)", () => {
   for (const [name, p] of TARGETS) {
     for (const { name: patternName, pattern } of FORBIDDEN) {
       it(`${name} contains no '${patternName}'`, () => {

@@ -7,10 +7,10 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PARTIAL_PATH = path.resolve(
   __dirname,
-  "../../../src/templates/partials/ai-question-style.md",
+  "../../../../src/skills/partials/ai-question-style.md",
 );
 
-describe("templates/partials/ai-question-style.md — recommended option placement", () => {
+describe("skills/partials/ai-question-style.md — recommended option placement", () => {
   const text = fs.readFileSync(PARTIAL_PATH, "utf8");
 
   it("has a § 3 Choice Presentation section", () => {

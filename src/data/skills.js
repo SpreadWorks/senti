@@ -6,7 +6,7 @@
  * given. Throws on unknown or missing id.
  */
 
-import { loadRules } from "../../lib/skill-rules.js";
+import { loadRules } from "../lib/skill-rules.js";
 
 export default function register(container) {
   const DataSource = container.get("base.DataSource");

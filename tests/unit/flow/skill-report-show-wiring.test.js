@@ -19,7 +19,7 @@ import path from "node:path";
 
 const SKILL_PATH = path.join(
   process.cwd(),
-  "src/templates/skills/sdd-forge.flow/SKILL.md",
+  "src/skills/sdd-forge.flow/SKILL.md",
 );
 
 const LEGACY_INSTRUCTION_PATTERN = /sdd-forge flow report show/;

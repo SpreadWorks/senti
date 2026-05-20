@@ -7,10 +7,10 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PARTIAL_PATH = path.resolve(
   __dirname,
-  "../../../src/templates/partials/worktree-mode.md",
+  "../../../../src/skills/partials/worktree-mode.md",
 );
 
-describe("templates/partials/worktree-mode.md — Edit/Write absolute path guard (spec 221)", () => {
+describe("skills/partials/worktree-mode.md — Edit/Write absolute path guard", () => {
   const text = fs.readFileSync(PARTIAL_PATH, "utf8");
 
   it("R1: contains a MUST line prohibiting main repo absolute paths in Edit/Write", () => {

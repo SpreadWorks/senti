@@ -26,7 +26,7 @@ If source is newer, suggest running `sdd-forge build` to the user.
 
 ### Development Workflow
 
-- After modifying templates in `src/templates/` or `src/presets/`, run `sdd-forge upgrade` to deploy changes to the project's skills and settings.
+- After modifying skill sources in `src/skills/` or templates in `src/presets/`, run `sdd-forge upgrade` to deploy changes to the project's skills and settings.
 
 ### docs/ Editing Rules
 
