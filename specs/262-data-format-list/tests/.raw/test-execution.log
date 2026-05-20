@@ -1,0 +1,77 @@
+[sdd-forge] spec-local tests start
+command: node --test specs/262-data-format-list/tests/data-format-list.test.js
+TAP version 13
+# Subtest: data directive format option
+    # Subtest: R1: parser accepts table and list format options for data directives
+    ok 1 - R1: parser accepts table and list format options for data directives
+      ---
+      duration_ms: 2.484252
+      type: 'test'
+      ...
+    # Subtest: R2: format is not forwarded to DataSource resolver params
+    ok 2 - R2: format is not forwarded to DataSource resolver params
+      ---
+      duration_ms: 1.604848
+      type: 'test'
+      ...
+    # Subtest: R3: omitted and explicit table format render the existing markdown table
+    ok 3 - R3: omitted and explicit table format render the existing markdown table
+      ---
+      duration_ms: 0.541802
+      type: 'test'
+      ...
+    # Subtest: R4: list format renders two-column tables as markdown bullet rows
+    ok 4 - R4: list format renders two-column tables as markdown bullet rows
+      ---
+      duration_ms: 0.564922
+      type: 'test'
+      ...
+    # Subtest: R5: list format rejects non-Table renderables and non-two-column tables
+    ok 5 - R5: list format rejects non-Table renderables and non-two-column tables
+      ---
+      duration_ms: 0.809764
+      type: 'test'
+      ...
+    # Subtest: R6: unsupported format values throw an explicit error naming the value
+    ok 6 - R6: unsupported format values throw an explicit error naming the value
+      ---
+      duration_ms: 0.327521
+      type: 'test'
+      ...
+    # Subtest: R7: resolveDataDirectives applies the same format behavior at the shared expansion boundary
+    ok 7 - R7: resolveDataDirectives applies the same format behavior at the shared expansion boundary
+      ---
+      duration_ms: 0.662963
+      type: 'test'
+      ...
+    # Subtest: R8: this spec-local test file declares coverage for every testable requirement
+    ok 8 - R8: this spec-local test file declares coverage for every testable requirement
+      ---
+      duration_ms: 0.945324
+      type: 'test'
+      ...
+    1..8
+ok 1 - data directive format option
+  ---
+  duration_ms: 9.748448
+  type: 'suite'
+  ...
+1..1
+# tests 8
+# suites 1
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 90.065329
+exitCode: 0
+[sdd-forge] requirement R1 result pass
+[sdd-forge] requirement R2 result pass
+[sdd-forge] requirement R3 result pass
+[sdd-forge] requirement R4 result pass
+[sdd-forge] requirement R5 result pass
+[sdd-forge] requirement R6 result pass
+[sdd-forge] requirement R7 result pass
+[sdd-forge] requirement R8 result pass
+[sdd-forge] spec-local tests end

@@ -1,0 +1,270 @@
+{
+  "goal": "Add a parser-owned `format` option to `{{data(...)}}` directives so exactly two-column `Table` renderables can be rendered as either the existing Markdown table or a Markdown bullet list.",
+  "scope": {
+    "in": [
+      "[must] Parse `format: \"table\" | \"list\"` from data directives as a parser-owned option.",
+      "[must] Keep omitted `format` and `format: \"table\"` output identical to current Markdown table rendering.",
+      "[must] Render `format: \"list\"` only for exactly two-column `Table` values as `- first-column: second-column` lines.",
+      "[must] Exclude `format` from the params object passed to DataSource methods.",
+      "[must] Fail with an explicit error for unsupported format values, `format: \"list\"` on non-Table renderables, and `format: \"list\"` on tables whose column count is not two.",
+      "[must] Add spec-local tests and shared unit tests for parser filtering, default table rendering, list rendering, and unsupported format errors."
+    ],
+    "out": [
+      "Generic format conversion for every Renderable type.",
+      "`grouped-list` rendering for repeated first-column values.",
+      "Changing existing directives that do not specify `format`.",
+      "Changing preset templates as first consumers.",
+      "Adding external dependencies."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules and existing project helpers.",
+    "Keep `src/` generic; do not encode project-specific preset, issue, or generated-doc assumptions.",
+    "Represent new behavior on classes rather than object-literal type tags; Table-specific list rendering belongs on the Renderable/Table side.",
+    "`format` is reserved as a parser-owned data directive option and must not be forwarded to DataSource params.",
+    "Unsupported format usage must throw or propagate an explicit error; do not silently convert it to unresolved data.",
+    "bounded-resource-usage acknowledged exception: `format: \"list\"` preserves the existing `Table.toMarkdown()` output-size contract and does not introduce a separate row cap. DataSource analysis and `Table` construction remain the upstream boundaries for row volume; adding a list-only cap would make `format: \"list\"` drop or reject rows that `format: \"table\"` renders, violating the requirement that format selection only changes Markdown representation.",
+    "This spec does not add or modify CLI commands or CLI arguments. CLI exit-code and user-input validation guardrails are not changed by this work.",
+    "This spec does not change `src/templates/` or `src/presets/` template files; `sdd-forge upgrade` is not required unless implementation expands scope into those paths."
+  ],
+  "design_principles": [
+    "Preserve existing table output unless a directive opts into `format: \"list\"`.",
+    "Keep rendering decisions in the Renderable hierarchy and keep directive expansion responsible for selecting the requested rendering mode.",
+    "Treat invalid directive format usage as authoring error at the directive expansion boundary.",
+    "Add capability first; apply it to a concrete preset template only after a specific table is selected."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "`src/docs/lib/directive-parser.js` parses data directive options, filters parser-owned controls, resolves Renderables, and replaces directive blocks."
+      },
+      {
+        "text": "`src/docs/lib/renderable.js` owns Markdown rendering for Renderable subclasses, including `Table`."
+      },
+      {
+        "text": "`src/docs/lib/resolver-factory.js` passes filtered params to DataSource methods; `format` must not reach that boundary."
+      },
+      {
+        "text": "`src/docs/commands/data.js`, `readme.js`, and `agents.js` share `resolveDataDirectives`, so one directive-expansion implementation covers generated docs, README, and AGENTS output paths."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "Template directive options are parsed by `parseDirectives`; `format` remains available to directive expansion while `extractUserParams` removes it before DataSource invocation."
+      },
+      {
+        "text": "The resolver returns a Renderable. Directive expansion renders it with default table behavior or requested list behavior, then applies existing header/footer wrapping and block replacement."
+      },
+      {
+        "text": "`format: \"list\"` validates the resolved value before rendering: the value must be a `Table`, and the table must have exactly two labels and two values per row."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Parser-owned controls already exist and are filtered before DataSource invocation.",
+        "evidence": "`src/docs/lib/directive-parser.js` defines `PARSER_OWNED_OPTION_KEYS` and `extractUserParams`; `resolveDataDirectives` passes only `userParams` to `resolveFn`."
+      },
+      {
+        "text": "[VERIFY] `Table` is the right type boundary for list rendering.",
+        "evidence": "`src/docs/lib/renderable.js` defines `Table extends Renderable` with constructor-enforced label/row column counts and a `toMarkdown()` implementation for table output."
+      },
+      {
+        "text": "[VERIFY] DataSource params are downstream of parser-owned filtering.",
+        "evidence": "`src/docs/lib/resolver-factory.js` calls `ds[method](analysis, labels, params)`, so removing `format` from `userParams` prevents DataSources from receiving it."
+      },
+      {
+        "text": "[VERIFY] All data expansion command paths share `resolveDataDirectives`.",
+        "evidence": "`src/docs/commands/data.js`, `src/docs/commands/readme.js`, and `src/docs/commands/agents.js` each call `resolveDataDirectives(...)`."
+      },
+      {
+        "text": "Use `- first-column: second-column` for `format: \"list\"`.",
+        "evidence": "Issue #336 allows a Markdown bullet list equivalent. `renderable.js` already has `BulletList` but no DefinitionList class.",
+        "consideredAlternatives": "Definition-list syntax was rejected because no local Renderable type exists for it and the bullet form is directly testable."
+      },
+      {
+        "text": "Do not update preset templates in this spec.",
+        "evidence": "Issue #336 lists multiple candidate tables but does not select one. Some candidates need `grouped-list`, which is out of scope.",
+        "consideredAlternatives": "Applying the feature to Laravel or Symfony controller routes was rejected because repeated first-column rows may require a separate grouped-list format."
+      }
+    ]
+  },
+  "background": "`{{data(...)}}` currently renders the Renderable returned by a DataSource through its default Markdown method. `format` is not a parser-owned option, so a directive author cannot request list output without pushing a `params.format` concern into individual DataSources. Issue #336 narrows the feature to a reusable first step: preserve the current table default, add list rendering for exactly two-column `Table`, and keep unsupported cases explicit.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`parseDirectives` shall accept `format: \"table\"` and `format: \"list\"` on data directives and retain the value for directive expansion.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "`format` shall be treated as parser-owned and shall not appear in the params object passed to DataSource resolver methods.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "A data directive with omitted `format` or `format: \"table\"` shall render exactly the same Markdown table output as the current `Table.toMarkdown()` path.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "A data directive with `format: \"list\"` and a resolved two-column `Table` shall render one Markdown bullet per row in the exact form `- first-column: second-column`.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "`format: \"list\"` shall fail with an explicit error when the resolved value is not a `Table` or when the `Table` has any column count other than two.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Any `format` value other than `table` or `list` shall fail with an explicit error that names the unsupported value.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "The same format behavior shall apply to all existing `resolveDataDirectives` callers, including docs data population, README generation, and AGENTS generation.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "Automated tests shall cover parser-owned format filtering, unchanged default table rendering, explicit table format rendering, two-column list rendering, non-Table list error, non-two-column list error, and unsupported format value error.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "A resolver spy used by `resolveDataDirectives` receives params without `format` when the directive includes `{format: \"list\", labels: \"A|B\"}`.",
+    "A directive resolving to `new Table([\"Name\", \"Role\"], [[\"auth\", \"login\"], [\"docs\", \"build\"]])` renders `- auth: login\\n- docs: build` when `format: \"list\"` is specified.",
+    "The same two-row table renders the existing pipe table when `format` is omitted and when `format: \"table\"` is specified.",
+    "`format: \"list\"` with a three-column `Table` throws an error whose message includes `format` and `2-column Table`.",
+    "`format: \"list\"` with a `Paragraph` throws an error whose message includes `format` and `Table`.",
+    "`format: \"grid\"` throws an error whose message includes `grid`.",
+    "Existing tests for `resolveDataDirectives` Renderable rendering continue to pass.",
+    "Spec-local tests under `specs/262-data-format-list/tests/` include `// spec: R<N>` headers covering R1 through R8."
+  ],
+  "clarifications": [
+    {
+      "q": "Does `format` belong to DataSource params?",
+      "a": "No. It is parser-owned because it controls directive rendering after a DataSource has returned a Renderable."
+    },
+    {
+      "q": "What is the list syntax?",
+      "a": "Each two-column row renders as `- first-column: second-column`, preserving row order."
+    },
+    {
+      "q": "Should unsupported list targets respect `ignoreError`?",
+      "a": "No. Unsupported format usage is a directive authoring error and must fail explicitly instead of becoming an unresolved data source."
+    },
+    {
+      "q": "Does this spec change CLI command behavior?",
+      "a": "No. It changes template directive expansion only; no CLI command or CLI option is added, removed, or redefined."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Convert any Renderable to alternate formats.",
+      "reason": "Rejected because Issue #336 narrows the first step to exactly two-column `Table`; generic conversion would broaden scope and require contracts for Paragraph, Blockquote, CodeBlock, and other types."
+    },
+    {
+      "option": "Pass `params.format` to each DataSource and let DataSources choose output.",
+      "reason": "Rejected because output format is a directive rendering concern and would duplicate rendering decisions across DataSource implementations."
+    },
+    {
+      "option": "Use Markdown definition-list syntax.",
+      "reason": "Rejected because the project has `BulletList` but no DefinitionList Renderable, and the bullet syntax can be verified with exact string assertions."
+    },
+    {
+      "option": "Update a Laravel or Symfony template in this spec.",
+      "reason": "Rejected because Issue #336 lists several candidate tables without selecting one, and controller/action tables may need a separate `grouped-list` format."
+    },
+    {
+      "option": "Treat unsupported format usage as unresolved data.",
+      "reason": "Rejected because it would hide directive authoring mistakes behind the existing unresolved data path."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "data directive format",
+    "resolveDataDirectives",
+    "parseDirectives",
+    "parser-owned option",
+    "Renderable",
+    "Table",
+    "BulletList",
+    "DataSource params",
+    "directive-parser",
+    "renderable",
+    "Markdown list",
+    "two-column table"
+  ],
+  "implementationTargets": [
+    "src/docs/lib/directive-parser.js",
+    "src/docs/lib/renderable.js",
+    "tests/unit/docs/lib/directive-parser.test.js",
+    "tests/unit/docs/lib/renderable.test.js",
+    "specs/262-data-format-list/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Add Table list rendering",
+      "goal": "Add the Table-side behavior needed to render exactly two-column table rows as Markdown bullet list lines.",
+      "acceptance": [
+        "Two-column `Table` data renders as `- first-column: second-column` lines through a Table-owned method or equivalent class behavior.",
+        "Non-two-column tables fail before list rendering with an error message that references the two-column requirement.",
+        "Existing `Table.toMarkdown()` output remains unchanged."
+      ],
+      "implementation_notes": "Keep the behavior on `Table` or a Renderable-owned method. Reuse existing cell normalization rules where practical so nullish values and pipe escaping do not diverge without tests.",
+      "test_strategy": "Unit tests in `tests/unit/docs/lib/renderable.test.js` plus spec-local tests for R3, R4, and R5.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Handle directive format",
+      "goal": "Wire the data directive `format` option through parser-owned filtering and Renderable rendering selection.",
+      "acceptance": [
+        "`format` is accepted by the data directive parser and excluded from DataSource params.",
+        "Omitted format and `format: \"table\"` use the current Renderable markdown path.",
+        "`format: \"list\"` validates the resolved Renderable and delegates two-column Table list rendering.",
+        "Unsupported format values and unsupported list targets produce explicit errors."
+      ],
+      "implementation_notes": "Extend `PARSER_OWNED_OPTION_KEYS` with `format`. Validate format values in directive expansion before or at rendering selection. Do not change DataSource method signatures.",
+      "test_strategy": "Unit tests in `tests/unit/docs/lib/directive-parser.test.js` and spec-local tests for R1, R2, R3, R4, R5, R6, and R7.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Add spec coverage",
+      "goal": "Add spec-local tests that connect the new directive format behavior to requirements R1 through R8.",
+      "acceptance": [
+        "Spec-local tests live under `specs/262-data-format-list/tests/`.",
+        "Each spec-local test file includes `// spec: R<N>` headers covering every testable requirement.",
+        "The tests can be run by the flow test execution step without external dependencies."
+      ],
+      "implementation_notes": "Prefer small Node.js tests that import existing modules directly. Keep shared unit tests for reusable module contracts and spec-local tests for requirement traceability.",
+      "test_strategy": "Run the spec-local tests during `test-execute`; run the relevant shared unit tests and final project regression later in the flow.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-20T04:57:40.744Z",
+    "notes": "User approved gate-passed spec for Issue #336."
+  }
+}

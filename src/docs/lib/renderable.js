@@ -1,3 +1,15 @@
+export const MARKDOWN_FORMAT_TABLE = "table";
+export const MARKDOWN_FORMAT_LIST = "list";
+
+export function assertMarkdownFormat(format) {
+  if (format === MARKDOWN_FORMAT_TABLE || format === MARKDOWN_FORMAT_LIST) {
+    return format;
+  }
+  throw new Error(
+    `Unsupported Markdown format "${String(format)}"; expected "${MARKDOWN_FORMAT_TABLE}" or "${MARKDOWN_FORMAT_LIST}"`,
+  );
+}
+
 /**
  * Renderable — value-type hierarchy for DataSource resolver return values.
  *
@@ -15,10 +27,22 @@ export class Renderable {
   toMarkdown() {
     throw new Error("Renderable.toMarkdown() is abstract; subclass must override");
   }
+
+  toMarkdownFormat(format) {
+    const resolvedFormat = assertMarkdownFormat(format);
+    if (resolvedFormat === MARKDOWN_FORMAT_TABLE) return this.toMarkdown();
+    if (resolvedFormat === MARKDOWN_FORMAT_LIST) {
+      throw new Error(`format "list" requires a Table renderable`);
+    }
+  }
+}
+
+function normalizeCell(v) {
+  return String(v ?? "—");
 }
 
 function escapeCell(v) {
-  return String(v ?? "—").replace(/\|/g, "\\|");
+  return normalizeCell(v).replace(/\|/g, "\\|");
 }
 
 function indent(text, prefix) {
@@ -59,6 +83,23 @@ export class Table extends Renderable {
       .map((r) => `| ${r.map(escapeCell).join(" | ")} |`)
       .join("\n");
     return [header, sep, body].join("\n");
+  }
+
+  toMarkdownList() {
+    if (this.labels.length !== 2) {
+      throw new Error(
+        `format "list" requires a 2-column Table, got ${this.labels.length} columns`,
+      );
+    }
+    // Preserve Table.toMarkdown() row-volume semantics; DataSources own row limits.
+    return this.rows
+      .map(([key, value]) => `- ${normalizeCell(key)}: ${normalizeCell(value)}`)
+      .join("\n");
+  }
+
+  toMarkdownFormat(format) {
+    if (format === MARKDOWN_FORMAT_LIST) return this.toMarkdownList();
+    return super.toMarkdownFormat(format);
   }
 }
 

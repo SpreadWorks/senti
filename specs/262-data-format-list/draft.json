@@ -1,0 +1,100 @@
+{
+  "devType": "feature",
+  "goal": "{{data(...)}} ディレクティブで 2 列 Table の Markdown 出力形式を table/list から選べるようにする。",
+  "analysis": {
+    "problem": "現在の {{data(...)}} は DataSource が返した Renderable を既定の Markdown に変換するだけで、2 列 Table を読みやすい list 表現へ切り替える指定がない。Issue #336 では、汎用変換ではなく 2 列 Table に限定して表示改善する必要がある。",
+    "proposedApproach": "format を parser-owned option として扱い、DataSource には渡さない。既定の table は現状維持とし、list は 2 列 Table のみを対象に Renderable 側の責務として Markdown list へ変換する。",
+    "validation": "Issue #336 は parser-owned option の現状、Renderable 階層、2 列 Table の候補を示している。src/docs/lib/directive-parser.js は parser-owned keys を持ち、src/docs/lib/renderable.js は Table/BulletList などの Renderable クラスを持つため、既存の責務境界に沿って実装できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #336 requests a format parameter for {{data(...)}} and narrows the initial target to exactly 2-column Table.",
+      "src/docs/lib/directive-parser.js currently treats labels, header, footer, and ignoreError as parser-owned controls; format is not parser-owned today.",
+      "resolveDataDirectives currently forwards user params to DataSource after filtering parser-owned controls, then renders Renderable values through toMarkdown().",
+      "src/docs/lib/renderable.js defines Table, BulletList, OrderedList, Paragraph, Blockquote, Heading, CodeBlock, and Fragment as classes.",
+      "tests/unit/docs/lib/directive-parser.test.js and tests/unit/docs/lib/renderable.test.js already cover directive expansion and Renderable output behavior.",
+      "format: \"list\" will render a two-column Table as bullet lines in the form `- first-column: second-column`.",
+      "format: \"list\" on unsupported targets will be a directive/rendering error rather than a silent unresolved value.",
+      "This issue will add the reusable directive capability and tests, but will not change a preset template because no first consumer template was selected."
+    ],
+    "decisionPoints": [],
+    "resolvedByProjectRules": [
+      "No external dependencies may be added; use only Node.js built-in modules.",
+      "Value structure and behavior should remain on classes because the project uses OOP to express types instead of TypeScript discriminated unions.",
+      "src/ must stay generic and must not encode project-specific preset output assumptions.",
+      "Issue #336 remains one spec; do not split it into a separate grouped-list issue without user direction.",
+      "The default table behavior must remain unchanged because existing templates rely on current output.",
+      "Existing BulletList support makes bullet-list syntax the closest current Renderable pattern; there is no DefinitionList class.",
+      "Invalid directive format usage is a system-boundary error and should be explicit.",
+      "Preset templates stay unchanged until a concrete consumer table is selected."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "Exact method names and class boundaries for format rendering.",
+      "Exact test files and assertions for parser-owned format filtering, Table list rendering, and unsupported cases.",
+      "Whether grouped-list is documented only as out of scope or represented as a future extension point."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Parse format from {{data(..., {format: \"table\" | \"list\"})}} as a parser-owned option.",
+      "must: Keep format: \"table\" and omitted format equivalent to current Table rendering.",
+      "must: Render format: \"list\" only for exactly 2-column Table as `- first-column: second-column` lines.",
+      "must: Prevent format from being passed to DataSource params.",
+      "must: Add unit tests that assert parser-owned format filtering, default table rendering, two-column list rendering, and unsupported format errors."
+    ],
+    "out": [
+      "Generic conversion for every Renderable type.",
+      "grouped-list rendering for repeated first-column values.",
+      "Behavior changes for existing directives that do not specify format.",
+      "Project-specific logic in src/."
+    ]
+  },
+  "impactOnExisting": [
+    "Existing {{data(...)}} directives without format should render exactly as before.",
+    "DataSource methods that currently receive params.format, if any, will no longer receive it because format becomes parser-owned.",
+    "docs data/readme/agents paths that call resolveDataDirectives may need to respect the same format behavior.",
+    "Tests around directive-parser and renderable output will expand to cover the new contract."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "format: \"list\" の Markdown 表現を選びます。format は {{data(...)}} の表示形式指定です。2 列 Table の 1 列目を項目名、2 列目を説明として、`- 項目: 説明` の bullet list にしますか。",
+      "answer": "はい。2 列 Table は各 row を `- 1列目: 2列目` の Markdown bullet list として出力する。",
+      "evidence": "Issue #336 recommends Markdown bullet list or definition-list equivalent. src/docs/lib/renderable.js already defines BulletList and has no DefinitionList class.",
+      "why": "既存の Renderable 型に沿うため、追加の概念を増やさずに検証可能な list 表現を定義できる。",
+      "considered": "Definition list 相当の表現も候補だが、既存 Renderable に対応クラスがなく、今回の限定スコープでは bullet list のほうが小さい。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "unsupported target の扱いを選びます。unsupported target は、format: \"list\" が指定された 3 列以上の Table や Table 以外の Renderable です。明示エラーとして生成を失敗させますか、それとも unresolved として既存の ignoreError ルールに委ねますか。",
+      "answer": "明示エラーとして生成を失敗させる。unsupported target は利用者が修正できる directive 指定ミスとして扱う。",
+      "evidence": "Issue #336 says 3+ column Table and non-Table Renderable are out of scope and should produce an explicit error or unsupported warning. Project rules require verifiable requirements and validation at system boundaries.",
+      "why": "unsupported format を unresolved にすると、DataSource 未解決と利用者の指定ミスが区別しにくい。明示エラーなら誤った directive を早く修正できる。",
+      "considered": "ignoreError に委ねる案は既存の unresolved 経路に乗せられるが、format contract の誤用を隠しやすいため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "この issue で最初の利用箇所として preset template も変更しますか。preset template は src/presets/**/templates/ の Markdown 雛形です。変更する場合、Issue #336 の候補から Laravel/Symfony の controller_routes または Model/Entity relations など 1 箇所を選ぶ必要があります。",
+      "answer": "この issue では preset template を変更しない。再利用可能な directive capability とテスト追加に限定する。",
+      "evidence": "Issue #336 lists multiple candidate tables but does not select one. Project rule says src/ must stay generic and must not encode project-specific assumptions.",
+      "why": "利用箇所を未選択のまま template を変更すると、どの出力を list 化するかが曖昧になる。capability を先に入れ、具体的な preset 適用は別の明示選択で扱える。",
+      "considered": "Laravel/Symfony controller_routes や Model/Entity relations を最初の利用箇所にする案はあるが、grouped-list の別課題と混ざる可能性があるため、この spec では採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-20T03:31:45.000Z",
+    "notes": "All draft QA entries were resolved from Issue #336, existing code, and project rules; no unresolved user decision remains."
+  }
+}

@@ -81,6 +81,27 @@ describe("Table", () => {
       /column count|mismatch/i,
     );
   });
+
+  it("renders two-column rows as markdown bullet list items", () => {
+    const t = new Table(["Name", "Role"], [["auth", "login"], ["docs", "build"]]);
+    assert.equal(t.toMarkdownList(), "- auth: login\n- docs: build");
+  });
+
+  it("renders null/undefined list cells as em-dash", () => {
+    const t = new Table(["Name", "Role"], [[null, undefined]]);
+    assert.equal(t.toMarkdownList(), "- —: —");
+  });
+
+  it("throws when list rendering is requested for a non-two-column table", () => {
+    assert.throws(
+      () => new Table(["A"], [["x"]]).toMarkdownList(),
+      /format.*2-column Table/i,
+    );
+    assert.throws(
+      () => new Table(["A", "B", "C"], [["x", "y", "z"]]).toMarkdownList(),
+      /format.*2-column Table/i,
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

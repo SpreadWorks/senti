@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "impl",
+      "canonicalPhase": "impl",
+      "reason": "Added implementation-boundary comment matching the spec bounded-resource-usage acknowledgment and clarifying that Table list rendering preserves existing Table.toMarkdown row-volume semantics.",
+      "changedEvidence": {
+        "sourceKind": "implementation-diff",
+        "baselineHash": "5f81e06462a9d1fdbd24802779be96cd555ee58e4f44b9234508e33bf71c1824",
+        "currentHash": "d67e361b10773a4f364a2c9d309e49af47fa93b6e1a85723cb92c252af2785a4",
+        "changedPaths": [
+          "src/docs/lib/directive-parser.js",
+          "src/docs/lib/renderable.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 3,
+      "maxAttempts": 3,
+      "counterAfter": 2,
+      "recoveryCommand": "sdd-forge flow set retry reset review impl --reason \"Added implementation-boundary comment matching the spec bounded-resource-usage acknowledgment and clarifying that Table list rendering preserves existing Table.toMarkdown row-volume semantics.\" --yes",
+      "createdAt": "2026-05-20T05:31:04.535Z"
+    }
+  ]
+}

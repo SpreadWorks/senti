@@ -1,0 +1,58 @@
+{
+  "spec": "specs/262-data-format-list/spec.json",
+  "date": "2026-05-20T05:35:47.040Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`parseDirectives` shall accept `format: \"table\"` and `format: \"list\"` on data directives and retain the value for directive expansion.",
+      "status": "done",
+      "note": "R1: parser accepts table and list format options for data directives"
+    },
+    {
+      "desc": "`format` shall be treated as parser-owned and shall not appear in the params object passed to DataSource resolver methods.",
+      "status": "done",
+      "note": "R2: format is not forwarded to DataSource resolver params"
+    },
+    {
+      "desc": "A data directive with omitted `format` or `format: \"table\"` shall render exactly the same Markdown table output as the current `Table.toMarkdown()` path.",
+      "status": "done",
+      "note": "R3: omitted and explicit table format render the existing markdown table"
+    },
+    {
+      "desc": "A data directive with `format: \"list\"` and a resolved two-column `Table` shall render one Markdown bullet per row in the exact form `- first-column: second-column`.",
+      "status": "done",
+      "note": "R4: list format renders two-column tables as markdown bullet rows"
+    },
+    {
+      "desc": "`format: \"list\"` shall fail with an explicit error when the resolved value is not a `Table` or when the `Table` has any column count other than two.",
+      "status": "done",
+      "note": "R5: list format rejects non-Table renderables and non-two-column tables"
+    },
+    {
+      "desc": "Any `format` value other than `table` or `list` shall fail with an explicit error that names the unsupported value.",
+      "status": "done",
+      "note": "R6: unsupported format values throw an explicit error naming the value"
+    },
+    {
+      "desc": "The same format behavior shall apply to all existing `resolveDataDirectives` callers, including docs data population, README generation, and AGENTS generation.",
+      "status": "done",
+      "note": "R7: resolveDataDirectives applies the same format behavior at the shared expansion boundary"
+    },
+    {
+      "desc": "Automated tests shall cover parser-owned format filtering, unchanged default table rendering, explicit table format rendering, two-column list rendering, non-Table list error, non-two-column list error, and unsupported format value error.",
+      "status": "done",
+      "note": "R8: this spec-local test file declares coverage for every testable requirement"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

@@ -11,6 +11,19 @@ import {
   Paragraph,
 } from "../../../../src/docs/lib/renderable.js";
 
+function dataBlock(options = "") {
+  const suffix = options ? `, {${options}}` : "";
+  return [
+    `<!-- {{data("p.a.b"${suffix})}} -->`,
+    "old",
+    "<!-- {{/data}} -->",
+  ].join("\n");
+}
+
+function twoColumnTable(rows = [["auth", "login"]]) {
+  return new Table(["Name", "Role"], rows);
+}
+
 // ---------------------------------------------------------------------------
 // parseDirectives
 // ---------------------------------------------------------------------------
@@ -164,6 +177,17 @@ describe("parseDirectives", () => {
     // No labels option produces empty array
     assert.ok(Array.isArray(result[0].labels));
   });
+
+  it("retains data directive format for expansion", () => {
+    const text = [
+      '<!-- {{data("base.project.list", {format: "list"})}} -->',
+      "<!-- {{/data}} -->",
+    ].join("\n");
+    const result = parseDirectives(text);
+
+    assert.equal(result.length, 1);
+    assert.equal(result[0].params.format, "list");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -304,6 +328,66 @@ describe("resolveDataDirectives", () => {
     const result = resolveDataDirectives(text, () => new Paragraph("hello"));
     assert.ok(result.text.includes("hello"));
     assert.equal(result.replaced, 1);
+  });
+
+  it("does not pass parser-owned format to resolver params", () => {
+    let receivedParams;
+    resolveDataDirectives(
+      dataBlock('format: "list", custom: "keep"'),
+      (_preset, _source, _method, _labels, params) => {
+        receivedParams = params;
+        return twoColumnTable();
+      },
+    );
+
+    assert.deepEqual(receivedParams, { custom: "keep" });
+  });
+
+  it("renders explicit table format through the existing markdown path", () => {
+    const result = resolveDataDirectives(
+      dataBlock('format: "table"'),
+      () => twoColumnTable(),
+    );
+
+    assert.ok(result.text.includes("| Name | Role |"));
+    assert.ok(result.text.includes("| auth | login |"));
+  });
+
+  it("renders list format for two-column Table renderables", () => {
+    const result = resolveDataDirectives(
+      dataBlock('format: "list"'),
+      () => twoColumnTable([["auth", "login"], ["docs", "build"]]),
+    );
+
+    assert.ok(result.text.includes("- auth: login\n- docs: build"));
+    assert.equal(result.replaced, 1);
+  });
+
+  it("throws explicit errors for unsupported list targets", () => {
+    assert.throws(
+      () => resolveDataDirectives(
+        dataBlock('format: "list"'),
+        () => new Paragraph("hello"),
+      ),
+      /format.*Table/i,
+    );
+    assert.throws(
+      () => resolveDataDirectives(
+        dataBlock('format: "list"'),
+        () => new Table(["A"], [["x"]]),
+      ),
+      /format.*2-column Table/i,
+    );
+  });
+
+  it("throws an explicit error for unsupported format values", () => {
+    assert.throws(
+      () => resolveDataDirectives(
+        dataBlock('format: "grid"'),
+        () => new Table(["Name"], [["auth"]]),
+      ),
+      /Unsupported.*format.*grid/i,
+    );
   });
 
   it("treats non-Renderable non-null resolver return value as unresolved", () => {

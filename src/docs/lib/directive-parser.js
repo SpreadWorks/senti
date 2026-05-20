@@ -1,4 +1,8 @@
-import { Renderable } from "./renderable.js";
+import {
+  MARKDOWN_FORMAT_TABLE,
+  Renderable,
+  assertMarkdownFormat,
+} from "./renderable.js";
 
 /**
  * src/docs/lib/directive-parser.js
@@ -6,7 +10,7 @@ import { Renderable } from "./renderable.js";
  * テンプレート内の出力ディレクティブ {{ }} と制御ディレクティブ {% %} を解析する。
  *
  * 出力ディレクティブ（関数呼び出しスタイル）:
- *   <!-- {{data("preset.source.method", {labels: "A|B", ignoreError: true})}} -->
+ *   <!-- {{data("preset.source.method", {labels: "A|B", format: "list", ignoreError: true})}} -->
  *   <!-- {{/data}} -->
  *   <!-- {{text({prompt: "Write overview.", mode: "deep"})}} -->
  *   <!-- {{/text}} -->
@@ -111,7 +115,7 @@ function extractCommentBlock(line, lines, index) {
 
 /**
  * Parse option object from function call arguments.
- * Handles: {labels: "A|B", ignoreError: true, maxLines: 10, mode: "deep"}
+ * Handles: {labels: "A|B", format: "list", ignoreError: true, maxLines: 10, mode: "deep"}
  *
  * @param {string} optStr - Option string (without outer braces)
  * @returns {Object}
@@ -143,11 +147,11 @@ function parseOptions(optStr) {
  * Build data directive fields from a dotted path and options string.
  *
  * @param {string} pathStr - Dotted path (e.g. "base.project.summary")
- * @param {string} optsStr - Options string (e.g. 'labels: "A|B", ignoreError: true')
+ * @param {string} optsStr - Options string (e.g. 'labels: "A|B", format: "list", ignoreError: true')
  * @returns {Object|null} { preset, source, method, labels, params } or null
  */
 /** Parser-owned option keys that the resolver layer consumes directly. */
-const PARSER_OWNED_OPTION_KEYS = new Set(["labels", "header", "footer", "ignoreError"]);
+const PARSER_OWNED_OPTION_KEYS = new Set(["labels", "header", "footer", "ignoreError", "format"]);
 
 function buildDataFields(pathStr, optsStr) {
   const parts = pathStr.split(".");
@@ -160,7 +164,7 @@ function buildDataFields(pathStr, optsStr) {
   const opts = parseOptions(optsStr);
   const labels = opts.labels ? opts.labels.split("|").map((l) => l.trim()) : [];
   // Backward-compatible: `params` contains all directive options minus `labels`.
-  // Parser-owned controls (header/footer/ignoreError) remain readable via params for
+  // Parser-owned controls (header/footer/ignoreError/format) remain readable via params for
   // existing tests; resolveFn receives a filtered subset (userParams) per spec R23.
   const params = { ...opts };
   delete params.labels;
@@ -382,7 +386,7 @@ function replaceInlineDirective(lines, d, content) {
  * @param {string} text - テンプレート全文
  * @param {function} resolveFn - (preset, source, method, labels, params) => rendered string | null
  *   params is an object with directive option keys other than parser-owned controls
- *   (labels, header, footer, ignoreError). Parser-owned controls remain on d.params for the
+ *   (labels, header, footer, ignoreError, format). Parser-owned controls remain on d.params for the
  *   resolver layer's own use and are NOT forwarded to resolveFn.
  * @param {Object} [opts]
  * @param {function} [opts.onResolve] - (directive, rendered) => void
@@ -406,9 +410,10 @@ export function resolveDataDirectives(text, resolveFn, opts) {
       continue;
     }
 
+    const format = assertMarkdownFormat(d.params?.format ?? MARKDOWN_FORMAT_TABLE);
     const userParams = extractUserParams(d.params);
     const resolved = resolveFn(d.preset, d.source, d.method, d.labels, userParams);
-    const rendered = resolved instanceof Renderable ? resolved.toMarkdown() : null;
+    const rendered = resolved instanceof Renderable ? resolved.toMarkdownFormat(format) : null;
     if (resolved === null || resolved === undefined || rendered === null) {
       if (d.params?.ignoreError === true) {
         if (d.inline) {
