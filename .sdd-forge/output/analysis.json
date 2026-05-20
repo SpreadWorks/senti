@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-05-20T01:26:49.431Z",
+  "analyzedAt": "2026-05-20T03:33:17.440Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "4fe5e1ad53a30c5362f6e7957003d537",
+        "hash": "8adc90d2d92a7590a4297ebf962185ae",
         "lines": 41,
-        "mtime": "2026-05-09T06:36:30.722Z",
+        "mtime": "2026-05-20T03:31:18.497Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -23,23 +23,22 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "The package manifest defines sdd-forge as an ESM-based CLI for spec-driven documentation generation. It also pins runtime constraints, distributable files, and the test command matrix.",
-        "detail": "The package exposes a single executable entry (`sdd-forge`) and maps both `bin` and `exports` to `src/sdd-forge.js`, indicating a CLI-first architecture. It enforces a Node.js >=18.19.0 runtime and uses only built-in tooling patterns without dependency declarations. The `files` whitelist publishes `src/` while excluding preset test fixtures, keeping the package lean. Scripts separate unit, e2e, acceptance, agent, and all-tests execution paths, showing an explicit operational split for fast and full validation.",
+        "summary": "The package manifest defines sdd-forge as a Node.js ESM CLI focused on spec-driven documentation workflows. It exposes one executable entrypoint and constrains runtime and publish scope.",
+        "detail": "The package is published as `sdd-forge` with an ESM module type and maps both `bin` and `exports` to `src/sdd-forge.js`. Runtime compatibility is pinned to Node.js `>=18.19.0`, reflecting a modern built-in-module baseline. The `files` allowlist ships `src/` while excluding preset test fixtures from package output. Script targets separate unit, e2e, acceptance, agent, and full test runs, showing an explicit testing matrix.",
         "chapter": "stack_and_ops",
-        "role": "package manifest",
+        "role": "CLI package manifest",
         "enrich": {
-          "processedAt": "2026-05-16T10:53:00.843Z",
+          "processedAt": "2026-05-20T03:34:35.997Z",
           "attempts": 1
         },
         "keywords": [
-          "package.json",
+          "package manifest",
+          "Node.js ESM",
           "CLI entrypoint",
-          "ES modules",
-          "Node.js runtime",
-          "publish files",
+          "engine requirement",
+          "publish allowlist",
           "test scripts",
-          "semantic versioning",
-          "tooling configuration"
+          "spec-driven development"
         ]
       }
     ],
@@ -2894,13 +2893,12 @@
       },
       {
         "file": "src/flow/lib/base-command.js",
-        "hash": "1fdccc4c35d08a83e72a59a4955f966a",
-        "lines": 74,
-        "mtime": "2026-04-21T09:07:02.051Z",
+        "hash": "7b1de284ec72b6ef871202e3052b6f96",
+        "lines": 61,
+        "mtime": "2026-05-20T03:32:53.766Z",
         "className": "base-command",
         "methods": [
-          "FlowCommand",
-          "resolveExplicitTaskOption"
+          "FlowCommand"
         ],
         "imports": [
           "../../lib/command.js",
@@ -2921,20 +2919,32 @@
           "src/flow/lib/get-qa-count.js",
           "src/flow/lib/get-resolve-context.js",
           "src/flow/lib/get-status.js",
-          "src/flow/lib/get-test-result.js",
-          "src/flow/lib/run-draft-task.js",
-          "src/flow/lib/run-finalize.js",
+          "src/flow/lib/run-auto-check.js",
+          "src/flow/lib/run-complete-task.js",
+          "src/flow/lib/run-final-regression.js",
+          "src/flow/lib/run-finalize-cleanup.js",
+          "src/flow/lib/run-finalize-commit.js",
+          "src/flow/lib/run-finalize-merge.js",
+          "src/flow/lib/run-finalize-sync.js",
           "src/flow/lib/run-gate.js",
           "src/flow/lib/run-impl-confirm.js",
           "src/flow/lib/run-lint.js",
           "src/flow/lib/run-prepare-spec.js",
+          "src/flow/lib/run-reopen-draft.js",
           "src/flow/lib/run-report.js",
           "src/flow/lib/run-resume.js",
           "src/flow/lib/run-retro.js",
           "src/flow/lib/run-review.js",
+          "src/flow/lib/run-scenario-validity.js",
+          "src/flow/lib/run-start-task.js",
           "src/flow/lib/run-sync.js",
-          "src/flow/lib/run-tests.js",
+          "src/flow/lib/run-test-execute.js",
+          "src/flow/lib/run-test-result-review.js",
+          "src/flow/lib/run-update-overview.js",
+          "src/flow/lib/set-approval.js",
           "src/flow/lib/set-auto.js",
+          "src/flow/lib/set-broad.js",
+          "src/flow/lib/set-files.js",
           "src/flow/lib/set-init.js",
           "src/flow/lib/set-issue-log.js",
           "src/flow/lib/set-issue.js",
@@ -2942,45 +2952,27 @@
           "src/flow/lib/set-note.js",
           "src/flow/lib/set-req.js",
           "src/flow/lib/set-request.js",
+          "src/flow/lib/set-retry.js",
           "src/flow/lib/set-step.js",
           "src/flow/lib/set-summary.js",
-          "src/flow/lib/set-test-summary.js",
-          "src/lib/dispatcher.js",
-          "src/flow/lib/run-auto-check.js",
-          "src/flow/lib/set-gate-retry.js",
-          "src/flow/lib/run-reopen-draft.js",
-          "src/flow/lib/set-approval.js",
-          "src/flow/lib/run-complete-task.js",
-          "src/flow/lib/run-start-task.js",
-          "src/flow/lib/run-update-overview.js",
-          "src/flow/lib/run-finalize-cleanup.js",
-          "src/flow/lib/run-finalize-commit.js",
-          "src/flow/lib/run-finalize-merge.js",
-          "src/flow/lib/run-finalize-sync.js",
-          "src/flow/lib/set-files.js",
-          "src/flow/lib/run-test-execute.js",
-          "src/flow/lib/run-test-result-review.js",
-          "src/flow/lib/set-retry.js",
-          "src/flow/lib/set-broad.js",
-          "src/flow/lib/run-scenario-validity.js",
-          "src/flow/lib/run-final-regression.js"
+          "src/lib/dispatcher.js"
         ],
         "id": "83f60bd3",
-        "summary": "This module defines the base command abstraction for flow subcommands and shared option resolution. It enforces active-flow preconditions and subclass execution contracts.",
-        "detail": "The `FlowCommand` class extends the generic command layer and standardizes how flow commands resolve context before running. It throws explicit errors when `flow.json` is missing, preventing ambiguous execution outside an active flow. Subclasses are required to implement `execute`, with a hard failure if they do not. The module also provides `resolveExplicitTaskOption`, normalizing task-id CLI input into a consistent nullable shape. This creates a common boundary for mutation-scoped commands.",
-        "chapter": "internal_design",
-        "role": "lib",
+        "summary": "`FlowCommand` is an abstract flow-specific command base that centralizes context resolution before execution. It enforces subclass implementation of the actual command behavior.",
+        "detail": "The class extends a generic `Command` and integrates `resolveFlowContext` to obtain the active flow state. If no active `flow.json` context is found, it throws a hard error to stop execution early. After context resolution, control is delegated to `execute(ctx)`, making subclasses responsible for domain logic only. The module also re-exports `resolveExplicitTaskOption` to standardize task option handling across command implementations.",
+        "chapter": "cli_commands",
+        "role": "Abstract base command for flow subcommands",
         "enrich": {
-          "processedAt": "2026-04-21T09:07:51.961Z",
+          "processedAt": "2026-05-20T03:34:35.997Z",
           "attempts": 1
         },
         "keywords": [
-          "base command",
           "command pattern",
-          "flow context",
-          "precondition check",
+          "abstract base class",
+          "flow context resolution",
+          "subcommand execution",
           "task option parsing",
-          "abstraction"
+          "CLI routing"
         ]
       },
       {
@@ -5788,15 +5780,16 @@
       },
       {
         "file": "src/flow/lib/set-issue.js",
-        "hash": "2266c293f5fd7a92c3e2ae002151a4c9",
-        "lines": 57,
-        "mtime": "2026-04-23T15:43:43.303Z",
+        "hash": "f89f63498071a93e58f2f286a7b8966d",
+        "lines": 58,
+        "mtime": "2026-05-20T03:32:53.766Z",
         "className": "set-issue",
         "methods": [],
         "imports": [
           "path",
           "./base-command.js",
           "../../lib/flow-envelope.js",
+          "../../lib/flow-options.js",
           "./issue-body-cache.js"
         ],
         "exports": [
@@ -5805,33 +5798,35 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c3865b58",
-        "enrich": {
-          "processedAt": "2026-04-24T08:14:03.566Z",
-          "attempts": 2
-        },
-        "summary": "This command sets the issue number for the active flow and stores fetched issue content. It validates usage and flow preconditions before mutation.",
-        "detail": "It enforces CLI usage shape (`flow set issue <number>`) and rejects missing or invalid inputs. The command resolves spec directory context, fetches normalized issue body, and writes `issue.md`. It returns structured `Envelope.fail` errors for no-flow or no-spec cases. Successful execution returns the normalized issue identifier payload.",
+        "summary": "`SetIssueCommand` implements `flow set issue` with strict usage validation and structured error envelopes. It updates issue metadata and persists a normalized issue body artifact in the spec directory.",
+        "detail": "The command extends `FlowCommand` and returns `Envelope.fail` responses when arguments are missing or malformed. It uses shared route-option resolution so spec and task scope are interpreted consistently with other flow commands. Issue content is normalized through `fetchNormalizedIssueBody` and then written via `writeIssueMd` in the resolved spec path. On success, it returns a minimal mutation payload containing the parsed issue number.",
         "chapter": "cli_commands",
-        "role": "cli",
+        "role": "Issue setter command handler",
+        "enrich": {
+          "processedAt": "2026-05-20T03:34:35.997Z",
+          "attempts": 1
+        },
         "keywords": [
-          "set issue",
-          "issue binding",
-          "flow metadata",
-          "issue.md write",
-          "command validation"
+          "set issue command",
+          "argument validation",
+          "error envelope",
+          "issue normalization",
+          "issue.md cache",
+          "spec directory write"
         ]
       },
       {
         "file": "src/flow/lib/set-metric.js",
-        "hash": "ce788b323f31371bf97b165fed3657b2",
-        "lines": 51,
-        "mtime": "2026-04-22T14:34:07.553Z",
+        "hash": "3f2db949e7841613ec07cc2a89aaa8de",
+        "lines": 52,
+        "mtime": "2026-05-20T03:32:53.766Z",
         "className": "set-metric",
         "methods": [],
         "imports": [
           "./base-command.js",
           "../../lib/constants.js",
-          "../../lib/flow-envelope.js"
+          "../../lib/flow-envelope.js",
+          "../../lib/flow-options.js"
         ],
         "exports": [
           "default"
@@ -5839,32 +5834,34 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "40d93087",
-        "summary": "Updates flow metric counters for a specified phase and counter key. It validates both dimensions against known constant sets before mutating state.",
-        "detail": "The command depends on centralized constants for valid phases and metric counter names, reducing drift across modules. It rejects malformed requests early with envelope failures that include usage context. On success, it writes a concise `{ phase, counter }` result reflecting the state change intent. The module delegates actual state storage to command framework mechanics rather than duplicating persistence logic. This keeps metric update behavior consistent with other flow setters.",
+        "summary": "`SetMetricCommand` handles metric counter updates for flow phases with allowlist-based validation. It fails fast on invalid phase or counter inputs.",
+        "detail": "The command imports `VALID_PHASES` and `VALID_METRIC_COUNTERS` and uses them as explicit guardrails. Invalid usage or unsupported values are returned as structured `Envelope.fail` responses, preserving consistent CLI error semantics. Route options are normalized through `resolveCommandRouteOptions` for shared scoping behavior. A successful parse returns `{ phase, counter }`, which downstream storage logic can apply to metrics.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "Metric setter command handler",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
+          "processedAt": "2026-05-20T03:34:35.997Z",
           "attempts": 1
         },
         "keywords": [
-          "metrics",
-          "phase counter",
+          "metrics command",
+          "phase validation",
+          "counter validation",
+          "fail-fast input checks",
           "flow telemetry",
-          "state update",
-          "validation constants"
+          "CLI error handling"
         ]
       },
       {
         "file": "src/flow/lib/set-note.js",
-        "hash": "a014e699695fc32cc52f4e572c74cf19",
-        "lines": 61,
-        "mtime": "2026-04-28T14:21:22.687Z",
+        "hash": "043b4bee33f97e09f98d0ade06605fad",
+        "lines": 62,
+        "mtime": "2026-05-20T03:32:53.766Z",
         "className": "set-note",
         "methods": [],
         "imports": [
           "./base-command.js",
           "../../lib/flow-envelope.js",
+          "../../lib/flow-options.js",
           "./resolve-preparing-run-id.js"
         ],
         "exports": [
@@ -5873,19 +5870,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "7c2ef03f",
-        "summary": "Persists a free-form note for the current flow or a preparing-phase run.",
-        "detail": "`SetNoteCommand` accepts a text argument and resolves whether to attach the note to a preparing-phase runId via `resolvePreparingRunId` or to the active flow. Returns an Envelope containing the note (and runId when in preparing mode). Uses `resolveExplicitTaskOption` from the base command for option handling.",
+        "summary": "`SetNoteCommand` sets free-form notes and optionally binds them to a preparing run context. It supports both generic note updates and run-aware note association.",
+        "detail": "The command extends `FlowCommand` and uses envelope-based failures for invalid invocation. It resolves standard command routing options, then calls `resolvePreparingRunId` when run linkage is needed. If a run ID is resolved, the output includes both note text and `runId`; otherwise it returns note-only payload data. This pattern keeps command parsing separate from persistence concerns while preserving optional workflow context.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "Note setter command handler",
         "enrich": {
-          "processedAt": "2026-04-28T14:26:51.136Z",
+          "processedAt": "2026-05-20T03:34:35.997Z",
           "attempts": 1
         },
         "keywords": [
-          "flow set note",
-          "preparing phase",
-          "runId",
-          "note recording"
+          "set note command",
+          "preparing run id",
+          "context-aware metadata",
+          "optional run binding",
+          "route options",
+          "CLI payload parsing"
         ]
       },
       {
@@ -5925,14 +5924,15 @@
       },
       {
         "file": "src/flow/lib/set-request.js",
-        "hash": "d8abc8ca8469ce6dbe60f07acb419a7e",
-        "lines": 25,
-        "mtime": "2026-04-22T14:34:07.554Z",
+        "hash": "afd7c358cb1cbf8215d8e78cb413adcc",
+        "lines": 26,
+        "mtime": "2026-05-20T03:32:53.766Z",
         "className": "set-request",
         "methods": [],
         "imports": [
           "./base-command.js",
-          "../../lib/flow-envelope.js"
+          "../../lib/flow-envelope.js",
+          "../../lib/flow-options.js"
         ],
         "exports": [
           "default"
@@ -5940,20 +5940,21 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "546ef334",
-        "summary": "Sets the high-level request text used by the flow. It captures the user's objective as a normalized state field.",
-        "detail": "The command enforces presence of request text and returns usage errors when missing. It performs straightforward assignment without introducing transformation complexity. Successful output returns the persisted request string for transparent CLI confirmation. The module follows the same envelope and command conventions as peer set commands. Its focused scope keeps request capture explicit and auditable.",
+        "summary": "`SetRequestCommand` provides a minimal handler for `flow set request` text updates. It validates required input and emits a simple request payload.",
+        "detail": "The command is intentionally small and focused, inheriting context behavior from `FlowCommand`. It returns an `INVALID_USAGE` envelope with a quoted usage string when request text is missing. Option parsing is delegated to shared route-option helpers for consistency with sibling commands. On success, it returns `{ request: text }`, leaving state mutation to the flow storage layer.",
         "chapter": "cli_commands",
-        "role": "controller",
+        "role": "Request setter command handler",
         "enrich": {
-          "processedAt": "2026-04-22T14:35:12.030Z",
+          "processedAt": "2026-05-20T03:34:35.997Z",
           "attempts": 1
         },
         "keywords": [
-          "request text",
-          "flow objective",
-          "state update",
-          "set request",
-          "cli input"
+          "set request command",
+          "usage validation",
+          "request text update",
+          "command payload",
+          "shared option resolver",
+          "flow metadata"
         ]
       },
       {
@@ -7267,9 +7268,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "4aade6667135c7485394af21069e73eb",
-        "lines": 396,
-        "mtime": "2026-05-19T04:48:08.664Z",
+        "hash": "5901f80dfa625a2b4d1670abc028f8e8",
+        "lines": 414,
+        "mtime": "2026-05-20T03:32:53.766Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -7280,6 +7281,7 @@
           "./git-helpers.js",
           "./config.js",
           "./flow-store.js",
+          "./flow-options.js",
           "./active-flow-registry.js",
           "./preparing-flow-store.js",
           "./flow-helpers.js",
@@ -7293,29 +7295,73 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
-          "attempts": 2
-        },
-        "summary": "Provides the main facade for flow-state operations across active, preparing, and worktree contexts. It resolves active flows robustly even when pointers or locations vary.",
-        "detail": "`FlowManager` composes `FlowStore`, `ActiveFlowRegistry`, and `PreparingFlowStore` and exposes unified APIs for step updates, tasks, notes, metrics, and merge outcomes. `forRoot()` creates a root-scoped manager, enabling post-merge operations to target the authoritative main-repo flow file. `scanAllFlows()` discovers candidate states from local specs, git worktrees, and feature branches, with truncation limits and invalid-JSON diagnostics. `resolveActiveFlow()` handles explicit spec selection, ambiguity errors, pointer-based exclusions for last-finalized specs, and fallback discovery when direct active pointers are absent. Internal worktree loading logic probes expected worktree paths and rehydrates the correct `flow.json` source before returning resolved state.",
+        "summary": "`FlowManager` orchestrates high-level flow state access, task navigation, metrics forwarding, and active-flow discovery across main and worktree contexts. It acts as a coordination layer above storage and registry components.",
+        "detail": "The class wraps `FlowStore`, `PreparingFlowStore`, and active-flow registry services, and applies bound spec defaults through helper functions. It exposes convenience methods for load/read-only access, metric updates, task-step operations, and preparing input resolution. Discovery logic scans `specs/*/flow.json` across main and worktree paths, parses candidate states, and enforces scan limits with stderr diagnostics for malformed entries. It also tracks a last-finalized spec pointer and validates explicit spec selection against active registrations to prevent ambiguous or stale routing.",
         "chapter": "internal_design",
-        "role": "Flow state coordination facade",
+        "role": "Flow lifecycle coordinator",
+        "enrich": {
+          "processedAt": "2026-05-20T03:34:35.997Z",
+          "attempts": 1
+        },
         "keywords": [
           "flow manager",
-          "active flow resolution",
-          "worktree state",
-          "preparing flow",
-          "flow store facade",
-          "scan all flows",
-          "last-finalized pointer"
+          "state orchestration",
+          "worktree scanning",
+          "active flow registry",
+          "spec selection",
+          "task progression",
+          "metrics forwarding"
+        ]
+      },
+      {
+        "file": "src/lib/flow-options.js",
+        "hash": "db17ff4c9f6dea9931a65a127c9ac7a8",
+        "lines": 48,
+        "mtime": "2026-05-20T03:32:53.766Z",
+        "className": "flow-options",
+        "methods": [
+          "hasExplicitOption",
+          "withSpecIdDefault",
+          "withSpecIdArgDefault",
+          "resolveExplicitTaskOption",
+          "resolveCommandRouteOptions"
+        ],
+        "imports": [],
+        "exports": [
+          "hasExplicitOption",
+          "withSpecIdDefault",
+          "withSpecIdArgDefault",
+          "resolveExplicitTaskOption",
+          "resolveCommandRouteOptions"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/flow-manager.js",
+          "src/lib/flow-store.js"
+        ],
+        "id": "f6212a8d",
+        "summary": "`flow-options` provides small composable helpers to normalize spec and task options for flow commands. The module standardizes explicit-option semantics and defaulting behavior.",
+        "detail": "`hasExplicitOption` checks ownership safely without relying on prototype traversal. `withSpecIdDefault` and `withSpecIdArgDefault` handle two distinct defaulting cases: object merge and positional argument fallback. `resolveExplicitTaskOption` normalizes empty or null task identifiers to `null`, preventing ambiguous empty-string states. `resolveCommandRouteOptions` composes these helpers to produce a canonical route options object for command handlers.",
+        "chapter": "cli_commands",
+        "role": "Option normalization utility",
+        "enrich": {
+          "processedAt": "2026-05-20T03:34:35.997Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "option normalization",
+          "specId defaulting",
+          "taskId parsing",
+          "explicit option detection",
+          "route options",
+          "CLI helper functions"
         ]
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "785f2391a89334e0a8a5e0dd78997540",
-        "lines": 969,
-        "mtime": "2026-05-19T04:48:08.665Z",
+        "hash": "a67ceb4caea6c95c8239932b190e4205",
+        "lines": 983,
+        "mtime": "2026-05-20T03:32:53.766Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -7351,6 +7397,7 @@
           "path",
           "crypto",
           "./agent-metrics.js",
+          "./flow-options.js",
           "./git-helpers.js",
           "./config.js",
           "./flow-helpers.js",
@@ -7368,24 +7415,22 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "enrich": {
-          "processedAt": "2026-05-19T16:45:15.373Z",
-          "attempts": 2
-        },
-        "summary": "Implements a file-backed flow state store for spec workflows, including loading, saving, and read-only access to `flow.json`. It also centralizes schema checks and migration routines so legacy flow states are upgraded safely on read/write.",
-        "detail": "The module defines strict guards for flow-state shape, task structures, step status values, and timestamp formats, failing fast with explicit errors when invariants are broken. It performs bounded file reads and migration safety limits (step/artifact caps and maximum read size) to prevent expensive or unsafe state transformations. Migration logic rewrites draft-review step graphs and artifact paths, emits empty placeholder artifacts when needed, and appends structured migration evidence to `issue-log.json`. `FlowStore` encapsulates path resolution, branch/spec mapping, persistence, runId migration/rollback handling, mutation-scope resolution, and task lifecycle helpers such as current-task lookup and add-task validation.",
+        "summary": "`FlowStore` is the persistence and mutation core for flow state, with strict schema validation, guarded migrations, and task-scope mutation utilities. It encapsulates file I/O, migration safety limits, and writeback behavior for `flow.json` and related artifacts.",
+        "detail": "The module defines bounded limits for flow size and migration breadth, then uses explicit assertions to reject malformed or oversized state inputs. Migration routines rewrite legacy draft-review structures, insert replacement steps/artifacts, emit empty artifact stubs, and append issue-log migration records when needed. Read and write paths are centralized with JSON serialization, rollback support for runId migration, and read-only fallbacks that report malformed state to stderr. The class also includes scope resolution, pending-step promotion, task shape validation, and finalized metadata constraints to keep flow transitions internally consistent.",
         "chapter": "internal_design",
-        "role": "Flow state persistence and migration manager",
+        "role": "Flow state store and migration engine",
+        "enrich": {
+          "processedAt": "2026-05-20T03:34:35.997Z",
+          "attempts": 1
+        },
         "keywords": [
-          "flow state store",
-          "JSON persistence",
+          "flow store",
           "state migration",
           "schema validation",
-          "task lifecycle",
+          "JSON persistence",
+          "task scope resolution",
           "artifact rewrite",
-          "runId migration",
-          "spec workflow",
-          "workflow state machine"
+          "rollback guard"
         ]
       },
       {
@@ -11630,10 +11675,10 @@
       }
     ],
     "summary": {
-      "total": 308,
-      "totalMethods": 1398
+      "total": 309,
+      "totalMethods": 1402
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-20T01:10:31.634Z"
+  "enrichedAt": "2026-05-20T03:34:35.997Z"
 }
