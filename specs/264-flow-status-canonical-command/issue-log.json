@@ -1,0 +1,103 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T07:54:36.917Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft addresses one user-defined concern: canonical flow status command guidance and rejection guidance for the unsupported mistyped command.; Unambiguous Requirements — The requirements state verifiable command behavior, including canonical command support, non-zero failure for the unsupported form, explicit correction text, and regression coverage.; Complete Context — The requirements are specific enough to judge implementation satisfaction from observable CLI behavior, audited reference locations, and regression coverage.; No Hardcoded Secrets — The draft contains no source code and no API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — Audit skill, prompt, docs, help, and test references for the incorrect `sdd-forge flow status` command shape. — The draft lists more than three requirements but this requirement has no must, should, or nice-to-have priority. (at scopeVerification.in[0]); Prioritize Requirements — Keep `sdd-forge flow get status` as the only supported status command. — The draft lists more than three requirements but this requirement has no must, should, or nice-to-have priority. (at scopeVerification.in[1]); Prioritize Requirements — Make `sdd-forge flow status` fail with non-zero exit and explicit guidance to `sdd-forge flow get status`. — The draft lists more than three requirements but this requirement has no must, should, or nice-to-have priority. (at scopeVerification.in[2]); Prioritize Requirements — Add regression coverage for the mistyped command behavior. — The draft lists more than three requirements but this requirement has no must, should, or nice-to-have priority. (at scopeVerification.in[3]); Impact on Existing Features — The draft includes an impactOnExisting section listing effects on the canonical command, invalid input behavior, and agent-facing skills/docs.; Present Recommendations with Reasoning — The only question has a clear recommended answer, leads with yes, and gives concise reasoning based on the issue, prior discussion, and alpha policy.; Explore Before Asking — The draft records search results, current dispatcher behavior, Issue #338 facts, and prior discussion before resolving the question.; Proactively Raise Related Implications — The draft raises related implications about not adding an alias, preserving the canonical CLI surface, adding regression coverage, and refreshing generated skills if source skill files change.; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not critique brainstorming ideas as final decisions; it records that prior discussion reframed and resolved the decision.; Capture Digressions in draft.md — No digression discussion is present in the provided content, so the capture requirement is not triggered.; Backward-Compatible CLI Interface — The draft explicitly avoids removing or changing the meaning of existing commands or options, keeps the existing canonical command unchanged, and does not add the unsupported form as an alias.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T07:55:14.265Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "prioritize-requirements",
+          "reason": "Audit skill, prompt, docs, help, and test references for the incorrect `sdd-forge flow status` command shape. — The draft lists more than three requirements but this requirement has no must, should, or nice-to-have priority. (at scopeVerification.in[0]); Keep `sdd-forge flow get status` as the only supported status command. — The draft lists more than three requirements but this requirement has no must, should, or nice-to-have priority. (at scopeVerification.in[1]); Make `sdd-forge flow status` fail with non-zero exit and explicit guidance to `sdd-forge flow get status`. — The draft lists more than three requirements but this requirement has no must, should, or nice-to-have priority. (at scopeVerification.in[2]); Add regression coverage for the mistyped command behavior. — The draft lists more than three requirements but this requirement has no must, should, or nice-to-have priority. (at scopeVerification.in[3])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Single Responsibility — The spec addresses one user-defined concern: keeping flow status guidance canonical while rejecting the mistyped command with correction text.; Task Single Responsibility — Each task focuses on one shared concern area: auditing guidance, updating the mistyped-command error, or adding regression coverage.; Unambiguous Requirements — The requirements use concrete command strings, exit behavior, and test-location expectations rather than vague adjectives.; Complete Context — The requirements provide specific command forms and observable outcomes that independent reviewers can compare against an implementation.; REQ Diff-Verifiability — Instruction sources under skills, prompts, docs, help, and tests must not present `sdd-forge flow status` as an executable command; status guidance must use `sdd-forge flow get status` when giving the full command. — This requires proving absence across broad instruction-source locations, including unchanged files, which is not decidable from a standard unified diff and test execution summary alone unless rewritten as concrete diff-verifiable edits or testable assertions. (at requirements[0].desc); No Hardcoded Secrets — The content does not include source code containing API keys, passwords, tokens, or other hardcoded secrets.; No Silent Error Swallowing — The content does not include catch blocks or code paths that silently discard errors.; Prioritize Requirements — The spec has exactly three requirements, so the priority rule for more than three requirements is not triggered; the listed requirements also include priorities.; Impact on Existing Features — missing impact on existing features statement — The spec describes unchanged canonical behavior and unsupported mistyped behavior, but it does not explicitly list the impact on existing features or state that no existing features are affected. (at spec.json); Bounded Resource Usage — The spec does not introduce recursive processing, retries, or unbounded bulk data loading designs.; Spec Includes Test Strategy — The spec includes test strategy content in task-level test_strategy fields and acceptance criteria describing spec-local coverage.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, and no unresolved point is apparent from the provided content.; Include 'Why This Approach' Rationale — The spec includes rationale through overview decisions, evidence, design principles, and alternatives considered.; Spec Test Coverage — The acceptance criteria require spec-local tests under specs/264-flow-status-canonical-command/tests/ with `// spec: R<N>` headers covering R2 and R3.; Backward-Compatible CLI Interface — The spec does not remove or change the meaning of an existing supported command or option; it keeps the unsupported form unsupported and explicitly rejects adding an alias.; Exit Code Contract — For the modified mistyped CLI invocation, the spec states the failure condition and requires a non-zero exit; the canonical command path is specified as unchanged.; Validate User Input at Entry Point — The `flow` group token immediately after `sdd-forge flow`; for this spec, the invalid token of interest is `status`. — The spec identifies the user-facing argument but does not list its validation requirements in terms of type, format, and range as required for CLI command changes. (at clarifications[1].a)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-20T08:00:20.088Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "req-diff-verifiability",
+          "reason": "Instruction sources under skills, prompts, docs, help, and tests must not present `sdd-forge flow status` as an executable command; status guidance must use `sdd-forge flow get status` when giving the full command. — This requires proving absence across broad instruction-source locations, including unchanged files, which is not decidable from a standard unified diff and test execution summary alone unless rewritten as concrete diff-verifiable edits or testable assertions. (at requirements[0].desc)"
+        },
+        {
+          "guardrail_id": "impact-on-existing-features",
+          "reason": "missing impact on existing features statement — The spec describes unchanged canonical behavior and unsupported mistyped behavior, but it does not explicitly list the impact on existing features or state that no existing features are affected. (at spec.json)"
+        },
+        {
+          "guardrail_id": "validate-user-input-at-entry-point",
+          "reason": "The `flow` group token immediately after `sdd-forge flow`; for this spec, the invalid token of interest is `status`. — The spec identifies the user-facing argument but does not list its validation requirements in terms of type, format, and range as required for CLI command changes. (at clarifications[1].a)"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "task-single-responsibility",
+        "unambiguous-requirements",
+        "complete-context",
+        "no-hardcoded-secrets",
+        "no-silent-error-swallowing",
+        "prioritize-requirements",
+        "bounded-resource-usage",
+        "spec-includes-test-strategy",
+        "spec-no-fabrication",
+        "spec-include-rationale",
+        "spec-test-coverage",
+        "backward-compatible-cli-interface",
+        "exit-code-contract"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: remove non-testable R1 from file-map",
+      "resolution": "gate validates file-map against testable requirement ids; R1 is non-testable, while R2/R3 retain source and test mappings",
+      "taskId": null,
+      "timestamp": "2026-05-20T11:54:03.144Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "npm test --",
+      "rawOutputPath": "specs/264-flow-status-canonical-command/tests/.raw/final-regression-attempt-001.log",
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "timestamp": "2026-05-20T11:57:21.362Z"
+    },
+    {
+      "step": "final-regression",
+      "reason": "record: unattributed existing full regression failure",
+      "resolution": "user confirmed proceeding; failure log does not identify current changed files and final-regression classified it as unattributed_existing_failure",
+      "taskId": null,
+      "timestamp": "2026-05-20T11:58:29.748Z"
+    }
+  ]
+}

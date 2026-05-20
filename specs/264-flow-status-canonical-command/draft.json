@@ -1,0 +1,71 @@
+{
+  "devType": "feature",
+  "goal": "Unify flow status guidance on the canonical `sdd-forge flow get status` command and treat `sdd-forge flow status` as a mistyped unsupported command with an explicit correction.",
+  "analysis": {
+    "problem": "Instruction sources and navigation paths can lead an operator or AI agent to the incorrect `sdd-forge flow status` form even though the canonical command is `sdd-forge flow get status`. Supporting the incorrect form as an alias would expand the public CLI surface and conflict with the project's alpha policy against backward-compatibility shims.",
+    "proposedApproach": "Audit user-facing instruction sources for incorrect `sdd-forge flow status` references, keep the canonical command as the only supported form, and make the unsupported mistyped form fail with guidance to `sdd-forge flow get status`.",
+    "validation": "The linked Issue defines the desired behavior, draft guardrails require unambiguous and testable requirements, and current search results show canonical references already exist in docs and skills while the flow dispatcher rejects unknown flow groups."
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #338 states that `sdd-forge flow get status` is the canonical command.",
+      "Issue #338 states that `sdd-forge flow status` must not be added as a CLI alias.",
+      "The user confirmed before publishing Issue #338 that the improvement is to avoid and correct the mistaken command, not to support an old form.",
+      "Search results show current canonical references in docs and skills use `sdd-forge flow get status` or the shorter phrase `flow get status`.",
+      "The flow dispatcher currently treats the first token after `flow` as a top-level command group such as `get`, `set`, or `run`."
+    ],
+    "decisionPoints": [
+      "Whether the unsupported `flow status` input should remain a non-zero error while displaying a correction to the canonical command.",
+      "Which instruction sources must be audited so future agent behavior does not drift back to the unsupported command shape."
+    ],
+    "resolvedByProjectRules": [
+      "No alias should be added because the project alpha policy says not to write backward-compatibility code for old or deprecated formats.",
+      "Requirements must be verifiable, so the mistyped-command behavior needs a regression test that checks both non-zero exit and the correction text.",
+      "Instruction-source changes under `src/skills/` or templates must be propagated with `sdd-forge upgrade` if those files change."
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "Exact wording of the correction message.",
+      "Exact test location and command fixture coverage.",
+      "Whether any generated skill files need refresh after source skill edits."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Audit skill, prompt, docs, help, and test references for the incorrect `sdd-forge flow status` command shape.",
+      "must: Keep `sdd-forge flow get status` as the only supported status command.",
+      "must: Make `sdd-forge flow status` fail with non-zero exit and explicit guidance to `sdd-forge flow get status`.",
+      "must: Add regression coverage for the mistyped command behavior."
+    ],
+    "out": [
+      "Adding a `flow status` alias.",
+      "Changing the behavior or output schema of `sdd-forge flow get status`.",
+      "Introducing backward-compatibility support for other old or mistyped command forms.",
+      "Changing unrelated flow command groups or dispatcher semantics."
+    ]
+  },
+  "impactOnExisting": [
+    "Existing callers of `sdd-forge flow get status` should see no behavior change.",
+    "Existing invalid input `sdd-forge flow status` remains invalid, but the error becomes more actionable.",
+    "Agent-facing skills and docs should consistently present the canonical command and avoid training future invocations toward the unsupported shape."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Should `sdd-forge flow status` remain unsupported with a non-zero exit, with the only user-facing improvement being guidance to `sdd-forge flow get status`?",
+      "answer": "Yes. `sdd-forge flow status` should remain unsupported and non-zero; the improvement is limited to making the error point to `sdd-forge flow get status`.",
+      "evidence": "Issue #338 states not to add a `flow status` alias, and the pre-Issue discussion explicitly reframed the task from old-form support to preventing and correcting the mistaken command.",
+      "why": "This preserves the canonical CLI surface while making the operator or agent mistake recoverable.",
+      "considered": "Adding a `flow status` alias was rejected because it would create backward-compatibility support for an unsupported command shape during the alpha period.",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-20T07:54:46.000Z",
+    "notes": "autoApprove=true; Issue #338 and prior discussion resolve the only user decision."
+  }
+}

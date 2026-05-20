@@ -1,0 +1,81 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/264-flow-status-canonical-command/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/264-flow-status-canonical-command/tests/status-command.test.js",
+        "test_name": "R2: keeps flow get status as the canonical status command",
+        "command": "node --test specs/264-flow-status-canonical-command/tests/status-command.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 35
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/264-flow-status-canonical-command/tests/status-command.test.js",
+        "test_name": "R3: rejects flow status and points to flow get status",
+        "command": "node --test specs/264-flow-status-canonical-command/tests/status-command.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 35
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/264-flow-status-canonical-command/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow.js",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "tests/e2e/dispatchers.test.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/264-flow-status-canonical-command/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/dispatchers.test.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/264-flow-status-canonical-command/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow.js"
+      },
+      {
+        "status": "modified",
+        "path": "tests/e2e/dispatchers.test.js"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+[sdd-forge] spec-local tests start
+command: node --test specs/264-flow-status-canonical-command/tests/status-command.test.js
+TAP version 13
+# Subtest: flow status canonical command guidance
+    # Subtest: R2: keeps flow get status as the canonical status command
+    ok 1 - R2: keeps flow get status as the canonical status command
+      ---
+      duration_ms: 168.391584
+      type: 'test'
+      ...
+    # Subtest: R3: rejects flow status and points to flow get status
+    ok 2 - R3: rejects flow status and points to flow get status
+      ---
+      duration_ms: 115.417633
+      type: 'test'
+      ...
+    1..2
+ok 1 - flow status canonical command guidance
+  ---
+  duration_ms: 285.464824
+  type: 'suite'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 359.252203
+exitCode: 0
+[sdd-forge] requirement R2 result pass
+[sdd-forge] requirement R3 result pass
+[sdd-forge] spec-local tests end

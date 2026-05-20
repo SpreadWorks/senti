@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec",
+  "generatedAt": "2026-05-20T07:59:17.202Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "nonBlocking": 1,
+    "total": 1
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "kind": "improvement",
+      "title": "Clarify audit exclusions for negative and historical references",
+      "target": "R1 / T-1",
+      "body": "**Target:** R1 / T-1\n**Improvement:** Clarify that negative regression tests for `sdd-forge flow status` and historical spec/changelog mentions are allowed, as long as they do not present the command as current runnable guidance.\n**Why non-blocking:** The acceptance criteria already require exercising the mistyped command, and current codebase context provides clear implementation and test targets; this clarification would only reduce search-result triage ambiguity.",
+      "improvement": "Clarify that negative regression tests for `sdd-forge flow status` and historical spec/changelog mentions are allowed, as long as they do not present the command as current runnable guidance.",
+      "whyNonBlocking": "The acceptance criteria already require exercising the mistyped command, and current codebase context provides clear implementation and test targets; this clarification would only reduce search-result triage ambiguity."
+    }
+  ]
+}

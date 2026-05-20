@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "review-test",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Any instruction-source line changed by this spec that gives the full flow status command must use `sdd-forge flow get status`, not `sdd-forge flow status`.",
+      "testable": false,
+      "status": "not_testable",
+      "files": []
+    },
+    {
+      "id": "R2",
+      "desc": "The CLI must not add or register a `flow status` alias; `sdd-forge flow get status` must continue to dispatch through the existing status command.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-command.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "`sdd-forge flow status` must exit non-zero and write a correction that includes `sdd-forge flow get status`.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/status-command.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/status-command.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R2",
+        "R3"
+      ],
+      "testNameIds": [
+        "R2",
+        "R3"
+      ]
+    }
+  ]
+}

@@ -5,6 +5,23 @@ import { execFileSync } from "child_process";
 
 const SDD_FORGE = join(process.cwd(), "src/sdd-forge.js");
 
+function expectDispatcherFailure(args, assertions, message = "should exit non-zero") {
+  let failure;
+  try {
+    execFileSync("node", [SDD_FORGE, ...args], { encoding: "utf8" });
+  } catch (err) {
+    failure = err;
+  }
+  if (!failure) assert.fail(message);
+  assertions(failure);
+}
+
+function expectUnknownCommand(args, message) {
+  expectDispatcherFailure(args, (err) => {
+    assert.match(err.stderr, /unknown command/);
+  }, message);
+}
+
 describe("sdd-forge dispatcher", () => {
   it("routes 'help' to help output", () => {
     const result = execFileSync("node", [SDD_FORGE, "help"], { encoding: "utf8" });
@@ -24,12 +41,7 @@ describe("sdd-forge dispatcher", () => {
   });
 
   it("rejects unknown spec subcommand", () => {
-    try {
-      execFileSync("node", [SDD_FORGE, "spec", "gate"], { encoding: "utf8" });
-      assert.fail("should exit non-zero");
-    } catch (err) {
-      assert.match(err.stderr, /unknown command/);
-    }
+    expectUnknownCommand(["spec", "gate"]);
   });
 
   it("routes 'docs review' correctly", () => {
@@ -83,22 +95,19 @@ describe("sdd-forge dispatcher", () => {
   });
 
   it("exits non-zero for unknown subcommand", () => {
-    try {
-      execFileSync("node", [SDD_FORGE, "nonexistent"], { encoding: "utf8" });
-      assert.fail("should exit non-zero");
-    } catch (err) {
-      assert.match(err.stderr, /unknown command/);
-    }
+    expectUnknownCommand(["nonexistent"]);
+  });
+
+  it("suggests the canonical status command for mistyped flow status", () => {
+    expectDispatcherFailure(["flow", "status"], (err) => {
+      assert.match(err.stderr, /unknown command 'status'/);
+      assert.match(err.stderr, /Did you mean: sdd-forge flow get status/);
+    });
   });
 
   it("rejects old flat commands (build, gate)", () => {
     for (const cmd of ["build", "gate", "scan", "review"]) {
-      try {
-        execFileSync("node", [SDD_FORGE, cmd], { encoding: "utf8" });
-        assert.fail(`'${cmd}' should exit non-zero`);
-      } catch (err) {
-        assert.match(err.stderr, /unknown command/, `'${cmd}' should show unknown command`);
-      }
+      expectUnknownCommand([cmd], `'${cmd}' should exit non-zero`);
     }
   });
 });

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-05-20T08:03:59.503Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/264-flow-status-canonical-command/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "R3 assertion is slightly over-specific",
+      "target": "specs/264-flow-status-canonical-command/tests/status-command.test.js",
+      "improvement": "Consider making the rejection test assert only the required non-zero exit and correction containing `sdd-forge flow get status`, unless the exact `unknown command 'status'` wording is an intentional contract.",
+      "whyNonBlocking": "The current test still exercises production CLI behavior and covers R3; the extra wording assertion may just be tighter than the stated requirement."
+    }
+  ]
+}

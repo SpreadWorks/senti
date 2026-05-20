@@ -19,6 +19,9 @@ initContainer();
 const args = process.argv.slice(2);
 const group = args[0];
 const rest = args.slice(1);
+const flowCommandSuggestionByGroup = {
+  status: "sdd-forge flow get status",
+};
 
 if (!group || group === "-h" || group === "--help") {
   const lines = [
@@ -68,6 +71,10 @@ async function dispatchFlow() {
   const commands = flowCommands[group];
   if (!commands || typeof commands !== "object" || typeof commands.command === "function") {
     console.error(`sdd-forge flow: unknown command '${group}'`);
+    const suggestion = flowCommandSuggestionByGroup[group];
+    if (suggestion) {
+      console.error(`Did you mean: ${suggestion}`);
+    }
     console.error("Run: sdd-forge flow --help");
     process.exit(EXIT_ERROR);
   }

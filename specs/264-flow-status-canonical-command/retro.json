@@ -1,0 +1,28 @@
+{
+  "spec": "specs/264-flow-status-canonical-command/spec.json",
+  "date": "2026-05-20T11:54:50.327Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "The CLI must not add or register a `flow status` alias; `sdd-forge flow get status` must continue to dispatch through the existing status command.",
+      "status": "done",
+      "note": "R2: keeps flow get status as the canonical status command"
+    },
+    {
+      "desc": "`sdd-forge flow status` must exit non-zero and write a correction that includes `sdd-forge flow get status`.",
+      "status": "done",
+      "note": "R3: rejects flow status and points to flow get status"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 2,
+    "done": 2,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
