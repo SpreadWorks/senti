@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-20T11:59:17.812Z",
+  "analyzedAt": "2026-05-20T14:21:37.361Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -1155,7 +1155,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -1399,7 +1399,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -1901,7 +1901,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -1933,7 +1933,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -2047,7 +2047,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -2260,7 +2260,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -2567,9 +2567,9 @@
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "fdf3a2c3a755bf1e328ce95ffe8a5c42",
+        "hash": "4427d1516849550f3b72b85b8cd02daa",
         "lines": 793,
-        "mtime": "2026-05-19T16:44:37.372Z",
+        "mtime": "2026-05-20T12:01:22.191Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2630,24 +2630,8 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:31.634Z",
-          "attempts": 2
-        },
-        "summary": "Declarative flow/task definition tree with FlowNode classes and traversal helpers.",
-        "detail": "Defines `FlowNode` plus `ScalarMaxAttempts` / `ModeMaxAttempts` (auto/manual modes) to express retry policy as first-class objects. Exports frozen `FLOW_DEFINITION` and `TASK_DEFINITION` arrays describing the nested step graph and a `MAX_DEPTH` of 3. Provides traversal utilities (`flattenSteps`, `findStepById`, `findFirstPendingLeaf`, `promoteNextPendingLeaf`, `derivePhaseMap`, `resolveNodeFor`, `collectGatePhaseEntries`) and state-aware helpers like `findLatestInProgressLeaf` with a `WeakMap` order cache plus `MAX_IN_PROGRESS_STEP_SCAN` safeguard. Builds draft review route nodes and gate phase mappings consumed by other flow modules.",
-        "chapter": "internal_design",
-        "role": "flow-definition",
-        "keywords": [
-          "FlowNode",
-          "flow definition",
-          "TASK_DEFINITION",
-          "step graph",
-          "maxAttempts",
-          "gate phase",
-          "traversal",
-          "leaf node",
-          "draft review route"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -4175,12 +4159,13 @@
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "1a641b7732c0e93d0fe610e25c75730d",
-        "lines": 479,
-        "mtime": "2026-05-20T06:47:16.447Z",
+        "hash": "3a94a8edde49fdaef35bec618bf39ccc",
+        "lines": 495,
+        "mtime": "2026-05-20T14:21:28.646Z",
         "className": "run-final-regression",
         "methods": [
           "repoRelative",
+          "writeFinalRegressionProgressLine",
           "appendRaw",
           "resolveRealPath",
           "readAnalysisIfExists",
@@ -4210,13 +4195,14 @@
           "./set-issue-log.js"
         ],
         "exports": [
-          "default"
+          "default",
+          "FINAL_REGRESSION_HEARTBEAT_MS"
         ],
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "49364661",
         "enrich": {
-          "attempts": 2
+          "attempts": 1
         }
       },
       {
@@ -4298,7 +4284,7 @@
         "usedBy": null,
         "id": "1e686d63",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4438,7 +4424,7 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5039,7 +5025,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -5222,7 +5208,7 @@
         "usedBy": null,
         "id": "41745e8b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6172,11 +6158,12 @@
       },
       {
         "file": "src/flow/lib/test-regression.js",
-        "hash": "a7bb72fdf46b196978fa684902ef4ebc",
-        "lines": 414,
-        "mtime": "2026-05-18T02:57:58.898Z",
+        "hash": "ce4d713306166110ee467c72443273a4",
+        "lines": 451,
+        "mtime": "2026-05-20T14:21:28.646Z",
         "className": "test-regression",
         "methods": [
+          "formatElapsedMs",
           "ParsedCommand",
           "RegressionClassification",
           "TestExecuteRegressionPlan",
@@ -6205,13 +6192,14 @@
         "imports": [
           "fs",
           "path",
-          "../../lib/process.js",
+          "child_process",
           "../../lib/git-helpers.js",
           "../../lib/makefile.js",
           "../../lib/test-command-sources.js",
           "../../docs/lib/analysis-entry.js"
         ],
         "exports": [
+          "formatElapsedMs",
           "ParsedCommand",
           "RegressionClassification",
           "TestExecuteRegressionPlan",
@@ -6226,6 +6214,8 @@
           "runProcessDetailed",
           "resolveTestTimeoutSeconds",
           "DEFAULT_TEST_TIMEOUT_SECONDS",
+          "DEFAULT_PROCESS_HEARTBEAT_MS",
+          "MIN_PROCESS_HEARTBEAT_MS",
           "TEST_EXECUTE_REGRESSION_POLICIES"
         ],
         "extends": null,
@@ -6236,23 +6226,25 @@
           "src/flow/lib/test-artifacts.js"
         ],
         "id": "2980d983",
-        "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
-          "attempts": 3
-        },
-        "summary": "Provides regression command discovery, changed-file classification, and execution planning for `test-execute`. It turns repository/config signals into deterministic run-or-skip decisions.",
-        "detail": "Command parsing supports argv-style strings with optional leading `KEY=value` assignments while rejecting shell control and expansion syntax. Discovery chooses among configured commands and inferred sources from `package.json`, `composer.json`, and `Makefile` through ranked source selection. Classification separates trigger-relevant files from non-triggers using analysis-derived project paths, documentation/spec-artifact heuristics, and configured project test paths. Planning applies policy (`targeted`, `full`, or `skip`) to produce immutable regression plans, including deferred full regression behavior for final-regression. Execution helpers run commands with merged environments and return normalized process metadata and output lines for artifact recording.",
+        "summary": "Implements regression-test decision and execution utilities for the flow system, including command discovery, change classification, and process handling. It standardizes when to run targeted tests, full suites, or skip execution based on repository changes and policy.",
+        "detail": "The module defines domain classes for parsed commands, regression classification, and execution plans so downstream flow logic can rely on explicit objects instead of loose structures. It discovers test commands from multiple sources such as config, package/composer scripts, and Makefile targets, then validates command syntax to block unsupported shell control or expansion patterns. File-change classification combines git diff data, spec artifact paths, documentation-only paths, and analyzed project files to determine whether changes are trigger-relevant or non-trigger categories. Policy resolution maps configured modes (targeted, full, skip) to concrete execution plans, including fallback behavior for mixed or uncertain classifications. It also provides robust process execution helpers with timeout, heartbeat, captured output, and normalized pass/fail interpretation via exit code, signal, timeout, and spawn-error checks.",
         "chapter": "internal_design",
-        "role": "Regression planning engine",
+        "role": "Flow regression test planner and subprocess execution layer",
+        "enrich": {
+          "processedAt": "2026-05-20T14:21:51.113Z",
+          "attempts": 1
+        },
         "keywords": [
-          "regression classification",
-          "command discovery",
-          "argv parser",
-          "targeted regression",
-          "full regression",
-          "policy engine",
-          "changed files",
-          "process metadata"
+          "regression testing",
+          "test orchestration",
+          "change classification",
+          "targeted tests",
+          "full test run",
+          "process timeout",
+          "subprocess execution",
+          "command parsing",
+          "git diff analysis",
+          "test policy"
         ]
       },
       {
@@ -11507,9 +11499,9 @@
     ],
     "summary": {
       "total": 310,
-      "totalMethods": 1427
+      "totalMethods": 1429
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-20T12:00:27.604Z"
+  "enrichedAt": "2026-05-20T14:22:56.790Z"
 }
