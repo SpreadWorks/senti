@@ -185,16 +185,21 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-05-20T15:11:49.933Z"
+              "status": "done",
+              "startedAt": "2026-05-20T15:11:49.933Z",
+              "finishedAt": "2026-05-20T15:12:08.234Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-05-20T15:12:08.234Z",
+              "finishedAt": "2026-05-20T15:13:41.376Z"
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-05-20T15:13:41.376Z",
+              "finishedAt": "2026-05-20T15:13:53.190Z"
             }
           ]
         }
@@ -1066,6 +1071,40 @@
       "delta": 1,
       "taskId": null,
       "ts": "2026-05-20T14:45:14.489Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 1414,
+      "durationMs": 13996,
+      "tokens": {
+        "input": 1045,
+        "output": 405,
+        "cacheRead": 15744,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-20T15:12:33.532Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 18260,
+      "durationMs": 81526,
+      "tokens": {
+        "input": 18156,
+        "output": 4222,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-20T15:13:41.058Z"
     }
   ],
   "reviewRecoveryBaselines": [
@@ -1278,6 +1317,8 @@
     ]
   },
   "state": {
-    "finalizedAt": "2026-05-20T15:11:49.827Z"
+    "finalizedAt": "2026-05-20T15:11:49.827Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "30ff0b3378013e880b2af7387e35e7aa68038aa4"
   }
 }
