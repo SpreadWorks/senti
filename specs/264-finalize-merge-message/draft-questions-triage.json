@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "3 repair targets are valid and can be fixed by tightening question text.",
+  "items": [
+    {
+      "title": "1. q1 includes explanatory context",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The second sentence defines spec goal and acts as explanatory context, while pending questions must contain only the question text.",
+      "evidence": "draft.json qa[0].question contains two sentences; the review suggests keeping only the first sentence."
+    },
+    {
+      "title": "2. q2 includes explanatory context",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The second sentence defines footer behavior and acts as explanatory context, while pending questions must contain only the question text.",
+      "evidence": "draft.json qa[1].question contains two sentences; the review suggests keeping only the first sentence."
+    },
+    {
+      "title": "3. q3 asks about implementation routing",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The question can be reframed as user-visible scope without asking the user to decide internal route selection details.",
+      "evidence": "draft.json qa[2].question mentions PR route and merge strategy selection; the review suggests limiting the wording to observable PR title/body output."
+    }
+  ]
+}

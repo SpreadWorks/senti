@@ -1,0 +1,33 @@
+{
+  "spec": "specs/264-finalize-merge-message/spec.json",
+  "date": "2026-05-20T12:02:32.363Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "squash merge route の既定 commit subject は、spec.json の goal の先頭の非空行を第一候補にする。goal が存在する場合、subject は spec directory slug だけの文字列にならない。",
+      "status": "done",
+      "note": "R1: uses the first non-empty spec goal line as the squash commit subject"
+    },
+    {
+      "desc": "spec goal が空または読み込めない場合、既定 commit subject は `baseBranch..featureBranch` の commit subjects を新しい順に最大 50 commit 読み、finalize 生成 commit を除外した最初の subject を使う。除外対象は `chore: record finalize metadata before merge` と `chore: add retro and report` を含む既知の finalize metadata/report subject とする。除外後の subject が得られない場合のみ、従来の slug fallback を使う。",
+      "status": "done",
+      "note": "R2: filters finalize-generated subjects before choosing implementation fallback"
+    },
+    {
+      "desc": "Issue が紐づく squash commit は既存の `fixes #<issue>` footer を維持する。PR title/body 生成結果、merge strategy selection、custom commit message 指定の意味は変更しない。",
+      "status": "done",
+      "note": "R3: preserves issue footer while leaving PR title and body helpers unchanged"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 3,
+    "done": 3,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

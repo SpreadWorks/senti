@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Specified the implementation commit fallback source and filtering rules.",
+  "items": [
+    {
+      "title": "Implementation commit fallback is ambiguous in real finalize history",
+      "target": "R2 / Data Flow",
+      "decision": "applied",
+      "rationale": "Updated R2, data flow, acceptance criteria, clarifications, implementation targets, and task text to state that fallback uses baseBranch..featureBranch subjects after filtering finalize-generated metadata/report subjects.",
+      "evidence": "spec.json requirements[1].desc now defines the git range, ordering, and excluded finalize-generated subjects.",
+      "changedFields": [
+        "overview.modules",
+        "overview.data_flow[0].text",
+        "overview.decisions",
+        "requirements[1].desc",
+        "acceptance_criteria",
+        "clarifications",
+        "implementationTargets",
+        "tasks[0].acceptance",
+        "tasks[0].implementation_notes",
+        "tasks[0].test_strategy"
+      ]
+    }
+  ]
+}

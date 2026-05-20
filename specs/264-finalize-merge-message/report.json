@@ -1,0 +1,264 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   29 +\n .../draft-questions-triage.json                    |   29 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   33 +\n specs/264-finalize-merge-message/draft.json        |  107 ++\n specs/264-finalize-merge-message/file-map.json     |   11 +\n specs/264-finalize-merge-message/flow.json         | 1281 ++++++++++++++++++++\n specs/264-finalize-merge-message/issue-log.json    |  339 ++++++\n specs/264-finalize-merge-message/issue.md          |   28 +\n .../264-finalize-merge-message/retry-recovery.json |   77 ++\n specs/264-finalize-merge-message/review.md         |   16 +\n specs/264-finalize-merge-message/spec-repair.json  |   27 +\n .../spec-review-triage.json                        |   15 +\n specs/264-finalize-merge-message/spec-review.json  |   40 +\n specs/264-finalize-merge-message/spec-review.md    |   24 +\n specs/264-finalize-merge-message/spec.json         |  188 +++\n specs/264-finalize-merge-message/spec.md           |  102 ++\n specs/264-finalize-merge-message/tasks/T-1.md      |   20 +\n specs/264-finalize-merge-message/tasks/T-2.md      |   20 +\n .../264-finalize-merge-message/test-coverage.json  |   53 +\n specs/264-finalize-merge-message/test-review.json  |   14 +\n specs/264-finalize-merge-message/test-review.md    |   13 +\n .../tests/squash-commit-message.test.js            |  218 ++++\n src/flow/commands/merge.js                         |   91 +-\n tests/unit/flow/finalize-merge-retry.test.js       |   20 +-\n 27 files changed, 2817 insertions(+), 5 deletions(-)",
+      "commits": [
+        "feat: feature/264-finalize-merge-message"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 27,
+      "entries": [
+        {
+          "step": "gate-draft",
+          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "draft gate failed because approval.approved was false after coverage review passed",
+          "resolution": "set draft approval to true with autoApprove note because all QA entries were answered and coverage review passed"
+        },
+        {
+          "step": "spec-repair",
+          "reason": "spec review found implementation commit fallback ambiguous because finalize metadata commits can appear before squash merge",
+          "resolution": "specified fallback source as baseBranch..featureBranch subjects filtered to exclude finalize metadata and report commit subjects"
+        },
+        {
+          "step": "gate",
+          "reason": "Single Responsibility — The spec addresses one user-defined concern: improving finalize-merge squash commit messages while preserving related existing contracts.; Task Single Responsibility — Each task addresses a single part of the same concern: subject/fallback construction or preservation of related route contracts.; Unambiguous Requirements — The requirements state concrete subject source order, fallback behavior, footer preservation, and unchanged areas without relying on unverifiable vague adjectives.; Complete Context — The requirements define enough concrete behavior for independent reviewers to decide whether the implementation satisfies them.; REQ Diff-Verifiability — The requirements can be checked from implementation diffs and test summaries covering subject selection, filtering, fallback, and preserved contracts.; No Hardcoded Secrets — The content does not include source code containing API keys, passwords, tokens, or other secrets.; No Silent Error Swallowing — The content does not include catch blocks or error handling code that could silently discard errors.; Prioritize Requirements — There are exactly three requirements, so priority assignment is not required; all three nevertheless include priority values.; Impact on Existing Features — The spec lists effects on existing behavior, including preserved Issue footer handling and unchanged PR route, merge strategy, and custom commit message behavior.; Bounded Resource Usage — baseBranch..featureBranch の commit subjects から finalize 生成 commit を除外した最新 subject を使う — This describes loading or scanning commit subjects from a branch range without an explicit upper bound on count or size. (at overview.data_flow[0].text); Bounded Resource Usage — `baseBranch..featureBranch` の commit subjects から finalize 生成 commit を除外した最新 subject を使う — This requirement depends on processing commit subjects from a branch range but does not specify an explicit upper bound. (at requirements[1].desc); Bounded Resource Usage — `baseBranch..featureBranch` の commit subjects を新しい順に見て、finalize が生成する metadata/report subject を除外した最初の subject を使う。 — This clarification specifies scanning commit subjects in order without stating a maximum number of commits or subjects to inspect. (at clarifications[2].a); Bounded Resource Usage — baseBranch..featureBranch の subjects から finalize metadata/report subject を除外して選ぶ。 — This implementation note describes processing branch-range subjects without an explicit upper bound on the amount of data processed. (at tasks[0].implementation_notes); Spec Includes Test Strategy — The spec includes test_strategy fields in tasks and acceptance criteria describing unit and spec-local tests.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, indicating no unresolved points are being fabricated as answered.; Include 'Why This Approach' Rationale — The overview decisions and alternatives_considered explain why spec goal is chosen first and why alternatives were rejected.; Spec Test Coverage — The spec requires spec-local tests under specs/264-finalize-merge-message/tests/ and acceptance criteria require R1-R3 header coverage.; Backward-Compatible CLI Interface — The spec explicitly constrains existing CLI command and option meanings to remain unchanged, and the matched acknowledgment cites this guardrail.; Exit Code Contract — The spec does not add or modify CLI commands, so exit-code contract requirements are inapplicable.; Validate User Input at Entry Point — The spec does not add or modify CLI commands or user-facing arguments, so entry-point input validation requirements are inapplicable.",
+          "resolution": null
+        },
+        {
+          "step": "gate",
+          "reason": "spec gate failed bounded-resource-usage because commit subject fallback scan had no explicit upper bound",
+          "resolution": "added a maximum of 50 commits to every fallback subject scan description in spec.json"
+        },
+        {
+          "step": "scenario-validity",
+          "reason": "scenario-validity classified tests as invalid because a missing named export caused module load failure instead of assertion failure",
+          "resolution": "changed the spec-local test to namespace import merge.js and assert helper existence inside each test"
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "spec-local tests changed after review-test findings by adding git-range collector coverage and explicit merge strategy and custom message contract assertions",
+          "resolution": null
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "spec-local tests changed again after review-test findings by adding unreadable spec fallback coverage and executing finalize-commit custom message behavior",
+          "resolution": null
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "spec-local tests changed after latest review-test finding by adding two non-finalize implementation commits and asserting newest-first fallback order",
+          "resolution": null
+        },
+        {
+          "step": "review",
+          "reason": "implementation review failed because file-map.json was required but missing after implementation",
+          "resolution": "recorded src/flow/commands/merge.js against R1 R2 and R3 with flow set files before rerunning review"
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — Squash route now loads the spec and buildSquashCommitMessage uses the first non-empty spec.goal line before implementation subjects or slug fallback, so a present goal prevents slug-only subject.; R2 — When spec goal is empty or unavailable, code reads up to 50 newest baseBranch..featureBranch subjects, filters known finalize metadata/report subjects, uses first remaining subject, and falls back to slug only if none remain.; R3 — Squash message builder keeps `fixes #<issue>` footer when state.issue is set, and diff does not change PR title/body generation, merge strategy selection, or custom finalize commit message behavior.; Spec Test Coverage — The diff adds spec-local coverage under specs/264-finalize-merge-message/tests/ and the new test file includes the required // spec: R1 R2 R3 header.; Avoid Overengineering — missing evidence: design direction and user confirmation before non-trivial implementation — The guardrail explicitly requires presenting the design direction to the user before a non-trivial change and proceeding only after confirmation. The provided content includes implementation diff but no evidence of that required confirmation. (at implementation process artifact)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: gate failed because implementation process evidence did not explicitly show design direction and user confirmation",
+          "resolution": "recorded that the approved spec contains the design direction, data flow, layer boundary, and chosen pattern before implementation; user approval is stored in spec.json user_approval and the user approved remaining review proposals as no-change before proceeding"
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); Spec Test Coverage — The diff adds spec-local coverage under specs/264-finalize-merge-message/tests/ with a // spec: R1 R2 R3 header, satisfying the header and location requirement for the new spec behavior.; Avoid Overengineering — function loadSpecForSquashMessageOrNull(state, root) — The diff introduces a helper used only once by runMerge, adding an indirection layer with a single caller. (at src/flow/commands/merge.js)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: no-overengineering flagged loadSpecForSquashMessageOrNull as a single-caller helper",
+          "resolution": "inlined the squash message spec-load try/catch into the squash route and removed the single-caller helper"
+        },
+        {
+          "step": "review",
+          "reason": "fix: impl review flagged unbounded git-log output and zero-limit handling",
+          "resolution": "bounded collected subject output, preserved explicit limit 0 as zero, and renamed subject-line helper without changing PR title behavior"
+        },
+        {
+          "step": "review",
+          "reason": "fix: impl review flagged eager subject mapping and unclear ignored-subject naming",
+          "resolution": "replaced eager map/find with a loop and renamed the ignored subject set/predicate for squash message filtering intent"
+        },
+        {
+          "step": "review",
+          "reason": "fix: impl review flagged fractional limit and unsanitized fallback subject",
+          "resolution": "truncated the bounded limit before passing it to git log and normalized fallbackTitle through the same subject-line helper with a final static fallback"
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); Spec Test Coverage — The diff adds spec-local coverage under specs/264-finalize-merge-message/tests/ and the new test file includes a non-empty // spec: R1 R2 R3 header.; Avoid Overengineering — function isIgnoredSquashMessageSubject(subject) {\n  return SQUASH_MESSAGE_IGNORED_SUBJECTS.has(String(subject || \"\").trim());\n} — This introduces a helper indirection with a single production caller in collectImplementationSubjects. The guardrail explicitly says not to introduce indirection layers that have a single caller. (at src/flow/commands/merge.js:143)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: no-overengineering flagged isIgnoredSquashMessageSubject as a single-caller helper",
+          "resolution": "inlined the ignored-subject set membership check in collectImplementationSubjects and removed the helper"
+        },
+        {
+          "step": "final-regression",
+          "reason": "final-regression failed: unattributed_existing_failure",
+          "resolution": null
+        },
+        {
+          "step": "final-regression",
+          "reason": "unattributed existing failure: npm test exited 1 during final-regression; raw log ended while Fragment suite was still running and did not show a failing assertion",
+          "resolution": "user selected [1] to record as existing/unattributed failure and continue this flow if the dispatcher permits"
+        },
+        {
+          "step": "final-regression",
+          "reason": "final-regression failed: unattributed_existing_failure",
+          "resolution": null
+        },
+        {
+          "step": "final-regression",
+          "reason": "second final-regression attempt also failed as unattributed_existing_failure",
+          "resolution": "cannot proceed to finalize because final-regression post-hook only advances on pass; user decision [1] was recorded but CLI has no pass-through command for this failure kind"
+        },
+        {
+          "step": "final-regression",
+          "reason": "main updates were incorporated into the active worktree after repeated final-regression failures",
+          "resolution": "fast-forwarded feature branch to main while preserving the current implementation changes, then rerunning final-regression with updated regression runner code"
+        },
+        {
+          "step": "final-regression",
+          "reason": "final-regression failed: unattributed_existing_failure",
+          "resolution": null
+        },
+        {
+          "step": "final-regression",
+          "reason": "final-regression still failed after incorporating main updates",
+          "resolution": "attempt 003 used updated main regression runner code but npm test still exited 1 with no failing assertion in the raw log; latest artifact remains unattributed_existing_failure and nextAction=user-confirmation"
+        },
+        {
+          "step": "final-regression",
+          "reason": "final-regression failed: unattributed_existing_failure",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 0,
+      "question": 0,
+      "issueLog": 15
+    },
+    "tokenMetrics": {
+      "input": 388181,
+      "output": 24491,
+      "cacheRead": 475904,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 25,
+      "durationMs": 615584,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 20670
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 7088
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 24807
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 119352
+        },
+        {
+          "phase": "gate",
+          "durationMs": 56058
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 72461
+        },
+        {
+          "phase": "review",
+          "durationMs": 146241
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 168907
+        }
+      ]
+    },
+    "tests": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/264-finalize-merge-message/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/264-finalize-merge-message/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/commands/merge.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/264-finalize-merge-message/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/merge.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/264-finalize-merge-message/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/merge.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/264-finalize-merge-message/tests/.raw/final-regression-attempt-005.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/264-finalize-merge-message\n    27 files changed, 2817 insertions(+), 5 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 0\n    Q&A ......................... 0\n    issue-log ................... 15\n    agent calls ................. 25\n    input tokens ................ 388,181\n    output tokens ............... 24,491\n    cache-read tokens ........... 475,904\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 615.6s\n      review-draft-questions .... 20.7s\n      review-draft-coverage ..... 7.1s\n      gate-draft ................ 24.8s\n      review-spec ............... 119.4s\n      gate ...................... 56.1s\n      review-test ............... 72.5s\n      review .................... 146.2s\n      gate-impl ................. 168.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 3  passed 3  failed 0 verdict=pass\n    raw_output: specs/264-finalize-merge-message/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log (27)\n  ────────────────────────────────────────────────\n    [gate-draft] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    [gate-draft] draft gate failed because approval.approved was false after coverage review passed\n    [spec-repair] spec review found implementation commit fallback ambiguous because finalize metadata commits can appear before squash merge\n    [gate] Single Responsibility — The spec addresses one user-defined concern: improving finalize-merge squash commit messages while preserving related existing contracts.; Task Single Responsibility — Each task addresses a single part of the same concern: subject/fallback construction or preservation of related route contracts.; Unambiguous Requirements — The requirements state concrete subject source order, fallback behavior, footer preservation, and unchanged areas without relying on unverifiable vague adjectives.; Complete Context — The requirements define enough concrete behavior for independent reviewers to decide whether the implementation satisfies them.; REQ Diff-Verifiability — The requirements can be checked from implementation diffs and test summaries covering subject selection, filtering, fallback, and preserved contracts.; No Hardcoded Secrets — The content does not include source code containing API keys, passwords, tokens, or other secrets.; No Silent Error Swallowing — The content does not include catch blocks or error handling code that could silently discard errors.; Prioritize Requirements — There are exactly three requirements, so priority assignment is not required; all three nevertheless include priority values.; Impact on Existing Features — The spec lists effects on existing behavior, including preserved Issue footer handling and unchanged PR route, merge strategy, and custom commit message behavior.; Bounded Resource Usage — baseBranch..featureBranch の commit subjects から finalize 生成 commit を除外した最新 subject を使う — This describes loading or scanning commit subjects from a branch range without an explicit upper bound on count or size. (at overview.data_flow[0].text); Bounded Resource Usage — `baseBranch..featureBranch` の commit subjects から finalize 生成 commit を除外した最新 subject を使う — This requirement depends on processing commit subjects from a branch range but does not specify an explicit upper bound. (at requirements[1].desc); Bounded Resource Usage — `baseBranch..featureBranch` の commit subjects を新しい順に見て、finalize が生成する metadata/report subject を除外した最初の subject を使う。 — This clarification specifies scanning commit subjects in order without stating a maximum number of commits or subjects to inspect. (at clarifications[2].a); Bounded Resource Usage — baseBranch..featureBranch の subjects から finalize metadata/report subject を除外して選ぶ。 — This implementation note describes processing branch-range subjects without an explicit upper bound on the amount of data processed. (at tasks[0].implementation_notes); Spec Includes Test Strategy — The spec includes test_strategy fields in tasks and acceptance criteria describing unit and spec-local tests.; Record Unresolved Points as Open Questions — The Open Questions section is present and empty, indicating no unresolved points are being fabricated as answered.; Include 'Why This Approach' Rationale — The overview decisions and alternatives_considered explain why spec goal is chosen first and why alternatives were rejected.; Spec Test Coverage — The spec requires spec-local tests under specs/264-finalize-merge-message/tests/ and acceptance criteria require R1-R3 header coverage.; Backward-Compatible CLI Interface — The spec explicitly constrains existing CLI command and option meanings to remain unchanged, and the matched acknowledgment cites this guardrail.; Exit Code Contract — The spec does not add or modify CLI commands, so exit-code contract requirements are inapplicable.; Validate User Input at Entry Point — The spec does not add or modify CLI commands or user-facing arguments, so entry-point input validation requirements are inapplicable.\n    [gate] spec gate failed bounded-resource-usage because commit subject fallback scan had no explicit upper bound\n    [scenario-validity] scenario-validity classified tests as invalid because a missing named export caused module load failure instead of assertion failure\n    [retry-recovery] spec-local tests changed after review-test findings by adding git-range collector coverage and explicit merge strategy and custom message contract assertions\n    [retry-recovery] spec-local tests changed again after review-test findings by adding unreadable spec fallback coverage and executing finalize-commit custom message behavior\n    [retry-recovery] spec-local tests changed after latest review-test finding by adding two non-finalize implementation commits and asserting newest-first fallback order\n    [review] implementation review failed because file-map.json was required but missing after implementation\n    [gate] R1 — Squash route now loads the spec and buildSquashCommitMessage uses the first non-empty spec.goal line before implementation subjects or slug fallback, so a present goal prevents slug-only subject.; R2 — When spec goal is empty or unavailable, code reads up to 50 newest baseBranch..featureBranch subjects, filters known finalize metadata/report subjects, uses first remaining subject, and falls back to slug only if none remain.; R3 — Squash message builder keeps `fixes #<issue>` footer when state.issue is set, and diff does not change PR title/body generation, merge strategy selection, or custom finalize commit message behavior.; Spec Test Coverage — The diff adds spec-local coverage under specs/264-finalize-merge-message/tests/ and the new test file includes the required // spec: R1 R2 R3 header.; Avoid Overengineering — missing evidence: design direction and user confirmation before non-trivial implementation — The guardrail explicitly requires presenting the design direction to the user before a non-trivial change and proceeding only after confirmation. The provided content includes implementation diff but no evidence of that required confirmation. (at implementation process artifact)\n    [gate-impl] fix: gate failed because implementation process evidence did not explicitly show design direction and user confirmation\n    [gate] R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); Spec Test Coverage — The diff adds spec-local coverage under specs/264-finalize-merge-message/tests/ with a // spec: R1 R2 R3 header, satisfying the header and location requirement for the new spec behavior.; Avoid Overengineering — function loadSpecForSquashMessageOrNull(state, root) — The diff introduces a helper used only once by runMerge, adding an indirection layer with a single caller. (at src/flow/commands/merge.js)\n    [gate-impl] fix: no-overengineering flagged loadSpecForSquashMessageOrNull as a single-caller helper\n    [review] fix: impl review flagged unbounded git-log output and zero-limit handling\n    [review] fix: impl review flagged eager subject mapping and unclear ignored-subject naming\n    [review] fix: impl review flagged fractional limit and unsanitized fallback subject\n    [gate] R1 — previously passed (skipped on retry); R2 — previously passed (skipped on retry); R3 — previously passed (skipped on retry); Spec Test Coverage — The diff adds spec-local coverage under specs/264-finalize-merge-message/tests/ and the new test file includes a non-empty // spec: R1 R2 R3 header.; Avoid Overengineering — function isIgnoredSquashMessageSubject(subject) {\n  return SQUASH_MESSAGE_IGNORED_SUBJECTS.has(String(subject || \"\").trim());\n} — This introduces a helper indirection with a single production caller in collectImplementationSubjects. The guardrail explicitly says not to introduce indirection layers that have a single caller. (at src/flow/commands/merge.js:143)\n    [gate-impl] fix: no-overengineering flagged isIgnoredSquashMessageSubject as a single-caller helper\n    [final-regression] final-regression failed: unattributed_existing_failure\n    [final-regression] unattributed existing failure: npm test exited 1 during final-regression; raw log ended while Fragment suite was still running and did not show a failing assertion\n    [final-regression] final-regression failed: unattributed_existing_failure\n    [final-regression] second final-regression attempt also failed as unattributed_existing_failure\n    [final-regression] main updates were incorporated into the active worktree after repeated final-regression failures\n    [final-regression] final-regression failed: unattributed_existing_failure\n    [final-regression] final-regression still failed after incorporating main updates\n    [final-regression] final-regression failed: unattributed_existing_failure"
+}

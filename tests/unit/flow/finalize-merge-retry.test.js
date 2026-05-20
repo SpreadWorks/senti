@@ -20,6 +20,7 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import path from "path";
+import { execFileSync } from "child_process";
 import { createTmpDir, removeTmpDir } from "../../helpers/tmp-dir.js";
 import { setupFlow, makeFlowManager } from "../../helpers/flow-setup.js";
 import { FLOW_COMMANDS } from "../../../src/flow/registry.js";
@@ -27,6 +28,17 @@ import { findStepById } from "../../../src/flow/definition.js";
 
 function getStep(state, id) {
   return findStepById(state.steps, id);
+}
+
+function initGitRepo(root) {
+  execFileSync("git", ["init", "--quiet", root], { encoding: "utf8" });
+  execFileSync("git", ["-C", root, "config", "user.email", "test@example.com"], { encoding: "utf8" });
+  execFileSync("git", ["-C", root, "config", "user.name", "Test User"], { encoding: "utf8" });
+}
+
+function commitAll(root, message) {
+  execFileSync("git", ["-C", root, "add", "-A"], { encoding: "utf8" });
+  execFileSync("git", ["-C", root, "commit", "--quiet", "-m", message], { encoding: "utf8" });
 }
 
 describe("finalize-merge — failed merge retry contract (spec 251)", () => {
@@ -53,8 +65,11 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
 
   it("pre hook resets skipped finalize-sync/cleanup back to pending before retry", async () => {
     tmp = createTmpDir("sdd-finalize-merge-retry-reset-");
-    setupFlow(tmp);
+    initGitRepo(tmp);
+    const state = setupFlow(tmp);
+    commitAll(tmp, "test: initial flow state");
     const fm = makeFlowManager(tmp);
+    const specId = path.basename(path.dirname(state.spec));
 
     // Simulate prior failure leaving sync/cleanup skipped.
     fm.updateStepStatus("finalize-sync", "skipped");
@@ -65,8 +80,9 @@ describe("finalize-merge — failed merge retry contract (spec 251)", () => {
       flowManager: fm,
       flowState: fm.load(),
       root: tmp,
+      specId,
     };
-    entry.pre(ctx);
+    await entry.pre(ctx);
 
     const after = fm.load();
     assert.equal(getStep(after, "finalize-sync").status, "pending");

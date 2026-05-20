@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "1 blocking finding is valid and will be repaired by specifying the implementation commit fallback source.",
+  "items": [
+    {
+      "title": "Implementation commit fallback is ambiguous in real finalize history",
+      "target": "R2 / Data Flow",
+      "decision": "apply",
+      "rationale": "R2 currently says to use implementation commit subject summary but does not define how finalize metadata/report commits are excluded. This can produce a non-implementation subject in real finalize history.",
+      "evidence": "spec.json requirements[1].desc and overview.data_flow[0].text mention feature branch implementation commit subject but do not specify filtering or ordering. spec-review.json cites finalize metadata/report commits as real branch history entries."
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "goal": "finalize-merge の squash commit message を spec goal ベースの人が読める変更要約にする",
+  "scope": {
+    "in": [
+      "src/flow/commands/merge.js の squash merge route で使う既定 commit message",
+      "spec goal が空の場合の commit subject fallback",
+      "Issue が紐づく場合の squash commit footer",
+      "squash commit message 生成の spec-local test と既存 unit test"
+    ],
+    "out": [
+      "PR route の PR title/body 生成結果の変更",
+      "merge strategy selection の変更",
+      "finalize-commit の feature branch commit message 仕様変更",
+      "ユーザー指定の custom commit message を上書きする変更"
+    ]
+  },
+  "constraints": [
+    "外部依存を追加しない。Node.js 組み込みモジュールと既存 helper の範囲で実装する。",
+    "既存 CLI command / option の意味を変更しない。backward-compatible-cli-interface を維持する。",
+    "Issue が紐づく場合は既存の `fixes #<issue>` footer を維持する。",
+    "slug は spec goal と実装 commit 要約がどちらも得られない場合の最終 fallback に限定する。"
+  ],
+  "design_principles": [],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow/commands/merge.js — squash merge route の commit message 生成責務を持つ。既存 PR title/body helper と同じ spec goal 情報を commit subject に使う。"
+      },
+      {
+        "text": "tests/unit/flow/commands/merge.test.js — spec goal / fallback / Issue footer の commit message 生成 contract を unit test で検証する。"
+      },
+      {
+        "text": "src/flow/registry.js / src/flow/lib/run-finalize.js — finalize metadata/report commit subject の既知パターンを fallback filtering の対象として扱う。"
+      },
+      {
+        "text": "specs/264-finalize-merge-message/tests/ — R1-R3 の spec-local coverage を置き、test-execute の対象にする。"
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "flowState.spec から spec.json を読み、parseSpec の goal を commit subject の第一候補にする。goal が空なら baseBranch..featureBranch の commit subjects を新しい順に最大 50 commit 読み、finalize metadata/report subject を除外した最初の subject を使う。"
+      },
+      {
+        "text": "commit body は Issue がある場合に既存 footer を維持し、subject の可読性改善と Issue close 連携を分離する。"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] draft policy: PR route already reads spec goal, squash route uses slug-like spec path; result=match.",
+        "evidence": "src/flow/commands/merge.js: buildPrTitle returns spec.goal first line when present. Squash route derives specTitle from state.spec path and uses it as commitMsg subject."
+      },
+      {
+        "text": "[VERIFY] Issue footer policy remains in scope; result=match.",
+        "evidence": "src/flow/commands/merge.js currently builds commitMsg as `${specTitle}\\n\\nfixes #${state.issue}` when state.issue exists. Issue #339 asks to improve message readability, not remove Issue linkage."
+      },
+      {
+        "text": "spec goal is the first subject source because it is the approved user-facing purpose and is already used for PR title generation.",
+        "evidence": "draft q1 answer; src/flow/commands/merge.js buildPrTitle(spec, fallback) uses spec.goal before fallback.",
+        "consideredAlternatives": "Implementation commit summaries first were rejected because commit granularity and repair commits vary during the flow."
+      },
+      {
+        "text": "PR title/body output and merge strategy selection stay unchanged.",
+        "evidence": "Issue #339 acceptance criteria targets finalize-merge squash commit readability. Existing PR route already formats title/body from spec data."
+      },
+      {
+        "text": "implementation commit fallback filters finalize-generated subjects before choosing a subject.",
+        "evidence": "spec-review found src/flow/registry.js may create `chore: record finalize metadata before merge` and src/flow/lib/run-finalize.js may create `chore: add retro and report` before squash merge."
+      }
+    ]
+  },
+  "background": "Issue #339 points out that finalize-merge の squash commit message は spec directory slug 由来になりやすく、main branch の履歴で変更内容を読み取りにくい。現在の merge.js は PR route では spec goal を title に使う一方、squash route では state.spec path から作った subject を使っている。squash route でも spec goal を既定 subject に使えば、履歴上の commit subject が spec の目的文に揃う。",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "squash merge route の既定 commit subject は、spec.json の goal の先頭の非空行を第一候補にする。goal が存在する場合、subject は spec directory slug だけの文字列にならない。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "spec goal が空または読み込めない場合、既定 commit subject は `baseBranch..featureBranch` の commit subjects を新しい順に最大 50 commit 読み、finalize 生成 commit を除外した最初の subject を使う。除外対象は `chore: record finalize metadata before merge` と `chore: add retro and report` を含む既知の finalize metadata/report subject とする。除外後の subject が得られない場合のみ、従来の slug fallback を使う。",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "Issue が紐づく squash commit は既存の `fixes #<issue>` footer を維持する。PR title/body 生成結果、merge strategy selection、custom commit message 指定の意味は変更しない。",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "spec goal がある finalize-merge squash route では、作成される squash commit subject が spec goal の先頭の非空行になる。",
+    "spec goal が空の finalize-merge squash route では、finalize metadata/report commit subject を除外した最新の feature branch commit subject が squash commit subject になる。",
+    "spec goal が読み込めない finalize-merge squash route でも、finalize metadata/report commit subject を除外した実装 commit subject fallback が使われる。",
+    "spec goal と、finalize 生成 commit を除外した実装 commit subject がどちらも得られない場合だけ slug fallback になる。",
+    "Issue がある squash commit は body に `fixes #<issue>` footer を含む。",
+    "PR route の buildPrTitle / buildPrBody の既存 unit test が引き続き通る。",
+    "新しい spec-local test が R1-R3 を header 付きで検証する。"
+  ],
+  "clarifications": [
+    {
+      "q": "spec title とは何を指すか。",
+      "a": "この codebase の spec.json に title field はないため、既存 PR title と同じく spec goal の先頭の非空行を subject source として扱う。"
+    },
+    {
+      "q": "human-readable をどう検証するか。",
+      "a": "主観評価ではなく、subject が spec directory slug だけではなく spec goal または実装 commit subject 要約由来であることを検証する。"
+    },
+    {
+      "q": "実装 commit subject 要約はどの commit から取るか。",
+      "a": "`baseBranch..featureBranch` の commit subjects を新しい順に最大 50 commit 見て、finalize が生成する metadata/report subject を除外した最初の subject を使う。"
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "実装 commit subject 要約を第一候補にする",
+      "reason": "実装中の修正 commit やレビュー対応 commit の粒度に左右されるため不採用。承認済み spec goal を第一候補にする。"
+    },
+    {
+      "option": "Issue footer を `refs #<issue>` に変える",
+      "reason": "既存の GitHub Issue close 連携を弱めるため不採用。Issue #339 は footer 変更ではなく subject 可読性を求めている。"
+    },
+    {
+      "option": "PR title/body 生成も同時に変更する",
+      "reason": "PR route は既に spec goal / requirements / scope を使う。今回の scope は squash commit message に限定する。"
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "finalize-merge",
+    "squash merge",
+    "commit message",
+    "spec goal",
+    "buildPrTitle",
+    "buildPrBody",
+    "parseSpec",
+    "runMerge",
+    "fixes footer",
+    "merge.js"
+  ],
+  "implementationTargets": [
+    "src/flow/commands/merge.js",
+    "src/flow/registry.js",
+    "src/flow/lib/run-finalize.js",
+    "tests/unit/flow/commands/merge.test.js",
+    "specs/264-finalize-merge-message/tests/"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Build squash commit message from spec goal",
+      "goal": "squash merge route の既定 commit subject を spec goal 優先にし、goal が使えない場合の fallback を定義どおりに適用する。",
+      "acceptance": [
+        "spec goal がある場合、squash commit subject は goal の先頭の非空行になる。",
+        "spec goal が空または読み込めない場合、squash commit subject は finalize 生成 commit を除外した最新の feature branch commit subject になる。",
+        "spec goal と、finalize 生成 commit を除外した feature branch commit subject がどちらも得られない場合だけ slug fallback を使う。"
+      ],
+      "implementation_notes": "src/flow/commands/merge.js の squash route に、PR title helper と同じ spec load / parse の考え方を使う commit message builder を追加する。fallback は baseBranch..featureBranch の subjects を新しい順に最大 50 commit 読み、finalize metadata/report subject を除外して選ぶ。commit subject source の選択を unit test しやすい純粋 helper に寄せる。",
+      "test_strategy": "unit test: spec goal first line, blank goal fallback, unreadable spec fallback, finalize-generated subject filtering, final slug fallback を検証する。spec-local test では R1/R2 header を付ける。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Preserve issue footer and route contracts",
+      "goal": "Issue 連携 footer と PR/custom/strategy の既存契約を維持したまま、squash commit subject だけを変更対象にする。",
+      "acceptance": [
+        "Issue がある squash commit body に `fixes #<issue>` footer が残る。",
+        "PR route の buildPrTitle / buildPrBody 既存挙動が変わらない。",
+        "merge strategy selection の入力条件は変更されない。"
+      ],
+      "implementation_notes": "commit message builder は subject と footer を分けて組み立てる。PR route helper の既存 test は壊さず、Issue footer の regression を追加する。",
+      "test_strategy": "unit test: Issue footer 維持、PR title/body 既存 test 継続、必要なら merge strategy selection の非変更を既存 test で確認する。spec-local test では R3 header を付ける。",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-20T08:07:38.975Z",
+    "notes": "autoApprove: spec gate passed and user selected auto mode for #339"
+  }
+}

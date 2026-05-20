@@ -1,0 +1,107 @@
+{
+  "devType": "feature",
+  "goal": "finalize-merge の squash ルートで作成される commit message を、人が読める spec title または実装 commit 要約ベースにする",
+  "analysis": {
+    "problem": "現在の squash merge ルートは commit message の既定値を spec directory slug から組み立てるため、実装 commit message や spec goal より情報量が落ちる。履歴上では変更内容が読み取りにくく、Issue #339 の完了条件である人が読める変更要約になっていない。",
+    "proposedApproach": "squash merge 時の既定 commit message を、spec goal または実装 commit の要約から組み立てる要件として定義する。Issue が紐づく場合の footer は既存の Issue 連携を保ちながら、履歴本文の読みやすさを損なわない形にする。",
+    "validation": "関連コードでは PR ルートの title/body は spec goal や requirements を読む一方、squash ルートの commit message は spec path 由来の slug を使っている。Issue #339 は squash commit の可読性を対象にしており、CLI 引数や merge strategy の変更は要求していない。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #339 は finalize-merge 後の squash commit message が slug ではなく人が読める変更要約になることを完了条件にしている。",
+      "src/flow/commands/merge.js の PR ルートは buildPrTitle / buildPrBody で spec goal や requirements を使う。",
+      "src/flow/commands/merge.js の squash ルートは state.spec の path から specTitle を作り、Issue がある場合は fixes footer を付ける。",
+      "docs/configuration.md は flow.merge の戦略を squash / ff-only / merge と説明しているが、commit message 形式の詳細は公開 CLI 契約として固定していない。"
+    ],
+    "decisionPoints": [
+      "squash commit subject の第一候補を spec goal にするか、実装 commit 要約にするか。",
+      "Issue が紐づく場合の footer をどの形式で残すか。",
+      "PR ルートや spec-only ルートを今回の対象に含めるか。",
+      "slug fallback をどの条件で許容するか。"
+    ],
+    "resolvedByProjectRules": [
+      "Issue を分割しない。#339 は finalize-merge の squash commit message 可読性という 1 concern として扱う。",
+      "外部依存を追加しない。commit message 生成は Node.js 組み込みモジュールと既存 git helper の範囲で実現する。",
+      "CLI option の意味は変更しない。既存コマンドの互換性を壊す変更は scope 外にする。",
+      "requirements は曖昧語を避け、commit message の subject と footer の検証条件に落とす。"
+    ],
+    "requiresUserJudgment": [
+      "なし。Issue #339 と既存コードから、spec goal 優先・既存 Issue footer 維持・PR title/body 非変更で spec 化できる。"
+    ],
+    "deferredToSpec": [
+      "commit message subject の最大長や改行の扱いなどの詳細な整形条件。",
+      "複数実装 commit がある場合の要約生成規則。",
+      "既存 tests/unit/flow/commands/merge.test.js への追加ケースと、finalize-merge 経路の回帰テスト設計。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "finalize-merge の squash merge ルートで使われる既定 commit message",
+      "Issue 連携がある場合の squash commit footer",
+      "commit message 生成に関する unit test / flow test"
+    ],
+    "out": [
+      "PR route の PR title/body 生成仕様の変更",
+      "merge strategy の選択ロジック変更",
+      "finalize-commit の feature branch commit message 仕様変更",
+      "ユーザーが明示した custom commit message の上書き"
+    ]
+  },
+  "impactOnExisting": [
+    "squash merge を使う finalize-merge の main branch 履歴に表示される commit subject が変わる。",
+    "Issue が紐づく squash commit の footer は既存の Issue 連携を維持する必要がある。",
+    "PR route の title/body と merge strategy selection は既存動作を維持する。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "squash commit の subject は、spec goal を第一候補にし、空の場合だけ実装 commit 要約または slug に fallback する方針でよいか。",
+      "answer": "はい。squash commit subject は spec goal を第一候補にする。spec goal が空の場合だけ、実装 commit 要約、それも得られない場合の最終 fallback として slug を使う。",
+      "evidence": "Issue #339 の Acceptance Criteria は slug ではなく human-readable change summary を求めている。src/flow/commands/merge.js の PR ルートは buildPrTitle で spec goal を title に使う一方、squash ルートは state.spec path 由来の specTitle を commit message に使っている。",
+      "why": "spec goal はユーザー承認済み spec の目的文であり、PR title でも既存利用されているため、slug より履歴上の意味が保たれる。実装 commit 要約は spec goal が空の例外時だけ補助にする。",
+      "considered": "実装 commit 要約を第一候補にする案も考えたが、commit 分割や中間修正の粒度に左右されるため、finalize 後の squash commit subject としては spec goal の方が安定する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "Issue が紐づく場合、squash commit footer は既存の自動 close 用 footer を維持する方針でよいか。",
+      "answer": "はい。Issue が紐づく場合は、既存の自動 close 用 footer を維持する。",
+      "evidence": "src/flow/commands/merge.js の squash ルートは state.issue がある場合に `fixes #<issue>` を commit body に含める。Issue #339 は footer 削除ではなく、人が読める commit message を求めている。",
+      "why": "Issue 連携を維持すれば GitHub 上の完了トラッキングを壊さず、subject だけを可読な変更要約にできる。",
+      "considered": "footer を参照だけに変える案もあるが、既存の自動 close 契約を弱めるため scope 外にする。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "impact-scope",
+      "question": "今回の変更対象は finalize-merge の squash commit message に限定し、PR title/body の生成結果は変更しない方針でよいか。",
+      "answer": "はい。変更対象は finalize-merge の squash commit message に限定し、PR title/body の生成結果は変更しない。",
+      "evidence": "Issue #339 の完了条件は finalize-merge 後の squash commit が slug ではなく人が読める変更要約になること。src/flow/commands/merge.js では PR title/body 生成は既に spec goal / requirements / scope を使う別処理として存在する。",
+      "why": "PR route は既に可読な spec 情報を使っており、今回の問題は squash commit の subject に集中している。scope を限定すると既存 PR 生成契約への不要な影響を避けられる。",
+      "considered": "PR body の footer 方針まで同時に変える案は、Issue #339 の squash commit 可読性から外れるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "受け入れ条件は、finalize-merge 後の squash commit subject が spec directory slug ではなく spec goal または実装 commit 要約由来の文になること、と定義してよいか。",
+      "answer": "はい。受け入れ条件は、finalize-merge 後の squash commit subject が spec directory slug ではなく、spec goal または実装 commit 要約由来の文になることとする。",
+      "evidence": "Issue #339 は `After finalize-merge, the squash commit is a human-readable change summary rather than a slug.` を Acceptance Criteria としている。",
+      "why": "subject の由来を検証可能にすると、二人の reviewer が slug fallback の誤使用を同じ基準で判断できる。",
+      "considered": "単に「読みやすい」とだけ書く案は主観的で検証しにくいため、slug ではないことと由来を条件に含める。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-20T07:54:15.000Z",
+    "notes": "autoApprove: all QA entries answered from Issue #339, project rules, and source context; no unresolved user decision remains after draft coverage review PASS."
+  }
+}

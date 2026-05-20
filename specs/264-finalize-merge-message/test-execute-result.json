@@ -1,0 +1,82 @@
+{
+  "version": "2",
+  "raw_output_path": "specs/264-finalize-merge-message/tests/.raw/test-execution.log",
+  "summary": [
+    {
+      "id": "R1",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/264-finalize-merge-message/tests/squash-commit-message.test.js",
+        "test_name": "R1: uses the first non-empty spec goal line as the squash commit subject",
+        "command": "node --test specs/264-finalize-merge-message/tests/squash-commit-message.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    },
+    {
+      "id": "R2",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/264-finalize-merge-message/tests/squash-commit-message.test.js",
+        "test_name": "R2: filters finalize-generated subjects before choosing implementation fallback",
+        "command": "node --test specs/264-finalize-merge-message/tests/squash-commit-message.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    },
+    {
+      "id": "R3",
+      "result": "pass",
+      "evidence": {
+        "test_file": "specs/264-finalize-merge-message/tests/squash-commit-message.test.js",
+        "test_name": "R3: preserves issue footer while leaving PR title and body helpers unchanged",
+        "command": "node --test specs/264-finalize-merge-message/tests/squash-commit-message.test.js",
+        "raw_output_lines": {
+          "start_line": 1,
+          "end_line": 63
+        }
+      }
+    }
+  ],
+  "regression": {
+    "required": false,
+    "result": "skipped",
+    "mode": "none",
+    "category": "full-regression-deferred",
+    "reason": "full project regression deferred to final-regression",
+    "classified_paths": [
+      {
+        "path": "specs/264-finalize-merge-message/",
+        "category": "full-regression-deferred"
+      },
+      {
+        "path": "src/flow/commands/merge.js",
+        "category": "full-regression-deferred"
+      }
+    ],
+    "trigger_relevant_changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/264-finalize-merge-message/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/merge.js"
+      }
+    ],
+    "changed_files": [
+      {
+        "status": "untracked",
+        "path": "specs/264-finalize-merge-message/"
+      },
+      {
+        "status": "modified",
+        "path": "src/flow/commands/merge.js"
+      }
+    ]
+  }
+}

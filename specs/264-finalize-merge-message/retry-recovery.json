@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests changed after review-test findings by adding git-range collector coverage and explicit merge strategy and custom message contract assertions",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "853639b949d5da2d5df1f35dcc1a794f32d424732dc9d49f8073e58414be0e42",
+        "currentHash": "aefc7dfef845911fdd064056a7173f7a422f75e9235ad4ecb7aee03c815e1b9d",
+        "changedPaths": [
+          "specs/264-finalize-merge-message/tests/.raw/scenario-validity.log",
+          "specs/264-finalize-merge-message/tests/squash-commit-message.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests changed after review-test findings by adding git-range collector coverage and explicit merge strategy and custom message contract assertions\" --yes",
+      "createdAt": "2026-05-20T10:44:09.948Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests changed again after review-test findings by adding unreadable spec fallback coverage and executing finalize-commit custom message behavior",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "aefc7dfef845911fdd064056a7173f7a422f75e9235ad4ecb7aee03c815e1b9d",
+        "currentHash": "3e269abb6399f9b9d44f13f12e1c0c855c5cdccaf406d9180de1feb91e42e2c8",
+        "changedPaths": [
+          "specs/264-finalize-merge-message/tests/.raw/scenario-validity.log",
+          "specs/264-finalize-merge-message/tests/squash-commit-message.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests changed again after review-test findings by adding unreadable spec fallback coverage and executing finalize-commit custom message behavior\" --yes",
+      "createdAt": "2026-05-20T10:45:52.048Z"
+    },
+    {
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests changed after latest review-test finding by adding two non-finalize implementation commits and asserting newest-first fallback order",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "3e269abb6399f9b9d44f13f12e1c0c855c5cdccaf406d9180de1feb91e42e2c8",
+        "currentHash": "7d17972486eab811de67e899153f8f514a42b75c60cc5a2f14be6f53472f61e9",
+        "changedPaths": [
+          "specs/264-finalize-merge-message/tests/.raw/scenario-validity.log",
+          "specs/264-finalize-merge-message/tests/squash-commit-message.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests changed after latest review-test finding by adding two non-finalize implementation commits and asserting newest-first fallback order\" --yes",
+      "createdAt": "2026-05-20T10:46:43.250Z"
+    }
+  ]
+}

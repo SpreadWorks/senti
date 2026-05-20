@@ -17,6 +17,15 @@ import { container } from "../../lib/container.js";
 import { isGhAvailable, runGit, fetchBranch, rebaseOnto, abortRebase } from "../../lib/git-helpers.js";
 import { loadSpecJson } from "../../lib/spec-json.js";
 
+const MAX_IMPLEMENTATION_SUBJECTS = 50;
+const MAX_SUBJECT_INPUT_CHARS = 4000;
+const MAX_SUBJECT_INPUT_LINES = 20;
+const MAX_IMPLEMENTATION_SUBJECT_OUTPUT_CHARS = MAX_IMPLEMENTATION_SUBJECTS * (MAX_SUBJECT_INPUT_CHARS + 1);
+const SQUASH_MESSAGE_IGNORED_SUBJECTS = new Set([
+  "chore: record finalize metadata before merge",
+  "chore: add retro and report",
+]);
+
 /**
  * Resolve push remote from config.
  * @param {Object} cfg - SDD config
@@ -120,6 +129,56 @@ function loadSpec(state, root) {
   return parseSpec(spec);
 }
 
+function firstNonEmptySubjectLine(value) {
+  const text = String(value || "").slice(0, MAX_SUBJECT_INPUT_CHARS);
+  let lineStart = 0;
+  let inspectedLines = 0;
+  for (let i = 0; i <= text.length && inspectedLines < MAX_SUBJECT_INPUT_LINES; i += 1) {
+    if (i < text.length && text[i] !== "\n") continue;
+    const line = text.slice(lineStart, i).trim();
+    if (line) return line;
+    inspectedLines += 1;
+    lineStart = i + 1;
+  }
+  return null;
+}
+
+function collectImplementationSubjects({
+  cwd,
+  baseBranch,
+  featureBranch,
+  limit = MAX_IMPLEMENTATION_SUBJECTS,
+}) {
+  const parsedLimit = Number(limit);
+  const effectiveLimit = Number.isFinite(parsedLimit) ? parsedLimit : MAX_IMPLEMENTATION_SUBJECTS;
+  const boundedLimit = Math.trunc(Math.max(0, Math.min(effectiveLimit, MAX_IMPLEMENTATION_SUBJECTS)));
+  if (!cwd || !baseBranch || !featureBranch || boundedLimit === 0) return [];
+  const res = runGit(["-C", cwd, "log", `--max-count=${boundedLimit}`, "--format=%s", `${baseBranch}..${featureBranch}`]);
+  if (!res.ok) {
+    process.stderr.write(`[sdd-forge] warning: failed to collect implementation commit subjects: ${res.stderr || res.stdout}\n`);
+    return [];
+  }
+  return String(res.stdout || "")
+    .slice(0, MAX_IMPLEMENTATION_SUBJECT_OUTPUT_CHARS)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((subject) => !SQUASH_MESSAGE_IGNORED_SUBJECTS.has(subject));
+}
+
+function buildSquashCommitMessage({ state, spec, fallbackTitle, implementationSubjects = [] }) {
+  let implementationSubject = null;
+  for (const candidate of implementationSubjects) {
+    implementationSubject = firstNonEmptySubjectLine(candidate);
+    if (implementationSubject) break;
+  }
+  const subject = firstNonEmptySubjectLine(spec?.goal)
+    || implementationSubject
+    || firstNonEmptySubjectLine(fallbackTitle)
+    || "finalize-merge";
+  return state.issue ? `${subject}\n\nfixes #${state.issue}` : subject;
+}
+
 /**
  * Resolve the merge strategy from flow state and config alone. Pure function —
  * used by both the live merge path and finalize's dry-run reporting so that
@@ -179,8 +238,13 @@ function runMerge(ctx) {
   }
 
   // Squash merge route
-  const specTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.(md|json)$/, "") || featureBranch;
-  const commitMsg = state.issue ? `${specTitle}\n\nfixes #${state.issue}` : specTitle;
+  const fallbackTitle = state.spec?.replace(/^specs\/\d+-/, "").replace(/\/spec\.(md|json)$/, "") || featureBranch;
+  let spec = null;
+  try {
+    spec = loadSpec(state, root);
+  } catch (err) {
+    process.stderr.write(`[sdd-forge] warning: failed to load spec for squash commit message: ${err.message}\n`);
+  }
 
   function runSquashMerge(gitPrefix, hint) {
     const mergeArgs = [...gitPrefix, "merge", "--squash", featureBranch];
@@ -190,6 +254,18 @@ function runMerge(ctx) {
       runGit(resetArgs);
       throw new Error(`Merge conflict detected. ${hint}`);
     }
+    const repoRoot = gitPrefix[0] === "-C" ? gitPrefix[1] : root;
+    const implementationSubjects = collectImplementationSubjects({
+      cwd: repoRoot,
+      baseBranch,
+      featureBranch,
+    });
+    const commitMsg = buildSquashCommitMessage({
+      state,
+      spec,
+      fallbackTitle,
+      implementationSubjects,
+    });
     const commitRes = runGit([...gitPrefix, "commit", "-m", commitMsg]);
     assertOk(commitRes, "commit after squash merge failed");
   }
@@ -300,4 +376,13 @@ function runPreSync({ worktreePath, baseBranch, featureBranch, remote = "origin"
   return { ok: false, conflictFiles: rebaseRes.conflictFiles, recoveryHint };
 }
 
-export { runMerge, resolveMergeStrategy, parseSpec, buildPrTitle, buildPrBody, runPreSync };
+export {
+  runMerge,
+  resolveMergeStrategy,
+  parseSpec,
+  buildPrTitle,
+  buildPrBody,
+  buildSquashCommitMessage,
+  collectImplementationSubjects,
+  runPreSync,
+};
