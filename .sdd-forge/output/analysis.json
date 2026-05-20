@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-20T03:33:17.440Z",
+  "analyzedAt": "2026-05-20T05:30:00.018Z",
   "package": {
     "entries": [
       {
@@ -235,6 +235,137 @@
           "CLI format output",
           "validation command"
         ]
+      },
+      {
+        "file": "src/data/agents.js",
+        "hash": "619866cec04f58394fb07cd3985ff2c6",
+        "lines": 146,
+        "mtime": "2026-05-20T05:29:29.615Z",
+        "className": "agents",
+        "methods": [],
+        "imports": [
+          "fs",
+          "path",
+          "../lib/presets.js",
+          "../lib/cli.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "DataSource",
+        "usedBy": [
+          "src/docs/commands/build.js"
+        ],
+        "id": "8e7abcbd",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/data/docs.js",
+        "hash": "daa02d64b276c46116c43a895adbf369",
+        "lines": 294,
+        "mtime": "2026-05-20T05:29:29.615Z",
+        "className": "docs",
+        "methods": [],
+        "imports": [
+          "fs",
+          "path",
+          "url",
+          "../docs/lib/command-context.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "DataSource",
+        "usedBy": null,
+        "id": "05590bea",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/data/lang.js",
+        "hash": "176715a527640523ff3bc45e84522a23",
+        "lines": 116,
+        "mtime": "2026-05-20T05:29:29.615Z",
+        "className": "lang",
+        "methods": [],
+        "imports": [
+          "path"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "DataSource",
+        "usedBy": null,
+        "id": "fdf0f411",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/data/project.js",
+        "hash": "8f3a6937462b20163c3973f34d7fd254",
+        "lines": 63,
+        "mtime": "2026-05-20T05:29:29.615Z",
+        "className": "project",
+        "methods": [],
+        "imports": [
+          "fs",
+          "path"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "DataSource",
+        "usedBy": null,
+        "id": "b9d76d8b",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/data/skills.js",
+        "hash": "8f5fdb07597eb2c1536c1b4082247418",
+        "lines": 37,
+        "mtime": "2026-05-20T05:29:29.615Z",
+        "className": "skills",
+        "methods": [],
+        "imports": [
+          "../lib/skill-rules.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "DataSource",
+        "usedBy": null,
+        "id": "39b2aa36",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
+        "file": "src/data/text.js",
+        "hash": "8812f35a4465652c6e43e0cb041ed443",
+        "lines": 25,
+        "mtime": "2026-05-20T05:29:29.615Z",
+        "className": "text",
+        "methods": [],
+        "imports": [],
+        "exports": [
+          "default"
+        ],
+        "extends": "DataSource",
+        "usedBy": [
+          "src/docs/commands/build.js",
+          "src/docs/commands/forge.js",
+          "src/docs/commands/readme.js"
+        ],
+        "id": "e1379661",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/docs.js",
@@ -964,213 +1095,6 @@
           "tone",
           "concurrency",
           "docs translation"
-        ]
-      },
-      {
-        "file": "src/docs/data/agents.js",
-        "hash": "092e57fde6d918023a810cd05a4a556d",
-        "lines": 146,
-        "mtime": "2026-04-22T23:27:14.749Z",
-        "className": "agents",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path",
-          "../../lib/presets.js",
-          "../../lib/cli.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": [
-          "src/docs/commands/build.js"
-        ],
-        "id": "861d6c47",
-        "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
-          "attempts": 2
-        },
-        "summary": "Defines the docs data source for AGENTS-related metadata and text blocks. It reads template and project files to provide renderable content for documentation generation.",
-        "detail": "The module registers an `AgentsSource` class that extends `DataSource` and resolves data from preset templates, project config, and package metadata. It loads language-specific `AGENTS.sdd.md` files from the base preset and returns them as `Paragraph` instances when available. The implementation uses filesystem guards (`existsSync`) before reads and returns `null` when optional data is missing. It also exposes language and config accessors with safe fallback objects. The overall pattern is a small, synchronous, file-backed provider tailored for directive-based docs rendering.",
-        "chapter": "internal_design",
-        "role": "model",
-        "keywords": [
-          "data source",
-          "agents metadata",
-          "preset template",
-          "filesystem read",
-          "documentation provider",
-          "config fallback"
-        ]
-      },
-      {
-        "file": "src/docs/data/docs.js",
-        "hash": "fbb861c3371e9fb7f2c89a0549ff8107",
-        "lines": 294,
-        "mtime": "2026-04-22T23:27:14.749Z",
-        "className": "docs",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path",
-          "url",
-          "../lib/command-context.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "273334ae",
-        "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
-          "attempts": 2
-        },
-        "summary": "Implements a rich docs-oriented data source that resolves links, language variants, repository URLs, and navigation metadata. It powers multi-language documentation rendering and cross-file references.",
-        "detail": "The `DocsSource` class derives repository and package metadata, normalizes Git URLs, and formats output using `Paragraph` and markdown table helpers. It detects language from path patterns and computes relative links between default and localized docs directories. The code loads locale labels from `locale/*/ui.json` with fallback to English, then uses those names in language-aware link generation. It also scans docs files to build index tables and prev/next navigation by extracting titles from markdown headings. The design is synchronous and deterministic, emphasizing stable path transforms and graceful behavior when files or directories are absent.",
-        "chapter": "internal_design",
-        "role": "model",
-        "keywords": [
-          "docs source",
-          "i18n links",
-          "relative path",
-          "repository URL",
-          "markdown navigation",
-          "locale fallback",
-          "documentation index"
-        ]
-      },
-      {
-        "file": "src/docs/data/lang.js",
-        "hash": "176715a527640523ff3bc45e84522a23",
-        "lines": 116,
-        "mtime": "2026-04-22T23:27:14.750Z",
-        "className": "lang",
-        "methods": [],
-        "imports": [
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "780c6d68",
-        "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
-          "attempts": 2
-        },
-        "summary": "Provides language-link data generation for documentation pages. It maps file paths to language variants and renders compact language switch UI text.",
-        "detail": "The module defines `LangSource`, which extends `DataSource` and uses a static language-name map for display labels. It determines a file’s language from directory conventions and computes sibling paths for target languages. The output is formatted as a single paragraph containing link separators for easy embedding in templates. Configuration is loaded from `.sdd-forge/config.json` with an empty-object fallback. The implementation stays minimal and path-driven, focused on predictable multilingual navigation.",
-        "chapter": "internal_design",
-        "role": "model",
-        "keywords": [
-          "language switcher",
-          "localized docs",
-          "path detection",
-          "link generation",
-          "multilingual",
-          "docs i18n"
-        ]
-      },
-      {
-        "file": "src/docs/data/project.js",
-        "hash": "8f3a6937462b20163c3973f34d7fd254",
-        "lines": 63,
-        "mtime": "2026-04-22T23:27:14.750Z",
-        "className": "project",
-        "methods": [],
-        "imports": [
-          "fs",
-          "path"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "dd4d31db",
-        "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
-          "attempts": 2
-        },
-        "summary": "Supplies project-level metadata for docs from `package.json` and root path context. It exposes project name, description, version, and table-formatted fields.",
-        "detail": "The `ProjectSource` class caches parsed package metadata to avoid repeated file reads. It conditionally loads `package.json`, then derives basic presentation fields with sensible defaults. Missing description fields return `null`, while version falls back to `0.0.0`. Tabular outputs are produced through shared markdown table utilities inherited from `DataSource`. The module follows a straightforward adapter pattern from package metadata into renderable documentation fragments.",
-        "chapter": "overview",
-        "role": "model",
-        "keywords": [
-          "project metadata",
-          "package.json",
-          "name description version",
-          "markdown table",
-          "docs data source"
-        ]
-      },
-      {
-        "file": "src/docs/data/skills.js",
-        "hash": "bdb77feb535ae3df3c634707aa334c3a",
-        "lines": 37,
-        "mtime": "2026-05-08T07:44:34.911Z",
-        "className": "skills",
-        "methods": [],
-        "imports": [
-          "../../lib/skill-rules.js"
-        ],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": null,
-        "id": "60c84ff6",
-        "summary": "This file registers a `skills` DataSource backed by validated skill-rule definitions. It exposes rule bodies as renderable paragraph content by rule ID.",
-        "detail": "Rules are loaded lazily and cached to avoid repeated disk parsing across multiple resolver calls. The DataSource enforces required parameters and throws explicit errors for missing or unknown rule IDs. Matched rules are converted into `Paragraph` renderables after trimming trailing blank lines. Registration follows the container-based DataSource lifecycle used by the docs resolver system. The module keeps lookup logic minimal and delegates rule validation to the skill-rules library.",
-        "chapter": "internal_design",
-        "role": "DataSource implementation",
-        "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
-          "attempts": 1
-        },
-        "keywords": [
-          "DataSource",
-          "skill rules",
-          "rule lookup",
-          "container registration",
-          "renderable paragraph",
-          "lazy cache"
-        ]
-      },
-      {
-        "file": "src/docs/data/text.js",
-        "hash": "6e0e8e4c9a25576b8767c43cbc03e1a9",
-        "lines": 25,
-        "mtime": "2026-04-19T12:12:39.675Z",
-        "className": "text",
-        "methods": [],
-        "imports": [],
-        "exports": [
-          "default"
-        ],
-        "extends": "DataSource",
-        "usedBy": [
-          "src/docs/commands/build.js",
-          "src/docs/commands/forge.js",
-          "src/docs/commands/readme.js"
-        ],
-        "id": "cca2c9bc",
-        "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Registers a Text-specific DataSource in the container for docs text directive resolution. The source class provides a minimal default behavior when no text is available.",
-        "detail": "This module exposes a register function that defines and returns a TextSource class extending DataSource. The implementation is intentionally lightweight and delegates most behavior to the shared DataSource contract. It returns null in default paths so downstream resolvers can safely skip unresolved text blocks. The pattern keeps text prompt rendering pluggable through dependency injection.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "keywords": [
-          "text source",
-          "data source",
-          "dependency injection",
-          "directive resolution"
         ]
       },
       {
@@ -2027,9 +1951,9 @@
       },
       {
         "file": "src/docs/lib/resolver-factory.js",
-        "hash": "9316a94135519b648e025a0b178bb630",
-        "lines": 164,
-        "mtime": "2026-05-08T07:44:34.911Z",
+        "hash": "68872af535fb29257210c7feed3d3a08",
+        "lines": 165,
+        "mtime": "2026-05-20T05:29:29.616Z",
         "className": "resolver-factory",
         "methods": [
           "createResolver",
@@ -2041,6 +1965,7 @@
         "imports": [
           "fs",
           "path",
+          "url",
           "../../lib/config.js",
           "./data-source-loader.js",
           "../../lib/presets.js",
@@ -2052,22 +1977,9 @@
         "extends": null,
         "usedBy": null,
         "id": "cb355898",
-        "summary": "The resolver factory builds callable data resolvers by combining built-in, preset-chain, and project-specific DataSources. It handles overrides and deprecation warnings for legacy paths.",
-        "detail": "It loads DataSources from common directories and resolved preset chains, wiring each source with context, logger hooks, and descriptor helpers. Project-level overrides are cached from `.sdd-forge/overrides.json` and exposed through a small descriptor factory. Legacy `.sdd-forge/data` usage triggers a warning to guide migration toward preset-scoped data directories. The returned resolver safely resolves chains and dispatches methods only when available, returning null on unresolved routes. The factory also exposes discoverability helpers such as available resolver keys.",
-        "chapter": "internal_design",
-        "role": "resolver composition",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
-        },
-        "keywords": [
-          "resolver factory",
-          "DataSource loading",
-          "preset chain",
-          "overrides.json",
-          "deprecated path warning",
-          "dynamic dispatch"
-        ]
+        }
       },
       {
         "file": "src/docs/lib/review-parser.js",
@@ -7660,12 +7572,13 @@
       },
       {
         "file": "src/lib/include.js",
-        "hash": "b54d077148928c2a2dedcd350ada0fa6",
-        "lines": 139,
-        "mtime": "2026-04-21T04:40:43.236Z",
+        "hash": "f59e7897b5a83e3bff79f9029e8d7c7a",
+        "lines": 140,
+        "mtime": "2026-05-20T05:29:29.616Z",
         "className": "include",
         "methods": [
           "resolveIncludes",
+          "resolveAliasedIncludePath",
           "resolveIncludePath"
         ],
         "imports": [
@@ -7681,21 +7594,8 @@
         ],
         "id": "d35107ed",
         "enrich": {
-          "processedAt": "2026-04-21T06:12:29.233Z",
-          "attempts": 2
-        },
-        "summary": "Resolves and expands HTML comment-based include directives in template content with safety limits on recursion and count. It enforces path constraints and circular-include detection.",
-        "detail": "The library parses `include(\"...\")` directives line by line and resolves paths relative to base, templates, presets, or package roots depending on prefix. It blocks potentially unsafe path forms like `../` and `./` to prevent traversal ambiguity. Recursive resolution tracks a stack to detect cycles and applies hard caps for include depth and total include operations. Missing include files throw explicit errors with both original and resolved path context. Output preserves non-include lines while replacing include directives with recursively expanded content.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "keywords": [
-          "include resolver",
-          "template expansion",
-          "path safety",
-          "circular include",
-          "recursion limit",
-          "content preprocessing"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/lib/json-parse.js",
@@ -8244,9 +8144,9 @@
       },
       {
         "file": "src/lib/skill-rules.js",
-        "hash": "4a1aa6dcfbaa3c612b8ce059a4affa86",
+        "hash": "7dd9de916939f352a1e7322a12a263b3",
         "lines": 212,
-        "mtime": "2026-05-08T07:44:34.911Z",
+        "mtime": "2026-05-20T05:29:29.616Z",
         "className": "skill-rules",
         "methods": [
           "loadRules",
@@ -8283,33 +8183,22 @@
           "src/lib/skills.js"
         ],
         "id": "a3560f5e",
-        "summary": "The skill-rules library validates, filters, and renders rule definitions used by skill templates and flow guidance. It enforces strict schema rules and known enum sets.",
-        "detail": "Rules are loaded from a canonical JSON file or arbitrary text/file inputs, then normalized through a central validator. Validation checks allowed fields, ID formatting, phase/state enums, and duplicate IDs to prevent drift. Filtering selects applicable rules by phase and state flags for contextual injection. Rendering converts rule objects into markdown-like blocks for prompt/template consumption. Directive expansion replaces rule references in content and throws line-aware errors for unknown IDs.",
-        "chapter": "internal_design",
-        "role": "rules validation and rendering",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
-        },
-        "keywords": [
-          "skill rules",
-          "JSON schema-like validation",
-          "rule filtering",
-          "directive expansion",
-          "phase state gating",
-          "template injection"
-        ]
+        }
       },
       {
         "file": "src/lib/skills.js",
-        "hash": "f9dc0c00e3180be19204d8a66af72b4b",
-        "lines": 217,
-        "mtime": "2026-05-08T07:44:34.911Z",
+        "hash": "fb3d7d516c9a3e1c11f0bc004b2e4f14",
+        "lines": 200,
+        "mtime": "2026-05-20T05:29:29.616Z",
         "className": "skills",
         "methods": [
           "deploySkills",
           "deployProjectSkills",
           "cleanupObsoleteSkills",
+          "deployedSkillsDir",
+          "listSkillDirNames",
           "resolveSkillFile",
           "removeIfSymlink",
           "deploySkillsFromDir"
@@ -8326,7 +8215,8 @@
           "deploySkills",
           "deployProjectSkills",
           "cleanupObsoleteSkills",
-          "MAIN_SKILLS_TEMPLATES_DIR"
+          "MAIN_SKILLS_DIR",
+          "EXPERIMENTAL_WORKFLOW_SKILLS_DIR"
         ],
         "extends": null,
         "usedBy": [
@@ -8334,22 +8224,9 @@
           "src/upgrade.js"
         ],
         "id": "a1344e4a",
-        "summary": "This module deploys skill templates into project skill directories for multiple agent ecosystems. It handles includes, rule expansion, synchronization, and cleanup of obsolete skills.",
-        "detail": "It resolves template skill files, expands includes, strips unresolved data markers, and applies skill-rule directives before writing outputs. Deployment targets both `.agents/skills` and `.claude/skills`, with dry-run support and content-diff checks to avoid unnecessary writes. Existing symlinks are removed safely so real files can be managed consistently. It exposes project-scoped deployment and default template deployment entrypoints. Cleanup scans installed skills and removes directories not present in valid template sources.",
-        "chapter": "development",
-        "role": "skill deployment pipeline",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
-        },
-        "keywords": [
-          "skill deployment",
-          "template synchronization",
-          "include resolution",
-          "obsolete cleanup",
-          "multi-target install",
-          ".agents and .claude"
-        ]
+        }
       },
       {
         "file": "src/lib/spec-json.js",
@@ -11480,9 +11357,9 @@
       },
       {
         "file": "src/setup.js",
-        "hash": "f1a4239318a4498f8eb963c8f16d8564",
-        "lines": 578,
-        "mtime": "2026-05-16T08:19:57.849Z",
+        "hash": "1cf4c9243ea0cfaf125680eb86579dc1",
+        "lines": 569,
+        "mtime": "2026-05-20T05:29:29.616Z",
         "className": "setup",
         "methods": [
           "ask",
@@ -11496,7 +11373,6 @@
           "buildAgentContent",
           "ensureAgentConfigFile",
           "fixClaudeMdSymlink",
-          "setupSkills",
           "runWizard",
           "resolveLeafTypes",
           "buildSummaryLines",
@@ -11524,22 +11400,8 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "processedAt": "2026-05-19T04:50:12.342Z",
-          "attempts": 6
-        },
-        "summary": "Provides the interactive/non-interactive `setup` workflow that initializes project configuration and required scaffolding. It prepares config, docs/agent files, and skill deployment state.",
-        "detail": "The command parses setup options, loads defaults from existing config, and validates merged settings before writing output. It creates required directories, maintains `.gitignore` and `.gitattributes`, and ensures `.sdd-forge/config.json` is emitted consistently. Wizard flows use readline and multi-select utilities to capture purpose, preset chains, and related project metadata. It also manages agent instruction file injection/update and repairs specific file-link edge cases. The module ends with a guarded `main` that prints errors and exits with project-defined error codes.",
-        "chapter": "configuration",
-        "role": "Project initialization command with config generation and repository scaffolding.",
-        "keywords": [
-          "setup wizard",
-          "config initialization",
-          "preset chain validation",
-          "AGENTS/CLAUDE file management",
-          "skills deployment",
-          "project scaffolding",
-          "interactive CLI setup"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/spec.js",
@@ -11631,9 +11493,9 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "6266f997dc02a729ebfe210d4e3274cf",
-        "lines": 145,
-        "mtime": "2026-04-23T03:44:08.189Z",
+        "hash": "757220f0959f077c8256bf8fa0ec3a6a",
+        "lines": 154,
+        "mtime": "2026-05-20T05:29:29.617Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
@@ -11641,7 +11503,6 @@
         ],
         "imports": [
           "fs",
-          "path",
           "./lib/cli.js",
           "./lib/constants.js",
           "./lib/config.js",
@@ -11656,29 +11517,15 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "processedAt": "2026-04-23T03:53:23.943Z",
-          "attempts": 2
-        },
-        "summary": "Implements the `upgrade` command for refreshing project skills/templates and related configuration. It validates inputs and applies controlled updates to existing project setup.",
-        "detail": "The command parses upgrade-specific CLI flags and exits with standardized error handling on failure paths. It loads current config, validates preset-chain integrity, and invokes skill deployment plus cleanup routines for obsolete skill files. The flow includes logging of deployment results so users can see what changed. It also patches configuration content where needed and writes normalized JSON output back to disk. This module acts as the maintenance entrypoint that keeps generated project artifacts aligned with the current package templates.",
-        "chapter": "development",
-        "role": "cli",
-        "keywords": [
-          "upgrade command",
-          "skill synchronization",
-          "template refresh",
-          "config patching",
-          "preset validation",
-          "maintenance workflow",
-          "artifact cleanup"
-        ]
+          "attempts": 1
+        }
       }
     ],
     "summary": {
       "total": 309,
-      "totalMethods": 1402
+      "totalMethods": 1404
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-20T03:34:35.997Z"
+  "enrichedAt": "2026-05-20T05:30:56.620Z"
 }
