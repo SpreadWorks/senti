@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-19T16:44:57.216Z",
+  "analyzedAt": "2026-05-20T01:09:27.417Z",
   "package": {
     "entries": [
       {
@@ -2409,8 +2409,21 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 7
+        },
+        "summary": "Top-level flow CLI dispatcher that routes flow subcommands to registered command entries.",
+        "detail": "Acts as the executable entry point for `sdd-forge flow ...` invocations. Slices process argv, resolves the flow context, and delegates to `dispatch()` against the `flowCommands` registry. Handles a few special shortcuts (resume, prepare-spec) before falling through to the generic dispatch. Exits with `EXIT_ERROR` constants on failure and 0 on success, leaving the heavy lifting to the per-command modules.",
+        "chapter": "project_structure",
+        "role": "flow-dispatcher",
+        "keywords": [
+          "flow",
+          "dispatcher",
+          "CLI entry",
+          "subcommand routing",
+          "command registry",
+          "argv"
+        ]
       },
       {
         "file": "src/flow/commands/merge.js",
@@ -2504,8 +2517,22 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 4
+        },
+        "summary": "Generates and persists the flow report aggregating task outcomes, metrics, and step results.",
+        "detail": "Implements `generateReport()` which assembles report rows from flow state and artifact results, applying per-field truncation (`MAX_REPORT_FIELD_CHARS`) and row caps (`MAX_REPORT_TASK_ROWS`). Combines metrics summaries, totals, and broad-mode history into both structured data and a human-readable text format. `saveReport()` writes `report.json` next to the spec, creating directories as needed. Pulls requirement/step results from issue logs and per-task artifacts, returning `unavailable` fallbacks when entries are missing.",
+        "chapter": "cli_commands",
+        "role": "flow-report-generator",
+        "keywords": [
+          "report",
+          "metrics",
+          "task results",
+          "summary",
+          "report.json",
+          "broad mode history",
+          "flow status"
+        ]
       },
       {
         "file": "src/flow/commands/review.js",
@@ -2680,8 +2707,25 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 2
+        },
+        "summary": "Multi-phase review command handling draft, spec, test, and implementation reviews with AI agents.",
+        "detail": "Implements `runReview()` as the entry point dispatching to `runDraftReview`, `runSpecReview`, `runTestReview`, or the per-file/loop implementation review based on CLI args and phase. Builds prompts via `PromptBuilder`, validates AI JSON output against schemas (`SPEC_REVIEW_RESPONSE_SCHEMA`, `TEST_REVIEW_RESPONSE_SCHEMA`, draft review schema) with `repairJson` fallback, and persists artifacts (`spec-review.{md,json}`, `test-review.{md,json}`, `test-coverage.json`, `review.md`). Encapsulates artifacts in dedicated classes (`SpecReviewArtifact`, `TestReviewArtifact`, `DraftReviewArtifact`, `TestCoverageArtifact`) enforcing field truncation. Handles diff collection scoped to merge-base with excluded paths (docs/, README, AGENTS, output), loop-mode chunking for large changesets, and ReviewFailure classification for retry recovery.",
+        "chapter": "cli_commands",
+        "role": "flow-review-command",
+        "keywords": [
+          "review",
+          "spec review",
+          "test review",
+          "draft review",
+          "AI agent",
+          "diff",
+          "schema validation",
+          "artifact",
+          "loop review",
+          "merge-base"
+        ]
       },
       {
         "file": "src/flow/definition.js",
@@ -2748,8 +2792,24 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 2
+        },
+        "summary": "Declarative flow/task definition tree with FlowNode classes and traversal helpers.",
+        "detail": "Defines `FlowNode` plus `ScalarMaxAttempts` / `ModeMaxAttempts` (auto/manual modes) to express retry policy as first-class objects. Exports frozen `FLOW_DEFINITION` and `TASK_DEFINITION` arrays describing the nested step graph and a `MAX_DEPTH` of 3. Provides traversal utilities (`flattenSteps`, `findStepById`, `findFirstPendingLeaf`, `promoteNextPendingLeaf`, `derivePhaseMap`, `resolveNodeFor`, `collectGatePhaseEntries`) and state-aware helpers like `findLatestInProgressLeaf` with a `WeakMap` order cache plus `MAX_IN_PROGRESS_STEP_SCAN` safeguard. Builds draft review route nodes and gate phase mappings consumed by other flow modules.",
+        "chapter": "internal_design",
+        "role": "flow-definition",
+        "keywords": [
+          "FlowNode",
+          "flow definition",
+          "TASK_DEFINITION",
+          "step graph",
+          "maxAttempts",
+          "gate phase",
+          "traversal",
+          "leaf node",
+          "draft review route"
+        ]
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -2999,8 +3059,24 @@
         ],
         "id": "9c36c232",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 2
+        },
+        "summary": "Draft lifecycle data model classes that validate QA entries, approval, and decision map structure.",
+        "detail": "Encapsulates the draft.json schema as classes (`DraftQaEntry`, `DraftApproval`, `DraftDecisionMap`, `DraftLifecycle`) with frozen field whitelists (`DRAFT_TOP_LEVEL_FIELDS`, `DRAFT_QA_FIELDS`, etc.) and enumerations (`DRAFT_QA_STATUSES`, `DRAFT_QA_CATEGORIES`, `DRAFT_DEV_TYPE_ENUM`). `validate()` collects issues for legacy schemas, unknown fields, and empty required answer/evidence/why entries. Exposes pure helpers `parseDraftLifecycle`, `validateDraftLifecycle`, `countDraftLifecycleQa`, and `nextDraftQaId` for issue counting and ID generation (`q<max+1>`). Enforces invariants in constructors per the project's OOP-for-types policy.",
+        "chapter": "internal_design",
+        "role": "draft-lifecycle-model",
+        "keywords": [
+          "draft",
+          "QA",
+          "lifecycle",
+          "validation",
+          "approval",
+          "decision map",
+          "schema",
+          "OOP",
+          "invariants"
+        ]
       },
       {
         "file": "src/flow/lib/draft-review-routes.js",
@@ -3033,8 +3109,21 @@
         ],
         "id": "41c7d805",
         "enrich": {
-          "attempts": 5
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 6
+        },
+        "summary": "Draft review route registry mapping retry phases and keys to route metadata.",
+        "detail": "Defines `DraftReviewRoute` with non-empty string validation and exports a frozen `DRAFT_REVIEW_ROUTES` array containing the configured review routes. Builds two lookup maps keyed by retryPhase and key, exposing `draftReviewRouteForRetryPhase()` and `draftReviewRouteForKey()` accessors that return null when missing. Also publishes artifact size limits (`DRAFT_REVIEW_ARTIFACT_LIMIT=20`, `DRAFT_TRIAGE_REPAIR_ARTIFACT_LIMIT=40`). Keeps route configuration centralized so flow definitions, review commands, and recovery logic share a single source of truth.",
+        "chapter": "internal_design",
+        "role": "draft-review-routes",
+        "keywords": [
+          "draft review",
+          "route",
+          "retry phase",
+          "registry",
+          "lookup",
+          "artifact limit"
+        ]
       },
       {
         "file": "src/flow/lib/fetch-issue.js",
@@ -3147,8 +3236,21 @@
         ],
         "id": "21373f9a",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 3
+        },
+        "summary": "Computes gate recovery phase display info combining flow state, step id, and max attempts.",
+        "detail": "Provides `GateRecoveryDisplayPhase` value class and `resolveGateRecoveryDisplayPhase()` factory. The factory resolves the gate phase from the active state via `resolveGatePhaseFromState`, counts retries with `countGateRetry`, and falls back to a derived phase when needed using `resolveRecoveryMaxAttempts`. Returns a phase/attempts/max triple consumed by status and next-action presentations to drive recovery UI.",
+        "chapter": "internal_design",
+        "role": "gate-recovery-display",
+        "keywords": [
+          "gate",
+          "recovery",
+          "display phase",
+          "retry count",
+          "max attempts",
+          "status"
+        ]
       },
       {
         "file": "src/flow/lib/gate-step.js",
@@ -3179,8 +3281,21 @@
         ],
         "id": "9bbc3f1d",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 8
+        },
+        "summary": "Resolves which flow step corresponds to a gate phase and identifies the active gate in state.",
+        "detail": "Builds frozen phase-to-step and step-to-phase mappings from `collectGatePhaseEntries()` plus a `TASK_STEP_TO_PHASE` constant for task-scope gates. `resolveGateStepId()` returns the step id for a phase (defaulting to `gate`). `resolveGatePhaseFromState()` inspects the active task or flow in-progress steps via `pickLatestFlowGateStep` and `flattenForGate`, returning the gate phase along with any stale steps found ahead of it. `resolveActiveTask()` locates the current task by id.",
+        "chapter": "internal_design",
+        "role": "gate-step-resolver",
+        "keywords": [
+          "gate",
+          "phase mapping",
+          "step id",
+          "active gate",
+          "stale steps",
+          "task scope"
+        ]
       },
       {
         "file": "src/flow/lib/get-check.js",
@@ -3276,8 +3391,24 @@
         ],
         "id": "1261e39f",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 8
+        },
+        "summary": "Implements the `flow get context` command with keyword, n-gram, and AI-driven search over analysis.json.",
+        "detail": "`GetContextCommand` loads `analysis.json` from the sdd-forge output dir, filtering noisy fields (hash, mtime, lines, id, enrich, detail) per `EXCLUDE_FIELDS`. Offers three search modes: literal `fallbackSearch`, `ngramSearch` using bigram Dice similarity with `NGRAM_THRESHOLD=0.6`, and `aiSearch` that asks the configured agent to pick relevant keywords from up to 2000 entries (`collectAllKeywords`) validated against `KEYWORD_SELECTION_SCHEMA`. Marks hub entries via `isHub` when incoming+outgoing connections exceed 20. Also supports reading specific files within the project root, returning JSON results to the caller.",
+        "chapter": "cli_commands",
+        "role": "flow-context-search",
+        "keywords": [
+          "context",
+          "search",
+          "analysis.json",
+          "ngram",
+          "bigram",
+          "AI search",
+          "keywords",
+          "hub",
+          "flow get context"
+        ]
       },
       {
         "file": "src/flow/lib/get-guardrail.js",
@@ -3354,14 +3485,17 @@
       },
       {
         "file": "src/flow/lib/get-next-action.js",
-        "hash": "1f92529c976d3efe9dd0575f88053da9",
-        "lines": 290,
-        "mtime": "2026-05-19T04:48:08.662Z",
+        "hash": "7adf6ec3d0c8dcab21a5f4cbf4260e5a",
+        "lines": 315,
+        "mtime": "2026-05-20T01:09:12.553Z",
         "className": "get-next-action",
         "methods": [
           "resolveSchemaDir",
           "loadSchema",
           "findCurrentTask",
+          "findUnresolvedInProgressStep",
+          "findUnresolvedInProgressTarget",
+          "assertNoUnresolvedInProgressTarget",
           "deriveStateSet",
           "getRulesCached",
           "injectPersistentRules",
@@ -3394,9 +3528,24 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "c68afd69",
+        "summary": "Computes the next-action envelope for a flow run, including persistent rules and retry recovery views.",
+        "detail": "`GetNextActionCommand` walks the flow state to locate the unresolved in-progress target, asserting graph integrity (`NO_RULE_FOR_STEP` on missing definitions). Loads cached skill rules, filters them per target, and prepends a rendered rule block before step instructions sourced from `getStepInstructions`. Constructs context descriptors with required kinds/paths, attaches review or gate recovery views (`buildReviewStopView`, `resolveGateRecoveryDisplayPhase`) plus retry recovery state, and promotes pending tasks/steps when the current target is exhausted. Returns either a structured action or an `Envelope.fail` for failure modes.",
+        "chapter": "internal_design",
+        "role": "next-action-resolver",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "next action",
+          "envelope",
+          "retry recovery",
+          "step instructions",
+          "skill rules",
+          "context descriptor",
+          "gate recovery",
+          "review stop"
+        ]
       },
       {
         "file": "src/flow/lib/get-prompt.js",
@@ -3418,8 +3567,21 @@
         "usedBy": null,
         "id": "410dfcc9",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 8
+        },
+        "summary": "Returns localized prompt text for flow phases by language and kind.",
+        "detail": "`GetPromptCommand` exposes a `PROMPTS_BY_LANG` lookup keyed by language (e.g. `ja`) and prompt kind. Validates input kinds via `validKinds()`, throwing descriptive errors when missing or unknown. Delegates to `renderSpecView` when spec-derived prompts are required. Used by the flow runtime to fetch human-facing prompt copy without hard-coding strings in each command.",
+        "chapter": "internal_design",
+        "role": "flow-prompt-loader",
+        "keywords": [
+          "prompt",
+          "localization",
+          "language",
+          "kind",
+          "spec view",
+          "flow"
+        ]
       },
       {
         "file": "src/flow/lib/get-qa-count.js",
@@ -3537,8 +3699,23 @@
         ],
         "id": "9aca938f",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 3
+        },
+        "summary": "Aggregates flow status output: metrics summary, active step, gate/review stop views, and totals.",
+        "detail": "`GetStatusCommand` returns the active flow context's status via `buildStatusOutput`, combining metrics rolled up by phase/provider (`buildMetricsSummary`), report totals (`buildReportTotals`), and view objects for review stops and gate recovery. Iterates token keys (`input`, `output`, `cacheRead`, `cacheCreation`) and activity counters (`docsRead`, `srcRead`, `question`, `issueLog`) into normalized buckets via `applyEntry`/`applyProviderEntry`. Resolves the active leaf step with `findLatestInProgressLeaf` and exposes its max attempts. Bounds broad-mode history with `BROAD_MODE_HISTORY_MAX_ENTRIES`.",
+        "chapter": "internal_design",
+        "role": "flow-status-builder",
+        "keywords": [
+          "status",
+          "metrics",
+          "tokens",
+          "activity counters",
+          "review stop",
+          "gate recovery",
+          "broad mode history",
+          "report totals"
+        ]
       },
       {
         "file": "src/flow/lib/get-step-instructions.js",
@@ -3567,8 +3744,22 @@
         ],
         "id": "49f740cb",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 2
+        },
+        "summary": "Loads per-step instruction markdown from the prompts directory with include resolution.",
+        "detail": "`getStepInstructions(instructionsKey)` parses a `<phase>.<step>` key, validates non-empty string input, and resolves the file path under `SDD_FORGE_NEXT_ACTION_PROMPTS_DIR` (or the default package prompts dir). Reads the markdown synchronously and passes it through `resolveIncludes` so partial markdown can be composed. Throws structured errors (`INSTRUCTIONS_INVALID_KEY`, `INSTRUCTIONS_NOT_FOUND`) when the key is malformed or the file is missing.",
+        "chapter": "internal_design",
+        "role": "step-instructions-loader",
+        "keywords": [
+          "step instructions",
+          "prompts",
+          "markdown",
+          "include resolution",
+          "phase",
+          "step key",
+          "env override"
+        ]
       },
       {
         "file": "src/flow/lib/issue-body-cache.js",
@@ -3683,8 +3874,22 @@
         ],
         "id": "a93faae0",
         "enrich": {
-          "attempts": 7
-        }
+          "processedAt": "2026-05-20T01:10:31.634Z",
+          "attempts": 8
+        },
+        "summary": "Renders spec.md and task markdown files from spec.json into the spec directory.",
+        "detail": "`renderSpecView()` resolves the spec.json path under the root, loads it via `loadSpecJson`, and writes `spec.md` plus per-task `tasks/<id>.md` files using `renderSpecMarkdown` and `renderTaskMarkdown`. When the spec is missing and `optional=true`, returns `{ rendered:false, reason }` instead of throwing. Tracks all written paths in `changed` (relativized) and creates the `tasks/` directory as needed. `buildSpecViewMeta` derives metadata (spec dir name, created date from mtime) for the markdown renderers.",
+        "chapter": "internal_design",
+        "role": "spec-view-renderer",
+        "keywords": [
+          "spec",
+          "render",
+          "markdown",
+          "spec.md",
+          "task markdown",
+          "spec.json",
+          "filesystem"
+        ]
       },
       {
         "file": "src/flow/lib/req-map.js",
@@ -3772,8 +3977,23 @@
         ],
         "id": "30a7075c",
         "enrich": {
-          "attempts": 9
-        }
+          "processedAt": "2026-05-20T01:10:08.721Z",
+          "attempts": 10
+        },
+        "summary": "Resolves auto-check input for the SDD flow's draft gate by reading spec sibling files and inspecting step states.",
+        "detail": "Defines helpers to determine whether spec approval and draft gate steps are done via `findStepById`/`flattenSteps`. Loads sibling text files (e.g., draft JSON) next to the spec path, safely returning null on missing/error. Parses draft goal JSON to validate presence, building goal-missing verdict envelopes when absent. The exported `resolveAutoCheckInput` returns one of three shapes: skip (already approved), fail (goal missing), or proceed with concatenated context text plus goalGate metadata. Also exports `buildSkipVerdict` and `resolvePersistedAutoCheckTrust` for sharing envelope shape with set-auto.js.",
+        "chapter": "internal_design",
+        "role": "Flow auto-check input resolver determining skip/fail/proceed verdicts based on spec approval and draft goal presence",
+        "keywords": [
+          "auto-check",
+          "draft gate",
+          "spec approval",
+          "goal verdict",
+          "flow state",
+          "envelope",
+          "isStepDone",
+          "resolveAutoCheckInput"
+        ]
       },
       {
         "file": "src/flow/lib/resolve-context-envelope.js",
@@ -4124,9 +4344,9 @@
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "8b7fdd81cb318685c6b3b68c4bb356ae",
-        "lines": 371,
-        "mtime": "2026-05-18T13:29:13.534Z",
+        "hash": "cad61803c68551e66b1829842b4ff572",
+        "lines": 374,
+        "mtime": "2026-05-20T01:09:12.553Z",
         "className": "run-final-regression",
         "methods": [
           "appendRaw",
@@ -4161,21 +4381,23 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "49364661",
-        "summary": "Runs and evaluates final regression checks, then persists machine-readable artifacts and failure evidence.",
-        "detail": "This module defines helper classes for final-regression decisions, process metadata, and serialized artifacts. It captures command output, bounds evidence text size, and classifies failure causes using normalized text plus changed-file scope analysis. It writes both raw output and structured JSON result files under the spec directory and appends failure entries to the issue log. Failure kinds are mapped to explicit next actions so later flow behavior remains deterministic.",
+        "summary": "FlowCommand that runs the final regression test step, classifies failures, and persists results plus issue-log entries.",
+        "detail": "Defines `FinalRegressionDecision`, `FinalRegressionProcess`, and `FinalRegressionArtifact` classes that encapsulate failure-kind to nextAction mapping with frozen lookup tables. Reads `analysis.json` and changed-files lists to classify failure scope as `current-change` vs `pre-existing` by substring-matching normalized paths against bounded evidence text. Caps evidence bytes (256KB total, 1000 file match limit) and writes raw output plus structured JSON result files under the spec directory. Records failures into issue-log via `loadIssueLog`/`saveIssueLog` and returns success or `Envelope.fail` with paths relative to the worktree root.",
         "chapter": "internal_design",
-        "role": "final regression classifier and artifact recorder",
+        "role": "Final regression runner command that executes tests, classifies failure scope, writes artifacts, and appends issue-log entries",
         "enrich": {
-          "processedAt": "2026-05-18T13:31:12.050Z",
+          "processedAt": "2026-05-20T01:10:08.721Z",
           "attempts": 1
         },
         "keywords": [
           "final regression",
           "failure classification",
-          "evidence capture",
-          "issue log",
-          "change scope detection",
-          "next-action routing"
+          "issue-log",
+          "FlowCommand",
+          "evidence bounding",
+          "changed files",
+          "envelope",
+          "FinalRegressionDecision"
         ]
       },
       {
@@ -6770,9 +6992,9 @@
       },
       {
         "file": "src/lib/container.js",
-        "hash": "8263fb38d56f078fdb98bd6f3350a13d",
-        "lines": 217,
-        "mtime": "2026-05-17T09:27:44.025Z",
+        "hash": "e0843b0625b453196dd3b90bc24f5bef",
+        "lines": 231,
+        "mtime": "2026-05-20T01:09:12.554Z",
         "className": "container",
         "methods": [
           "Container",
@@ -6788,6 +7010,7 @@
           "./provider.js",
           "./i18n.js",
           "./flow-manager.js",
+          "./finalize-cleanup-paths.js",
           "../docs/lib/data-source.js",
           "../docs/lib/scan-source.js",
           "../docs/lib/renderable.js",
@@ -6814,35 +7037,44 @@
           "src/spec.js"
         ],
         "id": "fc4eae43",
-        "summary": "Builds the dependency container and runtime path map for the CLI application. It wires core services such as config, flow manager, logging, providers, and analysis/scanning helpers.",
-        "detail": "`Container` is a lightweight registry with strict missing-dependency errors and preset storage accessors. `buildPaths` derives root/work/output/log directories, including agent work/log locations normalized from config. `initContainer` loads configuration, initializes major services, and reports config load failures to stderr before rethrowing. The module also imports scanner/parsing/data-source components so the app can assemble docs analysis and preset-aware behavior through one bootstrap layer.",
+        "summary": "Lightweight dependency injection container that wires CLI primitives, config, agent, providers, scanners, and preset access into a single registry.",
+        "detail": "Defines a `Container` class with `register`/`resolve`/`has` semantics plus a separate preset map, throwing on unknown lookups. The `initContainer` factory loads config via `loadConfig`, resolves repo/source/worktree paths through `cli.js`, and builds a frozen `paths` object that respects finalize cleanup relocation when active. It imports and exposes scanner utilities (parseFile, parsePHPFile, parseJSFile), language handlers, analysis-entry helpers, path-match predicates, and the TOML parser as a one-stop service locator. Errors during config load are written to stderr and rethrown so callers can decide how to handle bootstrap failures.",
         "chapter": "project_structure",
-        "role": "Application composition root and dependency injection container.",
+        "role": "Service-locator container bootstrapping config, agent, providers, paths, and scanner utilities for all CLI subcommands",
         "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
+          "processedAt": "2026-05-20T01:10:08.721Z",
           "attempts": 1
         },
         "keywords": [
-          "dependency container",
-          "bootstrap",
-          "service wiring",
-          "path resolution",
-          "flow manager",
-          "application context"
+          "Container",
+          "dependency injection",
+          "service locator",
+          "initContainer",
+          "paths",
+          "config",
+          "preset registry",
+          "agent",
+          "ProviderRegistry"
         ]
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "6a5abd1bcdc3c923205d32c34b0b5af5",
-        "lines": 372,
-        "mtime": "2026-05-17T09:30:01.433Z",
+        "hash": "67ac397c962ae57ac9f5c8018e774be8",
+        "lines": 425,
+        "mtime": "2026-05-20T01:09:12.554Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
           "dispatch",
           "throwUnexpected",
           "splitArgsBySpec",
+          "createFinalizeCleanupPathResolver",
           "resolveRuntimeLogPath",
+          "findWarning",
+          "truncateText",
+          "formatWarningMessages",
+          "formatFinalizeCleanupReportDisplay",
+          "emitFinalizeCleanupReportDisplay",
           "resolveOutputMode",
           "emitFailure"
         ],
@@ -6851,7 +7083,8 @@
           "path",
           "./cli.js",
           "./command.js",
-          "./flow-envelope.js"
+          "./flow-envelope.js",
+          "./finalize-cleanup-paths.js"
         ],
         "exports": [
           "parseEntryInput",
@@ -6866,21 +7099,64 @@
           "src/spec.js"
         ],
         "id": "18d5f63b",
-        "summary": "Implements unified command dispatch with argument partitioning, output mode handling, runtime log capture, and envelope-based error reporting. It is the execution gateway between CLI input and command handlers.",
-        "detail": "The dispatcher splits positional/non-positional args based on entry specs and supports both standard parse logic and command-specific parsing modes. `RuntimeLog` writes bounded stderr mirrors with truncation markers to avoid unbounded log growth. `dispatch` wraps pre/run/post/onError hooks, temporarily intercepts stderr for runtime logs, and emits JSON envelopes for both success and failure flows. Output mode resolution is dynamic per command module, defaulting safely when module metadata is unavailable.",
+        "summary": "Top-level CLI dispatcher that parses entry args, runs pre/post hooks, manages runtime logs, and emits finalize cleanup reports.",
+        "detail": "Parses argv by splitting into flag/option/positional buckets, throwing on unknown options or unexpected positionals, and detecting `-h/--help`. The `RuntimeLog` class manages an append-only log file with a 5MB cap that writes a truncated marker once exceeded, intercepting `process.stderr.write` during command execution. `dispatch` wires stdout/stderr writers, the exit-code setter, container construction, and invokes the entry's `pre`, command, `post`, and `onError` hooks while wrapping output in JSON envelopes when the entry declares `outputMode`. Finalize cleanup warnings are surfaced via `emitFinalizeCleanupReportDisplay`, truncating long warning text to bounded limits.",
         "chapter": "project_structure",
-        "role": "Core dispatch pipeline for command execution and structured output.",
+        "role": "Central dispatcher converting CLI argv into command invocations with envelope output, runtime logging, and hook lifecycle",
         "enrich": {
-          "processedAt": "2026-05-18T01:14:25.898Z",
+          "processedAt": "2026-05-20T01:10:08.721Z",
           "attempts": 1
         },
         "keywords": [
-          "command dispatcher",
-          "envelope output",
-          "runtime logging",
-          "hook lifecycle",
-          "argument splitting",
-          "error emission"
+          "dispatcher",
+          "parseArgs",
+          "RuntimeLog",
+          "envelope",
+          "pre/post hooks",
+          "finalize cleanup",
+          "stderr capture",
+          "exit code"
+        ]
+      },
+      {
+        "file": "src/lib/finalize-cleanup-paths.js",
+        "hash": "9a8db378847e465cc4246f361a5d0fa5",
+        "lines": 45,
+        "mtime": "2026-05-20T01:09:12.554Z",
+        "className": "finalize-cleanup-paths",
+        "methods": [
+          "FinalizeCleanupPathResolver",
+          "isPathInside"
+        ],
+        "imports": [
+          "path"
+        ],
+        "exports": [
+          "FinalizeCleanupPathResolver",
+          "FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/container.js",
+          "src/lib/dispatcher.js"
+        ],
+        "id": "1223c23c",
+        "summary": "Path resolver that relocates worktree-local files to a durable agent-work directory under the main repo during finalize cleanup.",
+        "detail": "Defines the constant `FINALIZE_CLEANUP_DURABLE_AGENT_WORK_DIR` (`.sdd-forge/agent-work`) used as the relocation target outside the worktree. `isPathInside` checks containment via `path.relative` without allowing absolute or parent-relative results. `FinalizeCleanupPathResolver` stores resolved worktree and main roots, exposes an `active` getter requiring both roots to differ, and provides `relocatePath` which translates worktree-relative paths into main-repo equivalents. The class isolates the worktree-to-main path translation so finalize logic can durably persist logs and reports after the worktree is removed.",
+        "chapter": "internal_design",
+        "role": "Path translator that maps worktree-internal artifacts to durable main-repo locations for finalize cleanup",
+        "enrich": {
+          "processedAt": "2026-05-20T01:10:08.721Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "finalize cleanup",
+          "worktree",
+          "path resolver",
+          "agent-work",
+          "relocatePath",
+          "isPathInside",
+          "durable artifacts"
         ]
       },
       {
@@ -11122,9 +11398,9 @@
       },
       {
         "file": "src/sdd-forge.js",
-        "hash": "fe63a20630699291506b1230b8a25bd0",
-        "lines": 100,
-        "mtime": "2026-05-17T09:27:44.025Z",
+        "hash": "a3f63d86df898afc2842514cdbc6f04e",
+        "lines": 102,
+        "mtime": "2026-05-20T01:09:12.554Z",
         "className": "sdd-forge",
         "methods": [],
         "imports": [
@@ -11138,22 +11414,23 @@
         "extends": null,
         "usedBy": null,
         "id": "a8608997",
+        "summary": "Top-level `sdd-forge` CLI entrypoint that routes subcommands to namespace dispatchers or independent scripts via dynamic import.",
+        "detail": "Reads `process.argv`, exits early on missing args, and shims `process.argv` to point at the help script when `-h/--help` is the only arg. Maintains two tables: `NAMESPACE_SCRIPTS` for subcommands that delegate to a namespaced dispatcher and `INDEPENDENT` for self-contained scripts. Builds an absolute script path against `PKG_DIR`, rewrites `process.argv` to mirror direct invocation, then either dynamically imports the dispatcher file or imports the module and awaits its `main()` export. Initializes the DI container before dispatch and exits with `EXIT_ERROR` on unknown subcommands or thrown errors.",
+        "chapter": "cli_commands",
+        "role": "Root CLI bin script dispatching `sdd-forge <subcommand>` invocations to namespace dispatchers or independent module entrypoints",
         "enrich": {
-          "processedAt": "2026-05-19T04:50:12.342Z",
-          "attempts": 5
+          "processedAt": "2026-05-20T01:10:08.721Z",
+          "attempts": 1
         },
-        "summary": "Implements the top-level CLI bootstrap and subcommand dispatcher for `sdd-forge`. It routes command namespaces to dedicated scripts using dynamic imports.",
-        "detail": "The entrypoint reads raw argv, handles immediate help-style branches, and rewrites `process.argv` before delegating. It keeps dispatch tables for namespace scripts and independent commands, then resolves script paths from `PKG_DIR`. Command modules are loaded via `import(pathToFileURL(...).href)` to execute the selected handler at runtime. It initializes shared container state and applies uniform failure exits via `EXIT_ERROR`. This file is the central routing hub for multi-command CLI execution.",
-        "chapter": "project_structure",
-        "role": "Primary CLI dispatcher and runtime bootstrap coordinator.",
         "keywords": [
-          "CLI dispatcher",
-          "command routing",
+          "CLI entrypoint",
+          "sdd-forge",
+          "subcommand routing",
           "dynamic import",
-          "argument forwarding",
-          "namespace command map",
-          "entrypoint bootstrap",
-          "exit code control"
+          "process.argv",
+          "PKG_DIR",
+          "exit code",
+          "initContainer"
         ]
       },
       {
@@ -11353,10 +11630,10 @@
       }
     ],
     "summary": {
-      "total": 307,
-      "totalMethods": 1387
+      "total": 308,
+      "totalMethods": 1398
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-19T16:47:37.879Z"
+  "enrichedAt": "2026-05-20T01:10:31.634Z"
 }
