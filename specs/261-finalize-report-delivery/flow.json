@@ -185,16 +185,21 @@
             },
             {
               "id": "finalize-merge",
-              "status": "in_progress",
-              "startedAt": "2026-05-20T00:59:01.440Z"
+              "status": "done",
+              "startedAt": "2026-05-20T00:59:01.440Z",
+              "finishedAt": "2026-05-20T01:09:12.691Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-05-20T01:09:12.691Z",
+              "finishedAt": "2026-05-20T01:10:31.967Z"
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending"
+              "status": "done",
+              "startedAt": "2026-05-20T01:10:31.967Z",
+              "finishedAt": "2026-05-20T01:10:47.203Z"
             }
           ]
         }
@@ -838,6 +843,42 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-05-19T17:07:01.827Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/opus",
+      "callCount": 1,
+      "responseChars": 6678,
+      "durationMs": 41194,
+      "tokens": {
+        "input": 6,
+        "output": 2497,
+        "cacheRead": 0,
+        "cacheCreation": 30777
+      },
+      "cost": 0.25976024999999997,
+      "taskId": null,
+      "ts": "2026-05-20T01:10:08.717Z"
+    },
+    {
+      "phase": "finalize-sync",
+      "kind": "agent",
+      "provider": "claude",
+      "profileKey": "claude/opus",
+      "callCount": 1,
+      "responseChars": 11787,
+      "durationMs": 64109,
+      "tokens": {
+        "input": 6,
+        "output": 4666,
+        "cacheRead": 0,
+        "cacheCreation": 42925
+      },
+      "cost": 0.39849625,
+      "taskId": null,
+      "ts": "2026-05-20T01:10:31.629Z"
     }
   ],
   "reviewRecoveryBaselines": [
@@ -1096,6 +1137,8 @@
     ]
   },
   "state": {
-    "finalizedAt": "2026-05-20T00:59:01.297Z"
+    "finalizedAt": "2026-05-20T00:59:01.297Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "296960339c415c782d836f30164554e126c41b00"
   }
 }
