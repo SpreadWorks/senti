@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-20T05:30:00.018Z",
+  "analyzedAt": "2026-05-20T05:40:34.922Z",
   "package": {
     "entries": [
       {
@@ -258,7 +258,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -281,7 +281,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -301,7 +301,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -322,7 +322,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -342,7 +342,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -364,7 +364,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -1381,9 +1381,9 @@
       },
       {
         "file": "src/docs/lib/directive-parser.js",
-        "hash": "9fd56f0c88315b3fd5ea627344bd33b5",
-        "lines": 595,
-        "mtime": "2026-05-08T07:44:34.911Z",
+        "hash": "12b1265ff991541bd0876449a27084b8",
+        "lines": 600,
+        "mtime": "2026-05-20T05:40:20.339Z",
         "className": "directive-parser",
         "methods": [
           "parseDirectives",
@@ -1422,22 +1422,9 @@
           "src/docs/lib/template-merger.js"
         ],
         "id": "bbb893ea",
-        "summary": "The directive parser provides core parsing and transformation utilities for `data`, `text`, and block directives embedded in HTML comments. It also validates marker structure and extracts block inheritance metadata.",
-        "detail": "It defines strict regexes for opening and closing tags, including inline and multiline comment block extraction. Parsing normalizes directive paths into `preset/source/method`, separates parser-owned options, and preserves user parameters for resolver calls. Replacement helpers update either block ranges or inline regions while tracking replacements. Marker-stripping logic detects malformed or unexpanded directives and reports exact line-based errors. Block parsing supports `extends` and named block sections, enabling template composition workflows.",
-        "chapter": "internal_design",
-        "role": "parser and transformer",
         "enrich": {
-          "processedAt": "2026-05-08T07:46:01.311Z",
           "attempts": 1
-        },
-        "keywords": [
-          "directive parser",
-          "template directives",
-          "block inheritance",
-          "data/text tags",
-          "marker validation",
-          "AST-like extraction"
-        ]
+        }
       },
       {
         "file": "src/docs/lib/docs-context.js",
@@ -1896,11 +1883,12 @@
       },
       {
         "file": "src/docs/lib/renderable.js",
-        "hash": "c82f849b14db8a639397dca6245bbd0f",
-        "lines": 169,
-        "mtime": "2026-04-22T23:27:14.750Z",
+        "hash": "c8ee4719c3adc012b77bcee22fee35a4",
+        "lines": 210,
+        "mtime": "2026-05-20T05:40:20.339Z",
         "className": "renderable",
         "methods": [
+          "assertMarkdownFormat",
           "Renderable",
           "Table",
           "BulletList",
@@ -1910,12 +1898,14 @@
           "Blockquote",
           "Heading",
           "Fragment",
+          "normalizeCell",
           "escapeCell",
           "indent",
           "renderPart"
         ],
         "imports": [],
         "exports": [
+          "assertMarkdownFormat",
           "Renderable",
           "Table",
           "BulletList",
@@ -1924,7 +1914,9 @@
           "CodeBlock",
           "Blockquote",
           "Heading",
-          "Fragment"
+          "Fragment",
+          "MARKDOWN_FORMAT_TABLE",
+          "MARKDOWN_FORMAT_LIST"
         ],
         "extends": "Renderable",
         "usedBy": [
@@ -1933,21 +1925,8 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "processedAt": "2026-04-23T01:14:19.398Z",
-          "attempts": 2
-        },
-        "summary": "Defines renderable markdown object types and composition primitives. It provides structured markdown generation via class-based polymorphism.",
-        "detail": "The module starts with an abstract `Renderable` contract and concrete implementations including `Table`, `BulletList`, `OrderedList`, `Paragraph`, `CodeBlock`, `Blockquote`, `Heading`, and `Fragment`. Constructors enforce invariants (for example, heading levels and table shape), and throw explicit errors when invalid data is provided. Helper functions escape table cells, indent multiline text, and recursively render nested parts. Output generation is centralized in `toMarkdown()` methods, keeping formatting behavior close to each type. This design aligns with OOP-based typed value modeling and supports reliable `instanceof`-based rendering flows.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "keywords": [
-          "renderable",
-          "markdown AST",
-          "table renderer",
-          "bullet list",
-          "OOP modeling",
-          "toMarkdown"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/docs/lib/resolver-factory.js",
@@ -1978,7 +1957,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -7594,7 +7573,7 @@
         ],
         "id": "d35107ed",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -8184,7 +8163,7 @@
         ],
         "id": "a3560f5e",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -8225,7 +8204,7 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11400,7 +11379,7 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11517,15 +11496,15 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       }
     ],
     "summary": {
       "total": 309,
-      "totalMethods": 1404
+      "totalMethods": 1406
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-20T05:30:56.620Z"
+  "enrichedAt": "2026-05-20T05:41:36.681Z"
 }
