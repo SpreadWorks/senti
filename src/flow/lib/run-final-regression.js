@@ -232,10 +232,13 @@ function classifyFailure({ result, discoveryError = null, root, state, config, c
   const normalizedText = normalizeFailureMatchText(text);
   if (discoveryError) return "invalid_project_test";
   if (result?.timedOut) return "timeout";
+  if (normalizedText.trim() === "" && result?.exitCode) return "infra_failure";
+  if (/^command failed:/.test(normalizedText.trim()) && result?.exitCode) return "infra_failure";
   if (/\beperm\b/.test(normalizedText)) return "child_process_eprem";
   if (/sandbox/.test(normalizedText)) return "sandbox_restriction";
   if (/\beacces\b|permission denied/.test(normalizedText)) return "permission_error";
   if (/\benoent\b|not found|command not found/.test(normalizedText)) return "dependency_failure";
+  if (/without stdout\/stderr|spawnerror/.test(normalizedText)) return "infra_failure";
   if (result?.signal) return "infra_failure";
   if (result?.exitCode === 127) return "dependency_failure";
   const changedFilesForMatching = changedFilesWithinMatchLimit(changedFiles);

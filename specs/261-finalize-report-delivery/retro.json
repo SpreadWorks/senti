@@ -1,0 +1,53 @@
+{
+  "spec": "specs/261-finalize-report-delivery/spec.json",
+  "date": "2026-05-19T17:07:12.110Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "`sdd-forge flow run finalize-cleanup` must preserve stdout as one JSON envelope and, on ok:true with `data.report.text`, emit that exact text in a human-readable `Finalize Report` block to a non-stdout channel during the same command invocation.",
+      "status": "done",
+      "note": "R1: writes one JSON envelope to stdout and the Report block to stderr"
+    },
+    {
+      "desc": "The cleanup Report display block must use the same finalized spec report text that `sdd-forge flow report show` prints immediately after cleanup, with no alternate formatter and no fabricated content.",
+      "status": "done",
+      "note": "R2: displays the exact report-show text for the finalized report"
+    },
+    {
+      "desc": "When cleanup teardown succeeds but the Report cannot be read, the command must keep ok:true, set `data.report` to null, include a `REPORT_MISSING` warning, and emit a visible warning that names the missing Report problem instead of a Report block.",
+      "status": "done",
+      "note": "R3: REPORT_MISSING emits a visible warning and no fabricated Report block"
+    },
+    {
+      "desc": "For `flow run finalize-cleanup` executed inside a worktree, if the effective `agentWorkDir`, explicit `--log-file`, or `config.logs.dir` resolves inside the worktree path, the CLI must resolve the corresponding logger and runtime log paths under the main repository before creating those logs.",
+      "status": "done",
+      "note": "R4: relocates the default runtime log when --agent-work-dir is under the deleted worktree"
+    },
+    {
+      "desc": "A successful finalize-cleanup with `--agent-work-dir`, `--log-file`, or `config.logs.dir` pointing under the deleted worktree must not emit `[sdd-forge] log write failed` or runtime-log ENOENT warnings after the worktree is removed.",
+      "status": "done",
+      "note": "R5: cleanup stderr contains no deleted-worktree log write warning"
+    },
+    {
+      "desc": "The finalize-cleanup prompt, generated flow skill template, and generated installed skill copies should describe that cleanup emits the Report itself without reintroducing a legacy post-cleanup report-show instruction.",
+      "status": "done",
+      "note": "R6: prompt and skills describe CLI Report display without legacy report-show fallback"
+    },
+    {
+      "desc": "Spec-local tests under `specs/261-finalize-report-delivery/tests/` must cover R1 through R5 with `// spec: R<N>` headers and must include a fixture where `--agent-work-dir` is under a worktree that cleanup deletes.",
+      "status": "done",
+      "note": "R7: spec-local tests declare and name every requirement they cover"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

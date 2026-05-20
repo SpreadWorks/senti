@@ -15,6 +15,7 @@ import { Agent } from "./agent.js";
 import { ProviderRegistry } from "./provider.js";
 import { translate } from "./i18n.js";
 import { FlowManager } from "./flow-manager.js";
+import { FinalizeCleanupPathResolver } from "./finalize-cleanup-paths.js";
 import { DataSource } from "../docs/lib/data-source.js";
 import { Scannable } from "../docs/lib/scan-source.js";
 import {
@@ -96,9 +97,17 @@ export const container = new Container();
  * `logDir` is computed once here and reused by Logger.
  */
 function buildPaths(root, config, opts = {}) {
-  const agentWorkDir = resolveWorkDir(root, config, opts);
+  const cleanupPaths = new FinalizeCleanupPathResolver({
+    enabled: opts.finalizeCleanupDurablePaths,
+    worktreeRoot: root,
+    mainRoot: opts.mainRoot,
+    inWorktree: opts.inWorktree,
+  });
+  const agentWorkDir = cleanupPaths.agentWorkDir(
+    resolveWorkDir(root, config, opts),
+  );
   const logDir = config?.logs?.dir
-    ? path.resolve(root, config.logs.dir)
+    ? cleanupPaths.relocatePath(path.resolve(root, config.logs.dir))
     : path.join(agentWorkDir, "logs");
   return Object.freeze({
     root,
@@ -124,6 +133,8 @@ function buildPaths(root, config, opts = {}) {
  * @param {Object} [opts]
  * @param {string} [opts.entryCommand] - Full argv string for Logger metadata
  * @param {string} [opts.agentWorkDirOverride] - Per-invocation agent work dir
+ * @param {boolean} [opts.finalizeCleanupDurablePaths] - Relocate cleanup logs
+ *   that would otherwise be written under the deleted worktree.
  */
 export function initContainer(opts = {}) {
   // Idempotent: if already initialized (e.g. by sdd-forge.js before a
@@ -146,15 +157,18 @@ export function initContainer(opts = {}) {
     }
   }
 
+  const inWorktree = isInsideWorktree(root);
+  const mainRoot = inWorktree ? getMainRepoPath(root) : root;
   const paths = buildPaths(root, config, {
     agentWorkDirOverride: opts.agentWorkDirOverride,
+    finalizeCleanupDurablePaths: opts.finalizeCleanupDurablePaths,
+    inWorktree,
+    mainRoot,
   });
 
   container.register("root", root);
   container.register("config", config);
   container.register("paths", paths);
-  const inWorktree = isInsideWorktree(root);
-  const mainRoot = inWorktree ? getMainRepoPath(root) : root;
   container.register("inWorktree", inWorktree);
   container.register("mainRoot", mainRoot);
   const flowManager = new FlowManager({ root, mainRoot, inWorktree });

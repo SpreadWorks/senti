@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "1 repair target triaged; q3 should ask for the observable runtime log contract, not the implementation mechanism.",
+  "items": [
+    {
+      "title": "1. Implementation mechanism question",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The current q3 asks whether to solve the warning by resolving finalize-cleanup runtime logs to the main repo, which is an implementation mechanism the spec can decide from code context.",
+      "evidence": "draft.json qa[2].question mentions resolving the runtime log destination to the main repo instead of asking for the required observable behavior."
+    }
+  ]
+}

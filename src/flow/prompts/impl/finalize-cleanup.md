@@ -8,6 +8,7 @@ Clean up flow state and worktree as the final finalize sub-step.
    - On commit success: removes the worktree directory and deletes the feature branch.
    - Writes `.sdd-forge/last-finalized-spec`.
    - Returns an envelope whose `data.report` contains `{ path, text }` of the finalize Report.
+   - The cleanup command itself displays the finalize Report in a non-stdout `Finalize Report` block when `data.report.text` is present. Stdout remains the JSON envelope.
 
 2. **If the envelope returns an `ORPHAN_COMMITS_DETECTED` error (squash route only):**
    The cleanup body detected commits on the feature branch that were created after the squash baseline and would be lost by branch deletion. The envelope contains `data.orphanCommits` (up to 50 entries) and `data.recoveryOptions = ["cherry-pick", "abort", "force-continue"]`.
@@ -37,8 +38,9 @@ Clean up flow state and worktree as the final finalize sub-step.
 3. **If the envelope returns `SQUASH_BASELINE_MISSING` or `SQUASH_BASELINE_DIVERGED`:**
    The recorded squash baseline is unavailable or no longer an ancestor of the feature branch (history rewrite). Read `errors[0].messages` and surface the manual recovery steps to the user. Do not pass `--force` automatically — propose archiving the branch and walking through the recovery procedure.
 
-4. **Display the Report:**
-   - Read `data.report.text` from the cleanup envelope and place the text verbatim inside a fenced code block so the user sees the Report.
+4. **Report display and fallback:**
+   - The cleanup command emits/displays the finalize Report itself during the same invocation. Do not rely on manually pasting `data.report.text` as the primary delivery path.
+   - `data.report.text` remains in the JSON envelope for machine callers and auditing.
    - If `data.report` is `null`, the envelope's `errors` array contains a `level: warn` entry with `code: REPORT_MISSING`. Surface that warning's message to the user — do not fabricate Report contents.
    - When the envelope contains a `level: warn` entry with `code: FORCED_ORPHAN_DROP`, surface the warning text plus the dropped commit list so the user understands what was lost.
 

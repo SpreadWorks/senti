@@ -1,8 +1,9 @@
 /**
  * Spec 251 R10: assert that finalize self-contained patterns are gone from the
  * skill template + worktree-mode partial. The cleanup envelope now carries
- * `data.report.text`, so the AI no longer needs `flow report show`,
- * `cd <mainRepoPath>`, or per-leaf `flow set step finalize-*` instructions.
+ * `data.report.text`, so the AI no longer needs `cd <mainRepoPath>` or
+ * per-leaf `flow set step finalize-*` instructions. `flow report show` is
+ * allowed only as an explicit re-display fallback after cleanup succeeds.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -26,7 +27,6 @@ const TARGETS = [
 ];
 
 const FORBIDDEN = [
-  { name: "flow report show", pattern: /flow report show/ },
   { name: "cd <mainRepoPath>", pattern: /cd <mainRepoPath>|cd <main-repository-path>/ },
   { name: "flow set step finalize-*", pattern: /flow set step\s+finalize-/ },
 ];

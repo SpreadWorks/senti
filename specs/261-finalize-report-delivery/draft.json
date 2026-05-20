@@ -1,0 +1,120 @@
+{
+  "devType": "bugfix",
+  "goal": "finalize-cleanup 成功時に finalize Report が AI の最終応答依存で失われないよう、CLI 側で表示保証を持たせる。あわせて cleanup 後に削除される worktree 配下へ runtime log を書こうとして warning が出る問題を防ぐ。",
+  "analysis": {
+    "problem": "現状の finalize-cleanup は data.report.text を envelope に含めるが、Report の表示は AI がそれを最終応答に貼る運用に依存している。別環境や別セッションでは同じ省略が再発し得る。また --agent-work-dir が worktree 配下の場合、cleanup が worktree を削除した後に dispatcher/logger が runtime log を書こうとして ENOENT warning を出す。",
+    "proposedApproach": "finalize-cleanup 成功 envelope の Report を CLI が機械的に表示または再表示可能な形で保証し、worktree 削除後も runtime log の保存先が存在するように runtime log path の解決または cleanup 処理を調整する。skill / prompt の注意書きだけではなく、CLI の出力契約とテストで再発を防ぐ。",
+    "validation": "Report 表示が stdout/envelope の機械的契約で検証でき、削除済み worktree 配下への log write が発生しないことをテストで確認できれば、AI の注意やセッション依存ではなく仕組みで再発を防げる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "`src/flow/lib/run-finalize-cleanup.js` は `attachReport()` で `data.report = { path, text }` を envelope に追加する。",
+      "`src/flow/prompts/impl/finalize-cleanup.md` と `sdd-forge.flow` skill は AI に `data.report.text` を fenced code block で表示するよう指示しているが、CLI 自体はその表示を強制しない。",
+      "`src/flow/lib/run-report-show.js` は `.sdd-forge/last-finalized-spec` から最新 `report.json` を読み、Report text を stdout に出せる。",
+      "`src/lib/dispatcher.js` は flow run の runtime log を `paths.agentWorkDir/logs/<flowId>/...` に作成し、stderr を runtime log に tee する。",
+      "`finalize-cleanup` は成功時に worktree と feature branch を削除するため、`--agent-work-dir` が worktree 配下を指すと cleanup 後の log write が ENOENT warning になり得る。",
+      "現在の `RuntimeLog.write()` は ENOENT を握りつぶして truncation 扱いにするが、別の logger 経路では `[sdd-forge] log write failed` が stderr に出る。",
+      "project rule により、`src/templates/` や skill template を変更した場合は `sdd-forge upgrade` が必要。",
+      "外部依存は追加できない。Node.js 組み込みモジュールのみで実装する。",
+      "alpha 版ポリシーにより後方互換 layer は不要だが、ユーザーに見える CLI 出力変更は spec で明示する必要がある。"
+    ],
+    "decisionPoints": [
+      "Report 表示保証を finalize-cleanup の stdout 出力、envelope shape、または report-show follow-up のどこで担保するか。",
+      "Report を機械可読 JSON envelope と人間向け text の両方で扱う場合の出力契約。",
+      "runtime log を cleanup 後にも残すため、agentWorkDir を main repo 側へ逃がすか、cleanup 前に runtime log を close/flush するか。",
+      "Report missing 時の扱いを warn のままにするか、cleanup 成功を止める hard failure にするか。",
+      "`src/flow/prompts/impl/finalize-cleanup.md` と skill template から AI の手貼り依存を減らし、CLI 表示契約と `flow report show` 再実行コマンドを案内する範囲。",
+      "`flow report show` の stdout text と finalize-cleanup が提示する Report text の一致条件。",
+      "この問題を spec-local test でどう再現し、AI 応答に依存しない検証にするか。"
+    ],
+    "resolvedByProjectRules": [
+      "AI の注意書きだけではなく、CLI / artifact / test で検証できる仕組みにする。",
+      "worktree flow 中の編集は active worktree 内だけで行う。",
+      "既存 code pattern と command registry / dispatcher の構造に合わせる。",
+      "src 配下にプロジェクト固有の値を入れない。",
+      "外部依存を追加しない。",
+      "テンプレートや generated skill を変更した場合は upgrade で反映する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "finalize-cleanup 成功時の具体的な stdout / envelope フィールド名。",
+      "runtime log path を main repo 側へ解決する条件と helper の配置。",
+      "Report missing を warn として表示するか、status を変えるかの詳細。",
+      "spec-local test の fixture と実行方法。",
+      "generated skill / prompt の文言更新範囲。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: finalize-cleanup 成功時に Report text が CLI の機械的出力契約で表示されること",
+      "must: data.report.text があるのに利用者に Report が見えない状態を防ぐこと",
+      "must: worktree 削除後に worktree 配下 runtime log へ書こうとして ENOENT warning を出さないこと",
+      "must: `flow report show` が読む report.json text と finalize-cleanup が提示する Report text が同じ finalized spec の同一 text であること",
+      "should: finalize-cleanup prompt と generated skill template が AI に `data.report.text` の手貼りだけを求めず、CLI 表示契約と `sdd-forge flow report show` 再実行コマンドを案内すること",
+      "must: spec-local tests で Report 表示保証と runtime log 保存先問題を検証すること"
+    ],
+    "out": [
+      "Report の内容や report.json schema の全面再設計",
+      "finalize の merge / sync / cleanup 順序の変更",
+      "GitHub Issue comment の投稿仕様変更",
+      "AI クライアント側 UI の変更",
+      "外部 logging library の導入"
+    ]
+  },
+  "impactOnExisting": [
+    "`sdd-forge flow run finalize-cleanup` の stdout / envelope",
+    "`sdd-forge flow report show` の stdout text",
+    "flow run runtime log の保存先解決",
+    "worktree cleanup 後の stderr warning",
+    "`src/templates/skills/sdd-forge.flow/SKILL.md` と生成済み `.agents/.claude` skill",
+    "finalize-cleanup prompt と関連テスト"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "finalize-cleanup 成功時、CLI は JSON envelope だけでなく Report text を人間が確実に読める形で stdout に表示する契約にしますか。",
+      "answer": "はい。cleanup 成功時に Report text が利用者へ確実に表示される CLI 契約を追加します。",
+      "evidence": "ユーザーは「あなた自身が注意するとかだと、他の環境、セッションで同じことが起きるので仕組みで解決したい」と要求した。既存 `run-finalize-cleanup.js` は `data.report.text` を envelope に含めるが、表示は skill の AI 指示に依存している。",
+      "why": "JSON envelope に Report が存在しても、AI が最終応答で省略すると利用者には見えない。CLI 側の出力契約にすれば、セッションや担当 AI に依存しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "Report が存在しない場合は cleanup を成功させたまま REPORT_MISSING warning を明示表示する現在方針を維持しますか。",
+      "answer": "はい。Report missing は cleanup 成功を偽装せず、既存の `REPORT_MISSING` warning を明示表示する方針を維持します。",
+      "evidence": "`run-finalize-cleanup.js` の `attachReport()` は Report 読み取り失敗時に `env.addWarning(\"REPORT_MISSING\", missing.message)` を追加する。`finalize-cleanup.md` も warning を surface する指示を持つ。",
+      "why": "cleanup の主目的である flow state cleanup と worktree/branch cleanup は Report missing と別 concern。既存 warning 契約を維持しつつ、warning 自体が利用者に見えることを保証する。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "worktree cleanup 後も runtime log 保存が warning なく完了することを、finalize-cleanup の受け入れ条件に含めますか。",
+      "answer": "はい。finalize-cleanup 成功時は worktree 削除後にも runtime log 書き込み warning が出ないことを受け入れ条件に含めます。",
+      "evidence": "実際の cleanup 後に `[sdd-forge] log write failed: ENOENT ... worktree/.../.sdd-forge/agent-work/logs` が出た。`dispatcher.js` は flow run の runtime log を `paths.agentWorkDir/logs/<flowId>/...` に作り、cleanup は worktree を削除する。",
+      "why": "cleanup 成功後の warning は Report 表示の失敗と誤認されやすく、今回の問題切り分けを難しくした。仕組みで warning を出さないことが再発防止になる。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "spec-local tests は finalize-cleanup envelope の Report 表示契約と、worktree 配下 agentWorkDir 指定時に ENOENT warning が出ないことを対象にしますか。",
+      "answer": "はい。spec-local tests は Report 表示契約と runtime log warning 防止の両方を対象にします。",
+      "evidence": "対象コードは `run-finalize-cleanup.js`、`run-report-show.js`、`dispatcher.js`、`registry.js` に分かれている。既存 spec-local tests は CLI 契約と runtime artifact を検証するパターンを使っている。",
+      "why": "片方だけのテストでは、Report 表示省略か cleanup 後の warning のどちらかが再発し得る。両方を acceptance evidence にすると、AI 応答に依存しない検証になる。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-19T08:39:40.000Z",
+    "notes": "Coverage review PASS; no unresolved user decision remains."
+  }
+}

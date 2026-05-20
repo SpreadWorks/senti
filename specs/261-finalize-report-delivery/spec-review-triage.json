@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "Both blocking findings identify existing path inputs that can still point to the deleted worktree during finalize-cleanup. Both require explicit spec coverage before implementation.",
+  "items": [
+    {
+      "title": "Explicit runtime log path bypasses relocation",
+      "target": "Constraints / R4-R5",
+      "decision": "apply",
+      "rationale": "`--log-file` is an existing flow-run runtime option and currently bypasses `paths.agentWorkDir`. Leaving it unspecified would let cleanup still write a runtime log under the deleted worktree.",
+      "evidence": "src/lib/dispatcher.js resolveRuntimeLogPath() returns path.resolve(paths.root, input.logFile) before using paths.agentWorkDir. spec.json constraints mention `--log-file` but do not define inside-worktree behavior."
+    },
+    {
+      "title": "Configured logger dir bypasses agentWorkDir relocation",
+      "target": "Constraints / R4-R5",
+      "decision": "apply",
+      "rationale": "`config.logs.dir` is an existing logger path override and currently resolves against the worktree root. Leaving it unspecified would let JSONL logger writes target the deleted worktree even if agentWorkDir is relocated.",
+      "evidence": "src/lib/container.js buildPaths() sets logDir to path.resolve(root, config.logs.dir) when config.logs.dir exists; spec.json constraints currently describe only agentWorkDir relocation."
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests updated for R2 report-show equivalence, R4/R5 executable log relocation fixtures, and R7 explicit agent-work-dir fixture evidence",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "96d5493801e3ffd0111de91c159ef2a017f8bd95f3102547815e25412a611562",
+        "currentHash": "fe4912274109eed04b418736ffc9c6bf75e45296dc23e4bf4e3ba3ef547b1f62",
+        "changedPaths": [
+          "specs/261-finalize-report-delivery/tests/.raw/scenario-validity.log",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-guidance.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests updated for R2 report-show equivalence, R4/R5 executable log relocation fixtures, and R7 explicit agent-work-dir fixture evidence\" --yes",
+      "createdAt": "2026-05-19T14:24:22.887Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "display tests now invoke real finalize-cleanup command for readable and missing report cases instead of fabricated envelopes",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "fe4912274109eed04b418736ffc9c6bf75e45296dc23e4bf4e3ba3ef547b1f62",
+        "currentHash": "47195f9f3b8e851bcc8215065ac5f21193f35623b725e9567e48dadcfa2bfa73",
+        "changedPaths": [
+          "specs/261-finalize-report-delivery/tests/.raw/scenario-validity.log",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-guidance.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"display tests now invoke real finalize-cleanup command for readable and missing report cases instead of fabricated envelopes\" --yes",
+      "createdAt": "2026-05-19T16:09:51.200Z"
+    },
+    {
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "tests now compare cleanup display to actual flow report show output and cover ok true plus agent-work-dir warning absence",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "47195f9f3b8e851bcc8215065ac5f21193f35623b725e9567e48dadcfa2bfa73",
+        "currentHash": "838e08aa4824d5056535e549792ede0f0d7778d24fd4468287ed7b96dbe422dc",
+        "changedPaths": [
+          "specs/261-finalize-report-delivery/tests/.raw/scenario-validity.log",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-guidance.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"tests now compare cleanup display to actual flow report show output and cover ok true plus agent-work-dir warning absence\" --yes",
+      "createdAt": "2026-05-19T16:34:15.382Z"
+    }
+  ]
+}

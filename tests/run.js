@@ -181,6 +181,16 @@ function runNodeTests(files) {
   const stderr = res.stderr || "";
   process.stdout.write(stdout);
   process.stderr.write(stderr);
+  if (res.error) {
+    const code = res.error.code ? `${res.error.code}: ` : "";
+    process.stderr.write(`[test-runner] node --test spawnError: ${code}${res.error.message}\n`);
+  }
+  if (res.signal) {
+    process.stderr.write(`[test-runner] node --test signal: ${res.signal}\n`);
+  }
+  if ((res.status ?? 1) !== 0 && stdout.length === 0 && stderr.length === 0 && !res.error && !res.signal) {
+    process.stderr.write(`[test-runner] node --test exited with status ${res.status ?? 1} without stdout/stderr\n`);
+  }
   const m = /^\s*#\s*pass\s+(\d+)\s*$/m.exec(stdout + stderr);
   return {
     status: res.status ?? 1,

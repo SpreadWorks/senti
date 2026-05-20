@@ -97,6 +97,20 @@ describe("flow run final-regression", () => {
     assert.equal(artifact.failureKind, "pre_existing");
   });
 
+  it("classifies silent non-zero test runner exits as infrastructure failure", async () => {
+    tmp = createTmpDir("final-regression-silent-fail-");
+    const ctx = setupProject(tmp, "process.exit(1);\n");
+
+    const result = await new RunFinalRegressionCommand().execute(ctx);
+
+    assert.equal(result.ok, false);
+    assert.equal(result.data.failureKind, "infra_failure");
+    assert.equal(result.data.retryable, false);
+    assert.equal(result.data.nextAction, "stop");
+    const artifact = validateFinalRegressionResult(readJson(path.join(tmp, "specs/001-test/final-regression-result.json")));
+    assert.equal(artifact.failureKind, "infra_failure");
+  });
+
   it("stops on the second final-regression failure", async () => {
     tmp = createTmpDir("final-regression-second-fail-");
     const ctx = setupProject(tmp, PASSING_FIXTURE_BODY);

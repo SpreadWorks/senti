@@ -17,10 +17,9 @@ import {
   deriveNextAction,
   FLOW_DEFINITION,
   TASK_DEFINITION,
-  findFirstPendingLeaf,
   flattenSteps,
   promoteNextPendingLeaf,
-  findStepById,
+  resolveNodeFor,
 } from "../definition.js";
 import { promoteNextPending } from "../../lib/flow-helpers.js";
 import { loadRules, filterRules, renderRuleBlock } from "../../lib/skill-rules.js";
@@ -48,6 +47,30 @@ function loadSchema(relPath) {
 function findCurrentTask(state) {
   if (state.currentTaskId == null) return null;
   return state.tasks.find((t) => t.id === state.currentTaskId) || null;
+}
+
+function findUnresolvedInProgressStep(steps, definition) {
+  return flattenSteps(steps || []).find((step) => (
+    step.status === "in_progress" && !resolveNodeFor(definition, step.id)
+  )) || null;
+}
+
+function findUnresolvedInProgressTarget(state) {
+  const task = findCurrentTask(state);
+  if (task && Array.isArray(task.steps)) {
+    const step = findUnresolvedInProgressStep(task.steps, TASK_DEFINITION);
+    if (step) return { scope: "task", taskId: state.currentTaskId, stepId: step.id };
+  }
+  const step = findUnresolvedInProgressStep(state.steps, FLOW_DEFINITION);
+  if (step) return { scope: "flow", taskId: null, stepId: step.id };
+  return null;
+}
+
+function assertNoUnresolvedInProgressTarget(state) {
+  const target = findUnresolvedInProgressTarget(state);
+  if (target) {
+    throw new Error(`NO_RULE_FOR_STEP: ${target.scope}.${target.stepId} has no entry in definition`);
+  }
 }
 
 function deriveStateSet(state) {
@@ -166,6 +189,7 @@ export default class GetNextActionCommand extends FlowCommand {
     }
     let state = ctx.flowState;
 
+    assertNoUnresolvedInProgressTarget(state);
     let target = findActiveNode(state.steps, state.tasks, state.currentTaskId);
     if (isFlowImplementationStep(target)) {
       const decision = evaluateTaskScope(state, target.stepId);
@@ -191,6 +215,7 @@ export default class GetNextActionCommand extends FlowCommand {
       });
       if (promoted) {
         state = ctx.flowManager.load();
+        assertNoUnresolvedInProgressTarget(state);
         target = findActiveNode(state.steps, state.tasks, state.currentTaskId);
       }
     }

@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "phase": "review-test",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "`sdd-forge flow run finalize-cleanup` must preserve stdout as one JSON envelope and, on ok:true with `data.report.text`, emit that exact text in a human-readable `Finalize Report` block to a non-stdout channel during the same command invocation.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-display.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The cleanup Report display block must use the same finalized spec report text that `sdd-forge flow report show` prints immediately after cleanup, with no alternate formatter and no fabricated content.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-display.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "When cleanup teardown succeeds but the Report cannot be read, the command must keep ok:true, set `data.report` to null, include a `REPORT_MISSING` warning, and emit a visible warning that names the missing Report problem instead of a Report block.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-display.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "For `flow run finalize-cleanup` executed inside a worktree, if the effective `agentWorkDir`, explicit `--log-file`, or `config.logs.dir` resolves inside the worktree path, the CLI must resolve the corresponding logger and runtime log paths under the main repository before creating those logs.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-log-paths.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "A successful finalize-cleanup with `--agent-work-dir`, `--log-file`, or `config.logs.dir` pointing under the deleted worktree must not emit `[sdd-forge] log write failed` or runtime-log ENOENT warnings after the worktree is removed.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-log-paths.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "The finalize-cleanup prompt, generated flow skill template, and generated installed skill copies should describe that cleanup emits the Report itself without reintroducing a legacy post-cleanup report-show instruction.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-guidance.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Spec-local tests under `specs/261-finalize-report-delivery/tests/` must cover R1 through R5 with `// spec: R<N>` headers and must include a fixture where `--agent-work-dir` is under a worktree that cleanup deletes.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-cleanup-guidance.test.js",
+        "tests/finalize-cleanup-log-paths.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/finalize-cleanup-display.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3"
+      ]
+    },
+    {
+      "file": "tests/finalize-cleanup-guidance.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R6",
+        "R7"
+      ],
+      "testNameIds": [
+        "R6",
+        "R7"
+      ]
+    },
+    {
+      "file": "tests/finalize-cleanup-log-paths.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R4",
+        "R5",
+        "R7"
+      ],
+      "testNameIds": [
+        "R4",
+        "R5",
+        "R7"
+      ]
+    }
+  ]
+}

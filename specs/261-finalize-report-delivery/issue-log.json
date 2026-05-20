@@ -1,0 +1,178 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "qa[3]: invalid category \"test-strategy\"; draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-19T08:38:45.216Z",
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Single Responsibility — The draft stays within the user-defined finalize-cleanup/report-delivery bugfix scope and does not propose splitting the issue.; Unambiguous Requirements — must: `flow report show` との整合性を保つこと — The requirement uses the vague condition \"整合性を保つ\" without stating what behavior, output, or contract must match. It is not directly verifiable as written. (at $.scopeVerification.in[3]); Unambiguous Requirements — should: skill / prompt / template の guidance を新しい CLI 契約に合わせること — The requirement says guidance should be aligned with the new CLI contract, but does not specify what text, artifacts, or observable condition would prove alignment. (at $.scopeVerification.in[4]); Complete Context — must: `flow report show` との整合性を保つこと — Two reviewers could reasonably disagree about what consistency with `flow report show` requires because the expected matching behavior is not defined. (at $.scopeVerification.in[3]); Complete Context — should: skill / prompt / template の guidance を新しい CLI 契約に合わせること — Two reviewers could reasonably disagree on whether the guidance was sufficiently updated because the required guidance changes are not specified. (at $.scopeVerification.in[4]); No Hardcoded Secrets — The draft contains no source code excerpts with API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — The scope lists more than three requirements, and each in-scope requirement is labeled with `must` or `should`.; Impact on Existing Features — The draft includes an `impactOnExisting` section listing affected commands, output, runtime logging, warnings, templates, prompts, and tests.; Present Recommendations with Reasoning — Each QA item leads with a recommended answer and includes evidence and reasoning based on existing code behavior, observed runtime behavior, or existing test patterns.; Explore Before Asking — The draft answers the listed questions using known facts and code evidence, with no unresolved user questions left open.; Proactively Raise Related Implications — The draft raises related implications through decision points, impact on existing features, scope boundaries, and validation concerns.; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not critique a brainstorming idea or treat a brainstorming proposal as a final decision.; Capture Digressions in draft.md — No discussion digression is present in the provided draft content, so the article is inapplicable by nature.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing commands or options; it describes output/report-display behavior for an existing flow.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-19T08:40:09.485Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "unambiguous-requirements",
+          "reason": "must: `flow report show` との整合性を保つこと — The requirement uses the vague condition \"整合性を保つ\" without stating what behavior, output, or contract must match. It is not directly verifiable as written. (at $.scopeVerification.in[3]); should: skill / prompt / template の guidance を新しい CLI 契約に合わせること — The requirement says guidance should be aligned with the new CLI contract, but does not specify what text, artifacts, or observable condition would prove alignment. (at $.scopeVerification.in[4])"
+        },
+        {
+          "guardrail_id": "complete-context",
+          "reason": "must: `flow report show` との整合性を保つこと — Two reviewers could reasonably disagree about what consistency with `flow report show` requires because the expected matching behavior is not defined. (at $.scopeVerification.in[3]); should: skill / prompt / template の guidance を新しい CLI 契約に合わせること — Two reviewers could reasonably disagree on whether the guidance was sufficiently updated because the required guidance changes are not specified. (at $.scopeVerification.in[4])"
+        }
+      ],
+      "passedGuardrails": [
+        "single-responsibility",
+        "no-hardcoded-secrets",
+        "prioritize-requirements",
+        "impact-on-existing-features",
+        "draft-recommend-with-reasoning",
+        "draft-explore-before-asking",
+        "draft-raise-implications",
+        "draft-confirm-brainstorm-vs-decide",
+        "draft-capture-digressions",
+        "backward-compatible-cli-interface"
+      ]
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "spec-local tests updated for R2 report-show equivalence, R4/R5 executable log relocation fixtures, and R7 explicit agent-work-dir fixture evidence",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "96d5493801e3ffd0111de91c159ef2a017f8bd95f3102547815e25412a611562",
+        "currentHash": "fe4912274109eed04b418736ffc9c6bf75e45296dc23e4bf4e3ba3ef547b1f62",
+        "changedPaths": [
+          "specs/261-finalize-report-delivery/tests/.raw/scenario-validity.log",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-guidance.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"spec-local tests updated for R2 report-show equivalence, R4/R5 executable log relocation fixtures, and R7 explicit agent-work-dir fixture evidence\" --yes",
+      "createdAt": "2026-05-19T14:24:22.887Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "display tests now invoke real finalize-cleanup command for readable and missing report cases instead of fabricated envelopes",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "fe4912274109eed04b418736ffc9c6bf75e45296dc23e4bf4e3ba3ef547b1f62",
+        "currentHash": "47195f9f3b8e851bcc8215065ac5f21193f35623b725e9567e48dadcfa2bfa73",
+        "changedPaths": [
+          "specs/261-finalize-report-delivery/tests/.raw/scenario-validity.log",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-guidance.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"display tests now invoke real finalize-cleanup command for readable and missing report cases instead of fabricated envelopes\" --yes",
+      "createdAt": "2026-05-19T16:09:51.200Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "tests now compare cleanup display to actual flow report show output and cover ok true plus agent-work-dir warning absence",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "47195f9f3b8e851bcc8215065ac5f21193f35623b725e9567e48dadcfa2bfa73",
+        "currentHash": "838e08aa4824d5056535e549792ede0f0d7778d24fd4468287ed7b96dbe422dc",
+        "changedPaths": [
+          "specs/261-finalize-report-delivery/tests/.raw/scenario-validity.log",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-guidance.test.js",
+          "specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"tests now compare cleanup display to actual flow report show output and cover ok true plus agent-work-dir warning absence\" --yes",
+      "createdAt": "2026-05-19T16:34:15.382Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: regenerated flow skill from local template after R6 artifact failure",
+      "resolution": "node src/sdd-forge.js upgrade updated .agents/.claude skill text so R6 spec-local guidance test now passes",
+      "taskId": null,
+      "timestamp": "2026-05-19T17:00:18.257Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "R1 — finalize-cleanup envelope mode still writes only JSON to stdout, and ok:true envelopes with data.report.text emit a Finalize Report block containing the raw report text via stderr/writeErr in the same dispatch.; R2 — cleanup displays envelope data.report.text verbatim after the Finalize Report header, and spec-local coverage compares that displayed text exactly against flow report show output.; R3 — Dispatcher emits a non-stdout REPORT_MISSING warning instead of a Report block when ok finalize-cleanup returns data.report null with the warning; added spec test asserts ok:true, data.report:null, REPORT_MISSING, visible warning, and no Finalize Report block.; R4 — Diff relocates finalize-cleanup agentWorkDir, explicit --log-file runtime logs, and config.logs.dir via FinalizeCleanupPathResolver when running from a worktree, resolving inside-worktree paths under mainRoot before logger/runtime log creation.; R5 — Diff relocates finalize-cleanup agent work, explicit log file, and config log dirs out of deleted worktrees before writes; tests assert no log write failed or deleted-worktree ENOENT warnings for those cases.; R6 — Diff updates finalize-cleanup prompt, skill template via included partial, and both generated installed skill copies to state cleanup displays the Report itself and `sdd-forge flow report show` can re-display it.; R7 — Spec-local tests were added under specs/261-finalize-report-delivery/tests with // spec headers covering R1-R5, and include a fixture passing --agent-work-dir under a worktree that cleanup deletes.; Spec Test Coverage — The diff adds spec-local tests under specs/261-finalize-report-delivery/tests/, and each added spec test file has a // spec: R<N> header covering the listed requirements.; Avoid Overengineering — new single-use include partial: src/templates/partials/finalize-cleanup-report-delivery.md — The diff introduces a new template partial that is only included once in the provided diff. That is a single-caller indirection layer, which the guardrail forbids. (at src/templates/partials/finalize-cleanup-report-delivery.md:1); Avoid Overengineering — duplicate stream write capture helper: captureProcessStdout — This added helper duplicates the same capture-and-restore stream write shape as the stderr capture helper in another added spec test file. The guardrail requires extracting a helper when the same code shape appears in two or more places. (at specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js:60); Avoid Overengineering — duplicate stream write capture helper: captureProcessStderr — This added helper duplicates the same capture-and-restore stream write shape as the stdout capture helper in another added spec test file. The guardrail requires extracting a helper when the same code shape appears in two or more places. (at specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js:79)",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-19T17:03:52.418Z",
+      "failedEvaluations": [
+        {
+          "guardrail_id": "no-overengineering",
+          "reason": "new single-use include partial: src/templates/partials/finalize-cleanup-report-delivery.md — The diff introduces a new template partial that is only included once in the provided diff. That is a single-caller indirection layer, which the guardrail forbids. (at src/templates/partials/finalize-cleanup-report-delivery.md:1); duplicate stream write capture helper: captureProcessStdout — This added helper duplicates the same capture-and-restore stream write shape as the stderr capture helper in another added spec test file. The guardrail requires extracting a helper when the same code shape appears in two or more places. (at specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js:60); duplicate stream write capture helper: captureProcessStderr — This added helper duplicates the same capture-and-restore stream write shape as the stdout capture helper in another added spec test file. The guardrail requires extracting a helper when the same code shape appears in two or more places. (at specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js:79)"
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "spec-test-coverage"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: resolved no-overengineering gate failures",
+      "resolution": "removed the single-use finalize-cleanup partial by inlining the guidance and extracted duplicated process stream capture helpers into specs/261-finalize-report-delivery/tests/helpers/process-stream.js",
+      "taskId": null,
+      "timestamp": "2026-05-19T17:06:04.922Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "pre_existing",
+      "reason": "final-regression failed: pre_existing",
+      "command": "npm test --",
+      "rawOutputPath": "specs/261-finalize-report-delivery/tests/.raw/final-regression.log",
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "timestamp": "2026-05-19T17:09:19.710Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Pre-merge rebase detected conflicts in .sdd-forge/output/analysis.json. Worktree has been restored. Run 'git rebase main' in the worktree, resolve conflicts, then 'git rebase --continue' and retry 'sdd-forge flow run finalize'.",
+      "timestamp": "2026-05-20T01:01:35.321Z"
+    }
+  ]
+}

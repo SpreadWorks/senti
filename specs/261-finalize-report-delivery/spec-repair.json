@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied both spec review repairs by extending the durable finalize-cleanup path contract to explicit --log-file and config.logs.dir paths that resolve inside the deleted worktree.",
+  "items": [
+    {
+      "title": "Explicit runtime log path bypasses relocation",
+      "target": "Constraints / R4-R5",
+      "decision": "applied",
+      "rationale": "The spec now states that finalize-cleanup relocates `--log-file` paths that resolve inside the deleted worktree to the main repository using the same relative path, while honoring outside-worktree absolute paths.",
+      "evidence": "spec.json constraints[5], requirements[R4], requirements[R5], acceptance_criteria[4], acceptance_criteria[7], and tasks[T-2] now cover explicit --log-file behavior.",
+      "changedFields": [
+        "scope.in[4]",
+        "constraints[5]",
+        "constraints[7]",
+        "overview.data_flow[1].text",
+        "overview.decisions[7]",
+        "requirements[3].desc",
+        "requirements[4].desc",
+        "acceptance_criteria[4]",
+        "acceptance_criteria[7]",
+        "clarifications[3].a",
+        "tasks[1].acceptance",
+        "tasks[1].implementation_notes",
+        "tasks[1].test_strategy"
+      ]
+    },
+    {
+      "title": "Configured logger dir bypasses agentWorkDir relocation",
+      "target": "Constraints / R4-R5",
+      "decision": "applied",
+      "rationale": "The spec now states that finalize-cleanup relocates `config.logs.dir` when it resolves inside the deleted worktree, while honoring outside-worktree absolute log directory overrides.",
+      "evidence": "spec.json constraints[6], requirements[R4], requirements[R5], acceptance_criteria[5], acceptance_criteria[7], and tasks[T-2] now cover configured logger directory behavior.",
+      "changedFields": [
+        "scope.in[4]",
+        "constraints[6]",
+        "constraints[7]",
+        "overview.data_flow[1].text",
+        "overview.decisions[7]",
+        "requirements[3].desc",
+        "requirements[4].desc",
+        "acceptance_criteria[5]",
+        "acceptance_criteria[7]",
+        "clarifications[3].a",
+        "tasks[1].acceptance",
+        "tasks[1].implementation_notes",
+        "tasks[1].test_strategy"
+      ]
+    }
+  ]
+}

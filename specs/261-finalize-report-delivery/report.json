@@ -1,0 +1,222 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".agents/skills/sdd-forge.flow/SKILL.md             |    4 +-\n .claude/skills/sdd-forge.flow/SKILL.md             |    4 +-\n .sdd-forge/output/analysis.json                    |    2 +-\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |   17 +\n .../draft-questions-triage.json                    |   15 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   19 +\n specs/261-finalize-report-delivery/draft.json      |  120 +++\n specs/261-finalize-report-delivery/file-map.json   |   49 +\n specs/261-finalize-report-delivery/flow.json       | 1099 ++++++++++++++++++++\n specs/261-finalize-report-delivery/issue-log.json  |  173 +++\n .../retry-recovery.json                            |   83 ++\n specs/261-finalize-report-delivery/review.md       |   21 +\n .../261-finalize-report-delivery/spec-repair.json  |   52 +\n .../spec-review-triage.json                        |   22 +\n .../261-finalize-report-delivery/spec-review.json  |   41 +\n specs/261-finalize-report-delivery/spec-review.md  |   25 +\n specs/261-finalize-report-delivery/spec.json       |  304 ++++++\n specs/261-finalize-report-delivery/spec.md         |  147 +++\n specs/261-finalize-report-delivery/tasks/T-1.md    |   20 +\n specs/261-finalize-report-delivery/tasks/T-2.md    |   21 +\n specs/261-finalize-report-delivery/tasks/T-3.md    |   20 +\n specs/261-finalize-report-delivery/tasks/T-4.md    |   20 +\n .../test-coverage.json                             |  116 +++\n .../261-finalize-report-delivery/test-review.json  |   14 +\n specs/261-finalize-report-delivery/test-review.md  |   13 +\n .../tests/finalize-cleanup-display.test.js         |  141 +++\n .../tests/finalize-cleanup-guidance.test.js        |   74 ++\n .../tests/finalize-cleanup-log-paths.test.js       |  238 +++++\n .../tests/helpers/process-stream.js                |   24 +\n src/flow/lib/get-next-action.js                    |   29 +-\n src/flow/lib/run-final-regression.js               |    3 +\n src/flow/prompts/impl/finalize-cleanup.md          |    6 +-\n src/lib/container.js                               |   22 +-\n src/lib/dispatcher.js                              |   57 +-\n src/lib/finalize-cleanup-paths.js                  |   44 +\n src/sdd-forge.js                                   |    2 +\n src/templates/partials/worktree-mode.md            |    2 +-\n src/templates/skills/sdd-forge.flow/SKILL.md       |    2 +-\n tests/run.js                                       |   10 +\n tests/unit/flow/final-regression.test.js           |   14 +\n .../unit/templates/finalize-self-contained.test.js |    6 +-\n 44 files changed, 3102 insertions(+), 20 deletions(-)",
+      "commits": [
+        "fix: deliver finalize cleanup report reliably"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 9,
+      "entries": [
+        {
+          "step": "gate-draft",
+          "reason": "qa[3]: invalid category \"test-strategy\"; draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "Single Responsibility — The draft stays within the user-defined finalize-cleanup/report-delivery bugfix scope and does not propose splitting the issue.; Unambiguous Requirements — must: `flow report show` との整合性を保つこと — The requirement uses the vague condition \"整合性を保つ\" without stating what behavior, output, or contract must match. It is not directly verifiable as written. (at $.scopeVerification.in[3]); Unambiguous Requirements — should: skill / prompt / template の guidance を新しい CLI 契約に合わせること — The requirement says guidance should be aligned with the new CLI contract, but does not specify what text, artifacts, or observable condition would prove alignment. (at $.scopeVerification.in[4]); Complete Context — must: `flow report show` との整合性を保つこと — Two reviewers could reasonably disagree about what consistency with `flow report show` requires because the expected matching behavior is not defined. (at $.scopeVerification.in[3]); Complete Context — should: skill / prompt / template の guidance を新しい CLI 契約に合わせること — Two reviewers could reasonably disagree on whether the guidance was sufficiently updated because the required guidance changes are not specified. (at $.scopeVerification.in[4]); No Hardcoded Secrets — The draft contains no source code excerpts with API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — The scope lists more than three requirements, and each in-scope requirement is labeled with `must` or `should`.; Impact on Existing Features — The draft includes an `impactOnExisting` section listing affected commands, output, runtime logging, warnings, templates, prompts, and tests.; Present Recommendations with Reasoning — Each QA item leads with a recommended answer and includes evidence and reasoning based on existing code behavior, observed runtime behavior, or existing test patterns.; Explore Before Asking — The draft answers the listed questions using known facts and code evidence, with no unresolved user questions left open.; Proactively Raise Related Implications — The draft raises related implications through decision points, impact on existing features, scope boundaries, and validation concerns.; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not critique a brainstorming idea or treat a brainstorming proposal as a final decision.; Capture Digressions in draft.md — No discussion digression is present in the provided draft content, so the article is inapplicable by nature.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing commands or options; it describes output/report-display behavior for an existing flow.",
+          "resolution": null
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "spec-local tests updated for R2 report-show equivalence, R4/R5 executable log relocation fixtures, and R7 explicit agent-work-dir fixture evidence",
+          "resolution": null
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "display tests now invoke real finalize-cleanup command for readable and missing report cases instead of fabricated envelopes",
+          "resolution": null
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "tests now compare cleanup display to actual flow report show output and cover ok true plus agent-work-dir warning absence",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: regenerated flow skill from local template after R6 artifact failure",
+          "resolution": "node src/sdd-forge.js upgrade updated .agents/.claude skill text so R6 spec-local guidance test now passes"
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — finalize-cleanup envelope mode still writes only JSON to stdout, and ok:true envelopes with data.report.text emit a Finalize Report block containing the raw report text via stderr/writeErr in the same dispatch.; R2 — cleanup displays envelope data.report.text verbatim after the Finalize Report header, and spec-local coverage compares that displayed text exactly against flow report show output.; R3 — Dispatcher emits a non-stdout REPORT_MISSING warning instead of a Report block when ok finalize-cleanup returns data.report null with the warning; added spec test asserts ok:true, data.report:null, REPORT_MISSING, visible warning, and no Finalize Report block.; R4 — Diff relocates finalize-cleanup agentWorkDir, explicit --log-file runtime logs, and config.logs.dir via FinalizeCleanupPathResolver when running from a worktree, resolving inside-worktree paths under mainRoot before logger/runtime log creation.; R5 — Diff relocates finalize-cleanup agent work, explicit log file, and config log dirs out of deleted worktrees before writes; tests assert no log write failed or deleted-worktree ENOENT warnings for those cases.; R6 — Diff updates finalize-cleanup prompt, skill template via included partial, and both generated installed skill copies to state cleanup displays the Report itself and `sdd-forge flow report show` can re-display it.; R7 — Spec-local tests were added under specs/261-finalize-report-delivery/tests with // spec headers covering R1-R5, and include a fixture passing --agent-work-dir under a worktree that cleanup deletes.; Spec Test Coverage — The diff adds spec-local tests under specs/261-finalize-report-delivery/tests/, and each added spec test file has a // spec: R<N> header covering the listed requirements.; Avoid Overengineering — new single-use include partial: src/templates/partials/finalize-cleanup-report-delivery.md — The diff introduces a new template partial that is only included once in the provided diff. That is a single-caller indirection layer, which the guardrail forbids. (at src/templates/partials/finalize-cleanup-report-delivery.md:1); Avoid Overengineering — duplicate stream write capture helper: captureProcessStdout — This added helper duplicates the same capture-and-restore stream write shape as the stderr capture helper in another added spec test file. The guardrail requires extracting a helper when the same code shape appears in two or more places. (at specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js:60); Avoid Overengineering — duplicate stream write capture helper: captureProcessStderr — This added helper duplicates the same capture-and-restore stream write shape as the stdout capture helper in another added spec test file. The guardrail requires extracting a helper when the same code shape appears in two or more places. (at specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js:79)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: resolved no-overengineering gate failures",
+          "resolution": "removed the single-use finalize-cleanup partial by inlining the guidance and extracted duplicated process stream capture helpers into specs/261-finalize-report-delivery/tests/helpers/process-stream.js"
+        },
+        {
+          "step": "final-regression",
+          "reason": "final-regression failed: pre_existing",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 0,
+      "srcRead": 8,
+      "question": 0,
+      "issueLog": 2
+    },
+    "tokenMetrics": {
+      "input": 435393,
+      "output": 62750,
+      "cacheRead": 1548288,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 22,
+      "durationMs": 1293056,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 16479
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 14339
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 109693
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 249791
+        },
+        {
+          "phase": "gate",
+          "durationMs": 26374
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 551056
+        },
+        {
+          "phase": "review",
+          "durationMs": 62427
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 262897
+        }
+      ]
+    },
+    "tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/261-finalize-report-delivery/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/261-finalize-report-delivery/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/container.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/finalize-cleanup-paths.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/sdd-forge.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/templates/finalize-self-contained.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/261-finalize-report-delivery/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/container.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/finalize-cleanup-paths.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/sdd-forge.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/templates/finalize-self-contained.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/261-finalize-report-delivery/"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/container.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js"
+          },
+          {
+            "status": "untracked",
+            "path": "src/lib/finalize-cleanup-paths.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/sdd-forge.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/templates/finalize-self-contained.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "pass",
+        "failureKind": null,
+        "rawOutputPath": "specs/261-finalize-report-delivery/tests/.raw/final-regression.log",
+        "retryable": false,
+        "nextAction": "finalize-commit"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: deliver finalize cleanup report reliably\n    44 files changed, 3102 insertions(+), 20 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 0\n    src read .................... 8\n    Q&A ......................... 0\n    issue-log ................... 2\n    agent calls ................. 22\n    input tokens ................ 435,393\n    output tokens ............... 62,750\n    cache-read tokens ........... 1,548,288\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1293.1s\n      review-draft-questions .... 16.5s\n      review-draft-coverage ..... 14.3s\n      gate-draft ................ 109.7s\n      review-spec ............... 249.8s\n      gate ...................... 26.4s\n      review-test ............... 551.1s\n      review .................... 62.4s\n      gate-impl ................. 262.9s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 7  passed 7  failed 0 verdict=pass\n    raw_output: specs/261-finalize-report-delivery/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=pass\n\n  Issue Log (9)\n  ────────────────────────────────────────────────\n    [gate-draft] qa[3]: invalid category \"test-strategy\"; draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    [gate-draft] Single Responsibility — The draft stays within the user-defined finalize-cleanup/report-delivery bugfix scope and does not propose splitting the issue.; Unambiguous Requirements — must: `flow report show` との整合性を保つこと — The requirement uses the vague condition \"整合性を保つ\" without stating what behavior, output, or contract must match. It is not directly verifiable as written. (at $.scopeVerification.in[3]); Unambiguous Requirements — should: skill / prompt / template の guidance を新しい CLI 契約に合わせること — The requirement says guidance should be aligned with the new CLI contract, but does not specify what text, artifacts, or observable condition would prove alignment. (at $.scopeVerification.in[4]); Complete Context — must: `flow report show` との整合性を保つこと — Two reviewers could reasonably disagree about what consistency with `flow report show` requires because the expected matching behavior is not defined. (at $.scopeVerification.in[3]); Complete Context — should: skill / prompt / template の guidance を新しい CLI 契約に合わせること — Two reviewers could reasonably disagree on whether the guidance was sufficiently updated because the required guidance changes are not specified. (at $.scopeVerification.in[4]); No Hardcoded Secrets — The draft contains no source code excerpts with API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — The scope lists more than three requirements, and each in-scope requirement is labeled with `must` or `should`.; Impact on Existing Features — The draft includes an `impactOnExisting` section listing affected commands, output, runtime logging, warnings, templates, prompts, and tests.; Present Recommendations with Reasoning — Each QA item leads with a recommended answer and includes evidence and reasoning based on existing code behavior, observed runtime behavior, or existing test patterns.; Explore Before Asking — The draft answers the listed questions using known facts and code evidence, with no unresolved user questions left open.; Proactively Raise Related Implications — The draft raises related implications through decision points, impact on existing features, scope boundaries, and validation concerns.; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not critique a brainstorming idea or treat a brainstorming proposal as a final decision.; Capture Digressions in draft.md — No discussion digression is present in the provided draft content, so the article is inapplicable by nature.; Backward-Compatible CLI Interface — The draft does not remove or change the meaning of existing commands or options; it describes output/report-display behavior for an existing flow.\n    [retry-recovery] spec-local tests updated for R2 report-show equivalence, R4/R5 executable log relocation fixtures, and R7 explicit agent-work-dir fixture evidence\n    [retry-recovery] display tests now invoke real finalize-cleanup command for readable and missing report cases instead of fabricated envelopes\n    [retry-recovery] tests now compare cleanup display to actual flow report show output and cover ok true plus agent-work-dir warning absence\n    [gate-impl] fix: regenerated flow skill from local template after R6 artifact failure\n    [gate] R1 — finalize-cleanup envelope mode still writes only JSON to stdout, and ok:true envelopes with data.report.text emit a Finalize Report block containing the raw report text via stderr/writeErr in the same dispatch.; R2 — cleanup displays envelope data.report.text verbatim after the Finalize Report header, and spec-local coverage compares that displayed text exactly against flow report show output.; R3 — Dispatcher emits a non-stdout REPORT_MISSING warning instead of a Report block when ok finalize-cleanup returns data.report null with the warning; added spec test asserts ok:true, data.report:null, REPORT_MISSING, visible warning, and no Finalize Report block.; R4 — Diff relocates finalize-cleanup agentWorkDir, explicit --log-file runtime logs, and config.logs.dir via FinalizeCleanupPathResolver when running from a worktree, resolving inside-worktree paths under mainRoot before logger/runtime log creation.; R5 — Diff relocates finalize-cleanup agent work, explicit log file, and config log dirs out of deleted worktrees before writes; tests assert no log write failed or deleted-worktree ENOENT warnings for those cases.; R6 — Diff updates finalize-cleanup prompt, skill template via included partial, and both generated installed skill copies to state cleanup displays the Report itself and `sdd-forge flow report show` can re-display it.; R7 — Spec-local tests were added under specs/261-finalize-report-delivery/tests with // spec headers covering R1-R5, and include a fixture passing --agent-work-dir under a worktree that cleanup deletes.; Spec Test Coverage — The diff adds spec-local tests under specs/261-finalize-report-delivery/tests/, and each added spec test file has a // spec: R<N> header covering the listed requirements.; Avoid Overengineering — new single-use include partial: src/templates/partials/finalize-cleanup-report-delivery.md — The diff introduces a new template partial that is only included once in the provided diff. That is a single-caller indirection layer, which the guardrail forbids. (at src/templates/partials/finalize-cleanup-report-delivery.md:1); Avoid Overengineering — duplicate stream write capture helper: captureProcessStdout — This added helper duplicates the same capture-and-restore stream write shape as the stderr capture helper in another added spec test file. The guardrail requires extracting a helper when the same code shape appears in two or more places. (at specs/261-finalize-report-delivery/tests/finalize-cleanup-display.test.js:60); Avoid Overengineering — duplicate stream write capture helper: captureProcessStderr — This added helper duplicates the same capture-and-restore stream write shape as the stdout capture helper in another added spec test file. The guardrail requires extracting a helper when the same code shape appears in two or more places. (at specs/261-finalize-report-delivery/tests/finalize-cleanup-log-paths.test.js:79)\n    [gate-impl] fix: resolved no-overengineering gate failures\n    [final-regression] final-regression failed: pre_existing"
+}

@@ -19,6 +19,7 @@ import path from "path";
 import { parseArgs as cliParseArgs } from "./cli.js";
 import { Command } from "./command.js";
 import { Envelope } from "./flow-envelope.js";
+import { FinalizeCleanupPathResolver } from "./finalize-cleanup-paths.js";
 
 function throwUnexpected(extras) {
   const unknownOpt = extras.find((v) => typeof v === "string" && v.startsWith("-"));
@@ -102,6 +103,10 @@ export function parseEntryInput(entry, argv) {
 
 const RUNTIME_LOG_MAX_BYTES = 5 * 1024 * 1024;
 const RUNTIME_LOG_TRUNCATED_MARKER = "\n[sdd-forge] runtime log truncated: size limit reached\n";
+const FINALIZE_CLEANUP_REPORT_HEADER = "Finalize Report";
+const FINALIZE_CLEANUP_REPORT_MISSING_CODE = "REPORT_MISSING";
+const FINALIZE_CLEANUP_WARNING_MESSAGE_LIMIT = 3;
+const FINALIZE_CLEANUP_WARNING_TEXT_LIMIT = 600;
 
 class RuntimeLog {
   constructor(filePath, maxBytes = RUNTIME_LOG_MAX_BYTES) {
@@ -139,9 +144,22 @@ class RuntimeLog {
   }
 }
 
+function createFinalizeCleanupPathResolver({ container, envelopeKey, hookCtx }) {
+  const paths = container.get("paths");
+  const mainRoot = hookCtx?.mainRoot || (container.has("mainRoot") ? container.get("mainRoot") : null);
+  const inWorktree = hookCtx?.inWorktree ?? (container.has("inWorktree") ? container.get("inWorktree") : false);
+  return new FinalizeCleanupPathResolver({
+    enabled: envelopeKey === "finalize-cleanup",
+    worktreeRoot: hookCtx?.root || paths.root,
+    mainRoot,
+    inWorktree,
+  });
+}
+
 function resolveRuntimeLogPath({ container, input, envelopeKey, hookCtx }) {
   const paths = container.get("paths");
-  if (input.logFile) return path.resolve(paths.root, input.logFile);
+  const cleanupPaths = createFinalizeCleanupPathResolver({ container, envelopeKey, hookCtx });
+  if (input.logFile) return cleanupPaths.relocatePath(path.resolve(paths.root, input.logFile));
 
   const hasActiveFlow = Boolean(hookCtx?.specId);
   const flowId = String(hasActiveFlow ? hookCtx.specId : "no-flow")
@@ -155,7 +173,41 @@ function resolveRuntimeLogPath({ container, input, envelopeKey, hookCtx }) {
     : "";
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const fileName = `${commandKey}${phase}-${timestamp}.log`;
-  return path.join(paths.agentWorkDir, "logs", flowId, fileName);
+  return cleanupPaths.relocatePath(path.join(paths.agentWorkDir, "logs", flowId, fileName));
+}
+
+function findWarning(envelope, code) {
+  return (envelope.errors || []).find((entry) => entry?.level === "warn" && entry?.code === code) || null;
+}
+
+function truncateText(text, limit) {
+  if (text.length <= limit) return text;
+  return `${text.slice(0, limit)}...`;
+}
+
+function formatWarningMessages(warning) {
+  const messages = Array.isArray(warning?.messages) ? warning.messages : [];
+  const shown = messages.slice(0, FINALIZE_CLEANUP_WARNING_MESSAGE_LIMIT);
+  const suffix = messages.length > shown.length
+    ? ` ... (${messages.length - shown.length} more message(s))`
+    : "";
+  return truncateText(`${shown.join(" ")}${suffix}`, FINALIZE_CLEANUP_WARNING_TEXT_LIMIT);
+}
+
+function formatFinalizeCleanupReportDisplay({ envelopeKey, envelope }) {
+  if (envelopeKey !== "finalize-cleanup" || !(envelope instanceof Envelope) || envelope.ok !== true) return null;
+  const report = envelope.data?.report;
+  if (report && typeof report.text === "string") return `${FINALIZE_CLEANUP_REPORT_HEADER}\n${report.text}`;
+  if (report !== null) return null;
+
+  const warning = findWarning(envelope, FINALIZE_CLEANUP_REPORT_MISSING_CODE);
+  if (!warning) return null;
+  return `${FINALIZE_CLEANUP_REPORT_MISSING_CODE}: ${formatWarningMessages(warning)}\n`;
+}
+
+function emitFinalizeCleanupReportDisplay({ envelopeKey, envelope, writeErr }) {
+  const text = formatFinalizeCleanupReportDisplay({ envelopeKey, envelope });
+  if (text) writeErr(text);
 }
 
 /**
@@ -327,6 +379,7 @@ export async function dispatch({
     }
     if (mode === "envelope") {
       writeOut(JSON.stringify(envelope.toJSON(), null, 2) + "\n");
+      emitFinalizeCleanupReportDisplay({ envelopeKey, envelope, writeErr });
       setExit(envelope.ok && !postFailed ? 0 : 1);
     } else if (postFailed) {
       setExit(1);
