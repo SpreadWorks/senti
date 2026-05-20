@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-20T05:52:37.638Z",
+  "analyzedAt": "2026-05-20T06:47:42.657Z",
   "package": {
     "entries": [
       {
@@ -183,14 +183,15 @@
       },
       {
         "file": "src/check/commands/scan.js",
-        "hash": "dba8f5790f24b2cfb763d8242b95eac3",
-        "lines": 273,
-        "mtime": "2026-05-16T08:19:57.843Z",
+        "hash": "d378743a742a442df8d496e7159317a0",
+        "lines": 292,
+        "mtime": "2026-05-20T06:47:16.447Z",
         "className": "scan",
         "methods": [
           "printHelp",
           "groupByExtension",
           "walkIncludedFiles",
+          "coveragePercent",
           "computeCoverage",
           "formatText",
           "formatMarkdown",
@@ -201,7 +202,7 @@
           "path",
           "../../lib/cli.js",
           "../../lib/config.js",
-          "../../docs/lib/scanner.js",
+          "../../lib/glob.js",
           "../../docs/lib/analysis-entry.js",
           "../../lib/formatter.js",
           "../../lib/command.js",
@@ -218,23 +219,9 @@
           "src/docs/commands/build.js"
         ],
         "id": "7cccb0de",
-        "summary": "`check scan` validates analysis coverage by comparing configured source include/exclude patterns against generated `analysis.json`. It reports grouped file-extension stats and can output text, markdown, or JSON.",
-        "detail": "The command walks source files using glob-to-regex matchers and computes the effective file set before comparing it with analyzed entries. It loads `.sdd-forge/output/analysis.json`, handles missing or invalid JSON as hard errors, and exits with a defined error code on invalid CLI conditions. Output formatters provide human-readable text and markdown variants in addition to raw JSON for automation. The module exports helper utilities (`groupByExtension`, `computeCoverage`, `formatText`) for reuse and testability.",
-        "chapter": "cli_commands",
-        "role": "coverage check command",
         "enrich": {
-          "processedAt": "2026-05-16T10:53:00.843Z",
           "attempts": 1
-        },
-        "keywords": [
-          "coverage check",
-          "analysis.json",
-          "glob matching",
-          "exclude patterns",
-          "file extension grouping",
-          "CLI format output",
-          "validation command"
-        ]
+        }
       },
       {
         "file": "src/data/agents.js",
@@ -258,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -281,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -301,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -322,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -342,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -364,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -1146,16 +1133,18 @@
       },
       {
         "file": "src/docs/lib/analysis-filter.js",
-        "hash": "dd16ce72a84d62fe4337bb833e22ccf9",
-        "lines": 52,
-        "mtime": "2026-05-16T08:19:57.844Z",
+        "hash": "3413ecb0bb91996498ee545d92cab92c",
+        "lines": 60,
+        "mtime": "2026-05-20T06:47:16.447Z",
         "className": "analysis-filter",
         "methods": [
           "filterByDocsExclude",
-          "filterAnalysisByDocsExclude"
+          "filterAnalysisByDocsExclude",
+          "compileExcludeMatchers",
+          "filterEntriesByExcludeMatchers"
         ],
         "imports": [
-          "./scanner.js",
+          "../../lib/glob.js",
           "./analysis-entry.js"
         ],
         "exports": [
@@ -1165,22 +1154,9 @@
         "extends": null,
         "usedBy": null,
         "id": "f3ac0c38",
-        "summary": "The analysis-filter module removes entries excluded by docs glob rules at entry or full-analysis granularity. It composes scanner glob logic with analysis iteration primitives.",
-        "detail": "It compiles exclusion patterns to regexes and applies them against each entry’s source file path. A lightweight filter function handles simple entry arrays, while a higher-level function rebuilds full analysis objects category by category. The implementation respects analysis meta keys so structural metadata is preserved while content entries are pruned. This keeps downstream enrich/forge pipelines aligned with documented scope without mutating source scanning rules.",
-        "chapter": "internal_design",
-        "role": "analysis exclusion filter",
         "enrich": {
-          "processedAt": "2026-05-16T10:53:00.843Z",
           "attempts": 1
-        },
-        "keywords": [
-          "docs exclude",
-          "glob filter",
-          "analysis pruning",
-          "regex matching",
-          "category filtering",
-          "scope control"
-        ]
+        }
       },
       {
         "file": "src/docs/lib/chapter-resolver.js",
@@ -1423,7 +1399,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -1925,7 +1901,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -1957,7 +1933,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -2035,9 +2011,9 @@
       },
       {
         "file": "src/docs/lib/scanner.js",
-        "hash": "399429dc7d2b862e53e6670e0ad1eb5b",
-        "lines": 290,
-        "mtime": "2026-04-05T09:45:33.800Z",
+        "hash": "8fe41a74b12bb78e10527472abfec2a9",
+        "lines": 258,
+        "mtime": "2026-05-20T06:47:16.447Z",
         "className": "scanner",
         "methods": [
           "patternToRegex",
@@ -2046,14 +2022,14 @@
           "parsePHPFile",
           "parseJSFile",
           "parseFile",
-          "globToRegex",
           "collectFiles"
         ],
         "imports": [
           "crypto",
           "fs",
           "path",
-          "./lang-factory.js"
+          "./lang-factory.js",
+          "../../lib/glob.js"
         ],
         "exports": [
           "patternToRegex",
@@ -2062,32 +2038,17 @@
           "parsePHPFile",
           "parseJSFile",
           "parseFile",
-          "globToRegex",
           "collectFiles",
           "default",
           "camelToSnake",
           "pluralize"
         ],
         "extends": null,
-        "usedBy": [
-          "src/docs/lib/analysis-filter.js"
-        ],
+        "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "processedAt": "2026-04-19T14:44:31.345Z",
-          "attempts": 3
-        },
-        "summary": "Provides core filesystem scanning, glob matching, file parsing, and metadata collection utilities. It is the main analysis file discovery and parse backbone.",
-        "detail": "The module computes file hashes and stats, traverses directories recursively, and applies include/exclude matching with glob-derived regexes. It dispatches parsing to language handlers and includes fallback parsing for unsupported file types. Utility exports also expose camel/snake and pluralization helpers reused by analyzers. Results are sorted deterministically by relative path for stable outputs.",
-        "chapter": "internal_design",
-        "role": "lib",
-        "keywords": [
-          "file scanner",
-          "glob regex",
-          "hash metadata",
-          "recursive traversal",
-          "parser dispatch"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/docs/lib/template-merger.js",
@@ -4227,13 +4188,14 @@
       },
       {
         "file": "src/flow/lib/run-final-regression.js",
-        "hash": "cad61803c68551e66b1829842b4ff572",
-        "lines": 374,
-        "mtime": "2026-05-20T01:09:12.553Z",
+        "hash": "1a641b7732c0e93d0fe610e25c75730d",
+        "lines": 479,
+        "mtime": "2026-05-20T06:47:16.447Z",
         "className": "run-final-regression",
         "methods": [
+          "repoRelative",
           "appendRaw",
-          "commandDiscoveryProcess",
+          "resolveRealPath",
           "readAnalysisIfExists",
           "classifyChangeScope",
           "boundedText",
@@ -4244,6 +4206,8 @@
           "failureReferencesChangedFile",
           "changedFilesWithinMatchLimit",
           "classifyFailure",
+          "nextFinalRegressionAttempt",
+          "latestAttemptIndex",
           "previousFinalRegressionFailures",
           "recordFinalRegressionFailure"
         ],
@@ -4264,24 +4228,9 @@
         "extends": "FlowCommand",
         "usedBy": null,
         "id": "49364661",
-        "summary": "FlowCommand that runs the final regression test step, classifies failures, and persists results plus issue-log entries.",
-        "detail": "Defines `FinalRegressionDecision`, `FinalRegressionProcess`, and `FinalRegressionArtifact` classes that encapsulate failure-kind to nextAction mapping with frozen lookup tables. Reads `analysis.json` and changed-files lists to classify failure scope as `current-change` vs `pre-existing` by substring-matching normalized paths against bounded evidence text. Caps evidence bytes (256KB total, 1000 file match limit) and writes raw output plus structured JSON result files under the spec directory. Records failures into issue-log via `loadIssueLog`/`saveIssueLog` and returns success or `Envelope.fail` with paths relative to the worktree root.",
-        "chapter": "internal_design",
-        "role": "Final regression runner command that executes tests, classifies failure scope, writes artifacts, and appends issue-log entries",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:08.721Z",
           "attempts": 1
-        },
-        "keywords": [
-          "final regression",
-          "failure classification",
-          "issue-log",
-          "FlowCommand",
-          "evidence bounding",
-          "changed files",
-          "envelope",
-          "FinalRegressionDecision"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
@@ -4340,16 +4289,14 @@
       },
       {
         "file": "src/flow/lib/run-finalize-commit.js",
-        "hash": "601d1101b21556f0283b04a6bddd6184",
-        "lines": 84,
-        "mtime": "2026-05-16T08:19:57.845Z",
+        "hash": "26d84187eca5c8546d1822e9791f423f",
+        "lines": 64,
+        "mtime": "2026-05-20T06:47:16.447Z",
         "className": "run-finalize-commit",
         "methods": [
-          "RunFinalizeCommitCommand",
-          "specArtifactPathspecs"
+          "RunFinalizeCommitCommand"
         ],
         "imports": [
-          "path",
           "../../lib/flow-helpers.js",
           "../../lib/git-helpers.js",
           "./base-command.js",
@@ -4364,20 +4311,8 @@
         "usedBy": null,
         "id": "1e686d63",
         "enrich": {
-          "processedAt": "2026-05-18T13:31:12.050Z",
-          "attempts": 5
-        },
-        "summary": "Finalizes commit staging with preflight checks and explicit artifact pathspec handling.",
-        "detail": "The command runs finalize preflight before attempting commit-related operations. It builds spec-scoped pathspecs from durable test artifact definitions and includes temporary summary artifacts when staging changes. The return payload is normalized with user-facing commit status messaging for consistent finalize-step output.",
-        "chapter": "cli_commands",
-        "role": "finalize commit step command",
-        "keywords": [
-          "finalize commit",
-          "preflight",
-          "artifact staging",
-          "pathspec",
-          "test artifacts"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-finalize-merge.js",
@@ -4458,15 +4393,14 @@
       },
       {
         "file": "src/flow/lib/run-finalize.js",
-        "hash": "294eb97fe62f1b99050c310c2bbfb8a8",
-        "lines": 344,
-        "mtime": "2026-05-20T05:52:18.467Z",
+        "hash": "94621675ee5ce073477bb7cff7956658",
+        "lines": 341,
+        "mtime": "2026-05-20T06:47:16.447Z",
         "className": "run-finalize",
         "methods": [
           "finalizeOnError",
           "writeLastFinalizedPointer",
           "commitOrSkip",
-          "collectExistingPathspecs",
           "readFinalizeMergeMetadataPreflight",
           "getFinalizeMergeTargetExternalDirtyPaths",
           "hasFinalizeMergeTargetExternalDirty",
@@ -4498,7 +4432,6 @@
           "finalizeOnError",
           "writeLastFinalizedPointer",
           "commitOrSkip",
-          "collectExistingPathspecs",
           "readFinalizeMergeMetadataPreflight",
           "getFinalizeMergeTargetExternalDirtyPaths",
           "hasFinalizeMergeTargetExternalDirty",
@@ -5048,9 +4981,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "ff55c8b6bb067505355f35231e29b2d2",
-        "lines": 538,
-        "mtime": "2026-05-19T04:48:08.663Z",
+        "hash": "8098b294b1922eec1b6a49896f1f468d",
+        "lines": 546,
+        "mtime": "2026-05-20T06:47:16.447Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -5063,12 +4996,12 @@
           "RunReviewCommand",
           "persistedPhaseKey",
           "isImplementationReviewPhase",
+          "inclusiveFlowLeafStepIdsBetween",
           "taskCursorRequiredReviewFailure",
           "mutateReviewRecoveryState",
           "resolveDraftReviewPhaseKey",
           "reviewPhaseKeyForCtx",
           "isImplPass",
-          "removeReviewDownstreamArtifacts",
           "resolvePhaseReviewNextStep",
           "resolveDraftReviewRoute",
           "resolveDraftReviewNextStep",
@@ -5087,7 +5020,6 @@
           "../../lib/flow-envelope.js",
           "../definition.js",
           "path",
-          "fs",
           "./review-failure.js",
           "./set-issue-log.js",
           "./retry-recovery.js",
@@ -5119,23 +5051,9 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "d4e97204",
-        "summary": "Implements the review command wrapper that runs review subprocesses by phase and normalizes outputs into flow results. It enforces retry limits, failure stop-state behavior, and phase-specific next-step routing.",
-        "detail": "Before execution, it validates phase names, resolves review scope, and blocks invalid task-cursor states, then checks phase retry budgets derived from flow definitions. It executes `flow/commands/review.js` with timeout and controlled subprocess retries, classifies subprocess failures through ReviewFailure, and persists review-stop recovery state for provider or input-size failures. Phase parsers extract verdict and count fields from stderr to produce structured artifacts and next-step transitions, including draft-route-specific branching. On implementation review proposals, it removes downstream test artifacts and rewinds test/review/gate steps to pending so evidence is regenerated from updated code.",
-        "chapter": "cli_commands",
-        "role": "review command orchestrator",
         "enrich": {
-          "processedAt": "2026-05-19T04:50:35.464Z",
           "attempts": 1
-        },
-        "keywords": [
-          "phase review",
-          "subprocess retry",
-          "review verdict parsing",
-          "retry counter",
-          "stop state persistence",
-          "task scope enforcement",
-          "flow step rewind"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-scenario-validity.js",
@@ -5281,18 +5199,18 @@
       },
       {
         "file": "src/flow/lib/run-test-execute.js",
-        "hash": "9d9d4a60b3c670fe5e47d867598ebe1c",
-        "lines": 288,
-        "mtime": "2026-05-18T04:41:07.761Z",
+        "hash": "6b2d6b1ef454ad181de68dbf2bb3139c",
+        "lines": 299,
+        "mtime": "2026-05-20T06:47:16.447Z",
         "className": "run-test-execute",
         "methods": [
-          "removeIfExists",
           "recordPrerequisiteIssue",
           "listSpecTestFiles",
           "extractRequirementTestName",
           "findSpecTestFileForReq",
           "appendRaw",
           "runSpecLocalTests",
+          "testableRequirementsForSummary",
           "buildSummary",
           "specLocalPassed",
           "buildSkippedRegression",
@@ -5317,22 +5235,8 @@
         "usedBy": null,
         "id": "41745e8b",
         "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
-          "attempts": 3
-        },
-        "summary": "Runs deterministic test execution for the impl flow and writes `test-execute-result.json` version 2 plus raw logs. It combines spec-local requirement tests with policy-driven project regression execution.",
-        "detail": "Before execution, it removes resettable downstream test artifacts so evidence is rebuilt from a clean state. It runs spec-local tests, captures normalized output sections, and builds per-requirement summary evidence including command, test file/name, and raw line ranges. It validates temporary summary evidence against requirements and raw output before proceeding. Regression behavior is classified and planned via `test-regression.js`, then either skipped or executed as targeted/full with explicit start/end markers in raw output. On success it writes the v2 artifact and raw log paths; on prerequisite failure before artifact creation it records a structured issue-log entry.",
-        "chapter": "cli_commands",
-        "role": "Test execution orchestrator",
-        "keywords": [
-          "test-execute",
-          "requirement evidence",
-          "raw output markers",
-          "regression planning",
-          "targeted tests",
-          "artifact v2",
-          "deterministic runner"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
@@ -6081,11 +5985,18 @@
       },
       {
         "file": "src/flow/lib/test-artifacts.js",
-        "hash": "268dc2f50dca7ba5e88339b62a89a6e4",
-        "lines": 844,
-        "mtime": "2026-05-18T13:29:13.534Z",
+        "hash": "01fa4da22f0d4a4e45e895d30a7ebad8",
+        "lines": 936,
+        "mtime": "2026-05-20T06:47:16.448Z",
         "className": "test-artifacts",
         "methods": [
+          "durableTestArtifactPathspecs",
+          "implementationCommitExcludedTestArtifactPathspecs",
+          "tempRequirementSummaryPath",
+          "writeTempRequirementSummary",
+          "removeTempRequirementSummary",
+          "collectExistingArtifactPathspecs",
+          "removeRebuildableTestArtifacts",
           "GateArtifactTrustContract",
           "GateArtifactTrustSuccess",
           "GateArtifactTrustFailure",
@@ -6101,6 +6012,8 @@
           "buildTestResultsFromArtifacts",
           "assertIntegrationRegressionEvidence",
           "validateIntegrationArtifactTrust",
+          "testArtifactPathspecs",
+          "addCollectedArtifactPathspec",
           "assertFileSizeWithinLimit",
           "assertMaxItems",
           "readBoundedJson",
@@ -6139,9 +6052,17 @@
           "crypto",
           "string_decoder",
           "../../lib/config.js",
+          "../../lib/glob.js",
           "./test-regression.js"
         ],
         "exports": [
+          "durableTestArtifactPathspecs",
+          "implementationCommitExcludedTestArtifactPathspecs",
+          "tempRequirementSummaryPath",
+          "writeTempRequirementSummary",
+          "removeTempRequirementSummary",
+          "collectExistingArtifactPathspecs",
+          "removeRebuildableTestArtifacts",
           "GateArtifactTrustContract",
           "GateArtifactTrustSuccess",
           "GateArtifactTrustFailure",
@@ -6161,16 +6082,15 @@
           "TEST_RESULT_REVIEW_FILE",
           "TEST_RESULT_REVIEW_MD_FILE",
           "FINAL_REGRESSION_RESULT_FILE",
+          "TESTS_RAW_DIR_RELATIVE",
           "RAW_OUTPUT_RELATIVE",
-          "FINAL_REGRESSION_RAW_OUTPUT_RELATIVE",
+          "FINAL_REGRESSION_RAW_OUTPUT_PATTERN",
           "TEMP_SUMMARY_RELATIVE",
           "FILE_MAP_RELATIVE",
           "PLACEHOLDER_PERMISSION_FILE",
           "SCENARIO_VALIDITY_RESULT_FILE",
           "SCENARIO_VALIDITY_RAW_OUTPUT_RELATIVE",
           "MAX_RAW_OUTPUT_BYTES",
-          "DURABLE_TEST_ARTIFACT_RELATIVE_PATHS",
-          "RESETTABLE_TEST_ARTIFACT_RELATIVE_PATHS",
           "SCENARIO_VALIDITY_CLASSIFICATIONS"
         ],
         "extends": null,
@@ -6189,23 +6109,23 @@
           "src/flow/lib/set-step.js"
         ],
         "id": "0b1b96b3",
-        "enrich": {
-          "processedAt": "2026-05-19T16:47:37.879Z",
-          "attempts": 3
-        },
-        "summary": "Defines test artifact contracts, limits, and validators used across impl/finalize gates. It is the central trust layer for test evidence integrity.",
-        "detail": "The module declares canonical artifact filenames and strict size, line-count, and item-count bounds for JSON and raw text payloads. It validates test-execute, test-result-review, final-regression, and scenario-validity structures, including requirement membership, process metadata, evidence ranges, and path confinement. Integration trust checks enforce required inputs, validate file-map coverage, and detect stale regression snapshots against current changed-file classification. It also scans for placeholder fixtures via known hashes and configurable sentinel text, requiring explicit permission artifacts when placeholders are intentionally allowed. Trust outcomes are represented with explicit success/failure classes and a stable public failure code for gate artifact trust errors.",
+        "summary": "Implements robust handling and validation for test artifacts generated during flow execution. It enforces trust checks, placeholder detection, size limits, and consistency between artifact snapshots and current repository state.",
+        "detail": "This module centralizes constants, artifact path patterns, and bounded I/O guards for JSON and raw log files used in requirement tests and regression checks. It validates multiple artifact schemas, including test execution results, review outcomes, scenario-validity reports, and final regression status, with strict structural and semantic assertions. It enforces repository-safe path resolution, line-range bounds, and evidence linkage by checking that requirement IDs and test names actually appear in raw outputs and test sources. It adds trust gating with placeholder sentinel scanning, known placeholder hash detection, and optional user-approved placeholder permissions. It also verifies integration relevance by comparing stored changed-file snapshots against current analysis output to reject stale regression evidence.",
         "chapter": "internal_design",
-        "role": "Artifact validation and trust layer",
+        "role": "Test artifact validation and trust-gate core for the flow pipeline.",
+        "enrich": {
+          "processedAt": "2026-05-20T06:48:20.404Z",
+          "attempts": 1
+        },
         "keywords": [
-          "artifact contract",
+          "test artifacts",
+          "regression validation",
           "evidence integrity",
-          "schema validation",
           "placeholder detection",
-          "file-map validation",
-          "integration trust",
-          "raw output bounds",
-          "regression snapshot"
+          "trust contract",
+          "bounded file read",
+          "schema enforcement",
+          "path traversal prevention"
         ]
       },
       {
@@ -6350,9 +6270,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "21ab879508a5aae99ce544f6ff7d0505",
+        "hash": "2da10c055b222ede2ac230961b766f4b",
         "lines": 1014,
-        "mtime": "2026-05-20T05:52:18.467Z",
+        "mtime": "2026-05-20T06:47:16.448Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6382,9 +6302,24 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
+        "summary": "Defines the flow command registry and orchestration hooks for step status, retries, gate transitions, and finalize behavior. It coordinates runtime interactions between flow state, gate logic, review routing, and artifact checks.",
+        "detail": "The registry declares command metadata and helper sets for finalize success states, runtime option forwarding, retry-help phases, and recorded draft-review verdicts. It contains utility routines that safely update step status and append issue logs, with controlled stderr reporting when no active flow is present. It wires side effects across lifecycle points, such as gate execution, finalize merge outcome handling, and downstream step reset for skipped branches. It also validates key test artifacts during specific transitions by loading and checking execute, review, and final-regression files. The design keeps flow-level control logic centralized while delegating specialized checks to focused library modules.",
+        "chapter": "cli_commands",
+        "role": "Flow orchestration registry and command-level lifecycle coordinator.",
         "enrich": {
+          "processedAt": "2026-05-20T06:48:20.404Z",
           "attempts": 1
-        }
+        },
+        "keywords": [
+          "flow registry",
+          "command routing",
+          "step status",
+          "gate phase",
+          "retry handling",
+          "finalize pipeline",
+          "artifact verification",
+          "workflow orchestration"
+        ]
       },
       {
         "file": "src/help.js",
@@ -7419,6 +7354,39 @@
         ]
       },
       {
+        "file": "src/lib/glob.js",
+        "hash": "84504046ff66b3ab71faa17b110874f9",
+        "lines": 41,
+        "mtime": "2026-05-20T06:47:16.448Z",
+        "className": "glob",
+        "methods": [
+          "globToRegex"
+        ],
+        "imports": [],
+        "exports": [
+          "globToRegex"
+        ],
+        "extends": null,
+        "usedBy": null,
+        "id": "9491474f",
+        "summary": "Provides a minimal glob-to-regex converter used for wildcard filename matching. It supports internal artifact collection patterns with deterministic regex generation.",
+        "detail": "The implementation escapes regex metacharacters and translates glob syntax into anchored regular expressions. It tracks special characters, including backslash handling, to preserve literal interpretation where needed. The resulting regex always matches full strings from start to end, preventing partial-match ambiguity. This utility is intentionally small and dependency-free to align with project constraints. It is used by artifact discovery code to evaluate basename wildcard patterns efficiently.",
+        "chapter": "internal_design",
+        "role": "Core utility for translating glob patterns into executable regular expressions.",
+        "enrich": {
+          "processedAt": "2026-05-20T06:48:20.404Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "glob parsing",
+          "regex conversion",
+          "wildcard matching",
+          "pattern utility",
+          "filename filter",
+          "escaping rules"
+        ]
+      },
+      {
         "file": "src/lib/guardrail.js",
         "hash": "8cc3201c7e2e9201f4ea596d31e2c8d2",
         "lines": 230,
@@ -7557,8 +7525,21 @@
         ],
         "id": "d35107ed",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-20T06:48:20.404Z",
+          "attempts": 4
+        },
+        "summary": "Resolves and expands include directives in markdown-like content with strict path and recursion controls. It prevents unsafe path traversal while supporting configurable include roots.",
+        "detail": "The module parses include directives and resolves each target through alias-aware path rules tied to configured base directories. It explicitly rejects relative traversal markers like \"../\" and \"./\" in include expressions to reduce ambiguity and escape risks. Expansion is recursive but bounded by maximum depth and total include count to avoid runaway inclusion and excessive processing. It detects missing files and circular references with clear, source-aware error messages. The final output is reconstructed line-by-line after recursively inlining referenced content.",
+        "chapter": "internal_design",
+        "role": "Safe include preprocessor for templated documentation and skill content.",
+        "keywords": [
+          "include directive",
+          "path resolution",
+          "circular include detection",
+          "recursion limit",
+          "content preprocessing",
+          "path safety"
+        ]
       },
       {
         "file": "src/lib/json-parse.js",
@@ -8147,8 +8128,21 @@
         ],
         "id": "a3560f5e",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-20T06:48:20.404Z",
+          "attempts": 4
+        },
+        "summary": "Loads, validates, filters, and renders skill rule definitions from rules.json. It also expands rule directives embedded in content by resolving referenced rule IDs.",
+        "detail": "This module defines allowed rule phases, states, field schema, and ID format constraints, then enforces them during normalization. Parsing functions support loading from file or raw JSON text and raise structured validation errors for malformed content. Rule filtering selects applicable entries by phase and state, enabling context-aware instruction assembly. Rendering utilities convert normalized rules into block text suitable for injection into generated outputs. Directive expansion integrates with parsed content markers and fails fast when unknown rule IDs are referenced.",
+        "chapter": "development",
+        "role": "Skill rule schema/validation engine and directive expansion layer.",
+        "keywords": [
+          "rules.json",
+          "skill governance",
+          "schema validation",
+          "phase filtering",
+          "directive expansion",
+          "rule normalization"
+        ]
       },
       {
         "file": "src/lib/skills.js",
@@ -8188,8 +8182,21 @@
         ],
         "id": "a1344e4a",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-20T06:48:20.404Z",
+          "attempts": 4
+        },
+        "summary": "Manages skill deployment from package sources into project-local agent directories. It resolves includes and rule directives before writing deterministic SKILL.md outputs.",
+        "detail": "The module defines source directories and destination targets, then enumerates skill folders and resolves each skill entry file. During deployment it composes final content by stripping data markers, expanding include directives, and injecting rule-based directives from loaded rule definitions. It compares existing destination content, removes symlink targets when necessary, and writes only changed files to minimize churn. It supports dry-run reporting and project-specific skill sources in addition to built-in skills. Cleanup logic removes obsolete deployed skills not present in active source directories.",
+        "chapter": "development",
+        "role": "Skill distribution and synchronization manager for .agents/.claude environments.",
+        "keywords": [
+          "skill deployment",
+          "SKILL.md generation",
+          "content expansion",
+          "symlink cleanup",
+          "dry run",
+          "project skills"
+        ]
       },
       {
         "file": "src/lib/spec-json.js",
@@ -11363,8 +11370,22 @@
         "usedBy": null,
         "id": "9820c9db",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-20T06:48:20.404Z",
+          "attempts": 4
+        },
+        "summary": "Implements the interactive/non-interactive setup command that bootstraps sdd-forge project configuration and directories. It initializes config, agent guidance files, ignore rules, and skill deployment.",
+        "detail": "The setup flow parses CLI options, reads existing defaults, and can run an interactive wizard for project metadata and preset selection. It creates required directories under .sdd-forge, docs, and specs, and ensures repository hygiene via .gitignore and .gitattributes updates. Configuration is validated and written to .sdd-forge/config.json, including agent provider defaults and resolved work directory handling. It manages AGENTS.md or CLAUDE.md insertion/update of the SDD directive block and can repair symlinked CLAUDE.md files. Finally, it deploys bundled skills into target agent directories so the environment is ready for flow operations.",
+        "chapter": "cli_commands",
+        "role": "Project bootstrap command for configuration, scaffolding, and environment initialization.",
+        "keywords": [
+          "setup command",
+          "project bootstrap",
+          "config initialization",
+          "interactive wizard",
+          "agent file generation",
+          "skill deployment",
+          "gitignore management"
+        ]
       },
       {
         "file": "src/spec.js",
@@ -11480,15 +11501,28 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-20T06:48:20.404Z",
+          "attempts": 4
+        },
+        "summary": "Implements the upgrade command that refreshes project-generated assets and normalizes configuration. It coordinates config loading, preset-chain validation, and upgrade pipeline execution.",
+        "detail": "The command parses upgrade options, loads and validates current project configuration, and exits with a controlled error code on invalid state. It executes upgrade routines that synchronize generated artifacts such as skills/templates according to current presets. It reports per-skill deployment/update outcomes to make changes auditable during upgrades. After pipeline updates, it rewrites config.json in normalized pretty-printed form for consistency. The module acts as a thin CLI entrypoint around shared upgrade and validation primitives.",
+        "chapter": "cli_commands",
+        "role": "Upgrade command entrypoint for refreshing generated project assets and config state.",
+        "keywords": [
+          "upgrade command",
+          "asset synchronization",
+          "config normalization",
+          "preset validation",
+          "skill refresh",
+          "CLI maintenance"
+        ]
       }
     ],
     "summary": {
-      "total": 309,
-      "totalMethods": 1414
+      "total": 310,
+      "totalMethods": 1427
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-20T05:53:49.396Z"
+  "enrichedAt": "2026-05-20T06:48:52.376Z"
 }
