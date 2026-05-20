@@ -138,8 +138,8 @@ for (const expectation of DRAFT_REVIEW_ROUTE_EXPECTATIONS) {
 const PLAN_REVIEW_MAX_ATTEMPTS_BY_ID = Object.freeze({
   "review-draft-questions": Object.freeze({ auto: 1, manual: 1 }),
   "review-draft-coverage": Object.freeze({ auto: 1, manual: 1 }),
-  "review-spec": Object.freeze({ auto: 1, manual: 1 }),
-  "review-test": Object.freeze({ auto: 1, manual: 1 }),
+  "review-spec": Object.freeze({ auto: 4, manual: 4 }),
+  "review-test": Object.freeze({ auto: 2, manual: 2 }),
 });
 
 function createPlanReviewNode({ id, label, contextKinds }) {
@@ -348,7 +348,7 @@ export const FLOW_DEFINITION = Object.freeze([
         instructionsKey: "impl.review",
         contextKinds: ["spec", "diff", "testlog"],
         outputSchemaRef: "next-action/review.schema.json",
-        maxAttempts: 3,
+        maxAttempts: 4,
       }),
       new FlowNode({
         id: "gate-impl",

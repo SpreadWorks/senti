@@ -61,18 +61,25 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
     assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
   });
 
-  it("keeps spec review one-shot in manual and auto modes", () => {
+  it("sets spec review retry budget from recent convergence data", () => {
     const node = resolveNodeFor(FLOW_DEFINITION, "review-spec");
 
-    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
-    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 4);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 4);
   });
 
-  it("keeps test review one-shot in manual and auto modes", () => {
+  it("sets test review retry budget from recent convergence data", () => {
     const node = resolveNodeFor(FLOW_DEFINITION, "review-test");
 
-    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 1);
-    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 1);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 2);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 2);
+  });
+
+  it("sets implementation review retry budget from recent convergence data", () => {
+    const node = resolveNodeFor(FLOW_DEFINITION, "review");
+
+    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 4);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 4);
   });
 
   it("has gate before approval", () => {
