@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-20T14:21:37.361Z",
+  "analyzedAt": "2026-05-20T15:12:19.430Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -1155,7 +1155,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -1399,7 +1399,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -1901,7 +1901,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -1933,7 +1933,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -2047,7 +2047,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -2260,14 +2260,14 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
         "file": "src/flow/commands/merge.js",
-        "hash": "8e7d21430f5cfffc1327864839e149f7",
-        "lines": 304,
-        "mtime": "2026-05-08T14:47:26.780Z",
+        "hash": "db227ae5c5608f7762b3536fd0a0d61e",
+        "lines": 389,
+        "mtime": "2026-05-20T15:12:08.185Z",
         "className": "merge",
         "methods": [
           "resolveRemote",
@@ -2277,6 +2277,9 @@
           "buildPrTitle",
           "buildPrBody",
           "loadSpec",
+          "firstNonEmptySubjectLine",
+          "collectImplementationSubjects",
+          "buildSquashCommitMessage",
           "resolveMergeStrategy",
           "runMerge",
           "runPreSync"
@@ -2295,29 +2298,16 @@
           "parseSpec",
           "buildPrTitle",
           "buildPrBody",
+          "buildSquashCommitMessage",
+          "collectImplementationSubjects",
           "runPreSync"
         ],
         "extends": null,
         "usedBy": null,
         "id": "3a0db928",
-        "summary": "Flow merge command implementing PR creation and squash merge strategies for the SDD finalization phase.",
-        "detail": "Resolves merge strategy (PR vs squash) based on gh CLI availability and config flags. Builds PR title and body from spec data including requirements and scope blocks. Implements squash merge with temporary worktree handling, conflict detection, and recovery hints. Provides runPreSync for fetching base branch and rebasing feature branch with conflict reporting. Uses git-helpers for low-level git operations and exports parseSpec/buildPrTitle/buildPrBody as testable units.",
-        "chapter": "internal_design",
-        "role": "flow merge orchestrator",
         "enrich": {
-          "processedAt": "2026-05-08T14:48:07.627Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow merge",
-          "pull request",
-          "squash merge",
-          "rebase",
-          "gh CLI",
-          "spec parsing",
-          "conflict recovery",
-          "finalize phase"
-        ]
+        }
       },
       {
         "file": "src/flow/commands/report.js",
@@ -2630,7 +2620,7 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4202,7 +4192,7 @@
         "usedBy": null,
         "id": "49364661",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -4284,7 +4274,7 @@
         "usedBy": null,
         "id": "1e686d63",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4424,7 +4414,7 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5025,7 +5015,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -5208,8 +5198,25 @@
         "usedBy": null,
         "id": "41745e8b",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-20T15:12:33.535Z",
+          "attempts": 4
+        },
+        "summary": "Implements the flow `test-execute` command that runs requirement-linked spec-local tests and optional project regression tests, then writes structured artifacts. It enforces prerequisites and produces machine-readable outputs for later flow stages.",
+        "detail": "The module defines helper functions to discover spec test files, map requirement IDs to test files, extract readable test names, and cap processed requirements with a maximum threshold for safety. During execution, it resolves the spec directory, validates required inputs such as `analysis.json`, runs local spec tests with Node's test runner, and records command/process failures with explicit error handling. It builds a summary per testable requirement, including normalized relative test file paths and pass/fail interpretation, then classifies whether project-wide regression tests are required or skipped. Finally, it appends raw execution logs, saves a result artifact JSON with output paths and ranges, and updates issue-log state so downstream flow steps can consume consistent test evidence.",
+        "chapter": "cli_commands",
+        "role": "Flow command executor for test orchestration and artifact generation",
+        "keywords": [
+          "test execute",
+          "flow command",
+          "spec-local tests",
+          "regression testing",
+          "requirement traceability",
+          "artifact generation",
+          "issue log",
+          "Node.js test runner",
+          "command orchestration",
+          "failure handling"
+        ]
       },
       {
         "file": "src/flow/lib/run-test-result-review.js",
@@ -11499,9 +11506,9 @@
     ],
     "summary": {
       "total": 310,
-      "totalMethods": 1429
+      "totalMethods": 1432
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-20T14:22:56.790Z"
+  "enrichedAt": "2026-05-20T15:13:41.065Z"
 }
