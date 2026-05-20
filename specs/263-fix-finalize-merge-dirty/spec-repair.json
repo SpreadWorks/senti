@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied the target-external dirty precedence rule across constraints, requirements, acceptance criteria, and task notes.",
+  "items": [
+    {
+      "title": "R3 and R4 do not define the external-dirty retry-reset intersection",
+      "target": "Requirements R3/R4 and Acceptance Criteria",
+      "decision": "applied",
+      "rationale": "The spec now states that any target-external dirty path blocks all finalize-merge pre-hook metadata mutation/commit, including downstream skipped reset. Reset behavior is preserved only when no target-external dirty path exists.",
+      "evidence": "spec.json constraints[4], requirements R3/R4, acceptance_criteria, and tasks now define the precedence.",
+      "changedFields": [
+        "constraints[4]",
+        "requirements[2].desc",
+        "requirements[3].desc",
+        "acceptance_criteria",
+        "tasks[0].acceptance",
+        "tasks[0].implementation_notes",
+        "tasks[1].acceptance"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test-review-evidence-updated-for-pre-hook-ordering-and-skipped-reset",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "e2be90fa1521e9f4cb630451b13f87deeee921fb20bfb6ac57cac65dc254a7e4",
+        "currentHash": "5206846c59d3882acfd18d78cd9e1fa47f746a2dbe01094c398d072bfe42367b",
+        "changedPaths": [
+          "specs/263-fix-finalize-merge-dirty/tests/.raw/scenario-validity.log",
+          "specs/263-fix-finalize-merge-dirty/tests/finalize-merge-metadata.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test-review-evidence-updated-for-pre-hook-ordering-and-skipped-reset\" --yes",
+      "createdAt": "2026-05-20T05:21:55.878Z"
+    },
+    {
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test-review-evidence-added-negative-non-target-staging-coverage",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "5206846c59d3882acfd18d78cd9e1fa47f746a2dbe01094c398d072bfe42367b",
+        "currentHash": "e38315949b076e9260745cf3441a7eff2826f0868a14c33d9b01e99615b31f1d",
+        "changedPaths": [
+          "specs/263-fix-finalize-merge-dirty/tests/.raw/scenario-validity.log",
+          "specs/263-fix-finalize-merge-dirty/tests/finalize-merge-metadata.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 1,
+      "maxAttempts": 1,
+      "counterAfter": 0,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test-review-evidence-added-negative-non-target-staging-coverage\" --yes",
+      "createdAt": "2026-05-20T05:22:49.961Z"
+    }
+  ]
+}

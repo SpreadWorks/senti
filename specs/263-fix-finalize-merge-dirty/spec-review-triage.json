@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "One blocking finding is valid and should be repaired by defining target-external dirty precedence for both metadata commit and downstream reset.",
+  "items": [
+    {
+      "title": "R3 and R4 do not define the external-dirty retry-reset intersection",
+      "target": "Requirements R3/R4 and Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The spec must state whether downstream skipped reset may mutate and commit flow.json when a target-external dirty path exists. User-work protection requires target-external dirty paths to block all finalize-merge pre-hook metadata commits, including the reset commit.",
+      "evidence": "spec.json R3 protects target-external dirty paths, while R4 preserves downstream skipped reset. src/flow/registry.js currently commits reset flow.json in finalize-merge pre hook, so the precedence must be explicit before implementation."
+    }
+  ]
+}

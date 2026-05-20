@@ -62,6 +62,125 @@ export function collectExistingPathspecs(root, relativePathspecs) {
   return relativePathspecs.filter((relPath) => fs.existsSync(path.join(root, relPath)));
 }
 
+function getFinalizeMergeAllowedMetadataPaths(specId) {
+  const paths = [
+    `specs/${specId}/flow.json`,
+    `specs/${specId}/issue-log.json`,
+  ];
+  return { paths, pathSet: new Set(paths) };
+}
+
+function walkPorcelainStatusPaths(output, visit) {
+  let index = 0;
+  while (index < output.length) {
+    const next = output.indexOf("\0", index);
+    const end = next === -1 ? output.length : next;
+    const record = output.slice(index, end);
+    index = end + 1;
+    if (!record) continue;
+
+    const status = record.slice(0, 2);
+    const relPath = record.slice(3);
+    if (relPath && visit(relPath, status) === false) return;
+
+    if (status.includes("R") || status.includes("C")) {
+      const originalNext = output.indexOf("\0", index);
+      const originalEnd = originalNext === -1 ? output.length : originalNext;
+      const originalPath = output.slice(index, originalEnd);
+      index = originalEnd + 1;
+      if (originalPath && visit(originalPath, status) === false) return;
+    }
+  }
+}
+
+function readFinalizeMergeStatusOutput(root) {
+  const res = runGit(["status", "--porcelain=v1", "-z"], { cwd: root });
+  assertOk(res, "finalize-merge metadata preflight failed: git status failed");
+  return res.stdout || "";
+}
+
+function buildFinalizeMergeMetadataPreflight(specId, dirtyPaths) {
+  const allowed = getFinalizeMergeAllowedMetadataPaths(specId);
+  const metadataDirty = new Set();
+  const externalDirtyPaths = [];
+  for (const dirtyPath of dirtyPaths) {
+    if (allowed.pathSet.has(dirtyPath)) {
+      metadataDirty.add(dirtyPath);
+    } else {
+      externalDirtyPaths.push(dirtyPath);
+    }
+  }
+  return {
+    allowedMetadataPaths: allowed.paths,
+    metadataDirtyPaths: allowed.paths.filter((relPath) => metadataDirty.has(relPath)),
+    externalDirtyPaths,
+  };
+}
+
+export function readFinalizeMergeMetadataPreflight({ root, specId }) {
+  const allowed = getFinalizeMergeAllowedMetadataPaths(specId);
+  const metadataDirty = new Set();
+  const externalDirtyPaths = [];
+  walkPorcelainStatusPaths(readFinalizeMergeStatusOutput(root), (dirtyPath) => {
+    if (allowed.pathSet.has(dirtyPath)) {
+      metadataDirty.add(dirtyPath);
+      return true;
+    }
+    externalDirtyPaths.push(dirtyPath);
+    return false;
+  });
+  return {
+    allowedMetadataPaths: allowed.paths,
+    metadataDirtyPaths: allowed.paths.filter((relPath) => metadataDirty.has(relPath)),
+    externalDirtyPaths,
+  };
+}
+
+export function getFinalizeMergeTargetExternalDirtyPaths({ root, specId, dirtyPaths, preflight }) {
+  if (preflight) return preflight.externalDirtyPaths;
+  if (dirtyPaths) return buildFinalizeMergeMetadataPreflight(specId, dirtyPaths).externalDirtyPaths;
+  return readFinalizeMergeMetadataPreflight({ root, specId }).externalDirtyPaths;
+}
+
+export function hasFinalizeMergeTargetExternalDirty({ root, specId, dirtyPaths, preflight }) {
+  return getFinalizeMergeTargetExternalDirtyPaths({ root, specId, dirtyPaths, preflight }).length > 0;
+}
+
+export function commitFinalizeMergeMetadataIfSafe({
+  root,
+  specId,
+  dirtyPaths,
+  preflight,
+  includeFlowJson = false,
+  message = "chore: record finalize metadata before merge",
+}) {
+  const metadataPreflight = preflight
+    || (dirtyPaths
+      ? buildFinalizeMergeMetadataPreflight(specId, dirtyPaths)
+      : readFinalizeMergeMetadataPreflight({ root, specId }));
+  if (metadataPreflight.externalDirtyPaths.length > 0) {
+    return {
+      status: "skipped",
+      reason: "target-external-dirty",
+      dirtyPaths: metadataPreflight.externalDirtyPaths,
+    };
+  }
+
+  const dirtySet = new Set(metadataPreflight.metadataDirtyPaths);
+  if (includeFlowJson) dirtySet.add(metadataPreflight.allowedMetadataPaths[0]);
+  const metadataPaths = metadataPreflight.allowedMetadataPaths.filter((relPath) => dirtySet.has(relPath));
+  if (metadataPaths.length === 0) {
+    return { status: "skipped", reason: "no-metadata-dirty" };
+  }
+
+  const addRes = runGit(["add", "--", ...metadataPaths], { cwd: root });
+  assertOk(addRes, "finalize-merge metadata preflight failed: git add failed");
+  return {
+    ...commitOrSkip(["-m", message], { cwd: root }),
+    paths: metadataPaths,
+  };
+}
+
 export function resolveGitCommonDir(root) {
   const res = runGit(["-C", root, "rev-parse", "--git-common-dir"]);
   assertOk(res, "finalize preflight failed: unable to resolve git common dir");

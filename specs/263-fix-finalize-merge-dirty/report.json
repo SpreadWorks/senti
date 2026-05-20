@@ -1,0 +1,191 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".sdd-forge/output/analysis.json                    |   2 +-\n .../draft-coverage-repair.json                     |   8 +\n .../draft-coverage-triage.json                     |   8 +\n .../draft-questions-repair.json                    |   8 +\n .../draft-questions-triage.json                    |   8 +\n .../draft-review-coverage.json                     |  11 +\n .../draft-review-questions.json                    |  11 +\n specs/263-fix-finalize-merge-dirty/draft.json      |  74 ++\n specs/263-fix-finalize-merge-dirty/file-map.json   |  25 +\n specs/263-fix-finalize-merge-dirty/flow.json       | 968 +++++++++++++++++++++\n specs/263-fix-finalize-merge-dirty/issue-log.json  | 156 ++++\n .../retry-recovery.json                            |  53 ++\n specs/263-fix-finalize-merge-dirty/review.md       |  21 +\n .../263-fix-finalize-merge-dirty/spec-repair.json  |  24 +\n .../spec-review-triage.json                        |  15 +\n .../263-fix-finalize-merge-dirty/spec-review.json  |  32 +\n specs/263-fix-finalize-merge-dirty/spec-review.md  |  19 +\n specs/263-fix-finalize-merge-dirty/spec.json       | 212 +++++\n specs/263-fix-finalize-merge-dirty/spec.md         | 111 +++\n specs/263-fix-finalize-merge-dirty/tasks/T-1.md    |  21 +\n specs/263-fix-finalize-merge-dirty/tasks/T-2.md    |  22 +\n .../test-coverage.json                             |  75 ++\n .../263-fix-finalize-merge-dirty/test-review.json  |  14 +\n specs/263-fix-finalize-merge-dirty/test-review.md  |  13 +\n .../tests/finalize-merge-metadata.test.js          | 267 ++++++\n src/flow/lib/run-finalize.js                       | 119 +++\n src/flow/registry.js                               |  32 +-\n 27 files changed, 2318 insertions(+), 11 deletions(-)",
+      "commits": [
+        "fix: persist finalize metadata before merge"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 10,
+      "entries": [
+        {
+          "step": "gate-draft",
+          "reason": "Single Responsibility — The draft is scoped to one bugfix: preventing finalize-merge from stopping when only flow management metadata remains dirty after finalize-commit.; Unambiguous Requirements — 小さな chore commit — “小さな” is a vague adjective and does not state a verifiable condition for the commit size or content. (at $.analysis.proposedApproach); Unambiguous Requirements — 小さな chore commit — This requirement uses the vague adjective “小さな” without measurable criteria, so reviewers could not verify that the condition is satisfied. (at $.scopeVerification.in[0]); Complete Context — 必要最小限の fixture — “必要最小限” is subjective and lacks measurable criteria, so two independent reviewers may not agree on what fixture scope satisfies it. (at $.decisionMap.deferredToSpec[1]); No Hardcoded Secrets — The draft contains no source code and no API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — The in-scope requirements number more than three and each item is assigned a priority of must or should.; Impact on Existing Features — The draft includes an impactOnExisting section listing impacts on finalize-merge behavior, dirty worktree stopping, downstream reset handling, and CLI command compatibility.; Present Recommendations with Reasoning — The single question includes a recommended answer first and provides concise reasoning grounded in existing code patterns and observed behavior.; Explore Before Asking — The draft records codebase evidence from registry, finalize, next-action, and merge modules before asking the user question.; Proactively Raise Related Implications — The draft proactively raises implications for dirty file scope, user work safety, downstream reset handling, and CLI argument compatibility.; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not critique brainstorming ideas as final decisions; it records an answered goal-confirmation question and an approved direction.; Capture Digressions in draft.md — No discussion digression is present in the provided content, so the guardrail is inapplicable by nature of the draft.; Backward-Compatible CLI Interface — The draft explicitly states that user-facing CLI arguments and existing command names are not changed, so no migration plan is required.",
+          "resolution": null
+        },
+        {
+          "step": "gate-draft",
+          "reason": "Draft gate failed because vague adjectives made commit scope and fixture scope non-verifiable.",
+          "resolution": "Rewrote the draft to specify exact staged paths and the three fixture cases."
+        },
+        {
+          "step": "spec-repair",
+          "reason": "Spec review found undefined precedence between external dirty paths and downstream skipped reset.",
+          "resolution": "Added an explicit rule that target-external dirty paths block all finalize-merge pre-hook metadata mutation and commit, including downstream reset."
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "test-review-evidence-updated-for-pre-hook-ordering-and-skipped-reset",
+          "resolution": null
+        },
+        {
+          "step": "retry-recovery",
+          "reason": "test-review-evidence-added-negative-non-target-staging-coverage",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: spec-local git status assertions now use --untracked-files=all",
+          "resolution": "gate artifact failed because git status --short collapses untracked directories; file-level dirty assertions need untracked file expansion"
+        },
+        {
+          "step": "gate",
+          "reason": "R1 — finalize-merge pre hook now preflights dirty paths and commits current spec flow.json/issue-log.json metadata when no external dirty paths exist, before runPreSync would run.; R2 — Metadata staging is limited to allowedMetadataPaths for current spec flow.json and issue-log.json; any external dirty path causes skip with no git add.; R3 — finalize-merge pre hook reads git status before mutation, returns immediately on any non-allowed dirty path, so it neither commits metadata nor runs downstream skipped reset; spec-local test covers this behavior.; R4 — finalize-merge pre hook now skips external-dirty cases, resets downstream skipped steps when safe, stages flow.json via includeFlowJson, and commits before pre-sync.; R5 — Spec-local test file added under specs/263-fix-finalize-merge-dirty/tests with // spec: R1 R2 R3 R4 R5 header and tests covering metadata-only dirty commit, target-external dirty no-op, and downstream skipped reset behavior.; Spec Test Coverage — The diff adds spec-local coverage under specs/263-fix-finalize-merge-dirty/tests/ with a non-empty // spec: R1 R2 R3 R4 R5 header.; Avoid Overengineering — function finalizeMergeMetadataPaths(specId) — This newly introduced helper is only called by getFinalizeMergeAllowedMetadataPaths in the diff, making it an indirection layer with a single caller. (at src/flow/lib/run-finalize.js); Avoid Overengineering — function collectPorcelainStatusPaths(output) — This newly introduced helper is only called by readFinalizeMergeDirtyPaths in the diff, making it an indirection layer with a single caller. (at src/flow/lib/run-finalize.js); Avoid Overengineering — export function readFinalizeMergeDirtyPaths({ root }) — This newly introduced exported helper only wraps collectPorcelainStatusPaths(readFinalizeMergeStatusOutput(root)) and has no shown caller in the diff, adding an unnecessary indirection surface. (at src/flow/lib/run-finalize.js)",
+          "resolution": null
+        },
+        {
+          "step": "gate-impl",
+          "reason": "fix: removed single-caller helpers flagged by no-overengineering",
+          "resolution": "inlined finalize metadata path construction and removed the unused dirty-path export and its single-caller collector"
+        },
+        {
+          "step": "final-regression",
+          "reason": "final-regression failed: pre_existing",
+          "resolution": null
+        },
+        {
+          "step": "final-regression",
+          "reason": "user-confirmed skip: final-regression classified npm test failure as pre_existing",
+          "resolution": "proceeding to finalize without rewriting final-regression failure artifact; spec-local tests and gate-impl passed"
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 9,
+      "question": 0,
+      "issueLog": 5
+    },
+    "tokenMetrics": {
+      "input": 274456,
+      "output": 18620,
+      "cacheRead": 424064,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 19,
+      "durationMs": 450328,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 7961
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 14629
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 47509
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 137054
+        },
+        {
+          "phase": "gate",
+          "durationMs": 27130
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 53437
+        },
+        {
+          "phase": "review",
+          "durationMs": 65456
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 97152
+        }
+      ]
+    },
+    "tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/263-fix-finalize-merge-dirty/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "specs/263-fix-finalize-merge-dirty/",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-finalize.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/263-fix-finalize-merge-dirty/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "untracked",
+            "path": "specs/263-fix-finalize-merge-dirty/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-finalize.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "pre_existing",
+        "rawOutputPath": "specs/263-fix-finalize-merge-dirty/tests/.raw/final-regression.log",
+        "retryable": false,
+        "nextAction": "user-confirmation"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    fix: persist finalize metadata before merge\n    27 files changed, 2318 insertions(+), 11 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 9\n    Q&A ......................... 0\n    issue-log ................... 5\n    agent calls ................. 19\n    input tokens ................ 274,456\n    output tokens ............... 18,620\n    cache-read tokens ........... 424,064\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 450.3s\n      review-draft-questions .... 8.0s\n      review-draft-coverage ..... 14.6s\n      gate-draft ................ 47.5s\n      review-spec ............... 137.1s\n      gate ...................... 27.1s\n      review-test ............... 53.4s\n      review .................... 65.5s\n      gate-impl ................. 97.2s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 5  passed 5  failed 0 verdict=pass\n    raw_output: specs/263-fix-finalize-merge-dirty/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=pre_existing\n\n  Issue Log (10)\n  ────────────────────────────────────────────────\n    [gate-draft] Single Responsibility — The draft is scoped to one bugfix: preventing finalize-merge from stopping when only flow management metadata remains dirty after finalize-commit.; Unambiguous Requirements — 小さな chore commit — “小さな” is a vague adjective and does not state a verifiable condition for the commit size or content. (at $.analysis.proposedApproach); Unambiguous Requirements — 小さな chore commit — This requirement uses the vague adjective “小さな” without measurable criteria, so reviewers could not verify that the condition is satisfied. (at $.scopeVerification.in[0]); Complete Context — 必要最小限の fixture — “必要最小限” is subjective and lacks measurable criteria, so two independent reviewers may not agree on what fixture scope satisfies it. (at $.decisionMap.deferredToSpec[1]); No Hardcoded Secrets — The draft contains no source code and no API keys, passwords, tokens, or other hardcoded secrets.; Prioritize Requirements — The in-scope requirements number more than three and each item is assigned a priority of must or should.; Impact on Existing Features — The draft includes an impactOnExisting section listing impacts on finalize-merge behavior, dirty worktree stopping, downstream reset handling, and CLI command compatibility.; Present Recommendations with Reasoning — The single question includes a recommended answer first and provides concise reasoning grounded in existing code patterns and observed behavior.; Explore Before Asking — The draft records codebase evidence from registry, finalize, next-action, and merge modules before asking the user question.; Proactively Raise Related Implications — The draft proactively raises implications for dirty file scope, user work safety, downstream reset handling, and CLI argument compatibility.; Confirm Brainstorm vs. Decision Before Critiquing — The draft does not critique brainstorming ideas as final decisions; it records an answered goal-confirmation question and an approved direction.; Capture Digressions in draft.md — No discussion digression is present in the provided content, so the guardrail is inapplicable by nature of the draft.; Backward-Compatible CLI Interface — The draft explicitly states that user-facing CLI arguments and existing command names are not changed, so no migration plan is required.\n    [gate-draft] Draft gate failed because vague adjectives made commit scope and fixture scope non-verifiable.\n    [spec-repair] Spec review found undefined precedence between external dirty paths and downstream skipped reset.\n    [retry-recovery] test-review-evidence-updated-for-pre-hook-ordering-and-skipped-reset\n    [retry-recovery] test-review-evidence-added-negative-non-target-staging-coverage\n    [gate-impl] fix: spec-local git status assertions now use --untracked-files=all\n    [gate] R1 — finalize-merge pre hook now preflights dirty paths and commits current spec flow.json/issue-log.json metadata when no external dirty paths exist, before runPreSync would run.; R2 — Metadata staging is limited to allowedMetadataPaths for current spec flow.json and issue-log.json; any external dirty path causes skip with no git add.; R3 — finalize-merge pre hook reads git status before mutation, returns immediately on any non-allowed dirty path, so it neither commits metadata nor runs downstream skipped reset; spec-local test covers this behavior.; R4 — finalize-merge pre hook now skips external-dirty cases, resets downstream skipped steps when safe, stages flow.json via includeFlowJson, and commits before pre-sync.; R5 — Spec-local test file added under specs/263-fix-finalize-merge-dirty/tests with // spec: R1 R2 R3 R4 R5 header and tests covering metadata-only dirty commit, target-external dirty no-op, and downstream skipped reset behavior.; Spec Test Coverage — The diff adds spec-local coverage under specs/263-fix-finalize-merge-dirty/tests/ with a non-empty // spec: R1 R2 R3 R4 R5 header.; Avoid Overengineering — function finalizeMergeMetadataPaths(specId) — This newly introduced helper is only called by getFinalizeMergeAllowedMetadataPaths in the diff, making it an indirection layer with a single caller. (at src/flow/lib/run-finalize.js); Avoid Overengineering — function collectPorcelainStatusPaths(output) — This newly introduced helper is only called by readFinalizeMergeDirtyPaths in the diff, making it an indirection layer with a single caller. (at src/flow/lib/run-finalize.js); Avoid Overengineering — export function readFinalizeMergeDirtyPaths({ root }) — This newly introduced exported helper only wraps collectPorcelainStatusPaths(readFinalizeMergeStatusOutput(root)) and has no shown caller in the diff, adding an unnecessary indirection surface. (at src/flow/lib/run-finalize.js)\n    [gate-impl] fix: removed single-caller helpers flagged by no-overengineering\n    [final-regression] final-regression failed: pre_existing\n    [final-regression] user-confirmed skip: final-regression classified npm test failure as pre_existing"
+}

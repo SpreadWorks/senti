@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "phase": "review-test",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "finalize-merge pre hook must commit current spec metadata before runPreSync when the only dirty paths are specs/<specId>/flow.json and/or specs/<specId>/issue-log.json.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-metadata.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "The metadata commit must stage only specs/<specId>/flow.json and specs/<specId>/issue-log.json, and must not stage docs, src, tests, package files, or other spec files.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-metadata.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "When git status contains any dirty path outside specs/<specId>/flow.json and specs/<specId>/issue-log.json, finalize-merge pre hook must not create a metadata commit or run downstream skipped reset mutation, leaving existing dirty-worktree failure behavior to runPreSync.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-metadata.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "When no target-external dirty path exists, the existing downstream skipped reset behavior must still reset skipped finalize-sync/finalize-cleanup to pending and commit the resulting flow.json state before runPreSync.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-metadata.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "Spec-local tests under specs/263-fix-finalize-merge-dirty/tests must cover metadata-only dirty commit, target-external dirty no-op, and downstream skipped reset behavior with // spec: R<N> headers.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/finalize-merge-metadata.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/finalize-merge-metadata.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "spec": "specs/263-fix-finalize-merge-dirty/spec.json",
+  "date": "2026-05-20T05:39:11.866Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "finalize-merge pre hook must commit current spec metadata before runPreSync when the only dirty paths are specs/<specId>/flow.json and/or specs/<specId>/issue-log.json.",
+      "status": "done",
+      "note": "R1: commits dirty flow.json before pre-merge rebase"
+    },
+    {
+      "desc": "The metadata commit must stage only specs/<specId>/flow.json and specs/<specId>/issue-log.json, and must not stage docs, src, tests, package files, or other spec files.",
+      "status": "done",
+      "note": "R2: stages only flow.json and issue-log.json"
+    },
+    {
+      "desc": "When git status contains any dirty path outside specs/<specId>/flow.json and specs/<specId>/issue-log.json, finalize-merge pre hook must not create a metadata commit or run downstream skipped reset mutation, leaving existing dirty-worktree failure behavior to runPreSync.",
+      "status": "done",
+      "note": "R3: skips metadata commit and downstream reset when target-external dirty file exists"
+    },
+    {
+      "desc": "When no target-external dirty path exists, the existing downstream skipped reset behavior must still reset skipped finalize-sync/finalize-cleanup to pending and commit the resulting flow.json state before runPreSync.",
+      "status": "done",
+      "note": "R4: downstream skipped reset is committed when no external path is dirty"
+    },
+    {
+      "desc": "Spec-local tests under specs/263-fix-finalize-merge-dirty/tests must cover metadata-only dirty commit, target-external dirty no-op, and downstream skipped reset behavior with // spec: R<N> headers.",
+      "status": "done",
+      "note": "R5: exposes the metadata dirty guard used by spec-local coverage"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 5,
+    "done": 5,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

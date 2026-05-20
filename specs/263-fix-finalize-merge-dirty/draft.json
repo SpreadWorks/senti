@@ -1,0 +1,74 @@
+{
+  "devType": "bugfix",
+  "goal": "finalize-commit 後に flow 管理メタデータだけが未コミットで残っても、finalize-merge の pre-merge rebase が不要に停止しないようにする。",
+  "analysis": {
+    "problem": "finalize-commit の post hook と次 action の promotion は specs/<specId>/flow.json や issue-log.json を更新するが、artifact commit は durable test/report artifact だけを stage する。その結果、flow 管理メタデータだけが dirty になり、finalize-merge の pre-merge rebase が dirty worktree と判定して停止する。",
+    "proposedApproach": "finalize-merge の pre hook で、現在 spec の flow 管理メタデータだけが dirty な場合に限り、staged path を specs/<specId>/flow.json と specs/<specId>/issue-log.json に限定した chore commit として先に保存する。その他の dirty file が混ざる場合は既存の dirty worktree 停止を維持する。",
+    "validation": "specs/<specId>/flow.json と specs/<specId>/issue-log.json だけが dirty な状態では finalize-merge 前にメタデータ commit が作られること、対象外ファイルが dirty な場合は自動 commit しないこと、既存の skipped downstream reset commit が維持されることを unit test で検証する。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "src/flow/registry.js の finalize-commit post hook は finalize-commit step を done に更新し、その後 executeCommitPost を呼ぶ。",
+      "src/flow/lib/run-finalize.js の executeCommitPost は durable test/report artifact だけを stage して chore commit を作るため、flow.json の step 状態更新は artifact commit に含まれない。",
+      "src/flow/lib/get-next-action.js は次の pending leaf を in_progress に promoted すると flow.json を保存する。",
+      "src/flow/commands/merge.js の runPreSync は rebaseOnto が dirty を返すと、Pre-merge rebase failed: working tree has uncommitted changes として finalize-merge を停止する。",
+      "src/flow/registry.js の finalize-merge pre hook には、過去の merge failure で skipped になった downstream step を pending に戻し、その flow.json reset を commit する precedent がある。"
+    ],
+    "decisionPoints": [
+      "自動 commit してよい dirty file の範囲を現在 spec の flow 管理メタデータに限定するか。",
+      "対象外 dirty file が混ざる場合に既存の dirty worktree 停止を維持するか。"
+    ],
+    "resolvedByProjectRules": [
+      "ユーザーは直接修正を依頼し、auto mode を選択したため、追加の承認待ちは CLI の requires_approval と autoApprove に従う。",
+      "外部依存は追加しない。実装は Node.js 組み込みモジュールと既存 git helper の範囲で行う。",
+      "ユーザーの未コミット作業を巻き込まないため、対象外 dirty file は自動 stage / commit しない。",
+      "src/templates や src/presets は変更対象外のため、sdd-forge upgrade は不要見込み。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "helper の配置は既存の finalize helper / registry hook の責務に合わせて spec step で決める。",
+      "テストは既存の finalize / merge unit test pattern に合わせて、metadata-only dirty、対象外 dirty 混在、downstream skipped reset の 3 ケースを fixture 化する。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: finalize-merge pre hook は、現在 spec の flow 管理メタデータだけが dirty な場合に pre-merge rebase 前へ staged path を specs/<specId>/flow.json と specs/<specId>/issue-log.json に限定した chore commit を作る。",
+      "must: 自動 commit 対象は specs/<specId>/flow.json と specs/<specId>/issue-log.json に限定する。",
+      "must: 対象外 dirty file が 1 つでもある場合は自動 commit せず、既存の dirty worktree 停止を維持する。",
+      "must: 既存の skipped downstream reset commit は維持し、同じ pre hook 内で dirty を残さない。",
+      "should: unit test で flow metadata-only dirty、対象外 dirty 混在、downstream reset の各挙動を検証する。"
+    ],
+    "out": [
+      "finalize merge strategy、squash merge、PR route の意味変更。",
+      "finalize-cleanup の orphan commit recovery 仕様変更。",
+      "ユーザー作業や対象外ファイルを自動 commit すること。",
+      "docs build、release、npm publish、dist-tag 操作。",
+      "外部依存追加や TypeScript 移行。"
+    ]
+  },
+  "impactOnExisting": [
+    "flow 管理メタデータだけが dirty な finalize-merge retry / initial merge では、手動 commit なしで進めるようになる。",
+    "対象外 dirty file がある場合の dirty worktree 停止は維持される。",
+    "finalize-merge pre hook の既存 downstream skipped reset 処理は維持される。",
+    "ユーザー向け CLI 引数や既存コマンド名は変更しない。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "finalize-commit 後に残る flow 管理メタデータ dirty を、finalize-merge 前に直接処理する修正として進めますか。",
+      "answer": "進める。現在 spec の flow.json と issue-log.json だけを対象にした自動 commit を finalize-merge 前に追加し、対象外 dirty file は従来どおり停止させる。",
+      "evidence": "ユーザーは「直接修正して」と依頼し、auto mode で [1] を選択した。src/flow/registry.js の finalize-merge pre hook は既に downstream reset を commit する precedent を持つ。src/flow/commands/merge.js の runPreSync は dirty worktree を pre-merge rebase failure として止める。",
+      "why": "今回発生した停止は flow 自身が生成した管理メタデータだけで起きた。対象を flow.json / issue-log.json に限定すれば、ユーザー作業を巻き込まずに root cause を解消できる。",
+      "considered": "executeCommitPost の artifact commit に flow.json を含める案は、test/report artifact commit の責務を広げる。runPreSync の dirty 判定を緩める案は対象外 dirty file を見逃すため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-20T05:05:13.495Z",
+    "notes": "autoApprove=true。ユーザーは直接修正を依頼し、auto mode を選択した。追加の user decision はない。"
+  }
+}

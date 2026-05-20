@@ -676,6 +676,19 @@ export const FLOW_COMMANDS = {
         "Squash merge or PR creation. On failure, subsequent steps are skipped.",
       ].join("\n"),
       async pre(ctx) {
+        const finalize = await import("./lib/run-finalize.js");
+        const metadataPreflight = finalize.readFinalizeMergeMetadataPreflight({
+          root: ctx.root,
+          specId: ctx.specId,
+        });
+        if (finalize.hasFinalizeMergeTargetExternalDirty({
+          root: ctx.root,
+          specId: ctx.specId,
+          preflight: metadataPreflight,
+        })) {
+          return;
+        }
+
         // R20/R21: a prior merge failure left finalize-sync / finalize-cleanup
         // marked 'skipped' on the worktree flow.json (via this entry's onError).
         // Reset them to 'pending' before the retry so promoteNextPendingLeaf
@@ -684,16 +697,15 @@ export const FLOW_COMMANDS = {
         // without this commit, the pre-hook write would itself satisfy 'dirty'
         // and block the retry it is meant to enable.
         const mutated = resetSkippedDownstreamSteps(ctx.flowManager);
-        if (!mutated) return;
-        const finalize = await import("./lib/run-finalize.js");
-        const git = await import("../lib/git-helpers.js");
-        const flowJsonRel = `specs/${ctx.specId}/flow.json`;
-        git.runGit(["-C", ctx.root, "add", "--", flowJsonRel]);
-        try {
-          finalize.commitOrSkip(["-m", "chore: reset downstream finalize steps for retry"], { cwd: ctx.root });
-        } catch (err) {
-          process.stderr.write(`[sdd-forge] finalize-merge pre: reset commit best-effort failed: ${err.message}\n`);
-        }
+        finalize.commitFinalizeMergeMetadataIfSafe({
+          root: ctx.root,
+          specId: ctx.specId,
+          preflight: metadataPreflight,
+          includeFlowJson: mutated,
+          message: mutated
+            ? "chore: reset downstream finalize steps for retry"
+            : "chore: record finalize metadata before merge",
+        });
       },
       async post(ctx, result) {
         if (!isFinalizeSuccess(result)) return;
