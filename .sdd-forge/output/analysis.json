@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-21T02:15:15.708Z",
+  "analyzedAt": "2026-05-21T04:41:31.296Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -1155,7 +1155,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -1399,7 +1399,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -1901,7 +1901,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -1933,7 +1933,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -2047,7 +2047,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -2260,7 +2260,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -2306,7 +2306,7 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -2364,9 +2364,9 @@
       },
       {
         "file": "src/flow/commands/review.js",
-        "hash": "ff9f06c09c6135b51bb1a4452fef70c5",
-        "lines": 2775,
-        "mtime": "2026-05-19T16:44:37.372Z",
+        "hash": "692218b6d84fc381e0e1b46e2717d30c",
+        "lines": 3086,
+        "mtime": "2026-05-21T04:41:15.396Z",
         "className": "review",
         "methods": [
           "loadReqMap",
@@ -2388,6 +2388,19 @@
           "filterProposalsByScope",
           "writeReviewMd",
           "formatReviewMd",
+          "normalizeReviewPath",
+          "truncateReviewMemoryText",
+          "parseImplReviewJsonOutput",
+          "parseImplReviewFindings",
+          "isValidRequirementId",
+          "shouldKeepImplReviewFinding",
+          "filterImplReviewFindingsByScope",
+          "formatImplReviewJson",
+          "formatImplReviewMd",
+          "loadPreviousImplReviewMemory",
+          "buildImplReviewPrompt",
+          "resolveRequirementIds",
+          "runImplReview",
           "buildApplyPrompt",
           "shouldUseLoopReview",
           "stripDiffFileHeaders",
@@ -2517,6 +2530,13 @@
           "formatSpecReviewMd",
           "formatSpecReviewJson",
           "parseSpecReviewFindings",
+          "buildImplReviewPrompt",
+          "parseImplReviewFindings",
+          "filterImplReviewFindingsByScope",
+          "formatImplReviewMd",
+          "formatImplReviewJson",
+          "loadPreviousImplReviewMemory",
+          "runImplReview",
           "isValidSpecOutput",
           "stripPreamble",
           "buildGapAnalysisPrompt",
@@ -2535,25 +2555,8 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:31.634Z",
-          "attempts": 2
-        },
-        "summary": "Multi-phase review command handling draft, spec, test, and implementation reviews with AI agents.",
-        "detail": "Implements `runReview()` as the entry point dispatching to `runDraftReview`, `runSpecReview`, `runTestReview`, or the per-file/loop implementation review based on CLI args and phase. Builds prompts via `PromptBuilder`, validates AI JSON output against schemas (`SPEC_REVIEW_RESPONSE_SCHEMA`, `TEST_REVIEW_RESPONSE_SCHEMA`, draft review schema) with `repairJson` fallback, and persists artifacts (`spec-review.{md,json}`, `test-review.{md,json}`, `test-coverage.json`, `review.md`). Encapsulates artifacts in dedicated classes (`SpecReviewArtifact`, `TestReviewArtifact`, `DraftReviewArtifact`, `TestCoverageArtifact`) enforcing field truncation. Handles diff collection scoped to merge-base with excluded paths (docs/, README, AGENTS, output), loop-mode chunking for large changesets, and ReviewFailure classification for retry recovery.",
-        "chapter": "cli_commands",
-        "role": "flow-review-command",
-        "keywords": [
-          "review",
-          "spec review",
-          "test review",
-          "draft review",
-          "AI agent",
-          "diff",
-          "schema validation",
-          "artifact",
-          "loop review",
-          "merge-base"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/definition.js",
@@ -2620,7 +2623,7 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4192,7 +4195,7 @@
         "usedBy": null,
         "id": "49364661",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -4274,7 +4277,7 @@
         "usedBy": null,
         "id": "1e686d63",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -4414,7 +4417,7 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -4944,9 +4947,9 @@
       },
       {
         "file": "src/flow/lib/run-review.js",
-        "hash": "8098b294b1922eec1b6a49896f1f468d",
-        "lines": 546,
-        "mtime": "2026-05-20T06:47:16.447Z",
+        "hash": "93bd8d6feed96e69ca1ea8d66095275e",
+        "lines": 579,
+        "mtime": "2026-05-21T04:41:15.396Z",
         "className": "run-review",
         "methods": [
           "countReviewRetry",
@@ -4972,6 +4975,7 @@
           "parseTestReviewOutput",
           "parseSpecReviewOutput",
           "parseProposalReviewOutput",
+          "parseImplReviewOutput",
           "normalizeReviewSubprocessRetryCount",
           "normalizeReviewSubprocessRetryDelayMs"
         ],
@@ -4983,6 +4987,7 @@
           "../../lib/flow-envelope.js",
           "../definition.js",
           "path",
+          "fs",
           "./review-failure.js",
           "./set-issue-log.js",
           "./retry-recovery.js",
@@ -5005,6 +5010,7 @@
           "parseTestReviewOutput",
           "parseSpecReviewOutput",
           "parseProposalReviewOutput",
+          "parseImplReviewOutput",
           "resolveDraftReviewNextStep"
         ],
         "extends": "FlowCommand",
@@ -5015,7 +5021,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 4
+          "attempts": 1
         }
       },
       {
@@ -6256,9 +6262,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "2da10c055b222ede2ac230961b766f4b",
-        "lines": 1014,
-        "mtime": "2026-05-20T06:47:16.448Z",
+        "hash": "5c3e65423699c73e6d4027faaf941cf3",
+        "lines": 1021,
+        "mtime": "2026-05-21T04:41:15.397Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6288,24 +6294,9 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
-        "summary": "Defines the flow command registry and orchestration hooks for step status, retries, gate transitions, and finalize behavior. It coordinates runtime interactions between flow state, gate logic, review routing, and artifact checks.",
-        "detail": "The registry declares command metadata and helper sets for finalize success states, runtime option forwarding, retry-help phases, and recorded draft-review verdicts. It contains utility routines that safely update step status and append issue logs, with controlled stderr reporting when no active flow is present. It wires side effects across lifecycle points, such as gate execution, finalize merge outcome handling, and downstream step reset for skipped branches. It also validates key test artifacts during specific transitions by loading and checking execute, review, and final-regression files. The design keeps flow-level control logic centralized while delegating specialized checks to focused library modules.",
-        "chapter": "cli_commands",
-        "role": "Flow orchestration registry and command-level lifecycle coordinator.",
         "enrich": {
-          "processedAt": "2026-05-20T06:48:20.404Z",
           "attempts": 1
-        },
-        "keywords": [
-          "flow registry",
-          "command routing",
-          "step status",
-          "gate phase",
-          "retry handling",
-          "finalize pipeline",
-          "artifact verification",
-          "workflow orchestration"
-        ]
+        }
       },
       {
         "file": "src/help.js",
@@ -11506,9 +11497,9 @@
     ],
     "summary": {
       "total": 310,
-      "totalMethods": 1432
+      "totalMethods": 1446
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-20T15:13:41.065Z"
+  "enrichedAt": "2026-05-21T04:42:47.704Z"
 }
