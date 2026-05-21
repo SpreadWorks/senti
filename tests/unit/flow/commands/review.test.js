@@ -19,6 +19,11 @@ import {
   formatSpecReviewJson,
   formatSpecReviewMd,
   parseSpecReviewFindings,
+  parseImplReviewFindings,
+  filterImplReviewFindingsByScope,
+  formatImplReviewMd,
+  formatImplReviewJson,
+  buildImplReviewPrompt,
   collectTestFiles,
   filterProposalsByScope,
   collectTouchedFiles,
@@ -692,6 +697,125 @@ describe("filterProposalsByScope (spec 201 R-P1/R-P3)", () => {
     assert.equal(kept.length, 1);
     assert.equal(kept[0].title, "WithFile");
     assert.equal(excluded.missingFile, 1);
+  });
+});
+
+describe("impl review structured artifact helpers", () => {
+  it("parses JSON findings and rejects legacy proposal markdown", () => {
+    const parsed = parseImplReviewFindings(JSON.stringify({
+      blockingFindings: [{
+        title: "Missing artifact",
+        failureMode: "missing_acceptance_requirement",
+        requirementId: "R4",
+        issue: "impl-review.json is not written.",
+        suggestion: "Write impl-review.json.",
+        rationale: "The spec requires a machine-readable artifact.",
+      }],
+      nonBlockingImprovements: [{
+        title: "Optional naming",
+        failureMode: "naming",
+        file: "src/flow/commands/review.js",
+        issue: "A local variable name could be clearer.",
+        suggestion: "Rename it.",
+        rationale: "Readability-only.",
+      }],
+    }));
+
+    assert.equal(parsed.blockingFindings.length, 1);
+    assert.equal(parsed.nonBlockingImprovements.length, 1);
+    assert.throws(
+      () => parseImplReviewFindings("### 1. Legacy proposal\n**File:** src/example.js"),
+      /impl review output failed schema validation|Unexpected token|JSON/i,
+    );
+  });
+
+  it("filters both blocking and non-blocking findings by touched scope", () => {
+    const parsed = parseImplReviewFindings(JSON.stringify({
+      blockingFindings: [
+        {
+          title: "Keep missing requirement",
+          failureMode: "missing_acceptance_requirement",
+          requirementId: "R4",
+          issue: "Missing artifact.",
+          suggestion: "Write it.",
+          rationale: "Requirement blocker.",
+        },
+        {
+          title: "Drop outside",
+          failureMode: "spec_behavior_contradiction",
+          file: "src/outside.js",
+          issue: "Outside diff.",
+          suggestion: "Drop it.",
+          rationale: "Out of scope.",
+        },
+      ],
+      nonBlockingImprovements: [
+        {
+          title: "Keep advisory",
+          failureMode: "refactor",
+          file: "src/flow/commands/review.js",
+          issue: "Optional touched-file issue.",
+          suggestion: "Optional fix.",
+          rationale: "Non-blocking.",
+        },
+        {
+          title: "Drop missing file",
+          failureMode: "refactor",
+          file: "",
+          issue: "No file.",
+          suggestion: "Drop it.",
+          rationale: "Missing file.",
+        },
+      ],
+    }));
+    const filtered = filterImplReviewFindingsByScope({
+      parsed,
+      touchedFiles: new Set(["src/flow/commands/review.js"]),
+      requirementIds: new Set(["R4"]),
+    });
+
+    assert.deepEqual(filtered.excluded, { missingFile: 1, outOfScope: 1 });
+    assert.deepEqual(filtered.blockingFindings.map((item) => item.title), ["Keep missing requirement"]);
+    assert.deepEqual(filtered.nonBlockingImprovements.map((item) => item.title), ["Keep advisory"]);
+  });
+
+  it("renders review.md and impl-review.json with advisory verdicts", () => {
+    const input = {
+      blockingFindings: [],
+      nonBlockingImprovements: [{
+        title: "Optional cleanup",
+        failureMode: "refactor",
+        file: "src/flow/lib/run-review.js",
+        issue: "A branch could be clearer.",
+        suggestion: "Rename the branch.",
+        rationale: "Readability-only.",
+      }],
+      excluded: { missingFile: 0, outOfScope: 0 },
+    };
+    const json = JSON.parse(formatImplReviewJson(input));
+    const md = formatImplReviewMd(input);
+
+    assert.equal(json.verdict, "ADVISORY");
+    assert.deepEqual(json.summary, { blocking: 0, nonBlocking: 1, total: 1 });
+    assert.match(md, /## Non-blocking Improvements/);
+    assert.match(md, /Optional cleanup/);
+  });
+
+  it("builds prompts with the blocking and non-blocking policy", () => {
+    const prompt = buildImplReviewPrompt({
+      requirementFileMap: { R1: ["src/flow/commands/review.js"] },
+      diff: "diff",
+      touchedFiles: ["src/flow/commands/review.js"],
+    });
+    const combined = `${prompt.systemPrompt}\n${prompt.userPrompt}`;
+
+    assert.match(combined, /blockingFindings\[\]/);
+    assert.match(combined, /nonBlockingImprovements\[\]/);
+    assert.match(combined, /missing_acceptance_requirement/);
+    assert.match(combined, /spec_behavior_contradiction/);
+    assert.match(combined, /security_or_data_integrity_bug/);
+    assert.match(combined, /touched file/);
+    assert.match(combined, /replacement action/);
   });
 });
 

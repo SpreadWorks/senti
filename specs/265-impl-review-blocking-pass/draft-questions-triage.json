@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "3 repair target(s) should be applied by shortening pending QA question text and keeping rationale out of the question field.",
+  "items": [
+    {
+      "title": "1. q1 includes non-question text",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "The finding is valid and can be fixed by keeping q1.question to the decision question only.",
+      "evidence": "draft-review-questions.json repairTargets[0] points to draft.json qa[0].question and provides a direct replacement."
+    },
+    {
+      "title": "2. q2 includes non-question text",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "The finding is valid and can be fixed by keeping q2.question to the decision question only.",
+      "evidence": "draft-review-questions.json repairTargets[1] points to draft.json qa[1].question and provides a direct replacement."
+    },
+    {
+      "title": "3. q3 includes non-question text",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "The finding is valid and can be fixed by keeping q3.question to the decision question only.",
+      "evidence": "draft-review-questions.json repairTargets[2] points to draft.json qa[2].question and provides a direct replacement."
+    }
+  ]
+}

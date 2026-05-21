@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 3 draft question repairs by removing explanatory text from pending QA questions.",
+  "items": [
+    {
+      "title": "1. q1 includes non-question text",
+      "target": "q1",
+      "rationale": "Shortened q1.question to the decision question only.",
+      "evidence": "draft.json qa[0].question now contains only the nonBlockingImprovements naming question.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes non-question text",
+      "target": "q2",
+      "rationale": "Shortened q2.question to the decision question only.",
+      "evidence": "draft.json qa[1].question now contains only the retry budget and gate-impl progression question.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes non-question text",
+      "target": "q3",
+      "rationale": "Shortened q3.question to the decision question only.",
+      "evidence": "draft.json qa[2].question now contains only the impl-review.json source of truth question.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    }
+  ]
+}

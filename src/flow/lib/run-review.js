@@ -12,6 +12,7 @@ import { FlowCommand } from "./base-command.js";
 import { Envelope } from "../../lib/flow-envelope.js";
 import { resolveNodeFor, FLOW_DEFINITION, flattenSteps, findStepById } from "../definition.js";
 import path from "path";
+import fs from "fs";
 import {
   ReviewFailure,
   clearReviewStopState,
@@ -188,6 +189,9 @@ export function checkReviewRetryBelowMax(ctx, phase) {
 function isImplPass(result) {
   if (!result) return false;
   if (result.result === "no-changes" || result.result === "no-proposals") return true;
+  if (result.artifacts?.phase === "impl") {
+    return result.artifacts.verdict === "PASS" || result.artifacts.verdict === "ADVISORY";
+  }
   if ((result.artifacts?.proposalCount ?? -1) === 0) return true;
   return false;
 }
@@ -344,7 +348,58 @@ function parseProposalReviewOutput(res, stdout, stderr) {
   return parsePhaseReviewOutput(res, stdout, stderr, { phase: "draft", ...PHASE_REVIEW_PARSERS.draft });
 }
 
-export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, parseProposalReviewOutput };
+function parseImplReviewOutput(res, stdout, stderr, opts = {}) {
+  const verdictMatch = stderr.match(REVIEW_VERDICT_PATTERN);
+  const blockingMatch = stderr.match(/blocking=(\d+)/);
+  const nonBlockingMatch = stderr.match(/nonBlocking=(\d+)/);
+  const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
+  const jsonPathMatch = stderr.match(/JSON saved to (\S+)/);
+  const taskIdMatch = stderr.match(/taskId=(\S+)/);
+  const targetMatch = stderr.match(/target=(\S+)/);
+
+  const changed = [];
+  if (reviewPathMatch) changed.push(reviewPathMatch[1]);
+  if (jsonPathMatch) changed.push(jsonPathMatch[1]);
+
+  if (!res.ok) {
+    throw new Error(
+      ["Impl review failed", ...(stderr ? [stderr] : []), ...(stdout ? [stdout] : [])].join("\n"),
+    );
+  }
+
+  let artifactData = null;
+  if (opts.root && jsonPathMatch) {
+    const artifactPath = path.resolve(opts.root, jsonPathMatch[1]);
+    try {
+      artifactData = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+    } catch (err) {
+      throw new Error(`failed to read impl-review.json artifact: ${err.message}`);
+    }
+  }
+
+  const verdict = artifactData?.verdict || (verdictMatch ? verdictMatch[1] : "PASS");
+  const blockingCount = artifactData?.summary?.blocking ?? (blockingMatch ? parseInt(blockingMatch[1], 10) : 0);
+  const nonBlockingCount = artifactData?.summary?.nonBlocking ?? (nonBlockingMatch ? parseInt(nonBlockingMatch[1], 10) : 0);
+
+  const artifacts = {
+    phase: "impl",
+    verdict,
+    blockingCount,
+    nonBlockingCount,
+  };
+  if (taskIdMatch) artifacts.taskId = taskIdMatch[1];
+  if (targetMatch) artifacts.target = targetMatch[1];
+
+  return {
+    result: "ok",
+    changed,
+    artifacts,
+    next: verdict === "FAIL" ? null : "gate-impl",
+    output: stdout,
+  };
+}
+
+export { PHASE_REVIEW_PARSERS, parseTestReviewOutput, parseSpecReviewOutput, parseProposalReviewOutput, parseImplReviewOutput };
 
 export function appendIssueLogFromTestReviewToolingFailure(ctx, result) {
   if (ctx?.phase !== "test") return;
@@ -510,32 +565,10 @@ export class RunReviewCommand extends FlowCommand {
       );
     }
 
-    const proposalCountMatch = stderr.match(/proposalCount=(\d+)/);
-    const reviewPathMatch = stderr.match(/Results saved to (\S+)/);
-
-    const proposalCount = proposalCountMatch ? parseInt(proposalCountMatch[1], 10) : 0;
-    const noChanges = /No changes detected/i.test(stdout);
-    const noProposals = /No improvement proposals found/i.test(stdout) || /NO_PROPOSALS/.test(stdout);
-
-    const changed = [];
-    if (reviewPathMatch) changed.push(reviewPathMatch[1]);
-
-    const next = noChanges || noProposals || proposalCount === 0 ? "gate-impl" : "apply";
-
-    const artifacts = { proposalCount, dryRun };
-    if (taskReviewSpec) {
-      artifacts.taskId = taskReviewSpec.task.id;
-      artifacts.target = taskReviewSpec.relPath;
-    }
-    if (broadMode) artifacts.broadMode = broadMode;
-
-    return {
-      result: noChanges ? "no-changes" : noProposals ? "no-proposals" : "ok",
-      changed,
-      artifacts,
-      next,
-      output: stdout,
-    };
+    const parsed = parseImplReviewOutput(res, stdout, stderr, { root });
+    parsed.artifacts.dryRun = dryRun;
+    if (broadMode) parsed.artifacts.broadMode = broadMode;
+    return parsed;
   }
 }
 

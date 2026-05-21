@@ -1,4 +1,9 @@
    - Read the spec to understand requirements.
+   - Keep implementation aligned with the impl review blocking policy. The only blocking impl review failure modes are:
+     - `missing_acceptance_requirement`
+     - `spec_behavior_contradiction`
+     - `security_or_data_integrity_bug`
+   - Regression failures, test false positives, scope creep, project-rule violations, naming proposals, refactor proposals, DRY proposals, comment proposals, and docs proposals are not impl review blocking findings. Non-blocking improvements are optional and must name a touched file, observable issue, and replacement action when reported.
    - **Test-only spec detection (autoApprove mode):** If the spec's Goal, Scope, and Requirements indicate that only tests are being added (no production code changes), and `autoApprove: true`:
      1. Set `sdd-forge flow set step implement skipped`.
      2. **Do NOT skip `test-execute`, `test-result-review`, or the flow-level `gate-impl`.** They run regardless because the spec's tests still need execution, artifact review, and regression gate validation.

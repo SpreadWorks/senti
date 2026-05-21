@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   parseProposalReviewOutput,
+  parseImplReviewOutput,
   parseSpecReviewOutput,
   parseTestReviewOutput,
   runCmdWithRetry,
@@ -226,6 +227,91 @@ describe("review-test one-shot verdict routing", () => {
     }
   });
 });
+
+describe("impl review structured verdict routing", () => {
+  it("parses ADVISORY as non-blocking and routes to gate-impl", () => {
+    const result = parseImplReviewOutput(
+      { ok: true },
+      "Impl review ADVISORY. 1 non-blocking improvement(s) recorded. See review.md.",
+      "  [review] Results saved to specs/demo/review.md\n  [review] JSON saved to specs/demo/impl-review.json\n  [review] verdict=ADVISORY blocking=0 nonBlocking=1",
+    );
+
+    assert.equal(result.result, "ok");
+    assert.equal(result.next, "gate-impl");
+    assert.deepEqual(result.changed, ["specs/demo/review.md", "specs/demo/impl-review.json"]);
+    assert.deepEqual(result.artifacts, {
+      phase: "impl",
+      verdict: "ADVISORY",
+      blockingCount: 0,
+      nonBlockingCount: 1,
+    });
+  });
+
+  it("resets reviewRetry for PASS and ADVISORY but increments for FAIL", () => {
+    assert.deepEqual(metricsForImplVerdict("PASS"), [{
+      payload: { phase: "impl", counter: "reviewRetry", delta: 0, reset: true },
+      opts: { taskId: null },
+    }]);
+    assert.deepEqual(metricsForImplVerdict("ADVISORY"), [{
+      payload: { phase: "impl", counter: "reviewRetry", delta: 0, reset: true },
+      opts: { taskId: null },
+    }]);
+    assert.deepEqual(metricsForImplVerdict("FAIL"), [{
+      payload: { phase: "impl", counter: "reviewRetry", delta: 1 },
+      opts: { taskId: null },
+    }]);
+  });
+
+  it("post-hook completes review only for PASS and ADVISORY", async () => {
+    const passUpdates = [];
+    await FLOW_COMMANDS.run.review.post({
+      phase: null,
+      flowState: {},
+      flowManager: {
+        appendMetric() {},
+        updateStepStatus(stepId, status) { passUpdates.push({ stepId, status }); },
+      },
+    }, {
+      artifacts: { phase: "impl", verdict: "PASS", blockingCount: 0, nonBlockingCount: 0 },
+    });
+    assert.deepEqual(passUpdates, [{ stepId: "review", status: "done" }]);
+
+    const failUpdates = [];
+    await FLOW_COMMANDS.run.review.post({
+      phase: null,
+      flowState: {},
+      flowManager: {
+        appendMetric() {},
+        updateStepStatus(stepId, status) { failUpdates.push({ stepId, status }); },
+      },
+    }, {
+      artifacts: { phase: "impl", verdict: "FAIL", blockingCount: 1, nonBlockingCount: 0 },
+    });
+    assert.deepEqual(failUpdates, []);
+  });
+});
+
+function metricsForImplVerdict(verdict) {
+  const metrics = [];
+  updateReviewRetryCounter(
+    {
+      phase: null,
+      flowState: {},
+      flowManager: {
+        appendMetric(payload, opts) { metrics.push({ payload, opts }); },
+      },
+    },
+    {
+      artifacts: {
+        phase: "impl",
+        verdict,
+        blockingCount: verdict === "FAIL" ? 1 : 0,
+        nonBlockingCount: verdict === "ADVISORY" ? 1 : 0,
+      },
+    },
+  );
+  return metrics;
+}
 
 describe("review subprocess retry", () => {
   it("does not retry deterministic review-test prompt size failures", async () => {

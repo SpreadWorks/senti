@@ -585,6 +585,13 @@ export const FLOW_COMMANDS = {
 
         const planPhases = ["draft", "spec", "test"];
         if (planPhases.includes(ctx.phase)) return;
+        if (result?.artifacts?.phase === "impl") {
+          const verdict = result.artifacts.verdict;
+          if (verdict === "PASS" || verdict === "ADVISORY") {
+            tryUpdateStepStatus(ctx, "review", "done");
+          }
+          return;
+        }
         if (!ctx.dryRun && reviewMod.resetImplEvidenceAfterReviewProposals(ctx, result)) return;
         const stepId = "review";
         tryUpdateStepStatus(ctx, stepId, "done");

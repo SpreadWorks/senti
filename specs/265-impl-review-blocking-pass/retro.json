@@ -1,0 +1,103 @@
+{
+  "spec": "specs/265-impl-review-blocking-pass/spec.json",
+  "date": "2026-05-21T04:38:16.963Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Impl reviewer prompt output shall be JSON with top-level arrays `blockingFindings` and `nonBlockingImprovements`; each included finding shall contain `title`, `failureMode`, `issue`, `suggestion`, and `rationale`. File-specific findings shall include `file`; missing-acceptance blockers may use `requirementId` instead of `file`.",
+      "status": "done",
+      "note": "R1: parser accepts structured blocking and non-blocking impl review JSON only"
+    },
+    {
+      "desc": "Impl review blocking findings shall be limited to these three failure modes: an acceptance requirement from the spec is missing or incomplete, implementation behavior contradicts the spec, or the diff introduces a reproducible security or data integrity bug.",
+      "status": "done",
+      "note": "R2: prompt and parser limit blocking failure modes to the approved three labels"
+    },
+    {
+      "desc": "Impl review shall classify regression failures, test false positives, scope creep, project-rule violations, naming proposals, refactor proposals, DRY proposals, comment proposals, and docs proposals as non-blocking or out of scope rather than blocking findings.",
+      "status": "done",
+      "note": "R3: excluded impl concerns are advisory or out of scope, never blocking"
+    },
+    {
+      "desc": "Impl review shall write `specs/<spec>/impl-review.json` containing `version`, `phase`, `generatedAt`, `verdict`, `summary`, `blockingFindings`, `nonBlockingImprovements`, and excluded scope counts.",
+      "status": "done",
+      "note": "R4: impl-review.json stores verdict, summary, buckets, and excluded scope counts"
+    },
+    {
+      "desc": "Impl review shall write `review.md` as a human-readable summary that separately lists blocking findings and non-blocking improvements and states when either bucket is empty.",
+      "status": "done",
+      "note": "R5: review.md renders blocking and non-blocking buckets separately including empty states"
+    },
+    {
+      "desc": "Impl review PASS shall be determined by `impl-review.json.blockingFindings.length === 0`; `nonBlockingImprovements.length > 0` shall not make the result FAIL.",
+      "status": "done",
+      "note": "R6: PASS is based on zero blocking findings and ignores advisory count"
+    },
+    {
+      "desc": "`sdd-forge flow run review` for impl phase shall set `artifacts.verdict` to `PASS` when both buckets are empty, `ADVISORY` when blocking is empty and non-blocking is non-empty, and `FAIL` when blocking is non-empty.",
+      "status": "done",
+      "note": "R7: flow run review parses PASS ADVISORY and FAIL impl artifact verdicts"
+    },
+    {
+      "desc": "When impl review verdict is PASS or ADVISORY, reviewRetry shall be reset or left unconsumed and the next step shall be `gate-impl`.",
+      "status": "done",
+      "note": "R8: PASS and ADVISORY reset reviewRetry and route to gate-impl"
+    },
+    {
+      "desc": "When impl review verdict is FAIL, reviewRetry shall be consumed through the existing review failure path and the flow shall not advance to `gate-impl` until blocking findings are addressed.",
+      "status": "done",
+      "note": "R9: FAIL consumes reviewRetry and does not advance to gate-impl"
+    },
+    {
+      "desc": "Previous impl review memory shall include previous verdict, blocking count, non-blocking count, previous blocking findings, and acknowledged non-blocking improvements, with explicit array and character bounds in code.",
+      "status": "done",
+      "note": "R10: previous impl review memory is bounded and includes verdict counts and acknowledged advisory context"
+    },
+    {
+      "desc": "`src/flow/prompts/impl/review.md`, `src/flow/prompts/impl/implement.md`, and the impl reviewer system prompt shall contain the same three blocking failure modes from R2.",
+      "status": "done",
+      "note": "R11: implement, impl-review, and reviewer prompts share the same three blocking labels"
+    },
+    {
+      "desc": "Prompt text shall state that non-blocking improvements are optional and should not be generated unless they name a touched file, describe an observable issue in that file, and provide a replacement action that names the affected function, branch, assertion, prompt sentence, or artifact field.",
+      "status": "done",
+      "note": "R12: non-blocking prompt guidance requires touched file, observable issue, and replacement action"
+    },
+    {
+      "desc": "Scope filtering shall apply to both `blockingFindings` and `nonBlockingImprovements`. File-specific findings whose `file` is empty or not in the touched-file set shall be dropped and counted; missing-acceptance blockers with a valid `requirementId` shall remain blocking even when `file` is empty.",
+      "status": "done",
+      "note": "R13: scope filtering applies to both buckets while valid missing-acceptance requirement blockers remain"
+    },
+    {
+      "desc": "Spec-local and shared tests shall verify JSON parsing, scope filtering, `review.md` rendering, `impl-review.json` rendering, ADVISORY retry behavior, and impl review phase transitions.",
+      "status": "done",
+      "note": "R14: shared regression contract covers structured impl review behavior"
+    },
+    {
+      "desc": "`FLOW_COMMANDS.run.review.post` shall consume the impl review structured verdict: PASS and ADVISORY mark the impl `review` step done, while FAIL leaves the flow stopped on review and prevents `gate-impl` from becoming the next pending step.",
+      "status": "done",
+      "note": "R15: registry post hook completes impl review only for PASS or ADVISORY"
+    },
+    {
+      "desc": "The structured impl review contract shall apply to task-scoped review invoked with `--task-spec`, including artifact verdict behavior and task review prompt text.",
+      "status": "done",
+      "note": "R16: task-scoped review uses the same structured artifact and verdict policy"
+    },
+    {
+      "desc": "`src/flow/prompts/task/review.md` shall replace proposal-only review wording with the same blocking/non-blocking policy used by flow-level impl review.",
+      "status": "done",
+      "note": "R17: task review prompt uses the same blocking and non-blocking policy as flow-level review"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 17,
+    "done": 17,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

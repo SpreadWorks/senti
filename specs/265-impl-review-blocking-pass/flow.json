@@ -1,0 +1,1785 @@
+{
+  "spec": "specs/265-impl-review-blocking-pass/spec.json",
+  "baseBranch": "main",
+  "featureBranch": "feature/265-impl-review-blocking-pass",
+  "runId": "e823bbb6-48bb-49d5-8cf4-8af365a5ac1a",
+  "steps": [
+    {
+      "id": "plan",
+      "status": "pending",
+      "children": [
+        {
+          "id": "branch",
+          "status": "done",
+          "finishedAt": "2026-05-21T02:15:15.512Z"
+        },
+        {
+          "id": "prepare-spec",
+          "status": "done",
+          "finishedAt": "2026-05-21T02:15:15.512Z"
+        },
+        {
+          "id": "draft",
+          "status": "done",
+          "startedAt": "2026-05-21T02:15:15.512Z",
+          "finishedAt": "2026-05-21T02:18:28.101Z"
+        },
+        {
+          "id": "review-draft-questions",
+          "status": "done",
+          "startedAt": "2026-05-21T02:18:28.101Z",
+          "finishedAt": "2026-05-21T02:18:53.658Z"
+        },
+        {
+          "id": "draft-questions-triage",
+          "status": "done",
+          "startedAt": "2026-05-21T02:18:53.658Z",
+          "finishedAt": "2026-05-21T02:19:25.064Z"
+        },
+        {
+          "id": "draft-questions-repair",
+          "status": "done",
+          "startedAt": "2026-05-21T02:19:25.064Z",
+          "finishedAt": "2026-05-21T02:19:51.664Z"
+        },
+        {
+          "id": "draft-refine",
+          "status": "done",
+          "startedAt": "2026-05-21T02:19:51.664Z",
+          "finishedAt": "2026-05-21T02:20:36.705Z"
+        },
+        {
+          "id": "review-draft-coverage",
+          "status": "done",
+          "startedAt": "2026-05-21T02:20:36.705Z",
+          "finishedAt": "2026-05-21T02:21:06.756Z"
+        },
+        {
+          "id": "draft-coverage-triage",
+          "status": "done",
+          "startedAt": "2026-05-21T02:21:06.756Z",
+          "finishedAt": "2026-05-21T02:21:06.764Z"
+        },
+        {
+          "id": "draft-coverage-repair",
+          "status": "done",
+          "startedAt": "2026-05-21T02:21:06.764Z",
+          "finishedAt": "2026-05-21T02:21:06.771Z"
+        },
+        {
+          "id": "gate-draft",
+          "status": "done",
+          "startedAt": "2026-05-21T02:21:06.771Z",
+          "finishedAt": "2026-05-21T02:23:11.589Z"
+        },
+        {
+          "id": "spec",
+          "status": "done",
+          "startedAt": "2026-05-21T02:23:11.589Z",
+          "finishedAt": "2026-05-21T02:25:41.845Z"
+        },
+        {
+          "id": "review-spec",
+          "status": "done",
+          "startedAt": "2026-05-21T02:25:41.845Z",
+          "finishedAt": "2026-05-21T02:29:12.394Z"
+        },
+        {
+          "id": "spec-review-triage",
+          "status": "done",
+          "startedAt": "2026-05-21T02:29:12.394Z",
+          "finishedAt": "2026-05-21T02:30:03.258Z"
+        },
+        {
+          "id": "spec-repair",
+          "status": "done",
+          "startedAt": "2026-05-21T02:30:03.258Z",
+          "finishedAt": "2026-05-21T02:32:07.310Z"
+        },
+        {
+          "id": "gate",
+          "status": "done",
+          "startedAt": "2026-05-21T02:32:07.310Z",
+          "finishedAt": "2026-05-21T02:35:00.916Z"
+        },
+        {
+          "id": "approval",
+          "status": "done",
+          "startedAt": "2026-05-21T02:35:00.916Z",
+          "finishedAt": "2026-05-21T02:38:19.053Z"
+        },
+        {
+          "id": "test",
+          "status": "done",
+          "startedAt": "2026-05-21T02:38:19.053Z",
+          "finishedAt": "2026-05-21T03:30:57.420Z"
+        },
+        {
+          "id": "scenario-validity",
+          "status": "done",
+          "startedAt": "2026-05-21T02:40:41.512Z",
+          "finishedAt": "2026-05-21T03:41:25.511Z"
+        },
+        {
+          "id": "review-test",
+          "status": "done",
+          "startedAt": "2026-05-21T02:41:17.012Z",
+          "finishedAt": "2026-05-21T03:41:47.029Z"
+        }
+      ]
+    },
+    {
+      "id": "impl",
+      "status": "pending",
+      "children": [
+        {
+          "id": "implement",
+          "status": "done",
+          "startedAt": "2026-05-21T03:41:47.029Z",
+          "finishedAt": "2026-05-21T04:08:23.146Z"
+        },
+        {
+          "id": "test-execute",
+          "status": "done",
+          "startedAt": "2026-05-21T04:08:23.146Z",
+          "finishedAt": "2026-05-21T04:37:31.727Z"
+        },
+        {
+          "id": "test-result-review",
+          "status": "done",
+          "startedAt": "2026-05-21T04:08:33.430Z",
+          "finishedAt": "2026-05-21T04:37:41.123Z"
+        },
+        {
+          "id": "review",
+          "status": "done",
+          "startedAt": "2026-05-21T04:08:42.464Z",
+          "finishedAt": "2026-05-21T04:19:53.605Z"
+        },
+        {
+          "id": "gate-impl",
+          "status": "done",
+          "startedAt": "2026-05-21T04:19:53.605Z",
+          "finishedAt": "2026-05-21T04:38:04.424Z"
+        },
+        {
+          "id": "retro",
+          "status": "done",
+          "startedAt": "2026-05-21T04:38:04.424Z",
+          "finishedAt": "2026-05-21T04:38:16.972Z"
+        },
+        {
+          "id": "final-regression",
+          "status": "done",
+          "startedAt": "2026-05-21T04:38:16.972Z",
+          "finishedAt": "2026-05-21T04:40:32.715Z"
+        },
+        {
+          "id": "finalize",
+          "status": "pending",
+          "children": [
+            {
+              "id": "finalize-commit",
+              "status": "done",
+              "startedAt": "2026-05-21T04:40:32.715Z",
+              "finishedAt": "2026-05-21T04:40:59.155Z"
+            },
+            {
+              "id": "finalize-merge",
+              "status": "in_progress",
+              "startedAt": "2026-05-21T04:40:59.155Z"
+            },
+            {
+              "id": "finalize-sync",
+              "status": "pending"
+            },
+            {
+              "id": "finalize-cleanup",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [],
+  "tasks": [],
+  "currentTaskId": null,
+  "issue": 340,
+  "request": "Issue #340: refine impl review so PASS is based on blockingFindings.length === 0 instead of no proposals; split reviewer output into blockingFindings and nonBlockingImprovements; persist impl-review.json; add previous review memory; align implement/review/triage prompts around the same three blocking failure modes from the issue body.",
+  "worktree": true,
+  "notes": [
+    {
+      "text": "plan.work-environment: selected Git worktree",
+      "taskId": null,
+      "ts": "2026-05-21T02:15:28.677Z"
+    },
+    {
+      "text": "plan.base-branch: selected current branch main",
+      "taskId": null,
+      "ts": "2026-05-21T02:15:28.736Z"
+    },
+    {
+      "text": "draft.intent-confirmation: approved Issue #340 as spec source",
+      "taskId": null,
+      "ts": "2026-05-21T02:15:28.756Z"
+    }
+  ],
+  "metrics": [
+    {
+      "phase": "plan",
+      "counter": "docsRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:15:47.861Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:16:04.737Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:16:04.998Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:16:05.092Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:16:05.099Z"
+    },
+    {
+      "phase": "review-draft-questions",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 913,
+      "durationMs": 13892,
+      "tokens": {
+        "input": 14318,
+        "output": 545,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:18:53.626Z"
+    },
+    {
+      "phase": "draft-questions",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T02:18:53.645Z"
+    },
+    {
+      "phase": "review-draft-coverage",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 12,
+      "durationMs": 15762,
+      "tokens": {
+        "input": 12857,
+        "output": 526,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:21:06.724Z"
+    },
+    {
+      "phase": "draft-coverage",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T02:21:06.742Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:21:19.705Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:21:44.370Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3310,
+      "durationMs": 27958,
+      "tokens": {
+        "input": 17019,
+        "output": 1225,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:22:17.098Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:22:17.116Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:22:44.452Z"
+    },
+    {
+      "phase": "gate-draft",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2397,
+      "durationMs": 21948,
+      "tokens": {
+        "input": 14208,
+        "output": 1002,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:23:11.580Z"
+    },
+    {
+      "phase": "draft",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T02:23:11.597Z"
+    },
+    {
+      "phase": "review-spec",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4055,
+      "durationMs": 197347,
+      "tokens": {
+        "input": 76452,
+        "output": 8773,
+        "cacheRead": 444672,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:29:12.369Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:29:12.387Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:30:24.556Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "srcRead",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:30:24.571Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:32:02.879Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3790,
+      "durationMs": 27318,
+      "tokens": {
+        "input": 21671,
+        "output": 1303,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:32:53.035Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:32:53.053Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:33:14.202Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 4298,
+      "durationMs": 28998,
+      "tokens": {
+        "input": 21809,
+        "output": 1390,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:33:51.139Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:33:51.157Z"
+    },
+    {
+      "phase": "plan",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:34:24.812Z"
+    },
+    {
+      "phase": "gate",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3661,
+      "durationMs": 26589,
+      "tokens": {
+        "input": 20804,
+        "output": 1258,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:35:00.905Z"
+    },
+    {
+      "phase": "spec",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T02:35:00.923Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1606,
+      "durationMs": 27844,
+      "tokens": {
+        "input": 20005,
+        "output": 845,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:41:54.347Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:41:54.369Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3492,
+      "durationMs": 25989,
+      "tokens": {
+        "input": 22259,
+        "output": 1236,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T02:43:40.275Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T02:43:40.305Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T03:26:51.617Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:26:51.617Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3348,
+      "durationMs": 26471,
+      "tokens": {
+        "input": 22078,
+        "output": 1179,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T03:27:22.268Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:27:22.301Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T03:28:43.559Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:28:43.559Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1166,
+      "durationMs": 17758,
+      "tokens": {
+        "input": 22368,
+        "output": 762,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T03:29:05.163Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:29:05.193Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T03:29:32.101Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:29:32.101Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1684,
+      "durationMs": 22418,
+      "tokens": {
+        "input": 19133,
+        "output": 848,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T03:29:58.353Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:29:58.382Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T03:31:05.021Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:31:05.021Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 3361,
+      "durationMs": 89570,
+      "tokens": {
+        "input": 22933,
+        "output": 4327,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T03:32:38.861Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:32:38.888Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T03:33:57.854Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:33:57.854Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 873,
+      "durationMs": 31612,
+      "tokens": {
+        "input": 24441,
+        "output": 696,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T03:34:33.223Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:34:33.254Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T03:35:14.417Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:35:14.417Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2341,
+      "durationMs": 68615,
+      "tokens": {
+        "input": 23479,
+        "output": 3590,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T03:36:26.808Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:36:26.839Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T03:37:30.195Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:37:30.195Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 2588,
+      "durationMs": 186387,
+      "tokens": {
+        "input": 25784,
+        "output": 10082,
+        "cacheRead": 2432,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T03:40:40.475Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:40:40.506Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T03:41:29.379Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T03:41:29.379Z"
+    },
+    {
+      "phase": "review-test",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 45,
+      "durationMs": 13715,
+      "tokens": {
+        "input": 25409,
+        "output": 535,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T03:41:46.993Z"
+    },
+    {
+      "phase": "test",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T03:41:47.013Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1050,
+      "durationMs": 261899,
+      "tokens": {
+        "input": 82898,
+        "output": 10654,
+        "cacheRead": 1689984,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:14:01.929Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T04:14:01.950Z"
+    },
+    {
+      "phase": "review",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 872,
+      "durationMs": 284040,
+      "tokens": {
+        "input": 86076,
+        "output": 11415,
+        "cacheRead": 1687296,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:19:53.566Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "reviewRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T04:19:53.590Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T04:24:09.695Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T04:26:36.832Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 285,
+      "durationMs": 14733,
+      "tokens": {
+        "input": 38322,
+        "output": 583,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:26:56.944Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 246,
+      "durationMs": 7866,
+      "tokens": {
+        "input": 38322,
+        "output": 156,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:27:04.820Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 337,
+      "durationMs": 11633,
+      "tokens": {
+        "input": 29618,
+        "output": 349,
+        "cacheRead": 12160,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:27:16.462Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 265,
+      "durationMs": 9037,
+      "tokens": {
+        "input": 38322,
+        "output": 193,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:27:25.507Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 231,
+      "durationMs": 8558,
+      "tokens": {
+        "input": 34226,
+        "output": 246,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:27:34.073Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 312,
+      "durationMs": 11726,
+      "tokens": {
+        "input": 34226,
+        "output": 431,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:27:45.806Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 286,
+      "durationMs": 12784,
+      "tokens": {
+        "input": 38322,
+        "output": 477,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:27:58.598Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 202,
+      "durationMs": 9613,
+      "tokens": {
+        "input": 34226,
+        "output": 242,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:28:08.219Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 242,
+      "durationMs": 14939,
+      "tokens": {
+        "input": 37298,
+        "output": 471,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:28:23.166Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 246,
+      "durationMs": 10297,
+      "tokens": {
+        "input": 34226,
+        "output": 256,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:28:33.472Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 187,
+      "durationMs": 28318,
+      "tokens": {
+        "input": 35531,
+        "output": 1212,
+        "cacheRead": 48896,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:29:01.799Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 294,
+      "durationMs": 8433,
+      "tokens": {
+        "input": 37298,
+        "output": 248,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:29:10.241Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 301,
+      "durationMs": 15893,
+      "tokens": {
+        "input": 34226,
+        "output": 382,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:29:26.142Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 265,
+      "durationMs": 9334,
+      "tokens": {
+        "input": 38322,
+        "output": 250,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:29:35.485Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 255,
+      "durationMs": 14537,
+      "tokens": {
+        "input": 37298,
+        "output": 580,
+        "cacheRead": 4480,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:29:50.029Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 331,
+      "durationMs": 16803,
+      "tokens": {
+        "input": 34226,
+        "output": 545,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:30:06.841Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 332,
+      "durationMs": 11957,
+      "tokens": {
+        "input": 25010,
+        "output": 429,
+        "cacheRead": 16768,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:30:18.806Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 980,
+      "durationMs": 45883,
+      "tokens": {
+        "input": 35098,
+        "output": 2301,
+        "cacheRead": 7552,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:31:04.710Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T04:31:04.726Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T04:32:11.860Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 616,
+      "durationMs": 16034,
+      "tokens": {
+        "input": 37191,
+        "output": 663,
+        "cacheRead": 5504,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:32:32.486Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T04:32:32.504Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T04:33:47.951Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 1641,
+      "durationMs": 19974,
+      "tokens": {
+        "input": 25893,
+        "output": 872,
+        "cacheRead": 16768,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:34:29.023Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T04:34:29.043Z"
+    },
+    {
+      "phase": "impl",
+      "counter": "issueLog",
+      "delta": 1,
+      "taskId": null,
+      "ts": "2026-05-21T04:37:12.760Z"
+    },
+    {
+      "phase": "gate-impl",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.5",
+      "callCount": 1,
+      "responseChars": 509,
+      "durationMs": 17008,
+      "tokens": {
+        "input": 38944,
+        "output": 631,
+        "cacheRead": 3456,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-21T04:38:04.416Z"
+    },
+    {
+      "phase": "integration",
+      "counter": "gateRetry",
+      "delta": 0,
+      "reset": true,
+      "taskId": null,
+      "ts": "2026-05-21T04:38:04.433Z"
+    }
+  ],
+  "autoDesired": true,
+  "autoCheck": {
+    "eligible": true,
+    "skipped": true,
+    "reason": "spec approved",
+    "goalGate": {
+      "checked": false,
+      "passed": true,
+      "skipped": "spec-approved"
+    }
+  },
+  "autoUpgrade": {
+    "available": true,
+    "reason": "spec approved"
+  },
+  "reviewRecoveryBaselines": [
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "610e4be51ee9d04acda51a8efe12a886211407d2eed32027b2d8837f54e6a624",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-05-21T02:43:40.297Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "f35501801d2b4b8463276eb6864c83a47209e943a56625602dea159b4c404e3b",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-retry-exhausted",
+      "createdAt": "2026-05-21T02:45:01.057Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "1d82c38a6012133fa179915bdc060c7f45efcc731fa82dfd447176738a003ca7",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-05-21T03:27:22.293Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "1e8c748b5eddcfc2ed75b13b01e95ac709c64f939490a4c97a9e47edaba314e1",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-05-21T03:29:05.185Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "c6b5addc3b56f051a150132f36ecd3c3255a57244f72fd2bf852efbead67d7c2",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-05-21T03:29:58.374Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "53cc5f540d971e08495af302ce3d5f5f543d837188c90db359fa4a25be4d8425",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-05-21T03:32:38.881Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "ac0bbcb61ad5fa1888b31b56fb867f6d3be7369602388f48c884f5dad3fdd199",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-05-21T03:34:33.246Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "d2f555fc2cea4c9723f6d4e4869bd9f1a1239504007bb051fe8b57b5046e3b51",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-05-21T03:36:26.832Z"
+    },
+    {
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "fingerprint": {
+        "sourceKind": "spec-tests",
+        "hash": "4a3401cdea4b1f4c3de110ecf9ef8a9654bbae11174c04c9606b847931f75781",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+          "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "review-verdict-fail",
+      "createdAt": "2026-05-21T03:40:40.498Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "48f11fe03ca0cad35373da7923a550da731f84e4d5382ec8f0ed8d2c40e6bcb7",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/test-execute-result.json",
+          "specs/265-impl-review-blocking-pass/test-result-review.json",
+          "src/flow/commands/review.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/prompts/impl/implement.md",
+          "src/flow/prompts/impl/review.md",
+          "src/flow/prompts/task/review.md",
+          "src/flow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-05-21T04:31:04.785Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "c14c4cf6c423be560ef7600ca9810d5da0bc413a1b082834abd8cee37b9b7d43",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/test-execute-result.json",
+          "specs/265-impl-review-blocking-pass/test-result-review.json",
+          "src/flow/commands/review.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/prompts/impl/implement.md",
+          "src/flow/prompts/impl/review.md",
+          "src/flow/prompts/task/review.md",
+          "src/flow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-05-21T04:32:32.560Z"
+    },
+    {
+      "kind": "gate",
+      "phase": "integration",
+      "canonicalPhase": "integration",
+      "fingerprint": {
+        "sourceKind": "implementation-and-test-artifacts",
+        "hash": "4e22fdc5647685cd68bc2993a8a9915c9315dcbf9b45a18f7a8100edbefff85e",
+        "paths": [
+          "specs/265-impl-review-blocking-pass/test-execute-result.json",
+          "specs/265-impl-review-blocking-pass/test-result-review.json",
+          "src/flow/commands/review.js",
+          "src/flow/lib/run-review.js",
+          "src/flow/prompts/impl/implement.md",
+          "src/flow/prompts/impl/review.md",
+          "src/flow/prompts/task/review.md",
+          "src/flow/registry.js"
+        ],
+        "truncated": false
+      },
+      "trigger": "gate-result-fail",
+      "createdAt": "2026-05-21T04:34:29.104Z"
+    }
+  ],
+  "retryRecovery": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "recovery-001",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Updated review-test evidence with executable R1 and R3 negative cases.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "f35501801d2b4b8463276eb6864c83a47209e943a56625602dea159b4c404e3b",
+          "currentHash": "1d82c38a6012133fa179915bdc060c7f45efcc731fa82dfd447176738a003ca7",
+          "changedPaths": [
+            "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 2,
+        "maxAttempts": 2,
+        "counterAfter": 1,
+        "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Updated review-test evidence with executable R1 and R3 negative cases.\" --yes",
+        "createdAt": "2026-05-21T03:26:51.615Z"
+      },
+      {
+        "id": "recovery-002",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Added command-path impl review artifact and task-scoped coverage.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "1d82c38a6012133fa179915bdc060c7f45efcc731fa82dfd447176738a003ca7",
+          "currentHash": "1e8c748b5eddcfc2ed75b13b01e95ac709c64f939490a4c97a9e47edaba314e1",
+          "changedPaths": [
+            "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 2,
+        "maxAttempts": 2,
+        "counterAfter": 1,
+        "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Added command-path impl review artifact and task-scoped coverage.\" --yes",
+        "createdAt": "2026-05-21T03:28:43.558Z"
+      },
+      {
+        "id": "recovery-003",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Removed inert shared-test regex checks from R14 coverage.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "1e8c748b5eddcfc2ed75b13b01e95ac709c64f939490a4c97a9e47edaba314e1",
+          "currentHash": "c6b5addc3b56f051a150132f36ecd3c3255a57244f72fd2bf852efbead67d7c2",
+          "changedPaths": [
+            "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 2,
+        "maxAttempts": 2,
+        "counterAfter": 1,
+        "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Removed inert shared-test regex checks from R14 coverage.\" --yes",
+        "createdAt": "2026-05-21T03:29:32.100Z"
+      },
+      {
+        "id": "recovery-004",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Added executable shared regression contract coverage for R14.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "c6b5addc3b56f051a150132f36ecd3c3255a57244f72fd2bf852efbead67d7c2",
+          "currentHash": "53cc5f540d971e08495af302ce3d5f5f543d837188c90db359fa4a25be4d8425",
+          "changedPaths": [
+            "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 2,
+        "maxAttempts": 2,
+        "counterAfter": 1,
+        "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Added executable shared regression contract coverage for R14.\" --yes",
+        "createdAt": "2026-05-21T03:31:05.019Z"
+      },
+      {
+        "id": "recovery-005",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Covered PASS parser and post-hook plus R10 R13 R16 gaps.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "53cc5f540d971e08495af302ce3d5f5f543d837188c90db359fa4a25be4d8425",
+          "currentHash": "ac0bbcb61ad5fa1888b31b56fb867f6d3be7369602388f48c884f5dad3fdd199",
+          "changedPaths": [
+            "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 2,
+        "maxAttempts": 2,
+        "counterAfter": 1,
+        "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Covered PASS parser and post-hook plus R10 R13 R16 gaps.\" --yes",
+        "createdAt": "2026-05-21T03:33:57.852Z"
+      },
+      {
+        "id": "recovery-006",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Clarified spec-dir-relative coverage artifact paths in tests.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "ac0bbcb61ad5fa1888b31b56fb867f6d3be7369602388f48c884f5dad3fdd199",
+          "currentHash": "d2f555fc2cea4c9723f6d4e4869bd9f1a1239504007bb051fe8b57b5046e3b51",
+          "changedPaths": [
+            "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 2,
+        "maxAttempts": 2,
+        "counterAfter": 1,
+        "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Clarified spec-dir-relative coverage artifact paths in tests.\" --yes",
+        "createdAt": "2026-05-21T03:35:14.415Z"
+      },
+      {
+        "id": "recovery-007",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Added R13 advisory out-of-scope and R16 task-spec command coverage.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "d2f555fc2cea4c9723f6d4e4869bd9f1a1239504007bb051fe8b57b5046e3b51",
+          "currentHash": "4a3401cdea4b1f4c3de110ecf9ef8a9654bbae11174c04c9606b847931f75781",
+          "changedPaths": [
+            "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 2,
+        "maxAttempts": 2,
+        "counterAfter": 1,
+        "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Added R13 advisory out-of-scope and R16 task-spec command coverage.\" --yes",
+        "createdAt": "2026-05-21T03:37:30.192Z"
+      },
+      {
+        "id": "recovery-008",
+        "kind": "review",
+        "phase": "test",
+        "canonicalPhase": "test",
+        "reason": "Added command-path scope filtering and shared coverage verification.",
+        "changedEvidence": {
+          "sourceKind": "spec-tests",
+          "baselineHash": "4a3401cdea4b1f4c3de110ecf9ef8a9654bbae11174c04c9606b847931f75781",
+          "currentHash": "9ca4d6a227c587facec66e19adb714689b0a489b500ecacbac5a91c441b7d7ed",
+          "changedPaths": [
+            "specs/265-impl-review-blocking-pass/tests/.raw/scenario-validity.log",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-shared-contracts.test.js",
+            "specs/265-impl-review-blocking-pass/tests/impl-review-structured-artifact.test.js"
+          ],
+          "truncated": false,
+          "changed": true
+        },
+        "permittedReevaluationCount": 1,
+        "attemptsBefore": 2,
+        "maxAttempts": 2,
+        "counterAfter": 1,
+        "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"Added command-path scope filtering and shared coverage verification.\" --yes",
+        "createdAt": "2026-05-21T03:41:29.378Z"
+      }
+    ]
+  },
+  "autoApprove": true,
+  "state": {
+    "finalizedAt": "2026-05-21T04:40:59.026Z"
+  }
+}

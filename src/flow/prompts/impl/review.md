@@ -2,30 +2,20 @@
    - Run `sdd-forge flow run review` to perform AI-powered code review.
    - Responsibility boundary: this step records detection output only. It does not make triage disposition, perform repair mutation/audit, or perform gate validation.
    - Downstream ownership: triage steps accept/reject findings, repair steps mutate/audit accepted findings, and gate steps mechanically validate readiness.
-   - The review generates proposals for code quality improvements. Results are saved to review.md.
+   - The review writes `review.md` and `impl-review.json`.
+   - Blocking findings are limited to exactly these failure modes:
+     - `missing_acceptance_requirement`
+     - `spec_behavior_contradiction`
+     - `security_or_data_integrity_bug`
+   - Non-blocking improvements are optional and do not block progress. They should exist only when they name a touched file, describe an observable issue in that file, and provide a replacement action that names the affected function, branch, assertion, prompt sentence, or artifact field.
+   - Regression failures, test false positives, scope creep, project-rule violations, naming proposals, refactor proposals, DRY proposals, comment proposals, and docs proposals are non-blocking or out of scope for impl review blocking findings.
    - If a proposal concerns an intentional guardrail exception and the applicable guardrail article permits acknowledged exceptions, remediate by recording the guardrail id in `spec.json.constraints[]`, `clarifications[].q` / `.a`, or `alternatives_considered[].option` / `.reason`. Do not use `design_principles`, approval notes, overview entries, task text, or review notes as exception acknowledgments.
-   - **If proposals exist** (proposals in review.md):
-     1. Read review.md and evaluate each proposal against the spec requirements and design intent.
-     2. For each proposal, determine:
-        - Does it improve code quality?
-        - Does it risk breaking existing behavior?
-        - Is it within the spec's scope?
-     3. Display review summary:
-        ```
-        コードレビューの結果、N 件の修正案が見つかりました。
-
-        適用する修正案:
-          #2: <title>
-              問題: <なぜこれが問題なのか>
-              修正: <どう修正するか>
-
-        対応不要と判断:
-          #1: <title>
-              理由: <対応不要な理由>
-        ```
-     4. Apply the proposals you judged to be valid.
-     5. **Do NOT re-run tests here.** When code changes are applied during review, the dispatcher resets the downstream `test-execute` / `test-result-review` / `gate-impl` / `retro` steps and reruns them through the single execution point.
-   - **If no proposals** (NO_PROPOSALS):
+   - **If `impl-review.json.verdict` is `FAIL`**:
+     1. Read `impl-review.json` and `review.md`.
+     2. Address only `blockingFindings[]`.
+     3. Do not treat `nonBlockingImprovements[]` as mandatory repair work.
+     4. **Do NOT re-run tests here.** When code changes are applied during review, the dispatcher resets downstream execution and reruns it through the single execution point.
+   - **If verdict is `PASS` or `ADVISORY`**:
      - Display: "レビューの結果、修正の必要はありませんでした。"
    - **Retry limit:** Each `sdd-forge flow run review` invocation = 1 attempt (CLI invocation level). The CLI enforces this flow-scope limit (spec 253). When count >= max, `sdd-forge flow run review` returns `Envelope.fail` with `errors[0].code === 'REVIEW_MAX_ATTEMPTS_EXCEEDED'` and `data` containing `{ phase, attempts, max, recoveryCommand }`.
    - **REVIEW_MAX_ATTEMPTS_EXCEEDED received:** STOP and return control to the user. To recover after changed evidence, use `sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes`; for this impl review phase, run `sdd-forge flow set retry reset review impl --reason <text> --yes` and then run one re-review attempt.

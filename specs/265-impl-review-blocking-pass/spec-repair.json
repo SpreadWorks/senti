@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied 3 spec review repairs for scope filtering, registry post-hook behavior, and task-scoped review compatibility.",
+  "items": [
+    {
+      "title": "Scope filtering can discard required blocking findings",
+      "target": "R2 / R13 / Data Flow",
+      "decision": "applied",
+      "rationale": "Updated the structured finding contract and scope filtering rules so missing-acceptance blockers may use `requirementId` and remain blocking without a file path.",
+      "evidence": "spec.json requirements R1 and R13, data_flow[1], acceptance_criteria[3], and clarifications[5] now define the missing-acceptance blocker exception.",
+      "changedFields": [
+        "overview.data_flow[1]",
+        "requirements[0].desc",
+        "requirements[12].desc",
+        "acceptance_criteria[3]",
+        "clarifications[5]"
+      ]
+    },
+    {
+      "title": "Impl review FAIL transition omits the registry post hook",
+      "target": "R8 / R9 / T-2 / src/flow/registry.js",
+      "decision": "applied",
+      "rationale": "Added registry.js as a transition owner and required the review post hook to consume structured verdicts so FAIL cannot promote gate-impl.",
+      "evidence": "spec.json modules, data_flow, requirement R15, acceptance criteria, implementationTargets, and T-2 now cover registry post-hook behavior.",
+      "changedFields": [
+        "overview.modules[4]",
+        "overview.data_flow[4]",
+        "overview.decisions[4]",
+        "requirements[14]",
+        "acceptance_criteria[7]",
+        "implementationTargets[2]",
+        "tasks[1]"
+      ]
+    },
+    {
+      "title": "Task-scoped impl review compatibility is unspecified",
+      "target": "RunReviewCommand task path / src/flow/prompts/task/review.md",
+      "decision": "applied",
+      "rationale": "Added task-scoped review to the structured contract and required task prompt wording to match flow-level impl review policy.",
+      "evidence": "spec.json modules, decisions, requirements R16/R17, clarifications, implementationTargets, and T-3 now cover `--task-spec` and `src/flow/prompts/task/review.md`.",
+      "changedFields": [
+        "overview.modules[5]",
+        "overview.decisions[5]",
+        "requirements[15]",
+        "requirements[16]",
+        "acceptance_criteria[8]",
+        "acceptance_criteria[10]",
+        "clarifications[6]",
+        "implementationTargets[5]",
+        "tasks[2]"
+      ]
+    }
+  ]
+}

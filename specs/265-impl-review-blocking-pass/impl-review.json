@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "phase": "impl",
+  "generatedAt": "2026-05-21T04:19:53.568Z",
+  "verdict": "ADVISORY",
+  "summary": {
+    "blocking": 0,
+    "nonBlocking": 1,
+    "total": 1
+  },
+  "blockingFindings": [],
+  "nonBlockingImprovements": [
+    {
+      "title": "Parser test does not prove impl-review.json is the source of truth",
+      "failureMode": "test_coverage_gap",
+      "file": "tests/unit/flow/run-review-advisory.test.js",
+      "issue": "The ADVISORY parse test calls parseImplReviewOutput without opts.root or a real impl-review.json, so the assertion is still satisfied by stderr parsing alone.",
+      "suggestion": "Update the \"parses ADVISORY as non-blocking and routes to gate-impl\" test to create a temporary impl-review.json, pass { root: tmp } to parseImplReviewOutput, and assert verdict/counts are read from that artifact, preferably with conflicting stderr values.",
+      "rationale": "This is not blocking because RunReviewCommand passes root in production, but the test would better protect the structured-artifact routing contract from regressing back to stderr-derived decisions."
+    }
+  ],
+  "excluded": {
+    "missingFile": 0,
+    "outOfScope": 0
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "devType": "feature",
+  "goal": "impl review の停止条件を proposal 有無から blocking finding 有無へ変え、non-blocking improvement が flow 進行と retry budget を妨げないようにする。",
+  "analysis": {
+    "problem": "現在の impl review は review.md の proposalCount や NO_PROPOSALS を PASS 相当の条件にしているため、blocking ではない改善提案が生成され続けると実装が要求を満たしていても review step が収束しにくい。Issue #340 は、この原因を reviewer 出力が blocking/non-blocking に分かれていないこと、implementer triage の判断基準が抽象的なこと、structured artifact がないこととして整理している。",
+    "proposedApproach": "impl review の検出結果を blockingFindings と nonBlockingImprovements に分け、PASS は blockingFindings.length === 0 で判定する。review.md は人間向け summary として残しつつ impl-review.json を機械判定の source of truth にし、run-review の post hook、retry 消費、次 step 判定、previous review memory、implement / triage / reviewer prompt が同じ blocking failure mode を参照するようにする。",
+    "validation": "src/flow/commands/review.js の impl review は現状 proposal list と proposalCount を生成し、src/flow/lib/run-review.js は proposalCount === 0 や NO_PROPOSALS を PASS 扱いにしている。一方、spec review と test review は structured verdict と finding count を使っており、Issue #340 の approach は既存の structured review pattern を impl review に持ち込むため、表面上の retry 回避ではなく収束しない根本条件を変更できる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #340 は impl review の PASS 条件を proposalCount === 0 から blockingFindings.length === 0 へ変更することを求めている。",
+      "Issue #340 は reviewer output を blockingFindings[] と nonBlockingImprovements[] に分けることを求めている。",
+      "Issue #340 は review.md と impl-review.json の両方を保存し、structured artifact を判定に使うことを求めている。",
+      "Issue #340 は previous review memory に verdict、counts、previousBlockingFindings、acknowledgedNonBlockingImprovements を含めることを求めている。",
+      "Issue #340 は implement / reviewer / triage prompts が同じ 3 つの blocking failure mode を共有することを完了条件にしている。",
+      "Issue #340 は impl review の non-blocking bucket 名を spec review と同じ nonBlockingImprovements に揃えることを推奨し、test review との命名統一は後続 task として扱う方針を示している。",
+      "Issue #340 は non-blocking improvement が生成されても retry budget を消費せず flow が前進することを完了条件にしている。",
+      "Issue #340 は review.md と impl-review.json の両方を保存することを求めており、structured artifact は PASS 判定と previous review memory の入力になる。",
+      "src/flow/commands/review.js の impl review は現状 NO_PROPOSALS と markdown proposal list を出力し、parseProposals / filterProposalsByScope / writeReviewMd / formatReviewMd が proposal 形式に依存している。",
+      "src/flow/lib/run-review.js の isImplPass は no-changes、no-proposals、proposalCount === 0 を PASS として扱っている。",
+      "src/flow/lib/run-review.js の impl review post processing は proposalCount、noProposals、next=gate-impl/apply を proposal 有無から決めている。",
+      "src/flow/prompts/impl/review.md の triage 基準は code quality、behavior risk、scope という抽象基準であり、Issue #340 の blocking failure mode と一致していない。",
+      "spec review は blockingFindings[] と nonBlockingImprovements[]、test review は blockingFindings[] と advisoryFindings[] を使う structured review pattern を既に持つ。"
+    ],
+    "decisionPoints": [
+      "impl review の non-blocking bucket 名を spec review と同じ nonBlockingImprovements に揃えるか。",
+      "impl-review.json の schema をどの fields で固定し、review.md との責務をどう分けるか。",
+      "blockingFindings が残る場合の next step、retry 消費、review stop state をどう判定するか。",
+      "nonBlockingImprovements が存在する場合に apply step を通すか、gate-impl へ進めるか。",
+      "previous review memory でどの情報を次回 reviewer prompt に渡し、feedback inflation をどう抑えるか。",
+      "task-scope impl review と flow-level impl review の両方に同じ structured artifact contract を適用するか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。Node.js 組み込みモジュールと既存 CLI 構造で実装する。",
+      "alpha 版ポリシーにより旧 proposal-only format の後方互換コードは保持しない。",
+      "同じ parsing、formatting、artifact persistence、prompt memory logic が複数箇所に必要な場合は共通 helper に抽出する。",
+      "意味のある artifact や finding は必要に応じて専用クラスで invariant と振る舞いを持たせる。",
+      "src/ 以下に特定プロジェクト固有の情報を含めない。prompt 文言は汎用的な review 契約として書く。",
+      "src/flow/prompts/ や src/skills/ を変更した場合は sdd-forge upgrade を実行する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "impl-review.json の exact schema、class 名、helper 関数名。",
+      "blocking finding と non-blocking improvement の markdown rendering format。",
+      "parseProposals を置き換える JSON parse / repair / fallback の具体設計。",
+      "previous review memory の exact prompt text と truncation policy。",
+      "run-review artifacts object の field 名と post-hook next step 判定。",
+      "unit / e2e test の exact fixture と assertion。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: impl review は blockingFindings.length === 0 で PASS する。",
+      "must: reviewer prompt は blockingFindings[] と nonBlockingImprovements[] を出力する。",
+      "must: blocking failure mode は spec acceptance requirement 未実装、不完全または矛盾、再現可能な security / data integrity bug の 3 種に限定する。",
+      "must: non-blocking improvement は retry budget を消費せず、flow 進行を止めない。",
+      "must: review.md と impl-review.json を保存し、PASS 判定、retry 消費、next step 判定、previous review memory は impl-review.json の verdict / blockingFindings / nonBlockingImprovements を読む。",
+      "must: previous review memory で過去 verdict、counts、blocking findings、acknowledged non-blocking improvements を次回 reviewer prompt に渡す。",
+      "must: implement / reviewer / triage prompts は同じ blocking failure mode を共有する。",
+      "must: tests/unit/flow/commands/review.test.js は blockingFindings / nonBlockingImprovements の parse、scope filter、review.md / impl-review.json rendering を検証する。",
+      "must: tests/unit/flow/run-review-advisory.test.js は blockingFindings が 0 かつ nonBlockingImprovements が 1 件以上の場合に reviewRetry が reset され、next が gate-impl になることを検証する。",
+      "must: tests/unit/flow/phases-review.test.js は impl review の verdict と next step 遷移を検証する。",
+      "should: tests/e2e/flow/gate-impl-integration.test.js は impl-review.json が存在し、blockingFindings が 0 の artifact で gate-impl へ進めることを検証する。"
+    ],
+    "out": [
+      "test review の advisoryFindings と spec review の nonBlockingImprovements の全体命名統一。",
+      "acknowledged non-blocking / rejected proposal の完全な再提案禁止機構。",
+      "既存テスト破壊、scope creep、guardrail violation、test false positive を impl review blocking finding に含めること。",
+      "AI provider や review model の変更。",
+      "GitHub Issue publish workflow の変更。"
+    ]
+  },
+  "impactOnExisting": [
+    "flow run review の impl phase output contract が proposalCount 中心から structured verdict / finding count 中心に変わる。",
+    "src/flow/lib/run-review.js の impl review next step 判定と retry reset / consume 判定が変わる。",
+    "specs/<spec>/review.md は引き続き生成されるが、判定用 artifact として impl-review.json が追加される。",
+    "impl review の triage prompt は blocking は必ず対応、non-blocking は文脈に応じて採否判断する契約へ変わる。",
+    "reviewer prompt は non-blocking 指摘を任意にし、blocking 検出に集中するため、従来の code quality proposal 出力より少ない指摘になる可能性がある。",
+    "prompt source under src/flow/prompts/ を変更するため、生成済み skill / agent assets への反映に sdd-forge upgrade が必要になる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "dependency-integration-boundary",
+      "question": "impl review の non-blocking bucket 名は、Issue #340 の推奨どおり spec review と同じ `nonBlockingImprovements` に揃えますか。",
+      "answer": "はい。impl review の non-blocking bucket 名は `nonBlockingImprovements` に揃え、test review の `advisoryFindings` との全体統一は今回の scope 外に残す。",
+      "evidence": "Issue #340 の関連セクションは、impl review では spec review と同じ `nonBlockingImprovements` を当面の推奨とし、test review との統一は後続 task として扱うと明記している。",
+      "why": "spec review の existing pattern と field 名を揃えることで structured artifact と prompt contract を読みやすくできる。test review まで同時に統一すると Issue #340 の scope を超える。",
+      "considered": "test review の `advisoryFindings` に合わせる案もあるが、spec review の blockingFindings / nonBlockingImprovements pattern を移植する Issue の主旨から外れるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "`nonBlockingImprovements` が存在しても、impl review は retry budget を消費せず `gate-impl` へ進める契約にしますか。",
+      "answer": "はい。`blockingFindings.length === 0` なら、`nonBlockingImprovements` が存在しても impl review は PASS / ADVISORY 相当として retry budget を消費せず `gate-impl` へ進める。",
+      "evidence": "Issue #340 の完了条件は、non-blocking improvement が生成されても retry budget を消費せず flow が前進することを求めている。src/flow/lib/review-failure.js は verdict=FAIL のみ retry を消費する既存設計である。",
+      "why": "収束しない原因は non-blocking proposal が stop condition になっていることなので、blocking finding だけを停止条件にしないと根本問題が残る。",
+      "considered": "non-blocking improvement を apply step に回す案はあるが、Issue #340 は implementer が文脈ベースで取捨選択する責務を保つことを求めており、flow 停止条件にはしない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "`impl-review.json` を impl review の機械判定 source of truth とし、`review.md` は人間向け summary として残す契約で進めますか。",
+      "answer": "はい。`impl-review.json` を PASS 判定、retry 消費、next step 判定、previous review memory の機械判定 source of truth とし、`review.md` は人間が確認する summary として残す。",
+      "evidence": "Issue #340 は spec review の `spec-review.json` と同じ pattern で `review.md` と `impl-review.json` の両方を保存することを求めている。現状の impl review は `review.md` と stderr の `proposalCount` に依存している。",
+      "why": "structured artifact を source of truth にすると、markdown parsing や stderr 文字列に依存せずに PASS 判定、retry、prompt memory を一貫して扱える。",
+      "considered": "review.md だけを拡張する案は人間向けには読みやすいが、機械判定 contract が曖昧なまま残るため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-21T02:22:00.000Z",
+    "notes": "Draft coverage review passed and all QA entries are answered."
+  }
+}

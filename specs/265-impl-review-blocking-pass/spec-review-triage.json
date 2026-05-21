@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "3 blocking spec review findings should be applied: preserve missing-acceptance blockers through scope filtering, define registry post-hook behavior, and cover task-scoped impl review.",
+  "items": [
+    {
+      "title": "Scope filtering can discard required blocking findings",
+      "target": "R2 / R13 / Data Flow",
+      "decision": "apply",
+      "rationale": "The finding identifies a real contradiction between missing-acceptance blockers and file-path-only scope filtering. The spec must define how requirement-level blockers survive filtering.",
+      "evidence": "spec-review.json blockingFindings[0] shows that a missing acceptance requirement may not have a touched file path but still must block PASS."
+    },
+    {
+      "title": "Impl review FAIL transition omits the registry post hook",
+      "target": "R8 / R9 / T-2 / src/flow/registry.js",
+      "decision": "apply",
+      "rationale": "The finding names an existing transition owner that can advance the step independently of run-review parsing. The spec must require the registry post hook to use structured verdicts.",
+      "evidence": "spec-review.json blockingFindings[1] states that `FLOW_COMMANDS.run.review.post` may mark impl review done unless it consumes the new structured verdict."
+    },
+    {
+      "title": "Task-scoped impl review compatibility is unspecified",
+      "target": "RunReviewCommand task path / src/flow/prompts/task/review.md",
+      "decision": "apply",
+      "rationale": "The same review command has a task-scoped `--task-spec` path, so the spec must either include that path in the structured contract or explicitly preserve separate behavior.",
+      "evidence": "spec-review.json blockingFindings[2] identifies the task-scoped path and stale task review prompt as a conflict with the shared command behavior."
+    }
+  ]
+}
