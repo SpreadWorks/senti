@@ -6,159 +6,147 @@
         "feat: feature/267-summarize-issue-log-report"
       ]
     },
-    "retro": null,
+    "retro": {
+      "total": 6,
+      "done": 6,
+      "partial": 0,
+      "not_done": 0,
+      "na_count": 0,
+      "not_testable_count": 0,
+      "rate": 1,
+      "notes": "aggregated from test-execute-result.json",
+      "requirements": [
+        {
+          "desc": "generateReport() shall set data.issueLog.count to the total number of full issue-log entries and data.issueLog.fullLogPath to `specs/<spec-id>/issue-log.json` when a flow state spec path is available. The fullLogPath shall be present in report.json and report text whenever issueLog data is rendered.",
+          "status": "done",
+          "note": "R1: records total count and full issue-log artifact path"
+        },
+        {
+          "desc": "generateReport() shall classify an issue-log entry as important when any of step, level, reason, trigger, resolution, guardrailCandidate, result, status, or failureKind contains fail, failed, error, blocked, recovery, recover, workaround, force, or forced using case-insensitive substring matching, or when step contains gate, review, or final-regression and level/result/status/failureKind indicates a failure.",
+          "status": "done",
+          "note": "R2: classifies important entries by field keywords and failure-origin rules"
+        },
+        {
+          "desc": "data.issueLog.entries shall contain only summary entries: all important entries up to 10 entries, then recent non-important entries up to 5 entries. Full issue-log entries beyond those summary selections shall not be copied into report.json.",
+          "status": "done",
+          "note": "R3: stores only important entries up to 10 and recent other entries up to 5"
+        },
+        {
+          "desc": "report text shall render an `Issue Log Summary (<total> total)` section with the fullLogPath, an Important subsection when important entries exist, a Recent Other subsection when non-important entries exist, and explicit omitted counts when important entries exceed 10 or non-important entries exceed the 5 displayed entries.",
+          "status": "done",
+          "note": "R4: renders summary sections and omitted counts"
+        },
+        {
+          "desc": "issue-log entries with 0, 1, or 2 total entries shall not render omitted-count text when no entries are hidden. With 0 entries, report text shall not render an Issue Log Summary section. With 1 or 2 entries, report text shall not contain an issue-log omitted-count line or phrase containing `omitted` or `more`.",
+          "status": "done",
+          "note": "R5: handles zero, one, and two entries without omitted-count text"
+        },
+        {
+          "desc": "The existing issue-log.json load/save format and finalize-cleanup report display behavior shall remain unchanged; all summary behavior shall be implemented in the report generation path.",
+          "status": "done",
+          "note": "R6: preserves issue-log load and save format"
+        }
+      ]
+    },
     "issueLog": {
       "count": 30,
+      "fullLogPath": "specs/267-summarize-issue-log-report/issue-log.json",
+      "importantTotal": 22,
+      "importantShown": 10,
+      "importantOmitted": 12,
+      "recentOtherTotal": 8,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 3,
       "entries": [
         {
-          "step": "draft",
-          "reason": "Metric recording used invalid phase plan before draft phase metrics were validated",
-          "resolution": "Recorded the source read metric under the valid draft phase and continued with draft context gathering"
-        },
-        {
-          "step": "gate-draft",
-          "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
-          "resolution": null
-        },
-        {
+          "classification": "important",
           "step": "gate-draft",
           "reason": "Draft gate failed because approval.approved was still false after coverage review passed",
           "resolution": "Set draft approval to true with autoApprove notes after all QA entries were answered and reviews passed"
         },
         {
-          "step": "gate-draft",
-          "reason": "Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.",
-          "resolution": null
-        },
-        {
+          "classification": "important",
           "step": "gate-draft",
           "reason": "Draft gate failed because scopeVerification.in requirements did not include must should or nice-to-have priorities",
           "resolution": "Added explicit MUST and SHOULD priority markers to all in-scope draft requirement entries"
         },
         {
+          "classification": "important",
           "step": "gate-draft",
-          "reason": "The requirement uses the ambiguous phrase \"force 系\" without defining the exact strings, fields, or matching criteria, so reviewers may disagree on which entries are important.; The requirement says important items are detected by \"指定語句\" and failed steps but does not enumerate the exact terms or matching rules, so reviewers may disagree on satisfaction.; The requirement \"report 生成に関する unit test\" does not state measurable coverage or scenarios, so reviewers may disagree on whether the test requirement is satisfied.",
+          "reason": "The requirement uses the ambiguous phrase \"force 系\" without defining the exact strings, fields, or matching criteria, so reviewers may disagree on which entries are important.; The requirement says important items are detected by \"指定語句\" ...",
           "resolution": null
         },
         {
+          "classification": "important",
           "step": "gate-draft",
           "reason": "Draft gate failed because important issue-log criteria used ambiguous force-family wording and the test scope was not measurable",
           "resolution": "Expanded important-entry matching terms and fields, and replaced the unit test scope with concrete report-generation scenarios"
         },
         {
-          "step": "gate-draft",
-          "reason": "Requirement uses the vague phrase \"少数 entries\" without stating a verifiable entry count or range.; Requirement asks tests to cover \"少数 entries\" but does not define how many entries qualifies, so independent reviewers could disagree on whether the condition is satisfied.",
-          "resolution": null
-        },
-        {
+          "classification": "important",
           "step": "gate-draft",
           "reason": "Draft gate failed because the test scenario used the vague phrase small entries without numeric counts",
           "resolution": "Replaced the vague small-entry scenario with explicit zero one and two entry cases"
         },
         {
+          "classification": "important",
           "step": "spec-repair",
           "reason": "Spec review found gate failures could be missed because gate issue-log entries use level instead of result status or failureKind",
           "resolution": "Added level to R2 important-entry matching and failure-origin clarification, with spec-repair audit artifact"
         },
         {
-          "step": "gate",
-          "reason": "Requirement R5 uses the vague condition \"without misleading omitted counts\" without defining which omitted-count text is allowed or prohibited for 1-entry and 2-entry cases.; Requirement R5 depends on the subjective phrase \"misleading omitted counts\"; two reviewers could disagree on whether an implementation satisfies it for 1-entry and 2-entry cases.",
-          "resolution": null
-        },
-        {
+          "classification": "important",
           "step": "gate",
           "reason": "Spec gate failed because R5 used the subjective phrase misleading omitted counts",
           "resolution": "Rewrote R5 and acceptance criteria to prohibit concrete omitted-count phrases when no entries are hidden"
         },
         {
-          "step": "gate",
-          "reason": "The spec does not list the impact on existing features or explicitly state that no existing features are affected.",
-          "resolution": null
-        },
-        {
+          "classification": "important",
           "step": "gate",
           "reason": "Spec gate failed because impact on existing features was not explicitly listed in a gate-detectable spec field",
           "resolution": "Added Impact on Existing Features text to background and impactOnExisting list with report text, report.json, issue-log persistence, and finalize-cleanup impacts"
         },
         {
+          "classification": "important",
           "step": "gate",
           "reason": "schema: spec.json failed schema validation: impactOnExisting: unknown field",
           "resolution": null
         },
         {
+          "classification": "important",
           "step": "gate",
           "reason": "Spec gate failed because impactOnExisting was added as an unknown top-level spec.json field",
           "resolution": "Removed the schema-invalid field and kept the Impact on Existing Features section inside background"
         },
         {
-          "step": "review-test",
-          "reason": "Static test review failed because R2 field coverage and R6 preserved-behavior coverage were incomplete",
-          "resolution": "Expanded R2 test cases across missing fields and added R6 load-save plus report-text display path checks"
+          "classification": "recent-other",
+          "step": "gate-draft",
+          "reason": "Requirement uses the vague phrase \"少数 entries\" without stating a verifiable entry count or range.; Requirement asks tests to cover \"少数 entries\" but does not define how many entries qualifies, so independent reviewers could disagree on wh...",
+          "resolution": null
         },
         {
-          "step": "review-test",
-          "reason": "Static test review failed because result-field keyword matching lacked a standalone R2 test case",
-          "resolution": "Added ordinary result and direct failureKind field cases to the R2 spec-local test"
+          "classification": "recent-other",
+          "step": "gate",
+          "reason": "Requirement R5 uses the vague condition \"without misleading omitted counts\" without defining which omitted-count text is allowed or prohibited for 1-entry and 2-entry cases.; Requirement R5 depends on the subjective phrase \"misleading om...",
+          "resolution": null
         },
         {
-          "step": "review-test",
-          "reason": "Static test review failed because level keyword coverage was conflated with the gate failure special case",
-          "resolution": "Split R2 coverage into generic field keyword matching and failure-origin rule inputs, including a non-gate level keyword case"
+          "classification": "recent-other",
+          "step": "gate",
+          "reason": "The spec does not list the impact on existing features or explicitly state that no existing features are affected.",
+          "resolution": null
         },
         {
+          "classification": "recent-other",
           "step": "gate-impl",
           "reason": "Integration gate stopped before evaluation because file-map.json was missing",
           "resolution": "Recorded R1 through R6 file mappings to src/flow/commands/report.js using flow set files"
         },
         {
-          "step": "test-execute",
-          "reason": "Spec-local R6 test failed because it asserted cleanup source imports unrelated to report display behavior",
-          "resolution": "Removed the brittle source-text assertion and kept behavior coverage through readReportText"
-        },
-        {
+          "classification": "recent-other",
           "step": "gate",
-          "reason": "The diff adds IssueLogSummaryEntry as a new class whose only production use is inside IssueLogSummary mapping, and it only stores a source object/classification plus formats three fields; the same behavior could be local object construction without adding a separate API surface or ownership boundary.; The diff adds IssueLogSummary as a new class with a single production construction site in generateReport(), committing to a non-trivial report-summary abstraction without evidence in the spec or issue-log that this class/layer design direction was confirmed before implementation.",
+          "reason": "The diff adds IssueLogSummaryEntry as a new class whose only production use is inside IssueLogSummary mapping, and it only stores a source object/classification plus formats three fields; the same behavior could be local object construct...",
           "resolution": null
-        },
-        {
-          "step": "gate-impl",
-          "reason": "Integration gate failed no-overengineering because IssueLogSummaryEntry was a thin single-use class and IssueLogSummary lacked artifact evidence for the class design",
-          "resolution": "Removed the thin IssueLogSummaryEntry class and consolidated serialization into IssueLogSummary, which retains bounded summary invariants required by project OOP rules"
-        },
-        {
-          "step": "gate",
-          "reason": "Implementation matches keyword fields, but failure-origin logic treats any truthy failureKind as important instead of requiring failureKind to indicate failure via fail/failed/error/blocked matching.",
-          "resolution": null
-        },
-        {
-          "step": "gate-impl",
-          "reason": "Integration gate failed because failure-origin classification treated any non-empty failureKind as important",
-          "resolution": "Changed failureKind origin matching to require fail failed error or blocked terms and adjusted the spec-local final-regression case to use the reason failure signal"
-        },
-        {
-          "step": "test-execute",
-          "reason": "Spec-local R2 test expectation still used the old final-regression reason after aligning the fixture with failure signal wording",
-          "resolution": "Updated the expected important reason to final-regression failed caused_by_current_change"
-        },
-        {
-          "step": "gate",
-          "reason": "Duplicate failure-signal checks were introduced for level, result, status, and failureKind using the same control-flow shape; a local helper over those fields could remove the repeated production logic.; Duplicate subsection rendering control flow was introduced for Important and Recent Other sections: filter entries, conditionally push a title, loop entries, and conditionally push an omitted line. A local helper could remove the repeated production rendering shape.",
-          "resolution": null
-        },
-        {
-          "step": "gate-impl",
-          "reason": "Integration gate failed no-overengineering because failure-signal checks and issue-log subsection rendering duplicated control-flow shapes",
-          "resolution": "Extracted entryHasFailureSignal and pushIssueLogGroup helpers to remove repeated production logic"
-        },
-        {
-          "step": "final-regression",
-          "reason": "final-regression failed: unattributed_existing_failure",
-          "resolution": null
-        },
-        {
-          "step": "final-regression",
-          "reason": "final-regression reported unattributed_existing_failure for npm test --",
-          "resolution": "User selected [1] to record the existing project-test failure and continue finalization"
         }
       ]
     },
@@ -256,10 +244,38 @@
         ]
       },
       "finalRegression": {
-        "status": "done",
+        "version": "1",
+        "completed": false,
         "result": "fail",
         "failureKind": "unattributed_existing_failure",
+        "command": "npm test --",
+        "commandSource": "package.json:scripts.test",
         "rawOutputPath": "specs/267-summarize-issue-log-report/tests/.raw/final-regression-attempt-001.log",
+        "rawOutputLines": {
+          "start_line": 1,
+          "end_line": 5186
+        },
+        "process": {
+          "started": true,
+          "exitCode": 1,
+          "signal": null,
+          "timedOut": false,
+          "spawnError": null
+        },
+        "changedFiles": [
+          {
+            "status": "modified",
+            "path": ".sdd-forge/output/analysis.json"
+          },
+          {
+            "status": "untracked",
+            "path": "specs/267-summarize-issue-log-report/"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/commands/report.js"
+          }
+        ],
         "retryable": false,
         "nextAction": "user-confirmation"
       }
@@ -275,5 +291,5 @@
     "broadModeHistoryTotal": 0,
     "broadModeHistoryTruncated": 0
   },
-  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/267-summarize-issue-log-report\n    28 files changed, 3320 insertions(+), 15 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 19\n    agent calls ................. 46\n    input tokens ................ 723,899\n    output tokens ............... 39,397\n    cache-read tokens ........... 1,300,992\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1058.8s\n      review-draft-questions .... 7.7s\n      review-draft-coverage ..... 8.3s\n      gate-draft ................ 83.0s\n      review-spec ............... 134.6s\n      gate ...................... 43.5s\n      review-test ............... 93.6s\n      review .................... 121.4s\n      gate-impl ................. 566.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/267-summarize-issue-log-report/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=unattributed_existing_failure\n\n  Issue Log (30)\n  ────────────────────────────────────────────────\n    [draft] Metric recording used invalid phase plan before draft phase metrics were validated\n    [gate-draft] draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n    [gate-draft] Draft gate failed because approval.approved was still false after coverage review passed\n    [gate-draft] Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.\n    [gate-draft] Draft gate failed because scopeVerification.in requirements did not include must should or nice-to-have priorities\n    [gate-draft] The requirement uses the ambiguous phrase \"force 系\" without defining the exact strings, fields, or matching criteria, so reviewers may disagree on which entries are important.; The requirement says important items are detected by \"指定語句\" and failed steps but does not enumerate the exact terms or matching rules, so reviewers may disagree on satisfaction.; The requirement \"report 生成に関する unit test\" does not state measurable coverage or scenarios, so reviewers may disagree on whether the test requirement is satisfied.\n    [gate-draft] Draft gate failed because important issue-log criteria used ambiguous force-family wording and the test scope was not measurable\n    [gate-draft] Requirement uses the vague phrase \"少数 entries\" without stating a verifiable entry count or range.; Requirement asks tests to cover \"少数 entries\" but does not define how many entries qualifies, so independent reviewers could disagree on whether the condition is satisfied.\n    [gate-draft] Draft gate failed because the test scenario used the vague phrase small entries without numeric counts\n    [spec-repair] Spec review found gate failures could be missed because gate issue-log entries use level instead of result status or failureKind\n    [gate] Requirement R5 uses the vague condition \"without misleading omitted counts\" without defining which omitted-count text is allowed or prohibited for 1-entry and 2-entry cases.; Requirement R5 depends on the subjective phrase \"misleading omitted counts\"; two reviewers could disagree on whether an implementation satisfies it for 1-entry and 2-entry cases.\n    [gate] Spec gate failed because R5 used the subjective phrase misleading omitted counts\n    [gate] The spec does not list the impact on existing features or explicitly state that no existing features are affected.\n    [gate] Spec gate failed because impact on existing features was not explicitly listed in a gate-detectable spec field\n    [gate] schema: spec.json failed schema validation: impactOnExisting: unknown field\n    [gate] Spec gate failed because impactOnExisting was added as an unknown top-level spec.json field\n    [review-test] Static test review failed because R2 field coverage and R6 preserved-behavior coverage were incomplete\n    [review-test] Static test review failed because result-field keyword matching lacked a standalone R2 test case\n    [review-test] Static test review failed because level keyword coverage was conflated with the gate failure special case\n    [gate-impl] Integration gate stopped before evaluation because file-map.json was missing\n    [test-execute] Spec-local R6 test failed because it asserted cleanup source imports unrelated to report display behavior\n    [gate] The diff adds IssueLogSummaryEntry as a new class whose only production use is inside IssueLogSummary mapping, and it only stores a source object/classification plus formats three fields; the same behavior could be local object construction without adding a separate API surface or ownership boundary.; The diff adds IssueLogSummary as a new class with a single production construction site in generateReport(), committing to a non-trivial report-summary abstraction without evidence in the spec or issue-log that this class/layer design direction was confirmed before implementation.\n    [gate-impl] Integration gate failed no-overengineering because IssueLogSummaryEntry was a thin single-use class and IssueLogSummary lacked artifact evidence for the class design\n    [gate] Implementation matches keyword fields, but failure-origin logic treats any truthy failureKind as important instead of requiring failureKind to indicate failure via fail/failed/error/blocked matching.\n    [gate-impl] Integration gate failed because failure-origin classification treated any non-empty failureKind as important\n    [test-execute] Spec-local R2 test expectation still used the old final-regression reason after aligning the fixture with failure signal wording\n    [gate] Duplicate failure-signal checks were introduced for level, result, status, and failureKind using the same control-flow shape; a local helper over those fields could remove the repeated production logic.; Duplicate subsection rendering control flow was introduced for Important and Recent Other sections: filter entries, conditionally push a title, loop entries, and conditionally push an omitted line. A local helper could remove the repeated production rendering shape.\n    [gate-impl] Integration gate failed no-overengineering because failure-signal checks and issue-log subsection rendering duplicated control-flow shapes\n    [final-regression] final-regression failed: unattributed_existing_failure\n    [final-regression] final-regression reported unattributed_existing_failure for npm test --"
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: feature/267-summarize-issue-log-report\n    28 files changed, 3320 insertions(+), 15 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    ████████ 100%  (6 done / 0 partial / 0 miss)\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 2\n    Q&A ......................... 0\n    issue-log ................... 19\n    agent calls ................. 46\n    input tokens ................ 723,899\n    output tokens ............... 39,397\n    cache-read tokens ........... 1,300,992\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 1058.8s\n      review-draft-questions .... 7.7s\n      review-draft-coverage ..... 8.3s\n      gate-draft ................ 83.0s\n      review-spec ............... 134.6s\n      gate ...................... 43.5s\n      review-test ............... 93.6s\n      review .................... 121.4s\n      gate-impl ................. 566.8s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 6  passed 6  failed 0 verdict=pass\n    raw_output: specs/267-summarize-issue-log-report/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=unattributed_existing_failure\n\n  Issue Log Summary (30 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/267-summarize-issue-log-report/issue-log.json\n\n    Important (10 of 22)\n    - [gate-draft] Draft gate failed because approval.approved was still false after coverage review passed\n    - [gate-draft] Draft gate failed because scopeVerification.in requirements did not include must should or nice-to-have priorities\n    - [gate-draft] The requirement uses the ambiguous phrase \"force 系\" without defining the exact strings, fields, or matching criteria, so reviewers may disagree on which entries are important.; The requirement says important items are detected by \"指定語句\" ...\n    - [gate-draft] Draft gate failed because important issue-log criteria used ambiguous force-family wording and the test scope was not measurable\n    - [gate-draft] Draft gate failed because the test scenario used the vague phrase small entries without numeric counts\n    - [spec-repair] Spec review found gate failures could be missed because gate issue-log entries use level instead of result status or failureKind\n    - [gate] Spec gate failed because R5 used the subjective phrase misleading omitted counts\n    - [gate] Spec gate failed because impact on existing features was not explicitly listed in a gate-detectable spec field\n    - [gate] schema: spec.json failed schema validation: impactOnExisting: unknown field\n    - [gate] Spec gate failed because impactOnExisting was added as an unknown top-level spec.json field\n    ... 12 important issue-log entries omitted\n\n    Recent Other (5 of 8)\n    - [gate-draft] Requirement uses the vague phrase \"少数 entries\" without stating a verifiable entry count or range.; Requirement asks tests to cover \"少数 entries\" but does not define how many entries qualifies, so independent reviewers could disagree on wh...\n    - [gate] Requirement R5 uses the vague condition \"without misleading omitted counts\" without defining which omitted-count text is allowed or prohibited for 1-entry and 2-entry cases.; Requirement R5 depends on the subjective phrase \"misleading om...\n    - [gate] The spec does not list the impact on existing features or explicitly state that no existing features are affected.\n    - [gate-impl] Integration gate stopped before evaluation because file-map.json was missing\n    - [gate] The diff adds IssueLogSummaryEntry as a new class whose only production use is inside IssueLogSummary mapping, and it only stores a source object/classification plus formats three fields; the same behavior could be local object construct...\n    ... 3 other issue-log entries omitted"
 }
