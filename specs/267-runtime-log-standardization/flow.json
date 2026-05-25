@@ -184,17 +184,27 @@
             },
             {
               "id": "finalize-merge",
-              "status": "pending"
+              "status": "done",
+              "finishedAt": "2026-05-25T04:34:08.629Z"
             },
             {
               "id": "finalize-sync",
-              "status": "pending",
-              "finishedAt": "2026-05-25T04:32:38.444Z"
+              "status": "done",
+              "finishedAt": "2026-05-25T04:35:25.145Z",
+              "runtimeLog": {
+                "runId": "5f816e7a-ca82-4aba-8fa4-eb71f3d6e868",
+                "sequence": 2,
+                "attempt": 1,
+                "command": "flow run finalize-sync",
+                "startedAt": "2026-05-25T04:34:19.227Z",
+                "endedAt": "2026-05-25T04:35:25.149Z",
+                "exitCode": 0
+              }
             },
             {
               "id": "finalize-cleanup",
-              "status": "pending",
-              "finishedAt": "2026-05-25T04:32:38.475Z"
+              "status": "done",
+              "finishedAt": "2026-05-25T04:35:32.602Z"
             }
           ]
         }
@@ -2497,6 +2507,57 @@
       "reset": true,
       "taskId": null,
       "ts": "2026-05-25T04:22:55.395Z"
+    },
+    {
+      "phase": "final-regression",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 6929,
+      "durationMs": 33322,
+      "tokens": {
+        "input": 17179,
+        "output": 1583,
+        "cacheRead": 4992,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-25T04:34:52.959Z"
+    },
+    {
+      "phase": "final-regression",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 4618,
+      "durationMs": 41942,
+      "tokens": {
+        "input": 10895,
+        "output": 1267,
+        "cacheRead": 4992,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-25T04:35:01.580Z"
+    },
+    {
+      "phase": "final-regression",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 14543,
+      "durationMs": 65193,
+      "tokens": {
+        "input": 6417,
+        "output": 3340,
+        "cacheRead": 12672,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-25T04:35:24.828Z"
     }
   ],
   "reviewRecoveryBaselines": [
@@ -2951,6 +3012,8 @@
     ]
   },
   "state": {
-    "finalizedAt": "2026-05-25T04:32:16.804Z"
+    "finalizedAt": "2026-05-25T04:32:16.804Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "819b3d3743b67ccb2f330440610a9617eee4dfe7"
   }
 }
