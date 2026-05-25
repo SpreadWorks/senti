@@ -184,7 +184,8 @@
             },
             {
               "id": "finalize-merge",
-              "status": "pending"
+              "status": "done",
+              "finishedAt": "2026-05-25T01:30:29.617Z"
             },
             {
               "id": "finalize-sync",
@@ -2168,6 +2169,40 @@
       "delta": 1,
       "taskId": null,
       "ts": "2026-05-25T01:30:06.877Z"
+    },
+    {
+      "phase": "final-regression",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 5921,
+      "durationMs": 34835,
+      "tokens": {
+        "input": 15536,
+        "output": 1546,
+        "cacheRead": 4992,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-25T01:31:14.432Z"
+    },
+    {
+      "phase": "final-regression",
+      "kind": "agent",
+      "provider": "codex",
+      "profileKey": "codex/gpt-5.3",
+      "callCount": 1,
+      "responseChars": 6574,
+      "durationMs": 39559,
+      "tokens": {
+        "input": 17265,
+        "output": 1827,
+        "cacheRead": 4992,
+        "cacheCreation": 0
+      },
+      "taskId": null,
+      "ts": "2026-05-25T01:31:19.153Z"
     }
   ],
   "reviewRecoveryBaselines": [
@@ -2851,6 +2886,8 @@
     ]
   },
   "state": {
-    "finalizedAt": "2026-05-25T01:30:11.657Z"
+    "finalizedAt": "2026-05-25T01:30:11.657Z",
+    "mergeStrategy": "squash",
+    "featureBranchSquashedSha": "a023d429ee1da90f27602326b12012e43bd447fc"
   }
 }

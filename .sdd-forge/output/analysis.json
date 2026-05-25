@@ -1,12 +1,12 @@
 {
-  "analyzedAt": "2026-05-22T03:00:49.714Z",
+  "analyzedAt": "2026-05-25T01:30:39.276Z",
   "package": {
     "entries": [
       {
         "file": "package.json",
-        "hash": "8adc90d2d92a7590a4297ebf962185ae",
+        "hash": "dc26889c46ffc0b1cef2a57a79b03fd5",
         "lines": 41,
-        "mtime": "2026-05-20T03:31:18.497Z",
+        "mtime": "2026-05-22T02:36:05.922Z",
         "packageDeps": {
           "dependencies": {},
           "devDependencies": {}
@@ -23,21 +23,21 @@
         "composerScripts": null,
         "makefileTest": null,
         "id": "451a9f25",
-        "summary": "The package manifest defines sdd-forge as a Node.js ESM CLI focused on spec-driven documentation workflows. It exposes one executable entrypoint and constrains runtime and publish scope.",
-        "detail": "The package is published as `sdd-forge` with an ESM module type and maps both `bin` and `exports` to `src/sdd-forge.js`. Runtime compatibility is pinned to Node.js `>=18.19.0`, reflecting a modern built-in-module baseline. The `files` allowlist ships `src/` while excluding preset test fixtures from package output. Script targets separate unit, e2e, acceptance, agent, and full test runs, showing an explicit testing matrix.",
+        "summary": "The package manifest defines sdd-forge as an ESM-based CLI for spec-driven development and automated documentation workflows. It publishes only `src/` assets and exposes a single `sdd-forge` binary entry.",
+        "detail": "The manifest sets `type: module`, so runtime code follows Node.js ESM semantics. It enforces a minimum Node.js version of 18.19.0 and uses a no-extra-dependency footprint in the provided scripts and metadata. Test scripts are segmented by scope (`unit`, `e2e`, `acceptance`, `agent`, `all`) through a shared runner. Packaging is constrained with a `files` allowlist that excludes preset test fixtures from distribution.",
         "chapter": "stack_and_ops",
-        "role": "CLI package manifest",
+        "role": "package_manifest",
         "enrich": {
-          "processedAt": "2026-05-20T03:34:35.997Z",
+          "processedAt": "2026-05-25T01:31:39.158Z",
           "attempts": 1
         },
         "keywords": [
-          "package manifest",
+          "package.json",
           "Node.js ESM",
-          "CLI entrypoint",
+          "CLI binary",
           "engine requirement",
-          "publish allowlist",
           "test scripts",
+          "npm packaging",
           "spec-driven development"
         ]
       }
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -1155,7 +1155,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -1399,7 +1399,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -1901,7 +1901,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -1933,7 +1933,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -2047,7 +2047,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -2260,7 +2260,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -2306,7 +2306,7 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -2555,14 +2555,14 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
         "file": "src/flow/definition.js",
-        "hash": "4427d1516849550f3b72b85b8cd02daa",
+        "hash": "1be3a13fff86897d3e1af48dd391e3a7",
         "lines": 793,
-        "mtime": "2026-05-20T12:01:22.191Z",
+        "mtime": "2026-05-25T00:05:00.904Z",
         "className": "definition",
         "methods": [
           "collectGatePhaseEntries",
@@ -2623,7 +2623,7 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 3
+          "attempts": 1
         }
       },
       {
@@ -3613,6 +3613,45 @@
         ]
       },
       {
+        "file": "src/flow/lib/observation.js",
+        "hash": "83e649a6be3661894213712da6e6de1c",
+        "lines": 279,
+        "mtime": "2026-05-25T01:30:29.357Z",
+        "className": "observation",
+        "methods": [
+          "Observation",
+          "Diagnosis",
+          "NextAction",
+          "legacyEvaluationsToNextAction",
+          "requireString",
+          "assertNoExtraKeys",
+          "normalizeWhere",
+          "normalizeRefs",
+          "isDiffVerifiableProcessObservation",
+          "validateSeverityPolicy",
+          "legacyWhere",
+          "legacyObserved",
+          "legacyFailureMode"
+        ],
+        "imports": [
+          "crypto"
+        ],
+        "exports": [
+          "Observation",
+          "Diagnosis",
+          "NextAction",
+          "legacyEvaluationsToNextAction"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/flow/lib/run-gate.js"
+        ],
+        "id": "1dd5bb71",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/flow/lib/overview-merge.js",
         "hash": "901f5ee38ff125931b652a14ea3d0276",
         "lines": 102,
@@ -4195,7 +4234,7 @@
         "usedBy": null,
         "id": "49364661",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
@@ -4277,7 +4316,7 @@
         "usedBy": null,
         "id": "1e686d63",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -4417,14 +4456,14 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
         "file": "src/flow/lib/run-gate.js",
-        "hash": "c2d350dbd641791ef4c939f93920cbdc",
-        "lines": 2754,
-        "mtime": "2026-05-19T04:48:08.663Z",
+        "hash": "858a858d7a0a915e787501e0776dcedf",
+        "lines": 3216,
+        "mtime": "2026-05-25T01:30:29.359Z",
         "className": "run-gate",
         "methods": [
           "executeGateSideEffects",
@@ -4435,12 +4474,18 @@
           "parseGuardrailArticleEvaluation",
           "parseImplRequirementEvaluation",
           "buildGateReport",
+          "buildGateResultArtifact",
           "resolveRetryMax",
           "countGateRetry",
           "warnGateRetryBudget",
+          "buildGateRetryExhaustedEnvelope",
           "checkRetryBelowMax",
+          "evaluateGuardrailObservationsWithRetry",
           "updateGateRetryCounter",
           "computeGitState",
+          "updateGateImplMemory",
+          "readGateImplMemoryForPrompt",
+          "buildGateImplPriorMemoryPrompt",
           "findPreviousFailState",
           "checkNoProgressSinceLastFail",
           "normalize",
@@ -4484,8 +4529,11 @@
           "buildGuardrailPrompt",
           "extractJsonCandidate",
           "parseEvaluationsArray",
+          "parseJsonObject",
           "checkExtraKeys",
           "deriveArticleFailReason",
+          "buildPassEvaluationsForObservedGuardrails",
+          "normalizeObservations",
           "checkGuardrail",
           "readGateRetryCount",
           "hasGateRecoveryBaseline",
@@ -4494,8 +4542,18 @@
           "formatRetryHistory",
           "appendGateEscalationIssueLog",
           "findPreviousFailEntry",
+          "resolveGateImplMemoryPaths",
+          "readGateImplMemoryArtifact",
+          "writeGateImplMemoryArtifact",
+          "gateImplMemoryForPhase",
+          "samePhaseMemoryEntries",
+          "nextGateImplMemoryRound",
+          "normalizeObservationFailurePairs",
+          "observationsFromGateEvaluations",
+          "priorGateImplObservations",
           "buildImplCheckPrompt",
           "buildPerRequirementDiffs",
+          "nextActionFromGateEvaluations",
           "gatePass",
           "gateFail",
           "runGateFlow",
@@ -4525,6 +4583,7 @@
           "./draft-lifecycle.js",
           "./test-artifacts.js",
           "./test-artifacts.js",
+          "./observation.js",
           "./task-scope.js",
           "./draft-review-routes.js",
           "./retry-recovery.js",
@@ -4539,12 +4598,18 @@
           "parseGuardrailArticleEvaluation",
           "parseImplRequirementEvaluation",
           "buildGateReport",
+          "buildGateResultArtifact",
           "resolveRetryMax",
           "countGateRetry",
           "warnGateRetryBudget",
+          "buildGateRetryExhaustedEnvelope",
           "checkRetryBelowMax",
+          "evaluateGuardrailObservationsWithRetry",
           "updateGateRetryCounter",
           "computeGitState",
+          "updateGateImplMemory",
+          "readGateImplMemoryForPrompt",
+          "buildGateImplPriorMemoryPrompt",
           "findPreviousFailState",
           "checkNoProgressSinceLastFail",
           "normalize",
@@ -4584,23 +4649,9 @@
           "src/flow/lib/set-retry.js"
         ],
         "id": "b4aa4dad",
-        "summary": "Provides the main gate pipeline for draft, spec, task-spec, task-impl, and integration phases. It combines structural checks, AI guardrail evaluation, retry governance, and escalation logic into one command flow.",
-        "detail": "The module validates phase-level combinations, inspects spec and draft artifacts, and performs diff-based checks that include committed, uncommitted, and synthesized untracked-file diffs under resource limits. It uses strict JSON-schema prompts and parsers for both guardrail-article and requirement evaluations, including per-violation reporting and hard validation against unknown or missing guardrail IDs. Retry safety controls include max-attempt enforcement, no-progress rejection using git-state hashes, repeated-failure similarity escalation via Jaccard comparison, and pass-to-fail flip overrides for identical content. RunGateCommand dispatches phase-specific execution paths, enforces task-scope constraints, applies integration artifact trust checks, and records rich issue-log evidence for failures and retries.",
-        "chapter": "cli_commands",
-        "role": "gate command orchestrator and policy engine",
         "enrich": {
-          "processedAt": "2026-05-19T04:50:35.464Z",
           "attempts": 1
-        },
-        "keywords": [
-          "quality gate",
-          "guardrail evaluation",
-          "schema validation",
-          "retry escalation",
-          "no-progress detection",
-          "jaccard similarity",
-          "diff-based compliance"
-        ]
+        }
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -5021,7 +5072,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6295,7 +6346,7 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -6546,7 +6597,8 @@
           "src/lib/skills.js",
           "src/sdd-forge.js",
           "src/setup.js",
-          "src/upgrade.js"
+          "src/upgrade.js",
+          "src/lib/preset-deploy.js"
         ],
         "id": "f351ecc4",
         "summary": "Defines core CLI utilities for repository path resolution, argument parsing, and utility formatting. It handles worktree detection and version/timestamp helpers.",
@@ -7808,6 +7860,34 @@
         ]
       },
       {
+        "file": "src/lib/preset-deploy.js",
+        "hash": "3f301bbf461655193f469c40b0b0d4ad",
+        "lines": 61,
+        "mtime": "2026-05-25T01:30:29.360Z",
+        "className": "preset-deploy",
+        "methods": [
+          "deployPresetCopies",
+          "copyFile",
+          "upsertText"
+        ],
+        "imports": [
+          "fs",
+          "path",
+          "./cli.js"
+        ],
+        "exports": [
+          "deployPresetCopies"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/upgrade.js"
+        ],
+        "id": "7d5119a2",
+        "enrich": {
+          "attempts": 1
+        }
+      },
+      {
         "file": "src/lib/presets.js",
         "hash": "8f169b315485a210a0a14dbbfa909f3b",
         "lines": 373,
@@ -9036,7 +9116,8 @@
           "src/lib/container.js",
           "src/lib/dispatcher.js",
           "src/lib/i18n.js",
-          "src/lib/skills.js"
+          "src/lib/skills.js",
+          "src/lib/preset-deploy.js"
         ],
         "id": "1c8c8717"
       },
@@ -10451,7 +10532,8 @@
           "src/lib/container.js",
           "src/lib/dispatcher.js",
           "src/lib/i18n.js",
-          "src/lib/skills.js"
+          "src/lib/skills.js",
+          "src/lib/preset-deploy.js"
         ],
         "id": "0c4cfb73"
       },
@@ -11454,9 +11536,9 @@
       },
       {
         "file": "src/upgrade.js",
-        "hash": "757220f0959f077c8256bf8fa0ec3a6a",
-        "lines": 154,
-        "mtime": "2026-05-20T05:29:29.617Z",
+        "hash": "1ae5404f49da616294e0d110b27db19c",
+        "lines": 162,
+        "mtime": "2026-05-25T01:30:29.360Z",
         "className": "upgrade",
         "methods": [
           "parseUpgradeArgs",
@@ -11469,7 +11551,8 @@
           "./lib/config.js",
           "./lib/i18n.js",
           "./lib/presets.js",
-          "./lib/skills.js"
+          "./lib/skills.js",
+          "./lib/preset-deploy.js"
         ],
         "exports": [
           "main"
@@ -11478,28 +11561,15 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "processedAt": "2026-05-20T06:48:20.404Z",
-          "attempts": 4
-        },
-        "summary": "Implements the upgrade command that refreshes project-generated assets and normalizes configuration. It coordinates config loading, preset-chain validation, and upgrade pipeline execution.",
-        "detail": "The command parses upgrade options, loads and validates current project configuration, and exits with a controlled error code on invalid state. It executes upgrade routines that synchronize generated artifacts such as skills/templates according to current presets. It reports per-skill deployment/update outcomes to make changes auditable during upgrades. After pipeline updates, it rewrites config.json in normalized pretty-printed form for consistency. The module acts as a thin CLI entrypoint around shared upgrade and validation primitives.",
-        "chapter": "cli_commands",
-        "role": "Upgrade command entrypoint for refreshing generated project assets and config state.",
-        "keywords": [
-          "upgrade command",
-          "asset synchronization",
-          "config normalization",
-          "preset validation",
-          "skill refresh",
-          "CLI maintenance"
-        ]
+          "attempts": 1
+        }
       }
     ],
     "summary": {
-      "total": 310,
-      "totalMethods": 1446
+      "total": 312,
+      "totalMethods": 1481
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-21T04:42:47.704Z"
+  "enrichedAt": "2026-05-25T01:31:39.158Z"
 }

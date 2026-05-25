@@ -71,8 +71,8 @@ describe("FLOW_STEPS ordering (plan rework)", () => {
   it("sets test review retry budget from recent convergence data", () => {
     const node = resolveNodeFor(FLOW_DEFINITION, "review-test");
 
-    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 2);
-    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 2);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: true }), 5);
+    assert.equal(node.resolveMaxAttempts({ autoApprove: false }), 5);
   });
 
   it("sets implementation review retry budget from recent convergence data", () => {

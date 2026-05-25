@@ -139,7 +139,7 @@ const PLAN_REVIEW_MAX_ATTEMPTS_BY_ID = Object.freeze({
   "review-draft-questions": Object.freeze({ auto: 1, manual: 1 }),
   "review-draft-coverage": Object.freeze({ auto: 1, manual: 1 }),
   "review-spec": Object.freeze({ auto: 4, manual: 4 }),
-  "review-test": Object.freeze({ auto: 2, manual: 2 }),
+  "review-test": Object.freeze({ auto: 5, manual: 5 }),
 });
 
 function createPlanReviewNode({ id, label, contextKinds }) {
@@ -239,7 +239,7 @@ export const FLOW_DEFINITION = Object.freeze([
         instructionsKey: "plan.gate-draft",
         contextKinds: ["draft", "guardrail"],
         outputSchemaRef: "next-action/gate.schema.json",
-        maxAttempts: 10,
+        maxAttempts: 5,
         gatePhase: ["draft"],
       }),
       new FlowNode({
@@ -276,7 +276,7 @@ export const FLOW_DEFINITION = Object.freeze([
         instructionsKey: "plan.gate",
         contextKinds: ["spec", "guardrail"],
         outputSchemaRef: "next-action/gate.schema.json",
-        maxAttempts: 20,
+        maxAttempts: 5,
         gatePhase: ["spec", "task-spec"],
       }),
       new FlowNode({
