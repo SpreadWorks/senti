@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All 3 blocking findings are valid and should be applied in spec-repair.",
+  "items": [
+    {
+      "title": "Issue-log audit-only rule omits existing retry-state behavior paths",
+      "target": "R7-R9 / Data Flow / src/flow/lib/run-gate.js",
+      "decision": "apply",
+      "rationale": "The spec's audit-only issue-log rule would conflict with existing no-progress and flip-override behavior unless those behavior-state fields move to the new gateImplMemory path.",
+      "evidence": "spec.json R7-R9 define issue-log audit-only and gateImplMemory fields, while verified source shows issue-log currently carries headSha/worktreeHash and passedGuardrails behavior state."
+    },
+    {
+      "title": "Observation severity lacks gate verdict aggregation semantics",
+      "target": "R3 / R6 / Acceptance Criteria",
+      "decision": "apply",
+      "rationale": "The spec must state whether advisory observations affect gate pass/fail and next prescription so implementation and tests can agree.",
+      "evidence": "spec.json R3 defines blocking/advisory severity and R6 defines nextAction artifacts, but neither states verdict aggregation."
+    },
+    {
+      "title": "Shared gate parser scope conflicts with gate-impl-only failure modes",
+      "target": "R3-R6 / src/flow/lib/run-gate.js",
+      "decision": "apply",
+      "rationale": "run-gate uses shared parser/result builders across phases, so the spec must define how non-gate-impl phases get NextAction without requiring gate-impl-only failureMode values.",
+      "evidence": "spec.json R4 names parseGuardrailArticleEvaluation and R6 says gate PASS/FAIL artifacts include nextAction, while R3 only defines gate-impl failureModes."
+    }
+  ]
+}

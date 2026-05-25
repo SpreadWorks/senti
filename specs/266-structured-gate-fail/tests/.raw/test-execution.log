@@ -1,0 +1,153 @@
+[sdd-forge] spec-local tests start
+command: node --test specs/266-structured-gate-fail/tests/structured-gate-output.test.js
+TAP version 13
+# [sdd-forge] gate pre-check rejected (NO_PROGRESS_SINCE_LAST_FAIL) — retry budget not consumed
+# Subtest: R1: Observation, Diagnosis, and NextAction are class exports with JSON and markdown behavior
+ok 1 - R1: Observation, Diagnosis, and NextAction are class exports with JSON and markdown behavior
+  ---
+  duration_ms: 7.659238
+  type: 'test'
+  ...
+# Subtest: R2: Observation JSON uses exactly the approved fields and rejects invalid shape
+ok 2 - R2: Observation JSON uses exactly the approved fields and rejects invalid shape
+  ---
+  duration_ms: 4.563583
+  type: 'test'
+  ...
+# Subtest: R3: failureMode enum and severity policy are enforced
+ok 3 - R3: failureMode enum and severity policy are enforced
+  ---
+  duration_ms: 57.214807
+  type: 'test'
+  ...
+# Subtest: R4: gate-impl AI output accepts Observation fields and derives class-owned fields
+ok 4 - R4: gate-impl AI output accepts Observation fields and derives class-owned fields
+  ---
+  duration_ms: 1.594608
+  type: 'test'
+  ...
+# Subtest: R5: invalid Observation output is classified as retryable schema failure
+ok 5 - R5: invalid Observation output is classified as retryable schema failure
+  ---
+  duration_ms: 2.949615
+  type: 'test'
+  ...
+# Subtest: R6: gate report includes NextAction and aggregates blocking versus advisory observations
+ok 6 - R6: gate report includes NextAction and aggregates blocking versus advisory observations
+  ---
+  duration_ms: 0.858765
+  type: 'test'
+  ...
+# Subtest: R7: issue-log gate entries persist observations and omit failedEvaluations behavior memory
+ok 7 - R7: issue-log gate entries persist observations and omit failedEvaluations behavior memory
+  ---
+  duration_ms: 4.449422
+  type: 'test'
+  ...
+# Subtest: R7: no-progress, previous PASS lookup, and flip override use gateImplMemory behavior state
+ok 8 - R7: no-progress, previous PASS lookup, and flip override use gateImplMemory behavior state
+  ---
+  duration_ms: 4.00738
+  type: 'test'
+  ...
+# Subtest: R8: flow.json gateImplMemory stores behavior index including hash and passed guardrail state
+ok 9 - R8: flow.json gateImplMemory stores behavior index including hash and passed guardrail state
+  ---
+  duration_ms: 18.660133
+  type: 'test'
+  ...
+# Subtest: R9: spec-local gate-impl memory artifact stores full latest-three round details
+ok 10 - R9: spec-local gate-impl memory artifact stores full latest-three round details
+  ---
+  duration_ms: 5.869909
+  type: 'test'
+  ...
+# Subtest: R10: repeated FAIL similarity compares Observation requirementRef and observed
+ok 11 - R10: repeated FAIL similarity compares Observation requirementRef and observed
+  ---
+  duration_ms: 1.360847
+  type: 'test'
+  ...
+# Subtest: R11: legacy evaluations convert to NextAction without phase-specific adapter branches
+ok 12 - R11: legacy evaluations convert to NextAction without phase-specific adapter branches
+  ---
+  duration_ms: 1.086245
+  type: 'test'
+  ...
+# Subtest: R11: unmigrated gate wire output converts legacy evaluations to NextAction observations
+ok 13 - R11: unmigrated gate wire output converts legacy evaluations to NextAction observations
+  ---
+  duration_ms: 0.319881
+  type: 'test'
+  ...
+# Subtest: R12: gate next-action schema documents diagnosis observations and prescription
+ok 14 - R12: gate next-action schema documents diagnosis observations and prescription
+  ---
+  duration_ms: 0.320202
+  type: 'test'
+  ...
+# Subtest: R13: gate-impl prompt uses nextAction observations as the primary repair input
+ok 15 - R13: gate-impl prompt uses nextAction observations as the primary repair input
+  ---
+  duration_ms: 16.901805
+  type: 'test'
+  ...
+# Subtest: R14: base no-overengineering defines diff-verifiable named violations and severity criteria
+ok 16 - R14: base no-overengineering defines diff-verifiable named violations and severity criteria
+  ---
+  duration_ms: 1.049765
+  type: 'test'
+  ...
+# Subtest: R15: base code-placement defines derivation-in-consumer violation conditions
+ok 17 - R15: base code-placement defines derivation-in-consumer violation conditions
+  ---
+  duration_ms: 0.510522
+  type: 'test'
+  ...
+# Subtest: R16: reusable guardrail rewrite rubric ships under src/presets/base
+ok 18 - R16: reusable guardrail rewrite rubric ships under src/presets/base
+  ---
+  duration_ms: 8.016801
+  type: 'test'
+  ...
+# Subtest: R17: generated skill and project template copies are synchronized with source changes
+ok 19 - R17: generated skill and project template copies are synchronized with source changes
+  ---
+  duration_ms: 18.778094
+  type: 'test'
+  ...
+# Subtest: R18: structured gate behavior areas are covered through production APIs
+ok 20 - R18: structured gate behavior areas are covered through production APIs
+  ---
+  duration_ms: 3.429937
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 250.965857
+exitCode: 0
+[sdd-forge] requirement R1 result pass
+[sdd-forge] requirement R2 result pass
+[sdd-forge] requirement R3 result pass
+[sdd-forge] requirement R4 result pass
+[sdd-forge] requirement R5 result pass
+[sdd-forge] requirement R6 result pass
+[sdd-forge] requirement R7 result pass
+[sdd-forge] requirement R8 result pass
+[sdd-forge] requirement R9 result pass
+[sdd-forge] requirement R10 result pass
+[sdd-forge] requirement R11 result pass
+[sdd-forge] requirement R12 result pass
+[sdd-forge] requirement R13 result pass
+[sdd-forge] requirement R14 result pass
+[sdd-forge] requirement R15 result pass
+[sdd-forge] requirement R16 result pass
+[sdd-forge] requirement R17 result pass
+[sdd-forge] requirement R18 result pass
+[sdd-forge] spec-local tests end

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "phase": "test",
+  "generatedAt": "2026-05-22T10:11:11.528Z",
+  "verdict": "ADVISORY",
+  "counts": {
+    "blocking": 0,
+    "advisory": 1,
+    "total": 1
+  },
+  "coverageArtifact": "specs/266-structured-gate-fail/test-coverage.json",
+  "blockingFindings": [],
+  "advisoryFindings": [
+    {
+      "kind": "advisory",
+      "title": "Add representative missing-field cases beyond observed",
+      "target": "specs/266-structured-gate-fail/tests/structured-gate-output.test.js R5",
+      "improvement": "R5 currently exercises missing `observed`; adding one or two cases for missing `failureMode`, `requirementRef`, or `where` would make the required-field regeneration coverage clearer.",
+      "whyNonBlocking": "The test already proves the retry/regeneration path for an invalid missing required field, so this is coverage depth rather than absent acceptance coverage."
+    }
+  ]
+}

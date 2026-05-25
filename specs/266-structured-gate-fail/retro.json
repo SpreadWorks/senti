@@ -1,0 +1,108 @@
+{
+  "spec": "specs/266-structured-gate-fail/spec.json",
+  "date": "2026-05-25T01:26:28.915Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Add `src/flow/lib/observation.js` exporting Observation, Diagnosis, and NextAction classes. Constructors shall reject invalid severity, empty `observed`, invalid `where.file`, invalid `refs`, and empty `prescription`. Each class shall implement `toJSON()`, `fromJSON()`, and `toMarkdown()`; Observation shall also implement `signature()`.",
+      "status": "done",
+      "note": "R1: Observation, Diagnosis, and NextAction are class exports with JSON and markdown behavior"
+    },
+    {
+      "desc": "Observation JSON shall have exactly `kind`, `failureMode`, `requirementRef`, `where`, `observed`, `severity`, and `refs`; `kind` is `violation`, `where` is null or `{file, locator?}`, `severity` is `blocking` or `advisory`, and `refs` is an array.",
+      "status": "done",
+      "note": "R2: Observation JSON uses exactly the approved fields and rejects invalid shape"
+    },
+    {
+      "desc": "Gate failureMode shall be exactly `spec-impl-mismatch`, `guardrail-violation`, or `process-evidence-missing` for every phase that emits NextAction. `spec-impl-mismatch` and `guardrail-violation` are always blocking, while `process-evidence-missing` is blocking only when the missing evidence is diff-verifiable and advisory otherwise.",
+      "status": "done",
+      "note": "R3: failureMode enum and severity policy are enforced"
+    },
+    {
+      "desc": "The gate-impl evaluator prompt shall make AI emit only `failureMode`, `requirementRef`, `where`, and `observed` for each violation; code shall derive `kind`, `severity`, and `refs`. Shared gate parsing shall continue to support unmigrated legacy evaluations and convert them to Observation/NextAction at the wire boundary.",
+      "status": "done",
+      "note": "R4: gate-impl AI output accepts Observation fields and derives class-owned fields"
+    },
+    {
+      "desc": "If AI emits invalid Observation JSON, unknown `failureMode`, unknown `requirementRef`, or missing required fields, gate shall request regeneration and consume one existing gate retry attempt. If regeneration still fails through maxAttempts exhaustion, gate shall stop through the existing retry exhaustion path.",
+      "status": "done",
+      "note": "R5: invalid Observation output is classified as retryable schema failure"
+    },
+    {
+      "desc": "Gate PASS and FAIL artifacts shall include `nextAction` with `{diagnosis:{summary,observations},prescription}`. Any blocking Observation shall produce gate FAIL with the existing FAIL prescription; advisory-only Observations shall produce gate PASS with advisory observations retained; zero Observations shall produce gate PASS with an empty observations array. Gate-impl consumers shall read `artifacts.nextAction.diagnosis.observations` as the primary repair input.",
+      "status": "done",
+      "note": "R6: gate report includes NextAction and aggregates blocking versus advisory observations"
+    },
+    {
+      "desc": "New gate issue-log entries shall persist `observations` derived from `nextAction.diagnosis.observations` instead of `failedEvaluations`; issue-log shall not be read by prior-memory, no-progress rejection, or pass-to-fail flip logic.",
+      "status": "done",
+      "note": "R7: issue-log gate entries persist observations and omit failedEvaluations behavior memory"
+    },
+    {
+      "desc": "Gate-impl prior memory shall store behavior state in flow.json under `gateImplMemory` with `version`, `artifactPath`, `roundsKept`, `lastUpdatedAt`, `headSha`, `worktreeHash`, `passedGuardrails`, and `entries[]` containing `signature`, `status`, and `observationRef`.",
+      "status": "done",
+      "note": "R8: flow.json gateImplMemory stores behavior index including hash and passed guardrail state"
+    },
+    {
+      "desc": "The spec-local prior-memory artifact shall store full Observation JSON, `headSha`, `worktreeHash`, `passedGuardrails`, `round`, `status`, `statusReason`, and `updatedAt` for the latest 3 gate-impl rounds. Prompt injection shall read this artifact and include only those latest 3 rounds.",
+      "status": "done",
+      "note": "R9: spec-local gate-impl memory artifact stores full latest-three round details"
+    },
+    {
+      "desc": "Repeated FAIL similarity shall compare current Observation `requirementRef` and `observed` against prior Observation `requirementRef` and `observed`, reusing the existing Jaccard algorithm and threshold without adding `where` to the similarity key.",
+      "status": "done",
+      "note": "R10: repeated FAIL similarity compares Observation requirementRef and observed"
+    },
+    {
+      "desc": "Unmigrated phases shall convert legacy evaluations to NextAction before wire output. The adapter shall contain no phase-specific branches and shall map guardrail failures to `guardrail-violation`, spec/task mismatches to `spec-impl-mismatch`, and structural or process evidence gaps to `process-evidence-missing`; unavailable Observation fields shall be filled only with null, empty string, or empty array according to the target field type.",
+      "status": "done",
+      "note": "R11: legacy evaluations convert to NextAction without phase-specific adapter branches"
+    },
+    {
+      "desc": "`src/flow/schemas/next-action/gate.schema.json` shall document the gate NextAction wire shape, including diagnosis summary, observations, and prescription, without duplicating every class invariant already enforced in `src/flow/lib/observation.js`.",
+      "status": "done",
+      "note": "R12: gate next-action schema documents diagnosis observations and prescription"
+    },
+    {
+      "desc": "`src/flow/prompts/impl/gate-impl.md` and generated skill/template copies shall instruct agents to show every Observation from `artifacts.nextAction.diagnosis.observations` on FAIL and avoid relying on flattened `artifacts.reasons` as the primary repair input.",
+      "status": "done",
+      "note": "R13: gate-impl prompt uses nextAction observations as the primary repair input"
+    },
+    {
+      "desc": "Base `no-overengineering` shall list separate diff-verifiable violation conditions for single-caller indirection, duplicate code shape, and missing design-confirmation evidence; each condition shall state blocking or advisory severity criteria.",
+      "status": "done",
+      "note": "R14: base no-overengineering defines diff-verifiable named violations and severity criteria"
+    },
+    {
+      "desc": "Base `code-placement` shall define the diff-verifiable violation `derivation logic placed in consumer module` using these conditions: new export or module in diff, operation on data owned by an existing data-owner module, and no change to that owner module in the diff.",
+      "status": "done",
+      "note": "R15: base code-placement defines derivation-in-consumer violation conditions"
+    },
+    {
+      "desc": "A reusable guardrail rewrite rubric shall be stored under `src/presets/base` and describe how to rewrite abstract guardrail prose into named violation, diff-verification condition, and severity-policy fields.",
+      "status": "done",
+      "note": "R16: reusable guardrail rewrite rubric ships under src/presets/base"
+    },
+    {
+      "desc": "After changes to `src/presets/base` or prompt/skill source, generated skill/preset copies shall be synchronized with the source files so the diff contains both the source change and the corresponding generated-copy change.",
+      "status": "done",
+      "note": "R17: generated skill and project template copies are synchronized with source changes"
+    },
+    {
+      "desc": "Tests shall cover Observation class invariants and JSON conversion, invalid AI output regeneration behavior, NextAction artifacts, issue-log observation persistence, prior-memory flow.json/artifact separation, legacy adapter conversion, prompt consumer changes, and base guardrail/rubric updates.",
+      "status": "done",
+      "note": "R18: structured gate behavior areas are covered through production APIs"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 18,
+    "done": 18,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 0,
+    "not_testable_count": 0,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}

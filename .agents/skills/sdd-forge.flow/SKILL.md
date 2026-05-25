@@ -291,6 +291,8 @@ Note:
 - Impl-phase test flow: `test-execute` runs after `implement`, owns spec-local evidence, and persists `test-execute-result.json` version `"2"` plus raw output. It runs targeted project regression only for configured `test.projectPaths` changes unless `test.testExecuteRegression` explicitly overrides that policy. Full project regression is deferred to `final-regression` after `retro`.
 - Subsequent steps (`test-result-review`, `review`, flow-level `gate-impl`, `retro`) read those impl-phase artifacts and do not re-run tests. `final-regression` runs the full project command once after retro and before finalize.
 - Hard stops: Prepare/docs-scan and `analysis.json` read/validation failures stop the flow. A started targeted project regression failure is valid evidence and advances to `test-result-review`; a prerequisite failure before command start is a hard stop and must not be hidden with manual step completion. `final-regression` failures are classified in `final-regression-result.json`; environment, sandbox, permission, timeout, dependency, and repeated failures stop instead of returning to the normal implementation repair loop.
+- On gate-impl FAIL, show every Observation from `data.artifacts.nextAction.diagnosis.observations` and use those observations as the primary repair input.
+- When updating base guardrails, apply the guardrail rewrite rubric: named violation, diff-verification condition, and severity-policy.
 
 Placeholder artifact permission:
 - Do not write placeholder test artifacts to satisfy the flow.

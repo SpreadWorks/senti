@@ -1,0 +1,116 @@
+{
+  "devType": "feature",
+  "goal": "gate-impl FAIL outputを構造化されたObservation/NextActionとして扱い、AIと人間が追加のspec/guardrail再読なしで次の修正対象を特定できるようにする。",
+  "analysis": {
+    "problem": "現在のgate-impl FAILは自然文reasonにflattenされ、修正対象、根拠、severity、次アクションが再構成を必要とする。さらにprior FAILの判断が次roundへ継承されず、抽象的なguardrail本文がdiff検証できないblocking判定を生みやすい。",
+    "proposedApproach": "gate-implを起点にObservation、Diagnosis、NextActionのクラスとwire形式を導入し、gate result、issue-log、consumer promptの読み口をNextAction中心へ寄せる。あわせてprior FAIL memoryをpromptへ注入し、base presetのno-overengineering/code-placementをdiff検証可能な条件へ書き換える。",
+    "validation": "Issue #341はfailureMode enum、wire形式、対象ファイル、完了条件を明示している。現行コードにはrun-gate.jsのreasonsFromEvaluations、failedEvaluations、gate.schema.jsonの単純なverdict/issues形式、base guardrailの抽象本文があり、Issueが述べる問題と変更対象が一致している。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #341 defines the goal as replacing natural-language gate-impl FAIL reasons with structured Observation/NextAction output.",
+      "Issue #341 limits direct root-cause mitigation to prior FAIL memory and rewriting no-overengineering/code-placement; cross-flow learning is explicitly out of scope.",
+      "src/flow/lib/run-gate.js exports buildGuardrailArticleEvalPrompt, parseGuardrailArticleEvaluation, assertNoRepeatedFail, and reasonsFromEvaluations, and currently persists failedEvaluations into issue-log entries.",
+      "src/flow/schemas/next-action/gate.schema.json currently documents only verdict plus issues, so gate-level NextAction needs schema coverage.",
+      "src/presets/base/guardrail.json currently defines code-placement and no-overengineering in broad prose rather than diff-verifiable violation conditions.",
+      "src/flow/prompts/impl/gate-impl.md currently tells agents to read data.artifacts.reasons on FAIL, so consumer instructions must shift to nextAction.diagnosis.observations."
+    ],
+    "decisionPoints": [
+      "How invalid AI Observation output should be handled when parsing detects enum, requirementRef, or required-field violations.",
+      "What exact prior FAIL memory unit, status source, and pruning rule should be used for gate-impl prompt injection.",
+      "Where to store the reusable rubric for rewriting abstract guardrails into diff-verifiable conditions.",
+      "How legacy adapters should represent missing fields for unmigrated phases without inventing evidence."
+    ],
+    "resolvedByProjectRules": [
+      "Use classes for Observation, Diagnosis, and NextAction because project rules require meaningful structural values to be represented by dedicated classes with invariants and behavior.",
+      "Do not keep backward compatibility shims for old persistence formats because the project is in alpha and explicitly discards deprecated formats.",
+      "Do not add external dependencies; schema and validation work must use existing project utilities or Node.js built-ins.",
+      "Update generated skills/config with sdd-forge upgrade if src/skills or src/presets templates are changed; this issue changes src/presets/base/guardrail.json, so upgrade impact must be checked."
+    ],
+    "requiresUserJudgment": [
+      "No unresolved user judgment remains after draft-refine."
+    ],
+    "deferredToSpec": [
+      "Exact requirement numbering and task decomposition for class model, run-gate changes, schema/persistence changes, prompt updates, guardrail rewrites, and tests.",
+      "Exact field names for adapter-created null or empty values where legacy phases lack rich Observation information.",
+      "Precise test matrix for unit, spec-local, flow gate, upgrade, and regression coverage."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: gate-impl FAIL artifact shape and consumer read path",
+      "must: Observation/Diagnosis/NextAction in-memory classes and JSON conversion",
+      "must: gate-impl failureMode enum contains spec-impl-mismatch, guardrail-violation, and process-evidence-missing; spec-impl-mismatch and guardrail-violation are always blocking, while process-evidence-missing is blocking only when diff-verifiable and advisory otherwise",
+      "must: issue-log persistence from failedEvaluations to observations",
+      "must: prior FAIL memory for same-flow same-phase gate-impl evaluation stores the last 3 rounds; flow.json stores version, artifactPath, roundsKept, lastUpdatedAt, entries[].signature, entries[].status, and entries[].observationRef; the artifact stores full Observation, statusReason, round, and updatedAt",
+      "must: legacy adapter converts unmigrated phase evaluations to NextAction without phase-specific branches; fields unavailable in the legacy input are represented only as null, empty string, or empty array according to the Observation JSON field type",
+      "must: base preset no-overengineering lists single-caller indirection, duplicate code shape, and design-confirmation evidence as separate diff-verifiable violation conditions; code-placement lists derivation logic placed in a consumer module as a diff-verifiable violation condition",
+      "must: add spec-local tests under specs/266-structured-gate-fail/tests with // spec: R<N> headers, update shared tests whose assertions read artifacts.reasons, artifacts.evaluations, artifacts.issues, or failedEvaluations, and run sdd-forge upgrade after src/presets/base changes"
+    ],
+    "out": [
+      "cross-flow learning between unrelated specs or historical flows",
+      "similarity algorithm improvements beyond the field rename needed for Observation",
+      "full preset-wide guardrail rewrite across every preset",
+      "test-phase-specific failureMode expansion",
+      "external dependency adoption"
+    ]
+  },
+  "impactOnExisting": [
+    "Existing gate consumers that read artifacts.reasons/evaluations/issues must move to artifacts.nextAction.diagnosis.observations.",
+    "Existing issue-log entries in new flows should use observations rather than failedEvaluations; old alpha persistence does not need compatibility.",
+    "Base guardrail wording changes can affect task-impl and integration gate evaluations for every preset inheriting base guardrails.",
+    "Prompt behavior for gate-impl changes because prior FAIL memory and structured JSON examples are added to the evaluator context."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "AIがObservationの不正JSONを返した場合の扱いを選んでください。Observationはgate-impl FAILの構造化1件で、failureMode、requirementRef、where、observedを持ちます。",
+      "answer": "再生成 retry を採用する。不正な Observation JSON は parse/constructor invariant で検出し、既存gate retry maxAttemptsの残数を1回消費してAIに再生成させる。再生成後も不正な場合は通常のgate retry exhaustionと同じ停止扱いにする。",
+      "evidence": "Issue #341 unresolved (f) lists invalid failureMode, unknown requirementRef, and missing required fields as parse-time errors detected by the Observation constructor; user selected option [1] on 2026-05-22.",
+      "why": "不正なAI出力を構造だけ再生成させれば、blocking/advisory の意味を実装側で勝手に変更せずに済む。既存gate retry maxAttemptsを使うことで、新しい未定義のretry枠を増やさずに検証可能になる。",
+      "considered": "Envelope.failは安全だが軽微なJSON不整合でも人間判断に戻りやすい。Force advisoryは継続性は高いが、blocking条件を検証不能という理由で弱めるリスクがある。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "gate-impl prior memoryの粒度を選んでください。prior memoryは同じflow内の過去FAILを次のgate-impl promptへ渡す情報です。",
+      "answer": "直近3 roundのObservation全体とresolution statusをgate-impl prior memoryとして渡す。",
+      "evidence": "Issue #341 section F lists prior FAIL observations, resolution status, and pruning as open implementation details; user selected option [1] on 2026-05-22.",
+      "why": "Observation本文とresolution statusを渡すことで、AIが同じviolationを再flagすべきでない根拠を理解できる。直近3 roundに絞ることで、全件投入よりprompt量を抑えつつ、直近のFAIL→fix→retry文脈を保持できる。",
+      "considered": "signatureのみはtoken効率が高いが、AIが過去判断の意味を復元しにくい。全Observationは情報量が最大だが、長いflowでpromptが膨らむ。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "implementation-policy",
+      "question": "prior memoryのresolution statusをどこから導出するか選んでください。resolution statusは過去FAILがfixed、acknowledged-as-exception、unresolvedのどれかを示す値です。",
+      "answer": "issue-logはflow挙動の入力に使わない。gate-impl prior memoryはflow.jsonと専用artifactに分ける。flow.jsonにはversion、artifactPath、roundsKept、lastUpdatedAt、entries[].signature、entries[].status、entries[].observationRefのみを保持する。専用artifactにはObservation詳細、statusReason、round、updatedAtなどのprompt材料と履歴を保持する。",
+      "evidence": "User clarified on 2026-05-22 that issue-log is only a log and should not drive flow behavior, then approved option [1] flow.json + artifact after reviewing the proposed field split.",
+      "why": "flow.jsonはflow進行状態のsource of truthであり、次のgate-impl挙動に使う現在状態を置く場所として自然。Observation全文や履歴をすべてflow.jsonへ入れると進行状態と詳細証跡が混ざるため、詳細は専用artifactへ分離する。",
+      "considered": "issue-log利用は監査ログを挙動入力にしてしまうため却下。flow.jsonのみは単純だが肥大化しやすい。専用artifactのみは詳細管理に向くが、flowの現在状態から参照しにくい。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "follow-up-coverage",
+      "question": "抽象guardrailを書き換えるreusable rubricの保存場所を選んでください。reusable rubricは、no-overengineering/code-placementで使うdiff検証可能化の書き換え型です。",
+      "answer": "reusable rubricはsrc/presets/base配下に保存する。",
+      "evidence": "Issue #341 G-3 requires recording the rewrite pattern as a reusable rubric and leaves the location as docs/ or src/presets/base/; user selected option [1] on 2026-05-22.",
+      "why": "no-overengineering/code-placementの本文と同じ配布対象に置くことで、npm利用者にもguardrail書き換え基準を届けられる。src/presets/baseの変更はsdd-forge upgradeで反映対象になるため、base presetとrubricの同期リスクも下げられる。",
+      "considered": "docs配下は設計文書として読みやすいが、自動生成領域との境界に注意が必要。spec内のみは今回の計画には残るが、後続のguardrail rewrite taskで再利用されにくい。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-22T07:45:00.000Z",
+    "notes": "All draft QA entries are answered and draft coverage review passed."
+  }
+}

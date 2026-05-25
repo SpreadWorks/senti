@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "draft-questions-triage",
+  "sourceReview": "draft-review-questions.json",
+  "summary": "4 repair targets are valid: pending questions currently include recommendations/rationale and should be reduced to question text only.",
+  "items": [
+    {
+      "title": "1. q1 includes rationale and recommendation",
+      "target": "q1",
+      "decision": "apply",
+      "rationale": "Pending draft questions must contain only the question text. q1 includes a recommended answer and rationale.",
+      "evidence": "draft.json qa[0].question includes 推奨 and 理由 text."
+    },
+    {
+      "title": "2. q2 includes rationale and recommendation",
+      "target": "q2",
+      "decision": "apply",
+      "rationale": "Pending draft questions must contain only the question text. q2 includes a recommended answer and rationale.",
+      "evidence": "draft.json qa[1].question includes 推奨 and 理由 text."
+    },
+    {
+      "title": "3. q3 includes recommendation",
+      "target": "q3",
+      "decision": "apply",
+      "rationale": "Pending draft questions must contain only the question text. q3 includes a recommended answer.",
+      "evidence": "draft.json qa[2].question includes 推奨 text."
+    },
+    {
+      "title": "4. q4 includes rationale and recommendation",
+      "target": "q4",
+      "decision": "apply",
+      "rationale": "Pending draft questions must contain only the question text. q4 includes a recommended answer and rationale.",
+      "evidence": "draft.json qa[3].question includes 推奨 and 理由 text."
+    }
+  ]
+}

@@ -644,3 +644,8 @@ sdd-forge 本体:
 
 - `src/CLAUDE.md` / `src/AGENTS.md` — sdd-forge 内部アーキテクチャと MUST ルール
 - プロジェクトルート `CLAUDE.md` — `src/` への書き込み禁止事項
+
+## Guardrail Rewrite Rubric
+
+プリセットの guardrail を更新するときは guardrail rewrite rubric を使う。
+各 guardrail は named violation、diff-verification condition、severity-policy を明示する。

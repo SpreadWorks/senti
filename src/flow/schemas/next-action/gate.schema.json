@@ -3,6 +3,39 @@
   "required": ["verdict"],
   "properties": {
     "verdict": { "type": "string", "enum": ["pass", "fail"] },
-    "issues": { "type": "array", "items": { "type": "string" } }
+    "issues": { "type": "array", "items": { "type": "string" } },
+    "nextAction": {
+      "type": "object",
+      "properties": {
+        "diagnosis": {
+          "type": "object",
+          "properties": {
+            "summary": { "type": "string" },
+            "observations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "kind": { "type": "string" },
+                  "failureMode": { "type": "string" },
+                  "requirementRef": { "type": "string" },
+                  "where": {
+                    "type": ["object", "null"],
+                    "properties": {
+                      "file": { "type": "string" },
+                      "locator": { "type": "string" }
+                    }
+                  },
+                  "observed": { "type": "string" },
+                  "severity": { "type": "string" },
+                  "refs": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        },
+        "prescription": { "type": "string" }
+      }
+    }
   }
 }

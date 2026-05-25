@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "phase": "draft-questions-repair",
+  "sourceTriage": "draft-questions-triage.json",
+  "summary": "Applied 4 question repairs by removing recommendations/rationale from pending question text only.",
+  "items": [
+    {
+      "title": "1. q1 includes rationale and recommendation",
+      "target": "q1",
+      "rationale": "Removed the recommended fallback policy and rationale from the pending question.",
+      "evidence": "draft.json qa[0].question now asks only how invalid Observation JSON should be handled.",
+      "changedFieldPaths": [
+        "qa[0].question"
+      ]
+    },
+    {
+      "title": "2. q2 includes rationale and recommendation",
+      "target": "q2",
+      "rationale": "Removed the recommended prior memory granularity and rationale from the pending question.",
+      "evidence": "draft.json qa[1].question now asks only what prior memory granularity should be used.",
+      "changedFieldPaths": [
+        "qa[1].question"
+      ]
+    },
+    {
+      "title": "3. q3 includes recommendation",
+      "target": "q3",
+      "rationale": "Removed the recommended resolution-status source from the pending question.",
+      "evidence": "draft.json qa[2].question now asks only where resolution status should be derived from.",
+      "changedFieldPaths": [
+        "qa[2].question"
+      ]
+    },
+    {
+      "title": "4. q4 includes rationale and recommendation",
+      "target": "q4",
+      "rationale": "Removed the recommended reusable rubric location and rationale from the pending question.",
+      "evidence": "draft.json qa[3].question now asks only where the reusable rubric should be stored.",
+      "changedFieldPaths": [
+        "qa[3].question"
+      ]
+    }
+  ]
+}

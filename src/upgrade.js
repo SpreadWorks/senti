@@ -25,6 +25,7 @@ import {
   MAIN_SKILLS_DIR,
   EXPERIMENTAL_WORKFLOW_SKILLS_DIR,
 } from "./lib/skills.js";
+import { deployPresetCopies } from "./lib/preset-deploy.js";
 
 
 // ---------------------------------------------------------------------------
@@ -121,6 +122,13 @@ async function main() {
   const removedSkills = cleanupObsoleteSkills(root, activeSkillSources.map((source) => source.dir), { dryRun });
   for (const { name } of removedSkills) {
     console.log(t("ui:upgrade.skillRemoved", { name }));
+  }
+
+  if (!dryRun) {
+    deployPresetCopies(root, {
+      presetKeys: ["base"],
+      languages: config.docs?.languages?.length ? config.docs.languages : ["en", "ja"],
+    });
   }
 
   // Migrate chapters format (string[] → object[])

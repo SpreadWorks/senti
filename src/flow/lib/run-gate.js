@@ -50,6 +50,12 @@ import { validateDraftLifecycle } from "./draft-lifecycle.js";
 import { validateIntegrationArtifactTrust } from "./test-artifacts.js";
 import { assertIntegrationRegressionEvidence } from "./test-artifacts.js";
 import {
+  Observation,
+  Diagnosis,
+  NextAction,
+  legacyEvaluationsToNextAction,
+} from "./observation.js";
+import {
   assertAuditedBroadMode,
   evaluateTaskScope,
   resolveCurrentTaskSpec,
@@ -1001,34 +1007,35 @@ function buildGuardrailPrompt(targetText, guardrails, phase, role, previouslyPas
 export const GUARDRAIL_ARTICLE_EVAL_SCHEMA = {
   type: "object",
   properties: {
-    evaluations: {
+    observations: {
       type: "array",
       items: {
         type: "object",
         properties: {
-          guardrail_id: { type: "string" },
-          result: { type: "string", enum: ["pass", "fail", "skip"] },
-          reason: { type: "string" },
-          violations: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                target: { type: "string" },
-                where: { type: "string" },
-                why_violates: { type: "string" },
+          failureMode: { type: "string", enum: ["guardrail-violation"] },
+          requirementRef: { type: "string" },
+          where: {
+            anyOf: [
+              { type: "null" },
+              {
+                type: "object",
+                properties: {
+                  file: { type: "string" },
+                  locator: { type: "string" },
+                },
+                required: ["file"],
+                additionalProperties: false,
               },
-              required: ["target", "where", "why_violates"],
-              additionalProperties: false,
-            },
+            ],
           },
+          observed: { type: "string" },
         },
-        required: ["guardrail_id", "result"],
+        required: ["failureMode", "requirementRef", "where", "observed"],
         additionalProperties: false,
       },
     },
   },
-  required: ["evaluations"],
+  required: ["observations"],
   additionalProperties: false,
 };
 
@@ -1056,10 +1063,9 @@ export const IMPL_REQUIREMENT_EVAL_SCHEMA = {
 export const GUARDRAIL_FMT_FALLBACK = [
   "OUTPUT FORMAT — strictly required:",
   "Return a single JSON object matching this shape:",
-  '  {"evaluations":[{"guardrail_id":"<id>","result":"pass"|"fail"|"skip", ...}]}',
-  "  - For result=\"pass\" or \"skip\": include a non-empty \"reason\" field; do NOT include \"violations\".",
-  "  - For result=\"fail\": include a non-empty \"violations\" array with one entry per occurrence/edit location.",
-  '    Each violation: {"target":"<verbatim text excerpt or short gap descriptor>","where":"<heading anchor, JSON path, file:line, or artifact name>","why_violates":"<1-2 sentence reason>"}',
+  '  {"observations":[{"failureMode":"guardrail-violation","requirementRef":"<guardrail id>","where":{"file":"<path or artifact>","locator":"<optional locator>"},"observed":"<concrete violation>"}]}',
+  "  - Include one observation per concrete FAIL occurrence/edit location.",
+  "  - If every listed guardrail passes, return {\"observations\":[]}.",
   "Output MUST be valid JSON. No preamble, no trailing commentary, no Markdown prose — JSON only.",
 ].join("\n");
 
@@ -1085,21 +1091,18 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
   pb.setRole(`${checkerRole} Check the following content against each guardrail article.`);
 
   const rules = [
-    "- Include exactly one entry per guardrail article listed below, identified by its id.",
+    "- Evaluate every guardrail article listed below, identified by its id.",
     "- Evaluate only explicit requirements stated in the listed guardrail article body. Do not invent additional design, codebase-context, or completeness criteria.",
     "- This is a readiness gate, not a design review. Do not search for new implementation-target gaps, existing-behavior gaps, integration choices, or product-scope issues unless the guardrail article explicitly requires that check.",
     "- If a concern is not directly grounded in a listed guardrail article, it must not be reported as a FAIL here.",
-    "- `result` MUST be one of the lowercase strings: pass, fail, skip.",
-    "- For pass/skip: include a non-empty `reason` and do NOT include `violations`.",
-    "- For fail: include a non-empty `violations` array (do NOT rely on `reason` — it is overwritten by a derived summary).",
-    "- Exhaustive enumeration: emit ONE violation entry per occurrence/edit location. Repeated occurrences of the same vague phrase in different places are distinct entries — distinguishable by `where`. Do NOT group or summarize.",
-    "- For document-level guardrails (rule violations that have no concrete passage to quote — e.g. a missing required section): emit one OR MORE entries, one per distinct gap. Use `target` as a short gap descriptor (e.g. \"missing section: Acceptance Criteria\") and `where` as the artifact name (e.g. \"spec.json\").",
-    "- Each violation entry requires non-empty `target`, `where`, and `why_violates`. Duplicate (target, where) pairs within the same guardrail FAIL are forbidden.",
+    "- Return `observations` only. Do not return `evaluations`, `result`, `reason`, `violations`, `kind`, `severity`, or `refs`.",
+    "- Exhaustive enumeration: emit ONE observation per occurrence/edit location. Repeated occurrences of the same vague phrase in different places are distinct entries — distinguishable by `where`. Do NOT group or summarize.",
+    "- For document-level guardrails (rule violations that have no concrete passage to quote — e.g. a missing required section): emit one OR MORE observations, one per distinct gap. Use `where.file` as the artifact name (e.g. \"spec.json\").",
     "- When a diff-scope section is present below, list ONLY violations introduced by the diff (lines added or modified, marked with `+`).",
-    "- Use skip only when the article cannot be evaluated without runtime evidence not provided.",
-    "- If an article is inapplicable by nature of the content, mark it as pass with a short reason.",
+    "- Omit observations for passing, skipped, inapplicable, or runtime-dependent guardrails.",
     "- Matched Spec Acknowledgment Rationale is context only. Exception permission comes from the guardrail article clause, not from the rationale section alone.",
     "- To acknowledge a guardrail exception in a spec, write the target guardrail_id directly in constraints, clarifications, or alternatives_considered.",
+    "- For each FAIL, describe the actionable Observation using these AI-owned fields: failureMode, requirementRef, where, observed. The system derives kind, severity, and refs.",
   ].join("\n");
   pb.setRules(rules);
   pb.setJsonSchema(GUARDRAIL_ARTICLE_EVAL_SCHEMA);
@@ -1118,9 +1121,17 @@ export function buildGuardrailArticleEvalPrompt(targetText, filtered, phase, rol
     pb.addUserPrompt("## Diff Scope Constraint", IMPL_DIFF_SCOPE_LINES.slice(1).join("\n"));
   }
 
+  pb.addUserPrompt(
+    "## Observation Output Fields",
+    "For each FAIL, emit only these AI-owned Observation fields: failureMode, requirementRef, where, observed.",
+  );
+
   pb.addUserPrompt("## Guardrail Articles", articleList);
   if (options?.acknowledgedRationale?.markdown) {
     pb.addUserRaw(options.acknowledgedRationale.markdown);
+  }
+  if (options?.priorMemoryMarkdown) {
+    pb.addUserRaw(options.priorMemoryMarkdown);
   }
   pb.addUserPrompt("## Content", targetText);
 
@@ -1168,6 +1179,7 @@ function extractJsonCandidate(raw) {
 const ARTICLE_ENTRY_KEYS = new Set(["guardrail_id", "result", "reason", "violations"]);
 const REQUIREMENT_ENTRY_KEYS = new Set(["guardrail_id", "result", "reason"]);
 const VIOLATION_KEYS = new Set(["target", "where", "why_violates"]);
+const AI_OBSERVATION_KEYS = new Set(["failureMode", "requirementRef", "where", "observed"]);
 
 function parseEvaluationsArray(rawResponse) {
   const candidate = extractJsonCandidate(rawResponse);
@@ -1190,6 +1202,20 @@ function parseEvaluationsArray(rawResponse) {
   return parsed.evaluations;
 }
 
+function parseJsonObject(rawResponse) {
+  const candidate = extractJsonCandidate(rawResponse);
+  let parsed;
+  try {
+    parsed = JSON.parse(candidate);
+  } catch (err) {
+    throw new EvaluationSchemaError(`AI evaluation response is not valid JSON: ${err.message}`);
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new EvaluationSchemaError("AI evaluation response is not a JSON object");
+  }
+  return parsed;
+}
+
 function checkExtraKeys(entry, idx, allowed, label) {
   for (const k of Object.keys(entry)) {
     if (!allowed.has(k)) {
@@ -1206,16 +1232,57 @@ function deriveArticleFailReason(violations) {
     .join("; ");
 }
 
+function buildPassEvaluationsForObservedGuardrails(guardrails) {
+  return guardrails.map((guardrail) => ({
+    guardrail_id: guardrail.id,
+    result: "pass",
+    reason: "no observations emitted",
+    category: guardrail.meta.category || "guardrail",
+    title: guardrail.title || guardrail.id,
+    observations: [],
+  }));
+}
+
 /**
  * Parse the structured AI guardrail-article evaluation response (spec 255).
  *
  * @param {string} rawResponse
  * @param {string[]} knownIds
- * @returns {Array<{guardrail_id: string, result: string, reason: string, violations?: Array}>}
+ * @returns {Array<Object>} Observation JSON entries
  * @throws {EvaluationSchemaError}
  */
 export function parseGuardrailArticleEvaluation(rawResponse, knownIds) {
-  const evaluations = parseEvaluationsArray(rawResponse);
+  const rawObject = parseJsonObject(rawResponse);
+  if (Array.isArray(rawObject.observations)) {
+    const known = new Set(knownIds);
+    return rawObject.observations.map((entry, idx) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new EvaluationSchemaError(`observations[${idx}] is not an object`);
+      }
+      checkExtraKeys(entry, idx, AI_OBSERVATION_KEYS, "observations");
+      for (const key of AI_OBSERVATION_KEYS) {
+        if (!Object.prototype.hasOwnProperty.call(entry, key)) {
+          throw new EvaluationSchemaError(`observations[${idx}]: missing required "${key}"`);
+        }
+      }
+      if (!known.has(entry.requirementRef)) {
+        throw new EvaluationSchemaError(`observations[${idx}]: unknown requirementRef "${entry.requirementRef}"`);
+      }
+      return new Observation({
+        kind: "violation",
+        failureMode: entry.failureMode,
+        requirementRef: entry.requirementRef,
+        where: entry.where ?? null,
+        observed: entry.observed,
+        severity: "blocking",
+        refs: [entry.requirementRef],
+      }).toJSON();
+    });
+  }
+  if (!Array.isArray(rawObject.evaluations)) {
+    throw new EvaluationSchemaError('AI evaluation response missing "evaluations" or "observations" array');
+  }
+  const evaluations = rawObject.evaluations;
   const known = new Set(knownIds);
   const seen = new Set();
   const results = [];
@@ -1311,7 +1378,10 @@ export function parseGuardrailArticleEvaluation(rawResponse, knownIds) {
       `evaluations missing for guardrail_id(s): ${missing.join(", ")}`,
     );
   }
-  return results;
+  return legacyEvaluationsToNextAction({
+    evaluations: results,
+    prescription: "gate",
+  }).diagnosis.observations.map((observation) => observation.toJSON());
 }
 
 /**
@@ -1384,6 +1454,27 @@ export function buildGateReport({ level, phase, evaluations }) {
   if (!level) throw new Error("buildGateReport: level is required");
   if (!phase) throw new Error("buildGateReport: phase is required");
   validateLevelPhase(level, phase);
+  if (arguments[0]?.observations !== undefined) {
+    const input = arguments[0];
+    const observations = normalizeObservations(input.observations || []);
+    const hasBlocking = observations.some((observation) => observation.severity === "blocking");
+    const verdict = hasBlocking ? "fail" : "pass";
+    const prescription = verdict === "fail" ? input.failPrescription : input.passPrescription;
+    return {
+      level,
+      phase,
+      verdict,
+      nextAction: new NextAction({
+        diagnosis: new Diagnosis({
+          summary: observations.length === 0
+            ? "No observations."
+            : `${observations.length} observation(s).`,
+          observations,
+        }),
+        prescription,
+      }).toJSON(),
+    };
+  }
   if (!Array.isArray(evaluations)) {
     throw new Error("buildGateReport: evaluations array is required");
   }
@@ -1404,6 +1495,41 @@ export function buildGateReport({ level, phase, evaluations }) {
     }
   }
   return { level, phase, evaluations };
+}
+
+function normalizeObservations(observations) {
+  if (!Array.isArray(observations)) throw new Error("observations must be an array");
+  return observations.map((entry) => entry instanceof Observation ? entry : Observation.fromJSON(entry));
+}
+
+export function buildGateResultArtifact({
+  level,
+  phase,
+  target,
+  verdict,
+  observations,
+  evaluations,
+  passPrescription,
+  failPrescription,
+}) {
+  const report = observations !== undefined
+    ? buildGateReport({ level, phase, observations, passPrescription, failPrescription })
+    : { nextAction: legacyEvaluationsToNextAction({
+        evaluations,
+        prescription: verdict === "fail" ? failPrescription : passPrescription,
+      }).toJSON() };
+  return {
+    result: verdict,
+    changed: [],
+    artifacts: {
+      target,
+      level,
+      phase,
+      evaluations: evaluations || [],
+      nextAction: report.nextAction,
+    },
+    next: verdict === "fail" ? FAIL_NEXT[phase] : PASS_NEXT[phase],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1435,15 +1561,34 @@ async function checkGuardrail(root, targetText, phase, role, previouslyPassedIds
   if (!pb) return { passed: true, evaluations: [] };
 
   const built = pb.build();
-  const response = await agent.call(built.userPrompt, {
-    commandId: "flow.spec.gate",
-    systemPrompt: built.systemPrompt,
-    jsonSchema: built.jsonSchema,
-    fmtFallback: built.fmtFallback,
-  });
   const knownIds = filtered.map((g) => g.id);
-  const parsed = parseGuardrailArticleEvaluation(response, knownIds);
+  const { observations: parsed } = await evaluateGuardrailObservationsWithRetry({
+    knownIds,
+    phase,
+    retryContext: options?.retryContext || null,
+    callAgent: () => agent.call(built.userPrompt, {
+      commandId: "flow.spec.gate",
+      systemPrompt: built.systemPrompt,
+      jsonSchema: built.jsonSchema,
+      fmtFallback: built.fmtFallback,
+    }),
+  });
   const byId = new Map(filtered.map((g) => [g.id, g]));
+  if (parsed.length === 0) {
+    return { passed: true, evaluations: buildPassEvaluationsForObservedGuardrails(filtered) };
+  }
+  if (parsed[0]?.requirementRef) {
+    const evaluations = parsed.map((observation) => ({
+      guardrail_id: observation.requirementRef,
+      result: observation.severity === "blocking" ? "fail" : "pass",
+      reason: observation.observed,
+      category: byId.get(observation.requirementRef)?.meta.category || "guardrail",
+      title: byId.get(observation.requirementRef)?.title || observation.requirementRef,
+      observations: [observation],
+    }));
+    const passed = evaluations.every((e) => e.result === "pass" || e.result === "skip");
+    return { passed, evaluations };
+  }
   const evaluations = parsed.map((e) => ({
     ...e,
     category: byId.get(e.guardrail_id).meta.category,
@@ -1565,6 +1710,20 @@ export function warnGateRetryBudget(ctx, phase) {
   );
 }
 
+export function buildGateRetryExhaustedEnvelope({ phase, attempts, max, reason }) {
+  const messages = [
+    `gate retry limit exhausted: ${attempts}/${max} FAIL attempts recorded for phase "${phase}".`,
+    reason || "Stop the automatic retry loop and return control to the user.",
+  ];
+  return Envelope.fail(
+    "run",
+    "gate",
+    "ESCALATE_RETRY_EXHAUSTED",
+    messages,
+    { phase, attempts, max },
+  );
+}
+
 /**
  * Returns a failure Envelope when the retry budget for the given phase is
  * exhausted, or null when the command is still allowed to proceed. Callers
@@ -1588,13 +1747,42 @@ export function checkRetryBelowMax(ctx, phase) {
     "Stop the automatic retry loop and return control to the user.",
   ];
   appendGateEscalationIssueLog(ctx, phase, messages);
-  return Envelope.fail(
-    "run",
-    "gate",
-    "ESCALATE_RETRY_EXHAUSTED",
-    messages,
-    { phase, attempts: count, max },
+  return buildGateRetryExhaustedEnvelope({ phase, attempts: count, max, reason: messages.join("\n") });
+}
+
+export async function evaluateGuardrailObservationsWithRetry({
+  knownIds,
+  maxAttempts = null,
+  callAgent,
+  phase = "task-impl",
+  retryContext = null,
+}) {
+  let lastError = null;
+  const resolvedMax = maxAttempts ?? (
+    retryContext ? Math.max(1, resolveRetryMax(retryContext, phase) - readGateRetryCount(retryContext.flowState, phase)) : 2
   );
+  for (let attempt = 1; attempt <= resolvedMax; attempt += 1) {
+    const raw = await callAgent();
+    try {
+      const observations = parseGuardrailArticleEvaluation(raw, knownIds);
+      return { observations };
+    } catch (err) {
+      lastError = err;
+      if (retryContext?.flowManager && RETRY_TRACKED_PHASES.includes(phase)) {
+        retryContext.flowManager.appendMetric({ phase, counter: "gateRetry", delta: 1 });
+      }
+    }
+  }
+  const envelope = buildGateRetryExhaustedEnvelope({
+    phase,
+    attempts: resolvedMax,
+    max: resolvedMax,
+    reason: "invalid Observation output",
+  });
+  const err = new Error(lastError?.message || "invalid Observation output");
+  err.code = envelope.errors[0].code;
+  err.retryExhaustionEnvelope = envelope;
+  throw err;
 }
 
 /**
@@ -1630,6 +1818,18 @@ export function updateGateRetryCounter(ctx, result) {
   mgr.appendMetric(payload);
   if (result?.result === "fail") {
     persistGateRecoveryBaseline(ctx, phase, GATE_RECOVERY_TRIGGER_RESULT_FAIL);
+  } else if (ctx.gitState && (phase === "task-impl" || phase === "integration")) {
+    mgr.mutate((state) => updateGateImplMemory({
+      root: ctx.root,
+      flowState: state,
+      phase,
+      round: nextGateImplMemoryRound(ctx.root, state, phase),
+      status: "advisory",
+      statusReason: "gate pass",
+      gitState: ctx.gitState,
+      passedGuardrails: buildPassedGuardrails(result?.artifacts?.evaluations),
+      observations: result?.artifacts?.nextAction?.diagnosis?.observations || [],
+    }));
   }
 }
 
@@ -1676,6 +1876,133 @@ function findPreviousFailEntry(issueLog, phase) {
   return null;
 }
 
+function resolveGateImplMemoryPaths(root, flowState) {
+  const specPath = flowState?.spec;
+  if (!specPath) throw new Error("flowState.spec is required");
+  const specDir = path.dirname(path.resolve(root, specPath));
+  const artifactPath = path.join(specDir, "gate-impl-memory.json");
+  return {
+    specDir,
+    artifactPath,
+    artifactRelPath: path.relative(root, artifactPath).split(path.sep).join("/"),
+  };
+}
+
+function readGateImplMemoryArtifact(root, flowState) {
+  const { artifactPath } = resolveGateImplMemoryPaths(root, flowState);
+  if (!fs.existsSync(artifactPath)) return { version: 1, entries: [] };
+  const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+  if (!Array.isArray(artifact.entries)) return { version: 1, entries: [] };
+  return artifact;
+}
+
+function writeGateImplMemoryArtifact(root, flowState, artifact) {
+  const { specDir, artifactPath } = resolveGateImplMemoryPaths(root, flowState);
+  fs.mkdirSync(specDir, { recursive: true });
+  fs.writeFileSync(artifactPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
+}
+
+function gateImplMemoryForPhase(flowState, phase) {
+  const memory = flowState?.gateImplMemory;
+  if (!memory || memory.phase !== phase) return null;
+  return memory;
+}
+
+function samePhaseMemoryEntries(artifact, phase) {
+  return (Array.isArray(artifact?.entries) ? artifact.entries : [])
+    .filter((entry) => entry?.phase === phase);
+}
+
+function nextGateImplMemoryRound(root, flowState, phase) {
+  const artifact = readGateImplMemoryArtifact(root, flowState);
+  const rounds = samePhaseMemoryEntries(artifact, phase)
+    .map((entry) => Number(entry.round))
+    .filter((round) => Number.isInteger(round));
+  return rounds.length === 0 ? 1 : Math.max(...rounds) + 1;
+}
+
+export function updateGateImplMemory({
+  root,
+  flowState,
+  phase,
+  round = null,
+  status = "blocking",
+  statusReason = "",
+  gitState,
+  passedGuardrails = [],
+  observations = [],
+}) {
+  if (phase !== "task-impl" && phase !== "integration") return null;
+  const observedAt = new Date().toISOString();
+  const normalizedObservations = normalizeObservations(observations).map((entry) => entry.toJSON());
+  const artifact = readGateImplMemoryArtifact(root, flowState);
+  const { artifactRelPath } = resolveGateImplMemoryPaths(root, flowState);
+  const resolvedRound = round ?? nextGateImplMemoryRound(root, flowState, phase);
+  const entry = {
+    phase,
+    round: resolvedRound,
+    status,
+    statusReason,
+    updatedAt: observedAt,
+    headSha: gitState?.headSha || null,
+    worktreeHash: gitState?.worktreeHash || null,
+    passedGuardrails,
+    observations: normalizedObservations,
+  };
+  artifact.version = 1;
+  const otherPhaseEntries = (Array.isArray(artifact.entries) ? artifact.entries : [])
+    .filter((item) => item?.phase !== phase);
+  const retainedPhaseEntries = samePhaseMemoryEntries(artifact, phase)
+    .filter((item) => item.round !== resolvedRound);
+  const latestPhaseEntries = [...retainedPhaseEntries, entry]
+    .sort((a, b) => a.round - b.round)
+    .slice(-3);
+  artifact.entries = [...otherPhaseEntries, ...latestPhaseEntries]
+    .sort((a, b) => {
+      const phaseOrder = String(a.phase || "").localeCompare(String(b.phase || ""));
+      return phaseOrder || a.round - b.round;
+    });
+  writeGateImplMemoryArtifact(root, flowState, artifact);
+
+  const phaseEntries = samePhaseMemoryEntries(artifact, phase);
+  const latest = phaseEntries[phaseEntries.length - 1];
+  flowState.gateImplMemory = {
+    version: 1,
+    phase,
+    artifactPath: artifactRelPath,
+    roundsKept: 3,
+    lastUpdatedAt: observedAt,
+    headSha: latest.headSha,
+    worktreeHash: latest.worktreeHash,
+    passedGuardrails: latest.passedGuardrails,
+    entries: phaseEntries.map((item) => ({
+      signature: item.observations[0] ? Observation.fromJSON(item.observations[0]).signature() : "",
+      status: item.status,
+      observationRef: `${artifactRelPath}#round-${item.round}`,
+    })),
+  };
+  return flowState.gateImplMemory;
+}
+
+export function readGateImplMemoryForPrompt({ root, flowState, phase }) {
+  if (phase !== "task-impl" && phase !== "integration") return [];
+  return samePhaseMemoryEntries(readGateImplMemoryArtifact(root, flowState), phase).slice(-3);
+}
+
+export function buildGateImplPriorMemoryPrompt({ root, flowState, phase }) {
+  const entries = readGateImplMemoryForPrompt({ root, flowState, phase });
+  if (entries.length === 0) return "";
+  return [
+    "## Prior Gate Observations",
+    ...entries.map((entry) => [
+      `### Round ${entry.round} (${entry.status})`,
+      `Status reason: ${entry.statusReason || "n/a"}`,
+      `State: ${entry.headSha || "n/a"} / ${entry.worktreeHash || "n/a"}`,
+      ...entry.observations.map((observation) => Observation.fromJSON(observation).toMarkdown()),
+    ].join("\n")),
+  ].join("\n\n");
+}
+
 /**
  * Return the state identifiers of the most recent same-phase FAIL entry that
  * should still be considered active, or null when no such reference exists.
@@ -1688,6 +2015,14 @@ function findPreviousFailEntry(issueLog, phase) {
 export function findPreviousFailState({ flowState, issueLog, phase }) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) return null;
   if (countGateRetry(flowState?.metrics, phase) === 0) return null;
+  const memory = gateImplMemoryForPhase(flowState, phase);
+  if (memory?.headSha && memory?.worktreeHash) {
+    return {
+      headSha: memory.headSha,
+      worktreeHash: memory.worktreeHash,
+    };
+  }
+  if (phase === "task-impl" || phase === "integration") return null;
   const entry = findPreviousFailEntry(issueLog, phase);
   return entry ? { headSha: entry.headSha, worktreeHash: entry.worktreeHash } : null;
 }
@@ -1801,6 +2136,29 @@ export function findPreviousFailedEvaluations({ issueLog, phase }) {
   return flat;
 }
 
+function normalizeObservationFailurePairs(observations) {
+  if (!Array.isArray(observations)) return [];
+  return observations
+    .map((entry) => entry instanceof Observation ? entry : Observation.fromJSON(entry))
+    .filter((entry) => entry.severity === "blocking")
+    .map((entry) => ({
+      requirementRef: entry.requirementRef,
+      observed: entry.observed,
+    }));
+}
+
+function observationsFromGateEvaluations(evaluations) {
+  if (!Array.isArray(evaluations)) return [];
+  return evaluations.flatMap((entry) => (
+    Array.isArray(entry?.observations) ? entry.observations : []
+  ));
+}
+
+function priorGateImplObservations({ root, flowState, phase }) {
+  return readGateImplMemoryForPrompt({ root, flowState, phase })
+    .flatMap((entry) => Array.isArray(entry.observations) ? entry.observations : []);
+}
+
 /**
  * Throw `Error` with `err.code = "ESCALATE_REPEATED_FAIL"` when any
  * current FAIL has Jaccard similarity ≥ JACCARD_THRESHOLD against at
@@ -1810,8 +2168,33 @@ export function findPreviousFailedEvaluations({ issueLog, phase }) {
  * evaluation but before the gateFail return, so the registry's POST-hook
  * (which increments `gateRetry`) never fires — retry budget is preserved.
  */
-export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations }) {
+export function assertNoRepeatedFail({ issueLog, phase, currentEvaluations, priorObservations, currentObservations }) {
   if (!RETRY_TRACKED_PHASES.includes(phase)) return;
+  const currentObservationPairs = normalizeObservationFailurePairs(currentObservations);
+  if (currentObservationPairs.length > 0) {
+    const priorPairs = normalizeObservationFailurePairs(priorObservations);
+    const matched = [];
+    for (const current of currentObservationPairs) {
+      const currSet = normalize(current.observed);
+      for (const prior of priorPairs) {
+        if (prior.requirementRef !== current.requirementRef) continue;
+        if (jaccard(currSet, normalize(prior.observed)) >= JACCARD_THRESHOLD) {
+          matched.push({
+            requirementRef: current.requirementRef,
+            currentObserved: current.observed,
+            priorObserved: prior.observed,
+          });
+          break;
+        }
+      }
+    }
+    if (matched.length === 0) return;
+    const err = new Error(`gate-impl escalation: repeated similar Observation FAIL detected for phase "${phase}".`);
+    err.code = "ESCALATE_REPEATED_FAIL";
+    err.data = { phase, matched };
+    throw err;
+  }
+  if (phase === "task-impl" || phase === "integration") return;
   const current = buildFailedEvaluations(currentEvaluations);
   if (current.length === 0) return;
   const previous = findPreviousFailedEvaluations({ issueLog, phase });
@@ -1870,6 +2253,15 @@ export function buildPassedGuardrails(evaluations) {
 }
 
 export function findPreviousPassedGuardrails({ issueLog, phase }) {
+  const memory = gateImplMemoryForPhase(arguments[0]?.flowState, phase);
+  if (memory) {
+    return {
+      passedGuardrails: memory.passedGuardrails || [],
+      headSha: memory.headSha,
+      worktreeHash: memory.worktreeHash,
+    };
+  }
+  if (phase === "task-impl" || phase === "integration") return null;
   const entries = Array.isArray(issueLog?.entries) ? issueLog.entries : [];
   for (let i = entries.length - 1; i >= 0; i--) {
     const e = entries[i];
@@ -2014,6 +2406,30 @@ export function reasonsFromEvaluations(evaluations) {
   return rows;
 }
 
+function nextActionFromGateEvaluations(evaluations, prescription) {
+  const observations = observationsFromGateEvaluations(evaluations);
+  const legacyFailures = Array.isArray(evaluations)
+    ? evaluations.filter((entry) => (
+        entry?.result === "fail"
+        && (!Array.isArray(entry.observations) || entry.observations.length === 0)
+      ))
+    : [];
+  const legacyObservations = legacyFailures.length > 0
+    ? legacyEvaluationsToNextAction({ evaluations: legacyFailures, prescription }).diagnosis.observations
+    : [];
+  const combined = [...observations, ...legacyObservations.map((observation) => observation.toJSON())];
+  if (combined.length > 0) {
+    return new NextAction({
+      diagnosis: new Diagnosis({
+        summary: `${combined.length} observation(s).`,
+        observations: combined,
+      }),
+      prescription,
+    }).toJSON();
+  }
+  return legacyEvaluationsToNextAction({ evaluations, prescription }).toJSON();
+}
+
 function gatePass(level, phase, targetPath, evaluations, warnings) {
   const artifacts = {
     target: targetPath,
@@ -2021,6 +2437,7 @@ function gatePass(level, phase, targetPath, evaluations, warnings) {
     phase,
     evaluations: evaluations || [],
     reasons: reasonsFromEvaluations(evaluations),
+    nextAction: nextActionFromGateEvaluations(evaluations || [], PASS_NEXT[phase]),
   };
   if (Array.isArray(warnings) && warnings.length > 0) {
     artifacts.warnings = warnings;
@@ -2034,6 +2451,20 @@ function gatePass(level, phase, targetPath, evaluations, warnings) {
 }
 
 function gateFail(level, phase, targetPath, evaluations, issues) {
+  const observations = issues?.length
+    ? issues.map((issue) => Observation.processEvidenceMissing({
+        requirementRef: "process:gate-structure",
+        where: null,
+        observed: issue,
+        diffVerifiable: true,
+      }).toJSON())
+    : null;
+  const nextAction = observations
+    ? new NextAction({
+        diagnosis: new Diagnosis({ summary: `${observations.length} structural issue(s).`, observations }),
+        prescription: FAIL_NEXT[phase],
+      }).toJSON()
+    : nextActionFromGateEvaluations(evaluations || [], FAIL_NEXT[phase]);
   return {
     result: "fail",
     changed: [],
@@ -2044,6 +2475,7 @@ function gateFail(level, phase, targetPath, evaluations, issues) {
       evaluations: evaluations || [],
       reasons: reasonsFromEvaluations(evaluations),
       issues: issues || [],
+      nextAction,
     },
     next: FAIL_NEXT[phase],
   };
@@ -2075,6 +2507,9 @@ async function runGateFlow(args) {
     targetPath, targetText, textCheck, checkerRole, skipGuardrail,
     ctx, guardrailPromptOptions = {},
   } = args;
+  const priorMemoryMarkdown = ctx?.flowState?.spec
+    ? buildGateImplPriorMemoryPrompt({ root, flowState: ctx.flowState, phase })
+    : "";
 
   validateLevelPhase(level, phase);
 
@@ -2106,7 +2541,7 @@ async function runGateFlow(args) {
 
   let previouslyPassedIds;
   if (ctx && RETRY_TRACKED_PHASES.includes(phase)) {
-    const prevEntry = findPreviousPassedGuardrails({ issueLog: ctx.issueLog, phase });
+    const prevEntry = findPreviousPassedGuardrails({ flowState: ctx.flowState, issueLog: ctx.issueLog, phase });
     if (prevEntry) {
       previouslyPassedIds = prevEntry.passedGuardrails;
     }
@@ -2118,7 +2553,11 @@ async function runGateFlow(args) {
     phase,
     checkerRole,
     previouslyPassedIds,
-    guardrailPromptOptions,
+    {
+      ...guardrailPromptOptions,
+      priorMemoryMarkdown,
+      retryContext: ctx,
+    },
   );
   if (!result) {
     return gatePass(level, phase, targetPath, []);
@@ -2127,7 +2566,7 @@ async function runGateFlow(args) {
   let evaluations = result.evaluations;
 
   if (ctx && RETRY_TRACKED_PHASES.includes(phase) && ctx.gitState) {
-    const prevEntry = findPreviousPassedGuardrails({ issueLog: ctx.issueLog, phase });
+    const prevEntry = findPreviousPassedGuardrails({ flowState: ctx.flowState, issueLog: ctx.issueLog, phase });
     evaluations = applyFlipOverride({
       evaluations,
       previousEntry: prevEntry,
@@ -2143,6 +2582,8 @@ async function runGateFlow(args) {
         issueLog: ctx.issueLog,
         phase,
         currentEvaluations: evaluations,
+        priorObservations: priorGateImplObservations({ root, flowState: ctx.flowState, phase }),
+        currentObservations: observationsFromGateEvaluations(evaluations),
       });
     }
     return gateFail(level, phase, targetPath, evaluations, []);
@@ -2514,6 +2955,7 @@ export class RunGateCommand extends FlowCommand {
 
     let reqEvaluations;
     const previousResult = findPreviousPassedGuardrails({
+      flowState: state,
       issueLog: loadIssueLog(root, state.spec),
       phase,
     });
@@ -2587,6 +3029,8 @@ export class RunGateCommand extends FlowCommand {
         issueLog: loadIssueLog(root, state.spec),
         phase,
         currentEvaluations: reqEvaluations,
+        priorObservations: priorGateImplObservations({ root, flowState: state, phase }),
+        currentObservations: observationsFromGateEvaluations(reqEvaluations),
       });
       return gateFail(level, phase, specPath, reqEvaluations, []);
     }
@@ -2610,7 +3054,7 @@ export class RunGateCommand extends FlowCommand {
       phase,
       "You are an implementation compliance checker. Check the implementation against each guardrail.",
       previouslyPassedIds,
-      { acknowledgedRationale },
+      { acknowledgedRationale, retryContext: ctx },
     );
     if (!grResult) {
       return gatePass(level, phase, specPath, reqEvaluations, fileMapWarnings);
@@ -2622,6 +3066,8 @@ export class RunGateCommand extends FlowCommand {
         issueLog: loadIssueLog(root, state.spec),
         phase,
         currentEvaluations: combined,
+        priorObservations: priorGateImplObservations({ root, flowState: state, phase }),
+        currentObservations: observationsFromGateEvaluations(combined),
       });
       return gateFail(level, phase, specPath, combined, []);
     }
@@ -2705,9 +3151,11 @@ export {
 
 export function appendIssueLogFromGateResult(ctx, result) {
   const issueLog = loadIssueLog(ctx.root, ctx.flowState?.spec);
+  const observations = result?.artifacts?.nextAction?.diagnosis?.observations || [];
   const reasons = result?.artifacts?.issues?.length
     ? result.artifacts.issues.join("; ")
-    : (result?.artifacts?.reasons || []).map((r) => r.detail || r).join("; ");
+    : observations.map((observation) => observation.observed).join("; ")
+      || (result?.artifacts?.reasons || []).map((r) => r.detail || r).join("; ");
   const entry = {
     step: resolveGateStepId(ctx.phase),
     level: result?.artifacts?.level,
@@ -2723,19 +3171,33 @@ export function appendIssueLogFromGateResult(ctx, result) {
     entry.headSha = ctx.gitState.headSha;
     entry.worktreeHash = ctx.gitState.worktreeHash;
   }
-  // spec 212 REQ-4: persist per-FAIL (guardrail_id, reason) pairs so a
-  // subsequent gate-impl run can detect repeated identical failures and
-  // escalate (see assertNoRepeatedFail). Omit when no FAIL evaluations are
-  // present to keep structural-only failures (e.g. "no changes") clean.
-  // Note: these reasons are AI-generated gate metadata describing spec /
-  // diff compliance; the same text is already persisted in the flat
-  // `entry.reason` field above. This adds a structured view of the same
-  // data, not new content — so it carries no new log-sensitivity surface.
-  const failedEvaluations = buildFailedEvaluations(result?.artifacts?.evaluations);
-  if (failedEvaluations.length > 0) {
-    entry.failedEvaluations = failedEvaluations;
+  if (observations.length > 0) {
+    entry.observations = observations;
   }
-  entry.passedGuardrails = buildPassedGuardrails(result?.artifacts?.evaluations);
+  const passedGuardrails = buildPassedGuardrails(result?.artifacts?.evaluations);
+  entry.passedGuardrails = passedGuardrails;
+
+  if (RETRY_TRACKED_PHASES.includes(ctx.phase) && observations.length > 0) {
+    const status = observations.some((observation) => observation.severity === "blocking")
+      ? "blocking"
+      : "advisory";
+    const update = (state) => updateGateImplMemory({
+      root: ctx.root,
+      flowState: state,
+      phase: ctx.phase,
+      round: nextGateImplMemoryRound(ctx.root, state, ctx.phase),
+      status,
+      statusReason: entry.reason,
+      gitState: ctx.gitState,
+      passedGuardrails,
+      observations,
+    });
+    if (ctx.flowManager) {
+      ctx.flowManager.mutate(update);
+    } else {
+      update(ctx.flowState);
+    }
+  }
   issueLog.entries.push(entry);
   saveIssueLog(ctx.root, ctx.flowState?.spec, issueLog);
 }

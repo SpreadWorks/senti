@@ -644,3 +644,8 @@ Project rules:
 
 - `src/CLAUDE.md` / `src/AGENTS.md` — sdd-forge internal architecture and MUST rules
 - Project root `CLAUDE.md` — restrictions on writing to `src/`
+
+## Guardrail Rewrite Rubric
+
+Use the guardrail rewrite rubric when updating preset guardrails.
+Each rewritten guardrail should define named violation sections, diff-verification condition bullets, and a severity-policy that distinguishes blocking from advisory findings.
