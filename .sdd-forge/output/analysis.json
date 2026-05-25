@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-25T03:57:16.789Z",
+  "analyzedAt": "2026-05-25T04:34:19.517Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -1155,7 +1155,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -1399,7 +1399,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -1901,7 +1901,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -1933,7 +1933,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 10
+          "attempts": 11
         }
       },
       {
@@ -2047,7 +2047,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 7
+          "attempts": 8
         }
       },
       {
@@ -2240,9 +2240,9 @@
       },
       {
         "file": "src/flow.js",
-        "hash": "dae0df4c8f91551139e3a24e2c77f329",
-        "lines": 104,
-        "mtime": "2026-05-20T11:59:06.591Z",
+        "hash": "c279547848ebcc54388449bd3d7136df",
+        "lines": 105,
+        "mtime": "2026-05-25T04:34:08.444Z",
         "className": "flow",
         "methods": [
           "run",
@@ -2260,7 +2260,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 6
+          "attempts": 1
         }
       },
       {
@@ -2306,7 +2306,7 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 4
+          "attempts": 5
         }
       },
       {
@@ -2351,7 +2351,7 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -3485,6 +3485,38 @@
           "thin controller",
           "shared helper"
         ]
+      },
+      {
+        "file": "src/flow/lib/get-runtime-log.js",
+        "hash": "03e3107d7893f03fe7591674394064d9",
+        "lines": 85,
+        "mtime": "2026-05-25T04:34:08.444Z",
+        "className": "get-runtime-log",
+        "methods": [
+          "positiveInteger",
+          "parseRunId",
+          "parseArgs",
+          "fail"
+        ],
+        "imports": [
+          "../../lib/command.js",
+          "../../lib/flow-envelope.js",
+          "../../lib/runtime-log.js",
+          "../../lib/flow-helpers.js"
+        ],
+        "exports": [
+          "default"
+        ],
+        "extends": "Command",
+        "usedBy": [
+          "src/lib/agent.js",
+          "src/lib/container.js",
+          "src/lib/dispatcher.js"
+        ],
+        "id": "f2e5e82b",
+        "enrich": {
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/lib/get-status.js",
@@ -4737,8 +4769,23 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-25T04:34:52.964Z",
+          "attempts": 3
+        },
+        "summary": "Implements the gate engine for SDD flow phases, including validation, AI guardrail evaluation, retry handling, and artifact generation. It centralizes pass/fail decisions for draft, spec, task implementation, and integration checkpoints.",
+        "detail": "The module combines Git diff analysis, untracked-file capture, and requirement-to-file mapping to scope what is evaluated at each gate phase. It validates multiple artifact families such as spec review triage/repair files, draft review artifacts, test evidence, and lifecycle consistency before allowing progression. Guardrail prompts and JSON schemas are built in-code, then AI responses are parsed with strict structural checks and explicit schema errors. It tracks retry history, detects no-progress or repeated-failure patterns, supports flip overrides for identical states, and persists recovery baselines and gate memory artifacts. Final results are normalized into envelopes, reports, and issue-log entries so downstream flow steps can react deterministically.",
+        "chapter": "internal_design",
+        "role": "Core gate orchestration and policy enforcement for flow quality checks",
+        "keywords": [
+          "gate validation",
+          "guardrail evaluation",
+          "retry logic",
+          "diff scoping",
+          "artifact verification",
+          "issue log",
+          "flow phase control",
+          "quality gate"
+        ]
       },
       {
         "file": "src/flow/lib/run-impl-confirm.js",
@@ -4921,9 +4968,9 @@
       },
       {
         "file": "src/flow/lib/run-report-show.js",
-        "hash": "6a8350e96478fbdea2a44cfc425b0e91",
-        "lines": 94,
-        "mtime": "2026-05-16T08:19:57.846Z",
+        "hash": "3ba6898f1951c387c461a9487413c352",
+        "lines": 89,
+        "mtime": "2026-05-25T04:34:08.444Z",
         "className": "run-report-show",
         "methods": [
           "resolveLatestReportPath",
@@ -4948,20 +4995,22 @@
           "src/flow/lib/run-finalize.js"
         ],
         "id": "3754ab40",
-        "enrich": {
-          "processedAt": "2026-05-18T13:31:12.050Z",
-          "attempts": 5
-        },
-        "summary": "Shows the latest finalized report by resolving a pointer file and validating report payload integrity.",
-        "detail": "The command reads `.sdd-forge/last-finalized-spec`, resolves the corresponding `report.json`, and emits typed errors when pointer or report data is missing. Report text loading validates JSON parseability and required fields, including project regression data when test artifacts are present. On success it prints report text directly; on failure it writes a CLI error and exits non-zero.",
+        "summary": "Provides a CLI command to display the latest finalized flow report text from report artifacts. It resolves the report location via a pointer file and validates report integrity before output.",
+        "detail": "The command reads `.sdd-forge/last-finalized-spec` to find the most recently finalized spec and then resolves `report.json` in that spec directory. It emits typed operational errors for missing pointers, empty pointers, missing reports, parse failures, and absent text fields. When test data exists in the report, it enforces artifact consistency by calling validated test-artifact loading logic. The command surface remains minimal: parse, validate, and print the `text` field to stdout. This creates a stable, low-friction way to retrieve the final human-readable report.",
         "chapter": "cli_commands",
-        "role": "report display command",
+        "role": "Read-only report retrieval command for finalized flow output",
+        "enrich": {
+          "processedAt": "2026-05-25T04:34:52.964Z",
+          "attempts": 1
+        },
         "keywords": [
-          "latest report pointer",
-          "report validation",
-          "stdout output",
-          "artifact integrity",
-          "error codes"
+          "report display",
+          "finalized spec pointer",
+          "report.json",
+          "CLI output",
+          "artifact validation",
+          "error codes",
+          "flow reporting"
         ]
       },
       {
@@ -5159,8 +5208,22 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-25T04:34:52.964Z",
+          "attempts": 4
+        },
+        "summary": "Implements the review execution command across draft, spec, test, and implementation phases with phase-specific parsing and retry behavior. It converts review subprocess results into structured flow outcomes and next-step routing.",
+        "detail": "The module defines review verdict semantics, phase mappings, retry budgets, and downstream reset behavior for implementation-related evidence. It executes review scripts via subprocess calls with bounded retry and delay controls to tolerate transient tool failures. Output parsers extract standardized signals (verdicts, counts, artifact paths, next steps) and normalize them per phase. It integrates with flow recovery state, issue logging, and retry counters so repeated failures are tracked consistently. The command returns envelope-friendly failures for unknown phases, task-cursor violations, and parse/tooling errors, preserving deterministic flow transitions.",
+        "chapter": "internal_design",
+        "role": "Phase-aware review runner and verdict interpreter in the flow pipeline",
+        "keywords": [
+          "review command",
+          "phase parser",
+          "verdict routing",
+          "subprocess retry",
+          "flow recovery",
+          "implementation review",
+          "issue tracking"
+        ]
       },
       {
         "file": "src/flow/lib/run-scenario-validity.js",
@@ -6400,9 +6463,9 @@
       },
       {
         "file": "src/flow/registry.js",
-        "hash": "5c3e65423699c73e6d4027faaf941cf3",
-        "lines": 1021,
-        "mtime": "2026-05-21T04:41:15.397Z",
+        "hash": "8b230dca110cb7e9c2b20f8c7cbfc1a4",
+        "lines": 1085,
+        "mtime": "2026-05-25T04:34:08.445Z",
         "className": "registry",
         "methods": [
           "assertDraftReviewRegistryHookBoundary",
@@ -6413,7 +6476,11 @@
           "resetSkippedDownstreamSteps",
           "deriveActivePhase",
           "tryUpdateStepStatus",
-          "tryAppendIssueLog"
+          "tryAppendIssueLog",
+          "gateRuntimeLogStepId",
+          "activeStepId",
+          "draftReviewRuntimeLogStepId",
+          "reviewRuntimeLogStepId"
         ],
         "imports": [
           "../lib/flow-helpers.js",
@@ -6432,9 +6499,23 @@
         "extends": null,
         "usedBy": null,
         "id": "d64f4095",
+        "summary": "Defines the flow command registry and lifecycle hooks that connect command execution with status updates, retry accounting, and artifact side effects. It acts as orchestration glue between runtime commands and persisted flow state.",
+        "detail": "The registry declares command metadata, help text, and post/onError behaviors for key flow operations, including gate and finalize paths. It enforces responsibility boundaries for draft review ownership between review and gate phases and provides assertion checks for route consistency. Hook utilities safely update step status and issue logs with guarded error handling to avoid cascading failures. It includes logic for resolving runtime log step IDs, detecting active phase context, and resetting downstream finalize steps when needed. Additional validations confirm required regression artifacts and pass conditions before allowing final progression.",
+        "chapter": "project_structure",
+        "role": "Central command registration and hook wiring for flow lifecycle events",
         "enrich": {
-          "attempts": 3
-        }
+          "processedAt": "2026-05-25T04:34:52.964Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "command registry",
+          "lifecycle hooks",
+          "step status",
+          "finalize flow",
+          "draft review routes",
+          "runtime logging",
+          "state mutation"
+        ]
       },
       {
         "file": "src/help.js",
@@ -6986,17 +7067,19 @@
       },
       {
         "file": "src/lib/dispatcher.js",
-        "hash": "67ac397c962ae57ac9f5c8018e774be8",
-        "lines": 425,
-        "mtime": "2026-05-20T01:09:12.554Z",
+        "hash": "67de7792eca8898467552f0156893c80",
+        "lines": 450,
+        "mtime": "2026-05-25T04:34:08.445Z",
         "className": "dispatcher",
         "methods": [
           "parseEntryInput",
           "dispatch",
           "throwUnexpected",
           "splitArgsBySpec",
-          "createFinalizeCleanupPathResolver",
-          "resolveRuntimeLogPath",
+          "runtimeLogRunId",
+          "runtimeLogFlowId",
+          "attachRuntimeLog",
+          "runtimeLogStepId",
           "findWarning",
           "truncateText",
           "formatWarningMessages",
@@ -7006,12 +7089,10 @@
           "emitFailure"
         ],
         "imports": [
-          "fs",
-          "path",
           "./cli.js",
           "./command.js",
           "./flow-envelope.js",
-          "./finalize-cleanup-paths.js"
+          "./runtime-log.js"
         ],
         "exports": [
           "parseEntryInput",
@@ -7026,23 +7107,22 @@
           "src/spec.js"
         ],
         "id": "18d5f63b",
-        "summary": "Top-level CLI dispatcher that parses entry args, runs pre/post hooks, manages runtime logs, and emits finalize cleanup reports.",
-        "detail": "Parses argv by splitting into flag/option/positional buckets, throwing on unknown options or unexpected positionals, and detecting `-h/--help`. The `RuntimeLog` class manages an append-only log file with a 5MB cap that writes a truncated marker once exceeded, intercepting `process.stderr.write` during command execution. `dispatch` wires stdout/stderr writers, the exit-code setter, container construction, and invokes the entry's `pre`, command, `post`, and `onError` hooks while wrapping output in JSON envelopes when the entry declares `outputMode`. Finalize cleanup warnings are surfaced via `emitFinalizeCleanupReportDisplay`, truncating long warning text to bounded limits.",
+        "summary": "Implements the top-level dispatcher that parses command inputs, runs pre/post hooks, captures runtime logs, and emits standardized envelopes. It is the execution boundary between CLI entrypoints and command implementations.",
+        "detail": "The dispatcher splits positional and option arguments using command specs and raises clear errors for unknown options or missing values. During execution it wraps stdout/stderr handling, supports output modes, and safely suppresses recursive capture when forwarding writes. It decorates envelopes with runtime-log metadata and emits structured JSON responses for success and failure paths. Special handling formats finalize-cleanup warnings into concise user-facing diagnostic text while preserving machine-readable envelope data. The design ensures consistent exit behavior and error propagation across all command families.",
         "chapter": "project_structure",
-        "role": "Central dispatcher converting CLI argv into command invocations with envelope output, runtime logging, and hook lifecycle",
+        "role": "Unified CLI dispatch, I/O mediation, and envelope emission layer",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:08.721Z",
+          "processedAt": "2026-05-25T04:34:52.964Z",
           "attempts": 1
         },
         "keywords": [
-          "dispatcher",
-          "parseArgs",
-          "RuntimeLog",
-          "envelope",
-          "pre/post hooks",
-          "finalize cleanup",
-          "stderr capture",
-          "exit code"
+          "CLI dispatcher",
+          "argument parsing",
+          "envelope output",
+          "runtime log metadata",
+          "error handling",
+          "stdout stderr capture",
+          "output mode"
         ]
       },
       {
@@ -7194,9 +7274,9 @@
       },
       {
         "file": "src/lib/flow-manager.js",
-        "hash": "5901f80dfa625a2b4d1670abc028f8e8",
-        "lines": 414,
-        "mtime": "2026-05-20T03:32:53.766Z",
+        "hash": "4e76e811527a3c7bb5f81628688cb923",
+        "lines": 417,
+        "mtime": "2026-05-25T04:34:08.445Z",
         "className": "flow-manager",
         "methods": [
           "FlowManager"
@@ -7221,22 +7301,22 @@
           "src/lib/container.js"
         ],
         "id": "3d2ed4c0",
-        "summary": "`FlowManager` orchestrates high-level flow state access, task navigation, metrics forwarding, and active-flow discovery across main and worktree contexts. It acts as a coordination layer above storage and registry components.",
-        "detail": "The class wraps `FlowStore`, `PreparingFlowStore`, and active-flow registry services, and applies bound spec defaults through helper functions. It exposes convenience methods for load/read-only access, metric updates, task-step operations, and preparing input resolution. Discovery logic scans `specs/*/flow.json` across main and worktree paths, parses candidate states, and enforces scan limits with stderr diagnostics for malformed entries. It also tracks a last-finalized spec pointer and validates explicit spec selection against active registrations to prevent ambiguous or stale routing.",
+        "summary": "Provides flow state management for loading, selecting, and mutating active SDD flows across main and worktree contexts. It is the persistence-aware coordinator for runtime flow operations.",
+        "detail": "The manager wraps store operations for step updates, metrics, runtime logs, and task progression while supporting bound spec defaults. It scans flow state from main repository specs, linked worktrees, and branch snapshots, with limits and JSON-parse safeguards for robustness. Active flow resolution supports explicit selection, last-finalized pointer lookup, and fallback probing for worktree paths. It returns structured active-flow descriptors containing spec ID, state, and worktree location to downstream commands. By centralizing these behaviors, it decouples command logic from file-layout and Git-discovery details.",
         "chapter": "internal_design",
-        "role": "Flow lifecycle coordinator",
+        "role": "Stateful flow persistence and active-flow resolution service",
         "enrich": {
-          "processedAt": "2026-05-20T03:34:35.997Z",
+          "processedAt": "2026-05-25T04:34:52.964Z",
           "attempts": 1
         },
         "keywords": [
           "flow manager",
-          "state orchestration",
-          "worktree scanning",
-          "active flow registry",
-          "spec selection",
-          "task progression",
-          "metrics forwarding"
+          "state store",
+          "active flow selection",
+          "worktree discovery",
+          "spec pointer",
+          "metrics tracking",
+          "flow persistence"
         ]
       },
       {
@@ -7285,9 +7365,9 @@
       },
       {
         "file": "src/lib/flow-store.js",
-        "hash": "a67ceb4caea6c95c8239932b190e4205",
-        "lines": 983,
-        "mtime": "2026-05-20T03:32:53.766Z",
+        "hash": "58e55c34cba8dd6426c92497ed2c32d8",
+        "lines": 998,
+        "mtime": "2026-05-25T04:34:08.446Z",
         "className": "flow-store",
         "methods": [
           "resolveTaskIdForEntry",
@@ -7341,22 +7421,23 @@
           "src/lib/flow-manager.js"
         ],
         "id": "5332364e",
-        "summary": "`FlowStore` is the persistence and mutation core for flow state, with strict schema validation, guarded migrations, and task-scope mutation utilities. It encapsulates file I/O, migration safety limits, and writeback behavior for `flow.json` and related artifacts.",
-        "detail": "The module defines bounded limits for flow size and migration breadth, then uses explicit assertions to reject malformed or oversized state inputs. Migration routines rewrite legacy draft-review structures, insert replacement steps/artifacts, emit empty artifact stubs, and append issue-log migration records when needed. Read and write paths are centralized with JSON serialization, rollback support for runId migration, and read-only fallbacks that report malformed state to stderr. The class also includes scope resolution, pending-step promotion, task shape validation, and finalized metadata constraints to keep flow transitions internally consistent.",
+        "summary": "Implements persistent storage and migration logic for flow state files, including strict schema checks and task-scope mutation helpers. It also handles step/artifact rewrites for draft-review workflow evolution and safe rollback of runId migrations.",
+        "detail": "The module centralizes flow-state path resolution, branch-derived spec identification, and guarded JSON loading with bounded file-size reads. It validates core state shape early and throws targeted errors for malformed tasks, steps, requirements, and merge metadata. Migration routines update legacy draft/refine/review step graphs, rewrite related artifact paths, and generate empty placeholder artifacts when needed so downstream commands can continue consistently. It appends migration evidence to issue logs and enforces upper bounds on migrated steps/artifacts to avoid runaway processing. The FlowStore class exposes read/write, read-only fallback, mutation-scope resolution, task insertion, and current-task safety checks as the main state management API.",
         "chapter": "internal_design",
-        "role": "Flow state store and migration engine",
+        "role": "Flow state persistence, validation, and migration subsystem",
         "enrich": {
-          "processedAt": "2026-05-20T03:34:35.997Z",
+          "processedAt": "2026-05-25T04:35:01.585Z",
           "attempts": 1
         },
         "keywords": [
-          "flow store",
+          "flow state",
           "state migration",
           "schema validation",
-          "JSON persistence",
-          "task scope resolution",
+          "task lifecycle",
           "artifact rewrite",
-          "rollback guard"
+          "spec workflow",
+          "runId rollback",
+          "state store"
         ]
       },
       {
@@ -7971,8 +8052,22 @@
         ],
         "id": "7d5119a2",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-25T04:35:01.585Z",
+          "attempts": 3
+        },
+        "summary": "Deploys packaged preset assets into a workspace-local .sdd-forge area. It copies guardrail files and injects or updates a guidance note in language-specific preset-creation docs.",
+        "detail": "The module defines preset source roots from the package directory and performs deterministic file copying with parent-directory creation. It conditionally deploys guardrail JSON and guardrail rewrite rubric markdown only when they exist in each preset package. A text upsert helper rewrites the target markdown by replacing prior note blocks using a regex, then appending the current note, ensuring idempotent updates. The deploy function iterates over selected preset keys and languages with defaults and records deployed file destinations. This keeps runtime workspace templates synchronized with packaged preset guidance without external dependencies.",
+        "chapter": "creating_presets",
+        "role": "Preset asset deployment utility",
+        "keywords": [
+          "preset deployment",
+          "workspace scaffolding",
+          "guardrail",
+          "template sync",
+          "idempotent upsert",
+          "local presets",
+          "documentation injection"
+        ]
       },
       {
         "file": "src/lib/presets.js",
@@ -8191,6 +8286,58 @@
           "parse",
           "system prompt",
           "work dir"
+        ]
+      },
+      {
+        "file": "src/lib/runtime-log.js",
+        "hash": "f90bdea35b024eaa0b852b03b113d2fa",
+        "lines": 221,
+        "mtime": "2026-05-25T04:34:08.446Z",
+        "className": "runtime-log",
+        "methods": [
+          "RuntimeLogMetadata",
+          "RuntimeLogBlock",
+          "RuntimeLogFile",
+          "RuntimeLogBlockWriter",
+          "runtimeLogFileForContext",
+          "sanitizeFlowId",
+          "isoNow",
+          "shellCommand"
+        ],
+        "imports": [
+          "fs",
+          "path"
+        ],
+        "exports": [
+          "RuntimeLogMetadata",
+          "RuntimeLogBlock",
+          "RuntimeLogFile",
+          "RuntimeLogBlockWriter",
+          "runtimeLogFileForContext"
+        ],
+        "extends": null,
+        "usedBy": [
+          "src/lib/agent.js",
+          "src/lib/container.js",
+          "src/lib/dispatcher.js"
+        ],
+        "id": "48fbf8f0",
+        "summary": "Provides structured runtime logging with metadata-rich start/end blocks per run attempt. It supports log file IO, block parsing, sequence tracking, and context-based log file resolution.",
+        "detail": "The implementation normalizes flow IDs for filesystem-safe log filenames and stores logs under `.tmp/logs/<flowId>.log`. It models metadata, blocks, and file access through small classes that serialize fields and encapsulate parsing behavior. A block writer emits standardized start headers containing runId, sequence, attempt, command, and timestamps, then records completion metadata. The file helper can read full logs, append text, count next sequence numbers, split logs into block candidates, and select the latest matching block. Truncation limits and marker constants are defined to enforce bounded log growth in higher-level callers.",
+        "chapter": "internal_design",
+        "role": "Runtime execution logging framework",
+        "enrich": {
+          "processedAt": "2026-05-25T04:35:01.585Z",
+          "attempts": 1
+        },
+        "keywords": [
+          "runtime log",
+          "structured logging",
+          "execution metadata",
+          "attempt tracking",
+          "log parsing",
+          "flow tracing",
+          "sequence numbering"
         ]
       },
       {
@@ -11648,15 +11795,29 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-25T04:35:01.585Z",
+          "attempts": 3
+        },
+        "summary": "Implements the `upgrade` CLI entry point that validates project configuration, updates skill/preset assets, and rewrites config metadata when needed. It is the orchestration layer for upgrade-time consistency checks and deployment actions.",
+        "detail": "The command parses arguments, resolves repository context, and loads config before running preset-chain validation and related guard checks. It invokes upgrade helpers for skills/config synchronization and calls preset-copy deployment to refresh workspace-local preset artifacts. Error paths terminate with a defined error exit code, while success paths log actionable results for updated skills or copied assets. The file also reads and rewrites JSON config with normalized formatting to keep generated structure stable. This module acts as a thin coordinator over lower-level libraries, concentrating upgrade workflow control in one command entry point.",
+        "chapter": "cli_commands",
+        "role": "Upgrade command orchestrator",
+        "keywords": [
+          "CLI upgrade",
+          "configuration validation",
+          "preset chain",
+          "asset synchronization",
+          "command entrypoint",
+          "exit codes",
+          "project maintenance"
+        ]
       }
     ],
     "summary": {
-      "total": 312,
-      "totalMethods": 1488
+      "total": 314,
+      "totalMethods": 1506
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-25T03:58:09.843Z"
+  "enrichedAt": "2026-05-25T04:35:24.831Z"
 }
