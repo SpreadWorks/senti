@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied all four blocking spec review repairs: runtime-log retrieval self-selection, no-flow retrieval, finalize-cleanup metadata timing, and report show failure finalization.",
+  "items": [
+    {
+      "title": "runtime-log retrieval can select its own just-opened block",
+      "target": "R1, R8, R9, T-3",
+      "decision": "applied",
+      "rationale": "Excluded flow get runtime-log from automatic runtime log block creation and required latest non-runtime-log selection.",
+      "evidence": "spec.json scope.in[0], requirements R1/R9, clarifications now state flow get runtime-log is exempt and selects latest non-runtime-log block.",
+      "changedFields": [
+        "scope.in[0]",
+        "overview.data_flow[0].text",
+        "requirements[R1].desc",
+        "requirements[R9].desc",
+        "acceptance_criteria",
+        "clarifications"
+      ]
+    },
+    {
+      "title": "no-flow logs have no retrieval contract",
+      "target": "R2, R8, R9, Goal",
+      "decision": "applied",
+      "rationale": "Added no-flow default retrieval behavior for flow get runtime-log when no active flow exists.",
+      "evidence": "spec.json R9 and acceptance criteria now require reading .tmp/logs/no-flow.log by default without an active flow.",
+      "changedFields": [
+        "overview.data_flow[3].text",
+        "requirements[R9].desc",
+        "acceptance_criteria",
+        "tasks[T-3].acceptance"
+      ]
+    },
+    {
+      "title": "finalize-cleanup metadata timing is unresolved",
+      "target": "R6, Clarifications: step-associated commands, T-2",
+      "decision": "applied",
+      "rationale": "Excluded finalize-cleanup from step runtimeLog metadata while keeping runtime output logging for the command itself.",
+      "evidence": "spec.json R6, clarifications, and T-2 implementation notes now name finalize-cleanup as excluded from step metadata due cleanup timing.",
+      "changedFields": [
+        "requirements[R6].desc",
+        "clarifications",
+        "tasks[T-2].implementation_notes"
+      ]
+    },
+    {
+      "title": "report show failure bypasses dispatcher finalization",
+      "target": "R1, R4, src/flow/lib/run-report-show.js",
+      "decision": "applied",
+      "rationale": "Added a requirement and acceptance criterion that report show failures must return or throw through dispatcher handling rather than process.exit.",
+      "evidence": "spec.json R13 and T-2 acceptance now require closed report show failure blocks with exitCode.",
+      "changedFields": [
+        "requirements[R13]",
+        "acceptance_criteria",
+        "tasks[T-2].acceptance"
+      ]
+    }
+  ]
+}

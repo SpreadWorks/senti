@@ -14,12 +14,10 @@
  * Writes to stdout and setExitCode can be injected for testing.
  */
 
-import fs from "fs";
-import path from "path";
 import { parseArgs as cliParseArgs } from "./cli.js";
 import { Command } from "./command.js";
 import { Envelope } from "./flow-envelope.js";
-import { FinalizeCleanupPathResolver } from "./finalize-cleanup-paths.js";
+import { RuntimeLogBlockWriter } from "./runtime-log.js";
 
 function throwUnexpected(extras) {
   const unknownOpt = extras.find((v) => typeof v === "string" && v.startsWith("-"));
@@ -101,79 +99,37 @@ export function parseEntryInput(entry, argv) {
   return parsed;
 }
 
-const RUNTIME_LOG_MAX_BYTES = 5 * 1024 * 1024;
-const RUNTIME_LOG_TRUNCATED_MARKER = "\n[sdd-forge] runtime log truncated: size limit reached\n";
 const FINALIZE_CLEANUP_REPORT_HEADER = "Finalize Report";
 const FINALIZE_CLEANUP_REPORT_MISSING_CODE = "REPORT_MISSING";
 const FINALIZE_CLEANUP_WARNING_MESSAGE_LIMIT = 3;
 const FINALIZE_CLEANUP_WARNING_TEXT_LIMIT = 600;
 
-class RuntimeLog {
-  constructor(filePath, maxBytes = RUNTIME_LOG_MAX_BYTES) {
-    this.filePath = filePath;
-    this.maxBytes = maxBytes;
-    this.bytesWritten = 0;
-    this.truncated = false;
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, "");
-  }
-
-  write(line) {
-    if (this.truncated) return;
-    const text = line.endsWith("\n") ? line : `${line}\n`;
-    const remaining = this.maxBytes - this.bytesWritten;
-    try {
-      if (Buffer.byteLength(text) <= remaining) {
-        fs.appendFileSync(this.filePath, text);
-        this.bytesWritten += Buffer.byteLength(text);
-        return;
-      }
-
-      const markerBytes = Buffer.byteLength(RUNTIME_LOG_TRUNCATED_MARKER);
-      const allowed = Math.max(0, remaining - markerBytes);
-      if (allowed > 0) {
-        fs.appendFileSync(this.filePath, Buffer.from(text).subarray(0, allowed));
-      }
-      fs.appendFileSync(this.filePath, RUNTIME_LOG_TRUNCATED_MARKER);
-      this.bytesWritten = this.maxBytes;
-      this.truncated = true;
-    } catch (err) {
-      if (err?.code !== "ENOENT") throw err;
-      this.truncated = true;
-    }
-  }
+function runtimeLogRunId(hookCtx) {
+  return hookCtx?.flowState?.runId || hookCtx?.runId || "no-flow";
 }
 
-function createFinalizeCleanupPathResolver({ container, envelopeKey, hookCtx }) {
-  const paths = container.get("paths");
-  const mainRoot = hookCtx?.mainRoot || (container.has("mainRoot") ? container.get("mainRoot") : null);
-  const inWorktree = hookCtx?.inWorktree ?? (container.has("inWorktree") ? container.get("inWorktree") : false);
-  return new FinalizeCleanupPathResolver({
-    enabled: envelopeKey === "finalize-cleanup",
-    worktreeRoot: hookCtx?.root || paths.root,
-    mainRoot,
-    inWorktree,
-  });
+function runtimeLogFlowId(hookCtx) {
+  return hookCtx?.specId || "no-flow";
 }
 
-function resolveRuntimeLogPath({ container, input, envelopeKey, hookCtx }) {
-  const paths = container.get("paths");
-  const cleanupPaths = createFinalizeCleanupPathResolver({ container, envelopeKey, hookCtx });
-  if (input.logFile) return cleanupPaths.relocatePath(path.resolve(paths.root, input.logFile));
+function attachRuntimeLog(envelope, metadata) {
+  if (!(envelope instanceof Envelope) || !metadata) return envelope;
+  const runtimeLog = {
+    runId: metadata.runId,
+    sequence: metadata.sequence,
+  };
+  envelope.data = envelope.data && typeof envelope.data === "object" && !Array.isArray(envelope.data)
+    ? { ...envelope.data, runtimeLog }
+    : { runtimeLog };
+  return envelope;
+}
 
-  const hasActiveFlow = Boolean(hookCtx?.specId);
-  const flowId = String(hasActiveFlow ? hookCtx.specId : "no-flow")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "no-flow";
-  const commandKey = String(envelopeKey || "run")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "run";
-  const phase = hasActiveFlow && input.phase
-    ? `-${String(input.phase).replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "run"}`
-    : "";
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const fileName = `${commandKey}${phase}-${timestamp}.log`;
-  return cleanupPaths.relocatePath(path.join(paths.agentWorkDir, "logs", flowId, fileName));
+function runtimeLogStepId(entry, hookCtx, result) {
+  const spec = entry.runtimeLog;
+  if (!spec || spec.stepMetadata === false) return null;
+  if (typeof spec.stepId === "function") return spec.stepId(hookCtx, result);
+  if (typeof spec.stepId === "string") return spec.stepId;
+  return null;
 }
 
 function findWarning(envelope, code) {
@@ -236,11 +192,66 @@ export async function dispatch({
   setExitCode,
   buildHookCtx,
 }) {
-  const writeOut = stdout || ((s) => process.stdout.write(s));
+  const baseWriteOut = stdout || ((s) => process.stdout.write(s));
   let runtimeLog = null;
   const baseWriteErr = stderr || ((s) => process.stderr.write(s));
-  const writeErr = (s) => baseWriteErr(s);
-  const setExit = setExitCode || ((code) => { process.exitCode = code; });
+  const processCaptureSuppressed = { stdout: 0, stderr: 0 };
+  const withProcessCaptureSuppressed = (stream, fn) => {
+    processCaptureSuppressed[stream] += 1;
+    try {
+      return fn();
+    } finally {
+      processCaptureSuppressed[stream] -= 1;
+    }
+  };
+  const writeOut = (s) => {
+    if (runtimeLog) runtimeLog.capture("stdout", s);
+    return withProcessCaptureSuppressed("stdout", () => baseWriteOut(s));
+  };
+  const writeErr = (s) => {
+    if (runtimeLog) runtimeLog.capture("stderr", s);
+    return withProcessCaptureSuppressed("stderr", () => baseWriteErr(s));
+  };
+  let recordedExitCode = 0;
+  const baseSetExit = setExitCode || ((code) => { process.exitCode = code; });
+  const setExit = (code) => {
+    recordedExitCode = code;
+    baseSetExit(code);
+  };
+  let closedRuntimeLogMetadata = null;
+  let restoreStreams = null;
+  const buildRuntimeHookCtx = (parsedInput) => buildHookCtx
+    ? { ...buildHookCtx(container, parsedInput), ...parsedInput }
+    : { container, ...parsedInput };
+  const openRuntimeLog = (hookCtx) => {
+    if (runtimeLog || enableRuntimeLog !== true || !container.has("paths")) return;
+    runtimeLog = RuntimeLogBlockWriter.forDispatch({
+      root: hookCtx.root || container.get("paths").root,
+      flowId: runtimeLogFlowId(hookCtx),
+      runId: runtimeLogRunId(hookCtx),
+      envelopeType,
+      envelopeKey,
+    });
+    const originalStdoutWrite = process.stdout.write;
+    const originalStderrWrite = process.stderr.write;
+    process.stdout.write = function(chunk, encoding, cb) {
+      if (runtimeLog && processCaptureSuppressed.stdout === 0) runtimeLog.capture("stdout", chunk);
+      return originalStdoutWrite.call(this, chunk, encoding, cb);
+    };
+    process.stderr.write = function(chunk, encoding, cb) {
+      if (runtimeLog && processCaptureSuppressed.stderr === 0) runtimeLog.capture("stderr", chunk);
+      return originalStderrWrite.call(this, chunk, encoding, cb);
+    };
+    restoreStreams = () => {
+      process.stdout.write = originalStdoutWrite;
+      process.stderr.write = originalStderrWrite;
+    };
+  };
+  const closeRuntimeLog = () => {
+    if (!runtimeLog || closedRuntimeLogMetadata) return closedRuntimeLogMetadata;
+    closedRuntimeLogMetadata = runtimeLog.close(recordedExitCode);
+    return closedRuntimeLogMetadata;
+  };
 
   // 1. Parse argv → input. _rawArgs preserved for legacy adapters that
   //    need to reconstruct process.argv before calling into old main().
@@ -249,6 +260,7 @@ export async function dispatch({
     input = parseEntryInput(entry, argv);
     input._rawArgs = argv;
   } catch (err) {
+    openRuntimeLog(buildRuntimeHookCtx({}));
     const mode = await resolveOutputMode(entry);
     const helpHint = entry.helpPath
       ? `Run: ${entry.helpPath}`
@@ -258,11 +270,17 @@ export async function dispatch({
         String(err.message || err),
         helpHint,
       ]);
+      attachRuntimeLog(env, runtimeLog?.metadata);
       writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
     } else {
       writeErr(`${err.message || err}\n${helpHint}\n`);
+      if (runtimeLog?.metadata) {
+        writeErr(`runtimeLog.runId=${runtimeLog.metadata.runId} runtimeLog.sequence=${runtimeLog.metadata.sequence}\n`);
+      }
     }
     setExit(1);
+    closeRuntimeLog();
+    if (restoreStreams) restoreStreams();
     return;
   }
 
@@ -286,35 +304,31 @@ export async function dispatch({
 
   // Hook ctx combines container reference with parsed input for convenience.
   // Domains with richer shared state (e.g. flow) can override via buildHookCtx.
-  const hookCtx = buildHookCtx
-    ? { ...buildHookCtx(container, input), ...input }
-    : { container, ...input };
+  const hookCtx = buildRuntimeHookCtx(input);
 
-  let restoreStderr = null;
-  if ((enableRuntimeLog === true || (envelopeType === "run" && (entry.args?.options || []).includes("--log-file"))) && container.has("paths")) {
-    runtimeLog = new RuntimeLog(resolveRuntimeLogPath({ container, input, envelopeKey, hookCtx }));
-    runtimeLog.write(`[sdd-forge] start flow run ${envelopeKey || "?"}`);
-    const originalStderrWrite = process.stderr.write;
-    process.stderr.write = function(chunk, encoding, cb) {
-      if (runtimeLog) runtimeLog.write(String(chunk));
-      return originalStderrWrite.call(this, chunk, encoding, cb);
-    };
-    restoreStderr = () => {
-      process.stderr.write = originalStderrWrite;
-    };
-  }
+  openRuntimeLog(hookCtx);
 
   const emitPreconditionFailure = (code, message) => {
     const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", code, message);
+    attachRuntimeLog(env, runtimeLog?.metadata);
     writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
     setExit(1);
+  };
+  const persistRuntimeLogMetadata = (result) => {
+    const metadata = closedRuntimeLogMetadata;
+    const stepId = runtimeLogStepId(entry, hookCtx, result);
+    if (metadata && stepId && hookCtx.flowManager) {
+      hookCtx.flowManager.setStepRuntimeLog(stepId, metadata.toStepMetadata(), hookCtx.specId ? { specId: hookCtx.specId } : undefined);
+    }
   };
 
   // 4a. requiresConfig — reject early when the command declares config as a
   // precondition but the container has no config registered (setup not run).
   if (entry.requiresConfig && container.get("config") == null) {
     emitPreconditionFailure("NO_CONFIG", "config.json not found. Run sdd-forge setup first.");
-    if (restoreStderr) restoreStderr();
+    closeRuntimeLog();
+    persistRuntimeLogMetadata(null);
+    if (restoreStreams) restoreStreams();
     return;
   }
 
@@ -322,7 +336,9 @@ export async function dispatch({
   // Skipped for non-flow entries or when buildHookCtx is absent.
   if (entry.requiresFlow !== false && buildHookCtx && !hookCtx.flowState) {
     emitPreconditionFailure("NO_FLOW", "no active flow (flow.json not found)");
-    if (restoreStderr) restoreStderr();
+    closeRuntimeLog();
+    persistRuntimeLogMetadata(null);
+    if (restoreStreams) restoreStreams();
     return;
   }
 
@@ -331,8 +347,10 @@ export async function dispatch({
     try {
       await entry.pre(hookCtx);
     } catch (err) {
-      await emitFailure({ err, mode, entry, envelopeType, envelopeKey, writeOut, writeErr, setExit });
-      if (restoreStderr) restoreStderr();
+      await emitFailure({ err, mode, entry, envelopeType, envelopeKey, writeOut, writeErr, setExit, runtimeLogMetadata: runtimeLog?.metadata });
+      closeRuntimeLog();
+      persistRuntimeLogMetadata(null);
+      if (restoreStreams) restoreStreams();
       return;
     }
   }
@@ -378,14 +396,16 @@ export async function dispatch({
       }
     }
     if (mode === "envelope") {
+      if (envelope instanceof Envelope && envelope.ok === false) attachRuntimeLog(envelope, runtimeLog?.metadata);
       writeOut(JSON.stringify(envelope.toJSON(), null, 2) + "\n");
       emitFinalizeCleanupReportDisplay({ envelopeKey, envelope, writeErr });
       setExit(envelope.ok && !postFailed ? 0 : 1);
     } else if (postFailed) {
       setExit(1);
     }
-    if (runtimeLog) runtimeLog.write(`[sdd-forge] end flow run ${envelopeKey || "?"}`);
-    if (restoreStderr) restoreStderr();
+    closeRuntimeLog();
+    persistRuntimeLogMetadata(result);
+    if (restoreStreams) restoreStreams();
     return;
   }
 
@@ -397,9 +417,10 @@ export async function dispatch({
       writeErr(`[onError hook] ${onErrorErr.message || onErrorErr}\n`);
     }
   }
-  await emitFailure({ err: caught, mode, entry, envelopeType, envelopeKey, writeOut, writeErr, setExit });
-  if (runtimeLog) runtimeLog.write(`[sdd-forge] failed flow run ${envelopeKey || "?"}: ${caught?.message || caught}`);
-  if (restoreStderr) restoreStderr();
+  await emitFailure({ err: caught, mode, entry, envelopeType, envelopeKey, writeOut, writeErr, setExit, runtimeLogMetadata: runtimeLog?.metadata });
+  closeRuntimeLog();
+  persistRuntimeLogMetadata(null);
+  if (restoreStreams) restoreStreams();
 }
 
 async function resolveOutputMode(entry) {
@@ -411,14 +432,18 @@ async function resolveOutputMode(entry) {
   }
 }
 
-function emitFailure({ err, mode, envelopeType, envelopeKey, writeOut, writeErr, setExit }) {
+function emitFailure({ err, mode, envelopeType, envelopeKey, writeOut, writeErr, setExit, runtimeLogMetadata }) {
   if (mode === "envelope") {
     const code = err?.code || "ERROR";
     const env = Envelope.fail(envelopeType || "run", envelopeKey || "?", code, String(err?.message || err));
     if (err?.data !== undefined) env.data = err.data;
+    attachRuntimeLog(env, runtimeLogMetadata);
     writeOut(JSON.stringify(env.toJSON(), null, 2) + "\n");
   } else {
     writeErr(`${err?.stack || err?.message || err}\n`);
+    if (runtimeLogMetadata) {
+      writeErr(`runtimeLog.runId=${runtimeLogMetadata.runId} runtimeLog.sequence=${runtimeLogMetadata.sequence}\n`);
+    }
   }
   setExit(err?.exitCode ?? 1);
 }

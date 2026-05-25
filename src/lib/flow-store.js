@@ -750,6 +750,21 @@ export class FlowStore {
     }, opts);
   }
 
+  setStepRuntimeLog(stepId, runtimeLog, opts) {
+    this.mutate((state) => {
+      const scope = resolveMutationScope(state, opts);
+      if (!Array.isArray(scope.steps)) {
+        throw new Error("flow-store: scope has no steps array");
+      }
+      const isNested = scope.steps.some((s) => s.children);
+      const step = isNested
+        ? findStepById(scope.steps, stepId)
+        : scope.steps.find((s) => s.id === stepId);
+      if (!step) throw new Error(`unknown step: ${stepId}`);
+      step.runtimeLog = { ...runtimeLog };
+    }, opts);
+  }
+
   setRequest(text, opts) { this.mutate((state) => { state.request = text; }, opts); }
   setIssue(issue, opts) { this.mutate((state) => { state.issue = issue; }, opts); }
 

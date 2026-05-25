@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "All four blocking spec review findings are valid and require small spec repairs before gate.",
+  "items": [
+    {
+      "title": "runtime-log retrieval can select its own just-opened block",
+      "target": "R1, R8, R9, T-3",
+      "decision": "apply",
+      "rationale": "The finding identifies a real self-selection loop for flow get runtime-log because automatic logging opens before command execution.",
+      "evidence": "spec.json R1 covers every flow command and R9 selects the latest active-flow block by default, but no exception or snapshot rule exists for flow get runtime-log."
+    },
+    {
+      "title": "no-flow logs have no retrieval contract",
+      "target": "R2, R8, R9, Goal",
+      "decision": "apply",
+      "rationale": "The replacement diagnostic workflow must work before an active flow exists because prepare and resume can fail in no-flow state.",
+      "evidence": "spec.json R2 stores no-flow output in .tmp/logs/no-flow.log, while R9 only names active-flow default selection and runId#sequence selection."
+    },
+    {
+      "title": "finalize-cleanup metadata timing is unresolved",
+      "target": "R6, Clarifications: step-associated commands, T-2",
+      "decision": "apply",
+      "rationale": "finalize-cleanup removes active state after committing flow.json, so generic post-dispatch metadata persistence cannot safely update the finalized step.",
+      "evidence": "spec.json clarification includes finalize-* as step-associated commands without a finalize-cleanup-specific exception."
+    },
+    {
+      "title": "report show failure bypasses dispatcher finalization",
+      "target": "R1, R4, src/flow/lib/run-report-show.js",
+      "decision": "apply",
+      "rationale": "Direct process.exit would prevent the dispatcher from writing endedAt and exitCode to the runtime log block.",
+      "evidence": "source review found src/flow/lib/run-report-show.js catches errors, writes process.stderr, and calls process.exit(1)."
+    }
+  ]
+}

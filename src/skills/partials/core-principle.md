@@ -41,5 +41,6 @@ The following user-facing choices are explicit exceptions to the auto-select rul
 **Flow runtime log rule (MANDATORY):**
 - Never hardcode `/tmp/...` for flow-related logs or temporary files.
 - When a flow command needs an agent/tmp/log base directory for the current invocation, pass `--agent-work-dir <path>` to `sdd-forge flow run ...`.
-- When preserving human-readable command output, pass `--log-file <path>` to `sdd-forge flow run ...`; if omitted, the CLI writes a default runtime log under `<agentWorkDir>/logs/<flowId>/`.
-- Do not wrap flow commands with environment-variable prefixes or shell redirection just to capture logs; keep the command prefix as `sdd-forge flow run ...` so approval-prefix rules can match it.
+- Flow commands automatically append stdout/stderr to `.tmp/logs/<flowId>.log`, or `.tmp/logs/no-flow.log` when no flow is active.
+- Use `sdd-forge flow get runtime-log` to inspect the latest flow command output after failures.
+- Do not wrap flow commands with environment-variable prefixes or shell redirection just to capture logs; keep the command prefix as `sdd-forge flow ...` so approval-prefix rules can match it.

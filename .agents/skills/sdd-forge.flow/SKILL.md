@@ -63,8 +63,9 @@ auto モードは AI が確認なしに進行できるため、誤動作時の�
 **Flow runtime log rule (MANDATORY):**
 - Never hardcode `/tmp/...` for flow-related logs or temporary files.
 - When a flow command needs an agent/tmp/log base directory for the current invocation, pass `--agent-work-dir <path>` to `sdd-forge flow run ...`.
-- When preserving human-readable command output, pass `--log-file <path>` to `sdd-forge flow run ...`; if omitted, the CLI writes a default runtime log under `<agentWorkDir>/logs/<flowId>/`.
-- Do not wrap flow commands with environment-variable prefixes or shell redirection just to capture logs; keep the command prefix as `sdd-forge flow run ...` so approval-prefix rules can match it.
+- Flow commands automatically append stdout/stderr to `.tmp/logs/<flowId>.log`, or `.tmp/logs/no-flow.log` when no flow is active.
+- Use `sdd-forge flow get runtime-log` to inspect the latest flow command output after failures.
+- Do not wrap flow commands with environment-variable prefixes or shell redirection just to capture logs; keep the command prefix as `sdd-forge flow ...` so approval-prefix rules can match it.
 
 ## Flow Progress Tracking
 
@@ -495,8 +496,9 @@ sdd-forge flow set issue-log --step <id> --reason "<text>" [--trigger "<text>"] 
 sdd-forge flow set retry reset <gate|review> <phase> --reason <text> --yes
 # Retry recovery reason is required, records an audit entry, grants one re-evaluation, and rejects unchanged evidence.
 sdd-forge flow prepare --title "..." [--base branch] [--worktree] [--no-branch] [--issue N] [--request "..."] [--run-id <id>]
-sdd-forge flow run gate [--phase <draft|spec|task-spec|task-impl|integration>] [--agent-work-dir <path>] [--log-file <path>]
-sdd-forge flow run review [--phase <draft|spec|test|impl>] [--agent-work-dir <path>] [--log-file <path>]
+sdd-forge flow run gate [--phase <draft|spec|task-spec|task-impl|integration>] [--agent-work-dir <path>]
+sdd-forge flow run review [--phase <draft|spec|test|impl>] [--agent-work-dir <path>]
+sdd-forge flow get runtime-log [--format json] [--sequence <n>] [--run-id <runId[#sequence]>]
 sdd-forge flow run scenario-validity
 sdd-forge flow run test-execute
 sdd-forge flow run test-result-review

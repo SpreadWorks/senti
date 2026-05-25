@@ -81,13 +81,8 @@ export default class RunReportShowCommand extends Command {
 
   async execute() {
     const mainRoot = this.container.get("mainRoot");
-    try {
-      const reportPath = resolveLatestReportPath(mainRoot);
-      const text = readReportText(reportPath);
-      process.stdout.write(text);
-    } catch (err) {
-      process.stderr.write(`sdd-forge flow report show: ${err.message}\n`);
-      process.exit(1);
-    }
+    const reportPath = resolveLatestReportPath(mainRoot);
+    const text = readReportText(reportPath);
+    process.stdout.write(text);
   }
 }

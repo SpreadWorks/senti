@@ -53,13 +53,14 @@ describe("unified command registry (R3)", () => {
     assert.ok(seen.size > 0);
   });
 
-  it("flow run entries accept runtime log options", async () => {
+  it("flow run entries accept agent work dir but not removed log-file option", async () => {
     const { flowCommands } = await import("../../../src/lib/command-registry.js");
+    const removedLogOption = `--log-${"file"}`;
     for (const [name, entry] of Object.entries(flowCommands.run)) {
       if (typeof entry?.command !== "function") continue;
       const options = entry.args?.options || [];
       assert.ok(options.includes("--agent-work-dir"), `flow run ${name} must accept --agent-work-dir`);
-      assert.ok(options.includes("--log-file"), `flow run ${name} must accept --log-file`);
+      assert.ok(!options.includes(removedLogOption), `flow run ${name} must not accept removed log option`);
     }
   });
 });

@@ -85,6 +85,9 @@ export class FlowManager {
   }
 
   updateStepStatus(stepId, status, opts) { return this._store.updateStepStatus(stepId, status, opts); }
+  setStepRuntimeLog(stepId, runtimeLog, opts) {
+    return this._store.setStepRuntimeLog(stepId, runtimeLog, withSpecIdDefault(opts, this._boundSpecId));
+  }
   setMergeOutcome(outcome, opts) { return this._store.setMergeOutcome(outcome, opts); }
   setRequest(text, opts) { return this._store.setRequest(text, withSpecIdDefault(opts, this._boundSpecId)); }
   setIssue(issue, opts) { return this._store.setIssue(issue, withSpecIdDefault(opts, this._boundSpecId)); }

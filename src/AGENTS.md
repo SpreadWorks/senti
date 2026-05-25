@@ -97,6 +97,10 @@ flow get/set/run コマンドは「状態クエリ系」と「操作系」の2�
 - **操作系** (set-step, run-gate, run-finalize 等): `requiresFlow: true`。ユーザー起因の前提条件違反は `Envelope.fail` を return する（`throw` ではない）。内部エラー（agent 呼び出し失敗、JSON パースエラー等）は `throw` のまま（dispatcher の catch-all が `Envelope.fail` にラップ）。
 - `requiresFlow` は registry.js のエントリと FlowCommand クラスの両方に設定する。
 
+### flow runtime log
+
+flow commands automatically append visible stdout/stderr to `.tmp/logs/<flowId>.log`; commands without an active flow use `.tmp/logs/no-flow.log`. Use `sdd-forge flow get runtime-log` for flow command failure diagnosis. Explicit shell redirection is only needed for non-flow commands or special cases outside the flow dispatcher.
+
 ### ドキュメント生成パイプライン
 
 `sdd-forge docs build` は以下のパイプラインを順に実行する:

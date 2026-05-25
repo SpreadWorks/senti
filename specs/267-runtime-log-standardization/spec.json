@@ -1,0 +1,356 @@
+{
+  "goal": "Standardize automatic stdout/stderr runtime logging for every sdd-forge flow command so agents can diagnose flow failures through flow get runtime-log instead of shell redirects or --log-file.",
+  "scope": {
+    "in": [
+      "Capture stdout and stderr for sdd-forge flow prepare, resume, get except get runtime-log, set, run, and report show.",
+      "Append all captured output for a flow to .tmp/logs/<flowId>.log; use .tmp/logs/no-flow.log when no active flow exists.",
+      "Write each command execution as a bounded runtime log block with runId, sequence, attempt, command, startedAt, endedAt, and exitCode.",
+      "Prefix captured output lines with [stdout] or [stderr] without changing the existing visible stdout/stderr behavior.",
+      "Persist runtimeLog metadata on workflow steps only for step-associated commands.",
+      "Add sdd-forge flow get runtime-log with raw text output by default and JSON envelope output with --format json.",
+      "Remove --log-file from flow run argument contracts, help text, generated skills, and tests.",
+      "Update src/skills and src/AGENTS.md so agents use automatic runtime logs and flow get runtime-log for flow command diagnosis.",
+      "Run sdd-forge upgrade after src/skills changes."
+    ],
+    "out": [
+      "Changing logging behavior for docs, check, metrics, spec, setup, upgrade, experimental workflow, or non-flow commands.",
+      "Replacing the existing JSONL Logger event schema.",
+      "Persisting runtime log file paths in flow.json.",
+      "Storing runtime logs under .sdd-forge/.",
+      "Adding external logging dependencies.",
+      "Changing Git command JSONL logging semantics."
+    ]
+  },
+  "constraints": [
+    "Use only Node.js built-in modules.",
+    "Runtime log files shall live under the repository root .tmp/logs and shall not be stored under .sdd-forge or under paths.agentWorkDir/logs.",
+    "flow.json shall store runtimeLog metadata values but not runtime log file paths or file names.",
+    "stdout shall remain compatible with existing machine-readable JSON envelope and raw-output contracts; logging shall tee output rather than replacing it.",
+    "Runtime log writes shall keep the existing bounded resource behavior by enforcing a maximum captured byte count of 5 MiB per command block.",
+    "User-facing arguments for flow get runtime-log: --sequence must be a positive integer when present; --run-id must be either a non-empty runId or <runId>#<positive-sequence>; --format accepts only json when present. Invalid values return a non-zero exit code and an envelope with code INVALID_ARG_VALUE or ARGS_ERROR.",
+    "Migration plan for backward-compatible-cli-interface: remove --log-file during alpha, update help text, source skills, generated skills, tests, and src/AGENTS.md to point users to automatic runtime logs plus flow get runtime-log.",
+    "Source changes under src/skills require sdd-forge upgrade so .agents/skills and .claude/skills are refreshed."
+  ],
+  "design_principles": [
+    "Centralize runtime log tee behavior at the flow dispatch boundary so every flow command uses one capture path.",
+    "Keep runtime logs human-readable and retrieval-oriented; do not introduce a second machine-readable command result contract in log files.",
+    "Represent meaningful runtime log values with classes that own invariant checks and serialization.",
+    "Keep step metadata small and durable by storing identifiers and timing fields only, not paths.",
+    "Treat --log-file removal as an alpha cleanup with an explicit replacement workflow instead of a compatibility alias."
+  ],
+  "overview": {
+    "modules": [
+      {
+        "text": "src/flow.js routes every flow group into src/lib/dispatcher.js and currently enables runtime logging only for group === \"run\"."
+      },
+      {
+        "text": "src/lib/dispatcher.js owns parsed input, stdout/stderr writers, envelope emission, runtime log setup, and command lifecycle exit handling."
+      },
+      {
+        "text": "src/flow/registry.js declares flow command argument contracts, help text, and step post hooks that can persist step-associated runtimeLog metadata."
+      },
+      {
+        "text": "src/flow/lib/run-report-show.js writes raw report text to process.stdout; runtime logging must tee this raw stdout without changing report output."
+      },
+      {
+        "text": "src/skills and generated skill directories contain agent-facing flow instructions that must stop mentioning --log-file for flow diagnostics."
+      }
+    ],
+    "data_flow": [
+      {
+        "text": "flow argv -> flow.js dispatch -> dispatcher runtime log block opens unless command is flow get runtime-log -> command writes stdout/stderr normally -> runtime log records prefixed output -> block closes with exitCode."
+      },
+      {
+        "text": "flowId resolves from active flow spec id when available; otherwise no-flow. sequence is derived from existing start blocks in .tmp/logs/<flowId>.log."
+      },
+      {
+        "text": "Step-associated command result -> registry/flow manager stores runtimeLog metadata on the target step; non-step commands leave flow.json runtimeLog metadata unchanged."
+      },
+      {
+        "text": "flow get runtime-log resolves runId/sequence to a block in .tmp/logs/<flowId>.log or .tmp/logs/no-flow.log and returns raw text or an envelope with text and metadata."
+      }
+    ],
+    "decisions": [
+      {
+        "text": "[VERIFY] Runtime logging is currently limited to flow run.",
+        "evidence": "src/flow.js passes runtimeLog: group === \"run\" into dispatch."
+      },
+      {
+        "text": "[VERIFY] Dispatcher is the correct tee point for stdout/stderr.",
+        "evidence": "src/lib/dispatcher.js defines writeOut/writeErr, emits envelopes, handles failures, and contains the current RuntimeLog stderr capture."
+      },
+      {
+        "text": "[VERIFY] Existing registry exposes --log-file through FLOW_RUN_RUNTIME_OPTIONS.",
+        "evidence": "src/flow/registry.js defines FLOW_RUN_RUNTIME_OPTIONS = [\"--agent-work-dir\", \"--log-file\"] and expands it across flow run commands."
+      },
+      {
+        "text": "[VERIFY] Raw stdout commands exist in flow.",
+        "evidence": "src/flow/lib/run-report-show.js writes report text directly to process.stdout, so stdout tee must not assume JSON-only output."
+      },
+      {
+        "text": "[VERIFY] --log-file removal has a replacement path.",
+        "evidence": "Issue #342 requires automatic runtime logs and sdd-forge flow get runtime-log as the supported replacement for explicit log paths."
+      },
+      {
+        "text": "[CORRECTION] Draft gate retry was manually reset after CLI recovery rejected gate draft.",
+        "evidence": "issue-log records unsupported-plan-gate-phase for flow set retry reset gate draft; flow.json received a draft gateRetry reset metric before gate-draft PASS."
+      },
+      {
+        "text": "[VERIFY] Impact on existing features is intentional and bounded to flow command logging, retrieval, help, and agent guidance.",
+        "evidence": "Existing flow run runtime log paths, --log-file help/options, flow report show failure behavior, and generated flow skills change; non-flow command families are out of scope."
+      }
+    ]
+  },
+  "background": "The current flow runtime log is a flow run only facility. It creates per-command files and captures stderr by replacing process.stderr.write, while stdout envelopes and raw stdout are not saved. Commands such as flow prepare, flow resume, flow get, flow set, and flow report show therefore leave agents without a uniform way to inspect command output after a failure. Issue #342 narrows the change to the flow command family and defines a single per-flow append log plus a retrieval command as the replacement for shell redirects and --log-file.",
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Every sdd-forge flow command group except flow get runtime-log shall open a runtime log block before command execution and close it after success or failure.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "desc": "Runtime log blocks shall be appended to .tmp/logs/<flowId>.log, with flowId derived from the active flow spec id or no-flow when no active flow exists.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "desc": "The sequence value shall be assigned by counting existing start blocks in the target log file before appending the new block.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "desc": "Each runtime log block shall include start and end records containing runId, sequence, attempt, command, startedAt, endedAt, and exitCode.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "desc": "stdout and stderr writes shall be copied into the same block in observed write order, with each emitted line prefixed [stdout] or [stderr], while preserving the original stdout/stderr streams.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "desc": "Step-associated commands shall persist runtimeLog metadata on their workflow step without storing file names or paths, except finalize-cleanup which is excluded because it commits and removes flow state before dispatcher finalization.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "desc": "Non-step flow commands shall not add runtimeLog metadata to flow.json; on failure they shall expose runtimeLog.runId and runtimeLog.sequence in the envelope or stderr.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R8",
+      "desc": "sdd-forge flow get runtime-log shall return the selected block as raw stdout by default and shall return an envelope containing text, runId, sequence, command, startedAt, endedAt, and exitCode when --format json is supplied.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R9",
+      "desc": "flow get runtime-log shall select the latest non-runtime-log block for the active flow by default, select .tmp/logs/no-flow.log when no active flow exists, support --sequence <n>, and support --run-id <runId>#<sequence>.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R10",
+      "desc": "--log-file shall be removed from flow run argument parsing, command help, generated skills, source skills, and tests.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R11",
+      "desc": "Agent-facing flow instructions in src/skills and src/AGENTS.md shall tell agents to use automatic runtime logs and flow get runtime-log for flow command failure diagnosis.",
+      "priority": "must",
+      "status": "done",
+      "testable": false
+    },
+    {
+      "id": "R12",
+      "desc": "Tests shall cover stdout/stderr capture for prepare, get, set, run, and report show paths, metadata persistence for step-associated commands, non-step failure runtimeLog exposure, runtime-log retrieval, and --log-file removal.",
+      "priority": "must",
+      "status": "done"
+    },
+    {
+      "id": "R13",
+      "desc": "flow report show failures shall return or throw through the dispatcher instead of calling process.exit directly, so runtime log blocks close with endedAt and exitCode.",
+      "priority": "must",
+      "status": "done"
+    }
+  ],
+  "acceptance_criteria": [
+    "sdd-forge flow prepare, flow resume, flow get status, flow set note, flow run review, and flow report show each append stdout/stderr output to .tmp/logs/<flowId>.log or .tmp/logs/no-flow.log.",
+    "sdd-forge flow get runtime-log does not create a new runtime log block for itself.",
+    "Captured stdout and stderr lines in a block are prefixed [stdout] and [stderr] without corrupting the command's normal stdout or stderr.",
+    "Each execution block records runId, sequence, attempt, command, startedAt, endedAt, and exitCode.",
+    "Repeated execution appends a new sequence block to the same per-flow log file.",
+    "Step-associated commands persist runtimeLog metadata on the target step and do not store a log path.",
+    "Non-step commands do not add runtimeLog metadata to flow.json.",
+    "A failed non-step command exposes runtimeLog.runId and runtimeLog.sequence in its failure envelope or stderr.",
+    "sdd-forge flow get runtime-log prints raw log block text by default.",
+    "sdd-forge flow get runtime-log --format json returns a JSON envelope with block text and metadata.",
+    "sdd-forge flow get runtime-log --sequence <n> and --run-id <runId>#<sequence> select the requested block or return a non-zero error envelope when absent.",
+    "When no active flow exists, sdd-forge flow get runtime-log reads .tmp/logs/no-flow.log by default.",
+    "flow report show missing-pointer and missing-report failures produce closed runtime log blocks with exitCode recorded.",
+    "--log-file no longer appears in flow run registry options, flow help text, source skills, generated skills, or tests.",
+    "src/AGENTS.md documents that flow commands save runtime logs automatically and that explicit log output is only needed for non-flow commands or special cases.",
+    "sdd-forge upgrade updates generated skill files after source skill edits."
+  ],
+  "clarifications": [
+    {
+      "q": "Which commands are step-associated for runtimeLog metadata?",
+      "a": "flow prepare maps to prepare-spec; flow run gate/review/scenario-validity/test-execute/test-result-review/retro/final-regression/finalize-commit/finalize-merge/finalize-sync map to their workflow step; flow set step maps to the specified target step. finalize-cleanup is intentionally excluded from step runtimeLog metadata because it commits and removes active flow state before dispatcher finalization."
+    },
+    {
+      "q": "Which commands are non-step for this feature?",
+      "a": "flow get status/context/guardrail/prompt/issue/next-action/qa-count/resolve-context/check/runtime-log, flow set note/request/issue/metric/issue-log/summary/req/files/broad/auto/init/retry, flow resume, flow report show, and flow run finalize-cleanup do not receive runtimeLog metadata."
+    },
+    {
+      "q": "Does flow.json store the runtime log file path?",
+      "a": "No. flow.json stores only runtimeLog metadata identifiers and timing fields for step-associated commands."
+    },
+    {
+      "q": "What is the exit code contract for flow get runtime-log?",
+      "a": "It exits 0 when the requested block is found and printed. It exits non-zero with an error envelope for invalid arguments, missing log files, or missing sequence blocks."
+    },
+    {
+      "q": "What replaces --log-file?",
+      "a": "Automatic per-flow runtime logs plus sdd-forge flow get runtime-log. The migration is reflected in help, skills, tests, and AGENTS guidance."
+    },
+    {
+      "q": "How does flow get runtime-log avoid selecting itself?",
+      "a": "It is exempt from automatic runtime logging and selects the latest non-runtime-log block from the active flow log, or from no-flow.log when no active flow exists."
+    },
+    {
+      "q": "How are block markers parsed?",
+      "a": "Start markers use the prefix ===== start and end markers use the prefix ===== end; sequence assignment and retrieval parse only those marker lines."
+    }
+  ],
+  "alternatives_considered": [
+    {
+      "option": "Keep --log-file as a compatibility alias.",
+      "reason": "Rejected because Issue #342 explicitly consolidates logging into automatic runtime logs and alpha policy avoids retaining deprecated interfaces."
+    },
+    {
+      "option": "Continue storing one runtime log file per command.",
+      "reason": "Rejected because Issue #342 requires a single append log per flow so sequence-based lookup can retrieve command blocks without storing paths in flow.json."
+    },
+    {
+      "option": "Only capture stderr as the current RuntimeLog does.",
+      "reason": "Rejected because the requested diagnostic surface includes stdout envelopes and raw stdout output."
+    },
+    {
+      "option": "Store the runtime log path on each step.",
+      "reason": "Rejected because the spec requires avoiding path persistence in flow.json and deriving the log file from flowId."
+    }
+  ],
+  "open_questions": [],
+  "keywords": [
+    "runtime log",
+    "stdout",
+    "stderr",
+    "flow get runtime-log",
+    "dispatcher",
+    "RuntimeLog",
+    "flow registry",
+    "gateRetry",
+    "log-file",
+    "flow metadata",
+    "runId",
+    "sequence",
+    "no-flow"
+  ],
+  "implementationTargets": [
+    "src/flow.js",
+    "src/lib/dispatcher.js",
+    "src/flow/registry.js",
+    "src/flow/lib/get-runtime-log.js",
+    "src/lib/flow-manager.js",
+    "src/skills",
+    "src/AGENTS.md",
+    ".agents/skills",
+    ".claude/skills",
+    "tests/unit/lib",
+    "tests/unit/flow",
+    "tests/e2e"
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "title": "Build runtime log blocks",
+      "goal": "Create the bounded per-flow runtime log block model and stdout/stderr tee behavior used by all flow commands.",
+      "acceptance": [
+        ".tmp/logs/<flowId>.log and .tmp/logs/no-flow.log are append-only block logs.",
+        "Blocks include runId, sequence, attempt, command, startedAt, endedAt, and exitCode.",
+        "stdout/stderr writes are captured with [stdout] and [stderr] prefixes while visible streams stay unchanged."
+      ],
+      "implementation_notes": "Refactor the current RuntimeLog behavior in src/lib/dispatcher.js into class-based values for log block metadata and writing. Preserve the existing 5 MiB max-byte protection per command block. flow get runtime-log is excluded from automatic block creation.",
+      "test_strategy": "Unit tests around dispatcher stdout/stderr capture, sequence assignment, truncation, and visible stdout preservation.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-2",
+      "title": "Integrate flow commands",
+      "goal": "Enable automatic runtime logging for prepare, resume, get, set, run, and report show, and persist step runtimeLog metadata only where a workflow step owns the command.",
+      "acceptance": [
+        "flow prepare, get, set, run, resume, and report show append runtime log blocks.",
+        "Step-associated commands update the correct step runtimeLog metadata.",
+        "Non-step commands do not add runtimeLog metadata to flow.json.",
+        "flow report show failures return or throw through dispatcher handling instead of calling process.exit."
+      ],
+      "implementation_notes": "Change src/flow.js dispatch policy and use registry or flow manager helpers to map step-associated commands to target steps. Exclude finalize-cleanup from step metadata because its command body owns final flow.json commit and cleanup.",
+      "test_strategy": "Unit and e2e tests for representative commands: prepare, get status, set note, run review or gate, and report show.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-3",
+      "title": "Add log retrieval command",
+      "goal": "Add sdd-forge flow get runtime-log so agents can retrieve the latest or selected runtime log block without reading files directly.",
+      "acceptance": [
+        "Default output prints the selected block as raw text.",
+        "--format json returns an envelope with text and metadata.",
+        "--sequence and --run-id <runId>#<sequence> select requested blocks with non-zero error envelopes for invalid or missing targets.",
+        "No active flow defaults to .tmp/logs/no-flow.log."
+      ],
+      "implementation_notes": "Add registry entry and parser/reader for the per-flow block log. Validate user-facing arguments at the entry point.",
+      "test_strategy": "Unit tests for argument validation, missing files, missing sequences, raw output, and JSON output.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    },
+    {
+      "id": "T-4",
+      "title": "Remove log-file guidance",
+      "goal": "Remove --log-file from flow run contracts and update agent-facing instructions to use automatic runtime logs and flow get runtime-log.",
+      "acceptance": [
+        "--log-file is absent from registry options and help text.",
+        "src/skills and generated skills describe flow get runtime-log instead of --log-file or shell redirects for flow diagnostics.",
+        "src/AGENTS.md includes the automatic flow runtime log rule.",
+        "sdd-forge upgrade has refreshed generated skill files."
+      ],
+      "implementation_notes": "Update src/skills first, then run sdd-forge upgrade. Keep non-flow command logging guidance outside this feature's scope.",
+      "test_strategy": "Search-based unit or e2e checks for removed --log-file references in flow help/skills plus project regression.",
+      "parent": null,
+      "origin": "plan",
+      "added_round": 0,
+      "status": "pending"
+    }
+  ],
+  "user_approval": {
+    "approved": true,
+    "confirmed_at": "2026-05-25T02:42:00.011Z",
+    "notes": "autoApprove selected [1] after spec gate passed for Issue #342"
+  }
+}

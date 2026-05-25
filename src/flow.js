@@ -43,13 +43,14 @@ async function run(entry, argv, envelopeType, envelopeKey, helpPathOverride) {
   const resolvedEntry = entry?.helpPath
     ? entry
     : { ...entry, helpPath: helpPathOverride || `sdd-forge flow ${envelopeType} ${envelopeKey} --help` };
+  const runtimeLog = !(group === "get" && envelopeKey === "runtime-log");
   await dispatch({
     container,
     entry: resolvedEntry,
     argv,
     envelopeType,
     envelopeKey,
-    runtimeLog: group === "run",
+    runtimeLog,
     buildHookCtx: (c) => resolveFlowContext(c),
   });
 }

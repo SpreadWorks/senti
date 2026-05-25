@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "phase": "review-test",
+  "validation": {
+    "ok": true,
+    "messages": []
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "desc": "Every sdd-forge flow command group except flow get runtime-log shall open a runtime log block before command execution and close it after success or failure.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R2",
+      "desc": "Runtime log blocks shall be appended to .tmp/logs/<flowId>.log, with flowId derived from the active flow spec id or no-flow when no active flow exists.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R3",
+      "desc": "The sequence value shall be assigned by counting existing start blocks in the target log file before appending the new block.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R4",
+      "desc": "Each runtime log block shall include start and end records containing runId, sequence, attempt, command, startedAt, endedAt, and exitCode.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R5",
+      "desc": "stdout and stderr writes shall be copied into the same block in observed write order, with each emitted line prefixed [stdout] or [stderr], while preserving the original stdout/stderr streams.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R6",
+      "desc": "Step-associated commands shall persist runtimeLog metadata on their workflow step without storing file names or paths, except finalize-cleanup which is excluded because it commits and removes flow state before dispatcher finalization.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R7",
+      "desc": "Non-step flow commands shall not add runtimeLog metadata to flow.json; on failure they shall expose runtimeLog.runId and runtimeLog.sequence in the envelope or stderr.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R8",
+      "desc": "sdd-forge flow get runtime-log shall return the selected block as raw stdout by default and shall return an envelope containing text, runId, sequence, command, startedAt, endedAt, and exitCode when --format json is supplied.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R9",
+      "desc": "flow get runtime-log shall select the latest non-runtime-log block for the active flow by default, select .tmp/logs/no-flow.log when no active flow exists, support --sequence <n>, and support --run-id <runId>#<sequence>.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R10",
+      "desc": "--log-file shall be removed from flow run argument parsing, command help, generated skills, source skills, and tests.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R11",
+      "desc": "Agent-facing flow instructions in src/skills and src/AGENTS.md shall tell agents to use automatic runtime logs and flow get runtime-log for flow command failure diagnosis.",
+      "testable": false,
+      "status": "not_testable",
+      "files": []
+    },
+    {
+      "id": "R12",
+      "desc": "Tests shall cover stdout/stderr capture for prepare, get, set, run, and report show paths, metadata persistence for step-associated commands, non-step failure runtimeLog exposure, runtime-log retrieval, and --log-file removal.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    },
+    {
+      "id": "R13",
+      "desc": "flow report show failures shall return or throw through the dispatcher instead of calling process.exit directly, so runtime log blocks close with endedAt and exitCode.",
+      "testable": true,
+      "status": "covered",
+      "files": [
+        "tests/runtime-log-standardization.test.js"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "tests/runtime-log-standardization.test.js",
+      "headerStatus": "valid",
+      "headerIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R12",
+        "R13"
+      ],
+      "testNameIds": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R12",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R13"
+      ]
+    }
+  ]
+}

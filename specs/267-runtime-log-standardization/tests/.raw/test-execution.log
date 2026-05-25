@@ -1,0 +1,188 @@
+[sdd-forge] spec-local tests start
+command: node --test specs/267-runtime-log-standardization/tests/runtime-log-standardization.test.js
+TAP version 13
+# out-one
+# out-two
+# partial-out
+# err-one
+# err-two
+# partial-err
+# {
+#   "ok": true,
+#   "type": "flow",
+#   "key": "interleaved",
+#   "data": {
+#     "status": "done"
+#   },
+#   "errors": []
+# }
+# flow prepare stdout fixture
+# {
+#   "ok": true,
+#   "type": "run",
+#   "key": "prepare-spec",
+#   "data": {
+#     "status": "done"
+#   },
+#   "errors": []
+# }
+# flow prepare stderr fixture
+# flow get status stdout fixture
+# flow get status stderr fixture
+# {
+#   "ok": true,
+#   "type": "get",
+#   "key": "status",
+#   "data": {
+#     "status": "done"
+#   },
+#   "errors": []
+# }
+# flow set step stdout fixture
+# {
+#   "ok": true,
+#   "type": "set",
+#   "key": "step",
+#   "data": {
+#     "status": "done"
+#   },
+#   "errors": []
+# }
+# flow set step stderr fixture
+# {
+#   "ok": true,
+#   "type": "run",
+#   "key": "gate",
+#   "data": {
+#     "result": "pass"
+#   },
+#   "errors": []
+# }
+# {
+#   "ok": false,
+#   "type": "run",
+#   "key": "review",
+#   "data": {
+#     "runtimeLog": {
+#       "runId": "no-flow",
+#       "sequence": 1
+#     }
+#   },
+#   "errors": [
+#     {
+#       "level": "fatal",
+#       "code": "ERROR",
+#       "messages": [
+#         "runtime log probe failure"
+#       ]
+#     }
+#   ]
+# }
+# Subtest: spec 267: flow runtime log standardization
+    # Subtest: R1: flow get status opens and closes an automatic runtime log block
+    ok 1 - R1: flow get status opens and closes an automatic runtime log block
+      ---
+      duration_ms: 773.754325
+      type: 'test'
+      ...
+    # Subtest: R2: active-flow and no-flow commands append to the required root .tmp log files
+    ok 2 - R2: active-flow and no-flow commands append to the required root .tmp log files
+      ---
+      duration_ms: 618.120496
+      type: 'test'
+      ...
+    # Subtest: R3: repeated commands append increasing sequence blocks to the same log file
+    ok 3 - R3: repeated commands append increasing sequence blocks to the same log file
+      ---
+      duration_ms: 454.469385
+      type: 'test'
+      ...
+    # Subtest: R4: runtime log blocks record complete command metadata and exit code
+    ok 4 - R4: runtime log blocks record complete command metadata and exit code
+      ---
+      duration_ms: 439.444508
+      type: 'test'
+      ...
+    # Subtest: R5: runtime logs tee stdout and stderr with prefixes while preserving visible streams
+    ok 5 - R5: runtime logs tee stdout and stderr with prefixes while preserving visible streams
+      ---
+      duration_ms: 451.910532
+      type: 'test'
+      ...
+    # Subtest: R5: dispatcher runtime logging preserves deterministic interleaved stream order
+    ok 6 - R5: dispatcher runtime logging preserves deterministic interleaved stream order
+      ---
+      duration_ms: 36.965347
+      type: 'test'
+      ...
+    # Subtest: R12: prepare, get, set, run, and report show paths preserve and log stderr
+    ok 7 - R12: prepare, get, set, run, and report show paths preserve and log stderr
+      ---
+      duration_ms: 764.700878
+      type: 'test'
+      ...
+    # Subtest: R6: step-associated commands persist path-free runtimeLog metadata and exclude finalize-cleanup
+    ok 8 - R6: step-associated commands persist path-free runtimeLog metadata and exclude finalize-cleanup
+      ---
+      duration_ms: 430.687985
+      type: 'test'
+      ...
+    # Subtest: R7: failed non-step commands expose runtimeLog identifiers without step metadata
+    ok 9 - R7: failed non-step commands expose runtimeLog identifiers without step metadata
+      ---
+      duration_ms: 419.441048
+      type: 'test'
+      ...
+    # Subtest: R8: flow get runtime-log returns raw text and JSON envelope output
+    ok 10 - R8: flow get runtime-log returns raw text and JSON envelope output
+      ---
+      duration_ms: 613.310191
+      type: 'test'
+      ...
+    # Subtest: R9: flow get runtime-log selects latest, sequence, run-id, and no-flow blocks
+    ok 11 - R9: flow get runtime-log selects latest, sequence, run-id, and no-flow blocks
+      ---
+      duration_ms: 1204.857392
+      type: 'test'
+      ...
+    # Subtest: R10: --log-file is removed from registry, help, source skills, generated skills, and tests
+    ok 12 - R10: --log-file is removed from registry, help, source skills, generated skills, and tests
+      ---
+      duration_ms: 672.029849
+      type: 'test'
+      ...
+    # Subtest: R13: flow report show failures return through dispatcher and close runtime logs
+    ok 13 - R13: flow report show failures return through dispatcher and close runtime logs
+      ---
+      duration_ms: 118.21604
+      type: 'test'
+      ...
+    1..13
+ok 1 - spec 267: flow runtime log standardization
+  ---
+  duration_ms: 7000.269988
+  type: 'suite'
+  ...
+1..1
+# tests 13
+# suites 1
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7106.598128
+exitCode: 0
+[sdd-forge] requirement R1 result pass
+[sdd-forge] requirement R2 result pass
+[sdd-forge] requirement R3 result pass
+[sdd-forge] requirement R4 result pass
+[sdd-forge] requirement R5 result pass
+[sdd-forge] requirement R6 result pass
+[sdd-forge] requirement R7 result pass
+[sdd-forge] requirement R8 result pass
+[sdd-forge] requirement R9 result pass
+[sdd-forge] requirement R10 result pass
+[sdd-forge] requirement R12 result pass
+[sdd-forge] requirement R13 result pass
+[sdd-forge] spec-local tests end

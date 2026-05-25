@@ -1,0 +1,122 @@
+{
+  "devType": "feature",
+  "goal": "sdd-forge flow 配下の全コマンドで stdout/stderr を同一 runtime log に自動保存し、AI が shell redirect や --log-file を使わずに flow コマンド失敗を自己診断できるようにする。",
+  "analysis": {
+    "problem": "現行の human-readable runtime log は flow run 系に限られ、src/lib/dispatcher.js の RuntimeLog は stderr の差し替えだけを保存している。flow prepare、flow resume、flow get、flow set、flow report show などは stdout/stderr の統一 runtime log を持たないため、AI は実行ごとに shell redirect や --log-file を用意しないと失敗時の出力を後から読みにくい。",
+    "proposedApproach": "flow コマンドの dispatcher 経路で stdout/stderr を tee して、flow ごとに .tmp/logs/<flowId>.log へ追記する runtime log を導入する。各実行ブロックは runId、sequence、attempt、command、startedAt、endedAt、exitCode を持ち、step に紐づく実行だけ flow.json の対象 step に runtimeLog metadata を保存する。あわせて flow get runtime-log を追加し、--log-file を registry、help、skills、tests から削除する。",
+    "validation": "Issue #342 は対象コマンド、対象外コマンド、ログ形式、metadata、取得コマンド、受け入れ条件を具体化している。既存コードでは src/flow.js が flow run のみ runtimeLog を有効化し、src/lib/dispatcher.js が RuntimeLog と stdout/stderr 出力点を持ち、src/flow/registry.js が --log-file を FLOW_RUN_RUNTIME_OPTIONS として各 flow run command に展開しているため、問題と変更対象が一致している。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #342 の対象は sdd-forge flow 配下のみで、docs、check、metrics、spec、setup、upgrade、experimental workflow、flow 以外の通常コマンドは対象外である。",
+      "src/flow.js は dispatcher 呼び出し時に runtimeLog: group === \"run\" を渡しており、現行の runtime log は flow run 系に限定されている。",
+      "src/lib/dispatcher.js は envelope stdout、raw stdout、stderr、pre/post hooks、error envelope emission を集約している。",
+      "src/lib/dispatcher.js の RuntimeLog は現状ファイルを新規作成し、stderr write を差し替えて保存し、stdout envelope は runtime log に保存していない。",
+      "src/flow/registry.js は FLOW_RUN_RUNTIME_OPTIONS = [\"--agent-work-dir\", \"--log-file\"] を各 flow run command に展開し、help text でも --log-file を案内している。",
+      "src/flow/registry.js には flow report show が flow report group として存在し、run-report-show.js は report text を stdout に直接書く。",
+      "src/skills/partials/core-principle.md と生成済み flow skill には --log-file と shell redirect に関する運用説明が残っている。",
+      "Project rule は外部依存追加を禁止し、alpha 期間中は旧フォーマットや非推奨 path の後方互換コードを保持しない方針である。",
+      "Draft guardrail は CLI option を削除または意味変更する場合に移行計画を要求するが、alpha policy により互換 shim ではなく skills/help/tests/spec で新しい取得手段を明示する方針が適合する。"
+    ],
+    "decisionPoints": [
+      "flow prepare、flow resume、flow get、flow set、flow run、flow report show を共通 runtime log 対象にするため、どの top-level flow dispatch 境界で stdout/stderr tee を開始するか。",
+      "既存 RuntimeLog を追記型の per-flow block log に変更するか、新しい runtime log helper class を導入して dispatcher から利用するか。",
+      "sequence を .tmp/logs/<flowId>.log の既存 start block から採番する具体的な形式と、並行実行時の衝突をどう扱うか。",
+      "step-associated command は、workflow leaf step の実行または完了を担う command として扱う。例は flow prepare の prepare-spec、flow run gate/review/scenario-validity/test-execute/test-result-review/retro/final-regression/finalize-*、および target step を明示する flow set step である。",
+      "non-step command は、workflow step の実行・完了を担わない補助 command として扱う。例は flow get status/context/guardrail/prompt/issue/next-action/qa-count/resolve-context/check、flow set note/request/issue/metric/issue-log/summary/req/files/broad/auto/init/retry、flow resume、flow report show である。",
+      "step-associated command を判定し、対象 step に runtimeLog metadata を保存する責務を dispatcher、registry hook、または flow manager のどこに置くか。",
+      "flow get runtime-log の default selection、--sequence、--run-id <runId>#<sequence>、--format json の解決規則とエラー形式をどう定義するか。",
+      "--log-file 削除に伴い、registry、help、skills、tests、AGENTS のどの表現を flow get runtime-log へ置き換えるか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部 logging package は追加せず、Node.js built-in modules と既存 dispatcher/flow manager で実装する。",
+      "alpha policy に従い、--log-file は互換 alias として残さず削除する。",
+      "stdout は既存の機械可読 envelope 契約を維持し、画面出力へ書いた内容を runtime log に tee するだけにする。",
+      "src/skills を変更するため、実装後に sdd-forge upgrade を実行して .agents/skills と .claude/skills へ反映する。",
+      "runtime log 実体は .tmp/logs/ 配下に置き、.sdd-forge/ や flow.json にログファイル path を保存しない。",
+      "step に紐づかない read-only または補助コマンドは flow.json を更新しない。",
+      "backward-compatible-cli-interface の移行計画として、--log-file の利用者向け案内を help、flow skill、src/AGENTS.md、tests から削除し、代替手段を自動 runtime log と flow get runtime-log として明示する。"
+    ],
+    "requiresUserJudgment": [],
+    "deferredToSpec": [
+      "Exact RuntimeLog class boundaries, method names, and flow manager metadata API.",
+      "Exact runtime log parser used by flow get runtime-log for block extraction and sequence assignment.",
+      "Exact metadata persistence matrix for step-associated commands and non-step commands.",
+      "Exact unit, e2e, and generated skill test matrix.",
+      "Exact wording for src/AGENTS.md and generated flow skill runtime log rules."
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "must: Save stdout and stderr for all sdd-forge flow command groups: prepare, resume, get, set, run, and report show.",
+      "must: Append all command executions for a flow to .tmp/logs/<flowId>.log and use .tmp/logs/no-flow.log when no active flow exists.",
+      "must: Prefix captured output lines with [stdout] or [stderr] inside the same execution block.",
+      "must: Record runId, sequence, attempt, command, startedAt, endedAt, and exitCode in each execution block.",
+      "must: Assign sequence from existing blocks in the target runtime log file rather than storing a global counter in flow.json.",
+      "must: Store runtimeLog metadata on the corresponding flow step only for step-associated commands: flow prepare maps to prepare-spec, flow run gate/review/scenario-validity/test-execute/test-result-review/retro/final-regression/finalize-* map to their workflow step, and flow set step maps to its target step. Do not store file names or paths.",
+      "must: Do not add runtimeLog metadata for non-step commands: flow get status/context/guardrail/prompt/issue/next-action/qa-count/resolve-context/check, flow set note/request/issue/metric/issue-log/summary/req/files/broad/auto/init/retry, flow resume, and flow report show. These commands may perform their existing state changes, but this feature must not add runtimeLog metadata to flow.json for them.",
+      "must: Include runtimeLog runId and sequence in the failure envelope or stderr for failed non-step commands.",
+      "must: Add flow get runtime-log with default raw text output, --sequence, --run-id <runId>#<sequence>, and --format json.",
+      "must: Remove flow run --log-file from registry, help text, skills, and tests, and migrate user-facing guidance to automatic runtime logs plus flow get runtime-log.",
+      "must: Update AI flow skill instructions and src/AGENTS.md so agents use flow get runtime-log instead of shell redirect or --log-file for flow command diagnosis.",
+      "must: Run sdd-forge upgrade after src/skills changes."
+    ],
+    "out": [
+      "Changing docs, check, metrics, spec, setup, upgrade, experimental workflow, or non-flow command logging behavior.",
+      "Changing the existing JSONL Logger event schema except where flushing is directly needed for reliable flow runtime logging.",
+      "Persisting runtime log file paths in flow.json.",
+      "Storing runtime logs under .sdd-forge/.",
+      "Adding external dependencies or shell wrapper commands.",
+      "Changing Git command JSONL logging semantics."
+    ]
+  },
+  "impactOnExisting": [
+    "src/flow.js dispatch policy changes because runtime logging must cover every flow group instead of only group === \"run\".",
+    "src/lib/dispatcher.js runtime logging changes from stderr-only per-command files to stdout/stderr tee blocks in a per-flow append log.",
+    "src/flow/registry.js must remove --log-file from FLOW_RUN_RUNTIME_OPTIONS and add a flow get runtime-log command entry.",
+    "Flow run help output and tests that assert --log-file behavior must be updated to the automatic runtime log and retrieval command.",
+    "Generated flow skills and src/skills source stop instructing agents to create flow command logs via shell redirect or --log-file.",
+    "src/AGENTS.md gains an operational rule describing automatic flow runtime logs and the expected diagnostic path."
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "Issue #342 の目的は、sdd-forge flow 配下の全コマンドで stdout/stderr を自動 runtime log に保存し、AI が shell redirect や --log-file なしで失敗出力を後から取得できるようにする、という理解でよいですか。",
+      "answer": "はい。この spec の目的は、sdd-forge flow 配下の全コマンドで stdout/stderr を runtime log に保存し、AI が ad-hoc な shell redirect や --log-file を使わずに失敗出力を取得できるようにすることです。",
+      "evidence": "Issue #342 Request states that all commands under sdd-forge flow should save stdout/stderr to runtime logs so AI agents can self-diagnose without shell redirects or --log-file.",
+      "why": "根拠カテゴリは existing code patterns です。既存の src/flow.js と src/lib/dispatcher.js は flow command routing と stdout/stderr 出力点を集約しており、Issue #342 の Request、Desired Specification、Acceptance Criteria も同じ目的と flow 限定 scope を示しているためです。",
+      "considered": "",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "risk-migration-policy",
+      "question": "--log-file は互換 alias として残さず削除し、移行先を自動 runtime log と flow get runtime-log に一本化する方針でよいですか。",
+      "answer": "はい。--log-file は削除し、明示ログ path 指定を提供せず、自動 runtime log と flow get runtime-log に移行先を一本化します。",
+      "evidence": "Issue #342 Desired Specification says flow run ... --log-file is removed. Project AGENTS alpha policy says deprecated paths and backward compatibility code should not be kept.",
+      "why": "根拠カテゴリは guardrail principles です。Issue #342 は --log-file 削除を明示し、project rule の alpha policy は互換 alias を残すより旧 interface を削除する方針を支持するためです。backward-compatible-cli-interface の移行計画は、help、skills、tests、AGENTS を flow get runtime-log へ更新することで満たします。",
+      "considered": "互換 alias として --log-file を残す案は、Issue の一本化方針と alpha policy に反するため採用しません。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "step に紐づかない flow get status などが失敗した場合、AI がログを取得できるように failure envelope または stderr に runtimeLog.runId と runtimeLog.sequence を含める契約でよいですか。",
+      "answer": "はい。step 非対応コマンドが失敗した場合は、failure envelope または stderr から runtimeLog.runId と runtimeLog.sequence を確認できる契約にします。",
+      "evidence": "Issue #342 Desired Specification requires failed non-step commands to include runtimeLog: { runId, sequence } in the failure envelope or stderr so AI can retrieve the log.",
+      "why": "根拠カテゴリは existing code patterns です。既存の flow.json は workflow step metadata を step ごとに保持し、step 非対応コマンドは対応する保存先を持たないため、失敗時にログ識別子を出力へ含めないと AI が該当ログブロックを特定できないためです。",
+      "considered": "",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-25T02:22:00.000Z",
+    "notes": "Draft QA entries were resolved from Issue #342 and project rules; no unresolved user decision remains before spec writing."
+  }
+}

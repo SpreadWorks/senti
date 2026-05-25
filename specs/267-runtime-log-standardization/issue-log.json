@@ -1,0 +1,781 @@
+{
+  "entries": [
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T02:22:03.646Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "gate-draft failed because draft approval remained false after coverage review despite no unresolved user decision",
+      "trigger": "sdd-forge flow run gate --phase draft returned structural approval issues",
+      "resolution": "set draft.json approval.approved true with confirmation note before rerunning gate",
+      "guardrailCandidate": "when coverage review passes with no unresolved user decision, ensure draft approval is true before gate-draft",
+      "taskId": null,
+      "timestamp": "2026-05-25T02:22:18.430Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Question q1 provides a recommended answer and reasoning, but does not state the basis as project docs/, guardrail principles, or existing code patterns.; Question q2 provides a recommended answer and reasoning, but does not state the basis as project docs/, guardrail principles, or existing code patterns.; Question q3 provides a recommended answer and reasoning, but does not state the basis as project docs/, guardrail principles, or existing code patterns.; The draft requires removing flow run --log-file from registry, help text, skills, and tests, but does not include a migration plan in the spec.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T02:22:42.986Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "spec draft",
+            "locator": "qa[0]"
+          },
+          "observed": "Question q1 provides a recommended answer and reasoning, but does not state the basis as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "spec draft",
+            "locator": "qa[1]"
+          },
+          "observed": "Question q2 provides a recommended answer and reasoning, but does not state the basis as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "spec draft",
+            "locator": "qa[2]"
+          },
+          "observed": "Question q3 provides a recommended answer and reasoning, but does not state the basis as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "backward-compatible-cli-interface",
+          "where": {
+            "file": "spec draft",
+            "locator": "scopeVerification.in[9]"
+          },
+          "observed": "The draft requires removing flow run --log-file from registry, help text, skills, and tests, but does not include a migration plan in the spec.",
+          "severity": "blocking",
+          "refs": [
+            "backward-compatible-cli-interface"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "gate-draft failed because QA rationale omitted explicit basis wording and --log-file removal lacked a migration-plan sentence",
+      "trigger": "sdd-forge flow run gate --phase draft returned draft-recommend-with-reasoning and backward-compatible-cli-interface findings",
+      "resolution": "added explicit Issue/project-rule basis to QA rationale and documented migration to automatic runtime logs plus flow get runtime-log",
+      "guardrailCandidate": "when draft removes a CLI option, include the replacement command and user-facing guidance updates in the draft",
+      "taskId": null,
+      "timestamp": "2026-05-25T02:23:11.149Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement uses \"step-associated commands\" as the condition for metadata persistence, but the draft does not define which commands are step-associated, so reviewers could disagree on whether an implementation satisfies it.; Requirement uses \"read-only or auxiliary non-step commands\" without defining the included commands or criteria for auxiliary commands, so reviewers could disagree on whether flow.json updates are allowed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T02:23:37.229Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.in[5]"
+          },
+          "observed": "Requirement uses \"step-associated commands\" as the condition for metadata persistence, but the draft does not define which commands are step-associated, so reviewers could disagree on whether an implementation satisfies it.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft.json",
+            "locator": "scopeVerification.in[6]"
+          },
+          "observed": "Requirement uses \"read-only or auxiliary non-step commands\" without defining the included commands or criteria for auxiliary commands, so reviewers could disagree on whether flow.json updates are allowed.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "gate-draft failed because step-associated and non-step command terms were not defined enough for complete-context",
+      "trigger": "sdd-forge flow run gate --phase draft returned complete-context findings for scopeVerification entries",
+      "resolution": "defined step-associated and non-step command criteria with command examples in draft decision points and scope",
+      "guardrailCandidate": "define any workflow classification term with examples before using it as an acceptance condition",
+      "taskId": null,
+      "timestamp": "2026-05-25T02:24:07.146Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The question answer states its basis as Issue #342 Request, Desired Specification, and Acceptance Criteria, but does not state one of the required basis categories: project docs/, guardrail principles, or existing code patterns.; The question answer states its basis as Issue #342 Desired Specification and existing flow.json operation, but does not explicitly state one of the required basis categories: project docs/, guardrail principles, or existing code patterns.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T02:24:27.905Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft content",
+            "locator": "qa[0].why"
+          },
+          "observed": "The question answer states its basis as Issue #342 Request, Desired Specification, and Acceptance Criteria, but does not state one of the required basis categories: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft content",
+            "locator": "qa[2].why"
+          },
+          "observed": "The question answer states its basis as Issue #342 Desired Specification and existing flow.json operation, but does not explicitly state one of the required basis categories: project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "gate-draft failed because two QA rationale fields did not use the exact allowed basis category wording",
+      "trigger": "sdd-forge flow run gate --phase draft returned draft-recommend-with-reasoning findings for qa[0].why and qa[2].why",
+      "resolution": "changed the QA rationale fields to explicitly name existing code patterns as the basis category",
+      "guardrailCandidate": "when applying draft-recommend-with-reasoning, include the literal basis category in each QA rationale",
+      "taskId": null,
+      "timestamp": "2026-05-25T02:24:47.568Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The answer states its basis as Issue #342 and project rule alpha policy, but the guardrail requires the basis to be stated as project docs/, guardrail principles, or existing code patterns.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T02:25:05.624Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "draft-recommend-with-reasoning",
+          "where": {
+            "file": "draft content",
+            "locator": "qa[1].why"
+          },
+          "observed": "The answer states its basis as Issue #342 and project rule alpha policy, but the guardrail requires the basis to be stated as project docs/, guardrail principles, or existing code patterns.",
+          "severity": "blocking",
+          "refs": [
+            "draft-recommend-with-reasoning"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "gate-draft failed because qa[1].why did not use the exact allowed guardrail basis category wording",
+      "trigger": "sdd-forge flow run gate --phase draft returned a draft-recommend-with-reasoning finding for qa[1].why",
+      "resolution": "changed qa[1].why to explicitly name guardrail principles and backward-compatible-cli-interface",
+      "guardrailCandidate": "literal allowed basis category wording should be used consistently across every QA rationale",
+      "taskId": null,
+      "timestamp": "2026-05-25T02:25:24.308Z"
+    },
+    {
+      "step": "gate-draft",
+      "phase": "draft",
+      "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved\n  attempt 2: Question q1 provides a recommended answer and reasoning, but does not state the basis as project docs/, guardrail principles, or existing code patterns.; Question q2 provides a recommended answer and reasoning, but does not state the basis as project docs/, guardrail principles, or existing code patterns.; Question q3 provides a recommended answer and reasoning, but does not state the basis as project docs/, guardrail principles, or existing code patterns.; The draft requires removing flow run --log-file from registry, help text, skills, and tests, but does not include a migration plan in the spec.\n  attempt 3: Requirement uses \"step-associated commands\" as the condition for metadata persistence, but the draft does not define which commands are step-associated, so reviewers could disagree on whether an implementation satisfies it.; Requirement uses \"read-only or auxiliary non-step commands\" without defining the included commands or criteria for auxiliary commands, so reviewers could disagree on whether flow.json updates are allowed.\n  attempt 4: The question answer states its basis as Issue #342 Request, Desired Specification, and Acceptance Criteria, but does not state one of the required basis categories: project docs/, guardrail principles, or existing code patterns.; The question answer states its basis as Issue #342 Desired Specification and existing flow.json operation, but does not explicitly state one of the required basis categories: project docs/, guardrail principles, or existing code patterns.\n  attempt 5: The answer states its basis as Issue #342 and project rule alpha policy, but the guardrail requires the basis to be stated as project docs/, guardrail principles, or existing code patterns.\n\nStop the automatic retry loop and return control to the user.",
+      "trigger": "gate onError hook (auto)",
+      "timestamp": "2026-05-25T02:25:27.917Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "retry recovery command failed because flow set retry reset gate draft is not a supported recovery target",
+      "trigger": "user selected retry reset after gate-draft exhausted, then sdd-forge flow set retry reset gate draft returned INVALID_RECOVERY_INPUT",
+      "resolution": "inspected retry recovery implementation and found draft/spec gate phases are tracked but unrecoverable through the public reset command",
+      "guardrailCandidate": "retry exhaustion prompts should only offer recovery commands that the CLI accepts for the current phase",
+      "taskId": null,
+      "timestamp": "2026-05-25T02:27:40.779Z"
+    },
+    {
+      "step": "gate-draft",
+      "reason": "manual retry reset was applied because public retry recovery does not support gate draft despite the user approving one more evaluation",
+      "trigger": "user explicitly instructed manual reset and rerun gate after unsupported-plan-gate-phase recovery result",
+      "resolution": "appended a draft gateRetry reset metric to flow.json and reran gate-draft",
+      "guardrailCandidate": "provide a supported recovery path for draft gate retry exhaustion or avoid tracking unrecoverable plan gates",
+      "taskId": null,
+      "timestamp": "2026-05-25T02:31:21.508Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec does not list the change's impact on existing features or explicitly state that no existing features are affected.; The constraint requires enforcing a maximum captured byte count per command block but does not state an explicit upper bound size.; The task says to preserve the existing max-byte protection but does not state an explicit upper bound size.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T02:41:03.818Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "document"
+          },
+          "observed": "The spec does not list the change's impact on existing features or explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.constraints[4]"
+          },
+          "observed": "The constraint requires enforcing a maximum captured byte count per command block but does not state an explicit upper bound size.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "bounded-resource-usage",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.tasks[0].implementation_notes"
+          },
+          "observed": "The task says to preserve the existing max-byte protection but does not state an explicit upper bound size.",
+          "severity": "blocking",
+          "refs": [
+            "bounded-resource-usage"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "reason": "spec gate failed because impact on existing features was not explicit and bounded resource constraints lacked the 5 MiB limit",
+      "trigger": "sdd-forge flow run gate returned impact-on-existing-features and bounded-resource-usage findings",
+      "resolution": "added an overview decision listing existing feature impacts and changed runtime log block limits to explicit 5 MiB wording",
+      "guardrailCandidate": "spec constraints that mention bounded resources should always name the numeric limit",
+      "taskId": null,
+      "timestamp": "2026-05-25T02:41:22.783Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-001",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence updated for explicit multi-line stdout and runtime-log exclusion checks",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "e76c8b530df873369b33834037ccc8b9e1c8cee701725e723a0eb387b44cd2f6",
+        "currentHash": "bb9406f1b3312a9cea0088db55e1c1eb722dce2fb2588b751b81bea68c7cc6ac",
+        "changedPaths": [
+          "specs/267-runtime-log-standardization/tests/.raw/scenario-validity.log",
+          "specs/267-runtime-log-standardization/tests/runtime-log-standardization.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test evidence updated for explicit multi-line stdout and runtime-log exclusion checks\" --yes",
+      "createdAt": "2026-05-25T02:53:36.766Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-002",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence updated for stdout capture coverage across prepare get set and report show",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "bb9406f1b3312a9cea0088db55e1c1eb722dce2fb2588b751b81bea68c7cc6ac",
+        "currentHash": "e64b5e8aa4567cc8db45370a6f5bdc7234ac8d74c6487b073bb0860991887181",
+        "changedPaths": [
+          "specs/267-runtime-log-standardization/tests/.raw/scenario-validity.log",
+          "specs/267-runtime-log-standardization/tests/runtime-log-standardization.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test evidence updated for stdout capture coverage across prepare get set and report show\" --yes",
+      "createdAt": "2026-05-25T02:55:22.957Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-003",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence updated for block-scoped stream checks runtime-log selectors metadata and help coverage",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "e64b5e8aa4567cc8db45370a6f5bdc7234ac8d74c6487b073bb0860991887181",
+        "currentHash": "509cde28b34f71443b33f0796128f609c2af46c1cab42a5da95dcaebe1d161e4",
+        "changedPaths": [
+          "specs/267-runtime-log-standardization/tests/.raw/scenario-validity.log",
+          "specs/267-runtime-log-standardization/tests/runtime-log-standardization.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test evidence updated for block-scoped stream checks runtime-log selectors metadata and help coverage\" --yes",
+      "createdAt": "2026-05-25T02:59:28.067Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-004",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence updated to remove escape helper ambiguity and scope R4 metadata checks to one block",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "509cde28b34f71443b33f0796128f609c2af46c1cab42a5da95dcaebe1d161e4",
+        "currentHash": "a84568ebb3ad2bd8be51f1c2d012afe89724cacb23edd966550f7c4d21be5ba8",
+        "changedPaths": [
+          "specs/267-runtime-log-standardization/tests/.raw/scenario-validity.log",
+          "specs/267-runtime-log-standardization/tests/runtime-log-standardization.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test evidence updated to remove escape helper ambiguity and scope R4 metadata checks to one block\" --yes",
+      "createdAt": "2026-05-25T03:00:31.587Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-005",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence updated for command block closure path-free metadata full flow non-step and parser rejection coverage",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "a84568ebb3ad2bd8be51f1c2d012afe89724cacb23edd966550f7c4d21be5ba8",
+        "currentHash": "c9afc3bd6f7ad2e3e5522046103e6d9277b2e2a4cf4bffd4c6c3ce2d25901180",
+        "changedPaths": [
+          "specs/267-runtime-log-standardization/tests/.raw/scenario-validity.log",
+          "specs/267-runtime-log-standardization/tests/runtime-log-standardization.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test evidence updated for command block closure path-free metadata full flow non-step and parser rejection coverage\" --yes",
+      "createdAt": "2026-05-25T03:03:14.250Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-006",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence updated for required runtimeLog fields end runId and executable permanent coverage",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "c9afc3bd6f7ad2e3e5522046103e6d9277b2e2a4cf4bffd4c6c3ce2d25901180",
+        "currentHash": "d214dc120aeba1381ce10c0503e4b967b49da435681211d5271d51992780e0d9",
+        "changedPaths": [
+          "specs/267-runtime-log-standardization/tests/.raw/scenario-validity.log",
+          "specs/267-runtime-log-standardization/tests/runtime-log-standardization.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test evidence updated for required runtimeLog fields end runId and executable permanent coverage\" --yes",
+      "createdAt": "2026-05-25T03:06:39.455Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-007",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence updated to remove future permanent test dependency from spec-local acceptance tests",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "d214dc120aeba1381ce10c0503e4b967b49da435681211d5271d51992780e0d9",
+        "currentHash": "64d7e8dc784426f86f2753e683a5e1182b1b7867a66dbcb0f5e7b2aa92110d76",
+        "changedPaths": [
+          "specs/267-runtime-log-standardization/tests/.raw/scenario-validity.log",
+          "specs/267-runtime-log-standardization/tests/runtime-log-standardization.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test evidence updated to remove future permanent test dependency from spec-local acceptance tests\" --yes",
+      "createdAt": "2026-05-25T03:07:35.143Z"
+    },
+    {
+      "step": "retry-recovery",
+      "id": "recovery-008",
+      "kind": "review",
+      "phase": "test",
+      "canonicalPhase": "test",
+      "reason": "test evidence updated for full no-append comparison deterministic stream order and actual runtimeLog identifier matching",
+      "changedEvidence": {
+        "sourceKind": "spec-tests",
+        "baselineHash": "64d7e8dc784426f86f2753e683a5e1182b1b7867a66dbcb0f5e7b2aa92110d76",
+        "currentHash": "8c43fb2eb7608e4e5c681a956487f4183f40a75f3d8baf836911cbf5ec79d906",
+        "changedPaths": [
+          "specs/267-runtime-log-standardization/tests/.raw/scenario-validity.log",
+          "specs/267-runtime-log-standardization/tests/runtime-log-standardization.test.js"
+        ],
+        "truncated": false,
+        "changed": true
+      },
+      "permittedReevaluationCount": 1,
+      "attemptsBefore": 5,
+      "maxAttempts": 5,
+      "counterAfter": 4,
+      "recoveryCommand": "sdd-forge flow set retry reset review test --reason \"test evidence updated for full no-append comparison deterministic stream order and actual runtimeLog identifier matching\" --yes",
+      "createdAt": "2026-05-25T03:10:59.985Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: recorded requirement-to-file coverage after gate reported missing file-map.json",
+      "resolution": "file-map.json now maps R1-R13 to runtime log implementation, skills, generated skills, and tests so gate can validate diff coverage",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:33:50.102Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: removed non-testable R11 from file-map after gate rejected unknown requirement id",
+      "resolution": "file-map now contains only testable requirements R1-R10 and R12-R13; R11 remains satisfied by docs and skill changes but is testable:false",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:34:24.772Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: updated spec-local runtime-log tests after gate reported failing requirements",
+      "resolution": "test-execute now reports pass for R1-R10 and R12-R13, and test-result-review verdict is pass",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:37:43.911Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Start records include runId, sequence, attempt, command, and startedAt, while end records include only runId, sequence, exitCode, and endedAt; neither record contains the full required metadata set.; Captured stdout/stderr are teed and prefixed in one block, but partial-line writes are logged as separate prefixed lines with inserted newlines instead of preserving emitted line boundaries, so line capture is not faithful.; Step metadata is only persisted on the normal completion path; thrown failures/pre-hook failures close the runtime log but do not call setStepRuntimeLog. R6 requires step-associated commands to persist runtimeLog metadata, with finalize-cleanup excluded.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:41:09.913Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "Start records include runId, sequence, attempt, command, and startedAt, while end records include only runId, sequence, exitCode, and endedAt; neither record contains the full required metadata set.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "Captured stdout/stderr are teed and prefixed in one block, but partial-line writes are logged as separate prefixed lines with inserted newlines instead of preserving emitted line boundaries, so line capture is not faithful.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "Step metadata is only persisted on the normal completion path; thrown failures/pre-hook failures close the runtime log but do not call setStepRuntimeLog. R6 requires step-associated commands to persist runtimeLog metadata, with finalize-cleanup excluded.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: addressed gate R4 R5 R6 runtime log metadata and stream fidelity failures",
+      "resolution": "end records now include full metadata, stream capture preserves partial-line boundaries, and step-associated runtimeLog metadata is persisted on failure paths as well as success paths",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:52:08.815Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Diff adds step runtimeLog persistence and excludes finalize-cleanup, but dynamic step resolution can return null for step-associated failures when phase/result is unavailable, so metadata is not guaranteed to persist on the workflow step.; Tests were added for many required areas, including run capture, report show capture, metadata, non-step failure exposure, retrieval, and --log-file removal, but the diff does not cover both stdout/stderr capture for prepare/get/set paths; prepare/get/set assertions only verify stdout or block presence.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:55:54.217Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R6",
+          "where": null,
+          "observed": "Diff adds step runtimeLog persistence and excludes finalize-cleanup, but dynamic step resolution can return null for step-associated failures when phase/result is unavailable, so metadata is not guaranteed to persist on the workflow step.",
+          "severity": "blocking",
+          "refs": [
+            "R6"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R12",
+          "where": null,
+          "observed": "Tests were added for many required areas, including run capture, report show capture, metadata, non-step failure exposure, retrieval, and --log-file removal, but the diff does not cover both stdout/stderr capture for prepare/get/set paths; prepare/get/set assertions only verify stdout or block presence.",
+          "severity": "blocking",
+          "refs": [
+            "R12"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R13"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: R6 dynamic gate/review step fallback and R12 prepare/get/set stdout-stderr coverage added before rerunning gate",
+      "taskId": null,
+      "timestamp": "2026-05-25T04:07:41.037Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Start records include runId, sequence, attempt, command, and startedAt, but do not include endedAt or exitCode.; Capture tees stdout/stderr into one block and preserves streams, but partial interleaved writes can place a [stderr] prefix mid-line after an unfinished stdout write, so each emitted line is not reliably prefixed.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T04:10:43.582Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R4",
+          "where": null,
+          "observed": "Start records include runId, sequence, attempt, command, and startedAt, but do not include endedAt or exitCode.",
+          "severity": "blocking",
+          "refs": [
+            "R4"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "Capture tees stdout/stderr into one block and preserves streams, but partial interleaved writes can place a [stderr] prefix mid-line after an unfinished stdout write, so each emitted line is not reliably prefixed.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: R4 start metadata fields and R5 partial interleaved stream prefix handling before rerunning gate",
+      "taskId": null,
+      "timestamp": "2026-05-25T04:13:42.569Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Capture only tees process streams when custom stdout/stderr callbacks are provided; default dispatcher writes via wrapped process streams can preserve visible output, but injected writeOut/writeErr paths are skipped unless stdout/stderr are set, and partial interleaved writes are normalized with inserted newlines rather than faithfully copying observed writes.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T04:17:06.748Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R5",
+          "where": null,
+          "observed": "Capture only tees process streams when custom stdout/stderr callbacks are provided; default dispatcher writes via wrapped process streams can preserve visible output, but injected writeOut/writeErr paths are skipped unless stdout/stderr are set, and partial interleaved writes are normalized with inserted newlines rather than faithfully copying observed writes.",
+          "severity": "blocking",
+          "refs": [
+            "R5"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "fix: R5 explicitly captures dispatcher stdout/stderr writes and suppresses duplicate process-stream capture before rerunning gate",
+      "taskId": null,
+      "timestamp": "2026-05-25T04:19:01.888Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "child_process_eperm",
+      "reason": "final-regression failed: child_process_eperm",
+      "command": "npm test --",
+      "rawOutputPath": "specs/267-runtime-log-standardization/tests/.raw/final-regression-attempt-001.log",
+      "retryable": false,
+      "nextAction": "stop",
+      "timestamp": "2026-05-25T04:25:30.885Z"
+    },
+    {
+      "step": "finalize-merge",
+      "reason": "Merge conflict detected. Run 'git rebase main' in the worktree and retry finalize.",
+      "timestamp": "2026-05-25T04:32:38.415Z"
+    }
+  ]
+}

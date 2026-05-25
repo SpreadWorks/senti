@@ -20,7 +20,7 @@ import {
 } from "../lib/constants.js";
 import { resolveGateStepId, resolveGatePhaseFromState } from "./lib/gate-step.js";
 import { flattenSteps } from "./definition.js";
-import { draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
+import { DRAFT_REVIEW_ROUTES, draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
 
 /**
  * Successful command-result statuses that map to a flow step status of 'done'.
@@ -28,10 +28,15 @@ import { draftReviewRouteForRetryPhase } from "./lib/draft-review-routes.js";
  * for finalize leaves (per spec 251 design principle).
  */
 const FINALIZE_SUCCESS_STATUSES = new Set(["done", "completed", "skipped"]);
-const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir", "--log-file"];
+const FLOW_RUN_RUNTIME_OPTIONS = ["--agent-work-dir"];
 const DRAFT_REVIEW_RECORDED_VERDICTS = new Set(["PASS", "ADVISORY", "FAIL"]);
 const RETRY_HELP_GATE_PHASES = Object.freeze(["task-impl", "integration"]);
 const RETRY_HELP_REVIEW_PHASES = Object.freeze(["draft", "draft-questions", "draft-coverage", "spec", "test", "impl"]);
+const REVIEW_RUNTIME_STEP_BY_PHASE = Object.freeze({
+  spec: "review-spec",
+  test: "review-test",
+  impl: "review",
+});
 export const DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY = Object.freeze({
   review: "detection",
   triage: "disposition",
@@ -186,6 +191,35 @@ function tryAppendIssueLog(fn) {
   }
 }
 
+function gateRuntimeLogStepId(ctx) {
+  const phase = ctx.phase || resolveGatePhaseFromState(ctx.flowState)?.phase;
+  return resolveGateStepId(phase);
+}
+
+function activeStepId(flowState, stepIds) {
+  const steps = Array.isArray(flowState?.steps) ? flattenSteps(flowState.steps) : [];
+  const allowed = new Set(stepIds);
+  return steps.find((step) => allowed.has(step.id) && step.status === "in_progress")?.id || null;
+}
+
+function draftReviewRuntimeLogStepId(ctx, result) {
+  const retryPhase = result?.artifacts?.retryPhase || (String(ctx.phase || "").startsWith("draft-") ? ctx.phase : null);
+  const route = draftReviewRouteForRetryPhase(retryPhase);
+  if (route) return route.reviewStepId;
+  return activeStepId(ctx.flowState, DRAFT_REVIEW_ROUTES.map((candidate) => candidate.reviewStepId))
+    || draftReviewRouteForRetryPhase("draft-questions").reviewStepId;
+}
+
+function reviewRuntimeLogStepId(ctx, result) {
+  const phase = result?.artifacts?.phase || ctx.phase;
+  if (phase === "draft" || phase === "draft-questions" || phase === "draft-coverage") return draftReviewRuntimeLogStepId(ctx, result);
+  if (REVIEW_RUNTIME_STEP_BY_PHASE[phase]) return REVIEW_RUNTIME_STEP_BY_PHASE[phase];
+  return activeStepId(ctx.flowState, [
+    ...DRAFT_REVIEW_ROUTES.map((candidate) => candidate.reviewStepId),
+    ...Object.values(REVIEW_RUNTIME_STEP_BY_PHASE),
+  ]);
+}
+
 
 export const FLOW_COMMANDS = {
   resume: {
@@ -207,6 +241,7 @@ export const FLOW_COMMANDS = {
     helpPath: "sdd-forge flow prepare --help",
     requiresFlow: false,
     requiresConfig: true,
+    runtimeLog: { stepId: "prepare-spec" },
     command: () => import("./lib/run-prepare-spec.js"),
     args: {
       flags: ["--no-branch", "--worktree", "--dry-run"],
@@ -322,10 +357,23 @@ export const FLOW_COMMANDS = {
         }
       },
     },
+    "runtime-log": {
+      helpKey: "flow.get.runtime-log",
+      requiresFlow: false,
+      command: () => import("./lib/get-runtime-log.js"),
+      passthroughArgs: true,
+      help: [
+        "Usage: sdd-forge flow get runtime-log [--format json] [--sequence <n>] [--run-id <runId[#sequence]>]",
+        "",
+        "Return the selected runtime log block. Raw block text is printed by default.",
+        "With --format json, prints an envelope containing the block text and metadata.",
+      ].join("\n"),
+    },
   },
   set: {
     step: {
       helpKey: "flow.set.step",
+      runtimeLog: { stepId: (ctx) => ctx.id },
       command: () => import("./lib/set-step.js"),
       args: { positional: ["id", "status"] },
       help: "Usage: sdd-forge flow set step <id> <status>\n\nUpdate a workflow step's status.",
@@ -461,6 +509,7 @@ export const FLOW_COMMANDS = {
     gate: {
       helpKey: "flow.run.gate",
       responsibilities: DRAFT_REVIEW_GATE_RESPONSIBILITIES,
+      runtimeLog: { stepId: gateRuntimeLogStepId },
       pre(ctx) {
         // When --phase is omitted, phase resolution and stale-step recovery
         // happen inside RunGateCommand.execute (which has exclusive ownership
@@ -484,8 +533,7 @@ export const FLOW_COMMANDS = {
         "Options:",
         "  --spec <path>                 Path to spec (directory / spec.json / legacy spec.md; auto-resolved from flow.json)",
         `  --phase <${VALID_GATE_PHASES.join("|")}>  Gate phase (default: auto-resolve from in-progress step)`,
-        "  --agent-work-dir <path>       Per-invocation agent/tmp/log base directory",
-        "  --log-file <path>             Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
+        "  --agent-work-dir <path>       Per-invocation agent/tmp base directory",
         "  --skip-guardrail              Skip AI guardrail compliance check",
       ].join("\n"),
       async post(ctx, result) {
@@ -517,6 +565,7 @@ export const FLOW_COMMANDS = {
       helpKey: "flow.run.review",
       draftReviewPostHookBoundary: DRAFT_REVIEW_REGISTRY_RESPONSIBILITY_BOUNDARY,
       responsibilities: DRAFT_REVIEW_REVIEW_RESPONSIBILITIES,
+      runtimeLog: { stepId: reviewRuntimeLogStepId },
       command: () => import("./lib/run-review.js"),
       args: {
         flags: ["--dry-run", "--skip-confirm"],
@@ -530,8 +579,7 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         `  --phase <type>   Review phase: ${VALID_REVIEW_PHASES.map((p) => `'${p}'`).join(", ")}`,
-        "  --agent-work-dir <path>  Per-invocation agent/tmp/log base directory",
-        "  --log-file <path>        Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
+        "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
         "  --dry-run        Show proposals without applying",
         "  --skip-confirm   Skip initial confirmation prompt",
       ].join("\n"),
@@ -599,6 +647,7 @@ export const FLOW_COMMANDS = {
     },
     "auto-check": {
       helpKey: "flow.run.auto-check",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-auto-check.js"),
       requiresFlow: false,
       args: { options: ["--run-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
@@ -619,14 +668,14 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         "  --run-id <runId>   Target preparing flow (required when no active flow)",
-        "  --agent-work-dir <path>  Per-invocation agent/tmp/log base directory",
-        "  --log-file <path>        Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
+        "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
       ].join("\n"),
     },
     // impl-confirm is a read-only check, not the finalize action itself.
     // Step status is managed by the skill, not hooks.
     "impl-confirm": {
       helpKey: "flow.run.impl-confirm",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-impl-confirm.js"),
       args: { options: ["--mode", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -638,12 +687,12 @@ export const FLOW_COMMANDS = {
         "  --mode <overview|detail>  Check mode (default: overview)",
         "    overview: summarize requirements status from flow.json",
         "    detail:   also compare git diff against requirements",
-        "  --agent-work-dir <path>   Per-invocation agent/tmp/log base directory",
-        "  --log-file <path>         Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
+        "  --agent-work-dir <path>   Per-invocation agent/tmp base directory",
       ].join("\n"),
     },
     "finalize-commit": {
       helpKey: "flow.run.finalize-commit",
+      runtimeLog: { stepId: "finalize-commit" },
       command: () => import("./lib/run-finalize-commit.js"),
       args: {
         options: ["--message", ...FLOW_RUN_RUNTIME_OPTIONS],
@@ -655,8 +704,7 @@ export const FLOW_COMMANDS = {
         "",
         "Options:",
         "  --message <msg>  Custom commit message",
-        "  --agent-work-dir <path>  Per-invocation agent/tmp/log base directory",
-        "  --log-file <path>        Human-readable execution log path (default: <agentWorkDir>/logs/<flowId>/...)",
+        "  --agent-work-dir <path>  Per-invocation agent/tmp base directory",
       ].join("\n"),
       async post(ctx, result) {
         // R11: skip side effects on preflight_failed / failed. The step is
@@ -675,6 +723,7 @@ export const FLOW_COMMANDS = {
     },
     "finalize-merge": {
       helpKey: "flow.run.finalize-merge",
+      runtimeLog: { stepId: "finalize-merge" },
       command: () => import("./lib/run-finalize-merge.js"),
       args: { options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -756,6 +805,7 @@ export const FLOW_COMMANDS = {
     },
     "finalize-sync": {
       helpKey: "flow.run.finalize-sync",
+      runtimeLog: { stepId: "finalize-sync" },
       command: () => import("./lib/run-finalize-sync.js"),
       args: { options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -776,6 +826,7 @@ export const FLOW_COMMANDS = {
     },
     "finalize-cleanup": {
       helpKey: "flow.run.finalize-cleanup",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-finalize-cleanup.js"),
       args: { flags: ["--auto-rescue", "--force"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -810,6 +861,7 @@ export const FLOW_COMMANDS = {
     },
     sync: {
       helpKey: "flow.run.sync",
+      runtimeLog: { stepMetadata: false },
       requiresFlow: false,
       command: () => import("./lib/run-sync.js"),
       args: { flags: ["--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
@@ -824,6 +876,7 @@ export const FLOW_COMMANDS = {
     },
     "reopen-draft": {
       helpKey: "flow.run.reopen-draft",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-reopen-draft.js"),
       args: { options: ["--reason", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -838,6 +891,7 @@ export const FLOW_COMMANDS = {
     },
     "start-task": {
       helpKey: "flow.run.start-task",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-start-task.js"),
       args: { options: ["--task-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -850,6 +904,7 @@ export const FLOW_COMMANDS = {
     },
     "complete-task": {
       helpKey: "flow.run.complete-task",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-complete-task.js"),
       args: { options: ["--task-id", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -862,6 +917,7 @@ export const FLOW_COMMANDS = {
     },
     "update-overview": {
       helpKey: "flow.run.update-overview",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-update-overview.js"),
       args: { options: ["--json", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -879,6 +935,7 @@ export const FLOW_COMMANDS = {
     // Step status is managed by the skill, not hooks.
     lint: {
       helpKey: "flow.run.lint",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-lint.js"),
       args: { options: ["--base", ...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -892,6 +949,7 @@ export const FLOW_COMMANDS = {
     },
     "test-execute": {
       helpKey: "flow.run.test-execute",
+      runtimeLog: { stepId: "test-execute" },
       command: () => import("./lib/run-test-execute.js"),
       args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -911,6 +969,7 @@ export const FLOW_COMMANDS = {
     },
     "scenario-validity": {
       helpKey: "flow.run.scenario-validity",
+      runtimeLog: { stepId: "scenario-validity" },
       internal: true,
       requiresFlow: true,
       command: () => import("./lib/run-scenario-validity.js"),
@@ -928,6 +987,7 @@ export const FLOW_COMMANDS = {
     },
     "test-result-review": {
       helpKey: "flow.run.test-result-review",
+      runtimeLog: { stepId: "test-result-review" },
       command: () => import("./lib/run-test-result-review.js"),
       args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -948,6 +1008,7 @@ export const FLOW_COMMANDS = {
     // retro is a mainline impl-phase step that aggregates test-execute results.
     retro: {
       helpKey: "flow.run.retro",
+      runtimeLog: { stepId: "retro" },
       command: () => import("./lib/run-retro.js"),
       args: { flags: ["--force", "--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -967,6 +1028,7 @@ export const FLOW_COMMANDS = {
     },
     "final-regression": {
       helpKey: "flow.run.final-regression",
+      runtimeLog: { stepId: "final-regression" },
       command: () => import("./lib/run-final-regression.js"),
       args: { flags: [], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -989,6 +1051,7 @@ export const FLOW_COMMANDS = {
     // report generates a work report from the current flow state.
     report: {
       helpKey: "flow.run.report",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-report.js"),
       args: { flags: ["--dry-run"], options: [...FLOW_RUN_RUNTIME_OPTIONS] },
       help: [
@@ -1004,6 +1067,7 @@ export const FLOW_COMMANDS = {
   report: {
     show: {
       helpKey: "flow.report.show",
+      runtimeLog: { stepMetadata: false },
       command: () => import("./lib/run-report-show.js"),
       requiresFlow: false,
       args: { flags: [] },

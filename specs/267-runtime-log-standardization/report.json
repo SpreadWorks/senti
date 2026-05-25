@@ -1,0 +1,346 @@
+{
+  "data": {
+    "implementation": {
+      "diffStat": ".agents/skills/sdd-forge.flow/SKILL.md             |   10 +-\n .claude/skills/sdd-forge.flow/SKILL.md             |   10 +-\n .sdd-forge/output/analysis.json                    |    2 +-\n .../draft-coverage-repair.json                     |    8 +\n .../draft-coverage-triage.json                     |    8 +\n .../draft-questions-repair.json                    |    8 +\n .../draft-questions-triage.json                    |    8 +\n .../draft-review-coverage.json                     |   11 +\n .../draft-review-questions.json                    |   11 +\n specs/267-runtime-log-standardization/draft.json   |  122 +\n .../267-runtime-log-standardization/file-map.json  |   68 +\n specs/267-runtime-log-standardization/flow.json    | 2953 ++++++++++++++++++++\n .../impl-review.json                               |   17 +\n .../267-runtime-log-standardization/issue-log.json |  776 +++++\n specs/267-runtime-log-standardization/issue.md     |  228 ++\n .../retry-recovery.json                            |  197 ++\n specs/267-runtime-log-standardization/review.md    |   16 +\n .../spec-repair.json                               |   60 +\n .../spec-review-triage.json                        |   36 +\n .../spec-review.json                               |   67 +\n .../267-runtime-log-standardization/spec-review.md |   42 +\n specs/267-runtime-log-standardization/spec.json    |  356 +++\n specs/267-runtime-log-standardization/spec.md      |  163 ++\n specs/267-runtime-log-standardization/tasks/T-1.md |   20 +\n specs/267-runtime-log-standardization/tasks/T-2.md |   21 +\n specs/267-runtime-log-standardization/tasks/T-3.md |   21 +\n specs/267-runtime-log-standardization/tasks/T-4.md |   21 +\n .../test-coverage.json                             |  159 ++\n .../test-review.json                               |   22 +\n .../267-runtime-log-standardization/test-review.md |   16 +\n .../tests/runtime-log-standardization.test.js      |  627 +++++\n src/AGENTS.md                                      |    4 +\n src/flow.js                                        |    3 +-\n src/flow/lib/get-runtime-log.js                    |   84 +\n src/flow/lib/run-report-show.js                    |   11 +-\n src/flow/registry.js                               |   88 +-\n src/lib/dispatcher.js                              |  217 +-\n src/lib/flow-manager.js                            |    3 +\n src/lib/flow-store.js                              |   15 +\n src/lib/runtime-log.js                             |  220 ++\n src/skills/partials/core-principle.md              |    5 +-\n src/skills/sdd-forge.flow/SKILL.md                 |    5 +-\n tests/unit/flow/commands/review.test.js            |    3 +-\n tests/unit/flow/get-step-instructions.test.js      |    4 +-\n tests/unit/lib/command-registry.test.js            |    5 +-\n tests/unit/lib/dispatcher.test.js                  |   86 +-\n 46 files changed, 6679 insertions(+), 158 deletions(-)",
+      "commits": [
+        "feat: standardize flow runtime logging"
+      ]
+    },
+    "retro": null,
+    "issueLog": {
+      "count": 35,
+      "fullLogPath": "specs/267-runtime-log-standardization/issue-log.json",
+      "importantTotal": 22,
+      "importantShown": 10,
+      "importantOmitted": 12,
+      "recentOtherTotal": 13,
+      "recentOtherShown": 5,
+      "recentOtherOmitted": 8,
+      "entries": [
+        {
+          "classification": "important",
+          "step": "gate-draft",
+          "reason": "gate-draft failed because draft approval remained false after coverage review despite no unresolved user decision",
+          "resolution": "set draft.json approval.approved true with confirmation note before rerunning gate"
+        },
+        {
+          "classification": "important",
+          "step": "gate-draft",
+          "reason": "gate-draft failed because QA rationale omitted explicit basis wording and --log-file removal lacked a migration-plan sentence",
+          "resolution": "added explicit Issue/project-rule basis to QA rationale and documented migration to automatic runtime logs plus flow get runtime-log"
+        },
+        {
+          "classification": "important",
+          "step": "gate-draft",
+          "reason": "gate-draft failed because step-associated and non-step command terms were not defined enough for complete-context",
+          "resolution": "defined step-associated and non-step command criteria with command examples in draft decision points and scope"
+        },
+        {
+          "classification": "important",
+          "step": "gate-draft",
+          "reason": "gate-draft failed because two QA rationale fields did not use the exact allowed basis category wording",
+          "resolution": "changed the QA rationale fields to explicitly name existing code patterns as the basis category"
+        },
+        {
+          "classification": "important",
+          "step": "gate-draft",
+          "reason": "gate-draft failed because qa[1].why did not use the exact allowed guardrail basis category wording",
+          "resolution": "changed qa[1].why to explicitly name guardrail principles and backward-compatible-cli-interface"
+        },
+        {
+          "classification": "important",
+          "step": "gate-draft",
+          "reason": "gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: draft approval is required: set approval.approved = true; draft-review: draft approval.approved mu...",
+          "resolution": null
+        },
+        {
+          "classification": "important",
+          "step": "gate-draft",
+          "reason": "retry recovery command failed because flow set retry reset gate draft is not a supported recovery target",
+          "resolution": "inspected retry recovery implementation and found draft/spec gate phases are tracked but unrecoverable through the public reset command"
+        },
+        {
+          "classification": "important",
+          "step": "gate-draft",
+          "reason": "manual retry reset was applied because public retry recovery does not support gate draft despite the user approving one more evaluation",
+          "resolution": "appended a draft gateRetry reset metric to flow.json and reran gate-draft"
+        },
+        {
+          "classification": "important",
+          "step": "gate",
+          "reason": "spec gate failed because impact on existing features was not explicit and bounded resource constraints lacked the 5 MiB limit",
+          "resolution": "added an overview decision listing existing feature impacts and changed runtime log block limits to explicit 5 MiB wording"
+        },
+        {
+          "classification": "important",
+          "step": "retry-recovery",
+          "reason": "test evidence updated for explicit multi-line stdout and runtime-log exclusion checks",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate-impl",
+          "reason": "fix: R6 dynamic gate/review step fallback and R12 prepare/get/set stdout-stderr coverage added before rerunning gate",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate",
+          "reason": "Start records include runId, sequence, attempt, command, and startedAt, but do not include endedAt or exitCode.; Capture tees stdout/stderr into one block and preserves streams, but partial interleaved writes can place a [stderr] prefix ...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate-impl",
+          "reason": "fix: R4 start metadata fields and R5 partial interleaved stream prefix handling before rerunning gate",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate",
+          "reason": "Capture only tees process streams when custom stdout/stderr callbacks are provided; default dispatcher writes via wrapped process streams can preserve visible output, but injected writeOut/writeErr paths are skipped unless stdout/stderr ...",
+          "resolution": null
+        },
+        {
+          "classification": "recent-other",
+          "step": "gate-impl",
+          "reason": "fix: R5 explicitly captures dispatcher stdout/stderr writes and suppresses duplicate process-stream capture before rerunning gate",
+          "resolution": null
+        }
+      ]
+    },
+    "metrics": {
+      "docsRead": 1,
+      "srcRead": 3,
+      "question": 0,
+      "issueLog": 15
+    },
+    "tokenMetrics": {
+      "input": 5365735,
+      "output": 131561,
+      "cacheRead": 8088960,
+      "cacheCreation": 0,
+      "cost": null,
+      "callCount": 100,
+      "durationMs": 3476722,
+      "phaseDurations": [
+        {
+          "phase": "review-draft-questions",
+          "durationMs": 9458
+        },
+        {
+          "phase": "review-draft-coverage",
+          "durationMs": 9258
+        },
+        {
+          "phase": "gate-draft",
+          "durationMs": 84823
+        },
+        {
+          "phase": "review-spec",
+          "durationMs": 213722
+        },
+        {
+          "phase": "gate",
+          "durationMs": 30032
+        },
+        {
+          "phase": "review-test",
+          "durationMs": 664930
+        },
+        {
+          "phase": "review",
+          "durationMs": 456225
+        },
+        {
+          "phase": "gate-impl",
+          "durationMs": 2008274
+        }
+      ]
+    },
+    "tests": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "verdict": "pass",
+      "invalidReason": null,
+      "rawOutputPath": "specs/267-runtime-log-standardization/tests/.raw/test-execution.log",
+      "projectRegression": {
+        "required": false,
+        "result": "skipped",
+        "mode": "none",
+        "category": "full-regression-deferred",
+        "reason": "full project regression deferred to final-regression",
+        "classified_paths": [
+          {
+            "path": "src/flow.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/get-runtime-log.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/lib/run-report-show.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/flow/registry.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/dispatcher.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-manager.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/flow-store.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "src/lib/runtime-log.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/commands/review.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/flow/get-step-instructions.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/lib/command-registry.test.js",
+            "category": "full-regression-deferred"
+          },
+          {
+            "path": "tests/unit/lib/dispatcher.test.js",
+            "category": "full-regression-deferred"
+          }
+        ],
+        "trigger_relevant_changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/get-runtime-log.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report-show.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          },
+          {
+            "status": "added",
+            "path": "src/lib/runtime-log.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-step-instructions.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/command-registry.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher.test.js"
+          }
+        ],
+        "changed_files": [
+          {
+            "status": "modified",
+            "path": "src/flow.js"
+          },
+          {
+            "status": "added",
+            "path": "src/flow/lib/get-runtime-log.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/lib/run-report-show.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/flow/registry.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/dispatcher.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-manager.js"
+          },
+          {
+            "status": "modified",
+            "path": "src/lib/flow-store.js"
+          },
+          {
+            "status": "added",
+            "path": "src/lib/runtime-log.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/commands/review.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/flow/get-step-instructions.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/command-registry.test.js"
+          },
+          {
+            "status": "modified",
+            "path": "tests/unit/lib/dispatcher.test.js"
+          }
+        ]
+      },
+      "finalRegression": {
+        "status": "done",
+        "result": "fail",
+        "failureKind": "child_process_eperm",
+        "rawOutputPath": "specs/267-runtime-log-standardization/tests/.raw/final-regression-attempt-001.log",
+        "retryable": false,
+        "nextAction": "stop"
+      }
+    },
+    "sync": {
+      "status": "skipped",
+      "reason": "sync was skipped"
+    },
+    "tasks": [],
+    "taskTotal": 0,
+    "tasksTruncated": 0,
+    "broadModeHistory": [],
+    "broadModeHistoryTotal": 0,
+    "broadModeHistoryTruncated": 0
+  },
+  "text": "  Report\n\n  Implementation\n  ────────────────────────────────────────────────\n    feat: standardize flow runtime logging\n    46 files changed, 6679 insertions(+), 158 deletions(-)\n\n  Retro\n  ────────────────────────────────────────────────\n    -\n\n  Metrics\n  ────────────────────────────────────────────────\n    docs read ................... 1\n    src read .................... 3\n    Q&A ......................... 0\n    issue-log ................... 15\n    agent calls ................. 100\n    input tokens ................ 5,365,735\n    output tokens ............... 131,561\n    cache-read tokens ........... 8,088,960\n    cache-create tokens ......... 0\n    cost ........................ N/A+\n    duration (total) ............ 3476.7s\n      review-draft-questions .... 9.5s\n      review-draft-coverage ..... 9.3s\n      gate-draft ................ 84.8s\n      review-spec ............... 213.7s\n      gate ...................... 30.0s\n      review-test ............... 664.9s\n      review .................... 456.2s\n      gate-impl ................. 2008.3s\n\n  Tests\n  ────────────────────────────────────────────────\n    total 12  passed 12  failed 0 verdict=pass\n    raw_output: specs/267-runtime-log-standardization/tests/.raw/test-execution.log\n    Project regression: required=false result=skipped mode=none category=full-regression-deferred\n    Final regression: result=fail failureKind=child_process_eperm\n\n  Issue Log Summary (35 total)\n  ────────────────────────────────────────────────\n    Full issue log: specs/267-runtime-log-standardization/issue-log.json\n\n    Important (10 of 22)\n    - [gate-draft] gate-draft failed because draft approval remained false after coverage review despite no unresolved user decision\n    - [gate-draft] gate-draft failed because QA rationale omitted explicit basis wording and --log-file removal lacked a migration-plan sentence\n    - [gate-draft] gate-draft failed because step-associated and non-step command terms were not defined enough for complete-context\n    - [gate-draft] gate-draft failed because two QA rationale fields did not use the exact allowed basis category wording\n    - [gate-draft] gate-draft failed because qa[1].why did not use the exact allowed guardrail basis category wording\n    - [gate-draft] gate retry limit exhausted: 5/5 FAIL attempts recorded for phase \"draft\".\nCounter breakdown: AI-FAIL=5\nPrevious FAIL reasons:\n  attempt 1: draft approval is required: set approval.approved = true; draft-review: draft approval.approved mu...\n    - [gate-draft] retry recovery command failed because flow set retry reset gate draft is not a supported recovery target\n    - [gate-draft] manual retry reset was applied because public retry recovery does not support gate draft despite the user approving one more evaluation\n    - [gate] spec gate failed because impact on existing features was not explicit and bounded resource constraints lacked the 5 MiB limit\n    - [retry-recovery] test evidence updated for explicit multi-line stdout and runtime-log exclusion checks\n    ... 12 important issue-log entries omitted\n\n    Recent Other (5 of 13)\n    - [gate-impl] fix: R6 dynamic gate/review step fallback and R12 prepare/get/set stdout-stderr coverage added before rerunning gate\n    - [gate] Start records include runId, sequence, attempt, command, and startedAt, but do not include endedAt or exitCode.; Capture tees stdout/stderr into one block and preserves streams, but partial interleaved writes can place a [stderr] prefix ...\n    - [gate-impl] fix: R4 start metadata fields and R5 partial interleaved stream prefix handling before rerunning gate\n    - [gate] Capture only tees process streams when custom stdout/stderr callbacks are provided; default dispatcher writes via wrapped process streams can preserve visible output, but injected writeOut/writeErr paths are skipped unless stdout/stderr ...\n    - [gate-impl] fix: R5 explicitly captures dispatcher stdout/stderr writes and suppresses duplicate process-stream capture before rerunning gate\n    ... 8 other issue-log entries omitted"
+}

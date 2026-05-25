@@ -1,0 +1,78 @@
+{
+  "spec": "specs/267-runtime-log-standardization/spec.json",
+  "date": "2026-05-25T04:23:11.998Z",
+  "mode": "result-file",
+  "requirements": [
+    {
+      "desc": "Every sdd-forge flow command group except flow get runtime-log shall open a runtime log block before command execution and close it after success or failure.",
+      "status": "done",
+      "note": "R1: flow get status opens and closes an automatic runtime log block"
+    },
+    {
+      "desc": "Runtime log blocks shall be appended to .tmp/logs/<flowId>.log, with flowId derived from the active flow spec id or no-flow when no active flow exists.",
+      "status": "done",
+      "note": "R2: active-flow and no-flow commands append to the required root .tmp log files"
+    },
+    {
+      "desc": "The sequence value shall be assigned by counting existing start blocks in the target log file before appending the new block.",
+      "status": "done",
+      "note": "R3: repeated commands append increasing sequence blocks to the same log file"
+    },
+    {
+      "desc": "Each runtime log block shall include start and end records containing runId, sequence, attempt, command, startedAt, endedAt, and exitCode.",
+      "status": "done",
+      "note": "R4: runtime log blocks record complete command metadata and exit code"
+    },
+    {
+      "desc": "stdout and stderr writes shall be copied into the same block in observed write order, with each emitted line prefixed [stdout] or [stderr], while preserving the original stdout/stderr streams.",
+      "status": "done",
+      "note": "R5: runtime logs tee stdout and stderr with prefixes while preserving visible streams"
+    },
+    {
+      "desc": "Step-associated commands shall persist runtimeLog metadata on their workflow step without storing file names or paths, except finalize-cleanup which is excluded because it commits and removes flow state before dispatcher finalization.",
+      "status": "done",
+      "note": "R6: step-associated commands persist path-free runtimeLog metadata and exclude finalize-cleanup"
+    },
+    {
+      "desc": "Non-step flow commands shall not add runtimeLog metadata to flow.json; on failure they shall expose runtimeLog.runId and runtimeLog.sequence in the envelope or stderr.",
+      "status": "done",
+      "note": "R7: failed non-step commands expose runtimeLog identifiers without step metadata"
+    },
+    {
+      "desc": "sdd-forge flow get runtime-log shall return the selected block as raw stdout by default and shall return an envelope containing text, runId, sequence, command, startedAt, endedAt, and exitCode when --format json is supplied.",
+      "status": "done",
+      "note": "R8: flow get runtime-log returns raw text and JSON envelope output"
+    },
+    {
+      "desc": "flow get runtime-log shall select the latest non-runtime-log block for the active flow by default, select .tmp/logs/no-flow.log when no active flow exists, support --sequence <n>, and support --run-id <runId>#<sequence>.",
+      "status": "done",
+      "note": "R9: flow get runtime-log selects latest, sequence, run-id, and no-flow blocks"
+    },
+    {
+      "desc": "--log-file shall be removed from flow run argument parsing, command help, generated skills, source skills, and tests.",
+      "status": "done",
+      "note": "R10: --log-file is removed from registry, help, source skills, generated skills, and tests"
+    },
+    {
+      "desc": "Tests shall cover stdout/stderr capture for prepare, get, set, run, and report show paths, metadata persistence for step-associated commands, non-step failure runtimeLog exposure, runtime-log retrieval, and --log-file removal.",
+      "status": "done",
+      "note": "R12: prepare, get, set, run, and report show paths preserve and log stderr"
+    },
+    {
+      "desc": "flow report show failures shall return or throw through the dispatcher instead of calling process.exit directly, so runtime log blocks close with endedAt and exitCode.",
+      "status": "done",
+      "note": "R13: flow report show failures return through dispatcher and close runtime logs"
+    }
+  ],
+  "unplanned": [],
+  "summary": {
+    "total": 12,
+    "done": 12,
+    "partial": 0,
+    "not_done": 0,
+    "na_count": 1,
+    "not_testable_count": 1,
+    "rate": 1,
+    "notes": "aggregated from test-execute-result.json"
+  }
+}
