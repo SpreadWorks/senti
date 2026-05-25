@@ -1,0 +1,69 @@
+[sdd-forge] spec-local tests start
+command: node --test specs/267-summarize-issue-log-report/tests/issue-log-summary.test.js
+TAP version 13
+# Subtest: issue-log summary report
+    # Subtest: R1: records total count and full issue-log artifact path
+    ok 1 - R1: records total count and full issue-log artifact path
+      ---
+      duration_ms: 22.876485
+      type: 'test'
+      ...
+    # Subtest: R2: classifies important entries by field keywords and failure-origin rules
+    ok 2 - R2: classifies important entries by field keywords and failure-origin rules
+      ---
+      duration_ms: 1.76561
+      type: 'test'
+      ...
+    # Subtest: R3: stores only important entries up to 10 and recent other entries up to 5
+    ok 3 - R3: stores only important entries up to 10 and recent other entries up to 5
+      ---
+      duration_ms: 0.545323
+      type: 'test'
+      ...
+    # Subtest: R4: renders summary sections and omitted counts
+    ok 4 - R4: renders summary sections and omitted counts
+      ---
+      duration_ms: 0.593644
+      type: 'test'
+      ...
+    # Subtest: R5: handles zero, one, and two entries without omitted-count text
+    ok 5 - R5: handles zero, one, and two entries without omitted-count text
+      ---
+      duration_ms: 1.182646
+      type: 'test'
+      ...
+    # Subtest: R6: preserves issue-log load and save format
+    ok 6 - R6: preserves issue-log load and save format
+      ---
+      duration_ms: 1.995011
+      type: 'test'
+      ...
+    # Subtest: R6: leaves full issue-log input untouched and keeps cleanup display on report text
+    ok 7 - R6: leaves full issue-log input untouched and keeps cleanup display on report text
+      ---
+      duration_ms: 1.83877
+      type: 'test'
+      ...
+    1..7
+ok 1 - issue-log summary report
+  ---
+  duration_ms: 32.829339
+  type: 'suite'
+  ...
+1..1
+# tests 7
+# suites 1
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 180.633622
+exitCode: 0
+[sdd-forge] requirement R1 result pass
+[sdd-forge] requirement R2 result pass
+[sdd-forge] requirement R3 result pass
+[sdd-forge] requirement R4 result pass
+[sdd-forge] requirement R5 result pass
+[sdd-forge] requirement R6 result pass
+[sdd-forge] spec-local tests end

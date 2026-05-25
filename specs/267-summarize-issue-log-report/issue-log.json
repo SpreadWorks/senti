@@ -1,0 +1,598 @@
+{
+  "entries": [
+    {
+      "step": "draft",
+      "reason": "Metric recording used invalid phase plan before draft phase metrics were validated",
+      "trigger": "sdd-forge flow set metric plan srcRead returned INVALID_PHASE",
+      "resolution": "Recorded the source read metric under the valid draft phase and continued with draft context gathering",
+      "guardrailCandidate": "Use the valid metric phase list from the CLI before recording direct file-read metrics",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:01:01.717Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "draft approval is required: set approval.approved = true; draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:04:11.115Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft approval is required: set approval.approved = true",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "draft-review: draft approval.approved must be true after coverage repair when no user decision is unresolved",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Draft gate failed because approval.approved was still false after coverage review passed",
+      "trigger": "sdd-forge flow run gate --phase draft returned draft approval is required",
+      "resolution": "Set draft approval to true with autoApprove notes after all QA entries were answered and reviews passed",
+      "guardrailCandidate": "When coverage review finds no unresolved user decision, set draft approval before running gate-draft",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:04:24.714Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.; Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:04:49.201Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[0]"
+          },
+          "observed": "Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[1]"
+          },
+          "observed": "Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[2]"
+          },
+          "observed": "Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[3]"
+          },
+          "observed": "Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "prioritize-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[4]"
+          },
+          "observed": "Requirement-like in-scope item has no assigned priority of must, should, or nice-to-have.",
+          "severity": "blocking",
+          "refs": [
+            "prioritize-requirements"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Draft gate failed because scopeVerification.in requirements did not include must should or nice-to-have priorities",
+      "trigger": "sdd-forge flow run gate --phase draft reported prioritize-requirements violations",
+      "resolution": "Added explicit MUST and SHOULD priority markers to all in-scope draft requirement entries",
+      "guardrailCandidate": "When drafting more than three requirement entries, prefix each requirement with a priority marker before gate-draft",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:05:09.381Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "The requirement uses the ambiguous phrase \"force 系\" without defining the exact strings, fields, or matching criteria, so reviewers may disagree on which entries are important.; The requirement says important items are detected by \"指定語句\" and failed steps but does not enumerate the exact terms or matching rules, so reviewers may disagree on satisfaction.; The requirement \"report 生成に関する unit test\" does not state measurable coverage or scenarios, so reviewers may disagree on whether the test requirement is satisfied.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:05:35.854Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft content",
+            "locator": "qa[1].question"
+          },
+          "observed": "The requirement uses the ambiguous phrase \"force 系\" without defining the exact strings, fields, or matching criteria, so reviewers may disagree on which entries are important.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft content",
+            "locator": "qa[1].answer"
+          },
+          "observed": "The requirement says important items are detected by \"指定語句\" and failed steps but does not enumerate the exact terms or matching rules, so reviewers may disagree on satisfaction.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "draft content",
+            "locator": "scopeVerification.in[4]"
+          },
+          "observed": "The requirement \"report 生成に関する unit test\" does not state measurable coverage or scenarios, so reviewers may disagree on whether the test requirement is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Draft gate failed because important issue-log criteria used ambiguous force-family wording and the test scope was not measurable",
+      "trigger": "sdd-forge flow run gate --phase draft reported complete-context violations",
+      "resolution": "Expanded important-entry matching terms and fields, and replaced the unit test scope with concrete report-generation scenarios",
+      "guardrailCandidate": "Replace family-style wording with exact terms and measurable test scenarios before gate-draft",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:06:12.181Z"
+    },
+    {
+      "step": "gate-draft",
+      "level": "parent",
+      "phase": "draft",
+      "reason": "Requirement uses the vague phrase \"少数 entries\" without stating a verifiable entry count or range.; Requirement asks tests to cover \"少数 entries\" but does not define how many entries qualifies, so independent reviewers could disagree on whether the condition is satisfied.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:06:31.094Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[4]"
+          },
+          "observed": "Requirement uses the vague phrase \"少数 entries\" without stating a verifiable entry count or range.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "scopeVerification.in[4]"
+          },
+          "observed": "Requirement asks tests to cover \"少数 entries\" but does not define how many entries qualifies, so independent reviewers could disagree on whether the condition is satisfied.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate-draft",
+      "reason": "Draft gate failed because the test scenario used the vague phrase small entries without numeric counts",
+      "trigger": "sdd-forge flow run gate --phase draft reported unambiguous-requirements and complete-context violations",
+      "resolution": "Replaced the vague small-entry scenario with explicit zero one and two entry cases",
+      "guardrailCandidate": "Use concrete numeric ranges in draft test requirements instead of qualitative size words",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:06:48.531Z"
+    },
+    {
+      "step": "spec-repair",
+      "reason": "Spec review found gate failures could be missed because gate issue-log entries use level instead of result status or failureKind",
+      "trigger": "sdd-forge flow run review --phase spec returned blocking finding for R2 and appendIssueLogFromGateResult",
+      "resolution": "Added level to R2 important-entry matching and failure-origin clarification, with spec-repair audit artifact",
+      "guardrailCandidate": "When specs classify issue-log failures, verify every existing issue-log writer field shape before review",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:12:47.816Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "Requirement R5 uses the vague condition \"without misleading omitted counts\" without defining which omitted-count text is allowed or prohibited for 1-entry and 2-entry cases.; Requirement R5 depends on the subjective phrase \"misleading omitted counts\"; two reviewers could disagree on whether an implementation satisfies it for 1-entry and 2-entry cases.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:13:17.932Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "unambiguous-requirements",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[4].desc"
+          },
+          "observed": "Requirement R5 uses the vague condition \"without misleading omitted counts\" without defining which omitted-count text is allowed or prohibited for 1-entry and 2-entry cases.",
+          "severity": "blocking",
+          "refs": [
+            "unambiguous-requirements"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "complete-context",
+          "where": {
+            "file": "spec.json",
+            "locator": "$.requirements[4].desc"
+          },
+          "observed": "Requirement R5 depends on the subjective phrase \"misleading omitted counts\"; two reviewers could disagree on whether an implementation satisfies it for 1-entry and 2-entry cases.",
+          "severity": "blocking",
+          "refs": [
+            "complete-context"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "reason": "Spec gate failed because R5 used the subjective phrase misleading omitted counts",
+      "trigger": "sdd-forge flow run gate reported unambiguous-requirements and complete-context violations for R5",
+      "resolution": "Rewrote R5 and acceptance criteria to prohibit concrete omitted-count phrases when no entries are hidden",
+      "guardrailCandidate": "Avoid subjective report wording by specifying exact text fragments that must or must not appear",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:13:51.148Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "The spec does not list the impact on existing features or explicitly state that no existing features are affected.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:14:10.433Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "impact-on-existing-features",
+          "where": {
+            "file": "spec.json",
+            "locator": "document"
+          },
+          "observed": "The spec does not list the impact on existing features or explicitly state that no existing features are affected.",
+          "severity": "blocking",
+          "refs": [
+            "impact-on-existing-features"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "reason": "Spec gate failed because impact on existing features was not explicitly listed in a gate-detectable spec field",
+      "trigger": "sdd-forge flow run gate reported impact-on-existing-features violation",
+      "resolution": "Added Impact on Existing Features text to background and impactOnExisting list with report text, report.json, issue-log persistence, and finalize-cleanup impacts",
+      "guardrailCandidate": "Spec writing should include an explicit Impact on Existing Features section when behavior changes existing output",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:14:42.583Z"
+    },
+    {
+      "step": "gate",
+      "level": "parent",
+      "phase": "spec",
+      "reason": "schema: spec.json failed schema validation: impactOnExisting: unknown field",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:14:46.724Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "process-evidence-missing",
+          "requirementRef": "process:gate-structure",
+          "where": null,
+          "observed": "schema: spec.json failed schema validation: impactOnExisting: unknown field",
+          "severity": "blocking",
+          "refs": [
+            "process:diff-verifiable"
+          ]
+        }
+      ],
+      "passedGuardrails": []
+    },
+    {
+      "step": "gate",
+      "reason": "Spec gate failed because impactOnExisting was added as an unknown top-level spec.json field",
+      "trigger": "sdd-forge flow run gate reported schema validation unknown field impactOnExisting",
+      "resolution": "Removed the schema-invalid field and kept the Impact on Existing Features section inside background",
+      "guardrailCandidate": "Do not add draft-only fields to spec.json; keep impact text inside schema-supported fields",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:15:07.660Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "Static test review failed because R2 field coverage and R6 preserved-behavior coverage were incomplete",
+      "trigger": "sdd-forge flow run review --phase test returned two blocking findings",
+      "resolution": "Expanded R2 test cases across missing fields and added R6 load-save plus report-text display path checks",
+      "guardrailCandidate": "Spec-local tests must cover every field named by a must requirement and each explicit must-preserve behavior",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:18:55.739Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "Static test review failed because result-field keyword matching lacked a standalone R2 test case",
+      "trigger": "sdd-forge flow run review --phase test returned Missing result-field importance coverage",
+      "resolution": "Added ordinary result and direct failureKind field cases to the R2 spec-local test",
+      "guardrailCandidate": "For field-level matching requirements, include at least one standalone test case for every named field",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:19:53.808Z"
+    },
+    {
+      "step": "review-test",
+      "reason": "Static test review failed because level keyword coverage was conflated with the gate failure special case",
+      "trigger": "sdd-forge flow run review --phase test returned R2 level-field keyword coverage finding",
+      "resolution": "Split R2 coverage into generic field keyword matching and failure-origin rule inputs, including a non-gate level keyword case",
+      "guardrailCandidate": "Avoid conflating generic field matching cases with special-case origin rules in spec-local tests",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:21:07.314Z"
+    },
+    {
+      "step": "gate-impl",
+      "reason": "Integration gate stopped before evaluation because file-map.json was missing",
+      "trigger": "sdd-forge flow run gate returned ARTIFACT_PLACEHOLDER file-map.json missing",
+      "resolution": "Recorded R1 through R6 file mappings to src/flow/commands/report.js using flow set files",
+      "guardrailCandidate": "Record requirement file mappings before running gate-impl after implementation",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:27:49.302Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "Spec-local R6 test failed because it asserted cleanup source imports unrelated to report display behavior",
+      "trigger": "test-execute raw log showed run-finalize-cleanup.js contains loadIssueLog for existing orphan recovery logic",
+      "resolution": "Removed the brittle source-text assertion and kept behavior coverage through readReportText",
+      "guardrailCandidate": "Avoid source-text assertions for preserved behavior when a stable executable helper covers the contract",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:28:29.088Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "The diff adds IssueLogSummaryEntry as a new class whose only production use is inside IssueLogSummary mapping, and it only stores a source object/classification plus formats three fields; the same behavior could be local object construction without adding a separate API surface or ownership boundary.; The diff adds IssueLogSummary as a new class with a single production construction site in generateReport(), committing to a non-trivial report-summary abstraction without evidence in the spec or issue-log that this class/layer design direction was confirmed before implementation.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:30:33.978Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/commands/report.js",
+            "locator": "IssueLogSummaryEntry class"
+          },
+          "observed": "The diff adds IssueLogSummaryEntry as a new class whose only production use is inside IssueLogSummary mapping, and it only stores a source object/classification plus formats three fields; the same behavior could be local object construction without adding a separate API surface or ownership boundary.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/commands/report.js",
+            "locator": "IssueLogSummary class"
+          },
+          "observed": "The diff adds IssueLogSummary as a new class with a single production construction site in generateReport(), committing to a non-trivial report-summary abstraction without evidence in the spec or issue-log that this class/layer design direction was confirmed before implementation.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "Integration gate failed no-overengineering because IssueLogSummaryEntry was a thin single-use class and IssueLogSummary lacked artifact evidence for the class design",
+      "trigger": "sdd-forge flow run gate reported no-overengineering observations for IssueLogSummaryEntry and IssueLogSummary",
+      "resolution": "Removed the thin IssueLogSummaryEntry class and consolidated serialization into IssueLogSummary, which retains bounded summary invariants required by project OOP rules",
+      "guardrailCandidate": "When introducing a class for a single caller, ensure it owns meaningful invariants and record design evidence before gate-impl",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:31:15.145Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Implementation matches keyword fields, but failure-origin logic treats any truthy failureKind as important instead of requiring failureKind to indicate failure via fail/failed/error/blocked matching.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:34:46.414Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "spec-impl-mismatch",
+          "requirementRef": "R2",
+          "where": null,
+          "observed": "Implementation matches keyword fields, but failure-origin logic treats any truthy failureKind as important instead of requiring failureKind to indicate failure via fail/failed/error/blocked matching.",
+          "severity": "blocking",
+          "refs": [
+            "R2"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "Integration gate failed because failure-origin classification treated any non-empty failureKind as important",
+      "trigger": "sdd-forge flow run gate reported R2 spec-impl mismatch for failureKind matching",
+      "resolution": "Changed failureKind origin matching to require fail failed error or blocked terms and adjusted the spec-local final-regression case to use the reason failure signal",
+      "guardrailCandidate": "Do not broaden failure-origin rules beyond the exact signal terms described in spec clarifications",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:35:17.514Z"
+    },
+    {
+      "step": "test-execute",
+      "reason": "Spec-local R2 test expectation still used the old final-regression reason after aligning the fixture with failure signal wording",
+      "trigger": "test-execute raw log showed expected project regression but actual final-regression failed reason",
+      "resolution": "Updated the expected important reason to final-regression failed caused_by_current_change",
+      "guardrailCandidate": "When changing test fixture text, update expected values in the same patch before rerunning test-execute",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:36:51.881Z"
+    },
+    {
+      "step": "gate",
+      "level": "integration",
+      "phase": "integration",
+      "reason": "Duplicate failure-signal checks were introduced for level, result, status, and failureKind using the same control-flow shape; a local helper over those fields could remove the repeated production logic.; Duplicate subsection rendering control flow was introduced for Important and Recent Other sections: filter entries, conditionally push a title, loop entries, and conditionally push an omitted line. A local helper could remove the repeated production rendering shape.",
+      "trigger": "gate post hook (auto)",
+      "timestamp": "2026-05-25T03:39:51.270Z",
+      "observations": [
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/commands/report.js",
+            "locator": "IssueLogSummary.isImportant"
+          },
+          "observed": "Duplicate failure-signal checks were introduced for level, result, status, and failureKind using the same control-flow shape; a local helper over those fields could remove the repeated production logic.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        },
+        {
+          "kind": "violation",
+          "failureMode": "guardrail-violation",
+          "requirementRef": "no-overengineering",
+          "where": {
+            "file": "src/flow/commands/report.js",
+            "locator": "formatText issue-log summary rendering"
+          },
+          "observed": "Duplicate subsection rendering control flow was introduced for Important and Recent Other sections: filter entries, conditionally push a title, loop entries, and conditionally push an omitted line. A local helper could remove the repeated production rendering shape.",
+          "severity": "blocking",
+          "refs": [
+            "no-overengineering"
+          ]
+        }
+      ],
+      "passedGuardrails": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ]
+    },
+    {
+      "step": "gate-impl",
+      "reason": "Integration gate failed no-overengineering because failure-signal checks and issue-log subsection rendering duplicated control-flow shapes",
+      "trigger": "sdd-forge flow run gate reported duplicate failure-signal checks and duplicate subsection rendering observations",
+      "resolution": "Extracted entryHasFailureSignal and pushIssueLogGroup helpers to remove repeated production logic",
+      "guardrailCandidate": "When adding parallel rendering or field-check branches, extract the shared shape before gate-impl",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:40:22.370Z"
+    },
+    {
+      "step": "final-regression",
+      "result": "fail",
+      "failureKind": "unattributed_existing_failure",
+      "reason": "final-regression failed: unattributed_existing_failure",
+      "command": "npm test --",
+      "rawOutputPath": "specs/267-summarize-issue-log-report/tests/.raw/final-regression-attempt-001.log",
+      "retryable": false,
+      "nextAction": "user-confirmation",
+      "timestamp": "2026-05-25T03:46:21.047Z"
+    },
+    {
+      "step": "final-regression",
+      "reason": "final-regression reported unattributed_existing_failure for npm test --",
+      "trigger": "final-regression-attempt-001 exited 1 with no actionable current-change failure in the retained raw log",
+      "resolution": "User selected [1] to record the existing project-test failure and continue finalization",
+      "guardrailCandidate": "When final-regression returns unattributed_existing_failure with user-confirmation, preserve the artifact path and require an explicit user decision before finalization",
+      "taskId": null,
+      "timestamp": "2026-05-25T03:56:23.298Z"
+    }
+  ]
+}

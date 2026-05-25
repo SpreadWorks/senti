@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "phase": "spec-review-triage",
+  "sourceReview": "spec-review.json",
+  "summary": "1 blocking finding applies: gate failure entries can signal failure through level, so R2 must include level in important-entry criteria.",
+  "items": [
+    {
+      "title": "Gate failures are not covered by the specified failure fields",
+      "target": "R2 / src/flow/lib/run-gate.js appendIssueLogFromGateResult",
+      "decision": "apply",
+      "rationale": "The finding matches the current gate issue-log writer. Gate failure entries may not include result, status, or failureKind, so the spec must classify failing level values as important.",
+      "evidence": "src/flow/lib/run-gate.js appendIssueLogFromGateResult writes step, level, phase, reason, trigger, timestamp, observations, and passedGuardrails. It does not write result/status/failureKind."
+    }
+  ]
+}

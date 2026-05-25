@@ -1,0 +1,113 @@
+{
+  "devType": "feature",
+  "goal": "finalize report の issue-log 表示を重要項目と直近通常項目の要約にし、report 本文と report.json には要約のみを保持する",
+  "analysis": {
+    "problem": "現在の finalize report は issue-log entries をそのまま report 本文に展開するため、長い flow では重要な失敗・復旧・回避事項を探しにくい。report.json にも全文 entries が残るため、report artifact 自体が肥大化しやすい。",
+    "proposedApproach": "report 生成側で issue-log entries を要約構造へ変換し、重要項目と直近通常項目に分けて report text と report.json に保持する。全文は既存の specs/<spec>/issue-log.json を正本として残し、report にはその参照パスを表示する。",
+    "validation": "src/flow/commands/report.js の generateReport() は loadIssueLog() 由来の entries を count と entries に変換し、formatText() が Issue Log セクションで全 entries を列挙している。src/flow/lib/run-report.js と src/flow/lib/run-finalize.js は既存 issue-log.json を読み込んで generateReport() に渡すため、report 生成側に閉じた変更で目的を満たせる。"
+  },
+  "decisionMap": {
+    "knownFacts": [
+      "Issue #343 は finalize report / cleanup report の issue-log 全文表示が読みにくいことを問題としている。",
+      "Issue #343 は report 本文と report.json には要約のみを保持し、全文は specs/<spec>/issue-log.json を正本として参照させると定めている。",
+      "src/flow/commands/report.js の generateReport() は issueLog.entries 全件から report.json の issueLog.entries を作り、formatText() は Issue Log セクションで全件を表示している。",
+      "src/flow/lib/set-issue-log.js の loadIssueLog() / saveIssueLog() は specs/<spec>/issue-log.json の entries 配列を正本として扱っている。",
+      "src/flow/lib/run-report.js と src/flow/lib/run-finalize.js は issue-log.json を読み込み、generateReport() に渡して report.json を保存する。"
+    ],
+    "decisionPoints": [
+      "重要項目の判定条件を step / reason / trigger / resolution / guardrailCandidate / result / status / failureKind に適用するか。",
+      "report.json の issueLog.entries に含める要約 entry の形をどう表すか。",
+      "重要項目が 10 件を超えた場合の overflow count を text と JSON のどちらにどう保持するか。",
+      "issue-log entries が 0 件、1 件、2 件の場合の表示をどう保つか。"
+    ],
+    "resolvedByProjectRules": [
+      "外部依存は追加しない。Node.js 組み込みモジュールと既存 report 生成コードの範囲で実装する。",
+      "alpha 版ポリシーに従い、旧 report.json 形式への後方互換変換は追加しない。",
+      "Issue #343 は report 生成側に限定された 1 concern として扱い、別 spec へ分割しない。",
+      "src/ 配下には特定プロジェクト固有の値を埋め込まず、spec path は既存 flow state から導出する。"
+    ],
+    "requiresUserJudgment": [
+      "なし。Issue #343 は重要項目の基準、通常項目の件数、重要項目の上限、全文 artifact 参照、finalize-cleanup の非変更範囲を具体的に定めている。"
+    ],
+    "deferredToSpec": [
+      "重要判定で参照する文字列の大文字小文字正規化と部分一致の詳細。",
+      "report.json の issueLog summary schema と既存 formatText() からの表示方法。",
+      "generateReport() に対する unit test ケースと fixture の構成。",
+      "issue-log entries が空の場合、重要項目のみの場合、通常項目のみの場合の text 出力条件。"
+    ]
+  },
+  "scopeVerification": {
+    "in": [
+      "[MUST] src/flow/commands/report.js の generateReport() が作る issueLog data と report text の Issue Log 表示",
+      "[MUST] report.json の issueLog セクションに保持される entries の要約化",
+      "[MUST] 全文 issue-log artifact 参照パスの report text / report.json への保持",
+      "[MUST] 重要項目 10 件上限、通常項目直近 5 件、overflow count の表示",
+      "[SHOULD] generateReport() の unit test で、entries 0 件、entries 1 件、entries 2 件、重要項目、直近通常 5 件、重要項目 10 件超過、report.json の要約 entries、全文 artifact path を検証する"
+    ],
+    "out": [
+      "specs/<spec>/issue-log.json の保存形式変更",
+      "issue-log entry 作成コマンドや gate / review / final-regression 側の記録形式変更",
+      "finalize-cleanup の report 表示ロジック変更",
+      "metrics token コマンドなど report 以外の issue-log 集計仕様変更"
+    ]
+  },
+  "impactOnExisting": [
+    "長い issue-log を持つ flow の finalize report text が短くなり、重要項目と直近通常項目のみを表示する。",
+    "report.json の data.issueLog.entries は全文 entries ではなく要約対象 entries のみになる。",
+    "全文の詳細確認は既存 specs/<spec>/issue-log.json を参照する運用になる。",
+    "issue-log.json 自体の保存形式と既存 issue-log 書き込み経路は変更しない。",
+    "finalize-cleanup は既存どおり report.json の text を表示するだけで、要約ロジックは report 生成側に閉じる。"
+  ],
+  "qa": [
+    {
+      "id": "q1",
+      "status": "answered",
+      "category": "goal-confirmation",
+      "question": "finalize report の issue-log 表示は、report 本文と report.json には要約だけを保持し、全文は specs/<spec>/issue-log.json を正本として参照する方針でよいか。",
+      "answer": "はい。report 本文と report.json には要約だけを保持し、全文は既存の specs/<spec>/issue-log.json を正本として参照する。",
+      "evidence": "Issue #343 の Goal は report body と report.json が summary のみを保持し、full log は existing specs/<spec>/issue-log.json を source of truth として参照すると明記している。src/flow/lib/set-issue-log.js は issue-log.json の entries 配列を loadIssueLog() / saveIssueLog() で管理している。",
+      "why": "report artifact の可読性を保ちつつ、詳細調査時は既存の正本 artifact に戻れる。issue-log.json の保存形式を変えないため、既存の gate / review / final-regression の記録経路にも影響しない。",
+      "considered": "report.json に全文 entries と要約の両方を保持する案は、長い flow で report artifact が肥大化する問題を残すため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q2",
+      "status": "answered",
+      "category": "acceptance-criteria",
+      "question": "重要項目は step / reason / trigger / resolution / guardrailCandidate / result / status / failureKind のいずれかに fail / failed / error / blocked / recovery / recover / workaround / force / forced が含まれる entry、または gate / review / final-regression の失敗 entry として機械判定し、最大 10 件まで表示する条件でよいか。",
+      "answer": "はい。重要項目は対象フィールドに fail / failed / error / blocked / recovery / recover / workaround / force / forced が含まれる entry、または step が gate / review / final-regression を示し result / status / failureKind が失敗を示す entry として判定する。表示上限は 10 件にし、10 件を超える場合は省略件数を示す。",
+      "evidence": "Issue #343 の Decisions は fail / error / blocked / recovery / workaround / force 系、および gate / review / final-regression 由来の失敗を重要扱いの目安としている。同じ Decisions は重要項目を最大 10 件まで表示し、超過分は件数だけ示すと定めている。src/flow/lib/set-issue-log.js は step / reason / trigger / resolution / guardrailCandidate を issue-log entry に保存し、final-regression や gate 系コードは result / status / failureKind を持つ entries を issue-log に追加している。",
+      "why": "重要項目の判定条件と上限が明示されているため、二人の reviewer が同じ基準で report text と report.json の内容を検証できる。",
+      "considered": "重要項目を全件表示する案は、Issue #343 が解決したい report の長大化を再発させるため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q3",
+      "status": "answered",
+      "category": "user-visible-behavior",
+      "question": "通常項目は重要項目に含まれない entries の直近 5 件を表示し、全体件数と省略件数が分かる表示にする条件でよいか。",
+      "answer": "はい。通常項目は重要項目に含まれない entries の直近 5 件を表示し、全体件数と表示件数の関係が分かる表示にする。",
+      "evidence": "Issue #343 の Decisions は通常項目を重要項目に含まれない entries の直近 5 件とし、表示イメージでは `Recent Other (5 of 9)` のように全体数との関係を示している。",
+      "why": "直近の通常項目を確認しつつ、全件を report に展開しないため、report の短さと調査導線を両立できる。",
+      "considered": "通常項目を非表示にする案は、直近の通常 issue-log を report 上で把握したいという要求を満たさないため採用しない。",
+      "droppedReason": ""
+    },
+    {
+      "id": "q4",
+      "status": "answered",
+      "category": "constraint-non-goal",
+      "question": "実装スコープは report 生成側に限定し、finalize-cleanup は report.json の text を表示する既存責務のまま変更しない方針でよいか。",
+      "answer": "はい。実装スコープは report 生成側に限定し、finalize-cleanup は report.json の text を表示する既存責務のまま変更しない。",
+      "evidence": "Issue #343 の Decisions は implementation scope を report generation side に限定し、finalize-cleanup は existing report.json text を as-is で表示すると明記している。src/flow/lib/run-report.js と src/flow/lib/run-finalize.js は generateReport() を通じて report.json を保存し、finalize-cleanup は report text の表示導線を担う。",
+      "why": "要約責務を report 生成に閉じると、cleanup 側の表示責務を変えずに全表示経路へ同じ要約結果を反映できる。",
+      "considered": "finalize-cleanup 側で text を再加工する案は、report.json と表示結果の二重管理になるため採用しない。",
+      "droppedReason": ""
+    }
+  ],
+  "openQuestions": [],
+  "approval": {
+    "approved": true,
+    "confirmedAt": "2026-05-25T03:03:00.000Z",
+    "notes": "autoApprove: all QA entries answered from Issue #343, project rules, and source context; draft question and coverage reviews passed with no unresolved user decision."
+  }
+}

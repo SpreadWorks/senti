@@ -7,7 +7,6 @@
 
 import fs from "fs";
 import path from "path";
-import { loadIssueLog } from "../lib/set-issue-log.js";
 import { buildMetricsSummary, buildReportTotals } from "../lib/get-status.js";
 import { buildBoundedBroadModeHistory } from "../lib/task-scope.js";
 import { pushSection, DIVIDER, formatDurationSeconds } from "../../lib/formatter.js";
@@ -15,11 +14,115 @@ import { BROAD_MODE_HISTORY_MAX_ENTRIES } from "../../lib/constants.js";
 
 const MAX_REPORT_TASK_ROWS = 100;
 const MAX_REPORT_FIELD_CHARS = 240;
+const MAX_IMPORTANT_ISSUE_LOG_ENTRIES = 10;
+const MAX_RECENT_OTHER_ISSUE_LOG_ENTRIES = 5;
+const IMPORTANT_TERMS = [
+  "fail",
+  "failed",
+  "error",
+  "blocked",
+  "recovery",
+  "recover",
+  "workaround",
+  "force",
+  "forced",
+];
+const FAILURE_ORIGIN_STEPS = ["gate", "review", "final-regression"];
+const FAILURE_SIGNAL_TERMS = ["fail", "failed", "error", "blocked"];
 
 function capReportField(value) {
   const text = String(value ?? "");
   if (text.length <= MAX_REPORT_FIELD_CHARS) return text;
   return `${text.slice(0, MAX_REPORT_FIELD_CHARS - 3)}...`;
+}
+
+function issueLogPathForSpec(specPath) {
+  if (!specPath) return null;
+  return path.join(path.dirname(specPath), "issue-log.json");
+}
+
+function lowerText(value) {
+  return String(value ?? "").toLowerCase();
+}
+
+function textIncludesAny(value, terms) {
+  const text = lowerText(value);
+  return terms.some((term) => text.includes(term));
+}
+
+function entryHasFailureSignal(entry) {
+  return [entry?.level, entry?.result, entry?.status, entry?.failureKind]
+    .some((value) => textIncludesAny(value, FAILURE_SIGNAL_TERMS));
+}
+
+class IssueLogSummary {
+  constructor({ entries, specPath }) {
+    this.total = entries.length;
+    this.fullLogPath = issueLogPathForSpec(specPath);
+    this.important = entries
+      .filter((entry) => this.isImportant(entry));
+    const importantSet = new Set(this.important);
+    this.recentOther = entries
+      .filter((entry) => !importantSet.has(entry))
+      .slice(-MAX_RECENT_OTHER_ISSUE_LOG_ENTRIES);
+  }
+
+  isImportant(entry) {
+    const fields = [
+      entry?.step,
+      entry?.level,
+      entry?.reason,
+      entry?.trigger,
+      entry?.resolution,
+      entry?.guardrailCandidate,
+      entry?.result,
+      entry?.status,
+      entry?.failureKind,
+    ];
+    if (fields.some((field) => textIncludesAny(field, IMPORTANT_TERMS))) return true;
+    if (!textIncludesAny(entry?.step, FAILURE_ORIGIN_STEPS)) return false;
+    return entryHasFailureSignal(entry);
+  }
+
+  importantShown() {
+    return this.important.slice(0, MAX_IMPORTANT_ISSUE_LOG_ENTRIES);
+  }
+
+  importantOmitted() {
+    return Math.max(0, this.important.length - this.importantShown().length);
+  }
+
+  toReportData() {
+    const shownImportant = this.importantShown();
+    const entries = [
+      ...shownImportant.map((entry) => this.toSummaryEntry(entry, "important")),
+      ...this.recentOther.map((entry) => this.toSummaryEntry(entry, "recent-other")),
+    ];
+    const recentOtherTotal = this.total - this.important.length;
+    return {
+      count: this.total,
+      fullLogPath: this.fullLogPath,
+      importantTotal: this.important.length,
+      importantShown: shownImportant.length,
+      importantOmitted: Math.max(0, this.important.length - shownImportant.length),
+      recentOtherTotal,
+      recentOtherShown: this.recentOther.length,
+      recentOtherOmitted: Math.max(0, recentOtherTotal - this.recentOther.length),
+      entries,
+    };
+  }
+
+  toSummaryEntry(entry, classification) {
+    if (!["important", "recent-other"].includes(classification)) {
+      throw new Error(`invalid issue-log summary classification: ${classification}`);
+    }
+    return {
+      classification,
+      step: capReportField(entry.step),
+      reason: capReportField(entry.reason),
+      resolution: entry.resolution ? capReportField(entry.resolution) : null,
+    };
+  }
 }
 
 /**
@@ -52,16 +155,9 @@ export function generateReport(input) {
     }
   }
 
-  // Redolog
+  // Issue log
   const entries = issueLog?.entries || [];
-  const issueLogData = {
-    count: entries.length,
-    entries: entries.map(e => ({
-      step: e.step,
-      reason: e.reason,
-      resolution: e.resolution || null,
-    })),
-  };
+  const issueLogData = new IssueLogSummary({ entries, specPath: state?.spec }).toReportData();
 
   // Metrics (derive from the single source of truth: buildMetricsSummary)
   const summary = buildMetricsSummary(state.metrics || []);
@@ -219,6 +315,27 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function summaryGroupTitle(label, shown, total) {
+  return shown === total ? `${label} (${shown})` : `${label} (${shown} of ${total})`;
+}
+
+function omittedLine(count, label) {
+  const noun = count === 1 ? "entry" : "entries";
+  return `    ... ${count} ${label} issue-log ${noun} omitted`;
+}
+
+function pushIssueLogGroup(lines, { title, entries, total, omitted, omittedLabel }) {
+  if (entries.length === 0) return;
+  lines.push("");
+  lines.push(`    ${summaryGroupTitle(title, entries.length, total)}`);
+  for (const entry of entries) {
+    lines.push(`    - [${entry.step}] ${entry.reason}`);
+  }
+  if (omitted > 0) {
+    lines.push(omittedLine(omitted, omittedLabel));
+  }
+}
+
 /**
  * Push a section header (blank line + title + divider) onto lines.
  * @param {string[]} lines
@@ -352,12 +469,28 @@ function formatText(data) {
     }
   }
 
-  // Redo (only if entries exist)
+  // Issue log summary (only if entries exist)
   if (data.issueLog.count > 0) {
-    pushSection(lines, `Issue Log (${data.issueLog.count})`, thin);
-    for (const e of data.issueLog.entries) {
-      lines.push(`    [${e.step}] ${e.reason}`);
+    pushSection(lines, `Issue Log Summary (${data.issueLog.count} total)`, thin);
+    if (data.issueLog.fullLogPath) {
+      lines.push(`    Full issue log: ${data.issueLog.fullLogPath}`);
     }
+    const important = data.issueLog.entries.filter((entry) => entry.classification === "important");
+    pushIssueLogGroup(lines, {
+      title: "Important",
+      entries: important,
+      total: data.issueLog.importantTotal,
+      omitted: data.issueLog.importantOmitted,
+      omittedLabel: "important",
+    });
+    const recentOther = data.issueLog.entries.filter((entry) => entry.classification === "recent-other");
+    pushIssueLogGroup(lines, {
+      title: "Recent Other",
+      entries: recentOther,
+      total: data.issueLog.recentOtherTotal,
+      omitted: data.issueLog.recentOtherOmitted,
+      omittedLabel: "other",
+    });
   }
 
   return lines.join("\n");

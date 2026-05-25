@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "phase": "spec-repair",
+  "sourceReview": "spec-review-triage.json",
+  "summary": "Applied the gate failure field repair by including level in important-entry matching and failure-origin clarification.",
+  "items": [
+    {
+      "title": "Gate failures are not covered by the specified failure fields",
+      "target": "R2 / src/flow/lib/run-gate.js appendIssueLogFromGateResult",
+      "decision": "applied",
+      "rationale": "R2 now treats level as an important-entry matching field and as a failure signal for gate/review/final-regression entries. The clarification now states that gate issue-log entries may carry failure signal in level.",
+      "evidence": "spec.json requirements[1].desc and clarifications[2].a now include level. src/flow/lib/run-gate.js appendIssueLogFromGateResult writes level without result/status/failureKind.",
+      "changedFields": [
+        "requirements[1].desc",
+        "clarifications[2].a"
+      ]
+    }
+  ]
+}
