@@ -1,5 +1,5 @@
 {
-  "analyzedAt": "2026-05-25T03:00:00.383Z",
+  "analyzedAt": "2026-05-25T03:57:16.789Z",
   "package": {
     "entries": [
       {
@@ -220,7 +220,7 @@
         ],
         "id": "7cccb0de",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -245,7 +245,7 @@
         ],
         "id": "8e7abcbd",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -268,7 +268,7 @@
         "usedBy": null,
         "id": "05590bea",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -288,7 +288,7 @@
         "usedBy": null,
         "id": "fdf0f411",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -309,7 +309,7 @@
         "usedBy": null,
         "id": "b9d76d8b",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -329,7 +329,7 @@
         "usedBy": null,
         "id": "39b2aa36",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -351,7 +351,7 @@
         ],
         "id": "e1379661",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -1155,7 +1155,7 @@
         "usedBy": null,
         "id": "f3ac0c38",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -1399,7 +1399,7 @@
         ],
         "id": "bbb893ea",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -1901,7 +1901,7 @@
         ],
         "id": "f6126150",
         "enrich": {
-          "attempts": 8
+          "attempts": 9
         }
       },
       {
@@ -1933,7 +1933,7 @@
         "usedBy": null,
         "id": "cb355898",
         "enrich": {
-          "attempts": 9
+          "attempts": 10
         }
       },
       {
@@ -2047,7 +2047,7 @@
         "usedBy": null,
         "id": "cf9f71e2",
         "enrich": {
-          "attempts": 6
+          "attempts": 7
         }
       },
       {
@@ -2260,7 +2260,7 @@
         "usedBy": null,
         "id": "1ab08f2b",
         "enrich": {
-          "attempts": 5
+          "attempts": 6
         }
       },
       {
@@ -2306,19 +2306,23 @@
         "usedBy": null,
         "id": "3a0db928",
         "enrich": {
-          "attempts": 3
+          "attempts": 4
         }
       },
       {
         "file": "src/flow/commands/report.js",
-        "hash": "38272e8b19c7dc779adc0b8387a93112",
-        "lines": 378,
-        "mtime": "2026-05-18T03:07:29.496Z",
+        "hash": "d7bcc1c133b54bea296530c65465fb81",
+        "lines": 511,
+        "mtime": "2026-05-25T03:57:06.875Z",
         "className": "report",
         "methods": [
           "generateReport",
           "saveReport",
           "capReportField",
+          "issueLogPathForSpec",
+          "lowerText",
+          "textIncludesAny",
+          "entryHasFailureSignal",
           "buildTaskReportRows",
           "taskStepResult",
           "taskArtifactResult",
@@ -2326,12 +2330,14 @@
           "requirementResultFromArtifact",
           "taskRequirementIds",
           "asArray",
+          "summaryGroupTitle",
+          "omittedLine",
+          "pushIssueLogGroup",
           "formatText"
         ],
         "imports": [
           "fs",
           "path",
-          "../lib/set-issue-log.js",
           "../lib/get-status.js",
           "../lib/task-scope.js",
           "../../lib/formatter.js",
@@ -2345,22 +2351,8 @@
         "usedBy": null,
         "id": "5f80ffd2",
         "enrich": {
-          "processedAt": "2026-05-20T01:10:31.634Z",
-          "attempts": 4
-        },
-        "summary": "Generates and persists the flow report aggregating task outcomes, metrics, and step results.",
-        "detail": "Implements `generateReport()` which assembles report rows from flow state and artifact results, applying per-field truncation (`MAX_REPORT_FIELD_CHARS`) and row caps (`MAX_REPORT_TASK_ROWS`). Combines metrics summaries, totals, and broad-mode history into both structured data and a human-readable text format. `saveReport()` writes `report.json` next to the spec, creating directories as needed. Pulls requirement/step results from issue logs and per-task artifacts, returning `unavailable` fallbacks when entries are missing.",
-        "chapter": "cli_commands",
-        "role": "flow-report-generator",
-        "keywords": [
-          "report",
-          "metrics",
-          "task results",
-          "summary",
-          "report.json",
-          "broad mode history",
-          "flow status"
-        ]
+          "attempts": 1
+        }
       },
       {
         "file": "src/flow/commands/review.js",
@@ -2555,8 +2547,24 @@
         "usedBy": null,
         "id": "331cf497",
         "enrich": {
-          "attempts": 2
-        }
+          "processedAt": "2026-05-25T03:57:50.884Z",
+          "attempts": 3
+        },
+        "summary": "Implements the `flow review` command with phase-specific review pipelines for draft, spec, implementation, and test artifacts. It orchestrates AI-assisted analysis, scope filtering, retry loops, and artifact persistence.",
+        "detail": "The module routes review execution by phase and resolves context such as merge base, touched files, requirement IDs, and guardrails before invoking the agent. It builds structured prompts with reusable builders, parses JSON-like model output with repair and schema validation, and converts results into typed review artifacts. Multiple review strategies are supported, including per-file loop review, cross-checking, and draft-stage route handling for questions and coverage. It enforces scope boundaries by filtering findings to changed files and known requirements, and blocks unsafe writes (for example in test fix application). Output is written consistently as Markdown and JSON files under the spec directory for downstream flow steps.",
+        "chapter": "cli_commands",
+        "role": "Flow review command orchestrator and multi-phase AI review engine",
+        "keywords": [
+          "flow review",
+          "AI code review",
+          "spec validation",
+          "test coverage analysis",
+          "guardrails",
+          "schema validation",
+          "diff-based filtering",
+          "artifact generation",
+          "retry loop"
+        ]
       },
       {
         "file": "src/flow/definition.js",
@@ -2623,8 +2631,24 @@
         ],
         "id": "2cb27b93",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-25T03:57:50.884Z",
+          "attempts": 2
+        },
+        "summary": "Defines the flow graph model and utilities used to drive SDD step progression. It centralizes node metadata, max-attempt policies, traversal, and next-action derivation.",
+        "detail": "The file models workflow steps with `FlowNode` and max-attempt strategies (`ScalarMaxAttempts` and `ModeMaxAttempts`) that depend on execution context such as auto-approval mode. It declares immutable flow and task definitions, including draft review route integration and gate side-effect metadata. Helper functions traverse nested trees to collect leaves, derive phase maps, find active or in-progress nodes, and flatten step structures. Additional utilities compute prerequisites, branch membership, and promotion of the next pending leaf. Depth and scan limits are enforced to prevent malformed definitions and unbounded state scanning.",
+        "chapter": "internal_design",
+        "role": "Workflow definition model and step-resolution utility layer",
+        "keywords": [
+          "flow graph",
+          "workflow state machine",
+          "FlowNode",
+          "max attempts",
+          "step traversal",
+          "active step detection",
+          "phase mapping",
+          "task progression",
+          "SDD pipeline"
+        ]
       },
       {
         "file": "src/flow/lib/acknowledged-rationale.js",
@@ -3648,8 +3672,24 @@
         ],
         "id": "1dd5bb71",
         "enrich": {
-          "attempts": 1
-        }
+          "processedAt": "2026-05-25T03:57:50.884Z",
+          "attempts": 2
+        },
+        "summary": "Provides typed domain objects for review observations, diagnoses, and next actions with strict normalization and policy checks. It also includes legacy evaluation migration into the new object model.",
+        "detail": "The module validates required fields, rejects unknown keys, normalizes location and references, and enforces controlled vocabularies for failure modes and severities. Severity policy logic encodes special rules, such as blocking requirements for diff-verifiable process-evidence gaps. `Observation`, `Diagnosis`, and `NextAction` classes encapsulate invariants, JSON serialization, markdown rendering, and stable hashing for deduplication. Legacy evaluation entries are transformed into first-class observations with fallback classification logic. This design keeps review semantics explicit and machine-consumable while preserving human-readable output.",
+        "chapter": "internal_design",
+        "role": "Review evidence domain model and normalization layer",
+        "keywords": [
+          "observation model",
+          "diagnosis",
+          "next action",
+          "failure mode",
+          "severity policy",
+          "data normalization",
+          "legacy migration",
+          "invariant enforcement",
+          "hash deduplication"
+        ]
       },
       {
         "file": "src/flow/lib/overview-merge.js",
@@ -4234,8 +4274,24 @@
         "usedBy": null,
         "id": "49364661",
         "enrich": {
-          "attempts": 4
-        }
+          "processedAt": "2026-05-25T03:57:50.884Z",
+          "attempts": 5
+        },
+        "summary": "Runs final regression checks and classifies failures to decide whether they are caused by current changes or pre-existing conditions. It records attempt logs, bounded evidence, and decision artifacts for the finalize stage.",
+        "detail": "The command executes regression processes through a structured result factory and emits heartbeat/progress lines for long-running operations. Failure classification combines text heuristics, changed-file matching, and change-scope analysis to distinguish infra, permission, dependency, sandbox, and attribution categories. Evidence text is size-bounded and normalized to control artifact growth while preserving diagnostic signal. Attempt indexing is managed with guard limits to avoid unbounded raw log scanning and runaway retry state. The module persists machine-readable result JSON and integrates failures into the issue log for flow continuity.",
+        "chapter": "internal_design",
+        "role": "Final regression executor and failure attribution engine",
+        "keywords": [
+          "final regression",
+          "failure classification",
+          "change attribution",
+          "issue log",
+          "process heartbeat",
+          "bounded evidence",
+          "attempt log",
+          "sandbox error",
+          "CI-style diagnostics"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-cleanup.js",
@@ -4316,8 +4372,23 @@
         "usedBy": null,
         "id": "1e686d63",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-05-25T03:57:50.884Z",
+          "attempts": 7
+        },
+        "summary": "Implements the finalize-commit flow command wrapper that prepares the repository and performs the implementation commit step. It connects preflight checks, commit execution, and user-facing status messaging.",
+        "detail": "The class extends the flow command base and delegates operational logic to shared finalize helpers, keeping command behavior thin and consistent. It runs finalize preflight before commit to ensure git writeability and environment readiness. Commit behavior supports skip semantics when there is nothing to commit, reducing false failures in automation. Test-artifact exclusion pathspecs are integrated to prevent unwanted generated files from entering implementation commits. Returned results are normalized into concise command responses for downstream flow orchestration.",
+        "chapter": "cli_commands",
+        "role": "Finalize commit command adapter",
+        "keywords": [
+          "finalize commit",
+          "flow command",
+          "preflight check",
+          "git commit orchestration",
+          "artifact exclusion",
+          "implementation commit",
+          "command wrapper",
+          "status messaging"
+        ]
       },
       {
         "file": "src/flow/lib/run-finalize-merge.js",
@@ -4456,8 +4527,24 @@
         ],
         "id": "c711309b",
         "enrich": {
-          "attempts": 6
-        }
+          "processedAt": "2026-05-25T03:57:50.884Z",
+          "attempts": 7
+        },
+        "summary": "Contains shared finalize-phase logic for preflight validation, metadata-only commit safety, migration hooks, and post-commit housekeeping. It enforces repository integrity rules before and during finalization.",
+        "detail": "The module provides reusable helpers for error wrapping, pointer file updates, conditional commit behavior, and finalize metadata path allowlisting. It parses porcelain status to detect dirty paths and determines whether merge metadata can be committed safely without touching unrelated files. Git common directory resolution and lock-file write tests verify write access early, producing typed preflight errors for clear failure handling. Preflight checks evaluate branch state, worktree cleanliness, and step conditions to prevent unsafe finalize transitions. Optional migration hooks and post-commit checks coordinate spec-scoped scripts and test-result artifacts during finalize completion.",
+        "chapter": "development",
+        "role": "Finalize workflow safety and preflight orchestration library",
+        "keywords": [
+          "finalize workflow",
+          "preflight validation",
+          "git write access",
+          "dirty worktree detection",
+          "metadata commit safety",
+          "migration hook",
+          "post-commit checks",
+          "flow finalization",
+          "repository integrity"
+        ]
       },
       {
         "file": "src/flow/lib/run-gate.js",
@@ -4650,7 +4737,7 @@
         ],
         "id": "b4aa4dad",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -5072,7 +5159,7 @@
         ],
         "id": "d4e97204",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -6346,7 +6433,7 @@
         "usedBy": null,
         "id": "d64f4095",
         "enrich": {
-          "attempts": 2
+          "attempts": 3
         }
       },
       {
@@ -7884,7 +7971,7 @@
         ],
         "id": "7d5119a2",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       },
       {
@@ -11561,15 +11648,15 @@
         "usedBy": null,
         "id": "a631f658",
         "enrich": {
-          "attempts": 1
+          "attempts": 2
         }
       }
     ],
     "summary": {
       "total": 312,
-      "totalMethods": 1481
+      "totalMethods": 1488
     },
     "dataSourceHash": "5ed9d88bcfcf9f1a97396b9d44f6f0c0"
   },
-  "enrichedAt": "2026-05-25T01:31:39.158Z"
+  "enrichedAt": "2026-05-25T03:58:09.843Z"
 }
